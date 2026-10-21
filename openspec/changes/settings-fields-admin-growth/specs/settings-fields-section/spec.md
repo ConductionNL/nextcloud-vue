@@ -39,6 +39,31 @@ value when there is no `clearKey`, and the field SHALL then read as not stored.
 - **WHEN** the administrator switches removal on and saves
 - **THEN** the section sends `clearToken: true` and no longer offers removal
 
+### Requirement: Opening hours are a field
+
+A `week-hours` field SHALL draw one row per day of `days` (default Monday to
+Sunday, named in the user's language) with an Open switch and, while open, an
+opening and a closing time, and hold `{ <day>: { opens, closes } | null }`. A
+save SHALL refuse a day that closes before it opens or misses a time.
+
+#### Scenario: Opening on Saturday
+
+- **GIVEN** opening hours with Saturday closed
+- **WHEN** the admin opens Saturday and saves
+- **THEN** Saturday is saved as 08:00 to 17:00 with the other days unchanged
+
+### Requirement: An action can refresh the section
+
+An action with `reload` SHALL read the section again after it succeeded. An
+action's `url` SHALL never be read. A status text SHALL format `{name|date}` as
+a date in the user's language.
+
+#### Scenario: Rotating a key shows the new fingerprint
+
+- **GIVEN** a status note on `configured` and a rotate action with `reload`
+- **WHEN** the rotation succeeds
+- **THEN** the note shows the new fingerprint
+
 ### Requirement: A pairs value can be chosen from objects
 
 A `pairs` field with `valueSource { register, schema, labelField }` SHALL draw

@@ -152,3 +152,72 @@ describe('a pairs field with a valueSource', () => {
 		expect(wrapper.find('[data-testid="cn-settings-field-pairs-truncated-som"]').exists()).toBe(true)
 	})
 })
+
+describe('a week-hours field', () => {
+	const HOURS = { key: 'weekdays', path: 'openingHours.weekdays', label: 'Opening hours', type: 'week-hours', days: ['monday', 'saturday'] }
+
+	it('draws a day per row, opens a closed day with default hours, and saves the whole week', async () => {
+		axios.get.mockResolvedValue({ data: { openingHours: { weekdays: { monday: { opens: '08:00', closes: '17:00' }, saturday: null }, closedOnStudyDays: false } } })
+		axios.request.mockResolvedValue({ data: {} })
+		const wrapper = await mountSection({ fields: [HOURS], saveMethod: 'PUT' })
+
+		const rows = field(wrapper, 'weekdays').findAll('[data-testid^="cn-settings-field-day-"]')
+		expect(rows).toHaveLength(2)
+		expect(field(wrapper, 'weekdays').findAll('input[type="time"]')).toHaveLength(2)
+
+		await wrapper.find('[data-testid="cn-settings-field-day-saturday"] input[type="checkbox"]').setValue(true)
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+
+		expect(axios.request).toHaveBeenCalledWith(expect.objectContaining({
+			method: 'put',
+			data: { openingHours: { weekdays: { monday: { opens: '08:00', closes: '17:00' }, saturday: { opens: '08:00', closes: '17:00' } }, closedOnStudyDays: false } },
+		}))
+	})
+
+	it('refuses a day that closes before it opens', async () => {
+		axios.get.mockResolvedValue({ data: { openingHours: { weekdays: { monday: { opens: '17:00', closes: '08:00' }, saturday: null } } } })
+		const wrapper = await mountSection({ fields: [HOURS] })
+
+		await wrapper.find('[data-testid="cn-settings-field-day-saturday"] input[type="checkbox"]').setValue(true)
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+
+		expect(axios.request).not.toHaveBeenCalled()
+		expect(field(wrapper, 'weekdays').text()).toContain('closes before it opens')
+	})
+})
+
+describe('an action with reload', () => {
+	it('reads the section again after it ran, so a status note shows the new state', async () => {
+		axios.get
+			.mockResolvedValueOnce({ data: { configured: false } })
+			.mockResolvedValueOnce({ data: { configured: true, fingerprint: 'abc' } })
+		axios.request.mockResolvedValue({ data: { fingerprint: 'abc' } })
+		const wrapper = await mountSection({
+			url: '/apps/myapp/api/key',
+			fields: [
+				{ key: 'configured', type: 'status', textMap: { true: 'Key {fingerprint}', '*': 'No key' } },
+				{ key: 'rotate', label: 'Rotate', type: 'action', url: '/apps/myapp/api/key/rotate', reload: true },
+			],
+		})
+		expect(field(wrapper, 'configured').text()).toContain('No key')
+
+		await field(wrapper, 'rotate').find('button').trigger('click')
+		await flushPromises()
+
+		expect(field(wrapper, 'configured').text()).toContain('Key abc')
+		expect(axios.get.mock.calls.map(([url]) => url)).toEqual(['/apps/myapp/api/key', '/apps/myapp/api/key'])
+	})
+})
+
+describe('a status note with a date', () => {
+	it('formats {name|date} as a date', async () => {
+		axios.get.mockResolvedValue({ data: { signedAt: '2026-03-01T09:00:00+00:00' } })
+		const wrapper = await mountSection({ fields: [{ key: 'signedNote', type: 'status', text: 'Signed on {signedAt|date}.' }] })
+
+		const text = field(wrapper, 'signedNote').text()
+		expect(text).not.toContain('T09:00')
+		expect(text).toMatch(/2026/)
+	})
+})

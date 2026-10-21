@@ -229,6 +229,39 @@
 				{{ field.clearLabel || t('nextcloud-vue', 'Remove the stored value') }}
 			</NcCheckboxRadioSwitch>
 		</div>
+		<fieldset v-else-if="kind === 'week-hours'"
+			class="cn-settings-field__week"
+			:disabled="field.readOnly"
+			:aria-describedby="describedBy">
+			<legend class="cn-settings-field__radio-legend" :class="{ 'hidden-visually': field.hideLabel === true }">
+				{{ label }}
+			</legend>
+			<div v-for="day in weekDays"
+				:key="day.key"
+				class="cn-settings-field__day"
+				:data-testid="`cn-settings-field-day-${day.key}`">
+				<NcCheckboxRadioSwitch
+					type="switch"
+					:modelValue="!!weekValue[day.key]"
+					:aria-label="t('nextcloud-vue', 'Open on {day}', { day: day.label })"
+					@update:modelValue="setDayOpen(day.key, $event)">
+					{{ day.label }}
+				</NcCheckboxRadioSwitch>
+				<template v-if="weekValue[day.key]">
+					<NcTextField
+						type="time"
+						:label="t('nextcloud-vue', 'Opens on {day}', { day: day.label })"
+						:modelValue="weekValue[day.key].opens || ''"
+						@update:modelValue="setDayTime(day.key, 'opens', $event)" />
+					<NcTextField
+						type="time"
+						:label="t('nextcloud-vue', 'Closes on {day}', { day: day.label })"
+						:modelValue="weekValue[day.key].closes || ''"
+						@update:modelValue="setDayTime(day.key, 'closes', $event)" />
+				</template>
+				<span v-else class="cn-settings-field__hint">{{ t('nextcloud-vue', 'Closed') }}</span>
+			</div>
+		</fieldset>
 		<NcTextField
 			v-else-if="kind === 'number'"
 			:id="inputId"
@@ -266,7 +299,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { getDayNames, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -278,6 +311,12 @@ let fieldUid = 0
 
 /** Field types and the names CnSettingsPage's manifest uses for them. */
 const KIND_ALIASES = { enum: 'select', string: 'text', datetime: 'datetime-local', 'date-time': 'datetime-local' }
+
+/** The days of a week, Monday first: the keys a week-hours value uses. */
+const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+/** The same keys in the order of getDayNames(), which starts on Sunday. */
+const WEEK_DAYS_FROM_SUNDAY = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 /** The kinds drawn as a text field with their own input type. */
 const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
@@ -410,6 +449,18 @@ export default {
 		/** @return {string} The value as text for a text control. */
 		stringValue() {
 			return this.modelValue === null || this.modelValue === undefined ? '' : String(this.modelValue)
+		},
+
+		/** @return {Array<{key: string, label: string}>} The days of a week-hours field, Monday first by default. */
+		weekDays() {
+			const names = getDayNames()
+			const days = Array.isArray(this.field.days) && this.field.days.length > 0 ? this.field.days : WEEK_DAYS
+			return days.map((key) => ({ key, label: names[WEEK_DAYS_FROM_SUNDAY.indexOf(key)] || key }))
+		},
+
+		/** @return {object} A week-hours field's value: day to `{ opens, closes }` or null. */
+		weekValue() {
+			return this.modelValue && typeof this.modelValue === 'object' && !Array.isArray(this.modelValue) ? this.modelValue : {}
 		},
 
 		/** @return {string} An action link's address, with the web root for an app path. */
@@ -624,6 +675,31 @@ export default {
 		},
 
 		/**
+		 * Open or close one day of a week-hours field; an opened day takes
+		 * `defaultOpens`/`defaultCloses` (08:00 to 17:00).
+		 *
+		 * @param {string} day The day key.
+		 * @param {boolean} open Whether it is open.
+		 * @return {void}
+		 */
+		setDayOpen(day, open) {
+			const hours = open ? { opens: this.field.defaultOpens || '08:00', closes: this.field.defaultCloses || '17:00' } : null
+			this.emitValue({ ...this.weekValue, [day]: hours })
+		},
+
+		/**
+		 * Change one time of an open day.
+		 *
+		 * @param {string} day The day key.
+		 * @param {string} part `opens` or `closes`.
+		 * @param {string} time The time, `HH:MM`.
+		 * @return {void}
+		 */
+		setDayTime(day, part, time) {
+			this.emitValue({ ...this.weekValue, [day]: { ...(this.weekValue[day] || {}), [part]: time } })
+		},
+
+		/**
 		 * The option a pairs value selects; an id no object answers keeps its id as label.
 		 *
 		 * @param {unknown} value The stored id.
@@ -778,6 +854,26 @@ export default {
 	margin: 0;
 	padding: 0;
 	border: 0;
+}
+
+.cn-settings-field__week {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-settings-field__day {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.cn-settings-field__day > :first-child {
+	flex: 0 0 160px;
 }
 
 .cn-settings-field__pairs {

@@ -95,6 +95,9 @@ Three types hold no value of their own; they are never checked or saved.
 - `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section. With `href` it is a link to a page (`target: '_blank'` opens a new tab) and posts nothing. With `confirm` it asks first (the question's text, `confirmLabel` for the button) and posts only after a yes; `params` are sent with it, such as `{ confirm: 'true' }`.
 - A `secret` with `clearable` offers "Remove the stored value" while a value is stored. Switched on, the input is disabled and the save sends `clearKey: true` (for a server that takes a flag, such as `clearToken`), or the key with an empty value when there is no `clearKey`.
 - A `pairs` field with `valueSource: { register, schema, labelField }` chooses each value from those OpenRegister objects and saves their ids.
+- A `week-hours` field edits opening hours per day as `{ <day>: { opens, closes } | null }`. A save refuses a day that closes before it opens or misses a time.
+- An action with `reload: true` reads the section again after it ran, so a status note shows what it changed. An action's `url` is only posted to, never read.
+- A status `text` or `textMap` entry can format a date: `{signedAt|date}` shows the day, month and year in the user's language.
 
 ```js
 fields: [
@@ -135,6 +138,8 @@ fields: [
 | `text`, `textMap`, `tone`, `toneMap` | A status note's text and tone. |
 | `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill`, `href`, `target`, `confirm`, `confirmLabel`, `params` | An action, see above. |
 | `clearable`, `clearKey`, `clearLabel` | A secret whose stored value can be removed. |
+| `days`, `defaultOpens`, `defaultCloses` | A week-hours field's days and the hours a day opens with. |
+| `reload` | An action that reads the section again after it ran. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
 

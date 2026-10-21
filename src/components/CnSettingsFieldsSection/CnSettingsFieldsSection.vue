@@ -72,7 +72,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { showConfirmation } from '@nextcloud/dialogs'
-import { translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
@@ -107,6 +107,9 @@ function ocsConfig(url) {
 }
 
 /** Types that hold no value of their own: never read into the form's dirty state, checked or saved. */
+/** A time of day, `HH:MM`. */
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
+
 const VALUELESS_TYPES = ['heading', 'status', 'action']
 
 /** Types whose value is a list of choices (a `select` with `multiple` too). */
@@ -144,9 +147,16 @@ function isEmpty(value) {
  * @return {string}
  */
 function interpolate(text, lookup) {
-	return String(text || '').replace(/\{([A-Za-z0-9_.-]+)\}/g, (whole, name) => {
+	return String(text || '').replace(/\{([A-Za-z0-9_.-]+)(\|date)?\}/g, (whole, name, format) => {
 		const value = lookup(name)
-		return isEmpty(value) || typeof value === 'object' ? whole : String(value)
+		if (isEmpty(value) || typeof value === 'object') {
+			return whole
+		}
+		if (format === '|date') {
+			const date = new Date(String(value))
+			return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString(getCanonicalLocale() || undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+		}
+		return String(value)
 	})
 }
 
@@ -826,6 +836,9 @@ export default {
 					? said
 					: (interpolate(this.tr(fallback || ''), (name) => literalFirst(answer, name)) || t('nextcloud-vue', 'Done.'))
 				setState({ busy: false, result: { type: ok ? 'success' : 'error', text } })
+				if (ok && field.reload) {
+					await this.load(true)
+				}
 			} catch (error) {
 				setState({ busy: false, result: { type: 'error', text: refusalMessage(error) } })
 			}
@@ -846,8 +859,9 @@ export default {
 			try {
 				// One GET per distinct read target; the section's own target must
 				// answer, a field's own target may fail on its own.
+				// An action's url is where it posts, never a value to read.
 				const targets = [...new Set(this.fields
-					.filter((field) => field && field.key)
+					.filter((field) => field && field.key && field.type !== 'action' && field.type !== 'heading')
 					.map((field) => this.readUrlOf(field))
 					.filter(Boolean))]
 				const answers = {}
@@ -924,6 +938,9 @@ export default {
 			}
 			if (field.type === 'pairs') {
 				return Object.entries(storedObject(value).object).map(([key, entry]) => ({ key, value: entry }))
+			}
+			if (field.type === 'week-hours') {
+				return JSON.parse(JSON.stringify(storedObject(value).object))
 			}
 			return value === undefined ? '' : value
 		},
@@ -1018,6 +1035,13 @@ export default {
 					continue
 				}
 				if (empty) {
+					continue
+				}
+				if (field.type === 'week-hours') {
+					const late = Object.values(value).some((hours) => hours && !(TIME.test(hours.opens || '') && TIME.test(hours.closes || '') && hours.opens < hours.closes))
+					if (late) {
+						errors[field.key] = t('nextcloud-vue', '{field}: a day closes before it opens, or a time is missing.', { field: field.label })
+					}
 					continue
 				}
 				if (field.type === 'pairs') {

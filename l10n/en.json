@@ -1981,7 +1981,12 @@
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
     "Search in this list": "Search in this list",
     "Remove the stored value": "Remove the stored value",
-    "Only the first {count} choices are listed.": "Only the first {count} choices are listed."
+    "Only the first {count} choices are listed.": "Only the first {count} choices are listed.",
+    "Open on {day}": "Open on {day}",
+    "Opens on {day}": "Opens on {day}",
+    "Closes on {day}": "Closes on {day}",
+    "Closed": "Closed",
+    "{field}: a day closes before it opens, or a time is missing.": "{field}: a day closes before it opens, or a time is missing."
   },
   "plurals": {
     "{count} member": [

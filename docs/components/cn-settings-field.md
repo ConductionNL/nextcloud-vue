@@ -14,6 +14,7 @@ One settings field: the control for its type with its label, and under it an err
 | `text` (default), `string` | NcTextField |
 | `password` | NcTextField, masked, showing its value back |
 | `date`, `datetime-local` (also `datetime`, `date-time`), `email`, `url` | NcTextField of that input type; the value stays the text the input holds |
+| `week-hours` | A fieldset named by the label with one row per day (`days`, default Monday to Sunday, named in the user's language): an Open switch and, while open, an opening and a closing time. The value is `{ <day>: { opens, closes } | null }`; an opened day starts at `defaultOpens`/`defaultCloses` (08:00 to 17:00) |
 | `secret` | NcTextField, masked and replace-only; with `secretSet` it says a value is stored. With `clearable` and a stored value, a switch (`clearLabel`, default "Remove the stored value") emits `clear`; the host passes `clearing` and the input is disabled while it is on |
 | `number` | NcTextField of type number (`min`, `max`) |
 | `textarea` | NcTextArea (`rows`) |

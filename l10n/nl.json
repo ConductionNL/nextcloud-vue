@@ -2231,7 +2231,11 @@
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
     "Search in this list": "Zoeken in deze lijst",
     "Remove the stored value": "De opgeslagen waarde verwijderen",
-    "Only the first {count} choices are listed.": "Alleen de eerste {count} keuzes staan in de lijst."
+    "Only the first {count} choices are listed.": "Alleen de eerste {count} keuzes staan in de lijst.",
+    "Open on {day}": "Open op {day}",
+    "Opens on {day}": "Opent op {day}",
+    "Closes on {day}": "Sluit op {day}",
+    "{field}: a day closes before it opens, or a time is missing.": "{field}: een dag sluit voordat hij opent, of er ontbreekt een tijd."
   },
   "plurals": {
     "{count} member": [
