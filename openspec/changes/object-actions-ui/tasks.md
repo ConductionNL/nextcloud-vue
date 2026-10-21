@@ -30,5 +30,7 @@
 
 ### Task 5: Macros widget over the list
 - **spec_ref**: `#requirement-the-macros-widget-is-a-view-over-the-same-list`
-- **files**: `src/components/CnMacrosWidget/CnMacrosWidget.vue`
-- [ ] Test, implement, docs, en/nl
+- **files**: `src/components/CnMacrosWidget/CnMacrosWidget.vue`, `src/utils/declaredMacros.js` (`macrosFromActions`)
+- [x] Test: `tests/components/CnMacrosWidget.spec.js` (the old-server tests kept, the list path added)
+- [x] Implement: the list filtered to flow and steps, `macrosFrom` narrowing, disabled with reason, inputs dialog, history of both audit names, schema fallback on a 404
+- [x] Docs: `cn-macros-widget.md`; no new strings

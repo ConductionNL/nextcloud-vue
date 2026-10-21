@@ -25,6 +25,20 @@ const CnMacrosWidget = require('../../src/components/CnMacrosWidget/CnMacrosWidg
 const { declaredMacros, pickMacros } = require('../../src/utils/declaredMacros.js')
 const { DASHBOARD_CATALOG_WIDGET_KEYS } = require('../../src/utils/libraryWidgetKeys.js')
 
+/**
+ * An OpenRegister that predates the object-actions list: its actions and
+ * history routes answer 404, so the widget reads the schema's declared macros
+ * and the audit trail, as it did before object-actions-ui.
+ *
+ * @param {(url: string) => Promise<object>} impl The other routes.
+ * @return {(url: string, options?: object) => Promise<object>}
+ */
+function oldServer(impl) {
+	return (url, options) => (/\/actions(\/history)?$/.test(url)
+		? Promise.reject({ response: { status: 404, data: {} } })
+		: impl(url, options))
+}
+
 const SCHEMA = {
 	configuration: {
 		'x-openregister-action': {
@@ -43,9 +57,9 @@ function mountWidget() {
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	axios.get.mockImplementation((url) => Promise.resolve(url.includes('/audit-trails')
+	axios.get.mockImplementation(oldServer((url) => Promise.resolve(url.includes('/audit-trails')
 		? { data: { results: [{ created: '2026-10-06T10:00:00Z', changed: { declaredAction: 'suspend', changes: [{ step: 'termijn opgeschort', kind: 'write' }, { step: 'bericht verstuurd', kind: 'message' }] } }] } }
-		: { data: SCHEMA }))
+		: { data: SCHEMA })))
 	axios.post.mockResolvedValue({ data: { run: 'r-1', outcome: 'completed' } })
 })
 
@@ -81,7 +95,8 @@ describe('CnMacrosWidget', () => {
 	it('lists the macros of the record\'s schema and its last run', async () => {
 		const w = mountWidget()
 		await flushPromises()
-		expect(axios.get.mock.calls[0][0]).toContain('/apps/openregister/api/schemas/9')
+		expect(axios.get.mock.calls[0][0]).toContain('/apps/openregister/api/objects/5/9/c-1/actions')
+		expect(axios.get.mock.calls.some(([url]) => url.includes('/apps/openregister/api/schemas/9'))).toBe(true)
 		expect(w.findAll('.cn-macros-widget__name').map((n) => n.text())).toEqual(['Woo-verzoek afronden', 'Opschorten voor aanvulling'])
 		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('Opschorten voor aanvulling')
 		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('2 changes: termijn opgeschort, bericht verstuurd')
@@ -90,9 +105,9 @@ describe('CnMacrosWidget', () => {
 	it('runs a macro through the declared-action endpoint and refreshes the page', async () => {
 		const w = mountWidget()
 		await flushPromises()
-		axios.get.mockImplementation((url) => Promise.resolve(url.includes('/audit-trails')
+		axios.get.mockImplementation(oldServer((url) => Promise.resolve(url.includes('/audit-trails')
 			? { data: { results: [{ created: '2026-10-07T10:00:00Z', changed: { declaredAction: 'woo-finish', changes: [{ step: 'status naar Besluit', kind: 'write' }] } }] } }
-			: { data: SCHEMA }))
+			: { data: SCHEMA })))
 		await w.find('[data-testid="cn-macros-widget-run-woo-finish"]').trigger('click')
 		await flushPromises()
 		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('1 change: status naar Besluit')
@@ -146,12 +161,12 @@ describe('CnMacrosWidget', () => {
 	})
 
 	it('asks an endpoint which macros the record offers when macrosFrom is one', async () => {
-		axios.get.mockImplementation((url) => {
+		axios.get.mockImplementation(oldServer((url) => {
 			if (url.includes('/case-macros/')) {
 				return Promise.resolve({ data: { keys: ['woo-finish'] } })
 			}
 			return Promise.resolve(url.includes('/audit-trails') ? { data: { results: [] } } : { data: SCHEMA })
-		})
+		}))
 		const w = mount(CnMacrosWidget, {
 			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: { url: '/apps/dossiq/api/case-macros/@objectId', responsePath: 'keys' } } },
 		})
@@ -161,9 +176,9 @@ describe('CnMacrosWidget', () => {
 	})
 
 	it('offers none when the endpoint refuses, never every macro', async () => {
-		axios.get.mockImplementation((url) => (url.includes('/case-macros/')
+		axios.get.mockImplementation(oldServer((url) => (url.includes('/case-macros/')
 			? Promise.reject(new Error('403'))
-			: Promise.resolve(url.includes('/audit-trails') ? { data: { results: [] } } : { data: SCHEMA })))
+			: Promise.resolve(url.includes('/audit-trails') ? { data: { results: [] } } : { data: SCHEMA }))))
 		const w = mount(CnMacrosWidget, {
 			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: { url: '/apps/dossiq/api/case-macros/@objectId' } } },
 		})
@@ -173,5 +188,61 @@ describe('CnMacrosWidget', () => {
 
 	it('is a library widget key', () => {
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('macros')
+	})
+})
+
+describe('CnMacrosWidget over the object-actions list', () => {
+	const LIST = {
+		actions: [
+			{ key: 'woo-finish', kind: 'flow', label: 'Woo-verzoek afronden', description: 'Status naar Besluit', available: true },
+			{ key: 'suspend', kind: 'steps', label: 'Opschorten voor aanvulling', available: false, reason: 'De termijn is al opgeschort' },
+			{ key: 'note', kind: 'steps', label: 'Notitie toevoegen', available: true, inputs: { type: 'object', required: ['text'], properties: { text: { type: 'string' } } } },
+			{ key: 'finish', kind: 'transition', label: 'Afronden', available: true },
+		],
+	}
+
+	beforeEach(() => {
+		axios.get.mockImplementation((url) => {
+			if (url.endsWith('/actions')) {
+				return Promise.resolve({ data: LIST })
+			}
+			if (url.endsWith('/actions/history')) {
+				return Promise.resolve({ data: { results: [{ action: 'action.run', created: '2026-10-21T10:00:00Z', changed: { declaredAction: 'woo-finish', changes: [{ step: 'status naar Besluit', kind: 'write' }] } }] } })
+			}
+			return Promise.reject(new Error(`unexpected ${url}`))
+		})
+	})
+
+	it('shows the listed flow and steps actions, not transitions, and does not read the schema', async () => {
+		const w = mountWidget()
+		await flushPromises()
+		expect(w.findAll('.cn-macros-widget__name').map((node) => node.text())).toEqual(['Woo-verzoek afronden', 'Opschorten voor aanvulling', 'Notitie toevoegen'])
+		expect(axios.get.mock.calls.some(([url]) => url.includes('/api/schemas/'))).toBe(false)
+		expect(w.find('[data-testid="cn-macros-widget-last-run"]').text()).toContain('1 change: status naar Besluit')
+	})
+
+	it('shows an unavailable macro disabled with its reason', async () => {
+		const w = mountWidget()
+		await flushPromises()
+		expect(w.find('[data-testid="cn-macros-widget-run-suspend"]').attributes('disabled')).toBeDefined()
+		expect(w.find('[data-testid="cn-macros-widget-reason-suspend"]').text()).toBe('De termijn is al opgeschort')
+	})
+
+	it('keeps macrosFrom narrowing the list', async () => {
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: '@context.caseType.macros' } },
+			global: { provide: { cnDetailVisibilityRows: { value: { caseType: { macros: ['note', 'finish'] } } } } },
+		})
+		await flushPromises()
+		expect(w.findAll('.cn-macros-widget__name').map((node) => node.text())).toEqual(['Notitie toevoegen'])
+	})
+
+	it('asks a macro\'s inputs in the object-action dialog', async () => {
+		const w = mountWidget()
+		await flushPromises()
+		await w.find('[data-testid="cn-macros-widget-run-note"]').trigger('click')
+		await flushPromises()
+		expect(w.findComponent({ name: 'CnObjectActionDialog' }).exists()).toBe(true)
+		expect(axios.post).not.toHaveBeenCalled()
 	})
 })

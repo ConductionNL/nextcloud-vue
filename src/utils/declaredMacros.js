@@ -2,9 +2,11 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The macros an OpenRegister schema declares: declared actions
- * (`configuration['x-openregister-action']`) with `macro: true` and a bound
- * flow. A declared action without a flow is not a macro and is left out.
+ * The macros of a record. OpenRegister lists them as object actions of kind
+ * `flow` or `steps` (`macrosFromActions`). An instance without that list
+ * still has them as declared actions (`configuration['x-openregister-action']`)
+ * with `macro: true` and a bound flow (`declaredMacros`). A declared action
+ * without a flow is not a macro and is left out.
  */
 
 /**
@@ -48,4 +50,25 @@ export function pickMacros(declared, keys, named) {
 	return keys
 		.map((key) => declared.find((macro) => macro.key === String(key)))
 		.filter(Boolean)
+}
+
+/**
+ * The macros among the object actions OpenRegister lists for a record: those
+ * whose body is a flow or inline steps, in list order.
+ *
+ * @param {Array<object>} actions The listed actions (`useObjectActions`).
+ * @return {Array<{key: string, name: string, description: string, available: boolean, reason: string, action: object}>} The macros.
+ * @spec openspec/changes/object-actions-ui/specs/object-actions-ui/spec.md#requirement-the-macros-widget-is-a-view-over-the-same-list
+ */
+export function macrosFromActions(actions) {
+	return (Array.isArray(actions) ? actions : [])
+		.filter((action) => action && (action.kind === 'flow' || action.kind === 'steps'))
+		.map((action) => ({
+			key: action.key,
+			name: action.label,
+			description: action.description || '',
+			available: action.available !== false,
+			reason: action.reason || '',
+			action,
+		}))
 }
