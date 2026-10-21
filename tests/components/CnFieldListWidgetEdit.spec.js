@@ -158,4 +158,3 @@ describe('CnFieldListWidget: edit and primary', () => {
 		expect(mockPatch).toHaveBeenCalledTimes(1)
 	})
 })
-
