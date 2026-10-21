@@ -561,6 +561,13 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
+/* A data card (labels over values) starts 14px below its title (DqZaak
+   "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
+   @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
+	padding-top: calc(14px - var(--cn-board-first-line-leading));
+}
+
 /* A header-less card keeps the full 20px 22px. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content {
 	padding: var(--cn-board-card-padding);
