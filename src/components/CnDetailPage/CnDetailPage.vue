@@ -647,6 +647,57 @@
 			</template>
 		</CnNextStepCard>
 
+		<!-- The band (manifest `config.band`): a row of widgets across the whole
+		     page, above the body and the side column (PtPortal: the traffic
+		     figures and the start-page notice). Each entry takes `span`
+		     twelfths of the row and the row wraps. -->
+		<div
+			v-if="showsBand"
+			class="cn-detail-page__band"
+			data-testid="cn-detail-page-band">
+			<div
+				v-for="entry in bandWidgets"
+				:key="`band-${entry.widget.id}`"
+				class="cn-detail-page__band-item"
+				:class="{ 'cn-detail-page__band-item--full': entry.span === 12 }"
+				:style="{ '--cn-band-span': entry.span }"
+				:data-testid="`cn-detail-page-band-${entry.widget.id}`">
+				<!--
+					@slot `widget-${widget.id}`
+					@description The same per-widget slot the body grid and the side
+					column offer, for a widget placed in the band.
+				-->
+				<slot
+					:name="`widget-${entry.widget.id}`"
+					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
+					:widget="entry.widget"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="entry.widget"
+						:chrome="entry.chrome"
+						:showCardTitle="true"
+						:showActions="effectiveShowWidgetActions"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets" />
+				</slot>
+			</div>
+		</div>
+
 		<!-- Not-found state: the record behind the address does not exist. -->
 		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
 			<!--
@@ -2750,6 +2801,24 @@ export default {
 		},
 
 		/**
+		 * A row of widgets across the whole page, above the body and the side
+		 * column (manifest `config.band`). Each entry is the id of a widget
+		 * declared in `widgets`, a widget definition, or `{ widgetId, span,
+		 * chrome }`; `span` is the entry's share of the row in twelfths
+		 * (default 12) and the row wraps; `chrome` is `card` or `bare` (a
+		 * banner defaults to bare, anything else to card, so a widget that
+		 * draws its own card, such as a KPI, asks for bare). Each entry
+		 * follows its `visibleWhen`. Empty (the default) draws no band.
+		 *
+		 * @type {Array<string|object>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		band: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * A field path whose value picks the side column and its order for
 		 * this record (manifest `config.sideColumnFrom`), read like a
 		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
@@ -3871,6 +3940,47 @@ export default {
 		 * @return {boolean} True when it has widgets and the body is showing.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 */
+		/**
+		 * The band's widgets, resolved and visible, each with its span.
+		 *
+		 * @return {Array<{widget: object, span: number, chrome: string}>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		bandWidgets() {
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return (Array.isArray(this.band) ? this.band : [])
+				.map((entry, index) => {
+					let widget = null
+					let span = 12
+					if (typeof entry === 'string') {
+						widget = declared.find((candidate) => candidate && candidate.id === entry) || null
+					} else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+						span = Number.isInteger(entry.span) ? Math.min(12, Math.max(1, entry.span)) : 12
+						if (typeof entry.widgetId === 'string') {
+							widget = declared.find((candidate) => candidate && candidate.id === entry.widgetId) || null
+						} else if (typeof entry.type === 'string') {
+							widget = entry.id ? entry : { ...entry, id: `cn-band-${index}` }
+						}
+					}
+					if (!widget) {
+						return null
+					}
+					const chrome = ['card', 'bare'].includes(entry?.chrome) ? entry.chrome : (widget.type === 'banner' ? 'bare' : 'card')
+					return { widget, span, chrome }
+				})
+				.filter((entry) => entry && this.sideWidgetVisible(entry.widget))
+		},
+
+		/**
+		 * Whether the band renders: it has a visible widget and the record shows.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		showsBand() {
+			return this.bandWidgets.length > 0 && this.showsBody
+		},
+
 		showsSideColumn() {
 			return this.sideColumnWidgets.length > 0 && this.showsBody
 		},
