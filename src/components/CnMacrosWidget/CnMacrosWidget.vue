@@ -67,6 +67,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard } from '@nextcloud/vue'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { declaredMacros, pickMacros } from '../../utils/declaredMacros.js'
 import { readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
@@ -87,9 +88,11 @@ export default {
 	props: {
 		/**
 		 * The widget's content: `description` (the line under the title),
-		 * `emptyText`, both translated, and `macrosFrom`, a path on the record
-		 * (`@context.caseType.macros`) to the list of macro keys it shows, in
-		 * that order; a record that lists none shows none.
+		 * `emptyText`, both translated, and `macrosFrom`: where the list of macro
+		 * keys this record shows comes from, in that order. A path on the record
+		 * (`@context.caseType.macros`), or an endpoint (`{ url, params?,
+		 * responsePath? }`, tokens such as `@objectId` resolved) answering the
+		 * list. A record that lists none shows none.
 		 */
 		content: {
 			type: Object,
@@ -116,6 +119,8 @@ export default {
 			running: '',
 			error: '',
 			lastRun: null,
+			// The keys an endpoint `macrosFrom` answered with; undefined until it answers.
+			listed: undefined,
 		}
 	},
 
@@ -128,6 +133,9 @@ export default {
 		 * @spec openspec/changes/macros-per-record/specs/macros-widget/spec.md#requirement-a-record-can-choose-which-macros-it-shows
 		 */
 		macros() {
+			if (this.macrosEndpoint) {
+				return pickMacros(this.declared, this.listed, true)
+			}
 			const path = typeof this.content?.macrosFrom === 'string' ? this.content.macrosFrom : ''
 			if (path === '') {
 				return this.declared
@@ -135,6 +143,18 @@ export default {
 			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : undefined
 			const data = { ...(this.objectData || {}), ...(rows ? { '@context': rows } : {}) }
 			return pickMacros(this.declared, readVisibleWhenPath(data, path), true)
+		},
+
+		/**
+		 * `macrosFrom` as an endpoint (`{ url, method?, params?, responsePath? }`,
+		 * the endpointSource block), or null when it is a path or unset.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/macros-per-record/specs/macros-widget/spec.md#requirement-a-record-can-choose-which-macros-it-shows
+		 */
+		macrosEndpoint() {
+			const from = this.content?.macrosFrom
+			return from && typeof from === 'object' && typeof from.url === 'string' && from.url !== '' ? from : null
 		},
 
 		/** @return {{register: string, schema: string, id: string}} Where the record lives. */
@@ -191,8 +211,27 @@ export default {
 			} finally {
 				this.loading = false
 			}
+			if (this.macrosEndpoint) {
+				await this.loadListed()
+			}
 			if (this.declared.length > 0) {
 				await this.loadLastRun()
+			}
+		},
+
+		/**
+		 * Ask the `macrosFrom` endpoint which macro keys this record offers.
+		 * A refused or unreadable answer offers none, never every macro.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/macros-per-record/specs/macros-widget/spec.md#requirement-a-record-can-choose-which-macros-it-shows
+		 */
+		async loadListed() {
+			try {
+				const ctx = { objectId: this.target.id, object: this.objectData || {} }
+				this.listed = await fetchEndpointSource(this.macrosEndpoint, ctx, { force: true })
+			} catch {
+				this.listed = []
 			}
 		},
 

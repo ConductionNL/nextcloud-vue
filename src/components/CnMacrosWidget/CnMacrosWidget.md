@@ -14,7 +14,7 @@ run it asks the page to refresh (`cn:page:refresh`). The last run is read from t
 |---|---|---|
 | `description` | `string` | The line under the title, translated. |
 | `emptyText` | `string` | Shown when the schema declares no macros, translated. |
-| `macrosFrom` | `string` | A path on the record (`@context.caseType.macros`) to the macro keys it shows, in that order. A record that lists none shows none. Without it every declared macro shows. |
+| `macrosFrom` | `string` \| `object` | Where the macro keys this record shows come from, in that order: a path on the record (`@context.caseType.macros`, the detail page's `@context` records included), or an endpoint `{ url, method?, params?, responsePath? }` whose answer is the list (tokens such as `@objectId` resolve). A record that lists none, or an endpoint that refuses, shows none. Without it every declared macro shows. |
 
 ## Example
 

@@ -145,6 +145,32 @@ describe('CnMacrosWidget', () => {
 		expect(w.find('[data-testid="cn-macros-widget-empty"]').exists()).toBe(true)
 	})
 
+	it('asks an endpoint which macros the record offers when macrosFrom is one', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.includes('/case-macros/')) {
+				return Promise.resolve({ data: { keys: ['woo-finish'] } })
+			}
+			return Promise.resolve(url.includes('/audit-trails') ? { data: { results: [] } } : { data: SCHEMA })
+		})
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: { url: '/apps/dossiq/api/case-macros/@objectId', responsePath: 'keys' } } },
+		})
+		await flushPromises()
+		expect(axios.get.mock.calls.some(([url]) => url.includes('/apps/dossiq/api/case-macros/c-1'))).toBe(true)
+		expect(w.findAll('.cn-macros-widget__name').map((n) => n.text())).toEqual(['Woo-verzoek afronden'])
+	})
+
+	it('offers none when the endpoint refuses, never every macro', async () => {
+		axios.get.mockImplementation((url) => (url.includes('/case-macros/')
+			? Promise.reject(new Error('403'))
+			: Promise.resolve(url.includes('/audit-trails') ? { data: { results: [] } } : { data: SCHEMA })))
+		const w = mount(CnMacrosWidget, {
+			props: { objectData: OBJECT, objectId: 'c-1', content: { macrosFrom: { url: '/apps/dossiq/api/case-macros/@objectId' } } },
+		})
+		await flushPromises()
+		expect(w.find('[data-testid="cn-macros-widget-empty"]').exists()).toBe(true)
+	})
+
 	it('is a library widget key', () => {
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('macros')
 	})

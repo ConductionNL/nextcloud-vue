@@ -8,6 +8,7 @@ A schema's macros are offered on every record of that schema. dossiq declares it
 
 ## What changes
 
-The `macros` widget takes `content.macrosFrom`, a path on the record read like a `visibleWhen` field (the detail page's
-`@context` records included, `@context.caseType.macros`). It shows the listed macro keys in the list's order. A record
+The `macros` widget takes `content.macrosFrom`: a path on the record read like a `visibleWhen` field (the detail page's
+`@context` records included, `@context.caseType.macros`), or an endpoint (`{ url, method?, params?, responsePath? }`,
+the endpointSource block) whose answer is the list; a refused endpoint offers none. It shows the listed macro keys in the list's order. A record
 that lists none shows none. Without `macrosFrom` every declared macro shows, as before. `pickMacros()` does the choosing.
