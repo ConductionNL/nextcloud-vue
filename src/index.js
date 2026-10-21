@@ -41,6 +41,7 @@ export {
 	CnAdminActionCard,
 	CnAdminSettingsShell,
 	CnAdvancedFormDialog,
+	CnAiFeaturesWidget,
 	CnApiReference,
 	CnAppLoading,
 	CnAppNav,
@@ -250,9 +251,11 @@ export {
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
 	CnObjectPartiesWidget,
+	CnObjectPermissionsTab,
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
+	CnObjectTranslationsWidget,
 	CnOfflineQueue,
 	CnOrderedListField,
 	CnPageHeader,
@@ -318,6 +321,7 @@ export {
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,
 	CnStagesWidgetForm,
+	CnStateMachineEditor,
 	CnStatsBlock,
 	CnStatsBlockWidget,
 	CnStatsBlockWidgetForm,
@@ -619,6 +623,7 @@ export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData
 // drift on what a 409 means (breaking change / schema still has objects).
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
+export { validateStateMachine } from './utils/stateMachineValidation.js'
 export { clearResolveCache, resolveManifestSentinels } from './utils/resolveManifestSentinels.js'
 export { clearRouteSentinelWarnings, resolveRouteSentinels } from './utils/resolveRouteSentinels.js'
 export {

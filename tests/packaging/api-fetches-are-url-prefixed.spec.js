@@ -99,6 +99,10 @@ const ALLOWED = new Map([
 	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
 
+	// ── Built by a computed that wraps `prefixUrl()` itself.
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:this.timelineUrl', 'the timelineUrl computed returns prefixUrl(...)'],
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:`${this.timelineUrl}/${entry.id}`', 'the timelineUrl computed returns prefixUrl(...)'],
+
 	// ── Built from a store base that is prefixed once, at store creation:
 	//    `baseState()` in useObjectStore.js and `prefixUrl(...)` in
 	//    createCrudStore.js. Prefixing again per call site would be noise.
