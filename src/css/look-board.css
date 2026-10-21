@@ -1244,13 +1244,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border: 0;
 }
 
-/* One save per section: a footer row, bottom end of the card. */
+/* One save per section: a footer row, bottom end of the card, with no
+   hairline above it (DqBeheerinstellingen, DqInstellingen).
+   @spec openspec/changes/board-settings-save-row/specs/board-settings-save-row/spec.md#requirement-a-board-settings-save-row-has-no-divider-above-it */
 .cn-look-board .cn-settings-section__save {
 	display: flex;
 	justify-content: flex-end;
 	margin-top: 4px;
 	padding-top: 14px;
-	border-top: 1px solid var(--cn-board-hairline);
 }
 
 /* The Changes card of a page that saves in the header. */
