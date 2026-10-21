@@ -31,6 +31,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 
 // Components
 export {
+	CnActionAuthMatrix,
 	CnActionButtons,
 	CnActionDialog,
 	CnActionsBar,

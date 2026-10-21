@@ -2021,7 +2021,14 @@
     "Count": "Count",
     "The report could not be read.": "The report could not be read.",
     "Nothing to count": "Nothing to count",
-    "Q{quarter} {year}": "Q{quarter} {year}"
+    "Q{quarter} {year}": "Q{quarter} {year}",
+    "Allow group {group} to perform {action}": "Allow group {group} to perform {action}",
+    "Action authorization": "Action authorization",
+    "Choose which groups may perform each action. Administrators always may. An action without a ticked group is for administrators only.": "Choose which groups may perform each action. Administrators always may. An action without a ticked group is for administrators only.",
+    "The action matrix could not be loaded: {reason}": "The action matrix could not be loaded: {reason}",
+    "The server did not confirm the action matrix. Nothing was saved.": "The server did not confirm the action matrix. Nothing was saved.",
+    "The action matrix is saved.": "The action matrix is saved.",
+    "The action matrix was not saved: {reason}": "The action matrix was not saved: {reason}"
   },
   "plurals": {
     "{count} member": [
