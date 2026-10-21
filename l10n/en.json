@@ -229,6 +229,7 @@
     "Display name": "Display name",
     "Required — shown in the contact list.": "Required — shown in the contact list.",
     "Email": "Email",
+    "Image": "Image",
     "Optional. Used for outgoing mail and reverse lookup.": "Optional. Used for outgoing mail and reverse lookup.",
     "Phone": "Phone",
     "Organisation": "Organisation",

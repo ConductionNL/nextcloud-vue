@@ -251,6 +251,7 @@
     "Display name": "Weergavenaam",
     "Required — shown in the contact list.": "Verplicht — getoond in de contactenlijst.",
     "Email": "E-mail",
+    "Image": "Afbeelding",
     "Optional. Used for outgoing mail and reverse lookup.": "Optioneel. Wordt gebruikt voor uitgaande mail en omgekeerde lookup.",
     "Phone": "Telefoon",
     "Organisation": "Organisatie",
