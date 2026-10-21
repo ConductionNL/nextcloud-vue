@@ -1142,12 +1142,27 @@ export default {
 			return context
 		},
 
+		/**
+		 * The widget's title for a leaf that names its title `titleLabel`
+		 * (contacts, notes, tasks, contact moments): without it the leaf
+		 * printed its own default. Empty when the widget has no title, so the
+		 * leaf keeps that default.
+		 *
+		 * @return {{titleLabel?: string}} The prop, or nothing.
+		 * @spec openspec/changes/leaf-card-widget-title/specs/leaf-card-widget-title/spec.md#requirement-a-leaf-card-carries-the-widgets-title
+		 */
+		leafTitleLabel() {
+			const title = this.translateLabel(this.widget?.title || '')
+			return title ? { titleLabel: title } : {}
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
 				// Through the host's translate: an integration card (CnDetailCard)
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
@@ -1166,6 +1181,8 @@ export default {
 		integrationMountProps() {
 			return {
 				surface: this.surface,
+				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				...this.derivedIntegrationContext,
 				// The context follows the widget's own host, so a leaf that
 				// reads `integrationContext.objectId` gets the same object as

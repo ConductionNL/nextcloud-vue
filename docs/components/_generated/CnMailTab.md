@@ -10,13 +10,13 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type                 | Required | Default | Description                                                                                                                                                                                 |
-| ------------ | -------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`    | `object`             |          | `\{\}`  | The widget config: `{ heading?, description?, hint?, templates?, noTemplatesText?, draft?, closedWhen?, linkedMail? }`, as in the component description and docs/components/cn-mail-tab.md. |
-| `objectId`   | `string&#124;number` |          | `''`    | The bound record's id, for `@objectId` and the linked mail.                                                                                                                                 |
-| `objectData` | `object`             |          | `null`  | The bound record, for `@object.&lt;field&gt;` and `closedWhen`.                                                                                                                             |
-| `register`   | `string&#124;object` |          | `''`    | The bound record's register, for the linked mail.                                                                                                                                           |
-| `schema`     | `string&#124;object` |          | `''`    | The bound record's schema, for the linked mail.                                                                                                                                             |
+| Name         | Type                 | Required | Default | Description                                                                                                                                                                                                 |
+| ------------ | -------------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`    | `object`             |          | `\{\}`  | The widget config: `{ heading?, description?, hint?, templates?, noTemplatesText?, draft?, closedWhen?, linkedMail?, headerActions? }`, as in the component description and docs/components/cn-mail-tab.md. |
+| `objectId`   | `string&#124;number` |          | `''`    | The bound record's id, for `@objectId` and the linked mail.                                                                                                                                                 |
+| `objectData` | `object`             |          | `null`  | The bound record, for `@object.&lt;field&gt;` and `closedWhen`.                                                                                                                                             |
+| `register`   | `string&#124;object` |          | `''`    | The bound record's register, for the linked mail.                                                                                                                                                           |
+| `schema`     | `string&#124;object` |          | `''`    | The bound record's schema, for the linked mail.                                                                                                                                                             |
 
 ### Events
 

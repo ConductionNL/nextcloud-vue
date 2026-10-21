@@ -72,154 +72,52 @@
 			:action="noteAction"
 			:recordAll="noteRecordAll"
 			:leaf="content.rowLeaf || null" />
-		<ul v-else class="cn-record-list__list">
-			<li
-				v-for="item in items"
-				:key="item.key"
-				class="cn-record-list__item"
-				data-testid="cn-record-list-item">
-				<!-- rows with `rowAction`: the title is the link, and one action
-				     ends the row instead of the chevron ("Beoordelen"). -->
-				<div
-					v-if="presentation === 'rows' && item.action"
-					class="cn-record-list__row cn-record-list__row--action">
-					<span v-if="item.initials"
-						class="cn-record-list__avatar"
-						aria-hidden="true"
-						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
-					<span v-if="item.dot"
-						class="cn-record-list__dot"
-						:style="{ background: item.dot }"
-						aria-hidden="true"
-						data-testid="cn-record-list-dot" />
-					<span class="cn-record-list__main">
-						<component
-							:is="item.tag"
-							v-if="item.title"
-							class="cn-record-list__title"
-							:class="{ 'cn-record-list__title--link': item.tag !== 'div' }"
-							v-bind="item.attrs">
-							{{ item.title }}
-						</component>
-						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
-					</span>
-					<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
-					<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
-						<CnStatusBadge
-							v-if="item.pill"
-							:label="item.pill.label"
-							:variant="item.pill.variant"
-							size="small" />
-						<CnStatusBadge
-							v-for="badge in item.badges"
-							:key="badge.key"
-							:label="badge.label"
-							:variant="badge.variant"
-							size="small"
-							:data-testid="`cn-record-list-badge-${badge.kind}`" />
-					</span>
-					<span
-						v-if="item.due"
-						class="cn-record-list__due cn-record-list__due--column"
-						:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
-						data-testid="cn-record-list-due">{{ item.due.text }}</span>
-					<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
-					<component
-						:is="item.action.tag"
-						class="cn-record-list__action"
-						v-bind="item.action.attrs"
-						data-testid="cn-record-list-action"
-						v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
-						{{ item.action.label }}
-					</component>
-				</div>
-				<!-- rows: title and meta, then the pill, the date and a chevron. -->
-				<component
-					:is="item.tag"
-					v-else-if="presentation === 'rows'"
-					class="cn-record-list__row"
-					:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
-					v-bind="item.attrs">
-					<span v-if="item.initials"
-						class="cn-record-list__avatar"
-						aria-hidden="true"
-						data-testid="cn-record-list-avatar">{{ item.initials }}</span>
-					<span v-if="item.dot"
-						class="cn-record-list__dot"
-						:style="{ background: item.dot }"
-						aria-hidden="true"
-						data-testid="cn-record-list-dot" />
-					<span class="cn-record-list__main">
-						<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
-						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
-						<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
-							{{ linksLabel }}
-							<template v-for="(link, linkIndex) in item.links" :key="link.id">
-								<router-link v-if="link.to" :to="link.to">{{ link.label }}</router-link>
-								<span v-else>{{ link.label }}</span><span v-if="linkIndex < item.links.length - 1">, </span>
-							</template>
+		<!-- `groupBy`: a heading per group, each group its own list, named by
+		     its heading. Without it this is one list, as before. -->
+		<template v-for="group in itemGroups" v-else :key="group.key">
+			<h3
+				v-if="group.label"
+				:id="group.headingId"
+				class="cn-record-list__group-heading"
+				data-testid="cn-record-list-group-heading">
+				{{ group.label }}
+			</h3>
+			<ul
+				class="cn-record-list__list"
+				:aria-labelledby="group.label ? group.headingId : null"
+				:data-testid="isGrouped ? 'cn-record-list-group' : null">
+				<li
+					v-for="item in group.items"
+					:key="item.key"
+					class="cn-record-list__item"
+					data-testid="cn-record-list-item">
+					<!-- rows with `rowAction`: the title is the link, and one action
+					     ends the row instead of the chevron ("Beoordelen"). -->
+					<div
+						v-if="presentation === 'rows' && item.action"
+						class="cn-record-list__row cn-record-list__row--action">
+						<span v-if="item.initials"
+							class="cn-record-list__avatar"
+							aria-hidden="true"
+							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+						<span v-if="item.dot"
+							class="cn-record-list__dot"
+							:style="{ background: item.dot }"
+							aria-hidden="true"
+							data-testid="cn-record-list-dot" />
+						<span class="cn-record-list__main">
+							<component
+								:is="item.tag"
+								v-if="item.title"
+								class="cn-record-list__title"
+								:class="{ 'cn-record-list__title--link': item.tag !== 'div' }"
+								v-bind="item.attrs">
+								{{ item.title }}
+							</component>
+							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 						</span>
-					</span>
-					<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
 						<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
-						<CnStatusBadge
-							v-if="item.pill"
-							:label="item.pill.label"
-							:variant="item.pill.variant"
-							size="small" />
-						<CnStatusBadge
-							v-for="badge in item.badges"
-							:key="badge.key"
-							:label="badge.label"
-							:variant="badge.variant"
-							size="small"
-							:data-testid="`cn-record-list-badge-${badge.kind}`" />
-						<span
-							v-if="item.due"
-							class="cn-record-list__due"
-							:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
-							data-testid="cn-record-list-due">{{ item.due.text }}</span>
-						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
-					</span>
-					<ChevronRight
-						v-if="item.tag !== 'div'"
-						class="cn-record-list__chevron"
-						:size="18"
-						aria-hidden="true" />
-					<NcActions
-						v-if="item.tag === 'div' && rowActions.length > 0"
-						:aria-label="rowActionsLabel"
-						data-testid="cn-record-list-row-actions">
-						<NcActionButton
-							v-for="(action, actionIndex) in rowActions"
-							:key="`row-action-${actionIndex}`"
-							:closeAfterClick="true"
-							:data-testid="`cn-record-list-row-action-${actionIndex}`"
-							@click="runRowActionEntry(action, item.row)">
-							{{ action.label }}
-						</NcActionButton>
-					</NcActions>
-				</component>
-
-				<!-- cards: a framed card per row, the icon and title with the pill
-				     beside them, the meta line, and `trailing` as the large figure. -->
-				<component
-					:is="item.tag"
-					v-else-if="presentation === 'cards'"
-					class="cn-record-list__card"
-					:class="{ 'cn-record-list__card--link': item.tag !== 'div' }"
-					v-bind="item.attrs"
-					data-testid="cn-record-list-card">
-					<span class="cn-record-list__card-head">
-						<span class="cn-record-list__card-title">
-							<CnIcon
-								v-if="cardIcons"
-								class="cn-record-list__card-icon"
-								:name="item.icon"
-								:size="18" />
-							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
-						</span>
-						<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__card-pills">
+						<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__pills">
 							<CnStatusBadge
 								v-if="item.pill"
 								:label="item.pill.label"
@@ -233,45 +131,161 @@
 								size="small"
 								:data-testid="`cn-record-list-badge-${badge.kind}`" />
 						</span>
-					</span>
-					<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
-					<span v-if="item.trailing" class="cn-record-list__card-value" data-testid="cn-record-list-card-value">{{ item.trailing }}</span>
-				</component>
+						<span
+							v-if="item.due"
+							class="cn-record-list__due cn-record-list__due--column"
+							:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
+							data-testid="cn-record-list-due">{{ item.due.text }}</span>
+						<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
+						<component
+							:is="item.action.tag"
+							class="cn-record-list__action"
+							v-bind="item.action.attrs"
+							data-testid="cn-record-list-action"
+							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+							{{ item.action.label }}
+						</component>
+					</div>
+					<!-- rows: title and meta, then the pill, the date and a chevron. -->
+					<component
+						:is="item.tag"
+						v-else-if="presentation === 'rows'"
+						class="cn-record-list__row"
+						:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
+						v-bind="item.attrs">
+						<span v-if="item.initials"
+							class="cn-record-list__avatar"
+							aria-hidden="true"
+							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+						<span v-if="item.dot"
+							class="cn-record-list__dot"
+							:style="{ background: item.dot }"
+							aria-hidden="true"
+							data-testid="cn-record-list-dot" />
+						<span class="cn-record-list__main">
+							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
+							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
+								{{ linksLabel }}
+								<template v-for="(link, linkIndex) in item.links" :key="link.id">
+									<router-link v-if="link.to" :to="link.to">{{ link.label }}</router-link>
+									<span v-else>{{ link.label }}</span><span v-if="linkIndex < item.links.length - 1">, </span>
+								</template>
+							</span>
+						</span>
+						<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
+							<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
+							<CnStatusBadge
+								v-if="item.pill"
+								:label="item.pill.label"
+								:variant="item.pill.variant"
+								size="small" />
+							<CnStatusBadge
+								v-for="badge in item.badges"
+								:key="badge.key"
+								:label="badge.label"
+								:variant="badge.variant"
+								size="small"
+								:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							<span
+								v-if="item.due"
+								class="cn-record-list__due"
+								:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
+								data-testid="cn-record-list-due">{{ item.due.text }}</span>
+							<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
+						</span>
+						<ChevronRight
+							v-if="item.tag !== 'div'"
+							class="cn-record-list__chevron"
+							:size="18"
+							aria-hidden="true" />
+						<NcActions
+							v-if="item.tag === 'div' && rowActions.length > 0"
+							:aria-label="rowActionsLabel"
+							data-testid="cn-record-list-row-actions">
+							<NcActionButton
+								v-for="(action, actionIndex) in rowActions"
+								:key="`row-action-${actionIndex}`"
+								:closeAfterClick="true"
+								:data-testid="`cn-record-list-row-action-${actionIndex}`"
+								@click="runRowActionEntry(action, item.row)">
+								{{ action.label }}
+							</NcActionButton>
+						</NcActions>
+					</component>
 
-				<!-- feed: a round icon, a meta line and the text. -->
-				<div v-else-if="presentation === 'feed'" class="cn-record-list__feed-row">
-					<span class="cn-record-list__feed-icon" aria-hidden="true">
-						<CnIcon :name="item.icon" :size="18" />
-					</span>
-					<component :is="item.tag" class="cn-record-list__main" v-bind="item.attrs">
+					<!-- cards: a framed card per row, the icon and title with the pill
+					     beside them, the meta line, and `trailing` as the large figure. -->
+					<component
+						:is="item.tag"
+						v-else-if="presentation === 'cards'"
+						class="cn-record-list__card"
+						:class="{ 'cn-record-list__card--link': item.tag !== 'div' }"
+						v-bind="item.attrs"
+						data-testid="cn-record-list-card">
+						<span class="cn-record-list__card-head">
+							<span class="cn-record-list__card-title">
+								<CnIcon
+									v-if="cardIcons"
+									class="cn-record-list__card-icon"
+									:name="item.icon"
+									:size="18" />
+								<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
+							</span>
+							<span v-if="item.pill || item.badges.length > 0" class="cn-record-list__card-pills">
+								<CnStatusBadge
+									v-if="item.pill"
+									:label="item.pill.label"
+									:variant="item.pill.variant"
+									size="small" />
+								<CnStatusBadge
+									v-for="badge in item.badges"
+									:key="badge.key"
+									:label="badge.label"
+									:variant="badge.variant"
+									size="small"
+									:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							</span>
+						</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
-						<span v-if="item.text" class="cn-record-list__text">{{ item.text }}</span>
+						<span v-if="item.trailing" class="cn-record-list__card-value" data-testid="cn-record-list-card-value">{{ item.trailing }}</span>
 					</component>
-				</div>
 
-				<!-- inline: a label and the title, the title a link. -->
-				<div v-else class="cn-record-list__inline-row">
-					<span v-if="item.label" class="cn-record-list__label">{{ item.label }}</span>
-					<component :is="item.tag" class="cn-record-list__inline-title" v-bind="item.attrs">
-						{{ item.title }}
-					</component>
-				</div>
-				<!-- `bar`: a thin track under the row, filled to the row's value
-				     against its own maximum or against the largest row. -->
-				<span
-					v-if="presentation === 'rows' && item.bar"
-					class="cn-record-list__bar"
-					:class="{ 'cn-record-list__bar--over': item.bar.over }"
-					role="meter"
-					:aria-label="item.title || null"
-					:aria-valuenow="item.bar.value"
-					aria-valuemin="0"
-					:aria-valuemax="item.bar.max"
-					data-testid="cn-record-list-bar">
-					<span class="cn-record-list__bar-fill" :style="{ width: `${item.bar.share}%` }" />
-				</span>
-			</li>
-		</ul>
+					<!-- feed: a round icon, a meta line and the text. -->
+					<div v-else-if="presentation === 'feed'" class="cn-record-list__feed-row">
+						<span class="cn-record-list__feed-icon" aria-hidden="true">
+							<CnIcon :name="item.icon" :size="18" />
+						</span>
+						<component :is="item.tag" class="cn-record-list__main" v-bind="item.attrs">
+							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							<span v-if="item.text" class="cn-record-list__text">{{ item.text }}</span>
+						</component>
+					</div>
+
+					<!-- inline: a label and the title, the title a link. -->
+					<div v-else class="cn-record-list__inline-row">
+						<span v-if="item.label" class="cn-record-list__label">{{ item.label }}</span>
+						<component :is="item.tag" class="cn-record-list__inline-title" v-bind="item.attrs">
+							{{ item.title }}
+						</component>
+					</div>
+					<!-- `bar`: a thin track under the row, filled to the row's value
+					     against its own maximum or against the largest row. -->
+					<span
+						v-if="presentation === 'rows' && item.bar"
+						class="cn-record-list__bar"
+						:class="{ 'cn-record-list__bar--over': item.bar.over }"
+						role="meter"
+						:aria-label="item.title || null"
+						:aria-valuenow="item.bar.value"
+						aria-valuemin="0"
+						:aria-valuemax="item.bar.max"
+						data-testid="cn-record-list-bar">
+						<span class="cn-record-list__bar-fill" :style="{ width: `${item.bar.share}%` }" />
+					</span>
+				</li>
+			</ul>
+		</template>
 		<p
 			v-if="actionError"
 			class="cn-record-list__error"
@@ -433,6 +447,10 @@ export default {
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
 		 * button is disabled and `disabledReason` shows under it.
+		 * `groupBy` (a field path) draws the rows in groups under a heading
+		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
+		 * (values) orders the groups and `groupEmptyLabel` heads the rows
+		 * without a value.
 		 *
 		 * @type {object}
 		 */
@@ -492,6 +510,7 @@ export default {
 			/** Whether `footerAction.disabledWhen` holds. */
 			footerDisabled: false,
 			footerReasonId: `cn-record-list-footer-reason-${++footerSeq}`,
+			groupIdBase: `cn-record-list-group-${footerSeq}`,
 			/** The first `emptyTexts` entry whose condition holds, translated; '' for none. */
 			conditionalEmptyText: '',
 			/** The refusal of the last row action, as the server said it. */
@@ -683,6 +702,59 @@ export default {
 					dot: this.dotOf(row),
 					flag: this.flagOf(row),
 					links: this.linksOf(row),
+				}
+			})
+		},
+
+		/** @return {boolean} Whether `content.groupBy` names a field to group the rows by. */
+		isGrouped() {
+			const field = this.content?.groupBy
+			return typeof field === 'string' && field !== ''
+		},
+
+		/**
+		 * The rows to draw, in groups. With `groupBy` (a field path) one group
+		 * per value: in `groupOrder` first, then in the order the rows bring
+		 * them, and the rows without a value last. A heading is the value's
+		 * `valueLabels` entry for that field, else the value, through the host
+		 * translate; the group without a value is headed by `groupEmptyLabel`,
+		 * or not at all. Without `groupBy` all rows are one unheaded group.
+		 *
+		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
+		 * @return {Array<{key: string, label: string, headingId: string, items: Array<object>}>} The groups.
+		 */
+		itemGroups() {
+			if (!this.isGrouped) {
+				return [{ key: 'all', label: '', headingId: '', items: this.items }]
+			}
+			const c = this.content
+			const labels = c.valueLabels && typeof c.valueLabels[c.groupBy] === 'object' ? c.valueLabels[c.groupBy] : {}
+			const buckets = new Map()
+			for (const item of this.items) {
+				const raw = readPath(item.row, c.groupBy)
+				const value = raw === null || raw === undefined || typeof raw === 'object' ? '' : String(raw)
+				if (!buckets.has(value)) {
+					buckets.set(value, [])
+				}
+				buckets.get(value).push(item)
+			}
+			const order = Array.isArray(c.groupOrder) ? c.groupOrder.map(String) : []
+			const values = [...buckets.keys()].filter((v) => v !== '')
+			values.sort((a, b) => {
+				const ia = order.indexOf(a)
+				const ib = order.indexOf(b)
+				return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib)
+			})
+			if (buckets.has('')) {
+				values.push('')
+			}
+			return values.map((value, index) => {
+				const named = value === '' ? c.groupEmptyLabel : (labels[value] || value)
+				return {
+					key: `group-${value}`,
+					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
+					headingId: `${this.groupIdBase}-${index}`,
+					items: buckets.get(value),
 				}
 			})
 		},
@@ -1817,6 +1889,13 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+}
+
+.cn-record-list__group-heading {
+	margin: 6px 0 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.4;
 }
 
 .cn-record-list__footer {

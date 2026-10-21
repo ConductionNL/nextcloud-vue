@@ -2221,7 +2221,12 @@
     "Still open": "Still open",
     "The checklist could not be read.": "The checklist could not be read.",
     "Flag it with a reason, so it stands out to everyone who works on it.": "Flag it with a reason, so it stands out to everyone who works on it.",
-    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention."
+    "Clear the flag with a reason once it no longer needs attention.": "Clear the flag with a reason once it no longer needs attention.",
+    "Compose mail": "Compose mail",
+    "Link mail": "Link mail",
+    "Enter a quarter as YYYY-Qn, for example 2026-Q3.": "Enter a quarter as YYYY-Qn, for example 2026-Q3.",
+    "Enter a year as four digits, for example 2026.": "Enter a year as four digits, for example 2026.",
+    "This value has the wrong form.": "This value has the wrong form."
   },
   "plurals": {
     "{count} member": [
