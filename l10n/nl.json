@@ -2486,7 +2486,12 @@
     "How this app compares": "Hoe deze app zich verhoudt",
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
-    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
+    "Read the document again": "Lees het document opnieuw",
+    "Corrected by hand": "Met de hand gecorrigeerd",
+    "Read with {percent}% certainty. Check this value.": "Gelezen met {percent}% zekerheid. Controleer deze waarde.",
+    "Read with {percent}% certainty": "Gelezen met {percent}% zekerheid",
+    "The changes could not be saved.": "De wijzigingen konden niet worden opgeslagen."
   },
   "plurals": {
     "{count} member": [

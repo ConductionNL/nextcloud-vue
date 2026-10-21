@@ -92,6 +92,7 @@ export {
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnBreadcrumbs } from './CnBreadcrumbs/index.js'
 export { CnActionDialog } from './CnActionDialog/index.js'
+export { CnExtractionReviewForm } from './CnExtractionReviewForm/index.js'
 export { CnAssignDialog } from './CnAssignDialog/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
 export { CnActionsMenu } from './CnActionsMenu/index.js'

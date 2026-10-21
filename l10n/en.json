@@ -2236,7 +2236,12 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Read the document again": "Read the document again",
+    "Corrected by hand": "Corrected by hand",
+    "Read with {percent}% certainty. Check this value.": "Read with {percent}% certainty. Check this value.",
+    "Read with {percent}% certainty": "Read with {percent}% certainty",
+    "The changes could not be saved.": "The changes could not be saved."
   },
   "plurals": {
     "{count} member": [

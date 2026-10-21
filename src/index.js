@@ -33,6 +33,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 export {
 	CnActionButtons,
 	CnActionDialog,
+	CnExtractionReviewForm,
 	CnActionsBar,
 	CnActionsMenu,
 	CnAddressSearch,
