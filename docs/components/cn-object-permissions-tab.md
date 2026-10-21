@@ -50,7 +50,7 @@ As a sidebar tab, declare the built-in widget type `object-permissions`:
 | `schema` | `String` | `''` | Schema slug or uuid. |
 | `apiBase` | `String` | `/apps/openregister/api` | API root. |
 | `historyEnabled` | `Boolean` | `true` | Offer "Who held a right on a date" when the history read answers. |
-| `fieldRules` | `Object` | `null` | `{ typeField, typeSchema, declarationField? }`: where per-role field rules are declared. The object's `typeField` references a `typeSchema` object in the same register; its `declarationField` (default `fieldRoleRules`) lists `{ field, rule: 'hidden'|'readOnly', groups, heldBy, reason }`. `null` leaves the section out. |
+| `fieldRules` | `Object` | `null` | `{ typeField, typeSchema, declarationField? }`: where per-role field rules are declared. The object's `typeField` references a `typeSchema` object in the same register; its `declarationField` (default `fieldRoleRules`) lists `{ field, rule, groups, heldBy, reason }`, with `rule` either `'hidden'` or `'readOnly'`. `null` leaves the section out. |
 | `title` | `String` | `''` | Heading; empty uses "Who holds which right". |
 | `sourceLabels` | `Object` | `{}` | Overrides the label per source key (`share`, `role`, `group`, `object`, `schema`, `register`, `deny`, `staged-deny`, `default-open`, `none`, `inherited`). |
 
