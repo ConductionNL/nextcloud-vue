@@ -68,6 +68,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { provide, ref, watch } from 'vue'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnSectionBoundary from './CnSectionBoundary.js'
@@ -98,6 +99,8 @@ export default {
 		 * (resolved from `cnRegistry` then `cnCustomComponents`). Instead of
 		 * `component`, `type` names a library widget type (`handoff`, `facts`,
 		 * `field-list`, ...) that renders with `content` and the page's record.
+		 * `visibleWhen` (a condition on the record) leaves a section out while it
+		 * does not hold.
 		 *
 		 * @type {Array<{id?: string, component?: string, type?: string, content?: object, title?: string, props?: object, placement?: string, colSpan?: number, card?: boolean}>}
 		 */
@@ -185,7 +188,9 @@ export default {
 		 * @return {Array}
 		 */
 		filteredSections() {
-			const list = Array.isArray(this.sections) ? this.sections : []
+			const object = (this.context && this.context.object) || {}
+			const list = (Array.isArray(this.sections) ? this.sections : [])
+				.filter((s) => !s || !s.visibleWhen || evaluateVisibleWhenLocal(s.visibleWhen, object))
 			if (this.placement === null || this.placement === undefined) {
 				return list
 			}

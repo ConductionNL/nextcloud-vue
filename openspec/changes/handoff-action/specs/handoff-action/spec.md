@@ -27,3 +27,11 @@ A detail page body section (`config.bodyWidgets[]`) SHALL accept `type` (a libra
 #### Scenario: A handoff as a body section
 - **GIVEN** a body section `{ "type": "handoff", "title": "Case", "content": { ... } }`
 - **THEN** the handoff renders in that section for the page's record
+
+### Requirement: A body section can be hidden by a condition on the record
+
+A body section's `visibleWhen` SHALL be judged against the page's record, and the section (title and card included) SHALL NOT render while it does not hold.
+
+#### Scenario: A dossier snapshot only on a ticket that has one
+- **GIVEN** a section with `visibleWhen: { field: "subjectReference", op: "notEmpty" }`
+- **THEN** it does not render on a ticket without a `subjectReference`

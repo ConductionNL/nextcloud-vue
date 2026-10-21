@@ -21,7 +21,7 @@ dashboard / index page can adopt the same primitive later by passing its own
 
 ## A library widget as a section
 
-A section can name a library widget `type` instead of a host `component`. It renders that widget with its `content` and the page's record (`objectId`, `objectData`), with the section's title, placement and card. A `component` wins when both are set; an unknown type shows the inline error.
+A section can name a library widget `type` instead of a host `component`. It renders that widget with its `content` and the page's record (`objectId`, `objectData`), with the section's title, placement and card. A `component` wins when both are set; an unknown type shows the inline error. Any section may carry `visibleWhen` (a condition on the record, as on a widget); it is left out, title and card included, while the condition does not hold.
 
 ```json
 {

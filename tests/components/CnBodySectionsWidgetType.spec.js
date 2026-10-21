@@ -55,4 +55,12 @@ describe('CnBodySections widget type', () => {
 		expect(w.find('.host').exists()).toBe(true)
 		expect(w.find('.probe').exists()).toBe(false)
 	})
+
+	it('leaves a section out while its visibleWhen does not hold', () => {
+		const sections = [{ id: 'probe', type: 'body-probe', visibleWhen: { field: 'subjectReference', op: 'notEmpty' }, content: { label: 'hi' } }]
+		const without = mount(CnBodySections, { props: { sections, context: { objectId: 't-1', object: { title: 'Ticket' } } } })
+		expect(without.find('[data-section-id="probe"]').exists()).toBe(false)
+		const withRef = mount(CnBodySections, { props: { sections, context: { objectId: 't-1', object: { title: 'Ticket', subjectReference: { title: 'Dossier' } } } } })
+		expect(withRef.find('.probe').text()).toBe('hi|t-1|Ticket')
+	})
 })
