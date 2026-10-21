@@ -220,6 +220,41 @@ describe('CnActionDialog fields and a permission read from a list', () => {
 	})
 })
 
+describe('CnActionDialog checkbox field', () => {
+	/**
+	 * @spec openspec/changes/action-dialog-checkbox-field/specs/action-dialog-checkbox-field/spec.md#requirement-an-action-dialog-field-can-be-a-checkbox
+	 */
+	it('draws a checkbox with a label filled from the record, checked by default, and sends it as a boolean', async () => {
+		axios.post.mockReset()
+		axios.post.mockResolvedValue({ data: {} })
+		answer()
+		const config = {
+			...ARCHIVE,
+			fields: [{ field: 'notifyRequester', type: 'checkbox', label: 'Let {initiatorDisplayName} know the case is closed', hint: 'A message in the portal', default: true }],
+		}
+		const w = mount(CnActionDialog, {
+			props: { config, objectId: 'z-82' },
+			global: { stubs: {
+				CnDialog: { name: 'CnDialog', props: ['name', 'subtitle', 'eyebrow'], template: '<div><slot /><slot name="actions" /></div>' },
+				NcTextArea: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
+				NcCheckboxRadioSwitch: { name: 'NcCheckboxRadioSwitch', props: ['modelValue'], emits: ['update:modelValue'], template: '<label><input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)"><slot /></label>' },
+				CnIcon: true,
+			} },
+		})
+		await flushPromises()
+		const box = w.find('[data-testid="cn-action-dialog-field-notifyRequester"]')
+		expect(box.text()).toContain('Let Sanne de Vries know the case is closed')
+		expect(box.text()).toContain('A message in the portal')
+		expect(box.find('input').element.checked).toBe(true)
+		await w.find('textarea').setValue('Done')
+		await box.find('input').setValue(false)
+		expect(w.find('[data-testid="cn-action-dialog-confirm"]').attributes('disabled')).toBeUndefined()
+		await w.find('[data-testid="cn-action-dialog-confirm"]').trigger('click')
+		await flushPromises()
+		expect(axios.post.mock.calls[0][1].notifyRequester).toBe(false)
+	})
+})
+
 describe('CnActionDialog opened with an unresolved token', () => {
 	it('takes the record id from the route, and the dispatcher resolves a prop token when it can', async () => {
 		axios.get.mockReset()
