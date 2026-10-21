@@ -39,6 +39,7 @@ Pass pre-translated labels when your app handles i18n:
 |---|---|---|---|
 | `title` | String | `''` | Override the card title (defaults to the translated label). |
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
+| `excludeActions` (`exclude-actions`) | Array | `[]` | Actions left out, case-insensitive (`['read']` for a history of what changed). The card then reads up to ten times `maxDisplay` entries (at most 100), so the rows it leaves out do not crowd the rest away. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `actionLabel` (`action-label`) | String | `t('nextcloud-vue', 'Change')` | Pre-translated fallback action label. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
