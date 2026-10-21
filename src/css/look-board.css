@@ -299,6 +299,31 @@
 	max-width: none;
 }
 
+/* ---- A select outside a dialog ----------------------------------------- */
+/* The board's select is its control: a 1px grey edge that meets 3:1, radius
+   8, 40px high, 36px in a filter row (a page's, the timeline's). NcSelect draws its field as an
+   NcInputField, 30px inside a 34px toggle, edged by a 35%-transparent ring
+   (DqProcesanalyse "Periode", DqDoorlooptijd, DqTermijnen "Jaar"). The field
+   is the clickable area less NcSelect's 2px border on either side, so the
+   height goes through that area; the open list is teleported and keeps
+   Nextcloud's sizes. Focus keeps the ring patches.css puts on the toggle. A
+   board dialog has its own field rules (dialog.css).
+   @spec openspec/changes/board-select-control/specs/board-select-control/spec.md#requirement-a-board-select-is-the-boards-control */
+.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *) {
+	--default-clickable-area: calc(var(--cn-board-select-height, 40px) + 4px);
+}
+
+.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *) .input-field__input {
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	box-shadow: none;
+}
+
+.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *),
+.cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *) {
+	--cn-board-select-height: 36px;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
