@@ -2554,15 +2554,29 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnNcDashboardQuickCreate"
 			],
 			"page": "cn-nc-dashboard-list"
+		},
+		"CnNcDashboardQuickCreate": {
+			"direct": 2,
+			"transitive": 13,
+			"tier": "heavy",
+			"via": [
+				"CnCellRenderer",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnIndexPage",
+				"CnNcDashboardList"
+			],
+			"page": "cn-nc-dashboard-quick-create"
 		},
 		"CnNcDashboardWidgetForm": {
 			"direct": 0,

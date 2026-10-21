@@ -56,6 +56,7 @@ export function stagesOf(field, colorField = '') {
 					hidden: entry?.hidden === true,
 					color: colorOf(field, entry, colorField),
 					capacity: capacityValue(entry?.capacity),
+					closed: entry?.closed === true,
 				}))
 		.filter((stage) => stage.key !== '')
 
@@ -150,7 +151,7 @@ function labelFor(field, value) {
  *   `statusField` value is the key.
  *
  * @return {{columns: Array<object>, usable: boolean}} The columns, each
- *   `{ key, label, cards, count }`, and whether the field could back a board.
+ *   `{ key, label, cards, count, closed }`, and whether the field could back a board.
  */
 export function buildBoardColumns({
 	field,
@@ -171,6 +172,7 @@ export function buildBoardColumns({
 		label: stage.label,
 		color: stage.color,
 		capacity: stage.capacity ?? null,
+		closed: stage.closed === true,
 		cards: [],
 		count: 0,
 	}))

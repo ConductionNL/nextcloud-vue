@@ -286,6 +286,24 @@ columns from those rows (since manifest schema 2.97.0):
   sets the page filter, so the cards and the active filter chips follow.
 - **Two or more `columnFields`** draw a "Columns:" switch after the search. The
   entry on `statusField` is the default.
+- **`itemsPath`** takes the columns from a LIST on each referenced row instead
+  of the rows themselves: a lead's `stage` is a name in its pipeline's
+  `stages`. Each item is keyed by `keyField` (default `name`), the value a card
+  stores and a drop writes, and linked to its row under `_parent`, so
+  `narrowBy: { "field": "_parent", "rowField": "pipeline" }` with a `narrow`
+  select on `pipeline` shows the chosen pipeline's stages:
+
+  ```json
+  "board": {
+    "statusField": "stage",
+    "narrow": { "field": "pipeline", "label": "Pipeline", "source": { "schema": "pipeline", "labelField": "title" } },
+    "columnFields": [{ "field": "stage", "source": { "schema": "pipeline", "itemsPath": "stages", "keyField": "name", "orderField": "order", "colorField": "color", "closedField": "isClosed", "narrowBy": { "field": "_parent", "rowField": "pipeline" } } }],
+    "sumField": "value"
+  }
+  ```
+- **`closedField`** names the referenced row's (or item's) flag for a closed
+  stage, a won or lost deal: its column starts collapsed, showing its count and
+  a "Show N more" button, and still takes a drop.
 - **`kind: "values"`** is for a field that references no schema, such as a
   Nextcloud user id. Its columns are the values present on the rows, then one
   column for no value.

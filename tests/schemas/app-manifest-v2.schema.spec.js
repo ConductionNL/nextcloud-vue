@@ -1636,6 +1636,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withAction({ id: 'export-report', label: 'Export', type: 'export', entities: [{ ...entity, path: 'x' }] })).valid).toBe(false)
 	})
 
+	it('accepts board columns from a list on a parent row (pl4-board-list-stages)', () => {
+		const withBoard = (source) => ({ ...MINIMAL_V2, pages: [{ id: 'leads', route: '/leads', type: 'index', title: 'Leads', config: { register: 'pipelinq', schema: 'lead', viewModes: ['table', 'board'], board: { statusField: 'stage', columnFields: [{ field: 'stage', source }] } } }] })
+		const stages = { schema: 'pipeline', itemsPath: 'stages', keyField: 'name', labelField: 'name', orderField: 'order', colorField: 'color', closedField: 'isClosed', narrowBy: { field: '_parent', rowField: 'pipeline' } }
+		expect(validateManifestV2(withBoard(stages)).valid).toBe(true)
+		expect(validateManifestV2(withBoard({ ...stages, itemsPath: '' })).valid).toBe(false)
+	})
+
 	it('accepts a dashboard page filter drawn as a segmented group on the description line, and refuses unknown keys', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'trend', route: '/trend', type: 'dashboard', title: 'Trend', config: { pageFilters: [filter] } }] })
 		const options = [{ value: 'mean', label: 'Gemiddeld' }, { value: 'median', label: 'Mediaan' }]
