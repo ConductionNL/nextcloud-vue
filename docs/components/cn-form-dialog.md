@@ -294,7 +294,7 @@ products: { type: 'array', items: { $ref: 'product', 'x-allow-create': true }, t
 
 The stored value is still the chosen (or freshly-created) object's UUID, or an array of them. Without the flag, a `$ref` stays a plain select of existing objects. `x-fill-from: { formKey: sourceKey }` copies values off the chosen object into this form.
 
-The form the Create opens is, in this order: the field's own `createModal` (a `fieldOverrides` key naming a `kind: 'modal'` registry dialog), the `createOverride` or `createModal` of the index page that lists the referenced schema, else the schema's generic form. A field `createModal` gets `initialData` with the typed term plus its `createModalProps`, where `@answer.<key>` is another answer of this form:
+The form the Create opens is, in this order: the field's own `createModal` (a `fieldOverrides` key naming a `kind: 'modal'` registry dialog), the `createOverride` or `createModal` of the index page that lists the referenced schema, else the schema's generic form. A field `createModal` is mounted on top of this form, not in the app's single modal slot, so a form that is itself a registry modal stays open underneath. It gets `initialData` with the typed term plus its `createModalProps`, where `@answer.<key>` is another answer of this form:
 
 ```json
 {

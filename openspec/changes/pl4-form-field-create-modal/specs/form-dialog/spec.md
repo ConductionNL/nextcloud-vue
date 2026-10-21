@@ -7,7 +7,7 @@
 
 ### Requirement: A reference field can create through its own registry modal
 
-A select-or-create reference field with `createModal` naming a `kind: 'modal'` registry entry SHALL open that dialog on Create, with `initialData` holding the typed term in the label field and the field's `createModalProps`, each `@answer.<key>` replaced by that form value. The new object the dialog reports with `created` SHALL be selected in the field. A `close` without `created` SHALL leave the field as it was. A `createModal` that is not a registered modal SHALL be ignored.
+A select-or-create reference field with `createModal` naming a `kind: 'modal'` registry entry SHALL mount that dialog's component on top of the form on Create (not in the app's single modal slot, so a form that is itself a registry modal stays open), with `initialData` holding the typed term in the label field and the field's `createModalProps`, each `@answer.<key>` replaced by that form value. The new object the dialog reports with `created` SHALL be selected in the field. A `close` without `created` SHALL leave the field as it was. A `createModal` that is not a registered modal SHALL be ignored.
 
 #### Scenario: Creating a contact for the chosen client
 

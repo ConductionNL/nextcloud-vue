@@ -64,6 +64,12 @@ beforeEach(() => {
 })
 
 describe('CnFormDialog: a reference field creates through its own registry modal', () => {
+	const ContactCreateDialog = {
+		name: 'ContactCreateDialog',
+		props: { client: { type: String, default: null }, initialData: { type: Object, default: null } },
+		emits: ['created', 'close'],
+		template: '<div class="contact-dialog" />',
+	}
 	const mountWith = ({ fieldOverrides, registry, openModal = jest.fn(), item = null }) => mount(CnFormDialog, {
 		props: { schema: lead, item, register: 'pipelinq', fieldOverrides },
 		global: {
@@ -71,50 +77,65 @@ describe('CnFormDialog: a reference field creates through its own registry modal
 			provide: { cnManifest: { pages: [] }, cnRegistry: registry, cnCustomComponents: {}, cnOpenModal: openModal },
 		},
 	})
+	const dialogOf = (wrapper) => wrapper.findComponent({ name: 'ContactCreateDialog' })
 
-	it('opens the field createModal with the typed term and the props it names, filled from the answers', async () => {
-		mockStore.fetchObject.mockResolvedValue({ id: 'p-9', name: 'Jan' })
+	it('mounts the field createModal on top of the form with the typed term and the props it names', async () => {
 		const openModal = jest.fn()
 		const wrapper = mountWith({
 			item: { client: 'c-1' },
 			fieldOverrides: { contact: { createModal: 'ContactCreateDialog', createModalProps: { client: '@answer.client' } } },
-			registry: { ContactCreateDialog: { kind: 'modal', component: {} } },
+			registry: { ContactCreateDialog: { kind: 'modal', component: ContactCreateDialog } },
 			openModal,
 		})
 		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'contact'), 'Jan')
 		await flushPromises()
-		expect(openModal).toHaveBeenCalledWith('ContactCreateDialog', expect.objectContaining({ client: 'c-1', initialData: { name: 'Jan' } }))
+		expect(openModal).not.toHaveBeenCalled()
 		expect(mockStore.fetchSchema).not.toHaveBeenCalled()
-		const props = openModal.mock.calls[0][1]
-		await props.onCreated('p-9')
-		props.onClose()
+		const dialog = dialogOf(wrapper)
+		expect(dialog.props()).toEqual({ client: 'c-1', initialData: { name: 'Jan' } })
+		dialog.vm.$emit('created', { id: 'p-9', name: 'Jan' })
 		await expect(pending).resolves.toEqual({ id: 'p-9', name: 'Jan' })
+		await flushPromises()
+		expect(dialogOf(wrapper).exists()).toBe(false)
 	})
 
-	it('resolves null when the field modal closes without creating', async () => {
-		const openModal = jest.fn()
+	it('fetches a reported id, and a close after it does not undo the choice', async () => {
+		mockStore.fetchObject.mockResolvedValue({ id: 'c-5', name: 'Acme' })
 		const wrapper = mountWith({
 			fieldOverrides: { client: { createModal: 'ClientCreateDialog' } },
-			registry: { ClientCreateDialog: { kind: 'modal', component: {} } },
-			openModal,
+			registry: { ClientCreateDialog: { kind: 'modal', component: { ...ContactCreateDialog, name: 'ContactCreateDialog' } } },
 		})
 		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
 		await flushPromises()
-		openModal.mock.calls[0][1].onClose()
+		const dialog = dialogOf(wrapper)
+		dialog.vm.$emit('created', 'c-5')
+		dialog.vm.$emit('close')
+		await expect(pending).resolves.toEqual({ id: 'c-5', name: 'Acme' })
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('pipelinq-client', 'c-5')
+	})
+
+	it('resolves null and takes the dialog down when it closes without creating', async () => {
+		const wrapper = mountWith({
+			fieldOverrides: { contact: { createModal: 'ContactCreateDialog' } },
+			registry: { ContactCreateDialog: { kind: 'modal', component: ContactCreateDialog } },
+		})
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'contact'), 'Jan')
+		await flushPromises()
+		dialogOf(wrapper).vm.$emit('close')
 		await expect(pending).resolves.toBeNull()
+		await flushPromises()
+		expect(dialogOf(wrapper).exists()).toBe(false)
 	})
 
 	it('ignores a createModal that is not a registered modal and uses the generic form', async () => {
 		mockStore.fetchSchema.mockResolvedValue({ title: 'Client', properties: { name: { type: 'string' } } })
-		const openModal = jest.fn()
 		const wrapper = mountWith({
 			fieldOverrides: { client: { createModal: 'Missing' } },
 			registry: {},
-			openModal,
 		})
 		wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
 		await flushPromises()
-		expect(openModal).not.toHaveBeenCalled()
+		expect(wrapper.vm.fieldCreate).toBeNull()
 		expect(wrapper.vm.nestedCreate).not.toBeNull()
 	})
 })

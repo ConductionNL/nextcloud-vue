@@ -922,6 +922,15 @@
 			@confirm="onNestedCreateConfirm"
 			@close="onNestedCreateClose" />
 
+		<!-- A field's own `createModal`, mounted here rather than through the
+		     app's single modal slot, so a form that is itself a registry modal
+		     stays open underneath it. -->
+		<component
+			:is="fieldCreate.component"
+			v-if="fieldCreate !== null"
+			v-bind="fieldCreate.props"
+			data-testid="cn-form-dialog-field-create" />
+
 		<CnReplaceValuesDialog
 			v-if="pendingReplace !== null"
 			:changes="pendingReplace.changes"
@@ -1713,6 +1722,8 @@ export default {
 			 * for the referenced schema.
 			 */
 			nestedCreate: null,
+			// The field `createModal` dialog that is open: `{ component, props }`.
+			fieldCreate: null,
 		}
 	},
 
@@ -2380,21 +2391,36 @@ export default {
 		},
 
 		/**
-		 * The registry modal a reference field creates its objects with
-		 * (`createModal`), or null. It must be a `kind: 'modal'` entry and
-		 * CnAppRoot must provide the modal opener.
+		 * The dialog a reference field creates its objects with: the component
+		 * of the `kind: 'modal'` registry entry its `createModal` names, or null.
 		 *
 		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
 		 * @param {object} field A resolved field descriptor.
-		 * @return {string|null} The registry key, or null.
+		 * @return {object|null} The dialog component, or null.
 		 */
 		fieldCreateModal(field) {
 			const key = field && field.createModal
-			if (typeof key !== 'string' || key === '' || typeof this.cnOpenModal !== 'function') {
+			if (typeof key !== 'string' || key === '') {
 				return null
 			}
 			const entry = (this.cnRegistry || {})[key]
-			return entry && entry.kind === 'modal' ? key : null
+			return entry && entry.kind === 'modal' && entry.component ? entry.component : null
+		},
+
+		/**
+		 * Mount a field's create dialog on top of this form. Its `created`
+		 * or `close` takes it down again.
+		 *
+		 * @param {object} component The dialog component.
+		 * @param {object} props Its props and `onCreated` / `onClose` listeners.
+		 * @return {void}
+		 */
+		mountFieldCreate(component, props) {
+			const done = (handler) => (...args) => {
+				this.fieldCreate = null
+				return handler(...args)
+			}
+			this.fieldCreate = { component, props: { ...props, onCreated: done(props.onCreated), onClose: done(props.onClose) } }
 		},
 
 		/**
@@ -3976,7 +4002,8 @@ export default {
 			const labelField = this.referenceLabelField(field)
 			const fieldModal = this.fieldCreateModal(field)
 			if (fieldModal) {
-				return this.openAppCreateModal(fieldModal, store, slug, labelField, term, resolveFormTokens(field.createModalProps || {}, this.formData))
+				const props = resolveFormTokens(field.createModalProps || {}, this.formData)
+				return this.openAppCreateModal(fieldModal, store, slug, labelField, term, props, (component, all) => this.mountFieldCreate(component, all))
 			}
 			const loadSchema = async () => {
 				try {
@@ -4122,15 +4149,16 @@ export default {
 		 * as it was. A reported id is fetched so the picker can label it.
 		 *
 		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
-		 * @param {string} key The registry key of the modal.
+		 * @param {string|object} key The registry key of the modal, or the dialog component for `open`.
 		 * @param {object} store The object store.
 		 * @param {string} slug The object type slug.
 		 * @param {string} labelField The property the typed term belongs in.
 		 * @param {string} term The typed search term.
 		 * @param {object} [props] More props for the dialog (a field's `createModalProps`).
+		 * @param {(key: (string|object), props: object) => void} [open] Opens the dialog; the app's modal slot by default.
 		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		openAppCreateModal(key, store, slug, labelField, term, props = {}) {
+		openAppCreateModal(key, store, slug, labelField, term, props = {}, open = this.cnOpenModal) {
 			return new Promise((resolve) => {
 				let settled = false
 				let reported = false
@@ -4140,7 +4168,7 @@ export default {
 						resolve(value)
 					}
 				}
-				this.cnOpenModal(key, {
+				open(key, {
 					...props,
 					initialData: term ? { [labelField]: term } : {},
 					onCreated: async (created) => {
