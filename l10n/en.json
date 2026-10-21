@@ -1979,7 +1979,9 @@
     "Task {title} finished": "Task {title} finished",
     "Task {title} is yours": "Task {title} is yours",
     "Fill in {field} before completing this task": "Fill in {field} before completing this task",
-    "Search in this list": "Search in this list"
+    "Search in this list": "Search in this list",
+    "Remove the stored value": "Remove the stored value",
+    "Only the first {count} choices are listed.": "Only the first {count} choices are listed."
   },
   "plurals": {
     "{count} member": [

@@ -2229,7 +2229,9 @@
     "Withheld": "Afgeschermd",
     "This value is not shown.": "Deze waarde wordt niet getoond.",
     "You may not open the linked object, so its value is not shown.": "U mag het gekoppelde object niet openen, daarom wordt de waarde niet getoond.",
-    "Search in this list": "Zoeken in deze lijst"
+    "Search in this list": "Zoeken in deze lijst",
+    "Remove the stored value": "De opgeslagen waarde verwijderen",
+    "Only the first {count} choices are listed.": "Alleen de eerste {count} keuzes staan in de lijst."
   },
   "plurals": {
     "{count} member": [

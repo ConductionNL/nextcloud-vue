@@ -17,7 +17,15 @@
 		</NcNoteCard>
 		<div v-else-if="kind === 'action'" class="cn-settings-field__action">
 			<div class="cn-settings-field__action-row">
-				<NcButton
+				<NcButton v-if="field.href"
+					:href="actionHref"
+					:target="field.target || undefined"
+					:rel="field.target === '_blank' ? 'noopener noreferrer' : undefined"
+					:aria-describedby="describedBy"
+					:data-testid="`cn-settings-field-action-${field.key}`">
+					{{ label }}
+				</NcButton>
+				<NcButton v-else
 					:disabled="field.readOnly || field.actionBusy"
 					:aria-describedby="describedBy"
 					:data-testid="`cn-settings-field-action-${field.key}`"
@@ -93,7 +101,14 @@
 					:modelValue="row.key"
 					:maxlength="field.keyMaxLength"
 					@update:modelValue="setPair(index, 'key', $event)" />
-				<NcTextField
+				<NcSelect v-if="field.valueSource"
+					:modelValue="sourceOption(row.value)"
+					:options="sourceOptions"
+					:inputLabel="pairValueLabel"
+					:loading="sourceLoading"
+					label="label"
+					@update:modelValue="setPair(index, 'value', $event ? $event.value : '')" />
+				<NcTextField v-else
 					:label="pairValueLabel"
 					:type="field.valueType === 'number' ? 'number' : 'text'"
 					:modelValue="row.value === null || row.value === undefined ? '' : String(row.value)"
@@ -108,6 +123,11 @@
 					</template>
 				</NcButton>
 			</div>
+			<p v-if="sourceTruncated"
+				class="cn-settings-field__hint"
+				:data-testid="`cn-settings-field-pairs-truncated-${field.key}`">
+				{{ t('nextcloud-vue', 'Only the first {count} choices are listed.', { count: sourceOptions.length }) }}
+			</p>
 			<NcButton
 				:data-testid="`cn-settings-field-pair-add-${field.key}`"
 				@click="addPair">
@@ -187,18 +207,28 @@
 			:error="!!error"
 			:aria-describedby="describedBy"
 			@update:modelValue="emitValue($event)" />
-		<NcTextField
-			v-else-if="kind === 'secret'"
-			:id="inputId"
-			:label="label"
-			type="password"
-			autocomplete="new-password"
-			:modelValue="stringValue"
-			:placeholder="field.secretSet ? secretSetPlaceholder : (field.placeholder || '')"
-			:readonly="field.readOnly"
-			:error="!!error"
-			:aria-describedby="describedBy"
-			@update:modelValue="emitValue($event)" />
+		<div v-else-if="kind === 'secret'" class="cn-settings-field__secret">
+			<NcTextField
+				:id="inputId"
+				:label="label"
+				type="password"
+				autocomplete="new-password"
+				:modelValue="stringValue"
+				:placeholder="field.secretSet ? secretSetPlaceholder : (field.placeholder || '')"
+				:readonly="field.readOnly"
+				:disabled="field.clearing === true"
+				:error="!!error"
+				:aria-describedby="describedBy"
+				@update:modelValue="emitValue($event)" />
+			<NcCheckboxRadioSwitch v-if="field.clearable && field.secretSet"
+				type="switch"
+				:modelValue="field.clearing === true"
+				:disabled="field.readOnly"
+				:data-testid="`cn-settings-field-clear-${field.key}`"
+				@update:modelValue="$emit('clear', $event === true)">
+				{{ field.clearLabel || t('nextcloud-vue', 'Remove the stored value') }}
+			</NcCheckboxRadioSwitch>
+		</div>
 		<NcTextField
 			v-else-if="kind === 'number'"
 			:id="inputId"
@@ -321,7 +351,7 @@ export default {
 		},
 	},
 
-	emits: ['update:modelValue', 'uploaded', 'action'],
+	emits: ['update:modelValue', 'uploaded', 'action', 'clear'],
 
 	data() {
 		fieldUid += 1
@@ -329,6 +359,9 @@ export default {
 			uid: fieldUid,
 			fetchedOptions: null,
 			optionsLoading: false,
+			sourceOptions: [],
+			sourceLoading: false,
+			sourceTruncated: false,
 			uploading: false,
 			uploadError: '',
 		}
@@ -377,6 +410,11 @@ export default {
 		/** @return {string} The value as text for a text control. */
 		stringValue() {
 			return this.modelValue === null || this.modelValue === undefined ? '' : String(this.modelValue)
+		},
+
+		/** @return {string} An action link's address, with the web root for an app path. */
+		actionHref() {
+			return prefixUrl(String(this.field.href || ''))
 		},
 
 		/** @return {string} The placeholder of a secret that is stored. */
@@ -440,6 +478,14 @@ export default {
 		'field.optionsUrl': {
 			handler() {
 				this.loadOptions()
+			},
+
+			immediate: true,
+		},
+
+		'field.valueSource': {
+			handler() {
+				this.loadSourceOptions()
 			},
 
 			immediate: true,
@@ -575,6 +621,50 @@ export default {
 				return null
 			}
 			return typeof emitted === 'object' && 'value' in emitted ? emitted.value : emitted
+		},
+
+		/**
+		 * The option a pairs value selects; an id no object answers keeps its id as label.
+		 *
+		 * @param {unknown} value The stored id.
+		 * @return {object|null}
+		 */
+		sourceOption(value) {
+			if (value === null || value === undefined || value === '') {
+				return null
+			}
+			return this.sourceOptions.find((option) => String(option.value) === String(value)) || { label: String(value), value }
+		},
+
+		/**
+		 * Read the objects a pairs field's values are chosen from:
+		 * `valueSource { register, schema, labelField?, valueField?, limit? }`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSourceOptions() {
+			const source = this.kind === 'pairs' ? this.field.valueSource : null
+			if (!source || !source.register || !source.schema) {
+				return
+			}
+			const limit = Number(source.limit) > 0 ? Number(source.limit) : 1000
+			this.sourceLoading = true
+			try {
+				const url = `/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}?_limit=${limit}`
+				const { data } = await axios.get(prefixUrl(url))
+				const list = Array.isArray(data?.results) ? data.results : []
+				this.sourceOptions = list.filter((item) => item && typeof item === 'object').map((item) => {
+					const value = source.valueField ? readPath(item, source.valueField) : (item.id ?? item.uuid ?? item['@self']?.id)
+					const label = source.labelField ? readPath(item, source.labelField) : (item.name ?? item.title)
+					return { label: String(label || value || ''), value }
+				})
+				this.sourceTruncated = Number(data?.total) > list.length
+			} catch {
+				this.sourceOptions = []
+				this.sourceTruncated = false
+			} finally {
+				this.sourceLoading = false
+			}
 		},
 
 		/**
