@@ -1212,6 +1212,19 @@
 					"items": { "type": "string" },
 					"description": "The fields a card shows. Keep it short: a card is scanned, not read."
 				},
+				"cardCells": {
+					"type": "object",
+					"description": "pl4-board-card-cells: how a card field is drawn, as a table column's cell config: `{ [field]: { widget?, widgetProps?, formatter? } }` (a priority badge, a value with its currency, a close date with its due text). A field without one is text.",
+					"additionalProperties": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"widget": { "type": "string", "minLength": 1 },
+							"widgetProps": { "type": "object" },
+							"formatter": { "type": "string", "minLength": 1 }
+						}
+					}
+				},
 				"swimlaneField": {
 					"type": "string",
 					"description": "A second field to group the board into rows by, while the columns stay the stages. Cards with no value for it land in one named row, last, rather than being dropped: grouping by handler and hiding the unassigned work turns a board into a picture of what is already somebody's problem."

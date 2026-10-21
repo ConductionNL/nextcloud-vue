@@ -1022,6 +1022,7 @@
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
+					:cardCells="board.cardCells || null"
 					:swimlaneField="board.swimlaneField || ''"
 					:dueRule="board.dueRule || null"
 					:cardRoles="board.card || null"

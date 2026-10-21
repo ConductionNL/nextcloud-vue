@@ -321,9 +321,13 @@
 		},
 		"CnBoardView": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnCellRenderer",
+				"CnFkResolveCell",
+				"CnIndexPage"
+			],
 			"page": "cn-board-view"
 		},
 		"CnBodySections": {
