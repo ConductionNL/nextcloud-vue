@@ -256,6 +256,25 @@
 			data-testid="cn-object-list-widget-footnote">
 			{{ resolvedFootnote }}
 		</p>
+		<!-- `content.footerLinks`: a row of links under the list, each with
+		     an optional muted note ("Objecttypen beheren (alleen voor
+		     beheerders)"). -->
+		<div
+			v-if="footerLinks.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__links"
+			data-testid="cn-object-list-widget-links">
+			<span v-for="link in footerLinks" :key="link.key" class="cn-object-list-widget__link-item">
+				<a
+					class="cn-object-list-widget__link"
+					:href="link.href"
+					data-testid="cn-object-list-widget-link"
+					@click="onFooterLink($event, link)">{{ link.label }}</a>
+				<span
+					v-if="link.note"
+					class="cn-object-list-widget__link-note"
+					data-testid="cn-object-list-widget-link-note">{{ link.note }}</span>
+			</span>
+		</div>
 		<!-- Why the declared create action is withheld on this record
 		     (`content.createAction.hiddenNote`). -->
 		<p
@@ -496,6 +515,8 @@ export default {
 
 	data() {
 		return {
+			/** The current user's groups once a `footerLinks` entry with `group` asked for them; null before. */
+			footerGroups: null,
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
@@ -1025,6 +1046,45 @@ export default {
 		},
 
 		/**
+		 * `content.footerLinks` (`[{ label, route?, query?, href?, note?, group? }]`)
+		 * ready to draw: labels and notes through the host translate, a `route`
+		 * with its token-resolved `query` as a router location and its href, an
+		 * `href` as given. A link with `group` shows only to that group's
+		 * members, and not before the groups are known.
+		 *
+		 * @spec openspec/changes/object-list-footer-links/specs/object-list/spec.md#requirement-an-object-list-can-end-with-a-row-of-links
+		 * @return {Array<{key: string, label: string, note: string, href: string, location: object|null}>}
+		 */
+		footerLinks() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const out = []
+			links.forEach((link, index) => {
+				if (!link || typeof link.label !== 'string' || link.label === '') {
+					return
+				}
+				if (typeof link.group === 'string' && link.group !== '' && !(this.footerGroups || []).includes(link.group)) {
+					return
+				}
+				const location = typeof link.route === 'string' && link.route !== ''
+					? { name: link.route, query: resolveFilterTokens(link.query || {}, this.tokenCtx) }
+					: null
+				const href = location ? resolveHref(location, this.$router) : (typeof link.href === 'string' ? link.href : '')
+				if (!location && href === '') {
+					return
+				}
+				out.push({
+					key: `link-${index}`,
+					label: fn(link.label),
+					note: typeof link.note === 'string' && link.note !== '' ? fn(link.note) : '',
+					href,
+					location,
+				})
+			})
+			return out
+		},
+
+		/**
 		 * `content.footnote` run through the host translate function, or ''.
 		 *
 		 * @return {string}
@@ -1374,6 +1434,7 @@ export default {
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
 		this.offerExport()
+		this.loadFooterGroups()
 		// A table wider than the widget fits its columns to the width instead of
 		// scrolling sideways (no inner scrollbars).
 		if (typeof ResizeObserver !== 'undefined') {
@@ -1987,6 +2048,33 @@ export default {
 		},
 
 		/**
+		 * Load the current user's groups when a `footerLinks` entry names one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFooterGroups() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			if (this.footerGroups !== null || !links.some((link) => link && typeof link.group === 'string' && link.group !== '')) {
+				return
+			}
+			this.footerGroups = await getCurrentUserGroups().catch(() => [])
+		},
+
+		/**
+		 * A footer link click: a route link goes through the router (a
+		 * modified click is left to the browser), an `href` is a plain link.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @param {{location: object|null}} link The link.
+		 * @return {void}
+		 */
+		onFooterLink(event, link) {
+			if (link.location) {
+				followLinkClick(event, link.location, this.$router)
+			}
+		},
+
+		/**
 		 * "View all (N)" footer click: emits `view-all` and, when the content
 		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
 		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
@@ -2458,6 +2546,24 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin: 12px 0 0;
+	font-size: 14px;
+}
+
+.cn-object-list-widget__link {
+	font-weight: 600;
+}
+
+.cn-object-list-widget__link-note {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-object-list-widget__footnote {
