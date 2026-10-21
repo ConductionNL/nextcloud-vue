@@ -2473,7 +2473,8 @@
     "The value for {key} must be above {min}.": "De waarde voor {key} moet hoger zijn dan {min}.",
     "Add a row": "Een rij toevoegen",
     "Key": "Sleutel",
-    "{field} holds {key} twice.": "{field} bevat {key} twee keer."
+    "{field} holds {key} twice.": "{field} bevat {key} twee keer.",
+    "View all ({count})": "Alles bekijken ({count})"
   },
   "plurals": {
     "{count} member": [

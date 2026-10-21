@@ -2223,7 +2223,8 @@
     "The value for {key} must be above {min}.": "The value for {key} must be above {min}.",
     "Add a row": "Add a row",
     "Key": "Key",
-    "{field} holds {key} twice.": "{field} holds {key} twice."
+    "{field} holds {key} twice.": "{field} holds {key} twice.",
+    "View all ({count})": "View all ({count})"
   },
   "plurals": {
     "{count} member": [
