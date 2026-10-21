@@ -1,7 +1,16 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
 <!-- SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl> -->
 <template>
-	<section class="cn-timeline-widget" data-testid="cn-timeline-widget" :aria-busy="loading ? 'true' : 'false'">
+	<CnTimelineManage v-if="manage"
+		:register="resolvedRegister"
+		:schema="resolvedSchema"
+		:objectId="resolvedObjectId"
+		:apiBase="apiBase"
+		:content="content" />
+	<section v-else
+		class="cn-timeline-widget"
+		data-testid="cn-timeline-widget"
+		:aria-busy="loading ? 'true' : 'false'">
 		<h3 v-if="resolvedTitle" class="cn-timeline-widget__title">
 			{{ resolvedTitle }}
 		</h3>
@@ -53,6 +62,7 @@
 <script>
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnTimelineManage from './CnTimelineManage.vue'
 import { auditEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -73,6 +83,12 @@ import { userLocale } from '../../utils/userLocale.js'
  *
  * Oldest first by default (`order: 'desc'` flips it). A moment after now is
  * marked upcoming, in words as well as style.
+ *
+ * `manage: true` swaps the read view for the manage view (CnTimelineManage)
+ * over OpenRegister's timeline alone: kind chips, a visibility filter, pin,
+ * follow-up, a note composer with standard text blocks, CSV export, and
+ * `entryActions` that open a registry modal on an entry. The manage controls
+ * are drawn only when the timeline read answers `canManage: true`.
  *
  * ```json
  * { "type": "timeline", "content": {
@@ -95,6 +111,7 @@ export default {
 	name: 'CnTimelineWidget',
 
 	components: {
+		CnTimelineManage,
 		NcLoadingIcon,
 		NcNoteCard,
 	},
@@ -123,7 +140,7 @@ export default {
 		object: { type: Object, default: null },
 		/** Card title override. */
 		title: { type: String, default: '' },
-		/** Stored widget content: `{ title, fields, related, auditTrail, timeline, order }`. */
+		/** Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`. */
 		content: { type: Object, default: () => ({}) },
 		/** OpenRegister API base. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
@@ -170,6 +187,15 @@ export default {
 		 */
 		resolvedObject() {
 			return this.object || this.ctx.object || this.ctx.objectData || this.fetchedObject || null
+		},
+
+		/**
+		 * Whether the manage view renders instead of the read view.
+		 *
+		 * @return {boolean}
+		 */
+		manage() {
+			return this.content.manage === true
 		},
 
 		resolvedTitle() {
@@ -313,7 +339,7 @@ export default {
 			const register = this.resolvedRegister
 			const schema = this.resolvedSchema
 			const seq = ++this.loadSeq
-			if (!id || !register || !schema) {
+			if (!id || !register || !schema || this.manage) {
 				return
 			}
 			const [{ default: axios }, { generateUrl }] = await Promise.all([
