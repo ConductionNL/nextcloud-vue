@@ -221,6 +221,17 @@
 	}
 }
 
+/* Every segmented control in the board look draws its options as the boards
+   do: the options not chosen in the soft ink, the chosen one in the main text
+   (DqDoorlooptijd "Kwartaal" and "Jaar", DqProcesanalyse "Mediaan",
+   DqTermijnen "Deze week"). The component draws every option in the main
+   text.
+   @spec openspec/changes/board-segmented-soft-ink/specs/board-segmented-soft-ink/spec.md#requirement-a-board-segmented-control-draws-the-options-not-chosen-in-the-soft-ink */
+.cn-look-board .cn-segmented-control .cn-segmented-control__option:not(.cn-segmented-control__option--checked):not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
+	color: var(--cn-board-text-soft);
+}
+
 /* ---- Button weight ------------------------------------------------------ */
 /* The boards draw a labelled button at 600 (DqZaken "Downloaden", DqZaak's
    header, dialog footers, toolbar and row actions). An NcButton reads its
