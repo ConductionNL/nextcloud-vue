@@ -1570,6 +1570,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
+/* A compact list (`density: "compact"`) draws its rows 10px above and below,
+   at least 56px tall, 6px between lines, the title at 500 (DqProcesanalyse
+   "Waar zaken blijven hangen").
+   @spec openspec/changes/record-list-density/specs/record-list/spec.md#requirement-a-record-list-can-draw-compact-rows */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__row {
+	box-sizing: border-box;
+	min-height: 56px;
+	padding: 10px 0;
+	gap: 6px 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__title {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__main {
+	gap: 2px;
+}
+
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
    text does not move. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {

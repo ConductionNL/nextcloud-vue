@@ -129,6 +129,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `valueLabels` maps a field's stored values to labels the templates show: `"valueLabels": { "channel": { "phone": "Phone", "telefoon": "Phone", "email": "Email" } }` makes `"{channel}"` read the translated label ("Telefoon" for both spellings). A value the map does not name is shown as stored. The pill, the badges and the sort keep the stored value.
 
+`density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
+
 ## Props
 
 | Prop | Type | Default | Description |
