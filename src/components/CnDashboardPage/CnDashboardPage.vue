@@ -506,6 +506,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="false"
 					:showRefresh="false">
@@ -569,6 +570,7 @@
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)">
 					<!-- Compact on purpose: a two-row tile is about 150px, less
@@ -609,6 +611,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -692,6 +695,7 @@
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -772,6 +776,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -801,6 +806,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -842,6 +848,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -869,6 +876,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
@@ -971,6 +979,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)"
 					:showRefresh="false">
@@ -3385,6 +3394,7 @@ export default {
 				widgetId: item.widgetId,
 				title: this.getWidgetTitle(item),
 				eyebrow: this.getWidgetEyebrow(item),
+				titleTone: this.getWidgetTitleTone(item),
 				subtitle: this.getWidgetSubtitle(item),
 				showTitle: this.widgetShowTitle(item),
 				showActions: this.widgetShowActions(item),
@@ -4522,6 +4532,19 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const subtitle = def && typeof def.subtitle === 'string' ? def.subtitle : ''
 			return subtitle ? this.effectiveTranslate(subtitle) : ''
+		},
+
+		/**
+		 * The widget's title tone (`titleTone` on its definition): `side`
+		 * titles the card as a side card in the board look.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		getWidgetTitleTone(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def && def.titleTone === 'side' ? 'side' : ''
 		},
 
 		/**

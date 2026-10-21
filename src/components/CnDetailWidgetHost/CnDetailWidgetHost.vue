@@ -70,6 +70,7 @@
 			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showRefresh="false"
 			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
@@ -157,6 +158,7 @@
 			v-else-if="wrapsMountLeaf"
 			:title="leafCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -218,6 +220,7 @@
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -260,6 +263,7 @@
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			flush
 			:showActions="false"
 			:showRefresh="false"
@@ -283,6 +287,7 @@
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -315,6 +320,7 @@
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -982,6 +988,17 @@ export default {
 		 */
 		wrapsMountLeaf() {
 			return !this.isBare && this.isMountIntegration && this.integrationProvider.chrome === 'card'
+		},
+
+		/**
+		 * The widget's title tone (`titleTone`): `side` titles its card as a
+		 * side card in the board look.
+		 *
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		widgetTitleTone() {
+			return this.widget && this.widget.titleTone === 'side' ? 'side' : ''
 		},
 
 		/**

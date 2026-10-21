@@ -16,6 +16,7 @@
 			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 			'cn-widget-wrapper--high-contrast': highContrast,
+			'cn-widget-wrapper--side-title': titleTone === 'side',
 		}"
 		:data-cn-high-contrast="highContrast ? 'true' : undefined"
 		:style="wrapperStyles">
@@ -404,6 +405,18 @@ export default {
 		buttons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The title's tone: `side` titles the card as a side card in the
+		 * board look (a 15px muted heading), for a card in a page's right
+		 * column. Manifest: `titleTone` on the widget definition.
+		 *
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		titleTone: {
+			type: String,
+			default: '',
 		},
 
 		/**

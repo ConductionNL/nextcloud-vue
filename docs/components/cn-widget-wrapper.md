@@ -221,6 +221,12 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 }
 ```
 
+## A side-card title (`titleTone`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `titleTone` | `String` | `''` | `side` titles the card as a side card in the board look: 15px, weight 600, muted. For a card in a page's right column (DqDagAfsluiten "Uw dag"). In a manifest: `titleTone: "side"` on the widget definition; CnDashboardPage and CnDetailWidgetHost pass it on. |
+
 ## A text link in the header (`headerLink`)
 
 | Prop | Type | Default | Description |
