@@ -73,6 +73,11 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
  * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-reads-display-names-through-the-apps-formatters
  */
 function formatValue(value, format, now, arg = '', object = null, config = null, formatters = null) {
+	// `{list|count}`: how many entries a list holds, nothing for an empty one.
+	if (format === 'count') {
+		const count = Array.isArray(value) ? value.length : Number(value)
+		return Number.isFinite(count) && count > 0 ? String(count) : ''
+	}
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
 	}
@@ -140,6 +145,7 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * `{path|relativetime}` say "today", "yesterday" and then the short date
  * ("vandaag, 09.42"), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"),
+ * `{path|count}` is how many entries a list holds (nothing for an empty one),
  * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"
  * reads "Step 2: in progress" mid-sentence), and any other name is one of
  * the app's formatters, passed as `context.formatters` (`{id|caseAddress}`).

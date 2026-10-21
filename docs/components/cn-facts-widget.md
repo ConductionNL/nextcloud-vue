@@ -100,6 +100,42 @@ entry's `format` (`bytes` for storage).
 { "as": "meter", "key": "storage", "label": "Storage", "path": "usage.storage", "limitPath": "quota.storage", "format": "bytes" }
 ```
 
+### Progress, conditions and an empty card that acts
+
+`as: "progress"` draws the percentage at `path` (0 to 100) as a bar with `role="progressbar"`, and under it the sentence
+that says what the figure means. `lines` lists candidate sentences, each with an optional local `when` condition over the
+record; the first that applies and fills is shown. `barWhen` hides the bar while its condition does not hold, so an
+uncomputable figure is never drawn as zero.
+
+```json
+{
+  "as": "progress",
+  "label": "Progress of the programme",
+  "path": "progress.progress",
+  "barWhen": { "field": "progress.computable", "op": "eq", "value": true },
+  "lines": [
+    { "when": { "field": "progress.computable", "op": "neq", "value": true }, "text": "Progress cannot be computed." },
+    { "when": { "field": "progress.mode", "op": "eq", "value": "manual" }, "text": "{progress.progress} percent done, entered by hand." },
+    { "text": "{progress.progress} percent done." }
+  ]
+}
+```
+
+Every entry takes `when`, a local condition over the record; an entry whose condition does not hold is left out.
+
+`source.path` reads the facts from a part of the source's answer (`{ "url": "/apps/x/api/y/@objectId/programme", "path": "programme" }`).
+When that part is empty the card shows `emptyText` and the actions in `emptyActions` (`[{ label, icon?, type, ... }]`,
+dispatched like `action`, with `@objectId` and `@object.<field>` resolved), for example a dialog that links the record.
+
+A failed read says `errorText` (default "Could not load this information") as an alert, with a Try again button.
+
+### A link into another app
+
+`link.href` may be a template over the record (`{knowledgeBasePage}`). A value that is not a URL is a page path under
+`link.hrefBase` (`/apps/collectives/`). Only http, https and paths on this server open; anything else draws no link.
+`link.target: "_blank"` opens a new tab, and `link.icon` draws an icon before the label. A card without `fields` and
+without `emptyText` says nothing when its link does not resolve.
+
 ### Other keys
 
 | Key | Meaning |

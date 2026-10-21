@@ -94,6 +94,7 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
  */
 export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'ai-chat',
+	'attention-flag',
 	'audit-trail',
 	'banner',
 	'calendar',
@@ -138,6 +139,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'object-geo',
 	'object-list',
 	'object-table',
+	'parties',
 	'party-actions',
 	'people',
 	'plan',
@@ -155,6 +157,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'stages',
 	'stat',
 	'stats-block',
+	'status-explainer',
 	'switch-rows',
 	'table',
 	'tabs',

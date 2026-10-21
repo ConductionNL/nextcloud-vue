@@ -34,7 +34,11 @@
 						<component :is="tab.titleRender" /> <span
 							v-if="hasCount(tab)"
 							class="cn-tabs__count"
-							data-testid="cn-tabs-count">{{ tab.count }}</span>
+							:aria-hidden="tab.countLabel ? 'true' : null"
+							data-testid="cn-tabs-count">{{ tab.count }}</span><span
+								v-if="hasCount(tab) && tab.countLabel"
+								class="hidden-visually"
+								data-testid="cn-tabs-count-label">{{ tab.countLabel }}</span>
 					</button>
 				</div>
 				<!-- Mouse-only affordances: keyboard users already have the arrow
