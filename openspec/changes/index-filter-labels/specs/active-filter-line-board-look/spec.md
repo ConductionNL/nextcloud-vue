@@ -58,3 +58,18 @@ Removing the chip SHALL clear every key it stands for.
 - **GIVEN** active filters `deadline[gte]: 2026-10-01` and `deadline[lte]: 2026-11-15` on a schema whose `deadline` is titled "Deadline", in English
 - **WHEN** the list renders
 - **THEN** there is one chip, "Deadline: October 1 through November 15", and removing it clears both keys
+
+### Requirement: Several values read as a list
+
+When an active filter holds several values, its chip SHALL join their names
+as a conjunction list in the person's locale (`Intl.ListFormat`, type
+`conjunction`): "actief en verlopend" in Dutch, "active and ending" in
+English, "a, b en c" for three. Where the environment has no
+`Intl.ListFormat`, the names SHALL be joined with ", ".
+
+#### Scenario: DqContracten
+
+- **GIVEN** `?status[]=active&status[]=ending` and `filterLabels: { status: { values: { active: "active", ending: "ending" } } }`, in Dutch with those translated to "actief" and "verlopend"
+- **WHEN** the contracts list renders
+- **THEN** the chip reads "Status: actief en verlopend"
+

@@ -21,3 +21,13 @@
   - Removing it clears both ends
 - [x] Implement
 - [x] Test
+
+### Task 3: Several values read as a list
+- **spec_ref**: `openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/utils/filterRangeLabel.js`, `tests/utils/filterRangeLabel.spec.js`, `tests/components/CnIndexFilterLabels.spec.js`
+- **acceptance_criteria**:
+  - Two values read "a en b" in Dutch, three "a, b en c"
+  - Without `Intl.ListFormat` the names join with ", "
+- [x] Implement
+- [x] Test
+

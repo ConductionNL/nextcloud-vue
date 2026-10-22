@@ -30,6 +30,8 @@ shared as a link. The Active line then names those filters badly:
   (or `gt`/`lt`) both read "{from} through {to}", "from {from}" or "up to {to}".
   Dates are written in the person's locale, the month once when both ends
   share it ("1 tot en met 31 oktober"). Removing the chip clears both ends.
+- Several values of one filter read as a list in the person's locale
+  ("Status: actief en verlopend"), not joined with commas.
 
 ## Reference screens
 

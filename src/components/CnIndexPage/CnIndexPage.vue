@@ -1418,7 +1418,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { rangeChipText, rangeEnds } from '../../utils/filterRangeLabel.js'
+import { listText, rangeChipText, rangeEnds } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -7888,10 +7888,12 @@ export default {
 		 * The active filters as chips for the board toolbar's second row, one
 		 * per filter: "Team: Woo". A filter with no value is not active. A
 		 * range, as one `{from, to}` value or as `key[gte]`/`key[lte]` keys, is
-		 * one chip; `keys` lists the filter keys it stands for.
+		 * one chip; `keys` lists the filter keys it stands for. Several values
+		 * of one filter read as a list in the locale ("A en B").
 		 *
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
 		 * @return {Array<{key: string, label: string, keys?: string[]}>}
 		 */
 		activeFilterChips() {
@@ -7928,7 +7930,7 @@ export default {
 				if (values.length === 0) {
 					continue
 				}
-				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${values.join(', ')}` })
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
 			}
 			return chips.map((chip) => {
 				if (!chip.rangeOf) {

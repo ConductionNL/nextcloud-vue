@@ -2,7 +2,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The text of one range filter on the Active line: "1 tot en met 31 oktober".
+ * The text of one range filter on the Active line ("1 tot en met 31 oktober")
+ * and of several values of one filter ("actief en verlopend").
  *
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
  */
@@ -101,4 +102,24 @@ export function rangeChipText(from, to, { translate, locale, now = new Date() })
 		return translate('from {from}', { from: fromText })
 	}
 	return translate('up to {to}', { to: toText })
+}
+
+/**
+ * Several value names as one list in the locale: "actief en verlopend",
+ * "a, b en c". Joined with ", " where `Intl.ListFormat` is missing.
+ *
+ * @param {string[]} names The value names.
+ * @param {string} [locale] BCP 47 locale; the environment's when omitted.
+ * @return {string} The text.
+ * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
+ */
+export function listText(names, locale) {
+	if (names.length < 2 || typeof Intl.ListFormat !== 'function') {
+		return names.join(', ')
+	}
+	try {
+		return new Intl.ListFormat(locale, { type: 'conjunction' }).format(names)
+	} catch {
+		return names.join(', ')
+	}
 }

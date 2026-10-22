@@ -47,6 +47,14 @@ describe('a page names its filters', () => {
 		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Status: lopend'])
 	})
 
+	it('joins several values as a list in the locale', () => {
+		const w = mountPage({
+			activeFilters: { status: ['active', 'ending'] },
+			filterLabels: { status: { values: { active: 'active', ending: 'ending' } } },
+		})
+		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Status: active and ending'])
+	})
+
 	it('keeps the schema names for a key filterLabels does not list', () => {
 		const w = mountPage({ activeFilters: { status: 'open' }, filterLabels: { isFinalStatus: { label: 'Status' } } })
 		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Status: Open'])
