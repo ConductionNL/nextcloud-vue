@@ -4321,6 +4321,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedReload,
 		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
 
 		return {
@@ -4332,6 +4333,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedReload,
 			namedActiveFilters,
 			namedPaging,
 			namedSearchTerm,
@@ -11766,6 +11768,14 @@ export default {
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
+			if (this.isNamedSource) {
+				this.internalRefreshing = true
+				try {
+					await this.namedReload()
+				} finally {
+					this.internalRefreshing = false
+				}
+			}
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
 				this.internalRefreshing = true
 				try {
