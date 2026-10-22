@@ -1042,3 +1042,14 @@
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
 }
+
+/* ---- The flow board's inspector card (CnFlowBoard) ----------------------- */
+/* Titled as every board card: 17px, 700, the font's normal line height
+   (DqFlow "Welstand nodig?"). The doubled class outranks the component's
+   scoped 16px 600.
+   @spec openspec/changes/board-flow-card-title/specs/board-flow-card-title/spec.md#requirement-a-board-flow-card-is-titled-as-a-board-card */
+.cn-look-board .cn-flow-board__card-title.cn-flow-board__card-title:not(.cn-look-nextcloud *) {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
