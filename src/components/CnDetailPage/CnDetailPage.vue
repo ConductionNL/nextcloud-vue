@@ -628,7 +628,7 @@
 			v-if="showsNextStepCard"
 			class="cn-detail-page__next-step"
 			:title="nextStepCard.title"
-			titleTag="h3"
+			:titleTag="isBoard ? 'h2' : 'h3'"
 			:items="nextStepCard.items"
 			:after="nextStepCard.after"
 			data-testid="cn-detail-page-next-step">
@@ -930,12 +930,12 @@
 						     Built-in widgets (data / related / integration / catalog)
 						     render their own titled card header, so a grid <h3> here would
 						     duplicate the title above the widget. -->
-						<h3
+						<component :is="isBoard ? 'h2' : 'h3'"
 							v-if="showGridTitle(item)"
 							:id="`widget-title-${item.id}`"
 							class="cn-detail-page__widget-title">
 							{{ gridTitle(item) }}
-						</h3>
+						</component>
 						<!--
 							@slot `widget-${item.widgetId}`
 							@description Per-widget slot whose name is `widget-<widgetId>`. Use
@@ -1040,9 +1040,9 @@
 					content: an `<h3>` showing `statsTitle`.
 				-->
 				<slot name="stats-header">
-					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
+					<component :is="isBoard ? 'h2' : 'h3'" v-if="statsTitle" class="cn-detail-page__section-title">
 						{{ resolvedStatsTitle }}
-					</h3>
+					</component>
 				</slot>
 				<table class="cn-detail-page__stats-table">
 					<thead v-if="statsColumns.length > 0">
