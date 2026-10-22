@@ -2515,7 +2515,8 @@
     "Saved view": "Opgeslagen weergave",
     "Close side panel": "Zijpaneel sluiten",
     "Export selection as JSON": "Selectie exporteren als JSON",
-    "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren"
+    "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren",
+    "Bundling and test message": "Bundeling en testbericht"
   },
   "plurals": {
     "{count} member": [
