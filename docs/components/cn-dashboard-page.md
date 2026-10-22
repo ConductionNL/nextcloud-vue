@@ -365,6 +365,8 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 
 Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
 
+With `placement: "description"` a filter sits on the header's description line instead of in the filter row: a select as a compact select, one with `control: "segmented"` as a segmented group. They stand in the order the page declares them (DqProcesanalyse: "Gemiddeld | Mediaan", then "Laatste 12 maanden" and "Alle zaaktypen"), before a `dateRange` period group on the same line. A select is set off by a middle dot from a segmented group that follows it, not from another select.
+
 ### Options read from a source (`optionsFrom`)
 
 A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:
