@@ -142,6 +142,22 @@ header. `CnIndexPage` does this by default; turn it off for a page with
 | `$ref` or `fkResolve` | searchable list of the referenced objects | `key[]=<uuid>` |
 | text | contains | `key[like]=term` |
 
+A dotted key such as `address.place` filters the field inside an object
+property when the schema describes it, under the same dotted name
+(`address.place[like]=zuid`); OpenRegister filters such a path. A column can
+name the stored field its filter works on with `filterField`. That field
+decides the panel and the parameters, and it gives a computed column
+(`aggregate`) a filter, as long as the server stores the field it names.
+
+An `aggregate` column with `aggregate.filterable: true` filters through its
+related rows with OpenRegister's related-row filter. Its `where` must link
+one field to `@self.id`. A count offers Any and Yes: Yes keeps the rows that
+have a related row matching the other `where` entries
+(`_related[case][requester][isFinalStatus]=false`). The server cannot ask for
+"none", so there is no No. A `max` over `field` offers a date range, matching
+the rows that have a related row whose `field` falls in it
+(`_related[contactmoment][contact][startTime][gte]=…`).
+
 A text filter matches on contains, case-insensitive, through OpenRegister's
 `[like]` operator: "acme" finds "Acme B.V.". The term goes out as typed, URL
 encoded; OpenRegister escapes `%`, `_` and `\` itself, so the library adds no

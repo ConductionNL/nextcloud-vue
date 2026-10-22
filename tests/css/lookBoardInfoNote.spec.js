@@ -62,6 +62,25 @@ describe('look-board.css: the info note', () => {
 		expect(rule('.cn-look-board.cn-dialog-board .notecard.notecard--info:not(.cn-look-nextcloud *)')).toContain('font-size: 13px')
 	})
 
+	/**
+	 * A note with a heading is the larger box the boards draw: 14px 16px,
+	 * a 20px icon 12px before 14px text, also in a dialog (DqBesluit
+	 * "Publiceren doet u daarna", DqArchiveren "Daarna alleen lezen").
+	 *
+	 * @spec openspec/changes/board-headed-note/specs/board-headed-note/spec.md#requirement-a-board-note-with-a-heading-is-the-larger-box
+	 */
+	it('draws a note with a heading as the larger box, in a dialog too', () => {
+		const headed = `${note}:has(.notecard__heading)`
+		const box = rule(headed)
+		expect(box).toContain('gap: 12px')
+		expect(box).toContain('padding: 14px 16px')
+		expect(box).toContain('font-size: 14px')
+		const svg = rule(`${headed} .notecard__icon svg`)
+		expect(svg).toContain('width: 20px')
+		expect(svg).toContain('height: 20px')
+		expect(rule('.cn-look-board.cn-dialog-board .notecard.notecard--info:has(.notecard__heading):not(.cn-look-nextcloud *)')).toContain('font-size: 14px')
+	})
+
 	it('only reaches the board look', () => {
 		const selectors = css.match(/[^{}]*notecard--info[^{}]*\{/g) || []
 		expect(selectors.length).toBeGreaterThan(0)

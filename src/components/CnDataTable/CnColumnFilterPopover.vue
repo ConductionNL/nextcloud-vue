@@ -228,11 +228,13 @@ export default {
 		},
 
 		booleanOptions() {
-			return [
+			const options = [
 				{ value: '', label: t('nextcloud-vue', 'Any') },
 				{ value: 'true', label: t('nextcloud-vue', 'Yes') },
 				{ value: 'false', label: t('nextcloud-vue', 'No') },
 			]
+			// A related-row filter can ask for a matching row, not for none.
+			return this.def.existsOnly ? options.slice(0, 2) : options
 		},
 
 		panelStyle() {
