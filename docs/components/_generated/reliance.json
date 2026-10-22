@@ -338,7 +338,7 @@
 		},
 		"CnBodySections": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 3,
 			"tier": "light",
 			"via": [],
 			"page": "cn-body-sections"
@@ -663,11 +663,12 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "medium",
 			"via": [
 				"CnActionDialog",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnTemplateSelect"
 			],
 			"page": "cn-conversation-thread"
 		},
@@ -1913,6 +1914,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-guardian-home"
+		},
+		"CnHandoffAction": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-handoff-action"
 		},
 		"CnHeaderSearchLabel": {
 			"direct": 0,
@@ -3427,7 +3435,7 @@
 			"page": "cn-readiness-checklist"
 		},
 		"CnRecordListWidget": {
-			"direct": 2,
+			"direct": 3,
 			"transitive": 103,
 			"tier": "heavy",
 			"via": [
