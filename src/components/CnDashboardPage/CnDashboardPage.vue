@@ -1338,6 +1338,14 @@ export default {
 		 */
 		cnRegistry: { default: () => ({}) },
 		/**
+		 * The page's action dispatcher, provided by CnPageRenderer: a card's
+		 * header action runs through it, so `open-modal` reaches the app's
+		 * registry dialogs, as on a detail page. Null outside the renderer.
+		 *
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
+		 */
+		cnDispatchAction: { default: null },
+		/**
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
 		 * manifest-authored page title/description are run through it.
@@ -4677,17 +4685,21 @@ export default {
 
 		/**
 		 * The widget's manifest `headerActions`, resolved for its card's title
-		 * row; a click goes through the action dispatcher with the page's
-		 * router.
+		 * row; a click goes through the page's dispatcher when the renderer
+		 * provides one (so `open-modal` opens a registry dialog), else through
+		 * the action dispatcher with the page's router.
 		 *
 		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
 		 * @param {object} item Layout placement entry.
 		 * @return {Array<object>} The buttons, or none.
 		 */
 		getWidgetHeaderActions(item) {
 			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
 				translate: (key) => this.effectiveTranslate(key),
-				dispatch: (action) => dispatchAction(action, { router: this.$router || null }),
+				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null })),
 			})
 		},
 
