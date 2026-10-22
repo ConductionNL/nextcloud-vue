@@ -2498,7 +2498,8 @@
     "Task saved": "Taak opgeslagen",
     "Due by": "Uiterlijk op",
     "Incoming": "Inkomend",
-    "Outgoing": "Uitgaand"
+    "Outgoing": "Uitgaand",
+    "Close side panel": "Zijpaneel sluiten"
   },
   "plurals": {
     "{count} member": [

@@ -11,6 +11,7 @@
 	     empty — so passing subtitle alone showed nothing. Same pair as
 	     name/title, and as CnIndexSidebar. -->
 	<NcAppSidebar
+		ref="appSidebar"
 		v-model:active="activeTab"
 		:name="sidebarTitle"
 		:title="sidebarTitle"
@@ -231,6 +232,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
 import { CnAiFeaturesWidget } from '../CnAiFeaturesWidget/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
@@ -809,6 +811,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		labelSidePanelClose(this.$refs.appSidebar)
 		// Settle on arrival, so an address carrying no tab is corrected to
 		// its canonical form once rather than staying tabless until the
 		// reader happens to click something (ADR-052).

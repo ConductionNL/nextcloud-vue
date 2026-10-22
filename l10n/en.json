@@ -2248,7 +2248,8 @@
     "Task saved": "Task saved",
     "Due by": "Due by",
     "Incoming": "Incoming",
-    "Outgoing": "Outgoing"
+    "Outgoing": "Outgoing",
+    "Close side panel": "Close side panel"
   },
   "plurals": {
     "{count} member": [

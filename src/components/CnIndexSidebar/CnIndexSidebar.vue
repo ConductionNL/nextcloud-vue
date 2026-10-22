@@ -1,5 +1,6 @@
 <template>
 	<NcAppSidebar
+		ref="appSidebar"
 		v-model:open="internalOpen"
 		class="cn-index-sidebar-panel"
 		:name="resolvedName"
@@ -338,6 +339,7 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
 import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -893,6 +895,10 @@ export default {
 				this.loadReferenceOptions()
 			},
 		},
+	},
+
+	mounted() {
+		labelSidePanelClose(this.$refs.appSidebar)
 	},
 
 	methods: {
