@@ -1849,14 +1849,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:first-child,
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:first-child {
-	padding-inline-start: var(--cn-board-dashboard-card-inset);
-}
-
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table th:last-child,
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table .cn-data-table td:last-child {
-	padding-inline-end: var(--cn-board-dashboard-card-inset);
+/* A widget table sits inside the card's 22px table inset, its header band
+   and cells 12px in from the table's edge, as the boards draw it
+   (DqTermijnen, DqDoorlooptijd, DqProcesanalyse); it does not run to the
+   card's edge.
+   @spec openspec/changes/board-dashboard-table-inset/specs/board-dashboard-table-inset/spec.md#requirement-a-board-dashboard-table-sits-inside-the-cards-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-object-table {
+	box-sizing: border-box;
+	padding: 0 22px 20px;
 }
 
 /* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
