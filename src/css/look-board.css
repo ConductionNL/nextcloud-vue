@@ -1675,6 +1675,103 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: flex-start;
 }
 
+/* ---- Warning and error banners (CnBannerWidget) ------------------------- */
+/* The boards draw a warning or error banner as a tinted box with a 1px edge
+   in its own tone, radius 10, 12px 14px of padding, the text in the main ink
+   (PtInzending "De ontvangstbevestiging kwam niet aan.", PtAccounts
+   "aanmeldingen wachten op goedkeuring"), not NcNoteCard's 4px edge bar. A
+   settings card's notes take the same box, success included
+   (PtBeheerinstellingen "Er is een eigen ondertekeningssleutel ingesteld").
+   @spec openspec/changes/board-banner-note-tone/specs/board-banner-note-tone/spec.md#requirement-a-board-warning-or-error-banner-is-a-tinted-box-with-an-edge-in-its-tone */
+.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: color-mix(in srgb, var(--color-warning) 13%, var(--color-main-background));
+	--cn-banner-edge: color-mix(in srgb, var(--color-warning) 50%, var(--color-main-background));
+}
+
+.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *),
+.cn-look-board .settings-section .notecard.notecard--error:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
+	--cn-banner-edge: color-mix(in srgb, var(--color-error) 30%, var(--color-main-background));
+}
+
+.cn-look-board .settings-section .notecard.notecard--success:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: color-mix(in srgb, var(--color-success) 9%, var(--color-main-background));
+	--cn-banner-edge: color-mix(in srgb, var(--color-success) 30%, var(--color-main-background));
+}
+
+.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *),
+.cn-look-board .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .settings-section .notecard.notecard--error:not(.cn-look-nextcloud *),
+.cn-look-board .settings-section .notecard.notecard--success:not(.cn-look-nextcloud *) {
+	--note-card-icon-size: 18px;
+	gap: 10px;
+	margin: 0;
+	padding: 12px 14px;
+	border: 1px solid var(--cn-banner-edge);
+	border-radius: 10px;
+	background-color: var(--cn-banner-ground) !important;
+	color: var(--color-main-text) !important;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* A stat-row cell that holds only a banner is the banner: no card around it. */
+.cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) {
+	border: none;
+	background: transparent;
+}
+
+.cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) > .cn-widget-wrapper__content {
+	padding: 0;
+}
+
+/* ---- Link tiles (CnTileWidget) ------------------------------------------ */
+/* The board draws a link tile as a rounded card, its icon on the left beside
+   a 15px bold title and a 13px line under it, all left-aligned (PtThemas
+   "Themacatalogus", "Portalen en hun thema's"), not a square with a centred
+   48px icon.
+   @spec openspec/changes/board-link-tile/specs/board-link-tile/spec.md#requirement-a-board-link-tile-is-a-rounded-card-with-its-icon-beside-the-title */
+.cn-look-board .cn-tile-widget:not(.cn-look-nextcloud *) {
+	border-radius: var(--cn-board-card-radius, 12px);
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__link:not(.cn-look-nextcloud *) {
+	flex-direction: row;
+	justify-content: flex-start;
+	gap: 14px;
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__link:not(.cn-look-nextcloud *):hover {
+	transform: none;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__icon:not(.cn-look-nextcloud *),
+.cn-look-board .cn-tile-widget .cn-tile-widget__icon--svg:not(.cn-look-nextcloud *) {
+	width: 24px;
+	height: 24px;
+	font-size: 24px;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__text:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-tile-widget .cn-tile-widget__subtitle:not(.cn-look-nextcloud *) {
+	text-align: start;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__title:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	line-height: 1.2;
+}
+
 /* A record list's notice is the board's note box too: 10px 14px, radius 10
    (DqZaaktypeOverzicht).
    @spec openspec/changes/board-record-list-notice-box/specs/board-record-list-notice-box/spec.md#requirement-a-board-record-list-notice-is-the-boards-note-box */

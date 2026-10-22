@@ -16,6 +16,7 @@
  */
 
 import { generateUrl, getRootUrl } from '@nextcloud/router'
+import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { followLinkClick } from './linkNavigation.js'
 
 /** An absolute URL a manifest link may name, matching the schema's lowercase pattern. */
@@ -80,16 +81,21 @@ export function resolveManifestHref(href) {
  * function `handler` is dropped like any other, with a one-time warning.
  *
  * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+ * With `tokenCtx` the `href` first resolves its `@object.<field>`,
+ * `@objectId`, `@page.<key>` and `@config.<key>` tokens, so a detail page can
+ * link to a URL built from its record (PtPortal "Website bekijken").
+ *
  * @param {object} entry The manifest header action.
+ * @param {object|null} [tokenCtx] The token context (`{ objectId?, object?, workspace?, config? }`).
  * @return {object} The entry, or a copy in link form.
  */
-export function headerActionAsLink(entry) {
+export function headerActionAsLink(entry, tokenCtx = null) {
 	if (!entry || typeof entry !== 'object') {
 		return entry
 	}
 	let resolved = entry
 	if (Array.isArray(entry.children)) {
-		const children = entry.children.map(headerActionAsLink)
+		const children = entry.children.map((child) => headerActionAsLink(child, tokenCtx))
 		if (children.some((child, index) => child !== entry.children[index])) {
 			resolved = { ...entry, children }
 		}
@@ -99,7 +105,7 @@ export function headerActionAsLink(entry) {
 	}
 	const { href: declared, ...withoutHref } = resolved
 	const { handler: _handler, ...rest } = withoutHref
-	const href = resolveManifestHref(declared)
+	const href = resolveManifestHref(tokenCtx ? interpolateUrlTokens(declared, tokenCtx) : declared)
 	if (!href) {
 		if (!warnedHrefs.has(declared)) {
 			warnedHrefs.add(declared)
