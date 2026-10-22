@@ -53,9 +53,15 @@ describe('board text field control', () => {
 		expect(body).toContain('border: 0;')
 	})
 
-	it('draws the side panel\'s text fields 40px tall', () => {
-		const index = sheet('look-board-index.css')
-		expect(bodiesOf(index, '.cn-look-board .cn-index-sidebar-panel .input-field:not(.v-select *) .input-field__main-wrapper')).toContain('height: calc(40px + 2 * var(--border-width-input-focused, 2px));')
-		expect(bodiesOf(index, '.cn-look-board .cn-index-sidebar-panel .input-field:not(.v-select *) .input-field__input')).toContain('height: 40px;')
+	/**
+	 * Every board text field is 40px tall (the side panel's search field,
+	 * portaliq's sign-in settings), not only the side panel's.
+	 *
+	 * @spec openspec/changes/board-text-field-height/specs/board-text-field-height/spec.md#requirement-a-board-text-field-is-40px-tall
+	 */
+	it('draws every board text field 40px tall', () => {
+		expect(bodiesOf(board, '.cn-look-board .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__main-wrapper')).toContain('height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));')
+		expect(bodiesOf(board, '.cn-look-board .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__input')).toContain('min-height: var(--cn-field-height, 40px);')
+		expect(sheet('look-board-index.css')).not.toContain('.cn-index-sidebar-panel .input-field:not(.v-select *)')
 	})
 })

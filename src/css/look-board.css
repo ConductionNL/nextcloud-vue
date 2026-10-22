@@ -362,6 +362,21 @@
 	border: 0;
 }
 
+/* Every board text field is 40px tall (`--cn-field-height`), as the boards
+   draw it: the side panel's search field, a settings card, an app's own form
+   on a card (portaliq's sign-in settings). NcInputField draws 30px in a 34px
+   wrapper; the wrapper holds the input and its 2px focus ring. Selects have
+   their own height (board-select-control). Plain Nextcloud is left alone.
+   @spec openspec/changes/board-text-field-height/specs/board-text-field-height/spec.md#requirement-a-board-text-field-is-40px-tall */
+.cn-look-board .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__input {
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
