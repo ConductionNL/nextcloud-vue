@@ -2700,10 +2700,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
-		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|null}
+		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
+		 * and then the record); `currentField` and `separator` may sit on any
+		 * of them.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
 		breadcrumb: {
-			type: Object,
+			type: [Object, Array],
 			default: null,
 		},
 
@@ -4712,30 +4717,45 @@ export default {
 		},
 
 		/**
-		 * The breadcrumb trail: the declared crumb (a router target from
+		 * The declared crumbs: `config.breadcrumb` as one crumb or a list,
+		 * without the crumbs that have no label.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @return {Array<object>}
+		 */
+		declaredCrumbs() {
+			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
+			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+		},
+
+		/**
+		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
-		 * as the current crumb. Empty without a `breadcrumb` label. The first
-		 * crumb carries `icon` only when the manifest declares one.
+		 * as the current crumb. Empty without a declared crumb. A crumb
+		 * carries `icon` only when the manifest declares one.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
-			const crumb = this.breadcrumb
-			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+			if (this.declaredCrumbs.length === 0) {
 				return []
 			}
-			const first = { label: this.effectiveTranslate(crumb.label) }
-			if (typeof crumb.icon === 'string' && crumb.icon !== '') {
-				first.icon = crumb.icon
-			}
-			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
-			} else if (crumb.href) {
-				first.href = crumb.href
-			}
-			return [first, { label: this.breadcrumbCurrentLabel }]
+			const crumbs = this.declaredCrumbs.map((crumb) => {
+				const entry = { label: this.effectiveTranslate(crumb.label) }
+				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
+					entry.icon = crumb.icon
+				}
+				if (crumb.route) {
+					entry.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
+				} else if (crumb.href) {
+					entry.href = crumb.href
+				}
+				return entry
+			})
+			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 
 		/**
@@ -4747,8 +4767,8 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbCurrentLabel() {
-			const field = this.breadcrumb && this.breadcrumb.currentField
-			if (typeof field === 'string' && field !== '') {
+			const field = this.breadcrumbOption('currentField')
+			if (field !== '') {
 				const value = stageOf(this.resolvedObject, field)
 				if (value !== '') {
 					return value
@@ -4765,8 +4785,7 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbSeparator() {
-			const separator = this.breadcrumb && this.breadcrumb.separator
-			return typeof separator === 'string' ? separator : ''
+			return this.breadcrumbOption('separator')
 		},
 
 		/**
@@ -5384,6 +5403,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A key of the declared trail: the last crumb that sets it wins.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @param {string} key `currentField` or `separator`.
+		 * @return {string} Its value, or ''.
+		 */
+		breadcrumbOption(key) {
+			const found = [...this.declaredCrumbs].reverse().find((crumb) => typeof crumb[key] === 'string' && crumb[key] !== '')
+			return found ? found[key] : ''
+		},
+
 		/**
 		 * A body widget starts or stops showing its own cards in the side
 		 * column. While any does, the generic side cards stand aside.
