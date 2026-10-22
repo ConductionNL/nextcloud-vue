@@ -58,6 +58,12 @@
 		<div v-if="$slots.footer" class="cn-settings-section__footer">
 			<slot name="footer" />
 		</div>
+
+		<!-- `footerLink`: where the list in this card is managed, at the
+		     end of the card (DqVthInstellingen "Leges beheren in shillinq"). -->
+		<p v-if="footerHref" class="cn-settings-section__footer-link">
+			<a :href="footerHref" data-testid="cn-settings-section-footer-link">{{ footerLink.label }}</a>
+		</p>
 	</NcSettingsSection>
 </template>
 
@@ -66,6 +72,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnSettingsSection - Admin settings section wrapper with consistent layout.
@@ -215,6 +222,30 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
 		},
+
+		/**
+		 * A link at the end of the card to where its list is managed:
+		 * `{ label, href }`, the label already translated. Drawn only with
+		 * both and a safe href.
+		 *
+		 * @spec openspec/changes/settings-section-footer-link/specs/settings-section-footer-link/spec.md#requirement-a-settings-section-can-end-with-a-link
+		 */
+		footerLink: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	computed: {
+		/** @return {string} The footer link's safe href, or '' for no link. */
+		footerHref() {
+			const link = this.footerLink
+			if (!link || typeof link.label !== 'string' || link.label === '' || typeof link.href !== 'string' || link.href === '') {
+				return ''
+			}
+			const href = safeHref(link.href)
+			return href === '#' ? '' : href
+		},
 	},
 }
 </script>
@@ -311,6 +342,17 @@ export default {
 .cn-settings-section__empty-content p {
 	margin: 0;
 	font-size: 14px;
+}
+
+.cn-settings-section__footer-link {
+	margin: 16px 0 0;
+	text-align: end;
+}
+
+.cn-settings-section__footer-link a {
+	color: var(--color-primary-element-text-dark, var(--color-primary-element));
+	font-weight: 600;
+	text-decoration: underline;
 }
 
 .cn-settings-section__footer {
