@@ -2248,7 +2248,8 @@
     "Task saved": "Task saved",
     "Due by": "Due by",
     "Incoming": "Incoming",
-    "Outgoing": "Outgoing"
+    "Outgoing": "Outgoing",
+    "Bundling and test message": "Bundling and test message"
   },
   "plurals": {
     "{count} member": [

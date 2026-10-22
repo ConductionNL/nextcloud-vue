@@ -2498,7 +2498,8 @@
     "Task saved": "Taak opgeslagen",
     "Due by": "Uiterlijk op",
     "Incoming": "Inkomend",
-    "Outgoing": "Uitgaand"
+    "Outgoing": "Uitgaand",
+    "Bundling and test message": "Bundeling en testbericht"
   },
   "plurals": {
     "{count} member": [
