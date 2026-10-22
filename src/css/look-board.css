@@ -137,14 +137,17 @@
    the header's full width. As two flex columns the description sat in the
    title's column only, so a long period group wrapped under its text and the
    actions dropped to a line of their own. The title column never shrinks
-   below its longest word; the actions wrap their buttons first.
-   @spec openspec/changes/dashboard-board-header-row/specs/dashboard-page/spec.md#requirement-the-board-dashboard-header-keeps-its-actions-on-the-title-row */
+   below its longest word; the actions wrap their buttons first. The rows
+   stand 6px apart, below a title row as tall as its buttons, which sets the
+   line under the title 13px below its text (DqDagAfsluiten, DqCatalogus).
+   @spec openspec/changes/dashboard-board-header-row/specs/dashboard-page/spec.md#requirement-the-board-dashboard-header-keeps-its-actions-on-the-title-row
+   @spec openspec/changes/board-dashboard-header-row-gap/specs/board-dashboard-header-row-gap/spec.md#requirement-the-line-under-a-board-dashboard-title-sits-13px-below-it */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	display: grid;
 	grid-template-columns: minmax(min-content, 1fr) auto;
 	align-items: start;
 	column-gap: 16px;
-	row-gap: 0;
+	row-gap: 6px;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header-left {
