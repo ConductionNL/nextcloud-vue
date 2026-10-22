@@ -2357,3 +2357,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* ---- A dashboard chart's bar list --------------------------------------- */
+/* The rows stand 27px apart, as DqDashboard draws them ("Zaken per status":
+   14px text, 10px between). A row is a drill button, which took Nextcloud's
+   3px button margin and the page's 15px at line height 1.5: 38px apart.
+   @spec openspec/changes/board-bar-list-rows/specs/chart-widget/spec.md */
+.cn-look-board .cn-chart-widget__bar-line:not(.cn-look-nextcloud *) {
+	margin: 0;
+	font-size: 14px;
+	line-height: normal;
+}
