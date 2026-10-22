@@ -3639,6 +3639,21 @@ export default {
 		},
 
 		/**
+		 * Filters the list opens with (manifest `config.defaultFilters`), as
+		 * `{ field: value | [values] }`: applied when the address names no
+		 * filter and no saved view, shown on the Active line and removed with
+		 * their chip or "Clear all" like any other filter. An address that
+		 * names a filter wins (DqContracten "Status: actief en verlopend").
+		 *
+		 * @spec openspec/changes/index-default-filters/specs/index-page/spec.md#requirement-an-index-page-can-open-with-removable-default-filters
+		 * @type {object|null}
+		 */
+		defaultFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
