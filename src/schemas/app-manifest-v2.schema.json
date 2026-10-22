@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.140.0",
+	"version": "2.141.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4485,11 +4485,22 @@
 						"quickActions": {
 							"type": "array",
 							"maxItems": 3,
-							"description": "type='detail': at most three always visible buttons in the header, for the actions a handler uses on every record. An item is an action in the header action shape, or the id of a `headerActions` entry, which then leaves the overflow menu.",
+							"description": "type='detail': at most three always visible buttons in the header, for the actions a handler uses on every record. An item is an action in the header action shape, or the id of a `headerActions` entry, which then leaves the overflow menu. `{ id, tabs?, notTabs? }` names a `headerActions` entry that shows only beside some body tabs; on the other tabs it stays in the overflow menu.",
 							"items": {
 								"oneOf": [
 									{ "type": "string", "minLength": 1 },
-									{ "$ref": "#/$defs/headerAction" }
+									{ "$ref": "#/$defs/headerAction" },
+									{
+										"type": "object",
+										"required": ["id"],
+										"not": { "required": ["label"] },
+										"anyOf": [{ "required": ["tabs"] }, { "required": ["notTabs"] }],
+										"properties": {
+											"id": { "type": "string", "minLength": 1 },
+											"tabs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "The body tab ids this shows beside; it is hidden while another tab is open." },
+											"notTabs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "The body tab ids this stands aside for, such as a tab that draws the page as its own." }
+										}
+									}
 								]
 							}
 						},
@@ -4525,8 +4536,10 @@
 							"type": "object",
 							"additionalProperties": false,
 							"anyOf": [{ "required": ["stages"] }, { "required": ["stagesFrom"] }],
-							"description": "type='detail': the 'what now' card above the body. For the record's stage it shows a short checklist next to the primary button. A stage without an entry shows no card. Rendered by CnNextStepCard.",
+							"description": "type='detail': the 'what now' card above the body. For the record's stage it shows a short checklist next to the primary button. A stage without an entry shows no card. `tabs` / `notTabs` tie it to body tabs as side cards are. Rendered by CnNextStepCard.",
 							"properties": {
+								"tabs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "The body tab ids this shows beside; it is hidden while another tab is open." },
+								"notTabs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "The body tab ids this stands aside for, such as a tab that draws the page as its own." },
 								"field": {
 									"type": "string",
 									"minLength": 1,

@@ -75,9 +75,9 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 |------|------|---------|-------------|
 | `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the page's primary action. A value is an action in the `headerActions` shape, or the id of a declared header action. A stage without an entry falls back to `primaryAction`. |
 | `stageField` | String | `'status'` | Dot-path to the field that holds the record's stage. Read by `primaryActionByStage` and `nextStep`. |
-| `quickActions` | Array | `[]` | Always visible header buttons. At most three render. An entry is an action object or the id of a declared header action, which then leaves the menu. |
+| `quickActions` | Array | `[]` | Always visible header buttons. At most three render. An entry is an action object or the id of a declared header action, which then leaves the menu. `{ id, tabs?, notTabs? }` is a button only beside those body tabs and stays in the menu on the others. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, showMarkUnread?, showOpenSidebar?, label? }`. `showRefresh: false` removes Refresh. `showHelpLinks: false` removes Request a feature, Report a bug and Documentation. `showMarkUnread: false` and `showOpenSidebar: false` remove those built-in entries (DqZaakMeer draws neither). `label` names the menu. In the board look each `adminOnly` entry carries a muted "admin" tag at the end of its row ("beheerder"). |
-| `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`. `stagesFrom` is a field path read like a `visibleWhen` field (`@context.caseType.nextStep`): when it holds a stages map, or an object with `stages`, that map replaces `stages` for the record, so each case type keeps its own stage texts; otherwise `stages` stays. See [CnNextStepCard](./cn-next-step-card.md). |
+| `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stagesFrom?, stages: { <stage>: { title?, checklist, after? } } }`. `stagesFrom` is a field path read like a `visibleWhen` field (`@context.caseType.nextStep`): when it holds a stages map, or an object with `stages`, that map replaces `stages` for the record, so each case type keeps its own stage texts; otherwise `stages` stays. `tabs` / `notTabs` tie the card to body tabs as they do a side card. See [CnNextStepCard](./cn-next-step-card.md). |
 | `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant?, resolve? }`, rendered through [CnStatusBadge](./cn-status-badge.md). With `resolve: { register, schema, labelField? }` the field holds the id of a record of that schema, and the pill shows that record's label ("Woo-verzoek" for a case type uuid), looked up with the index tables' reference-label resolver; the label also keys `colorMap`. |
 | `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
 | `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
@@ -112,6 +112,13 @@ Stage keys are matched exactly first, then ignoring case.
 ```
 
 Keep them the same on every record of a type, so a handler finds them without looking. A fourth entry is dropped, and the manifest schema refuses it.
+
+A tab can leave some out. Name the action by id with `tabs` (only beside these tabs) or `notTabs` (not beside these); on the other tabs it is in the Actions menu. `nextStep` takes the same two keys.
+
+```json
+"quickActions": ["message", { "id": "document", "notTabs": ["ai-oversight"] }],
+"nextStep": { "notTabs": ["ai-oversight"], "stagesFrom": "@context.caseType.nextStep" }
+```
 
 ### Groups and admin actions in the menu
 
