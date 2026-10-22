@@ -556,6 +556,9 @@
 			:data-testid="`cn-bulk-action-${entry.id}`"
 			:lang="bulkLang(entry)"
 			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+			<template v-if="entry.icon" #icon>
+				<CnIcon :name="entry.icon" :size="16" />
+			</template>
 			{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 		</NcButton>
 		<slot
