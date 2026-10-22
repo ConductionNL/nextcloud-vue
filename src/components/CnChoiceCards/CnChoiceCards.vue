@@ -117,6 +117,28 @@
 				</div>
 			</div>
 		</div>
+		<div v-if="hasRules || clashEndpoint" class="cn-choice-cards__rules" aria-live="polite">
+			<NcNoteCard
+				v-for="(message, index) in ruleMessages"
+				:key="`rule-${index}`"
+				type="warning"
+				data-testid="cn-choice-cards-rule">
+				{{ message }}
+			</NcNoteCard>
+			<NcNoteCard
+				v-for="(message, index) in clashMessages"
+				:key="`clash-${index}`"
+				type="warning"
+				data-testid="cn-choice-cards-clash">
+				{{ message }}
+			</NcNoteCard>
+			<NcNoteCard
+				v-if="rulesMetText && ruleMessages.length === 0 && clashMessages.length === 0 && selectedValues.length > 0"
+				type="success"
+				data-testid="cn-choice-cards-rules-met">
+				{{ rulesMetText }}
+			</NcNoteCard>
+		</div>
 	</fieldset>
 </template>
 
@@ -125,6 +147,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnCard from '../CnCard/CnCard.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { readPath } from '../../utils/readPath.js'
 
 let groupSeq = 0
 
@@ -247,6 +270,33 @@ export default {
 			type: Number,
 			default: 4,
 		},
+
+		/**
+		 * Rules a multiple choice is checked against live: `{ min?, max?,
+		 * together?: [[values]], exclusive?: [[values]] }`. A broken rule is a
+		 * note under the cards; the server still decides.
+		 */
+		rules: {
+			type: Object,
+			default: null,
+		},
+
+		/** The note when the selection breaks no rule and no clash is answered. */
+		rulesMetText: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * `{ url, params?, responsePath? }`: an endpoint answering notices
+		 * (strings) for the picked values, read again when the selection
+		 * changes. `@selected` in a param is the picked values, comma-joined;
+		 * nothing is read while nothing is picked.
+		 */
+		clashEndpoint: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -257,10 +307,60 @@ export default {
 			// Radios only group by `name`, so two card groups on one page would
 			// otherwise share a selection.
 			groupName: 'cn-choice-cards-' + groupSeq,
+			clashMessages: [],
 		}
 	},
 
 	computed: {
+		hasRules() {
+			return Boolean(this.rules && typeof this.rules === 'object')
+		},
+
+		/**
+		 * One sentence per rule the selection breaks.
+		 *
+		 * @return {string[]}
+		 * @spec openspec/changes/choice-cards-rules/specs/choice-cards/spec.md#requirement-a-multiple-choice-shows-its-rules-live
+		 */
+		ruleMessages() {
+			if (!this.hasRules) {
+				return []
+			}
+			const picked = this.selectedValues.map(String)
+			const count = picked.length
+			const name = (value) => (this.normalizedOptions.find((option) => String(option.value) === String(value)) || { label: String(value) }).label
+			const list = (values) => {
+				const names = values.map(name)
+				return names.length > 1 ? t('nextcloud-vue', '{list} and {last}', { list: names.slice(0, -1).join(', '), last: names[names.length - 1] }) : (names[0] || '')
+			}
+			const out = []
+			if (Number.isInteger(this.rules.min) && count < this.rules.min) {
+				out.push(t('nextcloud-vue', 'Choose at least {min} (now {count}).', { min: this.rules.min, count }))
+			}
+			if (Number.isInteger(this.rules.max) && count > this.rules.max) {
+				out.push(t('nextcloud-vue', 'Choose at most {max} (now {count}).', { max: this.rules.max, count }))
+			}
+			for (const group of Array.isArray(this.rules.together) ? this.rules.together : []) {
+				const values = (Array.isArray(group) ? group : []).map(String)
+				const chosen = values.filter((value) => picked.includes(value))
+				if (chosen.length > 0 && chosen.length < values.length) {
+					out.push(t('nextcloud-vue', 'Choose {list} together.', { list: list(values) }))
+				}
+			}
+			for (const group of Array.isArray(this.rules.exclusive) ? this.rules.exclusive : []) {
+				const values = (Array.isArray(group) ? group : []).map(String)
+				if (values.filter((value) => picked.includes(value)).length > 1) {
+					out.push(t('nextcloud-vue', 'Choose only one of {list}.', { list: list(values) }))
+				}
+			}
+			return out
+		},
+
+		/** @return {string} Changes when the clash endpoint must be read again. */
+		clashKey() {
+			return this.clashEndpoint && this.clashEndpoint.url ? JSON.stringify([this.clashEndpoint, this.selectedValues]) : ''
+		},
+
 		/**
 		 * Options with a usable `value` and `label`, tolerating the shapes a
 		 * server list arrives in: `id` instead of `value`, `name` instead of
@@ -323,7 +423,43 @@ export default {
 		},
 	},
 
+	watch: {
+		clashKey: {
+			immediate: true,
+			handler() {
+				this.loadClashes()
+			},
+		},
+	},
+
 	methods: {
+		/**
+		 * Read the notices the clash endpoint answers for the picked values.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/choice-cards-rules/specs/choice-cards/spec.md#requirement-a-multiple-choice-shows-its-rules-live
+		 */
+		async loadClashes() {
+			const endpoint = this.clashEndpoint
+			if (!endpoint || !endpoint.url || this.selectedValues.length === 0) {
+				this.clashMessages = []
+				return
+			}
+			const key = this.clashKey
+			const selected = this.selectedValues.map(String).join(',')
+			const params = {}
+			for (const [name, value] of Object.entries(endpoint.params || {})) {
+				params[name] = value === '@selected' ? selected : value
+			}
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const list = await axios.get(generateUrl(endpoint.url), { params })
+				.then(({ data }) => (endpoint.responsePath ? readPath(data, endpoint.responsePath) : data))
+				.catch(() => [])
+			if (key === this.clashKey) {
+				this.clashMessages = (Array.isArray(list) ? list : []).filter((message) => typeof message === 'string' && message !== '')
+			}
+		},
+
 		/**
 		 * Whether an option is currently selected.
 		 *

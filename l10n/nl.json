@@ -2486,7 +2486,11 @@
     "How this app compares": "Hoe deze app zich verhoudt",
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
-    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
+    "Choose at least {min} (now {count}).": "Kies er minstens {min} (nu {count}).",
+    "Choose at most {max} (now {count}).": "Kies er hoogstens {max} (nu {count}).",
+    "Choose {list} together.": "Kies {list} samen.",
+    "Choose only one of {list}.": "Kies er maar één uit {list}."
   },
   "plurals": {
     "{count} member": [

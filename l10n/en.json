@@ -2236,7 +2236,11 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Choose at least {min} (now {count}).": "Choose at least {min} (now {count}).",
+    "Choose at most {max} (now {count}).": "Choose at most {max} (now {count}).",
+    "Choose {list} together.": "Choose {list} together.",
+    "Choose only one of {list}.": "Choose only one of {list}."
   },
   "plurals": {
     "{count} member": [

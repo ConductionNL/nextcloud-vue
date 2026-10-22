@@ -48,6 +48,9 @@ Options are tolerant about shape, so a list can be handed straight from a server
 | `columns` | Number | `0` | Columns of the card grid. `1` stacks the cards in one column; `0` fits as many as the width allows. |
 | `descriptionLines` | Number | `4` | Lines of description before clamping. |
 | `layout` | String | `'cards'` | `cards`: the grid of cards. `rows`: one option per row, full width, the input on the left and the title over a muted description; the selected row has a primary border on a light primary ground. With `multiple` and one option it is a single checkbox card ("Also publish the decision"). Stats and tags are not drawn in rows. |
+| `rules` | Object | `null` | A multiple choice checked live: `{ min?, max?, together?: [[values]], exclusive?: [[values]] }`. Each broken rule is a note under the cards ("Choose at least 2 (now 1).", "Choose Biology and Chemistry together.", "Choose only one of Economics and Art."). Advice only: the server still decides. |
+| `rulesMetText` | String | `''` | The note when something is picked and no rule is broken nor a clash answered. |
+| `clashEndpoint` | Object | `null` | `{ url, params?, responsePath? }`: an endpoint answering notices (strings) for the picked values, read again when the selection changes. `@selected` as a param is the picked values, comma-joined. Nothing is read while nothing is picked. |
 
 ### Events
 
