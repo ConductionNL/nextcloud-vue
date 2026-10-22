@@ -2010,6 +2010,7 @@
     "Primary party": "Primary party",
     "Kind not accepted here": "Kind not accepted here",
     "Represented by": "Represented by",
+    "No secrecy": "No secrecy",
     "{sent} sent, {received} received": "{sent} sent, {received} received",
     "Publishing a file on this record is refused, because of {party}.": "Publishing a file on this record is refused, because of {party}.",
     "A message to {party} is refused.": "A message to {party} is refused.",

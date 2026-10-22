@@ -43,6 +43,7 @@ Each party shows its kind, who represents it and the indicators on it. An indica
 | `kindsSource` | `{ url, enforce?, sourceText? }`: the kinds this record accepts, answered as `{ source, kinds }`. A party of another kind is marked, only when `source` is `enforce`. |
 | `extraLines` | Lines under each party, one request per party (`{party}` filled in): `path` into the answer, `valueLabels` for its coded values, and `lines`, candidate sentences with an optional local `when`. |
 | `correspondence` | `{ endpoint, path?, senderField?, recipientsField? }`: how many documents each party sent and received. |
+| `secrecy` | `{ indicator, kinds }`: a party of one of `kinds` whose record carries no indicator with the key `indicator` reads "No secrecy". A party that carries it shows that indicator with its verdict; an unread party shows neither. Off when absent. |
 | `labels` | Overrides of the words: `failed`, `failedDetail`, `empty`, `emptyDetail`, `accepted`, `primary`, `notAccepted`, `representedBy`, `verdictPublication`, `verdictSend`, `verdictWarn`, `sentencePublication` and `sentenceSend` (with `{party}`). |
 
 `@register`, `@schema` and `@objectId` in a URL are the record's.

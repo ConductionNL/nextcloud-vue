@@ -2260,6 +2260,7 @@
     "Primary party": "Hoofdbetrokkene",
     "Kind not accepted here": "Soort hier niet toegestaan",
     "Represented by": "Namens",
+    "No secrecy": "Geen geheimhouding",
     "{sent} sent, {received} received": "{sent} verstuurd, {received} ontvangen",
     "Publishing a file on this record is refused, because of {party}.": "Publiceren van een bestand hierop wordt geweigerd, vanwege {party}.",
     "A message to {party} is refused.": "Een bericht aan {party} wordt geweigerd.",

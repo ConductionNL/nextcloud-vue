@@ -115,6 +115,23 @@ describe('CnObjectPartiesWidget', () => {
 		expect(notes[0].text()).toContain('because of Gemeente Utrecht')
 	})
 
+	it('says a person without the secrecy indicator has no secrecy, when the record asks for that line', async () => {
+		serve({ '/apps/openregister/api/parties/p-jan': { id: 'p-jan', name: 'Jan Jansen', indicators: [{ key: 'warn', label: 'Read first', effect: 'warn' }] } })
+		const w = await mountParties({ ...CONTENT, secrecy: { indicator: 'secret', kinds: ['person'] } })
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-no-secrecy"]').text()).toBe('No secrecy')
+		expect(w.find('[data-party="p-council"] [data-testid="cn-object-parties-no-secrecy"]').exists()).toBe(false)
+		expect(w.find('[data-party="p-mr"] [data-testid="cn-object-parties-no-secrecy"]').exists()).toBe(false)
+	})
+
+	it('draws no secrecy line unless the record asks for it, or while the party is unread', async () => {
+		serve()
+		const off = await mountParties()
+		expect(off.find('[data-testid="cn-object-parties-no-secrecy"]').exists()).toBe(false)
+		serve({ '/apps/openregister/api/parties/p-jan': new Error('500') })
+		const unread = await mountParties({ ...CONTENT, secrecy: { indicator: 'secret', kinds: ['person'] } })
+		expect(unread.find('[data-party="p-jan"] [data-testid="cn-object-parties-no-secrecy"]').exists()).toBe(false)
+	})
+
 	it('marks a kind the record does not accept, from the enforcing source only', async () => {
 		serve()
 		const w = await mountParties()

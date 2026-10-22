@@ -92,6 +92,10 @@
 							:data-party-documents="party.partyUuid || party.contactUid"
 							data-testid="cn-object-parties-documents">{{ correspondenceOf(party) }}</span>
 						<span
+							v-if="hasNoSecrecy(party)"
+							class="cn-object-parties__muted"
+							data-testid="cn-object-parties-no-secrecy">{{ label('noSecrecy') }}</span>
+						<span
 							v-for="indicator in indicatorsFor(party)"
 							:key="`${party.partyUuid}-${indicator.key}`"
 							class="cn-status-badge cn-status-badge--default"
@@ -140,6 +144,7 @@ function defaultLabels() {
 		primary: t('nextcloud-vue', 'Primary party'),
 		notAccepted: t('nextcloud-vue', 'Kind not accepted here'),
 		representedBy: t('nextcloud-vue', 'Represented by'),
+		noSecrecy: t('nextcloud-vue', 'No secrecy'),
 	}
 }
 
@@ -185,7 +190,9 @@ export default {
 		 * `kindsSource` (`{ url, enforce?, sourceText? }`), `extraLines`
 		 * (`[{ endpoint, path?, valueLabels?, lines }]`, one request per
 		 * party, `{party}` filled in), `correspondence` (`{ endpoint, path?,
-		 * senderField?, recipientsField? }`) and `labels`.
+		 * senderField?, recipientsField? }`), `secrecy` (`{ indicator, kinds }`:
+		 * a party of one of those kinds whose record carries no indicator with
+		 * that key reads "No secrecy") and `labels`.
 		 */
 		content: {
 			type: Object,
@@ -567,6 +574,25 @@ export default {
 				return n('nextcloud-vue', '%n document received', '%n documents received', received.length)
 			}
 			return t('nextcloud-vue', '{sent} sent, {received} received', { sent: sent.length, received: received.length })
+		},
+
+		/**
+		 * Whether to say a party has no secrecy: the record asks for the line, the party
+		 * is of one of its kinds, its record is read and carries no secrecy indicator.
+		 *
+		 * @param {object} party The listing row.
+		 * @return {boolean}
+		 */
+		hasNoSecrecy(party) {
+			const secrecy = this.content?.secrecy
+			if (!secrecy?.indicator || !(secrecy.kinds || []).includes(party.partyKind)) {
+				return false
+			}
+			const record = this.partyRecords[party.partyUuid]
+			if (!record) {
+				return false
+			}
+			return !(record.indicators || []).some((indicator) => indicator?.key === secrecy.indicator)
 		},
 
 		/**
