@@ -1560,6 +1560,14 @@
 	color: var(--color-primary-element-light-text);
 }
 
+/* A row the manifest marks as asking for attention (`config.rowClass` with
+   `class: "cn-row--attention"`) is tinted warm, as the boards draw the open
+   requests on top of a list (PtToegangsverzoeken, PtUitnodigingen).
+   @spec openspec/changes/board-attention-row/specs/board-attention-row/spec.md#requirement-a-board-table-row-marked-for-attention-is-tinted-warm */
+.cn-look-board .cn-data-table tr.cn-row--attention > td:not(.cn-look-nextcloud *) {
+	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
+}
+
 /* ---- A kanban column's show-more button ---------------------------------- */
 /* The board draws "Toon 12 meer" in the soft ink, its dashed edge in the 3:1
    control colour, 6px in at the sides (DqWerkbord); the view draws the main
