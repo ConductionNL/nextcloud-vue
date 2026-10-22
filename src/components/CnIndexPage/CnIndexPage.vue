@@ -1438,6 +1438,7 @@ import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1447,11 +1448,12 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { loadMyTeam, peekMyTeam } from '../../utils/myTeam.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
@@ -1522,6 +1524,16 @@ const CALENDAR_PAGE_SIZE = 200
  * @type {string}
  */
 const RANGE_SEPARATOR = '..'
+
+/**
+ * Whether a filter map names the `@myTeam` token anywhere.
+ *
+ * @param {object} filters A view's filters.
+ * @return {boolean}
+ */
+function usesMyTeam(filters) {
+	return JSON.stringify(filters || {}).includes(`"${MY_TEAM_TOKEN}"`)
+}
 
 /** Key of the synthetic follow column (`showFollowColumn`). */
 const FOLLOW_COLUMN_KEY = '__follow'
@@ -10969,6 +10981,13 @@ export default {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && prop.referenceType === 'nextcloud-group') {
+				const name = groupDisplayName(id)
+				if (name === null) {
+					loadGroupDisplayName(id)
+				}
+				return name || id
+			}
 			const options = prop && Array.isArray(prop.oneOf) ? prop.oneOf : []
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
@@ -12578,10 +12597,15 @@ export default {
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
-			if (view && view.seeded === true) {
-				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
-				state.filters = resolveFilterTokens(state.filters, ctx)
+			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
+			// and an optional one that answers nothing (no team) is dropped. A
+			// `@myTeam` still being read applies the view once it is known.
+			if (usesMyTeam(state.filters) && peekMyTeam() === null) {
+				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
+				return
 			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []

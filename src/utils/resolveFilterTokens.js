@@ -17,6 +17,12 @@
  *                           in no group, so the caller waits instead of sending
  *                           an empty IN list (which OpenRegister reads as "no
  *                           constraint"). Spread in place inside an IN-list array.
+ *  - `@myTeam`            → the current user's primary team, a Nextcloud group id,
+ *                           as the app answers it (`registerMyTeamSource`;
+ *                           `ctx.myTeam` wins). Stays UNRESOLVED while it is read;
+ *                           a user in no team gets `@myTeam?`, an optional token
+ *                           the caller drops, so the filter goes away rather than
+ *                           widening to all of the user's groups.
  *  - `@now`               → the current instant, ISO-8601
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
@@ -66,13 +72,33 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
-import { TODAY_DELTA_RE } from './sentinelTokens.js'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
+import { peekMyTeam } from './myTeam.js'
+import { TODAY_DELTA_RE } from './sentinelTokens.js'
 import { peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** The filter token for the current user's group ids. */
 export const MY_GROUPS_TOKEN = '@myGroups'
+
+/** The filter token for the current user's primary team. */
+export const MY_TEAM_TOKEN = '@myTeam'
+
+/**
+ * Resolve `@myTeam`: the team's group id; `@myTeam` while it is being read (the
+ * caller waits); `@myTeam?` for a user in no team (the caller drops the key).
+ *
+ * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
+ * @param {{myTeam?: string}} [ctx] Optional context; `ctx.myTeam` wins.
+ * @return {string} The group id or the token.
+ */
+function resolveMyTeam(ctx) {
+	const team = ctx && typeof ctx.myTeam === 'string' ? ctx.myTeam : peekMyTeam()
+	if (team === null) {
+		return MY_TEAM_TOKEN
+	}
+	return team === '' ? `${MY_TEAM_TOKEN}?` : team
+}
 
 /**
  * Resolve `@myGroups`: the current user's group ids, or the token itself while
@@ -155,6 +181,9 @@ export function resolveFilterValue(v, ctx) {
 	const now = new Date()
 	if (v === MY_GROUPS_TOKEN) {
 		return resolveMyGroups(ctx)
+	}
+	if (v === MY_TEAM_TOKEN) {
+		return resolveMyTeam(ctx)
 	}
 	if (v === '@objectId') {
 		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
@@ -285,7 +314,7 @@ export function resolveFilterValue(v, ctx) {
  */
 export function isOptionalUnresolved(v) {
 	return typeof v === 'string'
-		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.'))
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.') || v === `${MY_TEAM_TOKEN}?`)
 		&& v.endsWith('?')
 }
 
