@@ -448,6 +448,17 @@
 	border: 0;
 }
 
+/* ---- A labelled menu button ------------------------------------------- */
+/* "Acties" and "Meer" are 40px tall wherever they stand (a page header, a
+   card header, a tab strip), as the header buttons beside them (DqTenant,
+   DqAfdelingen, DqZaaktype). The min-height outranks the tab strip's 34px.
+   An icon-only menu, a row's "...", keeps its own size.
+   @spec openspec/changes/board-labelled-menu-trigger-height/specs/board-labelled-menu-trigger-height/spec.md#requirement-a-labelled-board-menu-button-is-40px */
+.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
