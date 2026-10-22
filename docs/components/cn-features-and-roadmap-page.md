@@ -129,6 +129,7 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 | `tabs` | `true` | The Features and Roadmap folder tabs. |
 | `actionsMenu` | `true` | The Actions menu (suggest, buildiq, AI skills, support), in the header without tabs or in the tab row with them. `false` draws none, for a board without one. |
 | `filter` | `chips` | `chips`: pills with a count. `segmented`: a segmented control without counts. |
+| `filterLabel` | `''` | The status filter's accessible name, through the app's translate (DqFunctionaliteiten "Toon"). Empty reads "Status". |
 | `statusLabels` | `{}` | Label overrides by key: `all`, `available`, `beta`, `in_progress`, `planned`. |
 | `next` | `3` | How many issues the Coming next card lists; `0` hides it. |
 | `issueLabels` | `{}` | Forge label to issue status (`in_progress`, `planned`) for the badges in the Coming next card. |

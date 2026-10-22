@@ -70,6 +70,7 @@
 			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showRefresh="false"
 			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
@@ -157,6 +158,7 @@
 			v-else-if="wrapsMountLeaf"
 			:title="leafCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -218,6 +220,7 @@
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -260,6 +263,7 @@
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			flush
 			:showActions="false"
 			:showRefresh="false"
@@ -283,6 +287,7 @@
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -315,6 +320,7 @@
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
@@ -356,6 +362,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton } from '@nextcloud/vue'
+import { computed } from 'vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -369,6 +376,7 @@ import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -388,6 +396,8 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { resolveWidgetHeaderActions, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
+import { HOST_WIDGET_ID } from '../../utils/widgetSelection.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -471,6 +481,8 @@ export default {
 		cnLook: { default: 'nextcloud' },
 		/** The host's translate (CnAppRoot provides `cnTranslate`). */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's action dispatcher (CnPageRenderer), for `headerActions`. */
+		cnDispatchAction: { default: null },
 		/**
 		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
 		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
@@ -495,6 +507,12 @@ export default {
 	provide() {
 		const sink = this.panelActionSink
 		return {
+			// The widget's manifest `headerActions`, for the card that titles
+			// it. In bare mode the surface (a tab panel) draws them instead.
+			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
+			// The hosted widget's id, read at call time, so a list can publish its
+			// rows under it for a card that follows them (side-card-follows-row).
+			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
 			[PANEL_ACTION_SINK]: sink
 				? {
 						set: (...args) => sink.set(...this.narrowPanelArgs(args, 'set')),
@@ -985,10 +1003,39 @@ export default {
 		},
 
 		/**
+		 * The widget's title tone (`titleTone`): `side` titles its card as a
+		 * side card in the board look.
+		 *
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		widgetTitleTone() {
+			return this.widget && this.widget.titleTone === 'side' ? 'side' : ''
+		},
+
+		/**
 		 * The leaf card's title: the manifest's, else the descriptor's label.
 		 *
 		 * @return {string} The title in the user's language.
 		 */
+		/**
+		 * The widget's manifest `headerActions` as buttons: gated on the
+		 * record, dispatched through the page's dispatcher.
+		 *
+		 * @return {Array<object>} The buttons.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
+		 */
+		declaredHeaderActions() {
+			return resolveWidgetHeaderActions(this.widget, {
+				object: this.object || {},
+				objectId: this.objectId,
+				translate: (key) => this.translateLabel(key),
+				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null })),
+			})
+		},
+
 		leafCardTitle() {
 			const title = widgetTitleOf(this.widget)
 			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')

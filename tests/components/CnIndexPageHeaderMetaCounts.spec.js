@@ -65,6 +65,24 @@ describe('CnIndexPage header meta counts', () => {
 		expect(c.headerMetaCountValues).toEqual({ suppliers: 21 })
 	})
 
+	it('counts the rows whose field is set with {rows:<field>} (DqAanMijToegewezen)', () => {
+		const rows = [{ coveredFor: { name: 'Anouk' } }, { coveredFor: null }, {}, { coveredFor: { name: 'Bram' } }]
+		const c = ctx({ presentation: { headerMeta: '{total} zaken, {rows:coveredFor} als waarnemer' }, headerMetaRows: rows })
+		expect(headerMetaText.call(c)).toBe('38 zaken, 2 als waarnemer')
+	})
+
+	it('leaves out a bracketed part while a count in it is zero, and keeps it otherwise', () => {
+		const meta = '{total} zaken op uw naam[, waarvan {rows:coveredFor} als waarnemer] · meest urgente eerst'
+		const covered = ctx({ presentation: { headerMeta: meta }, effectivePagination: { total: 7 }, headerMetaRows: [{ coveredFor: { name: 'Anouk' } }, {}] })
+		expect(headerMetaText.call(covered)).toBe('7 zaken op uw naam, waarvan 1 als waarnemer · meest urgente eerst')
+		const own = ctx({ presentation: { headerMeta: meta }, effectivePagination: { total: 7 }, headerMetaRows: [{}, { coveredFor: null }] })
+		expect(headerMetaText.call(own)).toBe('7 zaken op uw naam · meest urgente eerst')
+	})
+
+	it('counts a {rows:<field>} note as a count, so the board line steps aside', () => {
+		expect(headerMetaCarriesCount.call(ctx({ presentation: { headerMeta: '{rows:coveredFor} als waarnemer' } }))).toBe(true)
+	})
+
 	it('drops the board count line when the note carries a count', () => {
 		expect(headerDescription.call(ctx({ presentation: { headerMeta: '{total} open' } }))).toBe('')
 		expect(headerDescription.call(ctx({ presentation: { headerMeta: 'bij {count:suppliers} leveranciers' } }))).toBe('')

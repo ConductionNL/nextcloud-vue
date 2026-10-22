@@ -248,7 +248,28 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles || boardControlsShown || relatedFieldFilters || sourceFacetControls.length > 0" #after-search>
+				<!-- The values an endpoint source counts in its answer
+				     (`sourceConfig.facets`), as pickers: "Kanaal: alle". -->
+				<label
+					v-for="facet in sourceFacetControls"
+					:key="`source-facet-${facet.field}`"
+					class="cn-index-page__board-control"
+					:data-testid="`cn-source-facet-${facet.field}`">
+					<span class="cn-index-page__board-control-label">{{ facet.label }}</span>
+					<select
+						class="cn-index-page__board-select"
+						:value="facet.value"
+						@change="onSourceFacetChange(facet.field, $event.target.value)">
+						<option value="">{{ facet.allLabel }}</option>
+						<option
+							v-for="option in facet.options"
+							:key="`source-facet-${facet.field}-${option.value}`"
+							:value="option.value">
+							{{ option.label }}
+						</option>
+					</select>
+				</label>
 				<!-- Board view controls, after the search (screens-board-reference-columns):
 				     the narrowing select ("Case type:"), the column switch ("Columns:
 				     status | type | assignee") and the board's hint sentence. -->
@@ -1524,7 +1545,15 @@ function isRangeControl(prop) {
  */
 function declaredFilterFields(props) {
 	const fields = props.sidebar && props.sidebar.fields
-	return (fields && typeof fields === 'object') ? fields : {}
+	const declared = (fields && typeof fields === 'object') ? { ...fields } : {}
+	// An endpoint source's facet pickers are filters the address carries too.
+	const facets = props.sourceConfig && Array.isArray(props.sourceConfig.facets) ? props.sourceConfig.facets : []
+	for (const facet of facets) {
+		if (facet && typeof facet.field === 'string' && facet.field !== '' && !declared[facet.field]) {
+			declared[facet.field] = { facetable: true }
+		}
+	}
+	return declared
 }
 
 /**
@@ -4637,6 +4666,41 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
 		 */
+		/**
+		 * The endpoint source's facets as pickers: per declared facet its
+		 * label, the All choice, the counted values ("E-mail (11)") and the
+		 * value chosen now. A chosen value the narrowed answer no longer
+		 * counts stays offered, so the picker still shows it.
+		 *
+		 * @return {Array<{field: string, label: string, allLabel: string, value: string, options: Array<{value: string, label: string}>}>}
+		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 */
+		sourceFacetControls() {
+			const source = this.isNamedSource ? this.namedSource : null
+			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations : []
+			if (declared.length === 0) {
+				return []
+			}
+			const counted = typeof source.facets === 'function' ? (source.facets() || {}) : {}
+			return declared.map((facet) => {
+				const labels = facet.labels && typeof facet.labels === 'object' ? facet.labels : {}
+				const nameOf = (value) => (labels[value] ? this.cnTranslate(labels[value]) : value)
+				const chosenRaw = (this.namedActiveFilters || {})[facet.field]
+				const chosen = Array.isArray(chosenRaw) ? String(chosenRaw[0] ?? '') : String(chosenRaw ?? '')
+				const options = (counted[facet.field] || []).map((entry) => ({ value: entry.value, label: `${nameOf(entry.value)} (${entry.count})` }))
+				if (chosen !== '' && !options.some((option) => option.value === chosen)) {
+					options.push({ value: chosen, label: nameOf(chosen) })
+				}
+				return {
+					field: facet.field,
+					label: facet.label ? this.cnTranslate(facet.label) : facet.field,
+					allLabel: facet.allLabel ? this.cnTranslate(facet.allLabel) : t('nextcloud-vue', 'All'),
+					value: chosen,
+					options,
+				}
+			})
+		},
+
 		sourceNote() {
 			return this.isNamedSource && this.namedSource && typeof this.namedSource.note === 'function' ? (this.namedSource.note() || '') : ''
 		},
@@ -4671,6 +4735,31 @@ export default {
 		 */
 		sourceSortOptions() {
 			return (this.sortSelectOptions || []).filter((o) => o && o.value !== undefined && o.source && typeof o.source.url === 'string' && o.source.url !== '')
+		},
+
+		/**
+		 * What the selected lenses ask a sort source for: the `sourceParams` of
+		 * each selected quick filter, merged. A lens that changes WHICH rows an
+		 * endpoint answers ("Including work you cover") cannot say so through its
+		 * `filter`, which only narrows the object fetch and the rows already
+		 * loaded.
+		 *
+		 * @return {object} The parameters.
+		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
+		 */
+		lensSourceParams() {
+			const tabs = this.tabStripEntries || []
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			const params = {}
+			for (const index of indices) {
+				const tab = typeof index === 'number' ? tabs[index] : null
+				if (tab && tab.sourceParams && typeof tab.sourceParams === 'object' && !Array.isArray(tab.sourceParams)) {
+					Object.assign(params, tab.sourceParams)
+				}
+			}
+			return params
 		},
 
 		/**
@@ -4723,14 +4812,32 @@ export default {
 		 * @spec openspec/changes/sidebar-sort-source/specs/index-page/spec.md#requirement-a-sort-option-can-take-its-rows-from-an-endpoint
 		 */
 		sortSourceView() {
+			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
+			return pageSourceRows(this.sortSourceFilteredRows, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The source rows after the page's search and sidebar filters, every page.
+		 *
+		 * @return {Array<object>}
+		 */
+		sortSourceFilteredRows() {
 			const source = this.activeSortSource ? this.activeSortSource.source : {}
-			const filtered = filterSourceRows(this.sortSource.rows, {
+			return filterSourceRows(this.sortSource.rows, {
 				search: this.list && this.list.searchTerm ? this.list.searchTerm.value : '',
 				filters: this.list && this.list.activeFilters ? this.list.activeFilters.value : {},
 				searchFields: source.searchFields,
 			})
-			const limit = (this.list && this.list.pagination && this.list.pagination.value && this.list.pagination.value.limit) || 20
-			return pageSourceRows(filtered, this.sortSource.page, limit)
+		},
+
+		/**
+		 * The rows `{rows:<field>}` in the header note counts: every row of a
+		 * sort source's list, else the rows on screen.
+		 *
+		 * @return {Array<object>}
+		 */
+		headerMetaRows() {
+			return this.sortSourceShown ? this.sortSourceFilteredRows : (this.effectiveObjects || [])
 		},
 
 		/**
@@ -7957,7 +8064,10 @@ export default {
 		 * @return {string}
 		 */
 		/**
-		 * The header meta note with the list's counts filled in.
+		 * The header meta note with the list's counts filled in. `{rows:<field>}`
+		 * counts the rows whose field is set ("waarvan {rows:coveredFor} als
+		 * waarnemer"), and a part in square brackets is left out while a count
+		 * in it is zero.
 		 *
 		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
 		 * @return {string}
@@ -7969,17 +8079,31 @@ export default {
 			}
 			const total = this.effectivePagination?.total
 			let missing = false
-			const text = this.cnTranslate(headerMeta)
-				.replace('{shown}', String(this.effectiveObjects.length))
-				.replace('{total}', typeof total === 'number' ? String(total) : '')
+			const rows = Array.isArray(this.headerMetaRows) ? this.headerMetaRows : []
+			const isSet = (value) => value !== undefined && value !== null && value !== '' && value !== false && !(Array.isArray(value) && value.length === 0)
+			const fill = (part, onCount) => part
+				.replace('{shown}', () => onCount(this.effectiveObjects.length))
+				.replace('{total}', () => (typeof total === 'number' ? onCount(total) : ''))
+				.replace(/\{rows:([\w.-]+)\}/g, (match, field) => onCount(rows.filter((row) => isSet(field.split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), row))).length))
 				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
 					const value = this.headerMetaCountValues[name]
 					if (typeof value !== 'number') {
 						missing = true
 						return ''
 					}
-					return String(value)
+					return onCount(value)
 				})
+			const text = fill(
+				this.cnTranslate(headerMeta).replace(/\[([^\]]*)\]/g, (match, part) => {
+					let zero = false
+					const filled = fill(part, (count) => {
+						zero = zero || count === 0
+						return String(count)
+					})
+					return zero ? '' : filled
+				}),
+				String,
+			)
 			return missing ? '' : text
 		},
 
@@ -7991,7 +8115,7 @@ export default {
 		 */
 		headerMetaCarriesCount() {
 			const headerMeta = this.presented('headerMeta')
-			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+)\}/.test(headerMeta)
+			return typeof headerMeta === 'string' && /\{(shown|total|count:[\w-]+|rows:[\w.-]+)\}/.test(headerMeta)
 		},
 
 		/**
@@ -8225,6 +8349,18 @@ export default {
 	},
 
 	watch: {
+		// A lens that asks the source for other rows reads the source again.
+		lensSourceParams(now, before) {
+			if (JSON.stringify(now) === JSON.stringify(before) || !this.isSelfFetchMode) {
+				return
+			}
+			const option = this.activeSortSource || this.sourceSortOptions.find((o) => o.source.annotate === true)
+			if (option) {
+				this.resetSortSourcePage()
+				this.loadSortSource(option)
+			}
+		},
+
 		// A new search or filter starts the source rows at page 1.
 		'list.searchTerm.value': function() {
 			this.resetSortSourcePage()
@@ -8677,7 +8813,7 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
-				const res = await axios.get(generateUrl(source.url), { params: source.params || {} })
+				const res = await axios.get(generateUrl(source.url), { params: { ...(source.params || {}), ...this.lensSourceParams } })
 				this.sortSource = { ...this.sortSource, rows: rowsFromSourceBody(res ? res.data : null, source), state: 'ready' }
 			} catch (error) {
 				this.sortSource = { ...this.sortSource, rows: [], state: 'failed' }
@@ -10421,6 +10557,18 @@ export default {
 				}
 				this.$emit('filter-change', { key, values })
 			}
+		},
+
+		/**
+		 * A picker of the endpoint's facets changed: filter on the value, or
+		 * take the filter off for the All choice.
+		 *
+		 * @param {string} field The facet's field.
+		 * @param {string} value The chosen value, '' for All.
+		 * @return {void}
+		 */
+		onSourceFacetChange(field, value) {
+			this.setNamedFilter(field, value === '' ? [] : [value])
 		},
 
 		/**

@@ -247,3 +247,40 @@ describe('a carried field on the board card', () => {
 		expect(pill.text()).toContain('Te laat')
 	})
 })
+
+describe('a lens that asks the source for more (sourceParams)', () => {
+	const lenses = [
+		{ label: 'Own work', filter: {} },
+		{ label: 'Including work you cover', activeLabel: 'Including work you cover', filter: {}, default: true, sourceParams: { covering: '1' } },
+	]
+
+	it('sends the active lens\'s sourceParams with the source request', async () => {
+		mockGet.mockResolvedValue({ data: QUEUE })
+		mountPage({ register: 'r', schema: 's', sortSelectOptions: [urgency, newest], quickFilters: lenses })
+		await flush()
+		await flush()
+		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/x/api/work-queue', { params: { covering: '1' } })
+	})
+
+	it('asks the source again without them when the lens is left', async () => {
+		mockGet.mockResolvedValue({ data: QUEUE })
+		const wrapper = mountPage({ register: 'r', schema: 's', sortSelectOptions: [urgency, newest], quickFilters: lenses })
+		await flush()
+		await flush()
+		mockGet.mockClear()
+		wrapper.vm.onQuickFilterChange(0)
+		await flush()
+		await flush()
+		expect(mockGet).toHaveBeenCalledTimes(1)
+		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/x/api/work-queue', { params: {} })
+	})
+
+	it('lets the option\'s own params stand beside the lens\'s', async () => {
+		mockGet.mockResolvedValue({ data: QUEUE })
+		const withParams = { ...urgency, source: { ...urgency.source, params: { scope: 'mine' } } }
+		mountPage({ register: 'r', schema: 's', sortSelectOptions: [withParams, newest], quickFilters: lenses })
+		await flush()
+		await flush()
+		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/x/api/work-queue', { params: { scope: 'mine', covering: '1' } })
+	})
+})

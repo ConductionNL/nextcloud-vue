@@ -14,6 +14,7 @@
 		:scope="resolvedScope"
 		:title="resolvedTitle"
 		:maxDisplay="resolvedMaxDisplay"
+		:excludeActions="resolvedExcludeActions"
 		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 </template>
 
@@ -89,7 +90,9 @@ export default {
 		source: { type: Object, default: null },
 		/** A trail URL of its own; also read from `content.endpoint`. */
 		endpoint: { type: String, default: '' },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText? }`. */
+		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
+		excludeActions: { type: Array, default: () => [] },
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -168,6 +171,20 @@ export default {
 				return ''
 			}
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The actions to leave out: explicit prop → content → none.
+		 *
+		 * @spec openspec/changes/audit-trail-exclude-actions/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-events-by-action
+		 * @return {Array<string>}
+		 */
+		resolvedExcludeActions() {
+			if (this.excludeActions.length > 0) {
+				return this.excludeActions
+			}
+			const fromContent = this.content.excludeActions
+			return Array.isArray(fromContent) ? fromContent.filter((action) => typeof action === 'string' && action !== '') : []
 		},
 
 		resolvedTitle() {

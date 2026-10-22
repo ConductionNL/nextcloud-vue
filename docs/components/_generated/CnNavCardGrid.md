@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 1 direct reference, 2 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 4 files reached through imports.
 
 Through: `CnActionsMenu`.
 

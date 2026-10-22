@@ -23,7 +23,7 @@
 			data-testid="cn-audit-card-failed">
 			{{ failedLabel }}
 		</p>
-		<div v-else-if="entries.length === 0" class="cn-audit-card__empty">
+		<div v-else-if="shownEntries.length === 0" class="cn-audit-card__empty">
 			{{ noEntriesLabel }}
 		</div>
 		<ul v-else class="cn-audit-card__list">
@@ -47,9 +47,9 @@
 				</p>
 			</li>
 		</ul>
-		<template v-if="entries.length > maxDisplay" #footer>
+		<template v-if="shownEntries.length > maxDisplay" #footer>
 			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
-				{{ showAllLabel }} ({{ entries.length }})
+				{{ showAllLabel }} ({{ shownEntries.length }})
 			</button>
 		</template>
 	</CnDetailCard>
@@ -145,6 +145,14 @@ export default {
 
 		/** Maximum rows to render. */
 		maxDisplay: { type: Number, default: 5 },
+		/**
+		 * Actions the card leaves out (case-insensitive), such as `['read']`
+		 * for a history of what changed. It then reads more entries than it
+		 * shows, so the rows it leaves out do not crowd the rest away.
+		 *
+		 * @spec openspec/changes/audit-trail-exclude-actions/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-events-by-action
+		 */
+		excludeActions: { type: Array, default: () => [] },
 		/** Whether the card collapses. */
 		collapsible: { type: Boolean, default: false },
 		/** Override the card title (defaults to the translated label). */
@@ -178,8 +186,17 @@ export default {
 			return this.title || t('nextcloud-vue', 'Audit trail')
 		},
 
+		/** @return {Array<object>} The entries without the excluded actions. */
+		shownEntries() {
+			const excluded = this.excludeActions.map((action) => String(action).toLowerCase())
+			if (excluded.length === 0) {
+				return this.entries
+			}
+			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase()))
+		},
+
 		displayedEntries() {
-			const entries = this.oldestFirst ? [...this.entries].sort((a, b) => entryTime(a) - entryTime(b)) : this.entries
+			const entries = this.oldestFirst ? [...this.shownEntries].sort((a, b) => entryTime(a) - entryTime(b)) : this.shownEntries
 			return entries.slice(0, this.maxDisplay)
 		},
 
@@ -211,7 +228,8 @@ export default {
 			if (this.sourceUrl !== null) {
 				return this.sourceUrl
 			}
-			const params = new URLSearchParams({ limit: String(this.maxDisplay) })
+			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const params = new URLSearchParams({ limit: String(limit) })
 			if (this.scope === 'app') {
 				if (this.register) {
 					params.set('register', this.register)
