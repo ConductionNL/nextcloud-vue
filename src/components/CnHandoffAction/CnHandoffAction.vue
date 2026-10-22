@@ -368,6 +368,9 @@ export default {
 				if (this.labels.success) {
 					showSuccess(this.tr(this.labels.success))
 				}
+				/**
+				 * @event done The hand-off went through. Payload: the target app's response.
+				 */
 				this.$emit('done', this.response)
 				if (this.content?.repeatable !== true) {
 					await this.refetchAvailability(true)

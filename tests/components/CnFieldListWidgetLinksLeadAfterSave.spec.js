@@ -26,15 +26,12 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
-import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnFieldListWidget/index.js'
 
 const CnFieldListWidget = require('../../src/components/CnFieldListWidget/CnFieldListWidget.vue').default
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
-const OBJECT_URL = '/index.php/apps/openregister/api/objects/portaliq/portal/p-1'
 
 const EDITORS = {
 	field: 'editors',
