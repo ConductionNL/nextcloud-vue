@@ -6,7 +6,8 @@
  * (case-page-and-list-as-a-place, REQ-CPL-02). CnPageRenderer reads the list
  * the address names (`_from`), fetches it with the address's search, sort and
  * filters, and hands CnDetailPage `listNavigation`, `previousTo` and `nextTo`.
- * A record reached by a bare link gets none.
+ * A record reached by a bare link gets none, and a detail page that does not
+ * opt in (`listNavigation: true`) gets none either and fetches nothing.
  *
  * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
  */
@@ -19,7 +20,8 @@ import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.v
 const PAGES = [
 	{ id: 'Cases', type: 'index', config: { register: 'dossiq', schema: 'case' } },
 	{ id: 'Custom', type: 'index', config: { register: 'dossiq', schema: 'case', source: { url: '/apps/dossiq/api/x' } } },
-	{ id: 'CaseDetail', type: 'detail', config: { register: 'dossiq', schema: 'case' } },
+	{ id: 'CaseDetail', type: 'detail', listNavigation: true, config: { register: 'dossiq', schema: 'case' } },
+	{ id: 'TaskDetail', type: 'detail', config: { register: 'dossiq', schema: 'task' } },
 ]
 
 function context(query) {
@@ -47,6 +49,14 @@ describe('CnPageRenderer list navigation', () => {
 		expect(mockGet).not.toHaveBeenCalled()
 	})
 
+	it('is off by default: a page without listNavigation fetches nothing and gets no controls', async () => {
+		const ctx = { ...context({ _from: 'Cases' }), currentPage: PAGES[3] }
+		await expect(fetchList.call(ctx, {})).rejects.toThrow()
+		expect(mockGet).not.toHaveBeenCalled()
+		const nav = { available: { value: true }, isFirst: { value: true }, isLast: { value: false }, position: { value: 1 }, total: { value: 2 }, previousRoute: { value: null }, nextRoute: { value: {} } }
+		expect(navProps.call({ listNav: nav, currentPage: PAGES[3] })).toEqual({})
+	})
+
 	it('hands the detail page the controls only when the record is in the list', () => {
 		const nav = {
 			available: { value: true },
@@ -64,5 +74,19 @@ describe('CnPageRenderer list navigation', () => {
 		})
 		expect(navProps.call({ listNav: { ...nav, available: { value: false } }, currentPage: PAGES[2] })).toEqual({})
 		expect(navProps.call({ listNav: nav, currentPage: PAGES[0] })).toEqual({})
+	})
+})
+
+describe('the listNavigation page key', () => {
+	it('validates on a page as a boolean', async () => {
+		const { validateManifestV2 } = await import('../../src/utils/validateManifest.js')
+		const manifest = (listNavigation) => ({
+			$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+			version: '2.0.0',
+			menu: [],
+			pages: [{ id: 'case', route: '/cases/:id', type: 'detail', title: 'Case', listNavigation, config: { register: 'r', schema: 's' } }],
+		})
+		expect(validateManifestV2(manifest(true)).valid).toBe(true)
+		expect(validateManifestV2(manifest('yes')).valid).toBe(false)
 	})
 })

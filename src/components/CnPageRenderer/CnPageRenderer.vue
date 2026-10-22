@@ -1859,18 +1859,12 @@ export default {
 		},
 
 		/**
-		 * The index page a detail page returns to: the list named in the
-		 * address (`_from`), else the first index page on the same register and
-		 * schema.
-		 *
-		 * @param {object} config The detail page's normalized config.
-		 * @return {object|null} The manifest page, or null when there is none.
-		 */
-		/**
 		 * Fetch the list a detail page was opened from, for next and previous:
 		 * the index page the address names (`_from`), read from OpenRegister
-		 * with the address's search, sort and filters. A list with a source of
-		 * its own, or none named, is refused, so the page offers no step.
+		 * with the address's search, sort and filters. Only on a detail page
+		 * that opts in (`listNavigation: true`); a page that does not, a list
+		 * with a source of its own, or none named, is refused, so the page
+		 * offers no step and nothing is fetched.
 		 *
 		 * @param {object} params The API params `useListNavigation` built.
 		 * @return {Promise<Array<object>>} The list's rows.
@@ -1881,7 +1875,7 @@ export default {
 			const from = listContextFromRoute(this.$route)?.pageId
 			const list = from ? this.pageById.get(from) : null
 			const config = list?.config || {}
-			if (page?.type !== 'detail' || list?.type !== 'index' || typeof config.register !== 'string' || typeof config.schema !== 'string' || config.source || config.endpointSource || config.dataSource) {
+			if (page?.type !== 'detail' || page.listNavigation !== true || list?.type !== 'index' || typeof config.register !== 'string' || typeof config.schema !== 'string' || config.source || config.endpointSource || config.dataSource) {
 				return Promise.reject(new Error('No OpenRegister list to step through'))
 			}
 			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: config.register, schema: config.schema })
@@ -1890,14 +1884,15 @@ export default {
 
 		/**
 		 * The props that give CnDetailPage next and previous: only on a detail
-		 * page whose record sits in the list it was opened from.
+		 * page that opts in (`listNavigation: true`) and whose record sits in
+		 * the list it was opened from.
 		 *
 		 * @return {object} `{ listNavigation, previousTo, nextTo }`, or `{}`.
 		 * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
 		 */
 		listNavigationProps() {
 			const nav = this.listNav
-			if (this.currentPage?.type !== 'detail' || !nav || nav.available.value !== true) {
+			if (this.currentPage?.type !== 'detail' || this.currentPage.listNavigation !== true || !nav || nav.available.value !== true) {
 				return {}
 			}
 			return {
@@ -1914,6 +1909,14 @@ export default {
 			}
 		},
 
+		/**
+		 * The index page a detail page returns to: the list named in the
+		 * address (`_from`), else the first index page on the same register and
+		 * schema.
+		 *
+		 * @param {object} config The detail page's normalized config.
+		 * @return {object|null} The manifest page, or null when there is none.
+		 */
 		listPageForDetail(config) {
 			const fromId = listContextFromRoute(this.$route)?.pageId
 			const from = fromId ? this.pageById.get(fromId) : null

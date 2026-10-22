@@ -10,10 +10,10 @@ manifest detail page never showed the controls (dossiq's e2e keeps the scenario 
 
 ## What changes
 
-- CnPageRenderer runs `useListNavigation` on the current route, fetching the list the address names: the index page
+- On a detail page that declares `listNavigation: true` (off by default, so no app starts fetching lists unasked), CnPageRenderer runs `useListNavigation` on the current route, fetching the list the address names: the index page
   `_from` points at, read from OpenRegister's objects endpoint with the address's params. A list with a source of its
   own, or no list named, gives no controls.
 - On a detail page whose record sits in that list, CnPageRenderer passes `listNavigation`, `previousTo` and `nextTo` to
   CnDetailPage. A bare link still gets none.
 
-No schema change.
+Schema 2.146.0: the page key `listNavigation` (detail pages, default false).
