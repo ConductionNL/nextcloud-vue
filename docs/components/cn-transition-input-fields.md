@@ -35,6 +35,7 @@ Every key [`CnTransitionInputDialog`](./cn-transition-input-dialog.md) reads (`f
 | `optionsSource` | A dot path into `context` holding the rows to pick from, read through `optionValue` (default `value`) and `optionLabel` (default `label`). With no rows the input is hidden and asks nothing. |
 | `other` | `{ label, input }`: adds an "Other" entry. The input it names is shown, and asked, only when this picker is hidden or Other is picked. Other is sent as `''`. |
 | `helperFrom` | `{ input, key }`: the helper text is `key` of the row picked in that other input, such as the legal basis of a picked reason. |
+| `prefillFrom` | `{ input, key }`: picking a row in that other input sets this input to the row's `key`, such as the default days of a picked pause reason. A row without the key, and Other, leave what was typed. |
 | `preview` | `{ label, template, note, testid }`: a line under the input once the template resolves. Tokens are `{field}`, `{field\|date}`, `{today\|date}` and `{today+field\|date}` (today plus that many days); a token that resolves to nothing hides the line. The value carries the test id `<testid>-value`. |
 | `default` | The starting value (CnTransitionInputDialog seeds it). |
 | `description`, `note` | The helper text under the field, and a muted line under it. |

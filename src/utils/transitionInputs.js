@@ -288,6 +288,8 @@ export function fillInputTemplate(template, values, now = new Date()) {
  *   only shown (and only asked) when this picker is hidden or Other is picked.
  * - `helperFrom: { input, key }`: the helper text is `key` of the row picked
  *   in that other input.
+ * - `prefillFrom: { input, key }`: picking a row in that other input sets this
+ *   input to the row's `key`, when the row carries one (see `prefillFromPick`).
  * - `preview: { label, template, note, testid }`: a line under the input,
  *   filled by `fillInputTemplate` and shown only once it resolves.
  * - `default`: the starting value.
@@ -348,6 +350,39 @@ export function resolveInputFields(declared, { schema = null, register = '', con
 	}
 
 	return fields
+}
+
+/**
+ * The values a pick fills in: for every input with `prefillFrom` naming the
+ * picked input, the picked row's `key`, as text. A row without that key, the
+ * Other entry and an input nobody fills from change nothing, so the reader
+ * keeps what they typed.
+ *
+ * @param {Array<object>} fields The descriptors from `resolveInputFields`.
+ * @param {string} key The input that was picked in.
+ * @param {unknown} value The picked value.
+ * @return {object} The values to set, by input key; {} for none.
+ * @spec openspec/changes/input-prefill-from/specs/transition-inputs/spec.md#requirement-a-pick-can-fill-another-input
+ */
+export function prefillFromPick(fields, key, value) {
+	const source = (Array.isArray(fields) ? fields : []).find((field) => field.key === key)
+	if (!source || !Array.isArray(source.rows) || value === OTHER_OPTION_VALUE) {
+		return {}
+	}
+	const index = source.options.findIndex((option) => option.value === String(value ?? ''))
+	const row = index >= 0 ? source.rows[index] : null
+	if (!row || typeof row !== 'object') {
+		return {}
+	}
+	const filled = {}
+	for (const field of fields) {
+		const from = field.input?.prefillFrom
+		if (!from || from.input !== key || row[from.key] === undefined || row[from.key] === null) {
+			continue
+		}
+		filled[field.key] = String(row[from.key])
+	}
+	return filled
 }
 
 /**

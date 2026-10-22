@@ -153,3 +153,20 @@ describe('CnTransitionInputFields', () => {
 		expect(fields({ inputs }).findComponent({ name: 'NcTextField' }).attributes('label')).toBe('Reason')
 	})
 })
+
+describe('CnTransitionInputFields: a pick fills another input (prefillFrom)', () => {
+	it('sets the days to the picked reason\'s default, in the same update', () => {
+		const w = mount(CnTransitionInputFields, {
+			props: {
+				inputs: [
+					{ field: 'pauseReason', optionsSource: 'pauseReasons', optionValue: 'key', optionLabel: 'name' },
+					{ field: 'days', widget: 'number', prefillFrom: { input: 'pauseReason', key: 'defaultDays' } },
+				],
+				context: { pauseReasons: [{ key: 'consent', name: 'Waiting for consent', defaultDays: 28 }] },
+				modelValue: { pauseReason: '', days: '' },
+			},
+		})
+		w.vm.setValue('pauseReason', 'consent')
+		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual({ pauseReason: 'consent', days: '28' })
+	})
+})

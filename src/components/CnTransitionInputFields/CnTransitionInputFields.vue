@@ -209,7 +209,7 @@ import { NcCheckboxRadioSwitch, NcSelect, NcTextArea, NcTextField } from '@nextc
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
 import { readPath } from '../../utils/readPath.js'
-import { applyTemplateText, isInputFilled, resolveInputFields } from '../../utils/transitionInputs.js'
+import { applyTemplateText, isInputFilled, prefillFromPick, resolveInputFields } from '../../utils/transitionInputs.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 let uid = 0
@@ -226,7 +226,7 @@ let uid = 0
  *
  * Next to the schema-resolved widgets an input may declare `widget` (`text`,
  * `textarea`, `number`, `date`, `select`, `template`), `optionsSource` (a dot
- * path into `context`), `other`, `helperFrom`, `preview`, `default` and
+ * path into `context`), `other`, `helperFrom`, `prefillFrom`, `preview`, `default` and
  * presentation keys; see `resolveInputFields` in `utils/transitionInputs.js`.
  *
  * ```vue
@@ -255,7 +255,7 @@ export default {
 	props: {
 		/**
 		 * The declared inputs: `[{ field, required, label, widget, options,
-		 * optionsSource, optionValue, optionLabel, other, helperFrom, preview,
+		 * optionsSource, optionValue, optionLabel, other, helperFrom, prefillFrom, preview,
 		 * default, description, note, labelOutside, id, wide, testid, rows,
 		 * placeholder }]`, plus for a `template` input `url`, `schema`,
 		 * `params`, `mapOption` and `applyTo`.
@@ -613,7 +613,7 @@ export default {
 		 * @param {unknown} value The new value.
 		 */
 		setValue(key, value) {
-			this.latest = { ...this.latest, [key]: value }
+			this.latest = { ...this.latest, [key]: value, ...prefillFromPick(this.fields, key, value) }
 			/**
 			 * @event update:modelValue The values with this one changed.
 			 * @type {object}

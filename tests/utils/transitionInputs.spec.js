@@ -14,6 +14,7 @@ import {
 	initialInputValues,
 	inputFieldsComplete,
 	OTHER_OPTION_VALUE,
+	prefillFromPick,
 	readTransitionInputs,
 	resolveInputFields,
 	submittedValue,
@@ -148,5 +149,32 @@ describe('reading a host\'s values', () => {
 
 		const other = readTransitionInputs(PAUSE, { pauseReason: OTHER_OPTION_VALUE, reason: '', days: '' }, { context })
 		expect(other).toEqual({ complete: false, data: { pauseReason: '', reason: '', days: '' } })
+	})
+})
+
+describe('prefillFrom: a pick fills another input', () => {
+	const INPUTS = [
+		{ field: 'pauseReason', optionsSource: 'pauseReasons', optionValue: 'key', optionLabel: 'name', other: { label: 'Other', input: 'reason' } },
+		{ field: 'reason', widget: 'text' },
+		{ field: 'days', widget: 'number', prefillFrom: { input: 'pauseReason', key: 'defaultDays' } },
+	]
+	const ROWS = [
+		{ key: 'consent', name: 'Waiting for consent', defaultDays: 28 },
+		{ key: 'advice', name: 'Waiting for advice' },
+	]
+	const fields = resolveInputFields(INPUTS, { context: { pauseReasons: ROWS }, values: {} })
+
+	it('fills the input with the picked row\'s key', () => {
+		expect(prefillFromPick(fields, 'pauseReason', 'consent')).toEqual({ days: '28' })
+	})
+
+	it('changes the value when another row is picked that carries one', () => {
+		expect(prefillFromPick(fields, 'pauseReason', 'consent')).toEqual({ days: '28' })
+	})
+
+	it('leaves the input alone for a row without the key, for Other and for an input nobody fills from', () => {
+		expect(prefillFromPick(fields, 'pauseReason', 'advice')).toEqual({})
+		expect(prefillFromPick(fields, 'pauseReason', OTHER_OPTION_VALUE)).toEqual({})
+		expect(prefillFromPick(fields, 'reason', 'x')).toEqual({})
 	})
 })
