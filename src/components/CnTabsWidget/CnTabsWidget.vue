@@ -172,11 +172,23 @@
 					<div
 						v-if="panelHeading(entry)"
 						class="cn-tabs-widget__panel-heading"
+						:class="{ 'cn-tabs-widget__panel-heading--actions': panelHeaderActions(entry).length > 0 }"
 						data-testid="cn-tabs-widget-panel-heading">
-						<h2 class="cn-tabs-widget__panel-title">
-							{{ panelHeading(entry).title }}
-						</h2>
-						<span v-if="panelHeading(entry).subtitle" class="cn-tabs-widget__panel-subtitle">{{ panelHeading(entry).subtitle }}</span>
+						<div class="cn-tabs-widget__panel-heading-text">
+							<h2 class="cn-tabs-widget__panel-title">
+								{{ panelHeading(entry).title }}
+							</h2>
+							<span v-if="panelHeading(entry).subtitle" class="cn-tabs-widget__panel-subtitle">{{ panelHeading(entry).subtitle }}</span>
+						</div>
+						<CnWidgetHeaderActionButtons v-if="panelHeaderActions(entry).length > 0" :actions="panelHeaderActions(entry)" />
+					</div>
+					<!-- The widget's manifest `headerActions` with no heading to
+					     sit in: a row of their own above the panel's content. -->
+					<div
+						v-else-if="panelHeaderActions(entry).length > 0"
+						class="cn-tabs-widget__panel-actions"
+						data-testid="cn-tabs-widget-panel-actions">
+						<CnWidgetHeaderActionButtons :actions="panelHeaderActions(entry)" />
 					</div>
 					<CnDetailWidgetHost
 						:widget="entry.widget"
@@ -211,7 +223,9 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
+import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
@@ -221,6 +235,7 @@ import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { setSubResourceRead } from '../../utils/recordInteractions.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
@@ -282,6 +297,7 @@ export default {
 		CnIcon,
 		CnTab,
 		CnTabs,
+		CnWidgetHeaderActionButtons,
 		NcActionButton,
 		NcActionSeparator,
 		CnEmptyContent,
@@ -376,6 +392,8 @@ export default {
 		 * label written in the manifest reads in the user's language.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's action dispatcher (CnPageRenderer), for a panel widget's `headerActions`. */
+		cnDispatchAction: { default: null },
 		/**
 		 * CnDetailPage's report of the open body tab, so its side column can
 		 * follow the tab (a side entry's `tabs`). Null on any other page.
@@ -975,14 +993,41 @@ export default {
 		}
 		subscribe('cn:page:refresh', this._onRefresh)
 		subscribe('cn:widget:refresh', this._onRefresh)
+		// A hash that changes on an open page (a header link `{ tab }`) opens that tab.
+		this._onHashChange = () => this.openTabById(decodeURIComponent(window.location.hash.replace(/^#/, '')))
+		window.addEventListener('hashchange', this._onHashChange)
 	},
 
 	beforeUnmount() {
 		unsubscribe('cn:page:refresh', this._onRefresh)
 		unsubscribe('cn:widget:refresh', this._onRefresh)
+		window.removeEventListener('hashchange', this._onHashChange)
 	},
 
 	methods: {
+		/**
+		 * Open the tab with this id; one still pending opens once it appears,
+		 * and an unknown or hidden id changes nothing.
+		 *
+		 * @spec openspec/changes/header-link-switches-tab/specs/header-link/spec.md#requirement-a-header-link-can-open-another-tab-of-the-page
+		 * @param {string} id The tab id.
+		 * @return {void}
+		 */
+		openTabById(id) {
+			if (!id) {
+				return
+			}
+			const index = this.resolvedTabs.findIndex((tab) => tab.id === id)
+			if (index < 0) {
+				return
+			}
+			if (this.resolvedTabs[index].pending) {
+				this.hashTargetId = id
+				return
+			}
+			this.activeIndex = index
+		},
+
 		/**
 		 * The read-state part a tab counts: `unreadKey`, else its id, else its widget id.
 		 *
@@ -1163,6 +1208,26 @@ export default {
 				}
 			}
 			return [tab?.widgetId]
+		},
+
+		/**
+		 * A single widget's manifest `headerActions`, for its panel's heading
+		 * row: gated on the record, dispatched through the page's dispatcher.
+		 *
+		 * @param {object} entry A resolved tab.
+		 * @return {Array<object>} The buttons.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
+		 */
+		panelHeaderActions(entry) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			return resolveWidgetHeaderActions(entry && entry.widget, {
+				object: this.objectData || {},
+				objectId: this.objectId,
+				translate,
+				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null })),
+			})
 		},
 
 		/**
@@ -1482,6 +1547,28 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	margin-bottom: 16px;
+}
+
+.cn-tabs-widget__panel-heading--actions {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px 16px;
+}
+
+.cn-tabs-widget__panel-heading-text {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.cn-tabs-widget__panel-actions {
+	display: flex;
+	justify-content: flex-end;
 	margin-bottom: 16px;
 }
 
