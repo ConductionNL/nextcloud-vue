@@ -8074,13 +8074,16 @@ export default {
 
 		/**
 		 * Whether the actions bar shows the Export menu: `showExportMenu`,
-		 * unless a header button took the export over.
+		 * unless a header button, or an Actions menu listing `export`, took
+		 * the export over (DqAanMijToegewezen).
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
 		barShowsExportMenu() {
-			return this.showExportMenu && !this.headerButtonTakes('export')
+			const menuExports = this.headerButtonsShown && this.resolvedHeaderButtons
+				.some((button) => button.action === 'actions-menu' && Array.isArray(button.items) && button.items.includes('export'))
+			return this.showExportMenu && !this.headerButtonTakes('export') && !menuExports
 		},
 
 		/**
