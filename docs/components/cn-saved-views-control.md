@@ -39,3 +39,7 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 |---|---|---|
 | `apply` | View | A chip was clicked. |
 | `save-request` | none | Save view was clicked. |
+
+## Save view given up for the header (`save`)
+
+`save: false` leaves the toolbar's Save view out. CnIndexPage passes it when the page header carries a `save-view` button (DqZoekresultaten saves a search from "Zoekopdracht opslaan"), so the page offers one way to save.

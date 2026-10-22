@@ -340,6 +340,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:save="!headerSavesView"
 					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
@@ -7920,6 +7921,17 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
+		/**
+		 * Whether the page header carries a save-view button, so the toolbar
+		 * leaves its own Save view out.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/saved-views-hide-toolbar-save/specs/saved-views/spec.md
+		 */
+		headerSavesView() {
+			return this.headerButtonsShown && (this.resolvedHeaderButtons || []).some((button) => button && button.action === 'save-view')
+		},
+
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
 		},
