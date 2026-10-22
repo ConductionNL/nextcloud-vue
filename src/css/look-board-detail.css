@@ -523,6 +523,28 @@
 	line-height: 1.2;
 }
 
+/* A conversation as DqZaakContact draws it: our messages in the main ink on
+   the primary tint, the channel as a small bordered pill, the meta line at
+   13px with the author at 600.
+   @spec openspec/changes/conversation-board-bubble/specs/conversation-source/spec.md#requirement-a-message-names-its-author-per-side-its-direction-and-a-note */
+.cn-look-board .cn-conversation-thread__message--us .cn-conversation-thread__bubble {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-conversation-thread__meta {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-conversation-thread__channel {
+	padding: 1px 8px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail

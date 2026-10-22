@@ -1590,6 +1590,8 @@
     "About {name}": "About {name}",
     "Sent message": "Sent message",
     "Received message": "Received message",
+    "Incoming": "Incoming",
+    "Outgoing": "Outgoing",
     "Loading messages…": "Loading messages…",
     "Move {item} up": "Move {item} up",
     "Move {item} down": "Move {item} down",

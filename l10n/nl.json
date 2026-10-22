@@ -1776,6 +1776,8 @@
     "About {name}": "Over {name}",
     "Sent message": "Verstuurd bericht",
     "Received message": "Ontvangen bericht",
+    "Incoming": "Inkomend",
+    "Outgoing": "Uitgaand",
     "Loading messages…": "Berichten laden…",
     "Move {item} up": "{item} omhoog",
     "Move {item} down": "{item} omlaag",
