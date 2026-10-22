@@ -39,7 +39,12 @@
 				:requestHint="endpointText('requestHint')"
 				:requestDisabled="epBlocked"
 				@request="epRequest" />
-			<CnDataTable v-if="!(endpointActive && (epError || epAwaitingRequest))" ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+			<CnDataTable
+				v-if="!(endpointActive && (epError || epAwaitingRequest))"
+				ref="dataTable"
+				v-bind="{ ...innerProps, ...$attrs }"
+				@sort="onHeaderSort"
+				@columnFilter="onHeaderFilter">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -115,6 +120,7 @@ import { getByPath, useEndpointSource } from '../../composables/useEndpointSourc
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { headerFilterParams, nextHeaderFilters, withSortableColumns } from '../../utils/headerFilterState.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -507,6 +513,27 @@ export default {
 		},
 
 		/**
+		 * Column heads that sort, as the index table's: `true` for every
+		 * column, or the keys that do. A column's own `sortable` wins. The
+		 * sort goes out with the widget's fetch (`source`), replacing
+		 * `source.order` while it is set.
+		 */
+		sortable: {
+			type: [Boolean, Array],
+			default: false,
+		},
+
+		/**
+		 * Column heads with the index table's filter button. A header filter
+		 * goes out with the widget's fetch (`source`) as the same parameters
+		 * the index page sends.
+		 */
+		filterable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Per-row CSS class binding (#91). Two forms:
 		 *  - a FUNCTION `(row) => string` — passed straight through to
 		 *    CnDataTable's `rowClass` (the pre-existing host-supplied contract).
@@ -561,6 +588,10 @@ export default {
 
 	data() {
 		return {
+			/** The sort a column head set (`sortable`), or null for `source.order`. */
+			headerSort: null,
+			/** The column-head filters (`filterable`), `{ paramKey: values[] }`. */
+			headerFilters: {},
 			/** Error message from the last rejected object-op write ('' = none). */
 			opError: '',
 			/** @type {object|null} The object-op action awaiting confirmation (null = no dialog). */
@@ -707,7 +738,7 @@ export default {
 			// this table pages, and a rank order over pages needs the server.
 			const picked = pageSort(src.pageControls, this.workspaceCtx, null)
 			const chosen = picked && !Array.isArray(picked.rank) ? picked : null
-			const order = chosen ? { [chosen.field]: chosen.dir } : (src.order || {})
+			const order = this.headerSort ? { [this.headerSort.field]: this.headerSort.dir } : (chosen ? { [chosen.field]: chosen.dir } : (src.order || {}))
 			for (const [field, dir] of Object.entries(order)) {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 			}
@@ -747,7 +778,7 @@ export default {
 					}
 				}
 			}
-			return params
+			return { ...params, ...headerFilterParams(this.headerFilters) }
 		},
 
 		/**
@@ -816,7 +847,7 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, exportId, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, exportId, sortable, filterable, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
@@ -837,6 +868,17 @@ export default {
 			}
 			if (this.endpointActive && this.columns.some((col) => col && typeof col === 'object' && col.labelPath)) {
 				inner.columns = this.labelledColumns(inner.columns || this.columns)
+			}
+			// Header sort and filter (`sortable`, `filterable`) only where the
+			// widget fetches its own rows: the server sorts and filters.
+			if (this.selfFetchActive && (this.sortable !== false || this.filterable)) {
+				inner.columns = withSortableColumns(inner.columns || this.columns, this.sortable)
+				inner.filterable = this.filterable
+				inner.activeFilters = this.headerFilters
+				if (this.headerSort) {
+					inner.sortKey = this.headerSort.field
+					inner.sortOrder = this.headerSort.dir
+				}
 			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
@@ -979,6 +1021,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A column head's sort (`sortable`): it replaces `source.order` until
+		 * it is cleared.
+		 *
+		 * @param {{key: string|null, order: string|null}} payload CnDataTable's sort.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderSort(payload) {
+			const key = payload && payload.key
+			this.headerSort = key ? { field: key, dir: payload.order === 'desc' ? 'desc' : 'asc' } : null
+		},
+
+		/**
+		 * A column head's filter (`filterable`), kept with the others.
+		 *
+		 * @param {{key: string, params: object}} payload CnDataTable's column-filter.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderFilter(payload) {
+			this.headerFilters = nextHeaderFilters(this.headerFilters, payload)
+		},
+
 		t,
 
 		/**
