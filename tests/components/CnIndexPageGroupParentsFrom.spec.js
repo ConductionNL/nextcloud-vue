@@ -91,4 +91,18 @@ describe('CnIndexPage groups pane with parentsFrom', () => {
 		await flushPromises()
 		expect(mockFetchJson).not.toHaveBeenCalled()
 	})
+	it('reads a parent that names another record by its id as that record\'s group', async () => {
+		mockFetchJson.mockResolvedValue({
+			results: [
+				{ id: 'r-1', ncGroupId: 'gemeente' },
+				{ id: 'r-2', ncGroupId: 'fysiek', parentRoleId: 'r-1' },
+				{ '@self': { id: 'r-3' }, ncGroupId: 'vergunningen', parentRoleId: 'r-2' },
+				{ id: 'r-4', parentRoleId: 'r-2' },
+			],
+		})
+		const w = mountPage({ source: 'groups', filterField: 'group', parentsFrom: { register: 'dossiq', schema: 'organisatieRol', groupField: 'ncGroupId', parentField: 'parentRoleId' } })
+		await flushPromises()
+		const byId = Object.fromEntries(w.vm.folderGroupList.map((group) => [group.id, group.parentId]))
+		expect(byId).toEqual({ gemeente: null, fysiek: 'gemeente', vergunningen: 'fysiek' })
+	})
 })

@@ -10884,7 +10884,8 @@ export default {
 		 * The groups pane's tree read from records (`folderSidebar.parentsFrom`:
 		 * `{ register, schema, groupField?, parentField? }`): each record names a
 		 * group (`groupField`, default `group`) and the group above it
-		 * (`parentField`, default `parent`), in the `groups` shape. Null without
+		 * (`parentField`, default `parent`): a group id, or the id of another
+		 * record, read as that record's group. In the `groups` shape. Null without
 		 * the option or when the records cannot be read, so the pane lists
 		 * every group flat.
 		 *
@@ -10903,10 +10904,12 @@ export default {
 					`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
 					{ query: { _limit: from.limit || 500 } },
 				)
-				const records = Array.isArray(body?.results) ? body.results : []
-				return records
-					.filter((record) => record && record[groupField])
-					.map((record) => ({ id: String(record[groupField]), parent: record[parentField] ? String(record[parentField]) : null }))
+				const records = (Array.isArray(body?.results) ? body.results : []).filter((record) => record && record[groupField])
+				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
+				return records.map((record) => {
+					const parent = record[parentField] ? String(record[parentField]) : null
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+				})
 			} catch {
 				return null
 			}

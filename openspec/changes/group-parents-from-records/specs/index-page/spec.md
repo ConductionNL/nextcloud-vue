@@ -12,7 +12,7 @@
 
 A `groups` folder pane with `parentsFrom: { register, schema, groupField?, parentField? }` SHALL list the Nextcloud
 groups the records name in `groupField` (default `group`), each nested under the group in `parentField` (default
-`parent`). Groups no record names SHALL NOT be listed. When the records cannot be read the pane SHALL list every group
+`parent`). A parent value that is the id of another record SHALL be read as that record's group. Groups no record names SHALL NOT be listed. When the records cannot be read the pane SHALL list every group
 flat, as without the option.
 
 #### Scenario: DqAfdelingen
