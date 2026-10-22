@@ -1190,16 +1190,29 @@ function searchSource(config = {}, context = {}) {
 		loading: () => state.loading,
 
 		columns: [
-			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle' },
-			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label) },
-			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked') }] : []),
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
+			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label), sortable: true },
+			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked'), sortable: true }] : []),
 			{
 				key: 'status',
 				label: t('nextcloud-vue', 'Status'),
 				widget: 'badge',
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
+				sortable: true,
 			},
 		],
+
+		/**
+		 * Every column header carries a filter button (DqZoekresultaten); the
+		 * filters narrow the answer already fetched (`load`).
+		 */
+		headerFilters: true,
+
+		/**
+		 * The page orders the rows a header asks for: the answer is one fetch,
+		 * so there is nothing to ask the servers again.
+		 */
+		sortsRows: true,
 
 		quickFilters: kinds.length > 0
 			? [

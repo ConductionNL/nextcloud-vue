@@ -4199,6 +4199,8 @@ export default {
 
 	data() {
 		return {
+			/** The order a named source that `sortsRows` shows its rows in. */
+			namedSort: { key: '', order: 'asc' },
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4652,7 +4654,14 @@ export default {
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
-				return this.namedRows
+				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
+				const key = sortsRows && this.namedSort ? this.namedSort.key : ''
+				if (!key) {
+					return this.namedRows
+				}
+				const direction = this.namedSort.order === 'desc' ? -1 : 1
+				const text = (row) => String(row && row[key] !== undefined && row[key] !== null ? row[key] : '')
+				return [...(this.namedRows || [])].sort((a, b) => direction * text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: 'base' }))
 			}
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
@@ -6883,6 +6892,10 @@ export default {
 			if (!this.headerFilters) {
 				return false
 			}
+			// A named source that narrows its own rows asks for the buttons.
+			if (this.isNamedSource && this.namedSource && this.namedSource.headerFilters === true) {
+				return true
+			}
 			if (this.effectiveSchema || this.isSelfFetchMode) {
 				return true
 			}
@@ -7022,10 +7035,16 @@ export default {
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() {
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				return this.namedSort.key || null
+			}
 			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
 		},
 
 		effectiveSortOrder() {
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				return this.namedSort.order || 'asc'
+			}
 			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
 		},
 
@@ -9951,6 +9970,9 @@ export default {
 			// leaves an endpoint-ranked order.
 			if (this.sortSource.value) {
 				this.sortSource = { ...this.sortSource, value: '', page: 1 }
+			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				this.namedSort = { key: (payload && payload.key) || '', order: (payload && payload.order) || 'asc' }
 			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
