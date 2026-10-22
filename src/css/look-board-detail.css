@@ -725,6 +725,30 @@
 	display: flex;
 }
 
+/* A widget-reported card header action in the main column is a neutral 40px
+   control: the main background, the control border, the main text at
+   14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document
+   genereren"). The side column keeps the tinted "+ Toevoegen".
+   @spec openspec/changes/board-widget-header-action-neutral/specs/board-widget-header-action-neutral/spec.md#requirement-a-board-widget-header-action-in-the-main-column-is-a-neutral-40px-control */
+.cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	gap: 8px;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+	padding: 0 14px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *):hover {
+	background: var(--color-background-hover);
+}
+
 /* The notice at the top of the side column: one tinted block, radius 12,
    padding 14px 16px. Only the outer layer paints; the card wrapper, the
    banner and its note card inside it stay flat, so the notice is not drawn
