@@ -1475,7 +1475,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
-import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
+import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
@@ -8144,6 +8144,9 @@ export default {
 				}
 				const ends = rangeEnds(raw)
 				if (ends) {
+					if (this.isFixedFilter(key, raw)) {
+						continue
+					}
 					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
 					continue
 				}
@@ -8727,6 +8730,24 @@ export default {
 	},
 
 	watch: {
+		// A group filter's chip names the group: ask for each id's display
+		// name (cached, once per id per page).
+		effectiveActiveFilters: {
+			immediate: true,
+			handler(filters) {
+				for (const [key, raw] of Object.entries(filters || {})) {
+					if (!this.isGroupFilter(key)) {
+						continue
+					}
+					for (const value of (Array.isArray(raw) ? raw : [raw])) {
+						if (typeof value === 'string' && value !== '' && value.charAt(0) !== '@') {
+							loadGroupDisplayName(value)
+						}
+					}
+				}
+			},
+		},
+
 		// A lens that asks the source for other rows reads the source again.
 		lensSourceParams(now, before) {
 			if (JSON.stringify(now) === JSON.stringify(before) || !this.isSelfFetchMode) {
@@ -9243,6 +9264,10 @@ export default {
 			const fixed = this.fixedFilters
 			if (!fixed || !Object.hasOwn(fixed, key)) {
 				return false
+			}
+			// A range (`{ from, to }`) is compared whole: String() would make every object equal.
+			if (value !== null && typeof value === 'object') {
+				return JSON.stringify(fixed[key]) === JSON.stringify(value)
 			}
 			return String(fixed[key]) === String(value)
 		},
@@ -11042,8 +11067,8 @@ export default {
 		/**
 		 * The text an Active chip shows for one filter value: the page's
 		 * `filterLabels` value, the referenced object's label, the facet
-		 * bucket's label, the schema's `oneOf` title, the sidebar field's
-		 * `enumLabels`, else the value itself.
+		 * bucket's label, the schema's `oneOf` title, a group's display name,
+		 * the sidebar field's `enumLabels`, else the value itself.
 		 *
 		 * @param {string} key The filter key.
 		 * @param {unknown} value One value of that filter.
@@ -11051,6 +11076,22 @@ export default {
 		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
+		/**
+		 * Whether a filter holds Nextcloud group ids: its column draws the
+		 * group cell, or its schema property marks a group.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {boolean}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
+		 */
+		isGroupFilter(key) {
+			const column = (Array.isArray(this.columns) ? this.columns : []).find((c) => c && typeof c === 'object' && c.key === key)
+			if (column && column.widget === 'group') {
+				return true
+			}
+			return isGroupProp(this.effectiveSchema?.properties?.[key])
+		},
+
 		activeFilterValueLabel(key, value) {
 			const id = String(value)
 			const named = this.filterLabels && this.filterLabels[key] && this.filterLabels[key].values
@@ -11080,6 +11121,12 @@ export default {
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
 				return this.cnTranslate(option.title)
+			}
+			if (this.isGroupFilter(key)) {
+				const name = groupDisplayName(id)
+				if (name) {
+					return name
+				}
 			}
 			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
 			const enumLabel = field && field.enumLabels && field.enumLabels[id]

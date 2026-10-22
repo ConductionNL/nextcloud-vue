@@ -40,3 +40,8 @@
 - [x] Implement
 - [x] Test
 
+### Task 5: A group filter is named by the group's display name
+- **spec_ref**: `openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `tests/components/CnIndexFilterLabels.spec.js`
+- [x] Implement
+- [x] Test
