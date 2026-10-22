@@ -301,6 +301,7 @@ export default {
 		/**
 		 * All, then every kind the object has entries of, each with its count.
 		 *
+		 * @spec openspec/changes/timeline-all-chip-host-label/specs/timeline/spec.md#requirement-the-timelines-all-chip-reads-the-hosts-word
 		 * @return {Array<object>} The chips.
 		 */
 		kindChips() {
@@ -310,7 +311,10 @@ export default {
 				const kind = entry.kind || ''
 				counts.set(kind, (counts.get(kind) || 0) + 1)
 			}
-			const chips = [{ key: 'all', id: null, label: t('nextcloud-vue', 'All'), count: this.allEntries.length, active: chosen === null }]
+			// The host's word first, as its own filter chips read ("Alles"), then the library's.
+			const hostAll = typeof this.cnTranslate === 'function' ? this.cnTranslate('All') : 'All'
+			const allLabel = typeof hostAll === 'string' && hostAll !== '' && hostAll !== 'All' ? hostAll : t('nextcloud-vue', 'All')
+			const chips = [{ key: 'all', id: null, label: allLabel, count: this.allEntries.length, active: chosen === null }]
 			for (const option of this.kindOptions) {
 				const count = counts.get(option.id) || 0
 				if (count > 0) {
