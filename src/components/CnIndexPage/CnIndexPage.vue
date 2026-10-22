@@ -1337,6 +1337,7 @@
 			:open="sidebarOpen"
 			:schema="effectiveSchema"
 			:title="title"
+			:subtitle="sidebarSubtitle"
 			:icon="resolvedIcon"
 			:searchValue="effectiveSearchValue"
 			:visibleColumns="effectiveVisibleColumns"
@@ -8281,6 +8282,25 @@ export default {
 			return this.filterMenu && this.filterableFields.length > 0 && !this.boardFilterMenu
 		},
 
+		/**
+		 * The side panel's line under its title: the page's `sidebar.subtitle`
+		 * (a string, or `{ singular, plural }`) with `{total}` and `{shown}`
+		 * filled ("48 zaken, 8 op deze pagina", DqFilterBeheren), or '' to keep
+		 * the schema's description.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-sidebar-count-subtitle/specs/index-sidebar-count-subtitle/spec.md
+		 */
+		sidebarSubtitle() {
+			const declared = this.sidebar && this.sidebar.subtitle
+			const total = this.effectivePagination && this.effectivePagination.total
+			if (!declared || typeof total !== 'number' || total < 0) {
+				return ''
+			}
+			const shown = Array.isArray(this.effectiveObjects) ? this.effectiveObjects.length : null
+			return countLine(declared, total, { shown, translate: this.cnTranslate, appId: this.cnAppId })
+		},
+
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
@@ -8313,6 +8333,7 @@ export default {
 				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
 				title: this.title,
+				subtitle: this.sidebarSubtitle,
 				icon: this.resolvedIcon,
 				searchValue: this.effectiveSearchValue,
 				visibleColumns: this.effectiveVisibleColumns,
