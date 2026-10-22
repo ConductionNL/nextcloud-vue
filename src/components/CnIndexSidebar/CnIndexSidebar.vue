@@ -49,7 +49,26 @@
 						:clearable="false"
 						:inputLabel="t('nextcloud-vue', 'Sort by')"
 						@update:modelValue="onSortField" />
-					<div class="cn-index-sidebar__sort-direction" role="radiogroup" :aria-label="t('nextcloud-vue', 'Direction')">
+					<template v-if="isBoardLook">
+						<h4 :id="sortDirectionLabelId" class="cn-index-sidebar__sort-direction-label">
+							{{ t('nextcloud-vue', 'Direction') }}
+						</h4>
+						<CnSegmentedControl
+							class="cn-index-sidebar__sort-direction-segments"
+							data-testid="cn-index-sidebar-sort-direction-segments"
+							stretch
+							:options="sortDirectionOptions"
+							:modelValue="sortDirection"
+							:ariaLabelledby="sortDirectionLabelId"
+							@update:modelValue="onSortDirection">
+							<template #option="{ option }">
+								<ArrowUp v-if="option.value === 'asc'" :size="16" />
+								<ArrowDown v-else :size="16" />
+								<span class="cn-segmented-control__label">{{ option.label }}</span>
+							</template>
+						</CnSegmentedControl>
+					</template>
+					<div v-else class="cn-index-sidebar__sort-direction" role="radiogroup" :aria-label="t('nextcloud-vue', 'Direction')">
 						<NcCheckboxRadioSwitch
 							type="radio"
 							name="cn-index-sidebar-sort-direction"
@@ -322,6 +341,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
+import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
@@ -334,6 +355,8 @@ import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -362,6 +385,9 @@ export default {
 		NcAppSidebar,
 		NcAppSidebarTab,
 		CnSavedViewsPanel,
+		CnSegmentedControl,
+		ArrowDown,
+		ArrowUp,
 		BookmarkOutline,
 		NcTextField,
 		NcSelect,
@@ -392,6 +418,8 @@ export default {
 		 * used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The look CnAppRoot provides; the board look draws the direction as a segmented control. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -688,6 +716,40 @@ export default {
 		/** @return {string} The chosen direction, `asc` or `desc`. */
 		sortDirection() {
 			return this.sortMatch ? this.sortMatch.direction : 'asc'
+		},
+
+		/**
+		 * Whether the board look applies.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(look) === 'board'
+		},
+
+		/**
+		 * The two directions as segments, as board DqZakenSorteren draws them:
+		 * "Oplopend" and "Aflopend" with an arrow each.
+		 *
+		 * @spec openspec/changes/sidebar-sort-direction-segmented/specs/index-sidebar/spec.md#requirement-the-board-look-draws-the-sort-direction-as-two-segments
+		 * @return {Array<{value: string, label: string, disabled: boolean}>}
+		 */
+		sortDirectionOptions() {
+			const disabled = !this.sortSelected || this.sortSelected.fixed === true
+			return [
+				{ value: 'asc', label: t('nextcloud-vue', 'Ascending'), disabled },
+				{ value: 'desc', label: t('nextcloud-vue', 'Descending'), disabled },
+			]
+		},
+
+		/**
+		 * The id of the Direction heading that names the segments.
+		 *
+		 * @return {string}
+		 */
+		sortDirectionLabelId() {
+			return `cn-index-sidebar-direction-${this.$.uid}`
 		},
 
 		/**
