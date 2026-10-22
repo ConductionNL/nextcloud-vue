@@ -131,8 +131,10 @@ export default {
 		 * The configuration: `endpointSource` (`{ url, params? }`, tokens
 		 * `@objectId` and `@object.<field>`), `paths` (where each part sits in
 		 * the answer: `derivation`, `withheld`, `waitingOn`, `dwell`,
-		 * `explanation`), `fieldRules` (show `@self.fieldRules`, default true)
-		 * and `labels` (`derivationHeading` with `{status}`, `fieldRulesHeading`).
+		 * `explanation`), `fieldRules` (show `@self.fieldRules`, default true),
+		 * `withheld` (show the withheld moves, default true; false for a card
+		 * that says only where the record stands) and `labels`
+		 * (`derivationHeading` with `{status}`, `fieldRulesHeading`).
 		 */
 		content: {
 			type: Object,
@@ -188,8 +190,14 @@ export default {
 			return this.loaded ? String(this.part('explanation') ?? '').trim() : ''
 		},
 
-		/** @return {Array<object>} The withheld moves that say why. */
+		/**
+		 * @return {Array<object>} The withheld moves that say why, none with `withheld: false`.
+		 * @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it
+		 */
 		withheld() {
+			if (this.content?.withheld === false) {
+				return []
+			}
 			return this.loaded ? withheldTransitions(this.part('withheld')) : []
 		},
 

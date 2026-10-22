@@ -99,3 +99,20 @@ describe('CnStatusExplainerWidget', () => {
 		expect(wrapper.find('[data-testid="cn-status-explainer-field-rules"]').exists()).toBe(false)
 	})
 })
+
+describe('CnStatusExplainerWidget on the board (the case Status card)', () => {
+	it('leaves the withheld moves out when the content says withheld: false', async () => {
+		const answer = { current: { statusDescription: 'Documents are being gathered' }, withheld: [{ id: 'a', label: 'Decide', reasons: ['the advice request'] }] }
+		const wrapper = await mountExplainer(answer, { id: 'r-1' }, { ...CONTENT, withheld: false })
+		expect(wrapper.find('[data-testid="cn-status-explainer-withheld"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-status-explainer-explanation"]').text()).toBe('Documents are being gathered')
+	})
+
+	it('draws no box in the board look, and the explanation as the status line', () => {
+		const fs = require('fs')
+		const path = require('path')
+		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8')
+		expect(css).toMatch(/\.cn-look-board \.cn-status-explainer\.cn-status-explainer \{[^}]*background-color: transparent;[^}]*padding: 0;/)
+		expect(css).toMatch(/\.cn-look-board \.cn-status-explainer__muted\.cn-status-explainer__muted \{[^}]*font-weight: 600;/)
+	})
+})

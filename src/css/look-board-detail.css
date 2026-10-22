@@ -544,6 +544,26 @@
 	font-weight: 600;
 }
 
+/* The case Status card as the board draws it: no grey box, the status's
+   explanation as its bold line, the time in the status muted under it.
+   @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
+.cn-look-board .cn-status-explainer.cn-status-explainer {
+	background-color: transparent;
+	padding: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-status-explainer__muted.cn-status-explainer__muted {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-status-explainer__dwell {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail
