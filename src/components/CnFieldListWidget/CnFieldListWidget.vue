@@ -46,6 +46,9 @@
 				{{ addLabel }}
 			</NcButton>
 		</form>
+		<p v-if="lead" class="cn-field-list-widget__lead" data-testid="cn-field-list-lead">
+			{{ lead }}
+		</p>
 		<p v-if="rows.length === 0" class="cn-field-list-widget__empty" data-testid="cn-field-list-empty">
 			{{ emptyLabel }}
 		</p>
@@ -150,7 +153,12 @@
 				<div class="cn-field-list-widget__line">
 					<span v-if="row.initials" class="cn-field-list-widget__avatar" aria-hidden="true">{{ row.initials }}</span>
 					<span class="cn-field-list-widget__main">
-						<span class="cn-field-list-widget__title">{{ row.title }}</span>
+						<a
+							v-if="row.href"
+							class="cn-field-list-widget__title"
+							:href="row.href"
+							v-bind="row.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}">{{ row.title }}</a>
+						<span v-else class="cn-field-list-widget__title">{{ row.title }}</span>
 						<span v-if="row.meta" class="cn-field-list-widget__meta">{{ row.meta }}</span>
 					</span>
 					<CnStatusBadge
@@ -275,6 +283,17 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
  *
  * @spec openspec/changes/abstract-field-list/specs/field-list/spec.md
  */
+/**
+ * A link a row title may carry: http(s) or root-relative, '' otherwise.
+ *
+ * @param {unknown} value The candidate.
+ * @return {string} The link.
+ */
+function safeRowHref(value) {
+	const text = typeof value === 'string' ? value.trim() : ''
+	return /^(\/(?!\/)|https?:\/\/)/i.test(text) ? text : ''
+}
+
 export default {
 	name: 'CnFieldListWidget',
 
@@ -301,6 +320,9 @@ export default {
 		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
 		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'footer'` — the add form opens from a button.
 		 * - `readOnly`, `hint`, `emptyText`.
+		 * - `row.href` — the path of a link for the row title; only http(s) and root-relative links, an absolute one opens in a new tab.
+		 * - `lead` — a line above the rows, translated, with `{path}` filled from the object.
+		 * - `afterSave` — `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens; when it fails the save stands and `failureText` shows.
 		 *
 		 * @type {object}
 		 */
@@ -383,12 +405,15 @@ export default {
 					.map((part) => this.text(entry, part))
 					.filter((part) => part !== '')
 					.join(' · ')
+				const href = spec.href ? safeRowHref(readPath(entry, spec.href)) : ''
 				return {
 					key,
 					index,
 					item,
 					entry,
 					title,
+					href,
+					external: /^https?:\/\//i.test(href),
 					initials: spec.avatar ? this.initials(title) : '',
 					meta,
 					pill: this.pillOf(entry, spec.pill),
@@ -478,6 +503,22 @@ export default {
 
 		removeLabel() {
 			return this.tr((this.content.remove && this.content.remove.label) || 'Remove')
+		},
+
+		/**
+		 * The line above the rows, filled from the object.
+		 *
+		 * @spec openspec/changes/field-list-links-lead-after-save/specs/field-list/spec.md#requirement-a-field-list-links-its-rows-leads-with-the-object-and-calls-after-a-save
+		 * @return {string}
+		 */
+		lead() {
+			if (!this.content.lead) {
+				return ''
+			}
+			return this.tr(this.content.lead).replace(/\{([\w.]+)\}/g, (m, path) => {
+				const value = readPath(this.objectData || {}, path)
+				return value === undefined || value === null ? '' : String(value)
+			})
 		},
 
 		hint() {
@@ -874,12 +915,41 @@ export default {
 				 * @type {{field: string, value: Array}}
 				 */
 				this.$emit('saved', { field: this.content.field, value: this.saved })
+				await this.runAfterSave(axios)
 				return true
 			} catch (e) {
 				this.notify(e && e.userMessage ? e.userMessage : serverErrorMessage(e))
 				return false
 			} finally {
 				this.busy = ''
+			}
+		},
+
+		/**
+		 * Call `afterSave` once a save went through. A failure leaves the save
+		 * standing and shows `failureText`.
+		 *
+		 * @spec openspec/changes/field-list-links-lead-after-save/specs/field-list/spec.md#requirement-a-field-list-links-its-rows-leads-with-the-object-and-calls-after-a-save
+		 * @param {object} axios The HTTP client.
+		 * @return {Promise<void>}
+		 */
+		async runAfterSave(axios) {
+			const after = this.content.afterSave
+			if (!after || typeof after.url !== 'string' || after.url === '') {
+				return
+			}
+			try {
+				const method = String(after.method || 'POST').toLowerCase()
+				const url = prefixUrl(this.resolve(after.url, {}))
+				if (method === 'get') {
+					await axios.get(url)
+				} else {
+					await axios[method](url, this.resolve(after.body || {}, {}))
+				}
+			} catch {
+				if (after.failureText) {
+					this.notify(this.tr(after.failureText), 'warning')
+				}
 			}
 		},
 
@@ -1022,6 +1092,11 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	min-width: 0;
+}
+
+.cn-field-list-widget__lead {
+	margin: 0;
+	font-weight: bold;
 }
 
 .cn-field-list-widget__rows {
