@@ -546,6 +546,7 @@
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
 			:float="gridFloat"
+			:sideColumn="section.sideColumn"
 			@layoutChange="section.view ? onViewLayoutChange($event) : onLayoutChange($event)">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
@@ -1512,6 +1513,20 @@ export default {
 		gridFloat: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * A side column of a fixed width for the page's own grid (manifest
+		 * `config.gridSideColumn`): `{ width, from? }`, see CnDashboardGrid's
+		 * `sideColumn`. A view declares its own `gridSideColumn`, because two
+		 * views of one page can split differently (DqMijnWerk 320px beside
+		 * the main column, DqMijnTeam two halves).
+		 *
+		 * @spec openspec/changes/dashboard-side-column-width/specs/dashboard-side-column-width/spec.md#requirement-a-dashboard-can-draw-its-side-column-at-a-fixed-width
+		 */
+		gridSideColumn: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -2887,7 +2902,7 @@ export default {
 			if (!this.gridSectionsShown) {
 				return []
 			}
-			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, attrs: {} }
+			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, sideColumn: this.gridSideColumn, attrs: {} }
 			if (!this.hasViews) {
 				return [page]
 			}
@@ -2900,6 +2915,7 @@ export default {
 					// With `userLayout` the user arranges the view too; the
 					// arrangement is kept per view (pageViews mixin).
 					editable: this.gridEditable,
+					sideColumn: this.activeView.gridSideColumn || null,
 					attrs: {
 						id: this.viewRegionId,
 						role: 'region',
