@@ -89,3 +89,16 @@ the library's translate; any other range SHALL read as dates. Without
 - **WHEN** the view is applied
 - **THEN** the chip reads "Deadline: binnen 7 dagen"
 
+### Requirement: A group filter is named by the group's display name
+
+When a filter holds Nextcloud group ids (its column draws the group cell,
+`widget: "group"`, or its schema property marks a group), the Active line SHALL
+name each value by the group's display name, looked up once per id per page
+as the group cell does, and SHALL show the id until the name is known or when
+the group cannot be found. A `filterLabels` value entry SHALL still win.
+
+#### Scenario: The team queue
+- **GIVEN** the team queue view with `assignedGroup: "@myTeam"` resolved to `zuiddrecht-woo-en-informatie`, whose display name is "Woo en informatie", and `filterLabels: { assignedGroup: { label: "Team" } }`
+- **WHEN** the list renders
+- **THEN** the chip reads "Team: Woo en informatie"
+
