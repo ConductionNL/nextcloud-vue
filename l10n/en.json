@@ -2236,7 +2236,8 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Image": "Image"
   },
   "plurals": {
     "{count} member": [

@@ -1077,9 +1077,11 @@ export default {
 
 		/**
 		 * A second line under each file's name (DqDocumentenBeheer "Inwoner ·
-		 * 4 okt"): a field template read from the file's row data, plus
-		 * `name`, `modified` (the change date) and `owner` (the owner's display
-		 * name), e.g. `"{uploadedBy} · {modified|date}"`. A line with an empty
+		 * 4 okt", DqZaakDocumenten "PDF · 1,2 MB · 14 januari 2026"): a field
+		 * template read from the file's row data, plus `name`, `modified` (the
+		 * change date), `owner` (the owner's display name), `size` (formatted)
+		 * and `type` ("PDF", "Word", "Email", else the extension), e.g.
+		 * `"{type} · {size} · {modified|date}"`. A line with an empty
 		 * value is left out. Translated with the host's catalogue first.
 		 */
 		nameSecondary: {
@@ -2044,8 +2046,48 @@ export default {
 			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
 			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
 			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
-			const object = { ...entry, name: node.basename, modified: node.mtime, ...(owner ? { owner } : {}) }
+			const object = {
+				...entry,
+				name: node.basename,
+				modified: node.mtime,
+				size: this.formatSize(node.size),
+				type: this.typeLabelOf(node),
+				...(owner ? { owner } : {}),
+			}
 			return fillTemplate(this.cnTranslate(this.nameSecondary), object)
+		},
+
+		/**
+		 * A file's type as a reader names it: the application for common
+		 * office types ("PDF", "Word", "Excel"), "Email" for a mail, "Image"
+		 * for a picture, else the extension in capitals.
+		 *
+		 * @param {object} node The file.
+		 * @return {string} The label, or ''.
+		 * @spec openspec/changes/files-browser-second-line-size-type/specs/files-browser-second-line-size-type/spec.md#requirement-a-files-second-line-can-name-its-type-and-size
+		 */
+		typeLabelOf(node) {
+			const mime = String(node?.mime || '')
+			if (mime === 'application/pdf') {
+				return 'PDF'
+			}
+			if (/msword|wordprocessingml/.test(mime)) {
+				return 'Word'
+			}
+			if (/ms-excel|spreadsheetml/.test(mime)) {
+				return 'Excel'
+			}
+			if (/ms-powerpoint|presentationml/.test(mime)) {
+				return 'PowerPoint'
+			}
+			if (mime === 'message/rfc822' || mime === 'application/vnd.ms-outlook') {
+				return t('nextcloud-vue', 'Email')
+			}
+			if (mime.startsWith('image/')) {
+				return t('nextcloud-vue', 'Image')
+			}
+			const match = /\.([a-z0-9]+)$/i.exec(String(node?.basename || ''))
+			return match ? match[1].toUpperCase() : ''
 		},
 
 		/**
