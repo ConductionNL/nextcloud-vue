@@ -227,6 +227,24 @@ A placeholder can carry a format, the same ones a widget row template takes: `{s
 
 Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.
 
+## Name empty values, code words and list membership (`emptyLabel`, `valueLabels`, `contains`)
+
+A column can change only what its cell shows; sorting and filtering keep the stored value.
+
+- `contains`: the cell is `true` when the row's value is a list holding this value, else `false`.
+- `valueLabels`: a map from a value (after `contains`) to the word shown.
+- `emptyLabel`: the word shown for an empty value (null, undefined or '').
+
+Words go through the app's `cnTranslate`. A mandate table, one row per role:
+
+```json
+[
+  { "key": "terms.plafond", "label": "Decides up to", "emptyLabel": "Unlimited", "format": { "style": "currency" } },
+  { "key": "terms.decisionTypes", "label": "Decides objections", "contains": "bezwaar", "valueLabels": { "true": "Yes", "false": "No" } },
+  { "key": "terms.enforcement", "label": "Enforcement", "valueLabels": { "none": "No", "warning": "Warning", "full": "Yes" } }
+]
+```
+
 ## Show one field, sort on another (`columns[].valueField`)
 
 A column sorts and filters on its `key`. With `valueField` its cell shows another row field instead, with that field's schema property (labels, enum, format), while the header keeps sorting on the key. A priority stored as a word sorts as high, low, normal, urgent; sorting on the stored order and showing the word reads right:

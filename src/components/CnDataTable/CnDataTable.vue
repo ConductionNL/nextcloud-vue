@@ -2000,7 +2000,32 @@ export default {
 				}
 				return v
 			}
-			return this.getCellValue(row, this.columnValueField(col))
+			return this.labelledValue(col, this.getCellValue(row, this.columnValueField(col)))
+		},
+
+		/**
+		 * A cell value as the column asks it shown: `contains` turns a list into
+		 * true or false, `valueLabels` turns a value into its word, and
+		 * `emptyLabel` names an empty value. Words pass through `cnTranslate`.
+		 *
+		 * @spec openspec/changes/column-value-labels/specs/column-value-labels/spec.md#requirement-a-column-can-name-empty-values-code-words-and-list-membership
+		 * @param {object} col The column definition.
+		 * @param {unknown} value The row's value.
+		 * @return {unknown} The value to show.
+		 */
+		labelledValue(col, value) {
+			let shown = value
+			if (col && col.contains !== undefined) {
+				shown = Array.isArray(shown) && shown.includes(col.contains)
+			}
+			const translate = (word) => (typeof this.cnTranslate === 'function' ? this.cnTranslate(word) : word)
+			if (col && col.valueLabels && typeof col.valueLabels === 'object' && Object.hasOwn(col.valueLabels, String(shown))) {
+				return translate(col.valueLabels[String(shown)])
+			}
+			if (col && typeof col.emptyLabel === 'string' && col.emptyLabel !== '' && (shown === null || shown === undefined || shown === '')) {
+				return translate(col.emptyLabel)
+			}
+			return shown
 		},
 
 		/**
