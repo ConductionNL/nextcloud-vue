@@ -564,6 +564,16 @@
 	border-radius: 8px;
 }
 
+/* The band's text sits at the font's normal line height, and its lead keeps
+   6px before the buttons (DqZaken "Met de geselecteerde zaken"). */
+.cn-look-board .cn-actions-bar__band:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-lead:not(.cn-look-nextcloud *) {
+	margin-inline-end: 6px;
+}
+
 .cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint {
 	flex: 0 0 100%;
 	font-size: 13px;
