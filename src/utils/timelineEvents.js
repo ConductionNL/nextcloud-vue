@@ -148,11 +148,13 @@ export function relatedEvents(rows, config, now = new Date()) {
 			const self = (row && row['@self']) || {}
 			const id = String(self.id || row.id || i)
 			const title = cfg.titleField ? readPath(row, cfg.titleField) : (row && (row.title || row.name)) || self.name
+			const summary = cfg.summaryField ? readPath(row, cfg.summaryField) : null
+			const detail = [title, summary].filter((part) => part !== undefined && part !== null && part !== '').map(String).join(' · ')
 			return makeEvent({
 				id: `related:${cfg.schema || ''}:${id}`,
 				raw: readPath(row, dateField),
 				label: cfg.label || '',
-				detail: title === undefined || title === null ? '' : String(title),
+				detail,
 				source: 'related',
 			}, now)
 		})

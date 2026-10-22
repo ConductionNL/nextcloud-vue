@@ -31,6 +31,8 @@ All five are optional and end up in one list.
 |-----|--------------|
 | `fields` | The object's date properties, `[{ field, label }]`. A dotted path reaches metadata, such as `@self.created`. A field without a date adds nothing. |
 | `related` | Related objects, `[{ schema, field, register?, dateField?, label, titleField?, limit? }]`. Rows of `schema` whose `field` holds this object's id, each dated by `dateField` (default `@self.created`). `titleField` becomes the line under the label. |
+| `related[].matchField` | A field of the current object whose value the related rows' `field` holds, instead of the object's id: a pupil's notes stored by user id match the profile's `ncUserId`. Nothing is read while that field is empty, and the rows are read again when it gets a value. |
+| `related[].summaryField` | A field of each related row shown after its title on the event's second line. |
 | `auditTrail` | `true` adds the object's audit trail: "Updated by Ruben". |
 | `lists` | A list held on the object, `[{ field, dateField, labelField?, label?, detailField? }]`, such as a status history. Each entry with a date at `dateField` becomes one event, labelled by its `labelField` value (else `label`), with `detailField` as the line under it. |
 | `timeline` | `true` adds OpenRegister's timeline of notes, calls and messages. |

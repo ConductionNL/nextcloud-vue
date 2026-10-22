@@ -63,6 +63,7 @@
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnTimelineManage from './CnTimelineManage.vue'
+import { readPath } from '../../utils/readPath.js'
 import { auditEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -75,7 +76,7 @@ import { userLocale } from '../../utils/userLocale.js'
  *
  * - `fields`: the object's own date properties, `[{ field, label }]`. A
  *   dotted path reaches metadata, such as `@self.created`.
- * - `related`: related objects, `[{ register?, schema, field, dateField?,
+ * - `related`: related objects, `[{ register?, schema, field, matchField?, summaryField?, dateField?,
  *   label, titleField? }]`. Rows of `schema` whose `field` holds this object's
  *   id become events at their `dateField` (default `@self.created`).
  * - `auditTrail: true`: the object's audit trail, one event per change.
@@ -242,6 +243,7 @@ export default {
 				audit: this.content.auditTrail === true,
 				timeline: this.content.timeline === true,
 				needObject: this.fieldsConfig.length > 0 && !(this.object || this.ctx.object || this.ctx.objectData),
+				matches: this.relatedConfig.filter((cfg) => cfg.matchField).map((cfg) => readPath(this.object || this.ctx.object || this.ctx.objectData || {}, cfg.matchField) ?? null),
 			})
 		},
 
@@ -359,9 +361,15 @@ export default {
 			}
 
 			const rows = {}
+			const current = this.object || this.ctx.object || this.ctx.objectData || null
 			this.relatedConfig.forEach((cfg, i) => {
+				const match = cfg.matchField ? readPath(current || {}, cfg.matchField) : id
+				if (match === undefined || match === null || match === '') {
+					rows[i] = []
+					return
+				}
 				const url = generateUrl(`${this.apiBase}/objects/${cfg.register || register}/${cfg.schema}`)
-				jobs.push(axios.get(url, { params: { [cfg.field]: id, _limit: cfg.limit || 50 } })
+				jobs.push(axios.get(url, { params: { [cfg.field]: match, _limit: cfg.limit || 50 } })
 					.then((r) => {
 						const data = r && r.data
 						rows[i] = (data && (data.results || data)) || []
