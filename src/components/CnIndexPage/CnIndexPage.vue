@@ -7930,6 +7930,13 @@ export default {
 					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
 					continue
 				}
+				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+					const text = this.activeFilterOperatorText(key, raw)
+					if (text !== '' && !this.isFixedFilter(key, raw)) {
+						chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${text}` })
+					}
+					continue
+				}
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
 					.filter((value) => !this.isFixedFilter(key, value))
@@ -10568,6 +10575,27 @@ export default {
 				return this.cnTranslate(field.title)
 			}
 			return this.cnTranslate(key)
+		},
+
+		/**
+		 * The text of a filter whose value is an operator object that is not a
+		 * range: a test for no value reads "not set" or "set", any other
+		 * operator its operands, named as a value would be.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {object} value The operator object (`{ isnull: true }`, `{ in: [...] }`).
+		 * @return {string} The text, or '' when it names nothing.
+		 */
+		activeFilterOperatorText(key, value) {
+			if (Object.hasOwn(value, 'isnull')) {
+				const empty = value.isnull === true || value.isnull === 'true'
+				return empty ? t('nextcloud-vue', 'not set') : t('nextcloud-vue', 'set')
+			}
+			const operands = Object.values(value)
+				.flatMap((operand) => (Array.isArray(operand) ? operand : [operand]))
+				.filter((operand) => operand !== null && operand !== undefined && operand !== '' && typeof operand !== 'object')
+				.map((operand) => this.activeFilterValueLabel(key, operand))
+			return listText(operands, getCanonicalLocale() || undefined)
 		},
 
 		/**
