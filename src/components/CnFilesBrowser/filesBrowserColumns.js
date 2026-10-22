@@ -108,8 +108,8 @@ export function normaliseFileColumns(columns) {
  *   a preference written while a different column set was declared.
  *
  * A stored value of `null` is a user who has never chosen, which shows
- * everything. An empty list is a user who hid everything, which is a choice
- * and is honoured.
+ * every declared column but the ones the host declared `hidden: true`. An
+ * empty list is a user who hid everything, which is a choice and is honoured.
  *
  * @param {Array<object>} declared The resolved declared columns.
  * @param {(string[]|null|undefined)} visibleKeys The user's stored visible keys.
@@ -118,7 +118,7 @@ export function normaliseFileColumns(columns) {
 export function visibleFileColumns(declared, visibleKeys) {
 	const columns = Array.isArray(declared) ? declared : []
 	if (!Array.isArray(visibleKeys)) {
-		return columns
+		return columns.filter((column) => column.hidden !== true)
 	}
 	const wanted = new Set(visibleKeys)
 	return columns.filter((column) => wanted.has(column.key))
