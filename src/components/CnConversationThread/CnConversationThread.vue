@@ -10,13 +10,17 @@
 		:aria-labelledby="title ? titleId : null"
 		:aria-label="title ? null : fallbackLabel">
 		<div v-if="title || $slots['header-actions']" class="cn-conversation-thread__header">
-			<component
-				:is="titleTag"
-				v-if="title"
-				:id="titleId"
-				class="cn-conversation-thread__title">
-				{{ title }}
-			</component>
+			<div v-if="title" class="cn-conversation-thread__heading">
+				<component
+					:is="titleTag"
+					:id="titleId"
+					class="cn-conversation-thread__title">
+					{{ title }}
+				</component>
+				<p v-if="subtitle" class="cn-conversation-thread__subtitle" data-testid="cn-conversation-subtitle">
+					{{ subtitle }}
+				</p>
+			</div>
 			<div v-if="$slots['header-actions']" class="cn-conversation-thread__header-actions">
 				<!-- @slot header-actions Buttons beside the title, for example "Log contact". -->
 				<slot name="header-actions" />
@@ -58,11 +62,16 @@
 					<span class="cn-conversation-thread__meta">
 						<span class="hidden-visually">{{ row.directionLabel }}</span>
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
-						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
 						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
 						<span v-if="row.status" class="cn-conversation-thread__status" data-testid="cn-conversation-status">{{ row.status }}</span>
+						<span v-if="showDirection"
+							class="cn-conversation-thread__direction"
+							data-testid="cn-conversation-direction"
+							aria-hidden="true">{{ row.directionWord }}</span>
+						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
 					</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
+					<span v-if="row.note" class="cn-conversation-thread__note" data-testid="cn-conversation-note">{{ row.note }}</span>
 					<span v-if="row.actions.length > 0" class="cn-conversation-thread__message-actions">
 						<NcButton
 							v-for="action in row.actions"
@@ -166,13 +175,14 @@ export default {
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`.
 		 * `status` is shown after the channel ("Failed"); `actions` are
 		 * `{ id, label, disabled? }` buttons under the text, each emitting
 		 * `message-action`.
+		 * `note` is a muted line under the text.
 		 * `side` is `us` or `them` (default `them`). `time` is an ISO
-		 * date, or any text to show as is. `channel` is shown after the time
-		 * ("E-mail", "Phone note").
+		 * date, or any text to show as is. `channel` is shown after the
+		 * author ("E-mail", "Phone note"); `note` is a muted line under the text.
 		 */
 		messages: {
 			type: Array,
@@ -183,6 +193,18 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/** A line under the title, such as "Oldest first, with the channel of each message". */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+
+		/** Say each message's direction in words before its time ("Incoming · 3 Oct"), not only to a screen reader. */
+		showDirection: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Element the heading renders as. */
@@ -296,7 +318,7 @@ export default {
 		/**
 		 * The messages, with author, side, time and initials resolved.
 		 *
-		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string, channel: string, directionLabel: string}>} The rows.
+		 * @return {Array<{key: string, author: string, initials: string, side: string, text: string, timeLabel: string, datetime: string, channel: string, directionLabel: string, directionWord: string, note: string}>} The rows.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
 		rows() {
@@ -320,6 +342,8 @@ export default {
 						status: typeof message.status === 'string' ? message.status : '',
 						actions: Array.isArray(message.actions) ? message.actions.filter((action) => action && action.id && action.label) : [],
 						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
+						directionWord: side === 'us' ? t('nextcloud-vue', 'Outgoing') : t('nextcloud-vue', 'Incoming'),
+						note: typeof message.note === 'string' ? message.note : '',
 					}
 				})
 		},
@@ -525,6 +549,34 @@ export default {
 	margin: 0;
 }
 
+.cn-conversation-thread__heading {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.cn-conversation-thread__subtitle {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	margin: 0;
+}
+
+.cn-conversation-thread__direction,
+.cn-conversation-thread__meta time {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-conversation-thread__direction::after {
+	content: ' ·';
+}
+
+.cn-conversation-thread__note {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 .cn-conversation-thread__empty {
 	color: var(--color-text-maxcontrast);
 	margin: 0;
@@ -583,6 +635,7 @@ export default {
 }
 
 .cn-conversation-thread__meta {
+	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
 	font-size: 0.9em;

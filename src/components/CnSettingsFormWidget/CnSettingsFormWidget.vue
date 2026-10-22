@@ -731,10 +731,14 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* `min-height` carries the 40px: Nextcloud's core sets a text input's
+   height through a selector no class here outranks, but its min-height only
+   through a bare `input`. */
 .cn-settings-form__control {
 	width: 100%;
 	box-sizing: border-box;
 	height: var(--cn-board-control-height, 40px);
+	min-height: var(--cn-board-control-height, 40px);
 	padding: 0 12px;
 	border: 1px solid var(--color-border-maxcontrast);
 	border-radius: var(--cn-board-control-radius, 8px);

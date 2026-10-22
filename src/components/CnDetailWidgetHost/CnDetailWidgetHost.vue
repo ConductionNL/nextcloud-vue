@@ -114,6 +114,19 @@
 			:schema="schema"
 			:store="store"
 			:includeGroups="content.groups || []"
+			:layout="content.layout"
+			:groupByRelation="content.groupByRelation"
+			:groupActions="content.groupActions"
+			:showObjects="content.showObjects"
+			:showFiles="content.showFiles"
+			:showIntegrations="content.showIntegrations"
+			:showContracts="content.showContracts"
+			:excludeIntegrations="content.excludeIntegrations"
+			:extraSources="content.extraSources"
+			:referenceSections="content.referenceSections"
+			:footerActions="content.footerActions"
+			:showAddFooter="content.showAddFooter"
+			:emptyLabel="content.emptyLabel"
 			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
 			:showTotalCount="content.showTotalCount !== false"
 			@openIntegration="onOpenIntegration"
@@ -187,6 +200,26 @@
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
 			:mountProps="integrationMountProps" />
+
+		<!-- An integration widget with `content.view: "tab"` on a card surface:
+		     the leaf's full tab (its rows and its own buttons) inside a card the
+		     widget titles, instead of the provider's compact count card. -->
+		<CnWidgetWrapper
+			v-else-if="wrapsLeafTab"
+			:title="leafCardTitle"
+			:subtitle="widgetSubtitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			class="cn-detail-page__leaf-card"
+			data-testid="cn-detail-widget-tab-card">
+			<template v-if="leafCardIcon" #title-icon>
+				<CnIcon :name="leafCardIcon" :size="20" />
+			</template>
+			<component :is="resolveRegistryTab(widget.integrationId)" v-bind="integrationProps" />
+		</CnWidgetWrapper>
 
 		<!-- Integration leaf, component mode. In BARE mode this renders the
 		     provider's `tab` (its bare content) rather than its `widget` (which
@@ -1004,6 +1037,22 @@ export default {
 		},
 
 		/**
+		 * Whether a component-mode integration shows its full tab inside a card
+		 * (`content.view: "tab"`), as a case's Parties card lists the people by
+		 * role with their Link and New buttons.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsLeafTab() {
+			return !this.isBare
+				&& this.isIntegration
+				&& !this.isMountIntegration
+				&& this.content.view === 'tab'
+				&& Boolean(this.integrationProvider?.tab)
+				&& typeof this.resolveRegistryTab === 'function'
+		},
+
+		/**
 		 * The widget's title tone (`titleTone`): `side` titles its card as a
 		 * side card in the board look.
 		 *
@@ -1645,23 +1694,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-detail-page__catalog-action {
-	align-items: center;
-	background: var(--color-primary-element-light);
-	border: 0;
-	border-radius: 16px;
-	color: var(--color-primary-element-light-text, var(--color-primary-element));
-	cursor: pointer;
-	display: inline-flex;
-	font: inherit;
-	font-size: 13px;
-	font-weight: 700;
-	gap: 6px;
-	min-height: 32px;
-	padding: 0 14px;
-	white-space: nowrap;
-}
-
 /* A leaf card in a narrow cell keeps its title and count: the title row
    wraps and the actions move under it instead of squeezing the title out. */
 .cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {

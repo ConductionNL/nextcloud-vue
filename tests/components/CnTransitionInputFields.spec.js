@@ -137,7 +137,7 @@ describe('CnTransitionInputFields', () => {
 		const notice = { type: 'info', heading: 'Read only afterwards', text: 'Nothing can be changed.' }
 		const w = fields({ inputs: [], summary, notice, context: { record: null } })
 		expect(w.find('[data-testid="archive-card"]').exists()).toBe(false)
-		expect(w.find('.note').text()).toBe('Nothing can be changed.')
+		expect(w.find('[data-testid="cn-transition-input-fields-notice"]').text()).toContain('Nothing can be changed.')
 
 		await w.setProps({ context: { record: { title: 'Case 1', identifier: 'Z-1', owner: 'Jan', result: 'Granted', nomination: 'keep' } } })
 		expect(w.find('[data-testid="archive-card"]').text()).toContain('Z-1 · Jan')

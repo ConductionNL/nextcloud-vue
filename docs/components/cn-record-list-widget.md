@@ -49,6 +49,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 `presentation` is one of:
 
 - `rows` (default): `title` in bold, `meta` under it, a `pill`, a `trailing` text and a chevron. A row with a route is a link. In a detail page's side column the row stacks (title as a link, meta, then pill and date) and drops the chevron, which is the board's "Lopende zaken" card with `limit: 1`.
+- A `rows` row can lead with a short text in a 52px column before the title: `leading` is a template, such as `"{submittedAt|time}"` for the time of day, as board PtDashboard draws "Recente inzendingen". A row whose template does not fill draws no leading text.
 - A `rows` list can lead with an avatar: `avatar` is a name template (`"{client.name}"`, or `{ "text": "{client.name}" }`), drawn as a 36px circle with the initials of its first and last word ("Sanne de Vries" reads "SV"). A row whose name is empty has no circle. The second line is `meta`: `"meta": "{client.name} · {channel}"` with `"extend": ["client"]` puts the customer under the title. The circle is decoration (`aria-hidden`); the name is in the meta text.
 - `feed`: a round `icon`, a `meta` line and a `text` line. `icon` is an icon name, or `{ field, map, default }` to pick one per row ("phone" to `Phone`).
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
@@ -176,6 +177,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 `groupBy` (a field path) draws the rows in groups, each under a heading (DqZaakGerelateerd: "Onderwerp van deze zaak", "Wacht op", "Gepland vervolg"). A heading is the field's `valueLabels` entry for the value, else the value, through the host translate. The groups come in `groupOrder` (a list of values) first, then in the order the rows bring them; the rows without a value come last, headed by `groupEmptyLabel` or not at all. Each group is its own list, named by its heading. Grouping applies to the list presentations (`rows`, `cards`, `feed`, `inline`); `table`, `notice` and `notes` ignore it.
 
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
+
+In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
 
 ## Props
 

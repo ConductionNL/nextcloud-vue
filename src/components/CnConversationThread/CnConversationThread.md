@@ -68,7 +68,7 @@ Posting to an endpoint. The reply goes out as `{ message, ...payload }`. `title-
 ```
 
 While the messages load, `loading` makes the thread say so (in a status region) instead of showing the empty text. A
-message's `channel` is shown after its time:
+message's `channel` is shown after its author:
 
 ```vue
 <CnConversationThread
@@ -94,4 +94,17 @@ after its channel, and its `actions` are buttons that emit `message-action`:
     <NcButton @click="setDraft('Thank you for your message.')">Use the thank-you text</NcButton>
   </template>
 </CnConversationThread>
+```
+
+As a board card: `subtitle` puts a line under the title, `show-direction` says "Incoming" or "Outgoing" before the time,
+and a message's `note` is a muted line under its text:
+
+```vue
+<CnConversationThread
+  title="Contact"
+  subtitle="Oldest first, with the channel of each message"
+  show-direction
+  :messages="[
+    { id: 1, author: 'Sanne de Vries', time: '2026-10-03T14:10:00', side: 'them', channel: 'Phone', text: 'How do I ask for the documents?', note: 'Summarised by Pieter Jansen' },
+  ]" />
 ```

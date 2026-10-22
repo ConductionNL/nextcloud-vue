@@ -239,6 +239,78 @@ describe('CnChartWidget — dataSource.aggregate (Wave 3)', () => {
 		expect(wrapper.vm.mappedColors).toEqual(['#ff0000', '#00ff00'])
 	})
 
+	describe('mergeByLabel', () => {
+		// Status types are declared per case type, so "Received" is one id per
+		// case type; the board counts one "Received" bar (DqDashboard).
+		const STATUS = {
+			'uuid-rec-a': 'Received',
+			'uuid-rec-b': 'Received',
+			'uuid-work': 'In progress',
+			'uuid-dec': 'Decision',
+			'uuid-pub': 'Publish',
+			'uuid-gone-1': null,
+			'uuid-gone-2': null,
+		}
+		const mergedChart = (aggregate, mocks = {}) => {
+			axios.get.mockImplementation((url) => {
+				if (url === GROUPED_URL) {
+					return Promise.resolve({
+						data: {
+							groups: [
+								{ key: 'uuid-work', value: 19 },
+								{ key: 'uuid-rec-a', value: 9 },
+								{ key: 'uuid-dec', value: 8 },
+								{ key: 'uuid-rec-b', value: 5 },
+								{ key: 'uuid-gone-1', value: 4 },
+								{ key: 'uuid-pub', value: 3 },
+								{ key: 'uuid-gone-2', value: 2 },
+							],
+						},
+					})
+				}
+				const id = url.split('/').pop()
+				return STATUS[id] ? Promise.resolve({ data: { name: STATUS[id] } }) : Promise.reject(new Error('gone'))
+			})
+			return mountChart({
+				type: 'bar-list',
+				dataSource: {
+					register: 'crm',
+					schema: 'request',
+					aggregate: { groupBy: 'status', labelResolve: { schema: 'statusType' }, ...aggregate },
+					drilldown: { route: 'Cases', filterParam: 'status' },
+				},
+			}, mocks)
+		}
+
+		it('sums the groups that resolve to one label, re-sorts, and only then keeps the top N', async () => {
+			const wrapper = mergedChart({ mergeByLabel: true, topN: 4 })
+			await flush()
+			await flush()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.resolvedCategories).toEqual(['In progress', 'Received', 'Decision', 'Unknown'])
+			expect(wrapper.vm.resolvedSeries[0].data).toEqual([19, 14, 8, 6])
+		})
+
+		it('drills into every key behind a merged bar', async () => {
+			const push = jest.fn(() => Promise.resolve())
+			const wrapper = mergedChart({ mergeByLabel: true, topN: 4 }, { $router: { push } })
+			await flush()
+			await flush()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.drilldownKeys).toEqual(['uuid-work', ['uuid-rec-a', 'uuid-rec-b'], 'uuid-dec', ['uuid-gone-1', 'uuid-gone-2']])
+			wrapper.vm.onDataPointSelection(null, null, { dataPointIndex: 1 })
+			expect(push).toHaveBeenCalledWith({ name: 'Cases', query: { status: ['uuid-rec-a', 'uuid-rec-b'] } })
+		})
+
+		it('keeps one bar per key without it', async () => {
+			const wrapper = mergedChart({ topN: 4 })
+			await flush()
+			await flush()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.resolvedCategories).toEqual(['In progress', 'Received', 'Decision', 'Received'])
+		})
+	})
+
 	it('a DANGLING labelResolve reference renders "Unknown", never the raw id', async () => {
 		// Observed on procest's "Cases by Type" chart: one case pointed at a
 		// case-type id with no surviving object, and the chart printed the bare

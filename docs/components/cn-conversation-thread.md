@@ -65,8 +65,10 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions? }`. `channel` is shown after the time, then `status` ("Failed"). `actions` (`{ id, label, disabled? }`) are buttons under the text that emit `message-action`. Each message also says "Sent message" or "Received message" to a screen reader. |
+| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`. `channel` is shown after the author, then `status` ("Failed"); `note` is a muted line under the text, and `actions` (`{ id, label, disabled? }`) are buttons under it that emit `message-action`. Each message also says "Sent message" or "Received message" to a screen reader. |
 | `title` | String | `''` | Heading of the thread. |
+| `subtitle` | String | `''` | A line under the title. |
+| `showDirection` | Boolean | `false` | Say each message's direction in words before its time ("Incoming · 3 Oct"), not only to a screen reader. |
 | `titleTag` | String | `'h3'` | Element the heading renders as. |
 | `allowReply` | Boolean | `true` | Whether the reply box renders. |
 | `replyLabel` | String | `'Reply'` | Label of the reply box. |

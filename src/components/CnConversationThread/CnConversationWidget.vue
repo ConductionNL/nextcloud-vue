@@ -8,6 +8,8 @@
 		<CnConversationThread
 			:messages="messages"
 			:title="tr(content.title || '')"
+			:subtitle="tr(content.subtitle || '')"
+			:showDirection="content.showDirection === true"
 			:allowReply="content.allowReply !== false"
 			:replyLabel="content.replyLabel ? tr(content.replyLabel) : undefined"
 			:placeholder="tr(content.placeholder || '')"
@@ -75,6 +77,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 
 /**
  * CnConversationWidget: the `conversation` detail widget type.
@@ -263,12 +266,14 @@ export default {
 					const channelKey = channel === undefined || channel === null ? '' : String(channel)
 					const status = c.statusField ? readPath(message, c.statusField) : undefined
 					const statusKey = status === undefined || status === null ? '' : String(status)
+					const sideOf = side || (String(readPath(message, c.directionField || c.sideField || 'side')) === usValue ? 'us' : 'them')
 					return {
 						id: key,
-						author: readPath(message, c.senderField || c.authorField || 'author'),
+						author: this.authorOf(message, sideOf),
+						note: c.noteField ? this.textOf(readPath(message, c.noteField)) : '',
 						time: readPath(message, c.timestampField || c.timeField || 'time'),
 						text: readPath(message, c.bodyField || c.textField || 'text'),
-						side: side || (String(readPath(message, c.directionField || c.sideField || 'side')) === usValue ? 'us' : 'them'),
+						side: sideOf,
 						channel: channelKey === '' ? '' : this.tr(Object.hasOwn(channelMap, channelKey) ? channelMap[channelKey] : channelKey),
 						status: statusKey === '' ? '' : this.tr(Object.hasOwn(statusMap, statusKey) ? statusMap[statusKey] : statusKey),
 						actions: this.messageActions
@@ -528,6 +533,37 @@ export default {
 			}
 			const text = (errors.map || {})[String(status)] || errors.default
 			return text ? this.tr(text) : ''
+		},
+
+		/**
+		 * Who wrote a message: `usAuthorField` / `themAuthorField` for its
+		 * side, else `senderField` (`authorField`). A field written
+		 * `@object.<path>` reads the bound record (the case's requester on an
+		 * incoming message). With `usAuthorFormat` / `themAuthorFormat` set to
+		 * `user` the value is a user id, shown by its display name.
+		 *
+		 * @param {object} message The message.
+		 * @param {string} side `us` or `them`.
+		 * @return {string} The author, or '' when the message names none.
+		 * @spec openspec/changes/conversation-board-bubble/specs/conversation-source/spec.md#requirement-a-message-names-its-author-per-side-its-direction-and-a-note
+		 */
+		authorOf(message, side) {
+			const c = this.content || {}
+			const field = (side === 'us' ? c.usAuthorField : c.themAuthorField) || c.senderField || c.authorField || 'author'
+			const value = typeof field === 'string' && field.startsWith('@object.')
+				? readPath(this.objectData || {}, field.slice('@object.'.length))
+				: readPath(message, field)
+			const text = this.textOf(value)
+			const format = side === 'us' ? c.usAuthorFormat : c.themAuthorFormat
+			return format === 'user' && text !== '' ? (userDisplayName(text) || text) : text
+		},
+
+		/**
+		 * @param {unknown} value A stored value.
+		 * @return {string} It as text, or '' for none.
+		 */
+		textOf(value) {
+			return value === undefined || value === null || typeof value === 'object' ? '' : String(value)
 		},
 
 		/**

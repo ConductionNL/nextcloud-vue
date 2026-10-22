@@ -327,6 +327,7 @@ export {
 	CnStagesWidget,
 	CnStagesWidgetForm,
 	CnStateMachineEditor,
+	CnStatGridWidget,
 	CnStatsBlock,
 	CnStatsBlockWidget,
 	CnStatsBlockWidgetForm,
