@@ -2236,7 +2236,16 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Mark for {name}": "Mark for {name}",
+    "Another value": "Another value",
+    "Nothing to mark.": "Nothing to mark.",
+    "The list could not be loaded.": "The list could not be loaded.",
+    "{name}: {state}": "{name}: {state}",
+    "Complete the details of: {names}.": "Complete the details of: {names}.",
+    "The list could not be saved. Try again.": "The list could not be saved. Try again.",
+    "Keys on a row: {keys}. Arrow keys go to the next row.": "Keys on a row: {keys}. Arrow keys go to the next row.",
+    "Arrow keys go to the next row.": "Arrow keys go to the next row."
   },
   "plurals": {
     "{count} member": [

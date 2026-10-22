@@ -2486,7 +2486,16 @@
     "How this app compares": "Hoe deze app zich verhoudt",
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
-    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
+    "Mark for {name}": "Markering voor {name}",
+    "Another value": "Andere waarde",
+    "Nothing to mark.": "Niets te markeren.",
+    "The list could not be loaded.": "De lijst kon niet worden geladen.",
+    "{name}: {state}": "{name}: {state}",
+    "Complete the details of: {names}.": "Vul de gegevens aan van: {names}.",
+    "The list could not be saved. Try again.": "De lijst kon niet worden opgeslagen. Probeer het opnieuw.",
+    "Keys on a row: {keys}. Arrow keys go to the next row.": "Toetsen op een rij: {keys}. Met de pijltjestoetsen ga je naar de volgende rij.",
+    "Arrow keys go to the next row.": "Met de pijltjestoetsen ga je naar de volgende rij."
   },
   "plurals": {
     "{count} member": [

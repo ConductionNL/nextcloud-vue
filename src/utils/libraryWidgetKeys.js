@@ -149,6 +149,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'record-list',
 	'related',
 	'retention',
+	'row-mark-list',
 	'saved-view',
 	'saved-views',
 	'schema-rules',

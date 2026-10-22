@@ -294,6 +294,7 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnRowMarkList,
 	CnSavedViewEditDialog,
 	CnSavedViewMenuSettings,
 	CnSavedViewPresentationDialog,

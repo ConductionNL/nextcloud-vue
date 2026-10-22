@@ -45,6 +45,7 @@ export { CnFolderSidebar, fetchWebdavFolderTree } from './CnFolderSidebar/index.
 export { CnFacetSidebar } from './CnFacetSidebar/index.js'
 export { CnFederationStatus } from './CnFederationStatus/index.js'
 export { CnRowActions } from './CnRowActions/index.js'
+export { CnRowMarkList } from './CnRowMarkList/index.js'
 export { CnContextMenu } from './CnContextMenu/index.js'
 export { CnIndexPage } from './CnIndexPage/index.js'
 export { CnQuickFilterBar } from './CnQuickFilterBar/index.js'
