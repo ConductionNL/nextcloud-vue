@@ -49,10 +49,11 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * on a card surface both need the titled wrapper, and neither has an Add.
  * `object-translations` is a bare per-language editor that takes the titled
  * wrapper and has no Add.
+ * `handoff` is one action on one record; the card and title come from the host.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'handoff'])
 
 /**
  * The stored content/config blob for a widget definition.
