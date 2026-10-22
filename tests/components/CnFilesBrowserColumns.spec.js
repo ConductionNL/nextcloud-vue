@@ -58,6 +58,12 @@ describe('visibleFileColumns', () => {
 		expect(visibleFileColumns(DECLARED, null).map((c) => c.key)).toEqual(['name', 'sender', 'scan', 'modified'])
 	})
 
+	it('leaves out a column the host declared hidden while the user has chosen nothing', () => {
+		const declared = normaliseFileColumns(['name', { key: 'direction', label: 'Direction', source: 'row', hidden: true }, 'modified'])
+		expect(visibleFileColumns(declared, null).map((c) => c.key)).toEqual(['name', 'modified'])
+		expect(visibleFileColumns(declared, ['name', 'direction']).map((c) => c.key)).toEqual(['name', 'direction'])
+	})
+
 	it('hides what the user unticked, keeping the host order', () => {
 		expect(visibleFileColumns(DECLARED, ['modified', 'name']).map((c) => c.key)).toEqual(['name', 'modified'])
 	})
