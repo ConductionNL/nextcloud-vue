@@ -110,6 +110,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-inline: 0;
 }
 
+/* The close button is the board's 44px round button, no edge
+   (DqPersoonlijkeInstellingen "Sluiten").
+   @spec openspec/changes/user-settings-close-button/specs/user-settings-close-button/spec.md#requirement-the-user-settings-close-button-sits-in-the-corner */
+.cn-look-board.cn-user-settings-dialog .cn-user-settings-dialog__close {
+	--button-size: 44px;
+	border: 0;
+	border-radius: 22px;
+}
+
 /* Header: padding 22px 24px 0. */
 .cn-dialog-header {
 	display: flex;
