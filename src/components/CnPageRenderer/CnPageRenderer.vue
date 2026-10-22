@@ -290,15 +290,18 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, h, markRaw, ref } from 'vue'
+import { computed, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import { useListNavigation } from '../../composables/useListNavigation.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
@@ -649,7 +652,25 @@ export default {
 				{ enabled: () => Boolean(liveSubEnabled.value && liveSubType.value && liveSubId.value) },
 			)
 		}
-		return { liveSubType, liveSubId, liveSubEnabled }
+		// Next and previous within the list a detail page was opened from
+		// (`_from` and the list's search, sort and filters in the address).
+		// The fetch waits a tick: the options API (the manifest's pages) is
+		// set up after this function returns.
+		const instance = getCurrentInstance()
+		const navRoute = computed(() => instance?.proxy?.$route || null)
+		const navId = computed(() => {
+			const params = navRoute.value?.params || {}
+			return params.id ?? params.objectId ?? null
+		})
+		const listNav = useListNavigation({
+			route: navRoute,
+			currentId: navId,
+			fetchList: async (params) => {
+				await nextTick()
+				return instance.proxy.fetchListForNavigation(params)
+			},
+		})
+		return { liveSubType, liveSubId, liveSubEnabled, listNav }
 	},
 
 	data() {
@@ -1424,6 +1445,7 @@ export default {
 				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
 					params.objectId = params.id
 				}
+				Object.assign(topLevel, this.listNavigationProps())
 				const listPage = this.listPageForDetail(normalizedConfig)
 				if (listPage) {
 					topLevel.notFoundRoute = { name: listPage.id }
@@ -1844,6 +1866,54 @@ export default {
 		 * @param {object} config The detail page's normalized config.
 		 * @return {object|null} The manifest page, or null when there is none.
 		 */
+		/**
+		 * Fetch the list a detail page was opened from, for next and previous:
+		 * the index page the address names (`_from`), read from OpenRegister
+		 * with the address's search, sort and filters. A list with a source of
+		 * its own, or none named, is refused, so the page offers no step.
+		 *
+		 * @param {object} params The API params `useListNavigation` built.
+		 * @return {Promise<Array<object>>} The list's rows.
+		 * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
+		 */
+		fetchListForNavigation(params) {
+			const page = this.currentPage
+			const from = listContextFromRoute(this.$route)?.pageId
+			const list = from ? this.pageById.get(from) : null
+			const config = list?.config || {}
+			if (page?.type !== 'detail' || list?.type !== 'index' || typeof config.register !== 'string' || typeof config.schema !== 'string' || config.source || config.endpointSource || config.dataSource) {
+				return Promise.reject(new Error('No OpenRegister list to step through'))
+			}
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: config.register, schema: config.schema })
+			return axios.get(url, { params }).then((res) => (Array.isArray(res?.data?.results) ? res.data.results : []))
+		},
+
+		/**
+		 * The props that give CnDetailPage next and previous: only on a detail
+		 * page whose record sits in the list it was opened from.
+		 *
+		 * @return {object} `{ listNavigation, previousTo, nextTo }`, or `{}`.
+		 * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
+		 */
+		listNavigationProps() {
+			const nav = this.listNav
+			if (this.currentPage?.type !== 'detail' || !nav || nav.available.value !== true) {
+				return {}
+			}
+			return {
+				listNavigation: {
+					available: true,
+					isFirst: nav.isFirst.value,
+					isLast: nav.isLast.value,
+					position: nav.position.value,
+					total: nav.total.value,
+				},
+
+				previousTo: nav.previousRoute.value,
+				nextTo: nav.nextRoute.value,
+			}
+		},
+
 		listPageForDetail(config) {
 			const fromId = listContextFromRoute(this.$route)?.pageId
 			const from = fromId ? this.pageById.get(fromId) : null
