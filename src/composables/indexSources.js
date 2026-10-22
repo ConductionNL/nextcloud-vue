@@ -1090,6 +1090,12 @@ function searchSource(config = {}, context = {}) {
 		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
 		.map((kind) => ({ ...kind, label: translate(String(kind.label || kind.id)) }))
 	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
+	// The All tab in the app's word when it has one ("Alles" in dossiq, as its
+	// other lists say), else the library's.
+	const allLabel = () => {
+		const own = translate('All')
+		return own !== 'All' ? own : t('nextcloud-vue', 'All')
+	}
 	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
 	let seq = 0
 
@@ -1270,7 +1276,7 @@ function searchSource(config = {}, context = {}) {
 
 		quickFilters: kinds.length > 0
 			? [
-					{ label: t('nextcloud-vue', 'All'), filter: { kind: 'all' }, default: true },
+					{ label: allLabel(), filter: { kind: 'all' }, default: true },
 					...kinds.map((kind) => ({ label: kind.label || kind.id, filter: { kind: kind.id } })),
 				]
 			: null,
