@@ -125,10 +125,11 @@
 								<strong class="cn-week-strip__title">{{ item.title }}</strong>
 								<span v-if="item.meta" class="cn-week-strip__meta">{{ item.meta }}</span>
 								<span
-									v-if="item.badge"
+									v-for="(badge, b) in item.badges"
+									:key="`badge-${b}`"
 									class="cn-week-strip__badge"
-									:class="`cn-week-strip__badge--${item.badge.variant}`"
-									data-testid="cn-week-strip-badge">{{ item.badge.label }}</span>
+									:class="`cn-week-strip__badge--${badge.variant}`"
+									data-testid="cn-week-strip-badge">{{ badge.label }}</span>
 								<span v-if="item.late" class="cn-week-strip__late">{{ lateLabel }}</span>
 							</component>
 							<CnActionButtons
@@ -252,7 +253,8 @@ export default {
 		 *   the item keys below for itself.
 		 * - Item keys: `titleTemplate` and `metaTemplates` (fillTemplate templates, a list being
 		 *   candidates), `timeFields` `{ start, end }` (an ISO moment or `HH:MM`), `badgeField` with
-		 *   `variantMap` `{ <value>: { label, variant?, muted? } }`, `itemActions` (CnActionButtons
+		 *   `variantMap` `{ <value>: { label, variant?, muted? } }` and more badges in `badges`
+		 *   (`[{ field, variantMap }]`, a boolean read as `"true"`), `itemActions` (CnActionButtons
 		 *   actions, `@item.<path>` and `@item` filled from the item, a local `visibleWhen` over
 		 *   `item.<path>`), and `itemRouteWhen`, a local condition on the item for its `itemRoute` link.
 		 * - `navigation: true` draws previous, next and back-to-today; `modes: true` a Today / Week
@@ -830,6 +832,24 @@ export default {
 				.join(' · ')
 		},
 
+		/**
+		 * Every badge of a row: the one from `badgeField` / `variantMap`, then
+		 * one per entry of `badges` (`[{ field, variantMap }]`), each drawn
+		 * when the row's value has a label in its map. A boolean reads as
+		 * `"true"` / `"false"`.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} spec How its list reads.
+		 * @return {Array<{label: string, variant: string, muted: boolean}>}
+		 * @spec openspec/changes/week-view/specs/week-view/spec.md#requirement-a-week-view-reads-its-week-from-an-endpoint-and-moves-through-weeks
+		 */
+		badgesOf(row, spec) {
+			const extra = (Array.isArray(spec.badges) ? spec.badges : [])
+				.filter((entry) => entry && entry.field && entry.variantMap)
+				.map((entry) => this.badgeOf(row, { badgeField: entry.field, variantMap: entry.variantMap }))
+			return [this.badgeOf(row, spec), ...extra].filter(Boolean)
+		},
+
 		badgeOf(row, spec) {
 			if (!spec.badgeField || !spec.variantMap) {
 				return null
@@ -893,7 +913,7 @@ export default {
 				const value = spec.titleField ? readPath(row, spec.titleField) : undefined
 				title = value !== undefined && value !== null && value !== '' ? String(value) : objectDisplayName(row)
 			}
-			const badge = this.badgeOf(row, spec)
+			const badges = this.badgesOf(row, spec)
 			const linked = spec.itemRoute && id && (!spec.itemRouteWhen || evaluateVisibleWhenLocal(spec.itemRouteWhen, row))
 			const target = linked ? { name: spec.itemRoute, params: { id } } : null
 			const scope = { item: row }
@@ -912,8 +932,8 @@ export default {
 				sortKey: start,
 				date,
 				late: false,
-				badge,
-				muted: Boolean(badge && badge.muted),
+				badges,
+				muted: badges.some((badge) => badge.muted),
 				actions,
 				target,
 				href: target ? resolveHref(target, this.$router) : '',
@@ -964,6 +984,7 @@ export default {
 			const target = (c.itemRoute && id) ? { name: c.itemRoute, params: { id } } : null
 			return {
 				actions: [],
+				badges: [],
 				key: String(id || `row-${index}`),
 				title,
 				meta,
@@ -995,6 +1016,7 @@ export default {
 			}
 			return {
 				actions: [],
+				badges: [],
 				key: `item-${index}`,
 				title: typeof item.title === 'string' ? this.effectiveTranslate(item.title) : '',
 				meta: typeof item.meta === 'string' ? this.effectiveTranslate(item.meta) : '',

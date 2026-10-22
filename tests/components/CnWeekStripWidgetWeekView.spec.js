@@ -35,7 +35,7 @@ const ANSWER = {
 	source: 'planninq',
 	sessions: [
 		{ id: 's1', title: 'Maths', startsAt: '2026-10-07T09:00:00', endsAt: '2026-10-07T09:50:00', lifecycle: 'cancelled', room: { name: 'B12' }, canAddNote: true },
-		{ id: 's2', title: 'History', startsAt: '2026-10-07T08:00:00', endsAt: '2026-10-07T08:50:00', lifecycle: 'scheduled', onlineMeetingUrl: 'https://meet.example/x' },
+		{ id: 's2', title: 'History', startsAt: '2026-10-07T08:00:00', endsAt: '2026-10-07T08:50:00', lifecycle: 'scheduled', onlineMeetingUrl: 'https://meet.example/x', cover: true },
 	],
 	standby: [{ slotId: 'sb', date: '2026-10-08', startsAt: '10:15', endsAt: '11:05' }],
 	changes: [{ id: 's1', title: 'Maths', lifecycle: 'cancelled', changeReason: 'Teacher ill' }],
@@ -50,6 +50,7 @@ const CONTENT = {
 	timeFields: { start: 'startsAt', end: 'endsAt' },
 	badgeField: 'lifecycle',
 	variantMap: { cancelled: { label: 'Cancelled', variant: 'error', muted: true } },
+	badges: [{ field: 'cover', variantMap: { true: { label: 'Cover', variant: 'warning' } } }],
 	itemActions: [
 		{ id: 'join', label: 'Join', href: '@item.onlineMeetingUrl', visibleWhen: { field: 'item.onlineMeetingUrl', op: 'notEmpty' } },
 		{ id: 'note', label: 'Add note', type: 'open-modal', target: 'LessonNote', props: { lesson: '@item' }, visibleWhen: { field: 'item.canAddNote', value: true } },
@@ -95,6 +96,8 @@ describe('CnWeekStripWidget week view', () => {
 		expect(items[1].text()).toContain('B12')
 		expect(items[1].find('[data-testid="cn-week-strip-badge"]').text()).toBe('Cancelled')
 		expect(items[1].classes()).toContain('cn-week-strip__item--muted')
+		expect(items[0].find('[data-testid="cn-week-strip-badge"]').text()).toBe('Cover')
+		expect(items[0].classes()).not.toContain('cn-week-strip__item--muted')
 		expect(w.find('[data-day="2026-10-08"]').text()).toContain('10:15–11:05')
 		expect(w.find('[data-day="2026-10-08"]').text()).toContain('Standby')
 	})

@@ -123,6 +123,7 @@ With an `endpointSource` the strip reads its items from an app endpoint for the 
 | `titleTemplate`, `metaTemplates` | Templates as in a record list; a list in place of a template is candidates, the first that fills. |
 | `timeFields` | `{ start, end }`: an ISO moment or `HH:MM`, drawn as "09:00–09:50" in the Nextcloud locale. A day's items sort by start. |
 | `badgeField`, `variantMap` | A badge from the item's value: `{ <value>: { label, variant: info, success, warning or error, muted? } }`. `muted` strikes the title through. |
+| `badges` | More badges, `[{ field, variantMap }]`, each drawn when the item's value has a label in its map. A boolean reads as `"true"` or `"false"`: `{ "field": "cover", "variantMap": { "true": { "label": "Cover" } } }`. |
 | `itemActions` | Actions per item as CnActionButtons draws them. `@item` and `@item.<path>` fill from the item (see [fillItemTokens](../utilities/fill-item-tokens.md)); `visibleWhen` is a local condition over `item.<path>`. |
 | `itemRoute`, `itemRouteWhen` | The detail route an item links to, and a local condition on the item for the link. |
 | `navigation`, `modes`, `defaultMode`, `heading` | Previous / next / back to today; a Today / Week switch, starting on `defaultMode`; a heading. |
