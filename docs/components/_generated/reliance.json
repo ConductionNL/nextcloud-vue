@@ -753,7 +753,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 198,
+			"transitive": 199,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -804,6 +804,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -998,7 +999,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 201,
+			"transitive": 202,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1049,6 +1050,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -1625,7 +1627,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 209,
+			"transitive": 210,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1677,6 +1679,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -2044,8 +2047,8 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 10,
-			"transitive": 206,
+			"direct": 11,
+			"transitive": 207,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2096,6 +2099,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -2629,9 +2633,9 @@
 			"page": null
 		},
 		"CnMenuWidget": {
-			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"direct": 1,
+			"transitive": 1,
+			"tier": "light",
 			"via": [],
 			"page": "cn-menu-widget"
 		},
@@ -3193,7 +3197,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 225,
+			"transitive": 226,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3249,6 +3253,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -3689,7 +3694,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 199,
+			"transitive": 200,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3741,6 +3746,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -4868,7 +4874,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 189,
+			"transitive": 190,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4916,6 +4922,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
