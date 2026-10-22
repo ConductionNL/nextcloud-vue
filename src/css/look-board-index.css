@@ -950,11 +950,11 @@
 	padding: 0 12px;
 }
 
-/* The inert Next of a single page: a faint outline, muted text. */
+/* The inert Next of a single page keeps the page links' look; only the
+   cursor says it does nothing (aria-disabled tells assistive tech). */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--disabled {
 	display: inline-flex;
 	align-items: center;
-	color: var(--color-text-maxcontrast);
 	cursor: default;
 }
 
