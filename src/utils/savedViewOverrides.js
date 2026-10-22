@@ -38,6 +38,7 @@ export const SAVED_VIEW_CONFIG_KEYS = Object.freeze([
 	'quickFiltersFrom',
 	'quickFilterPlacement',
 	'quickFilterMaxVisible',
+	'bulkBandAlways',
 	'sidePanel',
 	'afterList',
 	'columns',
