@@ -1,0 +1,3 @@
+- [x] 1. CnTimelineWidget: `endpointSource`, `typeChips`, Load more; `endpointEvents` in utils/timelineEvents.js.
+- [x] 2. `tests/components/CnTimelineWidgetEndpoint.spec.js`.
+- [x] 3. Docs and nl strings.

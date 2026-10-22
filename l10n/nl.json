@@ -2489,7 +2489,9 @@
     "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
     "Could not copy": "Kopiëren is niet gelukt",
     "The action failed.": "De actie is niet gelukt.",
-    "The warnings could not be loaded.": "De waarschuwingen konden niet worden geladen."
+    "The warnings could not be loaded.": "De waarschuwingen konden niet worden geladen.",
+    "Filter by type": "Filteren op soort",
+    "activities": "activiteiten"
   },
   "plurals": {
     "{count} member": [
