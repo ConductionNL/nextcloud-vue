@@ -2263,7 +2263,9 @@
     "Visible to the requester": "Visible to the requester",
     "Add it to the timeline": "Add it to the timeline",
     "Saved view": "Saved view",
-    "Close side panel": "Close side panel"
+    "Close side panel": "Close side panel",
+    "Export selection as JSON": "Export selection as JSON",
+    "Select 1 or more items to export": "Select 1 or more items to export"
   },
   "plurals": {
     "{count} member": [

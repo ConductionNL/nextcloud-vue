@@ -2513,7 +2513,9 @@
     "Visible to the requester": "Zichtbaar voor de verzoeker",
     "Add it to the timeline": "Aan de tijdlijn toevoegen",
     "Saved view": "Opgeslagen weergave",
-    "Close side panel": "Zijpaneel sluiten"
+    "Close side panel": "Zijpaneel sluiten",
+    "Export selection as JSON": "Selectie exporteren als JSON",
+    "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren"
   },
   "plurals": {
     "{count} member": [
