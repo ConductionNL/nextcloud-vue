@@ -54,7 +54,7 @@
 				{{ t('nextcloud-vue', 'No views with this label') }}
 			</p>
 
-			<template v-for="section in sections" :key="section.key">
+			<template v-for="section in panelSections" :key="section.key">
 				<h4
 					v-if="section.label"
 					class="cn-saved-views-panel__section"
@@ -81,9 +81,13 @@
 							:aria-pressed="isSelected(row.view)"
 							:aria-label="rowLabel(row)"
 							@click="emitFor('apply', row.view)">
-							<span class="cn-saved-views-panel__name-text">{{ rowName(row) }}</span>
+							<span class="cn-saved-views-panel__name-text">{{ rowText(row) }}</span>
 							<span v-if="subline(row, section.key)" class="cn-saved-views-panel__subline">{{ subline(row, section.key) }}</span>
 						</button>
+						<span
+							v-if="isBoardLook && countOf(row.view) !== null"
+							class="cn-saved-views-panel__count"
+							data-testid="cn-saved-views-count">{{ countOf(row.view) }}</span>
 						<NcActions
 							:aria-label="manageLabel(row.view)"
 							:forceMenu="true"
@@ -265,6 +269,21 @@ export default {
 			return normalizeLook(this.cnLook) === 'board'
 		},
 
+		/**
+		 * The sections in the order the panel draws them: in the board look
+		 * the reader's own views first and the read-only defaults last, as
+		 * DqFilterBeheren draws it; the Nextcloud look keeps the defaults first.
+		 *
+		 * @return {Array<{key: string, label: string, rows: Array<object>}>}
+		 */
+		panelSections() {
+			if (!this.isBoardLook) {
+				return this.sections
+			}
+			const rank = { mine: 0, shared: 1, seeded: 2 }
+			return [...this.sections].sort((a, b) => (rank[a.key] ?? 0) - (rank[b.key] ?? 0))
+		},
+
 		/** @return {boolean} Whether Add to menu is offered. */
 		canPin() {
 			return Array.isArray(this.menuIds)
@@ -311,6 +330,17 @@ export default {
 		 */
 		isInMenu(view) {
 			return this.canPin && this.menuIds.includes(this.idOf(view))
+		},
+
+		/**
+		 * The name a row shows: in the board look without its count, which
+		 * stands in its own pill at the end of the row.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {string}
+		 */
+		rowText(row) {
+			return this.isBoardLook ? `${' '.repeat(row.depth * 2)}${row.view.name}` : this.rowName(row)
 		},
 
 		/**
