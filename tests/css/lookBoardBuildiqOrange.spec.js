@@ -32,15 +32,16 @@ function rulesFor(css, selector) {
 	return out.join('\n')
 }
 
-describe('look-board.css: the buildiq square', () => {
+describe('the board buildiq square', () => {
 	it('fills the board square with the boards\' orange', () => {
-		const rule = rulesFor(read('css/look-board.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue')
+		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue')
 		expect(rule).toMatch(/--cn-buildiq-color:\s*#e2611a;/)
 	})
 
 	it('keeps the brand orange outside the board look', () => {
 		const rule = rulesFor(read('css/patches.css'), '.cn-buildiq-edit__actions .button-vue')
 		expect(rule).toContain('var(--cn-buildiq-color, var(--c-orange-knvb, #f36c21))')
-		expect(read('css/patches.css')).not.toMatch(/--cn-buildiq-color:/)
+		const unscoped = rulesFor(read('css/patches.css'), '.cn-buildiq-edit__actions .button-vue')
+		expect(unscoped).not.toMatch(/--cn-buildiq-color:/)
 	})
 })

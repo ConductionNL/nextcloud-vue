@@ -198,6 +198,9 @@ export default {
 				create: { label: t('nextcloud-vue', 'Make an appointment'), icon: 'Plus', variant: 'primary', run: () => { this.showCreate = true } },
 			}
 			const actions = this.url === '' ? [] : asked.filter((key, index) => known[key] && asked.indexOf(key) === index).map((key) => known[key])
+			/**
+			 * @event header The card's title-row actions, `{ actions }`, for the host to draw.
+			 */
 			this.$emit('header', { actions })
 		},
 

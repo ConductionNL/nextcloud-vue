@@ -22,6 +22,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `header` | —       |             |
+| Name     | Payload | Description                                                        |
+| -------- | ------- | ------------------------------------------------------------------ |
+| `header` | —       | The card's title-row actions, `{ actions }`, for the host to draw. |
