@@ -324,6 +324,27 @@
 	--cn-board-select-height: 36px;
 }
 
+/* ---- A text field and a multiple select --------------------------------- */
+/* A text field and a textarea are the same control as the board select: a 1px
+   edge in the 3:1 control colour (DqZakenSorteren "Zoek op zaak, nummer of
+   verzoeker"), where NcInputField and NcTextArea draw a shadow. A multiple
+   select draws its edge around its chips, on the toggle, so the edge goes
+   there and its search box stays bare. Focus keeps the fields' own ring.
+   @spec openspec/changes/board-text-field-control/specs/board-text-field-control/spec.md#requirement-a-board-text-field-is-the-boards-control */
+.cn-look-board .input-field__input:not(.v-select *):not(.cn-look-nextcloud *),
+.cn-look-board .input-field__input:hover:not([disabled]):not(.v-select *):not(.cn-look-nextcloud *),
+.cn-look-board .textarea__input:not(.cn-look-nextcloud *),
+.cn-look-board .textarea__input:hover:not([disabled]):not(.cn-look-nextcloud *),
+.cn-look-board .v-select.select.vs--multiple:not(.cn-look-nextcloud *):not(.cn-dialog-board *) .vs__dropdown-toggle {
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	box-shadow: none;
+}
+
+.cn-look-board .v-select.select.vs--multiple:not(.cn-look-nextcloud *):not(.cn-dialog-board *) .input-field__input {
+	border: 0;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),

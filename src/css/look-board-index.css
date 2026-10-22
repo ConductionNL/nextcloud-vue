@@ -1508,6 +1508,19 @@
 	display: none;
 }
 
+/* The panel's text fields are 40px tall, as its selects (DqZakenSorteren's
+   search field); NcInputField draws 30px. The wrapper holds the input and
+   its 2px focus ring, as on a board form.
+   @spec openspec/changes/board-text-field-control/specs/board-text-field-control/spec.md#requirement-a-board-text-field-is-the-boards-control */
+.cn-look-board .cn-index-sidebar-panel .input-field:not(.v-select *) .input-field__main-wrapper {
+	height: calc(40px + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field:not(.v-select *) .input-field__input {
+	height: 40px;
+	min-height: 40px;
+}
+
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
 	justify-content: flex-start;
 	gap: 4px;
