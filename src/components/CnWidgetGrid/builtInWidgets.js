@@ -26,6 +26,7 @@ import CnNoticeWidget from '../CnNoticeWidget/CnNoticeWidget.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnObjectTranslationsWidget from '../CnObjectTranslationsWidget/CnObjectTranslationsWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnSavedViewAlertWidget from '../CnSavedViewAlertWidget/CnSavedViewAlertWidget.vue'
 import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
@@ -74,6 +75,10 @@ import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
  * data — the intended remedy for a deep menu group collapsed into one
  * top-level entry via `menu-layout.json` relocations.
  *
+ * The `object-translations` key places CnObjectTranslationsWidget: the
+ * object's translatable properties per register language, with completeness
+ * chips and one save (register / schema / objectId via the detail-context merge).
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -97,4 +102,5 @@ export const BUILT_IN_WIDGETS = {
 	divider: CnDividerWidget,
 	'saved-view-alert': CnSavedViewAlertWidget,
 	exports: CnExportsWidget,
+	'object-translations': CnObjectTranslationsWidget,
 }

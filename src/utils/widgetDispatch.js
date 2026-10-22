@@ -47,10 +47,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * header (link, note) come from the host, and it has no Add.
  * `parties` draws a record's parties by role and `map` a bare Leaflet map:
  * on a card surface both need the titled wrapper, and neither has an Add.
+ * `object-translations` is a bare per-language editor that takes the titled
+ * wrapper and has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
 
 /**
  * The stored content/config blob for a widget definition.
