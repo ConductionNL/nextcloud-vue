@@ -574,6 +574,12 @@
 	margin-inline-end: 6px;
 }
 
+/* The boards draw the band as its lead and its buttons only: the hint line
+   under them is left out (DqZaken). */
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint:not(.cn-look-nextcloud *) {
+	display: none;
+}
+
 .cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint {
 	flex: 0 0 100%;
 	font-size: 13px;

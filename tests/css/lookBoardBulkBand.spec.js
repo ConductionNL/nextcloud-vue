@@ -40,4 +40,11 @@ describe('look-board-index.css: the bulk band', () => {
 	it('keeps 6px after the lead', () => {
 		expect(bodyOf('.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-lead:not(.cn-look-nextcloud *)')).toContain('margin-inline-end: 6px;')
 	})
+
+	/**
+	 * @spec openspec/changes/board-bulk-band-no-hint/specs/board-bulk-band-no-hint/spec.md#requirement-the-board-bulk-band-draws-no-hint-line
+	 */
+	it('draws no hint line', () => {
+		expect(bodyOf('.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint:not(.cn-look-nextcloud *)')).toContain('display: none;')
+	})
 })
