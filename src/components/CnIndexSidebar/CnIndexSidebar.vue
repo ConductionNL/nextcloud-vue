@@ -1,5 +1,6 @@
 <template>
 	<NcAppSidebar
+		ref="appSidebar"
 		v-model:open="internalOpen"
 		class="cn-index-sidebar-panel"
 		:name="resolvedName"
@@ -920,6 +921,10 @@ export default {
 	},
 
 	watch: {
+		isBoardLook() {
+			this.applyCloseLabel()
+		},
+
 		activeTab(tab) {
 			if (tab) {
 				this.internalActiveTab = tab
@@ -960,7 +965,30 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.applyCloseLabel()
+	},
+
 	methods: {
+		/**
+		 * The board look names the close button "Close side panel" ("Zijpaneel
+		 * sluiten", board DqZakenSorteren). NcAppSidebar offers no prop for it,
+		 * so its own label is replaced; the Nextcloud look keeps it.
+		 *
+		 * @spec openspec/changes/sidebar-close-label-board/specs/index-sidebar/spec.md#requirement-the-board-look-names-the-close-button-close-side-panel
+		 * @return {void}
+		 */
+		applyCloseLabel() {
+			const sidebar = this.$refs.appSidebar
+			if (!sidebar || !('closeTranslated' in sidebar.$data)) {
+				return
+			}
+			if (this.originalCloseLabel === undefined) {
+				this.originalCloseLabel = sidebar.$data.closeTranslated
+			}
+			sidebar.$data.closeTranslated = this.isBoardLook ? t('nextcloud-vue', 'Close side panel') : this.originalCloseLabel
+		},
+
 		t,
 
 		/**

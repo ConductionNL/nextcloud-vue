@@ -2512,7 +2512,8 @@
     "Template": "Sjabloon",
     "Visible to the requester": "Zichtbaar voor de verzoeker",
     "Add it to the timeline": "Aan de tijdlijn toevoegen",
-    "Saved view": "Opgeslagen weergave"
+    "Saved view": "Opgeslagen weergave",
+    "Close side panel": "Zijpaneel sluiten"
   },
   "plurals": {
     "{count} member": [
