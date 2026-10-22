@@ -281,6 +281,7 @@
 								:aria-label="rowLinkLabel(row, col)"
 								draggable="false"
 								data-testid="cn-row-link"
+								@mousemove="linkTitleAtPointer"
 								@click="onRowLinkClick(row, $event)" />
 							<!-- The padlock rides the FIRST data cell, beside whatever
 							     names the row. Deliberately OUTSIDE the #column-<key>
@@ -1588,6 +1589,29 @@ export default {
 		 */
 		indicatorsFor(row) {
 			return resolveRowIndicators(this.rowIndicators, row, this.rowIndicatorCap)
+		},
+
+		/**
+		 * A row link covers the whole row, so no cell sees the pointer. Give
+		 * the link the full text of the clipped cell under the pointer as its
+		 * title, the hover that `titleWhenClipped` gives an unlinked cell.
+		 *
+		 * @param {MouseEvent} event The move event on the row link.
+		 *
+		 * @return {void}
+		 */
+		linkTitleAtPointer(event) {
+			const link = event.currentTarget
+			const row = link?.closest?.('tr')
+			if (!row || typeof document.elementsFromPoint !== 'function') {
+				return
+			}
+			const cell = document.elementsFromPoint(event.clientX, event.clientY)
+				.find((el) => el.tagName === 'TD' && row.contains(el))
+			// An empty title, not none: the first cell's own clipped title would
+			// otherwise show over the whole row.
+			const clipped = cell && cell.scrollWidth - cell.clientWidth > 1
+			link.setAttribute('title', clipped ? (cell.textContent || '').trim() : '')
 		},
 
 		/**
