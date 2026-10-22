@@ -609,7 +609,7 @@
     "Object slug field": "Object slug field",
     "Select a property to build object slugs from": "Select a property to build object slugs from",
     "Append a date-time suffix when a slug is already taken": "Append a date-time suffix when a slug is already taken",
-    "A slug is unique within the register and schema and does not change once it is set. After switching the slug field, rewrite existing slugs with the backfill command (--reslug).": "A slug is unique within the register and schema and does not change once it is set. After switching the slug field, rewrite existing slugs with the backfill command (--reslug).",
+    "A slug is unique within the register and schema and does not change once it is set. After switching the slug field, rewrite existing slugs with occ openregister:backfill-slugs <register> <schema> --reslug. Links built on the old slugs stop working.": "A slug is unique within the register and schema and does not change once it is set. After switching the slug field, rewrite existing slugs with occ openregister:backfill-slugs <register> <schema> --reslug. Links built on the old slugs stop working.",
     "Objects": "Objects",
     "objects": "objects",
     "oneOf - Exactly one schema must match": "oneOf - Exactly one schema must match",

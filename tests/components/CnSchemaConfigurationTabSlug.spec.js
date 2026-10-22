@@ -71,7 +71,7 @@ describe('CnSchemaConfigurationTab — object slug controls', () => {
 		const select = slugSelect(mountTab())
 
 		expect(select).toBeDefined()
-		expect(select.props('options') ?? select.attributes('options')).toBeTruthy()
+		expect(select.vm.$attrs.options).toEqual(['title', 'kenmerk'])
 	})
 
 	it('disables the suffix switch while no slug field is chosen', () => {
@@ -94,5 +94,28 @@ describe('CnSchemaConfigurationTab — object slug controls', () => {
 
 		expect(notes(mountTab({ objectSlugField: '' }))).toHaveLength(0)
 		expect(notes(mountTab({ objectSlugField: 'kenmerk' }))).toHaveLength(1)
+	})
+
+	it('writes the picked property back to the configuration', async () => {
+		const wrapper = mountTab()
+		const select = slugSelect(wrapper)
+
+		await select.vm.$emit('update:modelValue', 'kenmerk')
+
+		expect(wrapper.props('schemaItem').configuration.objectSlugField).toBe('kenmerk')
+	})
+
+	it('resets the suffix when the slug field is cleared', async () => {
+		const wrapper = mountTab({ objectSlugField: 'kenmerk', objectSlugSuffix: true })
+		const schemaItem = wrapper.props('schemaItem')
+
+		await wrapper.setProps({
+			schemaItem: {
+				...schemaItem,
+				configuration: { ...schemaItem.configuration, objectSlugField: null },
+			},
+		})
+
+		expect(wrapper.props('schemaItem').configuration.objectSlugSuffix).toBe(false)
 	})
 })
