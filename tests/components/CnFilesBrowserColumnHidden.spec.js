@@ -12,10 +12,12 @@
  */
 import { normaliseFileColumns, visibleFileColumns } from '../../src/components/CnFilesBrowser/filesBrowserColumns.js'
 
-const DECLARED = normaliseFileColumns(['name',
+const DECLARED = normaliseFileColumns([
+	'name',
 	{ key: 'direction', label: 'Direction', source: 'row', hidden: true },
 	{ key: 'keywords', label: 'Keywords', source: 'row', hidden: true },
-	'modified'])
+	'modified',
+])
 
 describe('a column that starts hidden', () => {
 	it('is left out while the user has not chosen', () => {
