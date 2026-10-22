@@ -306,6 +306,24 @@
 	border: 0;
 }
 
+/* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
+/* The boards draw the form's field and its load button 40px tall, the button
+   16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
+   drew Nextcloud's 34px, 12px in.
+   @spec openspec/changes/board-workspace-filter-form/specs/board-workspace-filter-form/spec.md#requirement-a-board-workspace-filter-forms-controls-are-40px */
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .cn-workspace-filter-widget__input {
+	min-height: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: var(--cn-board-control-height);
+	--button-padding: 16px;
+}
+
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
 /* ---- A single select -------------------------------------------------- */
 /* NcSelect draws a single select as its search field with the clear and
    open buttons laid over its end. A legacy vue-select rule that Nextcloud
