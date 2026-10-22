@@ -2517,7 +2517,8 @@
     "Export selection as JSON": "Selectie exporteren als JSON",
     "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren",
     "Bundling and test message": "Bundeling en testbericht",
-    "{name} is also looking at this record now": "{name} kijkt nu ook naar deze zaak"
+    "{name} is also looking at this record now": "{name} kijkt nu ook naar deze zaak",
+    "Sorted by {field}, {direction}.": "Gesorteerd op {field}, {direction}."
   },
   "plurals": {
     "{count} member": [
