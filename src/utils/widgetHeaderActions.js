@@ -17,7 +17,7 @@ export const WIDGET_HEADER_ACTIONS = 'cnWidgetHeaderActions'
  * @property {string} key Stable identity for the list.
  * @property {string} label The label, translated.
  * @property {string} icon A `CnIcon` name, or ''.
- * @property {'primary'|'secondary'} variant The button's weight.
+ * @property {'primary'|'secondary'|'link'} variant The button's weight; `link` reads as a text link.
  * @property {() => unknown} run Dispatches the action.
  */
 
@@ -52,7 +52,7 @@ export function resolveWidgetHeaderActions(widget, context = {}) {
 			key: `${index}-${entry.label}`,
 			label: translate(entry.label),
 			icon: typeof entry.icon === 'string' ? entry.icon : '',
-			variant: entry.variant === 'primary' ? 'primary' : 'secondary',
+			variant: ['primary', 'link'].includes(entry.variant) ? entry.variant : 'secondary',
 			run: () => (typeof context.dispatch === 'function' ? context.dispatch(resolveDeepTokens(entry.action, tokenCtx)) : undefined),
 		}))
 }
