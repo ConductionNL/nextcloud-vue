@@ -998,7 +998,7 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 11,
+			"direct": 12,
 			"transitive": 202,
 			"tier": "heavy",
 			"via": [
@@ -2633,7 +2633,7 @@
 			"page": null
 		},
 		"CnMenuWidget": {
-			"direct": 1,
+			"direct": 2,
 			"transitive": 1,
 			"tier": "light",
 			"via": [],
