@@ -2179,6 +2179,16 @@ export default {
 		},
 
 		/**
+		 * Board look: the plural the bulk band names ("With the selected
+		 * cases"), through the app's translate and lower-cased. Wins over the
+		 * schema's plural. Manifest key `config.bulkNoun`.
+		 */
+		bulkNoun: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Buttons beside the page title, as the board's "Export" and "New
 		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
@@ -8122,14 +8132,14 @@ export default {
 
 		/**
 		 * The plural the board bulk band names: "With the selected cases".
-		 * The schema's `titlePlural` (or `plural`), else the lower-cased
-		 * schema title with an `s`, else nothing (the band says "items").
+		 * The page's `bulkNoun`, else the schema's `titlePlural` (or
+		 * `plural`), else nothing (the band says "items").
 		 *
 		 * @return {string}
 		 */
 		boardBulkNoun() {
 			const schema = this.effectiveSchema || {}
-			const plural = schema.titlePlural || schema.pluralTitle || schema.plural
+			const plural = this.bulkNoun || schema.titlePlural || schema.pluralTitle || schema.plural
 			if (typeof plural === 'string' && plural !== '') {
 				return this.cnTranslate(plural).toLowerCase()
 			}
