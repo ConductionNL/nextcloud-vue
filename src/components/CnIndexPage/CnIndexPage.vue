@@ -1413,6 +1413,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
@@ -10993,11 +10994,13 @@ export default {
 		/**
 		 * Load the Nextcloud groups for `folderSidebar.source: 'groups'`, each
 		 * with its member count. `folderSidebar.groups` (`[{ id, parent? }]`)
-		 * picks and orders them and nests a group under its `parent`; without
-		 * it every group shows, by name. A refused request lists none.
+		 * picks and orders them and nests a group under its `parent`;
+		 * `folderSidebar.parentsFrom` reads that list from records instead.
+		 * Without either every group shows, by name. A refused request lists none.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+		 * @spec openspec/changes/group-parents-from-records/specs/index-page/spec.md#requirement-a-groups-pane-can-read-its-tree-from-records
 		 */
 		async loadFolderGroups() {
 			const cfg = this.folderSidebar
@@ -11007,7 +11010,9 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				const groups = await fetchGroups(axios, { search: cfg.search || '', limit: cfg.limit || 200 })
-				const declared = Array.isArray(cfg.groups) ? cfg.groups.filter((entry) => entry && entry.id) : null
+				const declared = Array.isArray(cfg.groups)
+					? cfg.groups.filter((entry) => entry && entry.id)
+					: await this.groupParentsFromRecords(cfg.parentsFrom)
 				if (!declared) {
 					this.folderGroupList = [...groups].sort((a, b) => a.name.localeCompare(b.name))
 					return
@@ -11020,6 +11025,44 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
 				this.folderGroupList = []
+			}
+		},
+
+		/**
+		 * The groups pane's tree read from records (`folderSidebar.parentsFrom`:
+		 * `{ register, schema, groupField?, parentField? }`): each record names a
+		 * group (`groupField`, default `group`) and the group above it
+		 * (`parentField`, default `parent`): a group id, or the id of another
+		 * record, read as that record's group. In the `groups` shape. Null without
+		 * the option, when the records cannot be read or when none names a
+		 * group, so the pane lists every group flat.
+		 *
+		 * @param {object|undefined} from The `parentsFrom` config.
+		 * @return {Promise<Array<{id: string, parent: string|null}>|null>} The entries, or null.
+		 * @spec openspec/changes/group-parents-from-records/specs/index-page/spec.md#requirement-a-groups-pane-can-read-its-tree-from-records
+		 */
+		async groupParentsFromRecords(from) {
+			if (!from || !from.register || !from.schema) {
+				return null
+			}
+			const groupField = from.groupField || 'group'
+			const parentField = from.parentField || 'parent'
+			try {
+				const body = await cnFetchJson(
+					`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+					{ query: { _limit: from.limit || 500 } },
+				)
+				const records = (Array.isArray(body?.results) ? body.results : []).filter((record) => record && record[groupField])
+				if (records.length === 0) {
+					return null
+				}
+				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
+				return records.map((record) => {
+					const parent = record[parentField] ? String(record[parentField]) : null
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+				})
+			} catch {
+				return null
 			}
 		},
 

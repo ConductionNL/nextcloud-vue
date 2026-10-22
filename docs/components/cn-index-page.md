@@ -1339,6 +1339,15 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+An organisation's departments are its own, so a manifest can read the tree from records instead of naming groups: `parentsFrom: { register, schema, groupField?, parentField?, limit? }` lists the groups the records name (`groupField`, default `group`), each under the group in `parentField` (default `parent`), in the records' order. A parent may also be the id of another record, read as that record's group, so an organisation chart whose rows point at their parent row works as it is (dossiq's `organisatieRol`: `groupField: "ncGroupId"`, `parentField: "parentRoleId"`). When the records cannot be read, or none names a group yet, the pane lists every group, flat.
+
+```json
+"folderSidebar": {
+  "source": "groups", "filterField": "group",
+  "parentsFrom": { "register": "dossiq", "schema": "department" }
+}
+```
+
 ## A count in the subtitle (`countSubtitle`)
 
 | Prop | Type | Default | Description |
