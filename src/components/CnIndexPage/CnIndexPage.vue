@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': quickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -162,7 +162,7 @@
 		<!-- `quickFilterPlacement: "row"`: the chips on a row of their own above
 		     the toolbar, wrapping onto more lines (DqTeamwachtrij). -->
 		<div
-			v-if="quickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
+			v-if="effectiveQuickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
 			class="cn-index-page__quick-filter-row"
 			data-testid="cn-index-page-quick-filter-row">
 			<CnQuickFilterBar
@@ -383,13 +383,13 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0 && quickFilterPlacement !== 'row'" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0 && effectiveQuickFilterPlacement !== 'row'" #filters>
 				<CnQuickFilterBar
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
-					:fit="quickFilterPlacement === 'toolbar'"
+					:fit="effectiveQuickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
 					:activeIndex="shownQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -2345,6 +2345,20 @@ export default {
 			type: String,
 			default: '',
 			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+		},
+
+		/**
+		 * The quick-filter placement per view mode (manifest
+		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
+		 * each `''`, `'toolbar'` or `'row'`. A view it does not name keeps
+		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
+		 * its board and map views, on their own row in its table view).
+		 *
+		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
+		 */
+		quickFilterPlacementByView: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -4353,6 +4367,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The quick-filter placement in the current view: its entry in
+		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
+		 *
+		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
+		 * @return {''|'toolbar'|'row'} The placement.
+		 */
+		effectiveQuickFilterPlacement() {
+			const byView = this.quickFilterPlacementByView
+			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
+			return ['', 'toolbar', 'row'].includes(own) ? own : this.quickFilterPlacement
+		},
+
 		/**
 		 * Whether the page draws cards beside its list (`sidePanel`).
 		 *
