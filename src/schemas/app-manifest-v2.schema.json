@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.141.0",
+	"version": "2.142.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5472,6 +5472,11 @@
 							"type": "string",
 							"minLength": 1,
 							"description": "type='index', board look: the 13px hint after the bulk band's buttons (screens-index-list-parity). Maps to CnIndexPage `bulkHint`."
+						},
+						"bulkNoun": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='index', board look: the plural the bulk band names (\"With the selected cases\"), an i18n key, lower-cased after translation. Wins over the schema's plural; without either the band says \"items\". Maps to CnIndexPage `bulkNoun`."
 						},
 						"cardFields": {
 							"type": "array",
