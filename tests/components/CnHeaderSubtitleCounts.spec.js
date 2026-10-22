@@ -38,6 +38,20 @@ describe('header subtitle counts', () => {
 		expect(lastHeader(w).subtitle).toBe('4 vastgelegd')
 	})
 
+	it('CnObjectListWidget clears a counts line it showed once the line is empty', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: { content: { register: 'r', schema: 'contactmoment', columns: [{ key: 'date', label: 'Date' }], headerSubtitle: '{count:kind=call} calls' } },
+			stubs: { CnDataTable: true },
+		})
+		w.vm.rows = [{ id: 'a', kind: 'call' }]
+		w.vm.total = 1
+		await nextTick()
+		expect(lastHeader(w).subtitle).toBe('1 calls')
+		await w.setProps({ content: { ...w.vm.content, headerSubtitle: '' } })
+		await nextTick()
+		expect(lastHeader(w).subtitle).toBe('')
+	})
+
 	it('CnObjectListWidget reports no header without a subtitle or an export', async () => {
 		const w = shallowMount(CnObjectListWidget, {
 			propsData: { content: { register: 'r', schema: 's', columns: [{ key: 'a', label: 'A' }] } },

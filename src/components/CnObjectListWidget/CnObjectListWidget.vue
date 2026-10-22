@@ -551,6 +551,8 @@ export default {
 			total: 0,
 			/** The card header's Download action once `content.export` offered it; null before. */
 			headerAction: null,
+			/** Whether the header was last told a counts line (`content.headerSubtitle`), so an empty one clears it. */
+			headerSubtitleShown: false,
 			/** Current 1-based page. Paging is SERVER-side (`_page`). */
 			page: 1,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
@@ -1613,18 +1615,21 @@ export default {
 		 */
 		emitHeader() {
 			const subtitle = this.headerSubtitleText
-			if (!this.headerAction && subtitle === '') {
+			// A line shown before is cleared with an empty one, so the card does
+			// not keep a stale count; a list that never had one stays silent.
+			if (!this.headerAction && subtitle === '' && !this.headerSubtitleShown) {
 				return
 			}
+			this.headerSubtitleShown = subtitle !== ''
 			/**
 			 * @event header The card header's parts: the Download action for the
 			 * list as filtered here (`content.export`) and the counts line under
 			 * the title (`content.headerSubtitle`).
-			 * @type {{action?: {label: string, icon: string, run: Function}, subtitle?: string}}
+			 * @type {{action?: {label: string, icon: string, run: Function}, subtitle: string}}
 			 */
 			this.$emit('header', {
 				...(this.headerAction ? { action: this.headerAction } : {}),
-				...(subtitle !== '' ? { subtitle } : {}),
+				subtitle,
 			})
 		},
 
