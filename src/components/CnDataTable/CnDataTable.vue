@@ -429,7 +429,7 @@ import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { readPath } from '../../utils/readPath.js'
+import { fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -2017,27 +2017,6 @@ export default {
 		},
 
 		/**
-		 * Interpolate a column's `aggregate.where` map for one row: any string
-		 * value of the form `"@self.<path>"` is replaced with
-		 * `getCellValue(row, path)`; everything else is passed through.
-		 *
-		 * @param {object} where The `aggregate.where` map (may be undefined).
-		 * @param {object} row The parent row.
-		 * @return {object} The resolved filter map.
-		 */
-		resolveAggregateWhere(where, row) {
-			const out = {}
-			for (const [k, v] of Object.entries(where || {})) {
-				if (typeof v === 'string' && v.startsWith('@self.')) {
-					out[k] = this.getCellValue(row, v.slice('@self.'.length))
-				} else {
-					out[k] = v
-				}
-			}
-			return out
-		},
-
-		/**
 		 * For every column that declares `aggregate`, issue one request per
 		 * visible row against the related OpenRegister collection and cache the
 		 * answer in `aggregateValues`: `op: "count"` asks `_limit=0` for the
@@ -2072,23 +2051,11 @@ export default {
 					if (!agg.register || !agg.schema) {
 						continue
 					}
-					const where = this.resolveAggregateWhere(agg.where, row)
 					// `max`: the highest `field` among the related objects, as the
 					// first of them sorted on it descending ("Laatste contact").
-					const isMax = agg.op === 'max'
-					const params = isMax
-						? { ...where, _limit: 1, [`_order[${agg.field}]`]: 'desc' }
-						: { ...where, _limit: 0 }
-					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), { params })
-						.then((res) => {
-							const d = res && res.data
-							if (isMax) {
-								const first = d && Array.isArray(d.results) ? d.results[0] : undefined
-								const top = first === undefined ? undefined : readPath(first, agg.field)
-								next[rowKey][col.key] = top === undefined || top === '' ? null : top
-								return
-							}
-							next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+					jobs.push(fetchRowAggregate(agg, row, (r, path) => this.getCellValue(r, path))
+						.then((value) => {
+							next[rowKey][col.key] = value
 						})
 						.catch((e) => {
 							// eslint-disable-next-line no-console
