@@ -8,8 +8,9 @@ side 37px wider than the board on every screen.
 
 ## What changes
 
-A dashboard takes `gridSideColumn: { width, from? }`, the page's own and per view. The grid draws the items from column
-`from` (8 by default) on at `width` px, the card without its item margins, and the columns before it share the rest.
+A dashboard takes `gridSideColumn: { width, from? }`, the page's own and per view. The layout entries with `track: "side"`
+are drawn from column `from` (8 by default) at `width` px, the card without its item margins, and those with
+`track: "main"` share the rest; an entry without a track keeps the twelve shares, so a row of four tiles stays equal.
 GridStack keeps its twelve columns: only each item's left edge and width are drawn on the two scales, from the `--gs-x`
 and `--gs-w` it writes. It applies on the full twelve-column grid, left to right, and not while editing. A view without
 it keeps its twelve shares. Manifest schema 2.142.0.

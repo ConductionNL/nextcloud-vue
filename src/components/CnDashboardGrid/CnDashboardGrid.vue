@@ -47,6 +47,7 @@
 				:gs-min-w="minWidth"
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
+				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
 					<slot name="widget" :item="item">
@@ -294,12 +295,15 @@ export default {
 		},
 
 		/**
-		 * A side column of a fixed width: `{ width, from? }`. The items from
-		 * column `from` (8 by default) on are drawn `width` px wide (the card,
-		 * not counting the item margins) and the columns before it share the
-		 * rest, so the side cards keep their width on any screen (DqMijnWerk).
-		 * Only on the full twelve-column grid and not while editing; GridStack
-		 * keeps the twelve columns underneath.
+		 * A side column of a fixed width: `{ width, from? }`. The layout items
+		 * that say which track they are on (`track: "main"` or `"side"`) are
+		 * drawn on two scales: from column `from` (8 by default) on at `width`
+		 * px (the card, not counting the item margins), the columns before it
+		 * sharing the rest, so the side cards keep their width on any screen
+		 * (DqMijnWerk). Items without a track keep the twelve shares, so a row
+		 * of four tiles stays four equal tiles. Only on the full twelve-column
+		 * grid and not while editing; GridStack keeps the twelve columns
+		 * underneath.
 		 *
 		 * @spec openspec/changes/dashboard-side-column-width/specs/dashboard-side-column-width/spec.md#requirement-a-dashboard-can-draw-its-side-column-at-a-fixed-width
 		 */
@@ -1326,12 +1330,12 @@ export default {
 	background: transparent;
 }
 
-/* `sideColumn`: an item's left edge and width follow its column on two
-   scales, the columns before `--cn-side-from` sharing what the side column
+/* `sideColumn`: an item on a track has its left edge and width follow its
+   column on two scales, the columns before `--cn-side-from` sharing what the side column
    leaves, the columns after it sharing the side column's fixed width (the
    card plus its two item margins). GridStack writes `--gs-x` and `--gs-w` on
    every item and its own left and width inline, hence !important. */
-.cn-dashboard-grid--side-column > .grid-stack.gs-12:not(.grid-stack-rtl) > .grid-stack-item {
+.cn-dashboard-grid--side-column > .grid-stack.gs-12:not(.grid-stack-rtl) > .grid-stack-item[data-cn-track] {
 	--cn-side-cell: calc(var(--cn-side-width) + var(--gs-item-margin-left, 0px) + var(--gs-item-margin-right, 0px));
 	--cn-main-col: calc((100% - var(--cn-side-cell)) / var(--cn-side-from));
 	--cn-side-col: calc(var(--cn-side-cell) / var(--cn-side-span));

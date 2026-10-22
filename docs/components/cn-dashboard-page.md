@@ -597,7 +597,7 @@ A `header` widget whose content sets `ground: true` is drawn without a card; see
 ## `gridFloat`, `showButtons` and stacked stats blocks (zuiddrecht-pixel-gaps-3)
 
 - `gridFloat` (manifest `config.gridFloat`, default `true`): `false` packs widgets upward, so a size-to-content widget that shrinks closes the gap under it.
-- `gridSideColumn` (manifest `config.gridSideColumn`, and per view `views[].gridSideColumn`): `{ width, from? }` draws the side column at a fixed width, the main column filling the rest (DqMijnWerk: side cards 320px). A view without one keeps the twelve shares (DqMijnTeam's two halves).
+- `gridSideColumn` (manifest `config.gridSideColumn`, and per view `views[].gridSideColumn`): `{ width, from? }` draws the layout entries with `track: "side"` at a fixed width and those with `track: "main"` in the rest (DqMijnWerk: side cards 320px); entries without a track keep the twelve shares. A view without one keeps the twelve shares (DqMijnTeam's two halves).
 - A placement or widget definition with `showButtons: false` renders without its footer links.
 - A `stats-block` definition with `content.layout: "stacked"` (or `props.layout`) renders its blocks in the stacked board look.
 
