@@ -5517,6 +5517,7 @@
 									"hint": { "type": "boolean", "description": "`true` keeps `bulkHint` in this view." }
 								}
 							}
+						},
 						"bulkNoun": {
 							"type": "string",
 							"minLength": 1,
