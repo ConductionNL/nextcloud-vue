@@ -169,6 +169,7 @@
 					:reorderable="reorderField !== ''"
 					:columns="resolvedColumns"
 					:rows="facetedRows"
+					:rowClass="selectionRowClass"
 					:loading="loading"
 					:emptyText="emptyText"
 					:selectable="content.selectable === true"
@@ -357,9 +358,11 @@ import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { actionForRow, hasRowTokens } from '../../utils/rowTokens.js'
 import { changedKeys } from '../../utils/saveEdited.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { HOST_WIDGET_ID, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
 import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
@@ -405,6 +408,10 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/** The page's row selection (CnDetailPage), for `content.rowSelection`. */
+		cnWidgetSelection: { from: WIDGET_SELECTION, default: null },
+		/** This widget's id on the page (CnDetailWidgetHost), the key it publishes under. */
+		cnHostWidgetId: { from: HOST_WIDGET_ID, default: null },
 		/**
 		 * Page-level workspace context (reactive `ref({})`) provided by
 		 * CnDashboardPage. Lets `@workspace.<key>` filter tokens resolve so a
@@ -574,6 +581,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The class that marks the selected row (`content.rowSelection`), or
+		 * null when this list offers no row selection.
+		 *
+		 * @return {((row: object) => string)|null} The class per row.
+		 * @spec openspec/changes/side-card-follows-row/specs/side-card-follows-row/spec.md#requirement-a-list-publishes-its-rows-and-its-selected-row
+		 */
+		selectionRowClass() {
+			if (this.content.rowSelection !== true || !this.cnWidgetSelection || typeof this.cnHostWidgetId !== 'function') {
+				return null
+			}
+			const selected = this.cnWidgetSelection.entry(this.cnHostWidgetId()).selected
+			const idOf = (row) => String((row && (row.id ?? row['@self']?.id)) ?? '')
+			return (row) => (selected && idOf(row) !== '' && idOf(row) === idOf(selected) ? 'cn-object-list-widget__row--selected' : '')
+		},
+
 		/**
 		 * Whether the table fits the widget's width (stage 1): `content.fitWidth`
 		 * when it says, else once the columns were measured not to fit.
@@ -1410,6 +1433,13 @@ export default {
 	},
 
 	watch: {
+		facetedRows: {
+			immediate: true,
+			handler() {
+				this.publishSelectionRows()
+			},
+		},
+
 		sourceKey() {
 			// The query changed, so page 3 of the OLD result set means nothing
 			// against the new one — and an out-of-range `_page` returns an empty
@@ -2116,6 +2146,9 @@ export default {
 		 * @return {void}
 		 */
 		onRowClick(row, event) {
+			if (this.content.rowSelection === true && this.cnWidgetSelection && typeof this.cnHostWidgetId === 'function') {
+				this.cnWidgetSelection.select(this.cnHostWidgetId(), row)
+			}
 			this.openRowRoute(row, event)
 			/**
 			 * @event row-click Emitted with the clicked object (for hosts that
@@ -2125,6 +2158,20 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * Publish the rows this list shows under its widget id, for a card that
+		 * follows them (`content.rowSelection`).
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/side-card-follows-row/specs/side-card-follows-row/spec.md#requirement-a-list-publishes-its-rows-and-its-selected-row
+		 */
+		publishSelectionRows() {
+			if (this.content.rowSelection !== true || !this.cnWidgetSelection || typeof this.cnHostWidgetId !== 'function') {
+				return
+			}
+			this.cnWidgetSelection.publishRows(this.cnHostWidgetId(), this.facetedRows)
 		},
 
 		/**
@@ -2181,7 +2228,7 @@ export default {
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			const pending = this.dispatch(action, [row], { row })
+			const pending = this.dispatch(actionForRow(action, row), [row], { row })
 			if (action && action.type === 'object-op' && action.op === 'delete') {
 				this.reportDelete(row, pending)
 			}
@@ -2240,6 +2287,33 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
+			// A route with a query: a router location per row, the query's row
+			// tokens filled raw (the router encodes) and its page tokens resolved.
+			if (action && action.type === 'navigate' && !action.confirm && typeof action.route === 'string' && action.route !== '') {
+				const locationFor = (row) => ({
+					name: action.route,
+					query: resolveFilterTokens(actionForRow(action, row).query || {}, this.tokenCtx),
+				})
+				return {
+					href: () => '',
+					to: (row) => locationFor(row),
+				}
+			}
+			if (action && action.type === 'navigate' && !action.confirm && hasRowTokens(action.target)) {
+				const linkFor = (row) => actionLink(actionForRow(action, row), { router: this.$router || null, tokenCtx: this.tokenCtx })
+				// An in-app link answers `to` (followed by the router), an external one `href`.
+				return {
+					href: (row) => {
+						const link = linkFor(row)
+						return link && link.external ? link.href : ''
+					},
+
+					to: (row) => {
+						const link = linkFor(row)
+						return link && !link.external ? link.to : null
+					},
+				}
+			}
 			if (hasActionTargetTokens(action.target)) {
 				return {}
 			}
@@ -2477,6 +2551,11 @@ export default {
 </script>
 
 <style scoped>
+/* The row a following card describes (content.rowSelection). */
+.cn-object-list-widget :deep(.cn-object-list-widget__row--selected) {
+	background: var(--color-primary-element-light, #eaf0f7);
+}
+
 /* The widget already lives inside CnWidgetWrapper's padded card chrome. The
    table is rendered `borderless` so CnDataTable drops its own border/shadow/
    background AND its bottom margin (the `.cn-table-container--borderless`

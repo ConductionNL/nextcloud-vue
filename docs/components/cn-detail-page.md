@@ -769,3 +769,37 @@ With `look: "board"` (the manifest root key, `config.look`, or the `look` prop) 
 | `titleField` | String | `''` | The record field the header names the record by (manifest `config.titleField`, a dotted path such as `number`). An empty value falls back to the display name. Works in both looks. |
 
 The rules live in `src/css/look-board-detail.css`, scoped under `.cn-look-board`.
+
+## A side card that follows a selected row (`follows`)
+
+A side card can describe the row another list on the page has selected instead of the page's own record. Board DqZaaktypeVelden draws "Keuzelijst: Soort bouwwerk" beside the Velden table: the options of the selected field, with "Optie toevoegen". Those options are stored on the field's own record.
+
+```json
+{
+  "sideColumn": [
+    {
+      "id": "side-choice-list",
+      "type": "field-list",
+      "title": "Choice list: {name}",
+      "tabs": ["fields"],
+      "follows": {
+        "widget": "case-type-fields-editor",
+        "register": "dossiq",
+        "schema": "propertyDefinition",
+        "when": { "field": "enumValues", "op": "notEmpty" }
+      },
+      "content": {
+        "field": "enumValues",
+        "add": { "label": "Add option", "scalar": true, "unique": true, "fields": [{ "key": "value", "label": "Option", "required": true }] }
+      }
+    }
+  ]
+}
+```
+
+- The followed list is an `object-list` with `content.rowSelection: true`. It publishes the rows it shows and the row the reader clicks, and marks that row.
+- The card is hosted on that row (CnFollowingWidgetHost). Its record, id, register and schema are the row's, so a `field-list` saves to the row.
+- The card shows the selected row when `when` holds for it. While nothing is selected, it shows the first row for which `when` holds. Without such a row it draws nothing.
+- `{field}` in the title is filled from the row, after the title is translated.
+
+CnDetailPage provides the selection store (`cnWidgetSelection`, from `utils/widgetSelection.js`). CnDetailWidgetHost provides the id of the widget it hosts, which is the key a list publishes under.

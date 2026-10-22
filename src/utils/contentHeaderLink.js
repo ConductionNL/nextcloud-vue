@@ -68,17 +68,22 @@ export function widgetHeaderLink(widget) {
 }
 
 /**
- * How to draw a header link: the tag and its attributes. A `route` is a
+ * How to draw a header link: the tag and its attributes. A `tab` is a
+ * `#<tab>` anchor that opens that tab of the same page, a `route` a
  * `router-link` (only when a router is mounted), an `href` a plain anchor.
  * An empty tag means there is nothing usable to draw.
  *
- * @param {object|null|undefined} link A link `{ label, route?, params?, query?, href? }`.
+ * @spec openspec/changes/header-link-switches-tab/specs/header-link/spec.md#requirement-a-header-link-can-open-another-tab-of-the-page
+ * @param {object|null|undefined} link A link `{ label, tab?, route?, params?, query?, href? }`.
  * @param {boolean} hasRouter Whether a router is mounted.
  * @return {{tag: string, attrs: object}}
  */
 export function headerLinkTarget(link, hasRouter) {
 	if (!link || typeof link.label !== 'string' || link.label === '') {
 		return { tag: '', attrs: {} }
+	}
+	if (typeof link.tab === 'string' && link.tab !== '') {
+		return { tag: 'a', attrs: { href: `#${encodeURIComponent(link.tab)}` } }
 	}
 	if (link.route && hasRouter) {
 		const to = { name: link.route }

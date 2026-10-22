@@ -2491,7 +2491,15 @@
     "The action failed.": "De actie is niet gelukt.",
     "The warnings could not be loaded.": "De waarschuwingen konden niet worden geladen.",
     "Filter by type": "Filteren op soort",
-    "activities": "activiteiten"
+    "activities": "activiteiten",
+    "Make an appointment": "Afspraak maken",
+    "Add meeting": "Vergadering toevoegen",
+    "Link existing": "Bestaande koppelen",
+    "Link an existing one": "Bestaande koppelen",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het record dat u kiest. Er wordt niets gewijzigd of verstuurd.",
+    "Nothing was changed or sent.": "Er is niets gewijzigd of verstuurd.",
+    "Test result": "Testresultaat",
+    "To {recipients}": "Aan {recipients}"
   },
   "plurals": {
     "{count} member": [

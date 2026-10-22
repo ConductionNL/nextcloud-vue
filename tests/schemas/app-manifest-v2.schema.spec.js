@@ -1417,7 +1417,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.138.0 adds after and before on a row indicator, a date bound that is now or an ISO date (cell-config-growth).
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
 		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
-		// 2.143.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (@object.<field>|tel, |mailto, |geo; pl1-party-actions). 2.141.0 and 2.142.0 are batches 24p and 24p2.
+		// 2.141.0 lets a widget header link switch the page to a body tab (header-link-switches-tab) and a side card name the body tabs it shows beside (side-card-follows-row).
+		// 2.143.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (@object.<field>|tel, |mailto, |geo; pl1-party-actions). 2.142.0 is batch 24p2.
 		expect(schema.version).toBe('2.143.0')
 	})
 
@@ -1511,6 +1512,24 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { labelField: 'name' } })).valid).toBe(false)
 		expect(validateManifestV2(withFilter({ key: 'caseType', optionsFrom: { register: 'dossiq', schema: 'caseType', source: 'x' } })).valid).toBe(false)
 		expect(validateManifestV2(withFilter({ key: 'caseType', options, clearable: 'yes' })).valid).toBe(false)
+	})
+
+	it('accepts a widget headerLink that names a tab, and refuses an empty one (2.140.0)', () => {
+		const page = (headerLink) => ({
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [
+					{ widgetKey: 'AnnualStatementWidget', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, headerLink },
+					{ widgetKey: 'AnnualStatementWidget', slot: 'body', gridX: 6, gridY: 0, gridWidth: 6, gridHeight: 4 },
+				],
+			}],
+		})
+		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
+		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
 	})
 
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {

@@ -893,6 +893,12 @@ export function dispatchAction(action, context = {}) {
 				window.open(target, '_blank', 'noopener,noreferrer')
 				break
 			}
+			// A page of the instance outside this app (`/index.php/apps/...`)
+			// is a page load; the app's router does not know it.
+			if (typeof target === 'string' && target.startsWith('/index.php/')) {
+				window.open(target, '_self')
+				break
+			}
 			if (!context.router) {
 			// eslint-disable-next-line no-console
 				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
@@ -903,10 +909,16 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'export': {
-		// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
-		// shared CnMassExportDialog configured via the action's entities[] /
-		// formats[]; the dialog's confirm payload routes to the action's
-		// optional `handler` (the app's export service does the download).
+		// An export that names a table (`exportId`) asks that table on the
+		// page to download its rows as CSV (`cn:widget:export`).
+			if (typeof action.exportId === 'string' && action.exportId !== '') {
+				emit('cn:widget:export', { exportId: action.exportId })
+				break
+			}
+			// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
+			// shared CnMassExportDialog configured via the action's entities[] /
+			// formats[]; the dialog's confirm payload routes to the action's
+			// optional `handler` (the app's export service does the download).
 			if (typeof context.openExport !== 'function') {
 			// eslint-disable-next-line no-console
 				console.warn('[dispatchAction] export requires context.openExport to be a function.')

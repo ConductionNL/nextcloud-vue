@@ -1126,7 +1126,8 @@
 					:objectType="resolvedObjectType"
 					:register="register"
 					:schema="schema">
-					<CnDetailWidgetHost
+					<component
+						:is="widget.follows ? 'CnFollowingWidgetHost' : 'CnDetailWidgetHost'"
 						:widget="widget"
 						chrome="card"
 						:showCardTitle="true"
@@ -1263,7 +1264,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { computed, provide, ref, watch } from 'vue'
+import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -1287,6 +1288,7 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import CnFollowingWidgetHost from '../CnFollowingWidgetHost/CnFollowingWidgetHost.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
@@ -1345,6 +1347,7 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { createWidgetSelection, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -1542,6 +1545,7 @@ export default {
 		CnLockedBanner,
 		CnNextStepCard,
 		CnDetailWidgetHost,
+		CnFollowingWidgetHost,
 		CnFormDialog,
 		CnDashboardGrid,
 		CnSegmentedControl,
@@ -1623,6 +1627,9 @@ export default {
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
 		return {
+			// The rows a list on this page shows and the one selected, for a side
+			// card that follows them (side-card-follows-row).
+			[WIDGET_SELECTION]: this.widgetSelection,
 			// The side column, for a widget in the body that describes what is
 			// selected in it (a files list's cards about the selected file).
 			// `available` says whether the page draws a side column; `target`
@@ -3075,6 +3082,8 @@ export default {
 
 	data() {
 		return {
+			/** The rows a list on this page shows and the one selected (side-card-follows-row). */
+			widgetSelection: markRaw(createWidgetSelection()),
 			/** The id of the side column's slot for a body widget's own cards. */
 			sideTakeoverId: `cn-detail-side-takeover-${++sideTakeoverCounter}`,
 			/** The body widgets that show their own cards in the side column now. */

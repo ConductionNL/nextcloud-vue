@@ -118,7 +118,7 @@
 					class="cn-features-board__filter"
 					:class="`cn-features-board__filter--${filter}`"
 					role="group"
-					:aria-label="t('nextcloud-vue', 'Status')"
+					:aria-label="filterLabel ? tr(filterLabel) : t('nextcloud-vue', 'Status')"
 					data-testid="cn-features-board-filter">
 					<button
 						v-for="option in filterOptions"
@@ -385,6 +385,8 @@ export default {
 			validator: (value) => ['chips', 'segmented'].includes(value),
 		},
 
+		/** The status filter's accessible name, through the host translate (DqFunctionaliteiten "Toon"); empty: "Status". */
+		filterLabel: { type: String, default: '' },
 		/** Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`). */
 		statusLabels: { type: Object, default: () => ({}) },
 		/** How many issues the Next card lists; 0 hides the card. */

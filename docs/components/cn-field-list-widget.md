@@ -129,3 +129,7 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 - Content-only on the detail page: it gets the titled card; in a tab panel or a `sections` widget it renders bare.
 - A save without a register, schema or id says "This list cannot be saved here." and writes nothing.
 - Renderer only: no config form.
+
+## A list of plain values (`add.scalar`)
+
+A field that holds strings, such as a choice list's `enumValues`, takes `"add": { "scalar": true, "fields": [{ "key": "value", "label": "Option" }] }`. Add then appends the trimmed value of the first add field itself, not an object. With `unique`, a value the list already holds is refused. A row of a plain value reads as the value.
