@@ -321,6 +321,26 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			expect(plain.props('subtitle')).toBe('')
 		})
 
+		it('labels the create button from the action\'s formConfirmLabel (DqNieuweZaak "Zaak aanmaken")', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Case', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-case', label: 'New case', type: 'open-form', register: 'dossiq', schema: 'case', formConfirmLabel: 'Create case' },
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-case"]').trigger('click')
+			await flush()
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('confirmLabel')).toBe('Create case')
+
+			wrapper.vm.closeForm()
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('confirmLabel')).toBe('')
+		})
+
 		it('seeds the create form with the action props without flipping it to edit mode', async () => {
 			const saveObject = jest.fn(() => Promise.resolve({ id: 'tk-1' }))
 			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Ticket', properties: {} }))

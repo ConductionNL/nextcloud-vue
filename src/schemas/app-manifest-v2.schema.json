@@ -3246,6 +3246,10 @@
 					"type": "string",
 					"description": "open-form: the sentence under the create dialog's heading (board look), e.g. which fields are required and what happens on save. Through the host translate. Absent: no sentence."
 				},
+				"formConfirmLabel": {
+					"type": "string",
+					"description": "open-form: the create dialog's confirm button label, e.g. 'Create case'. Through the host translate. Absent: 'Create' (or 'Save' when editing)."
+				},
 				"size": {
 					"type": "string",
 					"enum": ["small", "normal", "large", "full"],
