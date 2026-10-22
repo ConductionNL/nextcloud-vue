@@ -488,11 +488,12 @@
 				</CnActionsMenu>
 			</div>
 			<!-- Row 2 of the board look's header (screens-detail-page-parity): the
-			     pills, the breadcrumb, a middle dot and the meta line, on the
+			     pills, the breadcrumb, a middle dot, the meta line and the Follow
+			     control, on the
 			     ground under the title. The breadcrumb does not render above the
 			     header in this look, so this is its only place. -->
 			<div
-				v-if="isBoard && showsHeaderRow2"
+				v-if="isBoard && (showsHeaderRow2 || showFollowToggle)"
 				class="cn-detail-page__header-row2"
 				data-testid="cn-detail-page-header-row2">
 				<div
@@ -534,15 +535,12 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
-			</div>
-			<!-- Row 3 of the board look's header: the Follow control under the
-			     breadcrumb, clear of the title row and its actions (DqZaak
-			     "Volgen"). -->
-			<div
-				v-if="isBoard && showFollowToggle"
-				class="cn-detail-page__header-row3"
-				data-testid="cn-detail-page-header-row3">
-				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
+				<!-- The Follow control ends the meta row, clear of the title row
+				     and its actions, without a row of its own. -->
+				<span
+					v-if="showFollowToggle"
+					class="cn-detail-page__interactions"
+					data-testid="cn-detail-page-interactions">
 					<CnFollowToggle v-bind="followToggleProps" />
 				</span>
 			</div>
