@@ -134,6 +134,7 @@ fields: [
 | `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill` | An action, see above. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
+| `advanced` | Drawn behind one disclosure after the other fields ("Advanced", `advancedLabel`), closed at first and opened when one of its fields is refused. Saved with the rest. |
 
 ## Props
 
@@ -158,6 +159,8 @@ fields: [
 | `hintsToggle` | Boolean | `false` | Fold the hints, and status notes marked `foldable`, behind one "Show the explanations" button. |
 | `autoSave` | Boolean | `false` | Save each change at once (typed text after a pause), with no Save button. |
 | `bare` | Boolean | `false` | No card, title or description, for a host that gives the section its own (a settings dialog section). Loading and a failed read still show. |
+| `saveInline` | Boolean | `false` | Draw the Save button beside the form instead of under it, lined up with the control, for a one-field form ("Use this account"). |
+| `advancedLabel` | String | `''` | The label of the disclosure the `advanced` fields sit behind; defaults to "Advanced". |
 
 ## Events
 

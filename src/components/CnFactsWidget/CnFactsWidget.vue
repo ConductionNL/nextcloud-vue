@@ -113,7 +113,7 @@
 					:data-testid="`cn-fact-${block.key}`">
 					<span
 						class="cn-facts-widget__lead-tile"
-						:class="`cn-facts-widget__lead-tile--${block.tone}`"
+						:class="[`cn-facts-widget__lead-tile--${block.tone}`, { 'cn-facts-widget__lead-tile--initials': !block.icon }]"
 						aria-hidden="true">
 						<CnIcon v-if="block.icon" :name="block.icon" :size="20" />
 						<template v-else>{{ block.initials }}</template>
@@ -1876,6 +1876,11 @@ export default {
 	height: 40px;
 	justify-content: center;
 	width: 40px;
+}
+
+/* Initials stand for a person: round, as an avatar. */
+.cn-facts-widget__lead-tile--initials {
+	border-radius: 50%;
 }
 
 .cn-facts-widget__lead-tile--success {

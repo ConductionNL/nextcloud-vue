@@ -4,6 +4,15 @@ Hierarchical menu widget (dropdown / sidebar / tree) with active-item highlighti
 
 The item labels (`content.items[].label`, children included) are manifest strings and go through the app's translate (`cnTranslate`), so an app's own Dutch reaches the menu (DqCatalogus: "Case types" reads "Zaaktypen").
 
+An item can take its children from the values of a facetable field with `childrenFrom: { register, schema, field, url }`: one child per value the field holds, labelled as OpenRegister labels it, linking to `url` with `{value}` filled in. They follow the declared children. A failed request leaves the item as declared. DqCatalogus lists the case type folders this way:
+
+```json
+{ "label": "Case types", "url": "/index.php/apps/dossiq/settings/case-types",
+  "childrenFrom": { "register": "dossiq", "schema": "caseType", "field": "category", "url": "/index.php/apps/dossiq/settings/case-types?category={value}" } }
+```
+
+In the board look a tree with `expandedByDefault` draws no carets, and its second level as sub-folders: 28px in, 14px, in the muted ink.
+
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference
