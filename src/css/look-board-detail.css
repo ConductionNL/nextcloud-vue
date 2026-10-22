@@ -1042,3 +1042,10 @@
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
 }
+
+/* The notes tab's "Add note" button, when the add form waits behind it, is
+   the board's 40px control (DqZaakEmail "Notitie toevoegen").
+   @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
+.cn-look-board .cn-sidebar-tab__composer-toggle .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
