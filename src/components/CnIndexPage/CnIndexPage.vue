@@ -1579,6 +1579,27 @@ function namedFiltersFromRoute(instance, props) {
 }
 
 /**
+ * The named-source filters the page opens with: the ones the address carries,
+ * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
+ * `@myGroups`), unless the address names a saved view.
+ *
+ * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values | { from, to } }` map.
+ * @spec openspec/changes/named-source-default-filters/specs/index-page/spec.md#requirement-a-named-source-page-can-open-with-removable-default-filters
+ */
+function namedFiltersWithDefaults(instance, props) {
+	const fromRoute = namedFiltersFromRoute(instance, props)
+	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
+	const defaults = props.defaultFilters
+	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+		return fromRoute
+	}
+	return resolveFilterTokens(defaults)
+}
+
+/**
  * The named-source filters a query carries, as `namedFiltersFromRoute` reads them.
  *
  * @param {object} query The route query.
@@ -3699,6 +3720,21 @@ export default {
 		},
 
 		/**
+		 * Filters the list opens with (manifest `config.defaultFilters`), as
+		 * `{ field: value | [values] }`: applied when the address names no
+		 * filter and no saved view, shown on the Active line and removed with
+		 * their chip or "Clear all" like any other filter. An address that
+		 * names a filter wins (DqContracten "Status: actief en verlopend").
+		 *
+		 * @spec openspec/changes/index-default-filters/specs/index-page/spec.md#requirement-an-index-page-can-open-with-removable-default-filters
+		 * @type {object|null}
+		 */
+		defaultFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Where a row carries the actions the server says this caller may run
 		 * on it: a dotted path, read off the rows the list already fetched, so
 		 * ninety rows cost one request rather than ninety.
@@ -4245,7 +4281,7 @@ export default {
 		// `limit` (20 by default), moved by the pager.
 		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
 		const namedPaging = ref({ page: 1, limit: namedPageSize })
-		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
 
