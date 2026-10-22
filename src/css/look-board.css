@@ -1349,22 +1349,32 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    PqBeheerKassa Btw), instead of floating inside the border. The label stays
    the field's own `<label for>`; it moves out of the control and the field
    makes room for it. With the label outside, the placeholder shows at rest.
-   @spec openspec/changes/settings-section-board-fields/specs/settings-board-look/spec.md#requirement-a-settings-card-labels-its-text-fields-above-the-control */
+   The label sits at its normal line height 6px above the control, and its
+   text 14px under the card title (DqInstellingenAlgemeen "Huisstijl"). The
+   theme sets a label's weight and ink with `!important`, so the card hands it
+   the board's through its form-field tokens.
+   @spec openspec/changes/settings-section-board-fields/specs/settings-board-look/spec.md#requirement-a-settings-card-labels-its-text-fields-above-the-control
+   @spec openspec/changes/board-settings-field-label/specs/board-settings-field-label/spec.md#requirement-a-board-settings-label-sits-as-drawn-also-under-a-theme */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) {
+	--nldesign-component-form-field-label-font-weight: 600;
+	--nldesign-component-form-field-label-color: var(--color-main-text);
+}
+
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label),
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea:has(.textarea__label) {
-	margin-block-start: 26px;
+	margin-block-start: 22px;
 }
 
 /* A save button beside a one-field form (`saveInline`) lines up with the
    control under that label, not with the label. */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-fields__inline-save {
-	--cn-settings-fields-label-offset: 26px;
+	--cn-settings-fields-label-offset: 22px;
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input + .input-field__label,
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label {
 	inset-block-start: auto;
-	inset-block-end: calc(100% + 4px);
+	inset-block-end: calc(100% + 6px);
 	inset-inline: 0 auto;
 	max-width: 100%;
 	margin: 0;
@@ -1373,7 +1383,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-main-text);
 	font-size: 14px;
 	font-weight: 600;
-	line-height: 20px;
+	line-height: normal;
 	pointer-events: auto;
 	transition: none;
 }
