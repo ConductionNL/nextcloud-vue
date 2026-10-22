@@ -3196,7 +3196,7 @@
 			"page": "cn-page-header"
 		},
 		"CnPageRenderer": {
-			"direct": 5,
+			"direct": 7,
 			"transitive": 227,
 			"tier": "heavy",
 			"via": [

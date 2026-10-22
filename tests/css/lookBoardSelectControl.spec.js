@@ -20,17 +20,18 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css')
  * The body of the rule that lists exactly this selector.
  *
  * @param {string} selector The selector.
- * @return {string} The body, or ''.
+ * @return {string} The bodies of every rule naming it, joined, or ''.
  */
 function bodyOf(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
+	const out = []
 	let m
 	while ((m = re.exec(css))) {
 		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
-			return m[2]
+			out.push(m[2])
 		}
 	}
-	return ''
+	return out.join('\n')
 }
 
 const SELECT = '.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *)'
