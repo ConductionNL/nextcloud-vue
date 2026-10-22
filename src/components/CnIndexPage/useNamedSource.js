@@ -242,6 +242,12 @@ export function useNamedSource(props, options = {}) {
 		watch(activeFilters, reloadFromFirstPage, { deep: true })
 	}
 
+	// A source can start the search box with a term of its own (the search
+	// source's `?q=`); seeded before the watcher, so the mount load carries it.
+	if (searchTerm && searchTerm.value === '' && typeof source.initialSearch === 'function') {
+		searchTerm.value = String(source.initialSearch() || '')
+	}
+
 	if (searchTerm) {
 		watch(searchTerm, reloadFromFirstPage)
 	}

@@ -7882,7 +7882,7 @@ export default {
 				return []
 			}
 			const props = this.effectiveSchema?.properties || {}
-			const chips = [...this.quickFilterActiveChips]
+			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
@@ -7895,6 +7895,21 @@ export default {
 				chips.push({ key, label: `${field}: ${values.join(', ')}` })
 			}
 			return chips
+		},
+
+		/**
+		 * The Active line's chip for the search term, on a named source that
+		 * asks for one (`searchChip`, the search source): "Search term: Lindelaan".
+		 *
+		 * @spec openspec/changes/search-source-term-in-box/specs/index-page/spec.md#requirement-the-search-page-keeps-its-term-in-the-search-box
+		 * @return {Array<{key: string, label: string, searchTerm: true}>}
+		 */
+		searchTermChips() {
+			const term = String(this.namedSearchTerm || '').trim()
+			if (!this.namedSourceSearches || this.namedSource.searchChip !== true || term === '') {
+				return []
+			}
+			return [{ key: 'search-term', label: t('nextcloud-vue', 'Search term: {term}', { term }), searchTerm: true }]
 		},
 
 		/**
@@ -10267,6 +10282,9 @@ export default {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
 			}
+			if (this.searchTermChips.length > 0) {
+				this.namedSearchTerm = ''
+			}
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
 				return
@@ -10458,6 +10476,10 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && chip.searchTerm === true) {
+				this.onSearchEvent('')
+				return
+			}
 			if (chip && typeof chip.quickFilterIndex === 'number') {
 				this.deselectQuickFilterChip(chip.quickFilterIndex)
 				return

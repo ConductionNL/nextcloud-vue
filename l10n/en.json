@@ -1390,6 +1390,7 @@
     "List": "List",
     "Map": "Map",
     "Remove filter: {label}": "Remove filter: {label}",
+    "Search term: {term}": "Search term: {term}",
     "Search and columns": "Search and columns",
     "Sort by": "Sort by",
     "View mode": "View mode",
