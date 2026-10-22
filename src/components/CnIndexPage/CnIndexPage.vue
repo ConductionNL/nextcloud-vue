@@ -8100,6 +8100,12 @@ export default {
 			}
 			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
 			const ranges = new Map()
+			// An applied saved view names itself; its own filters are not chips
+			// (DqFilterBeheren draws "Wacht op inwoner" with no chip for it).
+			const view = this.appliedSavedView
+			const viewFilters = view && view.query && view.query.filters && typeof view.query.filters === 'object' ? view.query.filters : {}
+			const ownToView = (key, value) => Object.hasOwn(viewFilters, key)
+				&& (Array.isArray(viewFilters[key]) ? viewFilters[key].map(String) : [String(viewFilters[key])]).includes(String(value))
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
 				if (bound) {
@@ -8124,6 +8130,7 @@ export default {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
 					.filter((value) => !this.isFixedFilter(key, value))
+					.filter((value) => !ownToView(key, value))
 					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
