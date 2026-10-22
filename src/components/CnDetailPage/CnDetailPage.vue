@@ -1430,6 +1430,7 @@ import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -1728,6 +1729,9 @@ export default {
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
 		return {
+			// Widget titles sit one level under the record title: h1 in the
+			// board look, h2 in the Nextcloud look.
+			[HEADING_LEVEL]: () => (this.isBoard ? 2 : 3),
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,
