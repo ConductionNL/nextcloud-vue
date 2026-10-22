@@ -2496,7 +2496,9 @@
     "Test result": "Testresultaat",
     "To {recipients}": "Aan {recipients}",
     "Task saved": "Taak opgeslagen",
-    "Due by": "Uiterlijk op"
+    "Due by": "Uiterlijk op",
+    "Incoming": "Inkomend",
+    "Outgoing": "Uitgaand"
   },
   "plurals": {
     "{count} member": [

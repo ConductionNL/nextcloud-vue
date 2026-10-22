@@ -2246,7 +2246,9 @@
     "Test result": "Test result",
     "To {recipients}": "To {recipients}",
     "Task saved": "Task saved",
-    "Due by": "Due by"
+    "Due by": "Due by",
+    "Incoming": "Incoming",
+    "Outgoing": "Outgoing"
   },
   "plurals": {
     "{count} member": [
