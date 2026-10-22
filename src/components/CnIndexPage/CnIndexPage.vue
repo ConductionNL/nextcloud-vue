@@ -1266,7 +1266,7 @@
 				<!-- A notice under the list (`notice`): DqPrivacy's "Een
 				     AVG-verzoek is een zaak met ..." band. -->
 				<NcNoteCard
-					v-if="notice && notice.text"
+					v-if="notice && notice.text && !noticeOnPage"
 					class="cn-index-page__notice"
 					:type="noticeType"
 					data-testid="cn-index-page-notice">
@@ -1318,6 +1318,16 @@
 					:saved="onSplitPaneSaved" />
 			</div>
 		</div>
+
+		<!-- The notice under the list card, on the page ground
+		     (`notice.placement: 'page'`, DqContracten). -->
+		<NcNoteCard
+			v-if="notice && notice.text && noticeOnPage"
+			class="cn-index-page__notice cn-index-page__notice--page"
+			:type="noticeType"
+			data-testid="cn-index-page-notice">
+			{{ cnTranslate(notice.text) }}
+		</NcNoteCard>
 
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
 		     AND sidebar.show !== false.
@@ -1985,8 +1995,12 @@ export default {
 		 * the list, such as who decides what. The text goes through the host
 		 * translate.
 		 *
-		 * @type {{text: string, variant?: string}|null}
+		 * `placement: 'page'` draws it under the list card, on the page
+		 * ground, instead of inside the list under its rows.
+		 *
+		 * @type {{text: string, variant?: string, placement?: string}|null}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
 		 */
 		notice: {
 			type: Object,
@@ -7562,6 +7576,16 @@ export default {
 		 * @return {Array<object>} The tabs, `{ id, label, to, count? }`.
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
 		 */
+		/**
+		 * Whether the notice sits under the list card rather than inside it.
+		 *
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
+		 * @return {boolean}
+		 */
+		noticeOnPage() {
+			return Boolean(this.notice && this.notice.placement === 'page')
+		},
+
 		/**
 		 * The notice band's NcNoteCard type: its `variant`, else info.
 		 *
