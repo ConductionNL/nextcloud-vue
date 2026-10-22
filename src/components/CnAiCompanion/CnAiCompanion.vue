@@ -70,8 +70,8 @@ import CnAiChatPanel from './CnAiChatPanel.vue'
 import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAiChatStream } from '../../composables/useAiChatStream.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
 import { ensureTranslations } from '../../l10n/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 
 const HEALTH_TIMEOUT = 5000
 
