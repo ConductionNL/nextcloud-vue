@@ -215,7 +215,7 @@
 			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
+			:searchPlaceholder="shownSearchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -3518,6 +3518,20 @@ export default {
 		searchPlaceholder: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * A search placeholder per view (manifest `config.searchPlaceholderByView`),
+		 * `{ table?, cards?, board?, map? }`, through the app's translate: the
+		 * board view asks "Zoek op zaak of verzoeker", the map "Filter op zaak of
+		 * aanvrager" (DqWerkbord, DqZakenKaart). A view it does not name keeps
+		 * `searchPlaceholder`.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 */
+		searchPlaceholderByView: {
+			type: Object,
+			default: null,
 		},
 
 		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
@@ -7061,6 +7075,20 @@ export default {
 				return null
 			}
 			return (this.savedViews || []).find((view) => view && (String(view.id) === id || String(view.slug) === id || String(view.uuid) === id)) || null
+		},
+
+		/**
+		 * The search field's placeholder: the open view's own
+		 * (`searchPlaceholderByView`), else the page's or its preset's.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 * @return {string}
+		 */
+		shownSearchPlaceholder() {
+			const byView = this.searchPlaceholderByView
+			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : ''
+			const text = typeof own === 'string' && own !== '' ? own : this.presented('searchPlaceholder')
+			return text ? this.cnTranslate(text) : text
 		},
 
 		/**
