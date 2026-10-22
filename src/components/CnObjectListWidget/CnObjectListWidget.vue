@@ -154,10 +154,13 @@
 						:fitWidth="fitWidthActive"
 						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
+						:filterable="content.filterable === true"
+						:activeFilters="headerFilters"
 						@rowClick="onRowClick"
 						@rowAuxClick="onRowAuxClick"
 						@select="onSelect"
-						@sort="onSort">
+						@sort="onSort"
+						@columnFilter="onHeaderFilter">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
 							<CnRowActions :actions="mappedRowActions" :row="row" />
 						</template>
@@ -180,10 +183,13 @@
 					:fitWidth="fitWidthActive"
 					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
+					:filterable="content.filterable === true"
+					:activeFilters="headerFilters"
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
 					@sort="onSort"
+					@columnFilter="onHeaderFilter"
 					@rowMove="onRowMove">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
@@ -350,6 +356,7 @@ import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState } from '../../utils/listCreateAction.js'
@@ -575,6 +582,8 @@ export default {
 			 * override the manifest-declared default without mutating a prop.
 			 */
 			localSort: { ...(this.content.sort || {}) },
+			/** The column-head filters (`content.filterable`), `{ paramKey: values[] }`. */
+			headerFilters: {},
 			/** Facet values currently toggled on (`content.facet`). */
 			facetSelected: [],
 		}
@@ -1420,6 +1429,7 @@ export default {
 				// (`content.sortable`) overrides the manifest default without
 				// touching the prop, and the fetch must follow that override.
 				sort: this.localSort || {},
+				headerFilters: this.headerFilters,
 				limit: c.limit || 25,
 				objectId: this.objectCtx ? this.objectCtx.objectId : null,
 			})
@@ -1699,6 +1709,7 @@ export default {
 						}
 					}
 				}
+				Object.assign(params, headerFilterParams(this.headerFilters))
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
@@ -2512,6 +2523,18 @@ export default {
 		 */
 		onSort({ key, order }) {
 			this.localSort = key ? { field: key, dir: order || 'asc' } : {}
+		},
+
+		/**
+		 * CnDataTable's `column-filter` handler (`content.filterable`): the
+		 * filter joins the others and the list fetches again from page one.
+		 *
+		 * @param {{key: string, params: object}} payload The column's filter.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderFilter(payload) {
+			this.headerFilters = nextHeaderFilters(this.headerFilters, payload)
 		},
 
 		/**

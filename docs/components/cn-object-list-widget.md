@@ -228,6 +228,15 @@ its placeholders. Nothing is drawn over an empty list.
 
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
+## Sorting and filtering from the column heads
+
+`content.sortable` (`true`, or the column keys) makes the column heads sort.
+`content.filterable: true` gives them the index table's filter button. A
+header sort or filter goes out with the list's own fetch, using the same
+parameters as the index page (`title[like]=…`, `_order[field]`), and the list
+starts again from page one. Without these keys the heads stay plain labels
+(DqZaakContact "Datum", "Kanaal", "Richting", "Samenvatting").
+
 ## Write feedback
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.

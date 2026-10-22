@@ -195,6 +195,8 @@ An endpoint read that is refused (401/403) shows the server's `message` as a war
 | `lensReasonTexts` | `Object` | App wording for an unavailable personal lens, keyed `<lens>.<reason>` or `<reason>`. A `source.filter._recent` tile whose response reports `@self.lenses.recent.available: false` (openregister#4514) says why it is empty, for example "This server does not keep track of what you open.", instead of `emptyText`. |
 | `rowIcon` | `String \| Function` | Leading per-row icon: MDI name or `(row) => iconName` (default `null`). |
 | `rowClass` | `Function \| Array` | Per-row CSS class binding (default `null`) — a host-supplied `(row) => string` function (pass-through), or a declarative rules[] array compiled here into that function. See [Declarative rowClass](#declarative-rowclass-91). |
+| `sortable` | `Boolean \| Array` | Column heads that sort, as the index table's: `true` for every column, or the keys that do. A column's own `sortable` wins. The sort goes out with the `source` fetch and replaces `source.order` while it is set (default `false`). |
+| `filterable` | `Boolean` | Column heads with the index table's filter button. A header filter goes out with the `source` fetch as the index page's parameters (default `false`). |
 | `title` | `String` | Widget title shown in the chrome header (default `'Table'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
