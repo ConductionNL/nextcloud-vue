@@ -1350,7 +1350,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    the field's own `<label for>`; it moves out of the control and the field
    makes room for it. With the label outside, the placeholder shows at rest.
    @spec openspec/changes/settings-section-board-fields/specs/settings-board-look/spec.md#requirement-a-settings-card-labels-its-text-fields-above-the-control */
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label),
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *),
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea:has(.textarea__label) {
 	margin-block-start: 26px;
 }
@@ -1361,8 +1361,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--cn-settings-fields-label-offset: 26px;
 }
 
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input + .input-field__label,
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label {
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input:not(.v-select *) + .input-field__label,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select .input-field__input + .input-field__label.input-field__label {
 	inset-block-start: auto;
 	inset-block-end: calc(100% + 4px);
 	inset-inline: 0 auto;
@@ -1376,6 +1377,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 20px;
 	pointer-events: auto;
 	transition: none;
+}
+
+/* NcSelect's search is an NcInputField too, but the select's own margin rules
+   win over the field's, so the room the rule above makes never showed and the
+   raised label sat on what stood above (DqInstellingen, DqDashboard
+   "Register", "Kadaster"). The select makes the room; its label is raised by
+   the rule above, the doubled class outranking NcSelect's own label rule.
+   @spec openspec/changes/board-settings-select-label/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select:has(.input-field__label) {
+	margin-block-start: 26px;
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
