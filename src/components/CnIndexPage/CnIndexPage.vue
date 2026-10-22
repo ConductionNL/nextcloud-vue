@@ -363,7 +363,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
-					:save="!headerSavesView"
+					:save="toolbarSavesView"
 					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
@@ -2450,6 +2450,16 @@ export default {
 		 * @spec openspec/changes/saved-view-chips-switch/specs/saved-views/spec.md#requirement-an-index-page-can-leave-the-saved-view-chips-out-of-the-toolbar
 		 */
 		savedViewChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the toolbar draws Save view (manifest `config.savedViewSave`).
+		 * `false` leaves it out for a page whose board draws none (DqTaken,
+		 * DqOrganisaties); the views stay in the side panel.
+		 */
+		savedViewSave: {
 			type: Boolean,
 			default: true,
 		},
@@ -8382,12 +8392,15 @@ export default {
 		},
 
 		/**
-		 * Whether the header buttons render: there are some, the title shows
-		 * (they sit beside it) and no `#header` slot replaces the header.
+		 * Whether the toolbar draws Save view: not when the page switches it
+		 * off (`savedViewSave: false`) or its header carries one.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
+		toolbarSavesView() {
+			return this.savedViewSave !== false && !this.headerSavesView
+		},
+
 		/**
 		 * Whether the page header carries a save-view button, so the toolbar
 		 * leaves its own Save view out.
@@ -8399,6 +8412,13 @@ export default {
 			return this.headerButtonsShown && (this.resolvedHeaderButtons || []).some((button) => button && button.action === 'save-view')
 		},
 
+		/**
+		 * Whether the header buttons render: there are some, the title shows
+		 * (they sit beside it) and no `#header` slot replaces the header.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {boolean}
+		 */
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
 		},
