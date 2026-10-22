@@ -108,15 +108,13 @@
 	height: 16px;
 }
 
-/* Row 3: the Follow control under the breadcrumb, on the full width.
-   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
-.cn-look-board .cn-detail-page__header-row3 {
+/* The Follow control at the end of row 2.
+   @spec openspec/changes/board-follow-in-meta-row/specs/board-follow-in-meta-row/spec.md#requirement-the-board-follow-control-ends-the-meta-row */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__interactions {
 	align-items: center;
-	display: flex;
-	flex: 1 0 100%;
-	flex-wrap: wrap;
+	display: inline-flex;
+	flex: none;
 	gap: 8px;
-	min-width: 0;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
