@@ -226,6 +226,8 @@ its placeholders. Nothing is drawn over an empty list.
 
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 
+`content.tableBleed: true` runs the table edge to edge in its card. In the board look the table goes under the detail card's 22px side padding and its outer cells take that padding, so the column text lines up with the card title (DqZaakContact "Contactmomenten op deze zaak"). Without it the table stays inside the card's padding (DqTenant "Mandaten").
+
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
 ## Write feedback

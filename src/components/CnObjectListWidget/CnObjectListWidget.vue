@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-object-list-widget"
-		:class="{ 'cn-object-list-widget--dropping': dropping }"
+		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
@@ -512,8 +512,13 @@ export default {
 		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
 		 * download in the card's header; `group` shows it to one group only.
 		 *
+		 * `tableBleed: true` runs the table edge to edge in its card: in the
+		 * board look it goes under the card's side padding and its outer cells
+		 * take that padding, so the column text lines up with the card title.
+		 * Without it the table stays inside the padding.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
 		 */
 		content: {
 			type: Object,
