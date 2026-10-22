@@ -183,8 +183,10 @@
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
-			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
-			:bulkBandAlways="bulkBandAlways"
+			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
+			:bulkBandAlways="bulkBandAlways && !viewBulkBand"
+			:bulkLead="viewBulkBandLead"
+			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -194,8 +196,8 @@
 			:inlineActionCount="inlineActionCount"
 			:showMassImport="showMassImport"
 			:showMassExport="showMassExport"
-			:showMassCopy="showMassCopy"
-			:showMassDelete="showMassDelete"
+			:showMassCopy="showMassCopy && !viewBulkBand"
+			:showMassDelete="showMassDelete && !viewBulkBand"
 			:viewMode="currentViewMode"
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
@@ -225,7 +227,7 @@
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
-			:bulkActions="mergedBulkActions"
+			:bulkActions="viewBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
 			@add="onAddClick"
@@ -2157,6 +2159,22 @@ export default {
 		bulkHint: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: another shape of the bulk band per view mode, keyed by
+		 * the view (`board`, `cards`, ...). `{ lead?: { one, other }, actions?:
+		 * Array<id|{ id, label? }>, cancel?: boolean, hint?: boolean }`: the
+		 * lead counts the selection (`{count}`, through the app's translate),
+		 * `actions` picks and relabels bulk actions, `cancel` adds a Cancel
+		 * button that clears the selection, `hint: true` keeps `bulkHint`. In
+		 * such a view the band shows only with a selection and without the
+		 * built-in copy and delete (DqWerkbord: "1 zaak geselecteerd · Status
+		 * wijzigen · Annuleren"). Manifest key `config.bulkBandViews`.
+		 */
+		bulkBandViews: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -8004,6 +8022,55 @@ export default {
 					.sort()
 			}
 			return out
+		},
+
+		/**
+		 * The bulk band shape `bulkBandViews` gives the current view, or null.
+		 *
+		 * @return {?{lead?: {one?: string, other?: string}, actions?: Array<string|{id: string, label?: string}>, cancel?: boolean, hint?: boolean}}
+		 */
+		viewBulkBand() {
+			const views = this.bulkBandViews
+			const shape = views && typeof views === 'object' ? views[this.currentViewMode] : null
+			return shape && typeof shape === 'object' ? shape : null
+		},
+
+		/**
+		 * The bulk actions the band offers: the view's pick and labels, else all.
+		 *
+		 * @return {Array<object>}
+		 */
+		viewBulkActions() {
+			const shape = this.viewBulkBand
+			if (!shape || !Array.isArray(shape.actions)) {
+				return this.mergedBulkActions
+			}
+			return shape.actions
+				.map((pick) => {
+					const id = typeof pick === 'string' ? pick : (pick && pick.id)
+					const action = this.mergedBulkActions.find((entry) => entry && entry.id === id)
+					if (!action) {
+						return null
+					}
+					return pick && typeof pick === 'object' && typeof pick.label === 'string' && pick.label !== '' ? { ...action, label: pick.label } : action
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The view's lead line counting the selection ("1 zaak geselecteerd"),
+		 * or '' for the band's own lead.
+		 *
+		 * @return {string}
+		 */
+		viewBulkBandLead() {
+			const lead = this.viewBulkBand ? this.viewBulkBand.lead : null
+			if (!lead || typeof lead !== 'object') {
+				return ''
+			}
+			const count = this.internalSelectedIds.length
+			const template = count === 1 ? lead.one : (lead.other || lead.one)
+			return typeof template === 'string' && template !== '' ? this.cnTranslate(template).replace(/\{count\}/g, String(count)) : ''
 		},
 
 		/**
