@@ -2248,7 +2248,15 @@
     "Task saved": "Task saved",
     "Due by": "Due by",
     "Incoming": "Incoming",
-    "Outgoing": "Outgoing"
+    "Outgoing": "Outgoing",
+    "{from} through {to}": "{from} through {to}",
+    "from {from}": "from {from}",
+    "up to {to}": "up to {to}",
+    "this week": "this week",
+    "within %n day": [
+      "within %n day",
+      "within %n days"
+    ]
   },
   "plurals": {
     "{count} member": [

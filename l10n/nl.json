@@ -2498,7 +2498,15 @@
     "Task saved": "Taak opgeslagen",
     "Due by": "Uiterlijk op",
     "Incoming": "Inkomend",
-    "Outgoing": "Uitgaand"
+    "Outgoing": "Uitgaand",
+    "{from} through {to}": "{from} tot en met {to}",
+    "from {from}": "vanaf {from}",
+    "up to {to}": "tot en met {to}",
+    "this week": "deze week",
+    "within %n day": [
+      "binnen %n dag",
+      "binnen %n dagen"
+    ]
   },
   "plurals": {
     "{count} member": [

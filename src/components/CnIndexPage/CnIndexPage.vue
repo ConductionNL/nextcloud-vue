@@ -1369,7 +1369,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1419,6 +1419,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -2439,6 +2440,22 @@ export default {
 		quickFilterMaxVisible: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * How the Active line names a filter: per filter key an optional
+		 * `label` for the field and `values` naming each value, both through
+		 * the app's translate. Wins over the schema and sidebar names.
+		 * Sourced from `pages[].config.filterLabels`.
+		 *
+		 * A range filter's entry may set `relative: true`, naming a range
+		 * from today in words ("within 7 days").
+		 *
+		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
+		 */
+		filterLabels: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Manual column definitions (used instead of schema when provided) */
@@ -7900,18 +7917,43 @@ export default {
 
 		/**
 		 * The active filters as chips for the board toolbar's second row, one
-		 * per filter: "Team: Woo". A filter with no value is not active.
+		 * per filter: "Team: Woo". A filter with no value is not active. A
+		 * range, as one `{from, to}` value or as `key[gte]`/`key[lte]` keys, is
+		 * one chip; `keys` lists the filter keys it stands for. Several values
+		 * of one filter read as a list in the locale ("A en B").
 		 *
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
-		 * @return {Array<{key: string, label: string}>}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
 		 */
 		activeFilterChips() {
 			if (!this.isBoardLook) {
 				return []
 			}
-			const props = this.effectiveSchema?.properties || {}
 			const chips = [...this.quickFilterActiveChips]
+			const ranges = new Map()
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
+				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+				if (bound) {
+					const value = Array.isArray(raw) ? raw[0] : raw
+					if (value === null || value === undefined || value === '' || this.isFixedFilter(key, value)) {
+						continue
+					}
+					if (!ranges.has(bound[1])) {
+						ranges.set(bound[1], { from: null, to: null, keys: [] })
+						chips.push({ key: bound[1], rangeOf: bound[1] })
+					}
+					const range = ranges.get(bound[1])
+					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
+					range.keys.push(key)
+					continue
+				}
+				const ends = rangeEnds(raw)
+				if (ends) {
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
+					continue
+				}
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
 					.filter((value) => !this.isFixedFilter(key, value))
@@ -7919,10 +7961,15 @@ export default {
 				if (values.length === 0) {
 					continue
 				}
-				const field = this.cnTranslate((props[key] && props[key].title) || key)
-				chips.push({ key, label: `${field}: ${values.join(', ')}` })
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
 			}
-			return chips
+			return chips.map((chip) => {
+				if (!chip.rangeOf) {
+					return chip
+				}
+				const range = ranges.get(chip.rangeOf)
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
+			})
 		},
 
 		/**
@@ -10490,9 +10537,68 @@ export default {
 				this.deselectQuickFilterChip(chip.quickFilterIndex)
 				return
 			}
+			if (chip && Array.isArray(chip.keys) && chip.keys.length > 0) {
+				for (const key of chip.keys) {
+					this.onFilterEvent({ key, values: [] })
+				}
+				return
+			}
 			if (chip && typeof chip.key === 'string') {
 				this.onFilterEvent({ key: chip.key, values: [] })
 			}
+		},
+
+		/**
+		 * The field an Active chip names: the page's `filterLabels` label, the
+		 * schema property's title, the sidebar field's title, else the key.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {string} The translated field name.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
+		 */
+		activeFilterFieldLabel(key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && typeof named.label === 'string' && named.label !== '') {
+				return this.cnTranslate(named.label)
+			}
+			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && typeof prop.title === 'string' && prop.title !== '') {
+				return this.cnTranslate(prop.title)
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			if (field && typeof field.title === 'string' && field.title !== '') {
+				return this.cnTranslate(field.title)
+			}
+			return this.cnTranslate(key)
+		},
+
+		/**
+		 * The text of a range chip: in words for a range from today when the
+		 * page's `filterLabels` entry sets `relative`, else its date ends in
+		 * the person's locale.
+		 *
+		 * @param {unknown} from The lower end, or null.
+		 * @param {unknown} to The upper end, or null.
+		 * @param {string} key The filter key the range is on.
+		 * @return {string} The text.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+		 */
+		activeFilterRangeText(from, to, key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && named.relative === true) {
+				const words = relativeRangeText(from, to, {
+					translate: (text) => t('nextcloud-vue', text),
+					translatePlural: (one, many, count) => n('nextcloud-vue', one, many, count),
+				})
+				if (words !== null) {
+					return words
+				}
+			}
+			return rangeChipText(from, to, {
+				translate: (text, vars) => t('nextcloud-vue', text, vars),
+				locale: getCanonicalLocale() || undefined,
+			})
 		},
 
 		/**
@@ -10523,17 +10629,23 @@ export default {
 		},
 
 		/**
-		 * The text an Active chip shows for one filter value: the referenced
-		 * object's label, the facet bucket's label, the schema's `oneOf` title,
-		 * else the value itself.
+		 * The text an Active chip shows for one filter value: the page's
+		 * `filterLabels` value, the referenced object's label, the facet
+		 * bucket's label, the schema's `oneOf` title, the sidebar field's
+		 * `enumLabels`, else the value itself.
 		 *
 		 * @param {string} key The filter key.
 		 * @param {unknown} value One value of that filter.
 		 * @return {string} The label.
 		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
 		activeFilterValueLabel(key, value) {
 			const id = String(value)
+			const named = this.filterLabels && this.filterLabels[key] && this.filterLabels[key].values
+			if (named && typeof named[id] === 'string' && named[id] !== '') {
+				return this.cnTranslate(named[id])
+			}
 			const refs = this.refLabels[key]
 			if (refs && typeof refs[id] === 'string' && refs[id] !== '') {
 				return refs[id]
@@ -10550,6 +10662,11 @@ export default {
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
 				return this.cnTranslate(option.title)
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			const enumLabel = field && field.enumLabels && field.enumLabels[id]
+			if (typeof enumLabel === 'string' && enumLabel !== '') {
+				return this.cnTranslate(enumLabel)
 			}
 			return id
 		},
