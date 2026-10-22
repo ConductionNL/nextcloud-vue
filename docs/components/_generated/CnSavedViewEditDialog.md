@@ -8,10 +8,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type     | Required | Default | Description                                         |
-| ------------- | -------- | -------- | ------- | --------------------------------------------------- |
-| `view`        | `object` |          | `\{\}`  | The view being edited (its `name` fills the field). |
-| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Edit view: \{name\}".    |
+| Name             | Type     | Required | Default | Description                                                                  |
+| ---------------- | -------- | -------- | ------- | ---------------------------------------------------------------------------- |
+| `view`           | `object` |          | `\{\}`  | The view being edited (its `name` fills the field).                          |
+| `dialogTitle`    | `string` |          | `''`    | Dialog title; empty reads "Edit view: \{name\}".                             |
+| `savedSummary`   | `string` |          | `''`    | What the view holds now, shown under "Keep what is saved" in the board look. |
+| `currentSummary` | `string` |          | `''`    | What the list shows now, shown under "Replace with …" in the board look.     |
 
 ### Events
 

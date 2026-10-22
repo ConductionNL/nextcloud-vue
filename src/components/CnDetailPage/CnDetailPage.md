@@ -183,6 +183,7 @@ export default {
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
 | `band` | Array | `[]` | A row of widgets across the whole page, above the body and the side column (manifest `config.band`). Each entry is a widget id from `widgets`, a widget definition, or `{ widgetId, span, chrome }`: `span` is the entry's share of the row in twelfths (default 12), and `chrome` is `card` or `bare` (a banner defaults to bare). Each entry follows its `visibleWhen`. |
+| `recordLastChange` | Boolean | `false` | Read who changed the record last (as `headerMetaLastChange` does) for the widgets on the page: a facts card reads it as `_lastChange.userName` / `_lastChange.created` (DqContact "Historie"). |
 | `pageFilters` | Array | `[]` | Page-level filters (manifest `config.pageFilters`), as on a dashboard: each writes its choice into the page's workspace context, which the widgets read through `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its widgets (PtPortal "Periode"). |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts expanded |
 | `objectType` | String | `''` | Registered object type slug for the sidebar |

@@ -37,6 +37,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `marker-click`  | —       | Marker click event. Fired when a marker is clicked.                                |
 | `bounds-change` | —       | Viewport bounds change event. Fired (debounced) after pan / zoom settles.          |
 | `click`         | —       | Map background click event. Fired when the user clicks the map outside any marker. |
+| `header`        | —       | The card header's line under the title.                                            |
 
 ### Slots
 
