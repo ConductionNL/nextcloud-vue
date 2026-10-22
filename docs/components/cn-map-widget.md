@@ -145,6 +145,7 @@ On a detail page the map can say why it shows no markers, and read them again wh
 | Key | Meaning |
 |---|---|
 | `emptyText` | A line under the map when the source answered no markers. Without it an empty map says nothing. |
+| `headerSubtitle` | The line under the card title with the number of places: `{ "one": "{total} location", "other": "{total} locations" }` or one string, through the app's translate ("1 locatie", the case "Locaties" card). Shown once the source answered with markers. |
 | `errorText` | The line, announced as an alert, when the source could not be read. Defaults to "The places could not be loaded." |
 | `refreshOn` | An event-bus event that reads the markers again. |
 | `refreshMatch` | Only when the event payload's field with this name holds the record's id. |
