@@ -29,6 +29,7 @@ The checklist a record carries, ticked in place on its detail page. It is the `c
 | `descriptionField` | `description` | A line under the label |
 | `checkedField` | `checked` | Whether the item is ticked |
 | `emptyText` | | Shown when the record carries no items, through the app's translate |
+| `summaryInHeader` | `false` | `true`: "2 of 4 done" is the line under the card title instead of a line above the items (DqTaak "Checklist") |
 
 ## Props
 
