@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="boardEyebrow"
+		:subtitle="boardSubtitle"
 		:name="resolvedTitle"
 		size="small"
 		:noClose="loading"
@@ -12,7 +17,7 @@
 			<NcNoteCard v-if="error" type="error">
 				{{ error }}
 			</NcNoteCard>
-			<p class="cn-edit-view__intro">
+			<p v-if="!isBoardLook" class="cn-edit-view__intro">
 				{{ t('nextcloud-vue', 'Give the view another name, or replace its criteria with what the list shows now.') }}
 			</p>
 			<NcTextField
@@ -61,12 +66,14 @@
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnSavedViewEditDialog — rename an own saved view and, when asked, replace
@@ -80,7 +87,9 @@ import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, N
 export default {
 	name: 'CnSavedViewEditDialog',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField },
+	components: { CnDialog, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The view being edited (its `name` fills the field). */
@@ -108,6 +117,26 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The line above the title: the given eyebrow, else "Saved view" in
+		 * the board look (DqFilterBewerken, DqFilterDelen).
+		 *
+		 * @return {string} The eyebrow.
+		 */
+		boardEyebrow() {
+			return this.eyebrow || (this.isBoardLook ? t('nextcloud-vue', 'Saved view') : '')
+		},
+
+		/**
+		 * The sentence under the title in the board look; the Nextcloud look
+		 * keeps it as the first line of the body.
+		 *
+		 * @return {string} The subtitle.
+		 */
+		boardSubtitle() {
+			return this.subtitle || (this.isBoardLook ? t('nextcloud-vue', 'Give the view another name, or replace its criteria with what the list shows now.') : '')
+		},
+
 		/** @return {string} The title. */
 		resolvedTitle() {
 			return this.dialogTitle || t('nextcloud-vue', 'Edit view: {name}', { name: (this.view && this.view.name) || '' })

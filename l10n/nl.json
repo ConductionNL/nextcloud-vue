@@ -2511,7 +2511,8 @@
     "New contact": "Nieuw contact",
     "Template": "Sjabloon",
     "Visible to the requester": "Zichtbaar voor de verzoeker",
-    "Add it to the timeline": "Aan de tijdlijn toevoegen"
+    "Add it to the timeline": "Aan de tijdlijn toevoegen",
+    "Saved view": "Opgeslagen weergave"
   },
   "plurals": {
     "{count} member": [

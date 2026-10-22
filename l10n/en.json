@@ -2261,7 +2261,8 @@
     "New contact": "New contact",
     "Template": "Template",
     "Visible to the requester": "Visible to the requester",
-    "Add it to the timeline": "Add it to the timeline"
+    "Add it to the timeline": "Add it to the timeline",
+    "Saved view": "Saved view"
   },
   "plurals": {
     "{count} member": [
