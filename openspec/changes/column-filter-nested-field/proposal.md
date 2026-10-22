@@ -16,3 +16,8 @@ table which stored field they could filter on.
 - A column may set `filterField`, the stored field its header filter works on.
   The field's property decides the kind. A computed column that names a
   `filterField` gets a filter.
+- An `aggregate` column with `aggregate.filterable` filters through
+  OpenRegister's related-row filter, `_related[<schema>][<fk>]`. A count offers
+  Yes (there is at least one matching related row), and a max offers a date
+  range on a related row. The panel for a count has no No, because the server
+  cannot ask for a row with none.

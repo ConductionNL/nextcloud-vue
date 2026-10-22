@@ -7,7 +7,7 @@
  * "Woonplaats").
  */
 
-import { columnFilterDef, columnFilterParams } from '../../src/utils/columnFilters.js'
+import { columnFilterDef, columnFilterParamKeys, columnFilterParams, columnFilterState, isColumnFilterActive } from '../../src/utils/columnFilters.js'
 import { buildQueryString } from '../../src/utils/headers.js'
 
 const schema = {
@@ -66,5 +66,48 @@ describe('a column that names the field it filters on (filterField)', () => {
 		expect(columnFilterDef({ key: 'openCases', aggregate: { schema: 'case', op: 'count' } }, schema)).toBeNull()
 		expect(columnFilterDef({ key: 'openCases', aggregate: {}, filterField: 'openCaseCount', filterable: false }, schema)).toBeNull()
 		expect(columnFilterDef({ key: 'openCases', aggregate: {}, filterField: 'missing' }, schema)).toBeNull()
+	})
+})
+
+describe('an aggregate column that filters through its related rows (aggregate.filterable)', () => {
+	const openCases = {
+		key: 'openCases',
+		label: 'Open cases',
+		aggregate: { register: 'dossiq', schema: 'case', op: 'count', where: { requester: '@self.id', isFinalStatus: false }, filterable: true },
+	}
+	const lastContact = {
+		key: 'lastContact',
+		label: 'Last contact',
+		formatter: 'date',
+		aggregate: { register: 'dossiq', schema: 'contactmoment', op: 'max', field: 'startTime', where: { contact: '@self.id' }, filterable: true },
+	}
+
+	it('offers "with" for a count, asking OpenRegister for a related row that matches the where', () => {
+		const def = columnFilterDef(openCases, schema)
+		expect(def).toMatchObject({ kind: 'boolean', existsOnly: true, label: 'Open cases' })
+		expect(columnFilterParams(def, { value: 'true' })).toEqual({ '_related[case][requester][isFinalStatus]': ['false'] })
+		expect(columnFilterParams(def, { value: '' })).toEqual({ '_related[case][requester][isFinalStatus]': [] })
+		expect(columnFilterParamKeys(def)).toEqual(['_related[case][requester][isFinalStatus]'])
+		expect(columnFilterState(def, { '_related[case][requester][isFinalStatus]': ['false'] })).toEqual({ value: 'true' })
+		expect(isColumnFilterActive(def, { '_related[case][requester][isFinalStatus]': 'false' })).toBe(true)
+		expect(buildQueryString({ '_related[case][requester][isFinalStatus]': 'false' })).toBe('?_related%5Bcase%5D%5Brequester%5D%5BisFinalStatus%5D=false')
+	})
+
+	it('filters a highest date on a related row in the range', () => {
+		const def = columnFilterDef(lastContact, schema)
+		expect(def).toMatchObject({ kind: 'date', dateTime: true, key: '_related[contactmoment][contact][startTime]' })
+		expect(columnFilterParams(def, { from: '2026-10-01', to: '' })).toEqual({
+			'_related[contactmoment][contact][startTime][gte]': ['2026-10-01'],
+			'_related[contactmoment][contact][startTime][lte]': [],
+		})
+		expect(columnFilterState(def, { '_related[contactmoment][contact][startTime][gte]': ['2026-10-01'] })).toEqual({ from: '2026-10-01', to: '' })
+	})
+
+	it('stays off without filterable, and for a where it cannot spell', () => {
+		expect(columnFilterDef({ ...openCases, aggregate: { ...openCases.aggregate, filterable: undefined } }, schema)).toBeNull()
+		expect(columnFilterDef({ ...openCases, aggregate: { ...openCases.aggregate, where: { requester: '@self.id' } } }, schema)).toBeNull()
+		expect(columnFilterDef({ ...openCases, aggregate: { ...openCases.aggregate, where: { requester: '@self.kvk', isFinalStatus: false } } }, schema)).toBeNull()
+		expect(columnFilterDef({ ...openCases, aggregate: { ...openCases.aggregate, where: { isFinalStatus: false } } }, schema)).toBeNull()
+		expect(columnFilterDef({ ...openCases, filterable: false }, schema)).toBeNull()
 	})
 })

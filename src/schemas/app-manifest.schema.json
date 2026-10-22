@@ -670,6 +670,11 @@
 							"type": "object",
 							"additionalProperties": true,
 							"description": "Filter applied to the related collection. String values \"@self.<path>\" are replaced per-row with `getCellValue(row, path)`; everything else is a literal."
+						},
+						"filterable": {
+							"type": "boolean",
+							"default": false,
+							"description": "Give the column a header filter through OpenRegister's related-row filter (`_related[<schema>][<fk>]`): `where` must link one field to \"@self.id\"; a count offers rows WITH a related row matching the other `where` entries, a max over `field` a date range on a related row's `field`."
 						}
 					}
 				},
