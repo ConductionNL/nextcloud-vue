@@ -2021,6 +2021,7 @@
     "Count": "Count",
     "The report could not be read.": "The report could not be read.",
     "Nothing to count": "Nothing to count",
+    "{from} through {to}": "{from} through {to}",
     "Q{quarter} {year}": "Q{quarter} {year}",
     "Actions for state {name}": "Actions for state {name}",
     "Add state": "Add state",

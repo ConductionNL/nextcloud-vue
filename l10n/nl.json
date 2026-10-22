@@ -2271,6 +2271,7 @@
     "Count": "Aantal",
     "The report could not be read.": "De rapportage kon niet worden gelezen.",
     "Nothing to count": "Niets om te tellen",
+    "{from} through {to}": "{from} tot en met {to}",
     "Q{quarter} {year}": "K{quarter} {year}",
     "Actions for state {name}": "Acties voor status {name}",
     "Add state": "Status toevoegen",
