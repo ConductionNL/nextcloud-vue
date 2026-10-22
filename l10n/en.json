@@ -2257,7 +2257,8 @@
       "within %n day",
       "within %n days"
     ],
-    "Search term: {term}": "Search term: {term}"
+    "Search term: {term}": "Search term: {term}",
+    "New contact": "New contact"
   },
   "plurals": {
     "{count} member": [

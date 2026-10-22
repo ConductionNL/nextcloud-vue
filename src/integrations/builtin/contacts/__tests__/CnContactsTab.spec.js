@@ -43,6 +43,17 @@ describe('CnContactsTab', () => {
 		wrapper.unmount()
 	})
 
+	it('offers Link contact first and New contact second, both outlined, as DqZaakBetrokkenen draws them', async () => {
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+		const buttons = wrapper.findAll('.cn-contacts-tab__header .stub.NcButton')
+		expect(buttons.map((button) => button.text())).toEqual(['Link contact', 'New contact'])
+		expect(buttons.map((button) => button.attributes('variant'))).toEqual(['secondary', 'secondary'])
+		wrapper.unmount()
+	})
+
 	it('shows the picker dialog when the link button toggles showLinkDialog', async () => {
 		const wrapper = mount(CnContactsTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },

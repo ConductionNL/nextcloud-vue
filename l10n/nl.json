@@ -2507,7 +2507,8 @@
       "binnen %n dag",
       "binnen %n dagen"
     ],
-    "Search term: {term}": "Zoekterm: {term}"
+    "Search term: {term}": "Zoekterm: {term}",
+    "New contact": "Nieuw contact"
   },
   "plurals": {
     "{count} member": [

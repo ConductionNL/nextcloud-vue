@@ -11,6 +11,13 @@ import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from './visib
 export const WIDGET_HEADER_ACTIONS = 'cnWidgetHeaderActions'
 
 /**
+ * The key under which a detail widget host provides its widget's body
+ * actions (`bodyActions`) to a leaf that draws its own button row in the
+ * card body, after its own buttons.
+ */
+export const WIDGET_BODY_ACTIONS = 'cnWidgetBodyActions'
+
+/**
  * One drawn header button.
  *
  * @typedef {object} WidgetHeaderAction
@@ -32,11 +39,12 @@ export const WIDGET_HEADER_ACTIONS = 'cnWidgetHeaderActions'
  *
  * @param {object|null} widget The widget definition.
  * @param {object} context `{ object, objectId, translate?, dispatch }`.
+ * @param {string} [key] The list to read: `headerActions` (default) or `bodyActions`.
  * @return {WidgetHeaderAction[]} The buttons, in manifest order.
  * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
  */
-export function resolveWidgetHeaderActions(widget, context = {}) {
-	const list = widget && Array.isArray(widget.headerActions) ? widget.headerActions : []
+export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerActions') {
+	const list = widget && Array.isArray(widget[key]) ? widget[key] : []
 	const object = context.object || {}
 	const translate = typeof context.translate === 'function' ? context.translate : (key) => key
 	const tokenCtx = { objectId: context.objectId, object }

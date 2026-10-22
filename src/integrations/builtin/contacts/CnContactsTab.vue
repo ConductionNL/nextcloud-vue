@@ -41,15 +41,6 @@
 		<div class="cn-contacts-tab__header">
 			<NcButton
 				variant="secondary"
-				:aria-label="addNewLabel"
-				@click="showCreateDialog = true">
-				<template #icon>
-					<AccountPlus :size="20" />
-				</template>
-				{{ addNewLabel }}
-			</NcButton>
-			<NcButton
-				variant="primary"
 				:aria-label="linkExistingLabel"
 				@click="showLinkDialog = true">
 				<template #icon>
@@ -57,6 +48,16 @@
 				</template>
 				{{ linkExistingLabel }}
 			</NcButton>
+			<NcButton
+				variant="secondary"
+				:aria-label="addNewLabel"
+				@click="showCreateDialog = true">
+				<template #icon>
+					<AccountPlus :size="20" />
+				</template>
+				{{ addNewLabel }}
+			</NcButton>
+			<CnWidgetHeaderActionButtons v-if="bodyActions.length > 0" :actions="bodyActions" />
 		</div>
 
 		<!-- Loading -->
@@ -194,7 +195,9 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import CnWidgetHeaderActionButtons from '../../../components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { WIDGET_BODY_ACTIONS } from '../../../utils/widgetHeaderActions.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -239,6 +242,12 @@ export default {
 		CnStatusBadge,
 		CnContactPicker,
 		CnContactCreate,
+		CnWidgetHeaderActionButtons,
+	},
+
+	inject: {
+		/** The widget's manifest `bodyActions`, drawn after this tab's own buttons. */
+		cnWidgetBodyActions: { from: WIDGET_BODY_ACTIONS, default: null },
 	},
 
 	props: {
@@ -255,7 +264,7 @@ export default {
 		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
 		/** Label for the button that creates a contact. */
-		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'New contact') },
 		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
 		/** Body of the empty state shown when no contact is linked. */
@@ -305,6 +314,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The widget's body actions, unwrapped.
+		 *
+		 * @return {Array<object>} The resolved buttons, or none.
+		 */
+		bodyActions() {
+			const provided = this.cnWidgetBodyActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
+
 		/**
 		 * Defensive view onto `this.contacts` — always an array.
 		 *
