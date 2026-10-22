@@ -41,21 +41,21 @@
 		<div class="cn-contacts-tab__header">
 			<NcButton
 				variant="secondary"
-				:aria-label="addNewLabel"
-				@click="showCreateDialog = true">
-				<template #icon>
-					<AccountPlus :size="20" />
-				</template>
-				{{ addNewLabel }}
-			</NcButton>
-			<NcButton
-				variant="primary"
 				:aria-label="linkExistingLabel"
 				@click="showLinkDialog = true">
 				<template #icon>
 					<LinkVariant :size="20" />
 				</template>
 				{{ linkExistingLabel }}
+			</NcButton>
+			<NcButton
+				variant="secondary"
+				:aria-label="addNewLabel"
+				@click="showCreateDialog = true">
+				<template #icon>
+					<AccountPlus :size="20" />
+				</template>
+				{{ addNewLabel }}
 			</NcButton>
 			<CnWidgetHeaderActionButtons v-if="bodyActions.length > 0" :actions="bodyActions" />
 		</div>
@@ -264,7 +264,7 @@ export default {
 		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
 		/** Label for the button that creates a contact. */
-		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'New contact') },
 		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
 		/** Body of the empty state shown when no contact is linked. */
