@@ -385,6 +385,7 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -478,7 +479,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
-		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?, aggregates?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -511,6 +512,13 @@ export default {
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
+		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
+		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
+		 * row) asks a figure over each row's related objects, as a table's
+		 * `aggregate` column does, and offers it to the row's templates as
+		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
+		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
+		 * lopende zaken").
 		 *
 		 * @type {object}
 		 */
@@ -564,6 +572,8 @@ export default {
 			/** The reader's sort of a `table`: the column key and `ascending` or `descending`. */
 			tableSort: { key: '', dir: '' },
 			rows: [],
+			/** The `aggregates` figures per row id: `{ [rowId]: { [key]: value } }`. */
+			aggregateValues: {},
 			total: 0,
 			loading: false,
 			error: false,
@@ -742,7 +752,7 @@ export default {
 			const c = this.content || {}
 			const barScale = this.barScale
 			return this.rows.slice(0, this.limit).map((raw, index) => {
-				const row = scalarRow(raw)
+				const row = this.withAggregates(scalarRow(raw))
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
@@ -1078,6 +1088,7 @@ export default {
 
 		rows() {
 			this.evaluateEmptyTexts()
+			this.loadAggregates()
 		},
 
 		footerDisabledKey: {
@@ -1499,6 +1510,80 @@ export default {
 				return null
 			}
 			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
+		},
+
+		/**
+		 * Ask every `content.aggregates` figure (`{ key: { register, schema,
+		 * op: "count" | "max", field?, where } }`, `@self.<path>` in `where`
+		 * read off the row) for each row shown, as a table's `aggregate`
+		 * column does. A failed figure is left out; a stale batch is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		async loadAggregates() {
+			const declared = this.content?.aggregates
+			const entries = declared && typeof declared === 'object' ? Object.entries(declared).filter(([, agg]) => isRowAggregate(agg)) : []
+			const id = (this.aggregateRequestId = (this.aggregateRequestId || 0) + 1)
+			if (entries.length === 0) {
+				this.aggregateValues = {}
+				return
+			}
+			const next = {}
+			const jobs = []
+			for (const raw of this.rows.slice(0, this.limit)) {
+				const row = scalarRow(raw)
+				const rowId = row && typeof row === 'object' ? (row.id || row['@self']?.id) : null
+				if (!rowId) {
+					continue
+				}
+				next[rowId] = {}
+				for (const [key, agg] of entries) {
+					jobs.push(fetchRowAggregate(agg, row)
+						.then((value) => {
+							next[rowId][key] = this.aggregateText(agg, value)
+						})
+						.catch(() => {}))
+				}
+			}
+			await Promise.all(jobs)
+			if (id === this.aggregateRequestId) {
+				this.aggregateValues = next
+			}
+		},
+
+		/**
+		 * A count read through the aggregate's `text` forms (`{ zero?, one?,
+		 * other }`, `{count}` filled in, translated), else the figure itself.
+		 *
+		 * @param {object} agg The aggregate declaration.
+		 * @param {unknown} value The figure.
+		 * @return {unknown} The text, or the figure.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		aggregateText(agg, value) {
+			const forms = agg && agg.text
+			const count = Number(value)
+			if (!forms || typeof forms !== 'object' || !Number.isFinite(count)) {
+				return value
+			}
+			const form = (count === 0 && forms.zero) || (count === 1 && forms.one) || forms.other || forms.one
+			return typeof form === 'string' ? this.translate(form).replace(/\{count\}/g, String(count)) : value
+		},
+
+		/**
+		 * The row with its `aggregates` figures under their keys.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The row, its figures added when it has any.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		withAggregates(row) {
+			if (!row || typeof row !== 'object') {
+				return row
+			}
+			const figures = this.aggregateValues[row.id || row['@self']?.id]
+			return figures ? { ...row, ...figures } : row
 		},
 
 		/**
