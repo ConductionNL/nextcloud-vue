@@ -1076,3 +1076,12 @@
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
 	font-weight: 500;
 }
+
+/* ---- The attention flag's buttons --------------------------------------- */
+/* The case boards draw "Markeer voor aandacht" and the flag's other labelled
+   buttons at the 40px control height (DqZaak and the case tab boards);
+   NcButton draws 34px.
+   @spec openspec/changes/board-attention-flag-button-height/specs/board-attention-flag-button-height/spec.md#requirement-the-attention-flags-buttons-are-40px */
+.cn-look-board .cn-attention-flag:not(.cn-look-nextcloud *) .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
+}
