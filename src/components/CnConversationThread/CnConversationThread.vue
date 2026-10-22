@@ -80,7 +80,10 @@
 			class="cn-conversation-thread__reply"
 			data-testid="cn-conversation-reply"
 			@submit.prevent="onSend">
-			<label :for="inputId" class="cn-conversation-thread__reply-label">{{ replyLabel }}</label>
+			<div class="cn-conversation-thread__reply-head">
+				<label :for="inputId" class="cn-conversation-thread__reply-label">{{ replyLabel }}</label>
+				<span v-if="replyHint" class="cn-conversation-thread__reply-hint" data-testid="cn-conversation-reply-hint">{{ replyHint }}</span>
+			</div>
 			<textarea
 				:id="inputId"
 				v-model="draft"
@@ -92,6 +95,10 @@
 				data-testid="cn-conversation-input"
 				@keydown.ctrl.enter.prevent="onSend"
 				@keydown.meta.enter.prevent="onSend" />
+			<label v-if="optionShown" class="cn-conversation-thread__reply-option" data-testid="cn-conversation-reply-option">
+				<input v-model="optionOn" type="checkbox" :disabled="sending">
+				<span>{{ replyOption.label }}</span>
+			</label>
 			<p
 				v-if="errorMessage"
 				:id="errorId"
@@ -194,6 +201,24 @@ export default {
 			default: 'h3',
 		},
 
+		/** A line beside the reply label saying where the answer goes, such as "Goes to the message box in the portal". */
+		replyHint: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A switch under the reply box whose state is sent with the reply:
+		 * `{ label, key, value? }`, `value` the starting state (on by default).
+		 * The reply's `send` event carries `{ [key]: state }` after the text.
+		 *
+		 * @type {{label: string, key: string, value?: boolean}|null}
+		 */
+		replyOption: {
+			type: Object,
+			default: null,
+		},
+
 		/** Whether the reply box renders. Turn it off for a closed or read-only record. */
 		allowReply: {
 			type: Boolean,
@@ -283,6 +308,8 @@ export default {
 		conversationThreadUid += 1
 		return {
 			draft: '',
+			/** The state of the reply option's switch. */
+			optionOn: this.replyOption?.value !== false,
 			/** The channel the chips narrow the thread to; '' is All. */
 			activeChannel: '',
 			sending: false,
@@ -350,6 +377,27 @@ export default {
 				{ label: t('nextcloud-vue', 'All'), count: this.rows.length },
 				...this.channelLabels.map((label) => ({ label, count: this.rows.filter((row) => row.channel === label).length })),
 			]
+		},
+
+		/**
+		 * Whether the reply option renders: it has a label and a key.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
+		 */
+		optionShown() {
+			const option = this.replyOption
+			return Boolean(option && typeof option.label === 'string' && option.label !== '' && typeof option.key === 'string' && option.key !== '')
+		},
+
+		/**
+		 * What travels with the reply besides its text.
+		 *
+		 * @return {object} `{ [key]: state }`, or {} without an option.
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
+		 */
+		replyExtras() {
+			return this.optionShown ? { [this.replyOption.key]: this.optionOn === true } : {}
 		},
 
 		/** @return {number} The pressed chip: 0 for All. */
@@ -456,14 +504,14 @@ export default {
 			}
 			const text = this.draft.trim()
 			this.errorMessage = ''
-			this.$emit('send', text)
+			this.$emit('send', text, this.replyExtras)
 			if (!this.endpoint) {
 				this.draft = ''
 				return
 			}
 			this.sending = true
 			try {
-				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, message: text })
+				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, ...this.replyExtras, message: text })
 				this.draft = ''
 				this.$emit('sent', response?.data)
 			} catch (error) {
@@ -612,8 +660,27 @@ export default {
 	gap: calc(2 * var(--default-grid-baseline));
 }
 
+.cn-conversation-thread__reply-head {
+	align-items: baseline;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	justify-content: space-between;
+}
+
 .cn-conversation-thread__reply-label {
 	font-weight: 600;
+}
+
+.cn-conversation-thread__reply-hint {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-conversation-thread__reply-option {
+	align-items: center;
+	display: flex;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__input {

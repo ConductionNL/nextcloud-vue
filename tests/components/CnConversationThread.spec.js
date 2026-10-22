@@ -78,7 +78,7 @@ describe('CnConversationThread', () => {
 		const wrapper = mountThread()
 		await wrapper.find('textarea').setValue('  Hello there ')
 		await wrapper.find('form').trigger('submit')
-		expect(wrapper.emitted('send')[0]).toEqual(['Hello there'])
+		expect(wrapper.emitted('send')[0]).toEqual(['Hello there', {}])
 		expect(wrapper.find('textarea').element.value).toBe('')
 		expect(axios.post).not.toHaveBeenCalled()
 	})
