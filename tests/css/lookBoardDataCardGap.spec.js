@@ -38,7 +38,7 @@ describe('look-board-detail.css: a data card\'s body', () => {
 	})
 
 	it('leaves the other body cards at 12px', () => {
-		expect(bodyOf('.cn-look-board .cn-detail-page .cn-widget-wrapper__content')).toContain('padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;')
+		expect(bodyOf('.cn-look-board .cn-detail-page .cn-widget-wrapper__content')).toContain('padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;')
 	})
 
 	it('leaves a side card at 10px', () => {

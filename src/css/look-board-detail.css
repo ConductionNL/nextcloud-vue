@@ -617,11 +617,11 @@
 /* 12px from the title's glyphs to the first line's glyphs, as drawn.
    @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
@@ -1186,17 +1186,17 @@
    table inside the padding (DqTenant "Mandaten"), so it is an opt-in.
    @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-an-object-list-can-run-its-table-edge-to-edge-in-its-card */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container {
-	margin-inline: -22px;
+	margin-inline: calc(-1 * var(--cn-board-card-inline-padding));
 	border: 0;
 	border-radius: 0;
 }
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):first-child {
-	padding-inline-start: 22px;
+	padding-inline-start: var(--cn-board-card-inline-padding);
 }
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):last-child {
-	padding-inline-end: 22px;
+	padding-inline-end: var(--cn-board-card-inline-padding);
 }
 
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */

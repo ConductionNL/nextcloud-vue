@@ -27,12 +27,18 @@ function rule(selector) {
 const TABLE = '.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container'
 
 describe('look-board-detail.css: an object list table edge to edge', () => {
+	it('bleeds by the card\'s own side inset, which stays 22px', () => {
+		const board = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
+		expect(board).toContain('--cn-board-card-inline-padding: 22px;')
+		expect(board).toContain('--cn-board-card-padding: 20px var(--cn-board-card-inline-padding);')
+	})
+
 	it('runs the table under the card\'s 22px side padding', () => {
-		expect(rule(TABLE)).toContain('margin-inline: -22px')
+		expect(rule(TABLE)).toContain('margin-inline: calc(-1 * var(--cn-board-card-inline-padding))')
 	})
 
 	it('pads the outer cells 22px', () => {
-		expect(rule(TABLE + ' :is(th, td):first-child')).toContain('padding-inline-start: 22px')
-		expect(rule(TABLE + ' :is(th, td):last-child')).toContain('padding-inline-end: 22px')
+		expect(rule(TABLE + ' :is(th, td):first-child')).toContain('padding-inline-start: var(--cn-board-card-inline-padding)')
+		expect(rule(TABLE + ' :is(th, td):last-child')).toContain('padding-inline-end: var(--cn-board-card-inline-padding)')
 	})
 })
