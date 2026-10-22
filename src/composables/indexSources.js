@@ -1124,6 +1124,30 @@ function searchSource(config = {}, context = {}) {
 	 * @param {object} object The found object.
 	 * @return {string}
 	 */
+	/**
+	 * What one row is, for the Kind column under `kindAsText`: the kind's
+	 * `rowLabel` (a template on the found object, "{objectType}"), else the
+	 * kind's label.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object or file entry.
+	 * @return {string}
+	 */
+	const kindTextOf = (kind, object) => {
+		if (typeof kind.rowLabel === 'string' && kind.rowLabel !== '') {
+			const label = translate(kind.rowLabel)
+			return kind.rowLabel.includes('{') ? (fillTemplate(label, object || {}) || kind.label) : label
+		}
+		return kind.label
+	}
+
+	/**
+	 * What a row shows in the Linked column.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object.
+	 * @return {string}
+	 */
 	const linkedOf = (kind, object) => {
 		if (kind.linkedTemplate) {
 			return fillTemplate(translate(kind.linkedTemplate), object)
@@ -1153,6 +1177,7 @@ function searchSource(config = {}, context = {}) {
 					id: `${kind.id}:${id}`,
 					kind: kind.id,
 					kindLabel: kind.label,
+					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
 					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
 					status,
@@ -1176,6 +1201,7 @@ function searchSource(config = {}, context = {}) {
 				id: `${kind.id}:${entry.resourceUrl || index}`,
 				kind: kind.id,
 				kindLabel: kind.label,
+				kindText: kindTextOf(kind, entry),
 				title: entry.title || '',
 				subtitle: entry.subline || '',
 				status: '',
@@ -1197,7 +1223,7 @@ function searchSource(config = {}, context = {}) {
 			// The header filters on Kind, Linked and Status narrow the answer
 			// already fetched; they do not search again.
 			const filters = {}
-			for (const key of ['kindLabel', 'linked', 'status']) {
+			for (const key of ['kindLabel', 'kindText', 'linked', 'status']) {
 				const value = cfg && cfg[key]
 				const values = (Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])).map(String)
 				if (values.length > 0) {
@@ -1258,7 +1284,11 @@ function searchSource(config = {}, context = {}) {
 
 		columns: [
 			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
-			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label), sortable: true },
+			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
+			// DqZoekresultaten), instead of the plural kind as a pill.
+			config && config.kindAsText === true
+				? { key: 'kindText', label: t('nextcloud-vue', 'Kind'), sortable: true }
+				: { key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label), sortable: true },
 			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked'), sortable: true }] : []),
 			{
 				key: 'status',
