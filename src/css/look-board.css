@@ -1548,6 +1548,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 }
 
+/* A note with a heading is the boards' larger box: 14px 16px, a 20px icon
+   12px before 14px text, in a dialog too (DqBesluit "Publiceren doet u
+   daarna", DqArchiveren "Daarna alleen lezen").
+   @spec openspec/changes/board-headed-note/specs/board-headed-note/spec.md#requirement-a-board-note-with-a-heading-is-the-larger-box */
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *):has(.notecard__heading) {
+	gap: 12px;
+	padding: 14px 16px;
+	font-size: 14px;
+}
+
+.cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *):has(.notecard__heading) .notecard__icon svg {
+	width: 20px;
+	height: 20px;
+	max-width: 20px;
+	max-height: 20px;
+}
+
+.cn-look-board.cn-dialog-board .notecard.notecard--info:has(.notecard__heading):not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* A record list's notice puts its icon on the first line too: the icon's
    own `align-self: center` (vue-material-design-icons) overrides the
    notice's `align-items: flex-start` (DqZaaktypeOverzicht). */
