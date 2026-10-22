@@ -52,6 +52,12 @@
 	min-height: 0;
 }
 
+/* A notice under the list card, on the page ground (`notice.placement: 'page'`). */
+.cn-index-page__notice--page {
+	flex: none;
+	margin: 20px 0 0;
+}
+
 .cn-index-page__main {
 	flex: 1;
 	min-width: 0;
