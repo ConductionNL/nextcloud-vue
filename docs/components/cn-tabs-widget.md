@@ -275,3 +275,13 @@ In the board look `overflow`, `maxVisibleTabs` and `hideEmpty` still decide whic
   ]
 }
 ```
+
+## A tab that needs a permission
+
+A tab can name the permission it needs with `permission`, as a page tab and a menu entry can. It is drawn for a viewer
+who holds it, and when the app provides no permissions at all. This only decides whether the tab is drawn; the data
+behind it is guarded on the server.
+
+```json
+{ "widgetId": "case-social-indications", "label": "Indication", "permission": "sociaal-domein" }
+```

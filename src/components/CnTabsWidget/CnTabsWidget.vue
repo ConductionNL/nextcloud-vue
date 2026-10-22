@@ -392,6 +392,8 @@ export default {
 		 * label written in the manifest reads in the user's language.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The permissions the viewer holds, provided by CnAppRoot; for a tab that names one. */
+		cnPermissions: { default: () => [] },
 		/** The page's action dispatcher (CnPageRenderer), for a panel widget's `headerActions`. */
 		cnDispatchAction: { default: null },
 		/**
@@ -1282,6 +1284,25 @@ export default {
 		},
 
 		/**
+		 * Whether the viewer may see a tab that names a `permission`, as a
+		 * page tab and a menu entry decide it: shown to a holder, and shown
+		 * when no permissions are known. Only whether the tab is drawn; the
+		 * data behind it is guarded on the server.
+		 *
+		 * @param {string|object} tab The tab entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-tab-permission/specs/tabs-widget/spec.md#requirement-a-detail-tab-can-name-the-permission-it-needs
+		 */
+		tabPermitted(tab) {
+			const permission = tab && typeof tab === 'object' ? tab.permission : null
+			if (typeof permission !== 'string' || permission === '') {
+				return true
+			}
+			const held = Array.isArray(this.cnPermissions) ? this.cnPermissions : []
+			return held.length === 0 || held.includes(permission)
+		},
+
+		/**
 		 * Whether a tab shows: `visible`, `hidden`, or `pending` while its
 		 * condition cannot be decided yet (object not loaded, count not back).
 		 *
@@ -1291,6 +1312,9 @@ export default {
 		 * @spec openspec/changes/tabs-widget-visible-if/tasks.md#task-2
 		 */
 		tabVisibility(tab, index) {
+			if (!this.tabPermitted(tab)) {
+				return 'hidden'
+			}
 			const cond = tab && typeof tab === 'object' ? tab.visibleWhen : null
 			if (!cond) {
 				return 'visible'
