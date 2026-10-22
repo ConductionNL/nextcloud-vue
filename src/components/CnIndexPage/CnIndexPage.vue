@@ -12416,7 +12416,9 @@ export default {
 			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
 				return
 			}
-			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			// OpenRegister answers a view with a numeric `id` and its `uuid`; a
+			// menu entry or a shared link may name either.
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id || (v.uuid !== undefined && String(v.uuid) === id))
 			if (view) {
 				this.onApplySavedView(view, { keepSavedViewKey: true })
 			}
