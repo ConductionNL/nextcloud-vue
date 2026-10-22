@@ -1350,7 +1350,7 @@
 			v-if="shouldRenderInlineSidebar"
 			:open="sidebarOpen"
 			:schema="effectiveSchema"
-			:title="title"
+			:title="shownTitle"
 			:icon="resolvedIcon"
 			:searchValue="effectiveSearchValue"
 			:visibleColumns="effectiveVisibleColumns"
@@ -8591,7 +8591,7 @@ export default {
 			return {
 				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
-				title: this.title,
+				title: this.shownTitle,
 				icon: this.resolvedIcon,
 				searchValue: this.effectiveSearchValue,
 				visibleColumns: this.effectiveVisibleColumns,
