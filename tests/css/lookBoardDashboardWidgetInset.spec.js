@@ -59,10 +59,19 @@ describe('look-board.css: widgets on a board dashboard card keep its side inset'
 		expect(bodyOf(board, `${CARD} ${widget}`)).toContain(`padding: ${padding};`)
 	})
 
-	it('puts a widget table\'s first and last column on the inset', () => {
+	/**
+	 * The boards draw a widget table inside the card's inset, its header band
+	 * and its cells 12px in from the table's edge (DqTermijnen, DqDoorlooptijd,
+	 * DqProcesanalyse). The table used to run to the card's edge with its first
+	 * and last column padded to the inset.
+	 *
+	 * @spec openspec/changes/board-dashboard-table-inset/specs/board-dashboard-table-inset/spec.md#requirement-a-board-dashboard-table-sits-inside-the-cards-inset
+	 */
+	it('puts a widget table inside the inset, its outer columns at the table\'s own 12px', () => {
+		expect(bodyOf(board, `${CARD} .cn-widget-object-table`)).toContain('padding: 0 22px 20px;')
 		for (const cell of ['th', 'td']) {
-			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:first-child`)).toContain(`padding-inline-start: ${INSET};`)
-			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:last-child`)).toContain(`padding-inline-end: ${INSET};`)
+			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:first-child`)).toBe('')
+			expect(bodyOf(board, `${CARD} .cn-widget-object-table .cn-data-table ${cell}:last-child`)).toBe('')
 		}
 	})
 })

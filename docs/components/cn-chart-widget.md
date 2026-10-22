@@ -149,6 +149,7 @@ dataSource: {
     sumField: 'hours',                   // required for metric: 'sum'
     topN: 10,                            // keep the 10 largest groups (sorted desc)
     otherBucket: true,                   // fold the remainder into a translated "Other" slice
+    mergeByLabel: true,                  // one bar per label: same-label groups summed before topN
     labelResolve: {                      // when groupBy holds reference uuids:
       schema: 'billingCategory',         //   resolve each key to the referenced object…
       labelField: 'name',                //   …'s display label (default 'name')
@@ -160,6 +161,8 @@ dataSource: {
 ```
 
 Server-first: OpenRegister's `/grouped` facet endpoint does the aggregation (the same facet the `groupBy` shorthand reaches), so the client never pulls a collection just to count it. When that endpoint is unavailable (older OR) the widget falls back to fetching the collection (capped at 1000 objects) and grouping client-side. `labelResolve` resolves reference keys through the **shared object store** (per-id cache + in-flight dedup — the `fkResolve` cell pattern), degrading to the raw key when an object can't be loaded. An explicit `colorMap` prop wins over `labelResolve.colorField` colours.
+
+`mergeByLabel: true` folds the groups whose labels read the same into one bar or slice, summed, and only then sorts and keeps the `topN` (2.141.0). Status types are declared per case type, so each case type's "Received" is its own id; merged, they count as one "Received" bar. Every key behind a merged bar stays for the drilldown, which then puts all of them in the query as a list (`{ status: [id1, id2] }`); a bar with one key keeps a plain value. With `labelResolve`, merging resolves every group's label, not only the top N.
 
 ### Drilldown — segment/bar click → filtered route
 

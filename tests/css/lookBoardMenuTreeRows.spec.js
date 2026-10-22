@@ -62,3 +62,20 @@ describe('look-board.css: a board tree menu draws folder rows', () => {
 		expect(body).toContain('font-weight: 700;')
 	})
 })
+
+describe('look-board.css: a board tree draws its second level as sub-folders', () => {
+	const EXPANDED = '.cn-look-board .cn-menu-widget--style-tree.cn-menu-widget--expanded:not(.cn-look-nextcloud *)'
+
+	it('draws no carets in a tree that opens fully', () => {
+		expect(bodyOf(`${EXPANDED} .cn-menu-tree-node__caret`)).toContain('display: none;')
+		expect(bodyOf(`${EXPANDED} .cn-menu-tree-node__caret-spacer`)).toContain('display: none;')
+	})
+
+	it('sets a second-level row 28px in, 14px, in the muted ink', () => {
+		const body = bodyOf(`${TREE} .cn-menu-tree-node--depth-2 > .cn-menu-tree-node__row`)
+		expect(body).toContain('padding-inline-start: 28px !important;')
+		expect(body).toContain('padding-block: 6px;')
+		expect(body).toContain('font-size: 14px;')
+		expect(body).toContain('color: var(--color-text-maxcontrast);')
+	})
+})

@@ -1325,6 +1325,18 @@
 				@close="closeEditForm" />
 		</slot>
 
+		<!-- A record-source verb that asks for values first (the tasks source's
+		     Edit): its own form, saved through the source. -->
+		<CnFormDialog
+			v-if="sourceVerbForm"
+			ref="sourceVerbFormDialog"
+			:schema="sourceVerbForm.form.schema"
+			:item="sourceVerbForm.form.item || {}"
+			:dialogTitle="sourceVerbForm.label"
+			:fieldOverrides="sourceVerbForm.form.fieldOverrides || {}"
+			@confirm="onSourceVerbFormConfirm"
+			@close="sourceVerbForm = null" />
+
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
 		<CnRelationLinkModal
@@ -1402,6 +1414,7 @@ import {
 	groupMenuEntries,
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
+	onTab,
 	pillCountSource,
 	pillLook,
 	resolveCountPill,
@@ -2669,7 +2682,9 @@ export default {
 		 * for the few actions a handler uses on every record. At most three
 		 * render; later entries are dropped. An entry is an action object in
 		 * the `headerActions` shape, or the id of a declared header action,
-		 * which then leaves the Actions menu.
+		 * which then leaves the Actions menu. `{ id, tabs?, notTabs? }` names
+		 * a declared action that is a button only beside those body tabs, as
+		 * a side card follows them; elsewhere it stays in the Actions menu.
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2704,7 +2719,8 @@ export default {
 		 * object with `stages`), that map replaces `stages` for this record, so
 		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
-		 * the primary button inside it. See `CnNextStepCard`.
+		 * the primary button inside it. `tabs` / `notTabs` tie the card to
+		 * body tabs as a side card. See `CnNextStepCard`.
 		 *
 		 * @type {object|null}
 		 */
@@ -2788,10 +2804,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
-		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|null}
+		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
+		 * and then the record); `currentField` and `separator` may sit on any
+		 * of them.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
 		breadcrumb: {
-			type: Object,
+			type: [Object, Array],
 			default: null,
 		},
 
@@ -2889,6 +2910,21 @@ export default {
 		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
 		 */
 		sideColumnFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A field path, read like a `visibleWhen` field, whose list of
+		 * declared header action ids picks this record's quick actions
+		 * (manifest `config.quickActionsFrom`, e.g.
+		 * `@context.caseType.quickActions`). Only ids of `headerActions` are
+		 * taken, so the record's data never defines an action. An empty or
+		 * missing list keeps `quickActions`.
+		 *
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		quickActionsFrom: {
 			type: String,
 			default: '',
 		},
@@ -3275,6 +3311,8 @@ export default {
 			menuHeaderActions: [],
 			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
 			sourceVerbBusy: false,
+			/** The record-source verb whose form is open, or null. */
+			sourceVerbForm: null,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -3542,6 +3580,35 @@ export default {
 		},
 
 		/**
+		 * The quick actions for this record: the declared header actions the
+		 * record lists through `quickActionsFrom`, in its order, else
+		 * `quickActions`. An entry is an id, or `{ id, ... }` without a label;
+		 * an id no header action declares is dropped.
+		 *
+		 * @return {Array<string|object>} The entries.
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		effectiveQuickActions() {
+			const declared = Array.isArray(this.quickActions) ? this.quickActions : []
+			if (!this.quickActionsFrom || !this.widgetVisibilityData) {
+				return declared
+			}
+			const listed = readVisibleWhenPath(this.widgetVisibilityData, this.quickActionsFrom)
+			if (!Array.isArray(listed)) {
+				return declared
+			}
+			const known = new Set((Array.isArray(this.headerActions) ? this.headerActions : []).map((action) => action && action.id))
+			const idOf = (entry) => {
+				if (typeof entry === 'string') {
+					return entry
+				}
+				return entry && typeof entry === 'object' && !('label' in entry) && typeof entry.id === 'string' ? entry.id : ''
+			}
+			const picked = listed.filter((entry) => known.has(idOf(entry)))
+			return picked.length > 0 ? picked : declared
+		},
+
+		/**
 		 * The quick actions as ids, plus definitions for the inline ones.
 		 * Capped at three, and never the action that is already the primary
 		 * button.
@@ -3551,7 +3618,7 @@ export default {
 		 */
 		pinnedQuickActions() {
 			const primaryId = this.stagePrimary?.id
-			return (Array.isArray(this.quickActions) ? this.quickActions : [])
+			return this.effectiveQuickActions
 				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
 				.filter((pinned) => pinned && pinned.id !== primaryId)
 				.slice(0, MAX_QUICK_ACTIONS)
@@ -3572,13 +3639,16 @@ export default {
 		},
 
 		/**
-		 * The quick actions in dispatchable form, in declaration order.
+		 * The quick actions in dispatchable form, in declaration order, less
+		 * the ones the open body tab leaves out.
 		 *
 		 * @return {Array<object>} The entries that are visible.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		quickActionEntries() {
 			return this.pinnedQuickActions
+				.filter((pinned) => onTab(pinned, this.activeBodyTab))
 				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
 				.filter(Boolean)
 		},
@@ -3870,11 +3940,12 @@ export default {
 		/**
 		 * Whether the "what now" card renders.
 		 *
-		 * @return {boolean} True when the stage has a checklist and the body is showing.
+		 * @return {boolean} True when the stage has a checklist, the body is showing and the open tab allows it.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		showsNextStepCard() {
-			return Boolean(this.nextStepCard) && this.showsBody
+			return Boolean(this.nextStepCard) && this.showsBody && onTab(this.nextStep, this.activeBodyTab)
 		},
 
 		/**
@@ -4932,30 +5003,45 @@ export default {
 		},
 
 		/**
-		 * The breadcrumb trail: the declared crumb (a router target from
+		 * The declared crumbs: `config.breadcrumb` as one crumb or a list,
+		 * without the crumbs that have no label.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @return {Array<object>}
+		 */
+		declaredCrumbs() {
+			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
+			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+		},
+
+		/**
+		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
-		 * as the current crumb. Empty without a `breadcrumb` label. The first
-		 * crumb carries `icon` only when the manifest declares one.
+		 * as the current crumb. Empty without a declared crumb. A crumb
+		 * carries `icon` only when the manifest declares one.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
-			const crumb = this.breadcrumb
-			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+			if (this.declaredCrumbs.length === 0) {
 				return []
 			}
-			const first = { label: this.effectiveTranslate(crumb.label) }
-			if (typeof crumb.icon === 'string' && crumb.icon !== '') {
-				first.icon = crumb.icon
-			}
-			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
-			} else if (crumb.href) {
-				first.href = crumb.href
-			}
-			return [first, { label: this.breadcrumbCurrentLabel }]
+			const crumbs = this.declaredCrumbs.map((crumb) => {
+				const entry = { label: this.effectiveTranslate(crumb.label) }
+				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
+					entry.icon = crumb.icon
+				}
+				if (crumb.route) {
+					entry.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
+				} else if (crumb.href) {
+					entry.href = crumb.href
+				}
+				return entry
+			})
+			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 
 		/**
@@ -4967,8 +5053,8 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbCurrentLabel() {
-			const field = this.breadcrumb && this.breadcrumb.currentField
-			if (typeof field === 'string' && field !== '') {
+			const field = this.breadcrumbOption('currentField')
+			if (field !== '') {
 				const value = stageOf(this.resolvedObject, field)
 				if (value !== '') {
 					return value
@@ -4985,8 +5071,7 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbSeparator() {
-			const separator = this.breadcrumb && this.breadcrumb.separator
-			return typeof separator === 'string' ? separator : ''
+			return this.breadcrumbOption('separator')
 		},
 
 		/**
@@ -5609,6 +5694,18 @@ export default {
 
 	methods: {
 		/**
+		 * A key of the declared trail: the last crumb that sets it wins.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @param {string} key `currentField` or `separator`.
+		 * @return {string} Its value, or ''.
+		 */
+		breadcrumbOption(key) {
+			const found = [...this.declaredCrumbs].reverse().find((crumb) => typeof crumb[key] === 'string' && crumb[key] !== '')
+			return found ? found[key] : ''
+		},
+
+		/**
 		 * A body widget starts or stops showing its own cards in the side
 		 * column. While any does, the generic side cards stand aside.
 		 *
@@ -6170,6 +6267,10 @@ export default {
 			if (!source || !objectId || this.sourceVerbBusy) {
 				return
 			}
+			if (verb.form && verb.form.schema) {
+				this.sourceVerbForm = verb
+				return
+			}
 			this.sourceVerbBusy = true
 			try {
 				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
@@ -6186,6 +6287,39 @@ export default {
 			} finally {
 				this.sourceVerbBusy = false
 			}
+		},
+
+		/**
+		 * Save the open record-source verb form through the source: only the
+		 * form's own fields are sent. The form shows the server's refusal and
+		 * stays open; on success it closes and the page redraws from the
+		 * record the source kept.
+		 *
+		 * @param {object} formData The form's values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async onSourceVerbFormConfirm(formData) {
+			const verb = this.sourceVerbForm
+			const source = this.recordSource
+			const dialog = this.$refs.sourceVerbFormDialog
+			if (!verb || !source || !this.objectId) {
+				return
+			}
+			const keys = Object.keys(verb.form.schema.properties || {})
+			const body = Object.fromEntries(keys.filter((key) => formData && key in formData).map((key) => [key, formData[key]]))
+			const outcome = await source.runVerb(String(this.objectId), verb.id, { body })
+			if (!outcome || outcome.ok !== true) {
+				dialog?.setResult({ error: String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.') })
+				return
+			}
+			dialog?.setResult({ success: true })
+			this.sourceVerbForm = null
+			if (verb.successMessage) {
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				showSuccess(verb.successMessage)
+			}
+			this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
 		},
 
 		/**
@@ -6975,16 +7109,7 @@ export default {
 		 * @return {boolean}
 		 */
 		sideWidgetOnTab(widget) {
-			if (this.editingBody) {
-				return true
-			}
-			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
-				return false
-			}
-			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
-				return true
-			}
-			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
+			return this.editingBody || onTab(widget, this.activeBodyTab)
 		},
 
 		/**

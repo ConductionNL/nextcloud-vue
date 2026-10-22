@@ -523,6 +523,28 @@
 	line-height: 1.2;
 }
 
+/* A conversation as DqZaakContact draws it: our messages in the main ink on
+   the primary tint, the channel as a small bordered pill, the meta line at
+   13px with the author at 600.
+   @spec openspec/changes/conversation-board-bubble/specs/conversation-source/spec.md#requirement-a-message-names-its-author-per-side-its-direction-and-a-note */
+.cn-look-board .cn-conversation-thread__message--us .cn-conversation-thread__bubble {
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-conversation-thread__meta {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-conversation-thread__channel {
+	padding: 1px 8px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail
@@ -580,6 +602,24 @@
    @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
 	padding-top: calc(14px - var(--cn-board-first-line-leading));
+}
+
+/* Facts that open on the column grid are a data card too (DqContact
+   "Contact", DqOrganisatie "Organisatie").
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
+	padding-top: calc(14px - var(--cn-board-first-line-leading));
+}
+
+/* Running text (DqZaak "Het verzoek") sits 12px below the title's box and
+   keeps its own half-leading, at 1.6 as drawn.
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-facts-widget__text:not(.cn-detail-page__side *) {
+	line-height: 1.6;
 }
 
 /* A header-less card keeps the full 20px 22px. */
@@ -649,6 +689,18 @@
 	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
+/* A side card that opens on a lead (DqZaak "Aanvrager", DqOrganisatie "KvK en
+   adres") draws the lead row 12px below the title, its two lines at their
+   normal height so they centre on the 40px tile.
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__lead:first-child) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__lead-text {
+	line-height: normal;
+}
+
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
    the board draws it. The card-fit wrapper is flush, and the wrapper's own
    flush rule loads after this sheet and outranked the side card's padding,
@@ -673,6 +725,30 @@
 	display: flex;
 }
 
+/* A widget-reported card header action in the main column is a neutral 40px
+   control: the main background, the control border, the main text at
+   14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document
+   genereren"). The side column keeps the tinted "+ Toevoegen".
+   @spec openspec/changes/board-widget-header-action-neutral/specs/board-widget-header-action-neutral/spec.md#requirement-a-board-widget-header-action-in-the-main-column-is-a-neutral-40px-control */
+.cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	gap: 8px;
+	height: var(--cn-board-control-height);
+	min-height: var(--cn-board-control-height);
+	padding: 0 14px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *):hover {
+	background: var(--color-background-hover);
+}
+
 /* The notice at the top of the side column: one tinted block, radius 12,
    padding 14px 16px. Only the outer layer paints; the card wrapper, the
    banner and its note card inside it stay flat, so the notice is not drawn
@@ -694,6 +770,13 @@
 	border-radius: 0;
 	margin: 0;
 	padding: 0;
+}
+
+/* NcNoteCard paints its own ground with `!important`, so the note inside
+   the notice needs it too, or it stays a second tinted box in the first.
+   @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
+	background-color: transparent !important;
 }
 
 /* A notice whose condition does not hold renders no banner; its slot then
@@ -1016,6 +1099,39 @@
 	padding-inline: 0;
 }
 
+/* The board draws the task table in a card edge to edge (DqZaakTaken "Taken
+   op deze zaak"): it runs under the card's 22px side padding, the first and
+   last cells pad 22px so the text lines up with the title, head cells 10px
+   12px, body cells 14px 12px. The task name is one text line; the theme gave
+   its button a 34px height.
+   @spec openspec/changes/board-task-table-bleed/specs/board-task-table-bleed/spec.md#requirement-a-board-task-table-runs-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table {
+	width: calc(100% + 44px);
+	margin-inline: -22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table th {
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table td {
+	padding: 14px 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td):first-child {
+	padding-inline-start: 22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td):last-child {
+	padding-inline-end: 22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__name {
+	min-height: 0;
+	height: auto;
+	line-height: normal;
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
@@ -1041,4 +1157,51 @@
 
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
+}
+
+/* ---- A file's side card (CnFilesBrowser) --------------------------------- */
+/* The board's side card: radius 12, 20px 22px of padding, the title a 15px
+   muted heading at 600, the facts 8px 16px apart with the values at 500
+   (DqDocumentenBeheer "Wie mag dit zien", "Controlegetal"). The title's tone
+   carries `!important` against a theme that colours every h3.
+   @spec openspec/changes/board-files-side-card/specs/board-files-side-card/spec.md#requirement-a-board-file-side-card-is-the-boards-side-card */
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) {
+	gap: 10px;
+	padding: var(--cn-board-card-padding);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-title {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size);
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts {
+	gap: 8px 16px;
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
+	font-weight: 500;
+}
+
+/* ---- The attention flag's buttons --------------------------------------- */
+/* The case boards draw "Markeer voor aandacht" and the flag's other labelled
+   buttons at the 40px control height (DqZaak and the case tab boards);
+   NcButton draws 34px.
+   @spec openspec/changes/board-attention-flag-button-height/specs/board-attention-flag-button-height/spec.md#requirement-the-attention-flags-buttons-are-40px */
+.cn-look-board .cn-attention-flag:not(.cn-look-nextcloud *) .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
+}
+
+/* ---- The flow board's inspector card (CnFlowBoard) ----------------------- */
+/* Titled as every board card: 17px, 700, the font's normal line height
+   (DqFlow "Welstand nodig?"). The doubled class outranks the component's
+   scoped 16px 600.
+   @spec openspec/changes/board-flow-card-title/specs/board-flow-card-title/spec.md#requirement-a-board-flow-card-is-titled-as-a-board-card */
+.cn-look-board .cn-flow-board__card-title.cn-flow-board__card-title:not(.cn-look-nextcloud *) {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
 }

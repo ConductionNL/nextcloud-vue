@@ -422,6 +422,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the primary action: an action object or the id of a header action. Falls back to `primaryAction`. |
 | `stageField` | String | `'status'` | Dot-path to the record's stage. |
 | `quickActions` | Array | `[]` | At most three always visible header buttons. |
+| `quickActionsFrom` | String | `''` | A field path, read like a `visibleWhen` field (e.g. `@context.caseType.quickActions`), whose list of `headerActions` ids picks this record's quick actions in that order. Undeclared ids and actions written out in the data are dropped; an empty or missing list keeps `quickActions`. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }` for the overflow menu. |
 | `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. `stagesFrom` (a field path such as `@context.caseType.nextStep`) reads the stages from the record when it holds them. |
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. Instead of `field`: `text` (a constant) or `countFrom` + `countLabel` (a count of a related list). |

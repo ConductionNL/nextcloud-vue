@@ -927,7 +927,8 @@
 /* A page link is a <button>: Nextcloud's `button` rule sets it bold, the
    boards set the links at the regular weight and only the current page at 600.
    The boards size a link's content box at 34px, so a bordered link is 36px
-   and the borderless current page 34px (DqZaken "2", "Volgende", "1").
+   and the borderless current page 34px (DqZaken "2", "Volgende", "1"). A
+   numbered link centres its number without side padding (DqOrganisaties "1").
    @spec openspec/changes/board-pagination-links/specs/board-pagination-links/spec.md#requirement-a-board-page-link-is-sized-as-the-boards-draw-it */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link {
 	box-sizing: border-box;
@@ -935,7 +936,7 @@
 	height: 36px;
 	min-height: 36px;
 	margin: 0;
-	padding: 0 8px;
+	padding: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
 	background: var(--color-main-background);
@@ -1565,4 +1566,15 @@
    @spec openspec/changes/board-attention-row/specs/board-attention-row/spec.md#requirement-a-board-table-row-marked-for-attention-is-tinted-warm */
 .cn-look-board .cn-data-table tr.cn-row--attention > td:not(.cn-look-nextcloud *) {
 	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
+}
+
+/* ---- A kanban column's show-more button ---------------------------------- */
+/* The board draws "Toon 12 meer" in the soft ink, its dashed edge in the 3:1
+   control colour, 6px in at the sides (DqWerkbord); the view draws the main
+   ink, 12px in, edged in border-dark (1.4:1 in plain Nextcloud).
+   @spec openspec/changes/board-kanban-show-more/specs/board-kanban-show-more/spec.md#requirement-a-board-columns-show-more-button-is-drawn-as-the-board-draws-it */
+.cn-look-board .cn-board-view .cn-board-view__show-more {
+	padding: 0 6px;
+	border-color: var(--cn-board-control-border);
+	color: var(--cn-board-text-soft);
 }
