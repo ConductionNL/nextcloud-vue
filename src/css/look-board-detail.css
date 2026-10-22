@@ -1099,6 +1099,39 @@
 	padding-inline: 0;
 }
 
+/* The board draws the task table in a card edge to edge (DqZaakTaken "Taken
+   op deze zaak"): it runs under the card's 22px side padding, the first and
+   last cells pad 22px so the text lines up with the title, head cells 10px
+   12px, body cells 14px 12px. The task name is one text line; the theme gave
+   its button a 34px height.
+   @spec openspec/changes/board-task-table-bleed/specs/board-task-table-bleed/spec.md#requirement-a-board-task-table-runs-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table {
+	width: calc(100% + 44px);
+	margin-inline: -22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table th {
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table td {
+	padding: 14px 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td):first-child {
+	padding-inline-start: 22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td):last-child {
+	padding-inline-end: 22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__name {
+	min-height: 0;
+	height: auto;
+	line-height: normal;
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
