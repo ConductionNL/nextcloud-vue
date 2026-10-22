@@ -65,6 +65,30 @@ export function columnProperty(column, schema) {
 }
 
 /**
+ * The schema property a field names, reading a dotted field (`address.place`)
+ * through the `properties` of each object property on the way.
+ *
+ * @param {string} field The field.
+ * @param {object|null} schema The table's schema.
+ * @return {object|null} The property.
+ */
+function fieldProperty(field, schema) {
+	if (!hasProperties(schema) || typeof field !== 'string' || field === '') {
+		return null
+	}
+	let properties = schema.properties
+	let prop = null
+	for (const segment of field.split('.')) {
+		prop = (properties && typeof properties === 'object') ? properties[segment] : null
+		if (!prop || typeof prop !== 'object') {
+			return null
+		}
+		properties = prop.properties
+	}
+	return prop
+}
+
+/**
  * Whether a column computes its value on the client, so the server cannot
  * sort or filter on it.
  *
@@ -221,27 +245,34 @@ function columnHintFilterDef(column, base) {
  * not store. When there is no schema to read, the column's own hints decide
  * (see `columnHintFilterDef`), falling back to a text filter on contains.
  *
+ * A dotted key (`address.place`) filters the field inside an object property
+ * when the schema describes it; OpenRegister filters such a path by its
+ * dotted name. A column may name the stored field it filters on with
+ * `filterField`, which also gives a computed column a filter.
+ *
  * @param {object} column The column definition.
  * @param {object|null} schema The table's schema.
  * @return {{key: string, kind: string, label: string, options: Array<{value: string, label: string}>, reference: object|null, dateTime: boolean}|null} The filter definition.
  * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-every-backed-column-filters-from-its-header
+ * @spec openspec/changes/column-filter-nested-field/specs/cn-data-table/spec.md
  */
 export function columnFilterDef(column, schema) {
 	if (!column || typeof column !== 'object' || typeof column.key !== 'string' || column.key === '') {
 		return null
 	}
-	if (column.filterable === false || isComputedColumn(column)) {
+	const field = (typeof column.filterField === 'string' && column.filterField !== '') ? column.filterField : column.key
+	if (column.filterable === false || (isComputedColumn(column) && field === column.key)) {
 		return null
 	}
-	const prop = columnProperty(column, schema)
-	const base = { key: column.key, label: column.label || (prop && prop.title) || column.key, options: [], reference: null, dateTime: false }
+	const prop = fieldProperty(field, schema)
+	const base = { key: field, label: column.label || (prop && prop.title) || column.key, options: [], reference: null, dateTime: false }
 
 	const options = enumOptions(column, prop)
 	if (options.length > 0) {
 		return { ...base, kind: 'enum', options }
 	}
 	if (!prop) {
-		return hasProperties(schema) ? null : columnHintFilterDef(column, base)
+		return hasProperties(schema) ? null : columnHintFilterDef({ ...column, key: field }, base)
 	}
 	const reference = referenceTarget(column, prop)
 	if (reference) {

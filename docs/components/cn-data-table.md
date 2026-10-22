@@ -142,6 +142,13 @@ header. `CnIndexPage` does this by default; turn it off for a page with
 | `$ref` or `fkResolve` | searchable list of the referenced objects | `key[]=<uuid>` |
 | text | contains | `key[like]=term` |
 
+A dotted key such as `address.place` filters the field inside an object
+property when the schema describes it, under the same dotted name
+(`address.place[like]=zuid`); OpenRegister filters such a path. A column can
+name the stored field its filter works on with `filterField`. That field
+decides the panel and the parameters, and it gives a computed column
+(`aggregate`) a filter, as long as the server stores the field it names.
+
 A text filter matches on contains, case-insensitive, through OpenRegister's
 `[like]` operator: "acme" finds "Acme B.V.". The term goes out as typed, URL
 encoded; OpenRegister escapes `%`, `_` and `\` itself, so the library adds no

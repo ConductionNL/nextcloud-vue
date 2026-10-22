@@ -569,6 +569,11 @@
 					"default": true,
 					"description": "Whether the column header is clickable to sort. Defaults to true."
 				},
+				"filterField": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The stored field the header filter filters on, when it is not `key`. A dotted path (\"address.place\") names a field inside an object property. Gives a computed column (`aggregate`) a header filter on a field the server stores."
+				},
 				"width": {
 					"type": "string",
 					"description": "Optional CSS width (e.g. \"200px\", \"15%\"). When omitted CnDataTable falls back to its built-in default-width heuristic by type+format."
