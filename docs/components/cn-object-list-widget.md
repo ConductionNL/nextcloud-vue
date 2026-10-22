@@ -30,13 +30,15 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`, `fit`). |
+| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`, `fit`, `children`). |
+| `presetRows` | `Array` | `null` | Rows handed in instead of fetched. The list reads nothing itself and emits `rows-stale` where it would read again. A `children` list feeds its nested lists this way. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `row-click` | `(object, event)` | The clicked object row and the native click event. With `rowRoute`, a ctrl/cmd/shift click opens the row in a new tab. A middle click emits `row-aux-click` instead. |
+| `rows-stale` | none | With `presetRows`: the rows are out of date after a write or a refused reorder; the owner hands in new ones. |
 | `row-aux-click` | `(object, event)` | The middle-clicked object row and the native auxclick event. With `rowRoute`, the row opens in a new tab. |
 | `view-all` | `{ total: number }` | The "View all (N)" footer was clicked. The footer is a real link to `viewAllRoute`, so it can be opened in a new tab. |
 | `files-dropped` | `File[]` | Files were dropped on a widget declaring `dropZone`. |
@@ -144,6 +146,40 @@ A declared `object-op` patch row action writes only its `values` too, through th
 ### Reorder: `reorder`
 
 `reorder: { "field": "order" }` lists the rows in the order a field of their own records holds, as the statuses of a case type. The reader drags a row to another place, or uses its Move up and Move down actions. The rows are renumbered from 1 (from the page's first place on a later page), and only that field is written, as a PATCH, and only on the rows whose number changed, so every other key of a row keeps its value. The new place is read out ("Intake moved to place 2 of 6"). When the server refuses (a case type must keep a final status), its message is read out and the list is read again. A new row starts last (`order` = list length + 1). A grouped list does not reorder.
+
+### Child rows: `children`
+
+`children` shows each row's child records under it, as the lessons of each module of a course. It takes the same keys as the list itself (`schema`, `register`, `columns`, `reorder`, `rowActions`, `editable`, `deletable`, `addLabel`, `extend`, `sort`, `limit`), and its `filter` names the link to the row with an `@row.<field>` token:
+
+```json
+{
+  "register": "learniq",
+  "schema": "course",
+  "filter": { "parentCourseId": "@objectId" },
+  "reorder": { "field": "order" },
+  "children": {
+    "schema": "lesson",
+    "filter": { "courseId": "@row.id" },
+    "columns": [{ "key": "name", "label": "Lesson" }],
+    "reorder": { "field": "order" },
+    "addLabel": "Add lesson"
+  }
+}
+```
+
+The children of every row come from one query, `courseId[]=<first row>&courseId[]=<second row>…` (read page by page, `limit` rows a page, 500 by default), so a list of twenty modules makes two requests, not twenty-one. Each row's children render as a nested list in a full-width row under it (CnDataTable's `#row-detail` slot), and that nested list does what a list does: reorder within its row, its own row actions, Add (the new child is on its row, with the link locked, and goes last), edit and delete. After a write in a nested list the parent reads the children again. `children.register` defaults to the list's own register. A grouped list shows no children. Give the child `columns` a `label` each: a column without one makes every nested list read the schema for its heading.
+
+### A row action on its row: `@row.<field>`
+
+A row action's `target` may name the row it is on with `@row.<field>` (`@row.id` reads `@self.id` when the row has no top-level `id`). The value is URI-encoded into the target before the action is dispatched:
+
+```json
+{ "type": "navigate", "label": "Compose", "target": "/courses/@objectId/lessons/@row.id/compose" }
+```
+
+### A list value in a filter
+
+A filter value that is a list matches any of its values: `{ "learnerId": ["a", "b"] }` is sent as `learnerId[]=a&learnerId[]=b`, which OpenRegister reads as `IN`. An empty list is left out.
 
 ### Create affordance
 

@@ -626,6 +626,16 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* Detail row (`#row-detail`): what belongs to the row above it, such as its
+   child records, indented under that row across the full width. It is not a
+   data row: no hover, no pointer, its text wraps. */
+.cn-data-table .cn-table-row-detail > td {
+	max-width: none;
+	white-space: normal;
+	padding: 0 0 calc(2 * var(--default-grid-baseline)) calc(6 * var(--default-grid-baseline));
+	border-bottom: 1px solid var(--color-border);
+}
+
 /* Empty State (inside table) */
 .cn-table-empty td {
 	text-align: center;

@@ -191,6 +191,16 @@
 					<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
 						<CnRowActions :actions="mappedRowActions" :row="row" />
 					</template>
+					<!-- `content.children`: each row's child records under it, as
+					     a nested list fed from one query for all rows. -->
+					<template v-if="childrenConfig && childLink" #row-detail="{ row }">
+						<CnObjectListWidget
+							class="cn-object-list-widget__children"
+							data-testid="cn-object-list-children"
+							:content="childContentFor(row)"
+							:presetRows="childRowsFor(row)"
+							@rowsStale="fetchChildren" />
+					</template>
 				</CnDataTable>
 			</div>
 			<!--
@@ -357,6 +367,7 @@ import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { hasRowTokens, interpolateRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
 import { changedKeys } from '../../utils/saveEdited.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -505,16 +516,34 @@ export default {
 		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
 		 * download in the card's header; `group` shows it to one group only.
 		 *
+		 * `children` (`{ register?, schema, filter, columns, reorder, rowActions,
+		 * … }`) shows each row's child records under it, as a list of the same
+		 * kind: `filter` names the link with an `@row.<field>` token
+		 * (`{ courseId: "@row.id" }`). The children of every row come from one
+		 * query on the list of parent values.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, children?: object}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * Rows handed in instead of fetched. The list then reads nothing
+		 * itself: where it would read again (after a write, a refused
+		 * reorder) it emits `rows-stale` for the owner to hand in new rows.
+		 * A `children` list gives each nested list its rows this way, from
+		 * one query for all parents.
+		 */
+		presetRows: {
+			type: Array,
+			default: null,
+		},
 	},
 
-	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped', 'header'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped', 'header', 'rows-stale'],
 
 	data() {
 		return {
@@ -570,6 +599,8 @@ export default {
 			localSort: { ...(this.content.sort || {}) },
 			/** Facet values currently toggled on (`content.facet`). */
 			facetSelected: [],
+			/** Child rows per parent row id (`content.children`). */
+			childRows: {},
 		}
 	},
 
@@ -841,6 +872,39 @@ export default {
 			const reorder = this.content && this.content.reorder
 			const field = reorder && typeof reorder === 'object' ? reorder.field : ''
 			return typeof field === 'string' && field !== '' && !this.isGrouped ? field : ''
+		},
+
+		/**
+		 * The declared child list (`content.children`), or null. A grouped
+		 * list shows no children.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childrenConfig() {
+			const children = this.content && this.content.children
+			if (!children || typeof children !== 'object' || Array.isArray(children) || !children.schema || this.isGrouped) {
+				return null
+			}
+			return children
+		},
+
+		/**
+		 * How a child points at its row: the child `filter` key whose value
+		 * is an `@row.<field>` token, and that row field. Null without one.
+		 *
+		 * @return {{key: string, field: string}|null}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childLink() {
+			const filter = (this.childrenConfig && this.childrenConfig.filter) || {}
+			for (const [key, value] of Object.entries(filter)) {
+				const field = rowTokenField(value)
+				if (field !== '') {
+					return { key, field }
+				}
+			}
+			return null
 		},
 
 		/**
@@ -1120,6 +1184,9 @@ export default {
 		 * @return {number}
 		 */
 		pageSize() {
+			if (this.presetRows !== null) {
+				return Math.max(this.presetRows.length, 1)
+			}
 			return Number((this.content || {}).limit) || 25
 		},
 
@@ -1404,6 +1471,13 @@ export default {
 	},
 
 	watch: {
+		presetRows(next) {
+			if (next !== null) {
+				this.rows = [...next]
+				this.total = this.rows.length
+			}
+		},
+
 		sourceKey() {
 			// The query changed, so page 3 of the OLD result set means nothing
 			// against the new one — and an out-of-range `_page` returns an empty
@@ -1434,6 +1508,13 @@ export default {
 	},
 
 	mounted() {
+		if (this.presetRows !== null) {
+			// A nested list: its owner reads the rows and keeps them current.
+			this.rows = [...this.presetRows]
+			this.total = this.rows.length
+			this.loadHeadingsIfNeeded()
+			return
+		}
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
 		this.offerExport()
@@ -1498,6 +1579,104 @@ export default {
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/widget-subtitle-and-list-export/specs/object-list-widget/spec.md#requirement-a-list-can-offer-its-rows-as-an-export
 		 */
+		/**
+		 * The content of one row's child list: the declared `children` with
+		 * its `@row` tokens resolved against the row and the parent's
+		 * register when it names none.
+		 *
+		 * @param {object} row The parent row.
+		 * @return {object}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childContentFor(row) {
+			const children = this.childrenConfig || {}
+			return {
+				...children,
+				register: children.register || (this.content || {}).register,
+				filter: resolveRowFilter(children.filter, row),
+			}
+		},
+
+		/**
+		 * The child rows of one row, as last read.
+		 *
+		 * @param {object} row The parent row.
+		 * @return {Array<object>}
+		 */
+		childRowsFor(row) {
+			const link = this.childLink
+			if (!link) {
+				return []
+			}
+			const value = resolveRowFilter({ v: `@row.${link.field}` }, row).v
+			return this.childRows[String(value)] || []
+		},
+
+		/**
+		 * Read the children of every loaded row in one query (`<link>[]=` the
+		 * row values, page by page) and file them under their row.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		async fetchChildren() {
+			const children = this.childrenConfig
+			const link = this.childLink
+			if (!children || !link) {
+				this.childRows = {}
+				return
+			}
+			const values = [...new Set(this.rows
+				.map((row) => resolveRowFilter({ v: `@row.${link.field}` }, row).v)
+				.filter((v) => v !== undefined && v !== null && v !== '')
+				.map(String))]
+			if (values.length === 0) {
+				this.childRows = {}
+				return
+			}
+			const register = children.register || (this.content || {}).register
+			const params = { [link.key]: values }
+			for (const [k, v] of Object.entries(resolveFilterTokens(children.filter || {}, this.tokenCtx))) {
+				if (k !== link.key && rowTokenField(v) === '' && v !== '' && v !== null && v !== undefined && typeof v !== 'object') {
+					params[k] = v
+				}
+			}
+			const order = children.reorder && children.reorder.field
+			if (typeof order === 'string' && order !== '') {
+				params[`_order[${order}]`] = 'asc'
+			} else if (children.sort && children.sort.field) {
+				params[`_order[${children.sort.field}]`] = children.sort.dir === 'desc' ? 'desc' : 'asc'
+			}
+			if (Array.isArray(children.extend) && children.extend.length > 0) {
+				params._extend = children.extend.filter((e) => typeof e === 'string' && e !== '')
+			}
+			const limit = Number(children.limit) || 500
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register, schema: children.schema })
+				const grouped = {}
+				for (let page = 1; ; page++) {
+					const res = await axios.get(url, { params: { ...params, _limit: limit, _page: page } })
+					const results = (res && res.data && res.data.results) || []
+					for (const child of results) {
+						const key = String(objectFieldValue(child, link.key))
+						if (values.includes(key)) {
+							(grouped[key] = grouped[key] || []).push(child)
+						}
+					}
+					const total = res && res.data && typeof res.data.total === 'number' ? res.data.total : results.length
+					if (results.length < limit || page * limit >= total) {
+						break
+					}
+				}
+				this.childRows = grouped
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load child rows:', e)
+				this.childRows = {}
+			}
+		},
+
 		/**
 		 * The export URL for this list as it is filtered here.
 		 *
@@ -1606,6 +1785,15 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchRows() {
+			if (this.presetRows !== null) {
+				/**
+				 * @event rows-stale The rows handed in through `presetRows` are
+				 * out of date (after a write or a refused reorder); the owner
+				 * reads them again.
+				 */
+				this.$emit('rows-stale')
+				return
+			}
 			const c = this.content || {}
 			if (!c.register || !c.schema) {
 				this.rows = []
@@ -1660,7 +1848,12 @@ export default {
 				const filter = this.resolvedFilter
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
-						if (v && typeof v === 'object') {
+						if (Array.isArray(v)) {
+							// A list matches any of its values: `field[]=a&field[]=b`.
+							if (v.length > 0) {
+								params[k] = v
+							}
+						} else if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) {
 								params[`${k}[${op}]`] = ov
 							}
@@ -1672,6 +1865,7 @@ export default {
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
+				await this.fetchChildren()
 				this.$nextTick(() => {
 					this.measureFit()
 					this.measureWidthFit()
@@ -1729,7 +1923,7 @@ export default {
 			// the bottom, the budget floors to one row, and the rest are clipped.
 			// Only an explicit `false` opts out, so a manifest that never sets the
 			// key keeps the ADR-062 behaviour unchanged.
-			if (this.content && this.content.fit === false) {
+			if ((this.content && this.content.fit === false) || this.presetRows !== null) {
 				this.fitRows = null
 				return
 			}
@@ -2172,7 +2366,10 @@ export default {
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			const pending = this.dispatch(action, [row], { row })
+			const scoped = action && hasRowTokens(action.target)
+				? { ...action, target: interpolateRowTokens(action.target, row) }
+				: action
+			const pending = this.dispatch(scoped, [row], { row })
 			if (action && action.type === 'object-op' && action.op === 'delete') {
 				this.reportDelete(row, pending)
 			}
@@ -2231,7 +2428,7 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
-			if (hasActionTargetTokens(action.target)) {
+			if (hasActionTargetTokens(action.target) || hasRowTokens(action.target)) {
 				return {}
 			}
 			const link = actionLink(action, { router: this.$router || null })
