@@ -32,7 +32,7 @@ function ruleFor(selector) {
 	return null
 }
 
-const BUTTON = '.cn-look-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty))'
+const BUTTON = '.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty))'
 
 describe('dialog.css: user settings section buttons', () => {
 	it('draws a labelled button at the control height, 16px in', () => {

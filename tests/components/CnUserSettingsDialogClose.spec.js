@@ -45,7 +45,7 @@ describe('CnUserSettingsDialog close button', () => {
 	})
 
 	it('is the board\'s 44px round button in the board look', () => {
-		const body = ruleFor(read('css/dialog.css'), '.cn-look-board.cn-user-settings-dialog .cn-user-settings-dialog__close')
+		const body = ruleFor(read('css/dialog.css'), '.cn-look-board.cn-dialog-board.cn-user-settings-dialog .cn-user-settings-dialog__close')
 		expect(body).not.toBeNull()
 		expect(body).toContain('--button-size: 44px;')
 		expect(body).toContain('border: 0;')
