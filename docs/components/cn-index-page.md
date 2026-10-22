@@ -1454,3 +1454,7 @@ Types resolve like dashboard widgets: the app's widget registry first, then the 
   ]
 }
 ```
+
+## The side panel's title
+
+The side panel (inline or hoisted to CnAppRoot) is titled with the page title as the header shows it: a `{term}` in the title is filled, never drawn raw.
