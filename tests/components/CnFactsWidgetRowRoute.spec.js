@@ -48,4 +48,15 @@ describe('CnFactsWidget row route', () => {
 		expect(w.find('.cn-facts-widget__value .stub-link').exists()).toBe(false)
 		expect(w.find('.cn-facts-widget__value').text()).toBe('Omgevingsvergunning')
 	})
+
+	it('keeps a masked value masked inside the link, with its reveal', async () => {
+		const field = { label: 'BSN', path: 'bsn', format: 'masked', reveal: true, route: { name: 'PersonDetail', params: { id: '@source.id' } } }
+		const w = mountFacts({ fields: [field] }, { id: 'p-1', bsn: '123456782' })
+		const link = w.find('.cn-facts-widget__value .stub-link')
+		expect(link.exists()).toBe(true)
+		expect(link.text()).not.toContain('123456782')
+		expect(link.text()).toContain('6782')
+		await w.find('[data-testid="cn-fact-reveal-bsn"]').trigger('click')
+		expect(w.find('.cn-facts-widget__value .stub-link').text()).toBe('123456782')
+	})
 })

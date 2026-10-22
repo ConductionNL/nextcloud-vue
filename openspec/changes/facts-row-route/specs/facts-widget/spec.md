@@ -10,7 +10,7 @@
 
 ### Requirement: A facts row can link its value to a route
 
-A facts `row` with `route` SHALL draw its value as a link to that route, with `@source.<path>` in its params read from the
+A facts `row` with `route` SHALL draw its value as a link to that route (a masked value stays masked inside it, with its reveal), with `@source.<path>` in its params read from the
 record shown. When a param does not fill, the value SHALL stay plain text.
 
 #### Scenario: DqZaaktypeVelden

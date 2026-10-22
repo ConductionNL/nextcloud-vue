@@ -66,7 +66,7 @@
 								v-else-if="row.to"
 								:to="row.to"
 								class="cn-facts-widget__value-link">
-								{{ row.value }}
+								{{ row.masked && !revealed[row.key] ? row.masked : row.value }}
 							</router-link>
 							<span v-else>{{ row.masked && !revealed[row.key] ? row.masked : row.value }}</span>
 							<button
