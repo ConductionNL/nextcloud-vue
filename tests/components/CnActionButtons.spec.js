@@ -101,7 +101,7 @@ const stubs = {
 	},
 	CnFormDialog: {
 		name: 'CnFormDialog',
-		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'eyebrow', 'subtitle', 'includeFields', 'excludeFields', 'fieldOverrides'],
+		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'eyebrow', 'subtitle', 'includeFields', 'excludeFields', 'fieldOverrides', 'confirmLabel'],
 		template: '<div class="form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
