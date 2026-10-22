@@ -49,6 +49,7 @@ export const SAVED_VIEW_CONFIG_KEYS = Object.freeze([
 	'viewMode',
 	'viewSwitch',
 	'countText',
+	'countSubtitle',
 	'footerNote',
 	'emptyText',
 	'folderSidebar',
