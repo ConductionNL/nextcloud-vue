@@ -558,6 +558,8 @@
 			v-if="viewPendingEdit"
 			ref="editViewDialog"
 			:view="viewPendingEdit"
+			:savedSummary="criteriaSummaryOf(savedViewState(viewPendingEdit))"
+			:currentSummary="list ? criteriaSummaryOf(currentViewState()) : ''"
 			@confirm="onEditViewConfirm"
 			@close="viewPendingEdit = null" />
 
@@ -1420,6 +1422,7 @@ import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
+import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
@@ -9953,6 +9956,33 @@ export default {
 		 *
 		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string, sortKeys: Array<{key: string, order: string}>}}
 		 */
+		/**
+		 * A view's state as the edit dialog shows it under a criteria choice:
+		 * its filters, search term and sort in sentences, read against the
+		 * page schema's titles.
+		 *
+		 * @param {object} state A view state (`extractViewState` or `currentViewState`).
+		 * @return {string} The sentences.
+		 * @spec openspec/changes/saved-view-edit-board-form/specs/saved-views/spec.md
+		 */
+		criteriaSummaryOf(state) {
+			const schema = this.effectiveSchema
+			return viewCriteriaSummary(state, {
+				properties: (schema && schema.properties) || {},
+				translate: (text) => this.cnTranslate(text),
+			})
+		},
+
+		/**
+		 * A saved view's state, as `extractViewState` reads it.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {object} Its state.
+		 */
+		savedViewState(view) {
+			return extractViewState(view)
+		},
+
 		currentViewState() {
 			return {
 				filters: this.list.activeFilters.value,

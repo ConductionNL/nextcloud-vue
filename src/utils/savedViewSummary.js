@@ -132,3 +132,35 @@ function lowerFirst(text) {
 	}
 	return text.charAt(0).toLowerCase() + text.slice(1)
 }
+
+/**
+ * What a view holds, as sentences: its filters and search term
+ * (`summarizeViewFilters`), then its sort, "Sorted by deadline, descending."
+ * The saved-view edit dialog shows it under each criteria choice
+ * (DqFilterBewerken).
+ *
+ * @param {{filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: string, sortOrder?: string}} state The view's state.
+ * @param {object} [options] As for `summarizeViewFilters`.
+ * @return {string} The sentences, or '' for a view with no filters, search or sort.
+ * @spec openspec/changes/saved-view-edit-board-form/specs/saved-views/spec.md
+ */
+export function viewCriteriaSummary(state, options = {}) {
+	const properties = (options.properties && typeof options.properties === 'object') ? options.properties : {}
+	const tr = typeof options.translate === 'function' ? options.translate : (text) => text
+	const sentences = []
+	const filters = summarizeViewFilters(state, options)
+	if (filters !== '') {
+		sentences.push(`${filters}.`)
+	}
+	const keys = state && Array.isArray(state.sortKeys) && state.sortKeys.length > 0
+		? state.sortKeys
+		: (state && state.sortKey ? [{ key: state.sortKey, order: state.sortOrder }] : [])
+	const first = keys.find((entry) => entry && typeof entry.key === 'string' && entry.key !== '')
+	if (first) {
+		const prop = properties[first.key] || {}
+		const field = lowerFirst(tr(typeof prop.title === 'string' && prop.title !== '' ? prop.title : first.key))
+		const direction = first.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')
+		sentences.push(t('nextcloud-vue', 'Sorted by {field}, {direction}.', { field, direction }))
+	}
+	return sentences.join(' ')
+}
