@@ -32,3 +32,20 @@ unless Nextcloud reports the viewer as an administrator. Without `adminOnly` not
 - **GIVEN** a header action "Reload templates" with `adminOnly: true`
 - **WHEN** a user who is not an administrator opens the list
 - **THEN** the Actions menu SHALL not list it
+
+### Requirement: An index page runs an api-call header action
+
+An index page SHALL run a header action of type `api-call` itself, through the
+shared actions dispatcher the detail and dashboard pages use: it SHALL call
+the endpoint with the action's method and show the action's `successMessage`
+or `errorMessage`, run through the app's translate. An action with `confirm:
+true` SHALL run only after the person confirms. A call that went through SHALL
+reload the list unless the action sets `refresh: false`; a failed call SHALL
+not. Before, the page only emitted `header-action`, which no host handled, so
+the click did nothing.
+
+#### Scenario: Reload templates
+- **GIVEN** the case type list's "Reload templates" (`api-call`, `confirm: true`)
+- **WHEN** an administrator chooses it and confirms
+- **THEN** the endpoint SHALL be called once, its message shown, and the list reloaded
+
