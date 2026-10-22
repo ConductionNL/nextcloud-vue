@@ -1209,6 +1209,13 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	font-size: 14px;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-date {
 	margin-inline-start: auto;
 	color: var(--color-main-text);
