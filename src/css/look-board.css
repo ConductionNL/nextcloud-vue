@@ -292,6 +292,20 @@
 	height: 16px;
 }
 
+/* ---- A banner's actions (CnBannerWidget) ------------------------------- */
+/* The boards draw a banner's actions as the board's buttons: 40px tall, 14px
+   text, a primary with no edge (PtDashboard "Verzoek beoordelen"). The banner
+   read Nextcloud's 34px clickable area and the 15px body text.
+   @spec openspec/changes/board-banner-action-buttons/specs/board-banner-action-buttons/spec.md#requirement-a-board-banners-actions-are-the-boards-buttons */
+.cn-look-board .cn-banner-widget__action:not(.cn-look-nextcloud *) {
+	min-height: var(--cn-board-control-height);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-banner-widget__action--primary:not(.cn-look-nextcloud *) {
+	border: 0;
+}
+
 /* ---- A single select -------------------------------------------------- */
 /* NcSelect draws a single select as its search field with the clear and
    open buttons laid over its end. A legacy vue-select rule that Nextcloud
