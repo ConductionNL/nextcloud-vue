@@ -859,6 +859,7 @@
 					:selectable="selectable"
 					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
+					:rowClickRoute="rowLinkRoute"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -4514,6 +4515,19 @@ export default {
 				return true
 			}
 			return !!this.$.vnode.props?.onRowClick
+		},
+
+		/**
+		 * Where a table row links to, so the row is a real link (Tab, screen
+		 * reader, new tab): the `viewTo` target, when a row click opens it.
+		 *
+		 * @return {((row: object) => (object|null))|null} The row link target, or null.
+		 */
+		rowLinkRoute() {
+			if (!this.rowClickOpens || typeof this.viewTo !== 'function') {
+				return null
+			}
+			return (row) => this.viewTo(row) || null
 		},
 
 		/**
