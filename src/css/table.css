@@ -295,6 +295,20 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The header row of a `hideHeader` table: there for a screen reader, drawn
+   as nothing. !important because the looks style every header cell with
+   more specific selectors than any one table can know about. */
+.cn-data-table thead.cn-data-table__hidden-head tr,
+.cn-data-table thead.cn-data-table__hidden-head th {
+	height: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: none !important;
+	line-height: 0 !important;
+	font-size: 0 !important;
+	box-shadow: none !important;
+}
+
 /* Reusable cell utilities — set on a column's `cellClass`. Handy for compact
    list widgets (name + trailing status) that use `hideHeader`. */
 .cn-data-table td.cn-cell--strong {

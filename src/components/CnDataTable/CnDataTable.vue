@@ -99,7 +99,22 @@
 				class="cn-data-table"
 				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth }"
 				data-testid="cn-object-list-table">
-				<thead v-if="!hideHeader">
+				<!-- Without a drawn header row the columns are still named for a
+				     screen reader: plain header cells, collapsed and visually
+				     hidden, with no controls to land on. -->
+				<thead v-if="hideHeader" class="cn-data-table__hidden-head">
+					<tr>
+						<th v-if="selectable" scope="col" />
+						<th v-if="rowIcon" scope="col" />
+						<th v-for="col in effectiveColumns" :key="col.key" scope="col">
+							<span class="hidden-visually">{{ translateLabel(col.label) }}</span>
+						</th>
+						<th v-if="$slots['row-actions']" scope="col">
+							<span class="hidden-visually">{{ actionsColumnLabel }}</span>
+						</th>
+					</tr>
+				</thead>
+				<thead v-else>
 					<tr>
 						<!-- Checkbox column -->
 						<th
