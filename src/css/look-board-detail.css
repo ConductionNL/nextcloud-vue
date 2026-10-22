@@ -59,7 +59,6 @@
 
 .cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions {
 	flex-shrink: 1;
-	gap: 8px;
 	justify-content: flex-end;
 }
 
