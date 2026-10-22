@@ -2454,3 +2454,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* A dialog's options as the boards draw them (DqVolgendeStap, DqBesluit,
+   DqDocumentGenereren, DqFilterBewerken): rounded at 10px, an idle option
+   edged in the dark border grey, and an 18px radio. The chosen and the
+   refused options keep their own edges. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:not(.cn-look-nextcloud *) {
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-choice-cards__row--selected):not(.cn-choice-cards__row--disabled):not(.cn-look-nextcloud *) {
+	border-color: var(--color-border-maxcontrast);
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
+	width: 18px;
+	height: 18px;
+}
