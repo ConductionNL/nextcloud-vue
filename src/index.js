@@ -311,6 +311,7 @@ export {
 	CnSearchIndexStatus,
 	CnSearchPage,
 	CnSearchSelect,
+	CnSecretAddressCard,
 	CnSectionsWidget,
 	CnSelectionScope,
 	CnSettingsCard,

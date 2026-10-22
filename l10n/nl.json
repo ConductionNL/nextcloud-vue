@@ -2495,7 +2495,22 @@
     "Complete the details of: {names}.": "Vul de gegevens aan van: {names}.",
     "The list could not be saved. Try again.": "De lijst kon niet worden opgeslagen. Probeer het opnieuw.",
     "Keys on a row: {keys}. Arrow keys go to the next row.": "Toetsen op een rij: {keys}. Met de pijltjestoetsen ga je naar de volgende rij.",
-    "Arrow keys go to the next row.": "Met de pijltjestoetsen ga je naar de volgende rij."
+    "Arrow keys go to the next row.": "Met de pijltjestoetsen ga je naar de volgende rij.",
+    "Copy address": "Adres kopiëren",
+    "Reset address": "Adres vernieuwen",
+    "Make an address": "Adres maken",
+    "Secret address": "Geheim adres",
+    "Anyone with this address can open it. Keep it to yourself.": "Iedereen met dit adres kan het openen. Houd het voor jezelf.",
+    "There is an address already. If it was lost or shared by mistake, reset it: the old address stops working.": "Er is al een adres. Ben je het kwijt of per ongeluk gedeeld, vernieuw het dan: het oude adres werkt dan niet meer.",
+    "The address is removed and stops working.": "Het adres is verwijderd en werkt niet meer.",
+    "This address is shown once. Copy it now.": "Dit adres wordt één keer getoond. Kopieer het nu.",
+    "Remove address": "Adres verwijderen",
+    "Remove the address? It stops working at once.": "Het adres verwijderen? Het werkt dan meteen niet meer.",
+    "The address is copied.": "Het adres is gekopieerd.",
+    "The address could not be read.": "Het adres kon niet worden gelezen.",
+    "The address could not be made.": "Het adres kon niet worden gemaakt.",
+    "The address could not be removed.": "Het adres kon niet worden verwijderd.",
+    "Copying did not work. Select the address and copy it yourself.": "Kopiëren lukte niet. Selecteer het adres en kopieer het zelf."
   },
   "plurals": {
     "{count} member": [

@@ -2245,7 +2245,22 @@
     "Complete the details of: {names}.": "Complete the details of: {names}.",
     "The list could not be saved. Try again.": "The list could not be saved. Try again.",
     "Keys on a row: {keys}. Arrow keys go to the next row.": "Keys on a row: {keys}. Arrow keys go to the next row.",
-    "Arrow keys go to the next row.": "Arrow keys go to the next row."
+    "Arrow keys go to the next row.": "Arrow keys go to the next row.",
+    "Copy address": "Copy address",
+    "Reset address": "Reset address",
+    "Make an address": "Make an address",
+    "Secret address": "Secret address",
+    "Anyone with this address can open it. Keep it to yourself.": "Anyone with this address can open it. Keep it to yourself.",
+    "There is an address already. If it was lost or shared by mistake, reset it: the old address stops working.": "There is an address already. If it was lost or shared by mistake, reset it: the old address stops working.",
+    "The address is removed and stops working.": "The address is removed and stops working.",
+    "This address is shown once. Copy it now.": "This address is shown once. Copy it now.",
+    "Remove address": "Remove address",
+    "Remove the address? It stops working at once.": "Remove the address? It stops working at once.",
+    "The address is copied.": "The address is copied.",
+    "The address could not be read.": "The address could not be read.",
+    "The address could not be made.": "The address could not be made.",
+    "The address could not be removed.": "The address could not be removed.",
+    "Copying did not work. Select the address and copy it yourself.": "Copying did not work. Select the address and copy it yourself."
   },
   "plurals": {
     "{count} member": [
