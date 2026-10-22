@@ -602,6 +602,7 @@
 			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
 			:message="deleteViewMessage"
 			:confirmLabel="t('nextcloud-vue', 'Delete view')"
+			confirmIcon="DeleteOutline"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
