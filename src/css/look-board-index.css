@@ -1508,6 +1508,16 @@
 	display: none;
 }
 
+/* The title sits 20px in from the panel's edge and 20px from its top
+   (DqZakenSorteren, DqFilterBeheren). With the icon hidden NcAppSidebar pads
+   it 0 at the start and 8px on top, which put it against the panel's edge.
+   The doubled classes outrank NcAppSidebar's compact-with-figure chain.
+   @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc {
+	padding-block-start: 15px;
+	padding-inline-start: 20px;
+}
+
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
 	justify-content: flex-start;
 	gap: 4px;
