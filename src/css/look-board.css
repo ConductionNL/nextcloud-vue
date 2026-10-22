@@ -1188,6 +1188,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-block-start: 26px;
 }
 
+/* A save button beside a one-field form (`saveInline`) lines up with the
+   control under that label, not with the label. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-fields__inline-save {
+	--cn-settings-fields-label-offset: 26px;
+}
+
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input + .input-field__label,
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label {
 	inset-block-start: auto;
