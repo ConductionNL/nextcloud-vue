@@ -73,3 +73,19 @@ English, "a, b en c" for three. Where the environment has no
 - **WHEN** the contracts list renders
 - **THEN** the chip reads "Status: actief en verlopend"
 
+### Requirement: A range from today is named in words
+
+A `filterLabels` entry MAY set `relative: true`. Its range chip SHALL then,
+judged against today in the person's time zone (an `@today` token counts as
+the date it resolves to), read "today" for a range from today to today or to
+tomorrow, "within {n} days" for a range from today to n days on, and "this
+week" for Monday to Sunday (or to next Monday) of the current week, through
+the library's translate; any other range SHALL read as dates. Without
+`relative` the chip SHALL read as dates.
+
+#### Scenario: DqFilterInMenu
+
+- **GIVEN** the saved view "Termijn deze week" with `deadline[gte]: @today` and `deadline[lt]: @today+7d`, and `filterLabels: { deadline: { label: "Due by", relative: true } }`, in Dutch
+- **WHEN** the view is applied
+- **THEN** the chip reads "Deadline: binnen 7 dagen"
+

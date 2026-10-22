@@ -8,6 +8,7 @@
  *
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+ * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
  */
 import { mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
@@ -95,6 +96,19 @@ describe('a range is one chip', () => {
 		expect(chips[0].label).toMatch(/^Deadline: /)
 		expect(chips[0].label).not.toContain('[object Object]')
 		expect(chips[0].label).toContain('31')
+	})
+
+	it('names a range from today in words when filterLabels asks for it', () => {
+		const w = mountPage({
+			activeFilters: { 'deadline[gte]': '@today', 'deadline[lt]': '@today+7d' },
+			filterLabels: { deadline: { label: 'Deadline', relative: true } },
+		})
+		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Deadline: within 7 days'])
+	})
+
+	it('keeps the dates without relative', () => {
+		const w = mountPage({ activeFilters: { 'deadline[gte]': '2026-10-22', 'deadline[lt]': '2026-10-29' } })
+		expect(w.vm.activeFilterChips[0].label).not.toContain('within')
 	})
 
 	it('joins a [gte]/[lte] pair under the field and clears both when removed', () => {

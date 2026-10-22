@@ -599,6 +599,11 @@
     "{from} through {to}": "{from} tot en met {to}",
     "from {from}": "vanaf {from}",
     "up to {to}": "tot en met {to}",
+    "this week": "deze week",
+    "within %n day": [
+      "binnen %n dag",
+      "binnen %n dagen"
+    ],
     "from {value}": "vanaf {value}",
     "up to {value}": "tot en met {value}",
     "Any": "Alle",

@@ -123,3 +123,70 @@ export function listText(names, locale) {
 		return names.join(', ')
 	}
 }
+
+const TODAY_TOKEN = /^@today(?:([+-])(\d+)d)?$/
+
+/**
+ * A range end as a local date at midnight: a date string or an `@today`
+ * token, read against `now`. Null for anything else.
+ *
+ * @param {unknown} value The end.
+ * @param {Date} now What counts as now.
+ * @return {Date|null} The date.
+ */
+function endDay(value, now) {
+	if (typeof value === 'string') {
+		const token = TODAY_TOKEN.exec(value)
+		if (token) {
+			const shift = token[1] ? Number(token[2]) * (token[1] === '-' ? -1 : 1) : 0
+			return new Date(now.getFullYear(), now.getMonth(), now.getDate() + shift)
+		}
+	}
+	return asDate(value)
+}
+
+/**
+ * Whole days from one local date to another.
+ *
+ * @param {Date} a The first date.
+ * @param {Date} b The second date.
+ * @return {number} The days from `a` to `b`.
+ */
+function daysBetween(a, b) {
+	return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000)
+}
+
+/**
+ * A range from today named in words: "today", "within {n} days" or "this
+ * week" (Monday to Sunday, or to next Monday). Null for any other range, so
+ * the caller writes it as dates.
+ *
+ * @param {unknown} from The lower end: a date or an `@today` token.
+ * @param {unknown} to The upper end: a date or an `@today` token.
+ * @param {object} options Options.
+ * @param {(text: string) => string} options.translate Translate.
+ * @param {(one: string, many: string, count: number) => string} options.translatePlural Translate with a count.
+ * @param {Date} [options.now] What counts as now.
+ * @return {string|null} The words, or null.
+ * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+ */
+export function relativeRangeText(from, to, { translate, translatePlural, now = new Date() }) {
+	const start = endDay(from, now)
+	const end = endDay(to, now)
+	if (!start || !end) {
+		return null
+	}
+	const fromToday = daysBetween(now, start)
+	const span = daysBetween(start, end)
+	if (fromToday === 0 && (span === 0 || span === 1)) {
+		return translate('today')
+	}
+	if (fromToday === 0 && span > 1) {
+		return translatePlural('within %n day', 'within %n days', span)
+	}
+	const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7))
+	if (daysBetween(monday, start) === 0 && (span === 6 || span === 7)) {
+		return translate('this week')
+	}
+	return null
+}

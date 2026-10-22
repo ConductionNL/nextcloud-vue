@@ -31,3 +31,12 @@
 - [x] Implement
 - [x] Test
 
+### Task 4: A range from today is named in words
+- **spec_ref**: `openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/utils/filterRangeLabel.js`, `l10n/en.json`, `l10n/nl.json`, `tests/utils/filterRangeLabel.spec.js`, `tests/components/CnIndexFilterLabels.spec.js`
+- **acceptance_criteria**:
+  - today, within n days and this week, from dates or `@today` tokens
+  - only with `relative: true`; any other range reads as dates
+- [x] Implement
+- [x] Test
+

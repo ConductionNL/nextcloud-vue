@@ -1418,7 +1418,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { listText, rangeChipText, rangeEnds } from '../../utils/filterRangeLabel.js'
+import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -2432,6 +2432,9 @@ export default {
 		 * `label` for the field and `values` naming each value, both through
 		 * the app's translate. Wins over the schema and sidebar names.
 		 * Sourced from `pages[].config.filterLabels`.
+		 *
+		 * A range filter's entry may set `relative: true`, naming a range
+		 * from today in words ("within 7 days").
 		 *
 		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
 		 */
@@ -7920,7 +7923,7 @@ export default {
 				}
 				const ends = rangeEnds(raw)
 				if (ends) {
-					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to)}` })
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
 					continue
 				}
 				const values = (Array.isArray(raw) ? raw : [raw])
@@ -7937,7 +7940,7 @@ export default {
 					return chip
 				}
 				const range = ranges.get(chip.rangeOf)
-				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to)}` }
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
 			})
 		},
 
@@ -10542,14 +10545,28 @@ export default {
 		},
 
 		/**
-		 * The text of a range chip, its date ends in the person's locale.
+		 * The text of a range chip: in words for a range from today when the
+		 * page's `filterLabels` entry sets `relative`, else its date ends in
+		 * the person's locale.
 		 *
 		 * @param {unknown} from The lower end, or null.
 		 * @param {unknown} to The upper end, or null.
+		 * @param {string} key The filter key the range is on.
 		 * @return {string} The text.
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
 		 */
-		activeFilterRangeText(from, to) {
+		activeFilterRangeText(from, to, key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && named.relative === true) {
+				const words = relativeRangeText(from, to, {
+					translate: (text) => t('nextcloud-vue', text),
+					translatePlural: (one, many, count) => n('nextcloud-vue', one, many, count),
+				})
+				if (words !== null) {
+					return words
+				}
+			}
 			return rangeChipText(from, to, {
 				translate: (text, vars) => t('nextcloud-vue', text, vars),
 				locale: getCanonicalLocale() || undefined,

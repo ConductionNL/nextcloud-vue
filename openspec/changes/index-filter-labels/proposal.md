@@ -32,6 +32,8 @@ shared as a link. The Active line then names those filters badly:
   share it ("1 tot en met 31 oktober"). Removing the chip clears both ends.
 - Several values of one filter read as a list in the person's locale
   ("Status: actief en verlopend"), not joined with commas.
+- With `relative: true` on its `filterLabels` entry, a range from today is
+  named in words: "vandaag", "binnen 7 dagen", "deze week".
 
 ## Reference screens
 
