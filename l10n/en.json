@@ -2237,7 +2237,15 @@
     "This field is required": "This field is required",
     "Creating…": "Creating…",
     "This could not be created. Try again.": "This could not be created. Try again.",
-    "Image": "Image"
+    "Image": "Image",
+    "Make an appointment": "Make an appointment",
+    "Add meeting": "Add meeting",
+    "Link existing": "Link existing",
+    "Link an existing one": "Link an existing one",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "The saved flow is tried with the record you pick. Nothing is changed or sent.",
+    "Nothing was changed or sent.": "Nothing was changed or sent.",
+    "Test result": "Test result",
+    "To {recipients}": "To {recipients}"
   },
   "plurals": {
     "{count} member": [

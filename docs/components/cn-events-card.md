@@ -2,7 +2,7 @@
 
 The appointments booked on a record that is not an OpenRegister object, as a list: each event's summary, its time (start to end) and its place. Widget type `events`, for a detail page.
 
-It reads a `source` or an `endpoint`. `{ kind: "flow-task" }` reads OpenRegister's `/api/flow-tasks/{id}/events`, the appointments on a task of the task engine; the rows carry `summary`, `dtstart` / `dtend` and `location`. It lists and does not create. A refused or failed read says so ("The appointments could not be loaded") instead of showing an empty list.
+It reads a `source` or an `endpoint`. `{ kind: "flow-task" }` reads OpenRegister's `/api/flow-tasks/{id}/events`, the appointments on a task of the task engine; the rows carry `summary`, `dtstart` / `dtend` and `location`. `content.headerActions` (`["link", "create"]`) reports "Bestaande koppelen" and "Afspraak maken" for the card's title row; they run the calendar leaf's picker and meeting form against that same address (`…/events/link`, `…/events`), read the list again, and show a refused link in the server's words. A refused or failed read says so ("The appointments could not be loaded") instead of showing an empty list.
 
 ## Usage
 
@@ -23,6 +23,6 @@ It reads a `source` or an `endpoint`. `{ kind: "flow-task" }` reads OpenRegister
 | `endpoint` | String | `''` | An events URL of its own; `{id}` is filled with the record id. Also read from `content.endpoint`. |
 | `objectId` | String \| Number | `''` | The page's record id. |
 | `apiBase` | String | `'/apps/openregister/api'` | The OpenRegister API base. |
-| `content` | Object | `{}` | The widget content: `source`, `endpoint`, `emptyText` (through the app's translate). |
+| `content` | Object | `{}` | The widget content: `source`, `endpoint`, `emptyText` (through the app's translate), `headerActions` (`link`, `create`). |
 | `emptyLabel` | String | `''` | The empty line; defaults to `content.emptyText`, then "No appointments yet". |
 | `failedLabel` | String | `''` | The failure line; defaults to "The appointments could not be loaded". |

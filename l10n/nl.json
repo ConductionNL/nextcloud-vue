@@ -2487,7 +2487,15 @@
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
     "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
-    "Image": "Afbeelding"
+    "Image": "Afbeelding",
+    "Make an appointment": "Afspraak maken",
+    "Add meeting": "Vergadering toevoegen",
+    "Link existing": "Bestaande koppelen",
+    "Link an existing one": "Bestaande koppelen",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het record dat u kiest. Er wordt niets gewijzigd of verstuurd.",
+    "Nothing was changed or sent.": "Er is niets gewijzigd of verstuurd.",
+    "Test result": "Testresultaat",
+    "To {recipients}": "Aan {recipients}"
   },
   "plurals": {
     "{count} member": [

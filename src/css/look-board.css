@@ -315,6 +315,31 @@
 	max-width: none;
 }
 
+/* ---- A select outside a dialog ----------------------------------------- */
+/* The board's select is its control: a 1px grey edge that meets 3:1, radius
+   8, 40px high, 36px in a filter row (a page's, the timeline's). NcSelect draws its field as an
+   NcInputField, 30px inside a 34px toggle, edged by a 35%-transparent ring
+   (DqProcesanalyse "Periode", DqDoorlooptijd, DqTermijnen "Jaar"). The field
+   is the clickable area less NcSelect's 2px border on either side, so the
+   height goes through that area; the open list is teleported and keeps
+   Nextcloud's sizes. Focus keeps the ring patches.css puts on the toggle. A
+   board dialog has its own field rules (dialog.css).
+   @spec openspec/changes/board-select-control/specs/board-select-control/spec.md#requirement-a-board-select-is-the-boards-control */
+.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *) {
+	--default-clickable-area: calc(var(--cn-board-select-height, 40px) + 4px);
+}
+
+.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *) .input-field__input {
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	box-shadow: none;
+}
+
+.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *),
+.cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *) {
+	--cn-board-select-height: 36px;
+}
+
 /* ---- The header button ------------------------------------------------- */
 .cn-look-board .cn-index-page__header-buttons:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__header-actions:not(.cn-look-nextcloud *),
@@ -464,6 +489,16 @@
 	border: 0;
 }
 
+/* ---- A card header button --------------------------------------------- */
+/* The boards draw a labelled button beside a card's title at the 40px
+   control height (DqZaakTaken "Nieuwe taak", DqZaakGerelateerd "Deelzaak
+   aanmaken", DqTermijnen "CSV exporteren"); NcButton draws 34px from
+   --button-size. Menu triggers and icon-only buttons keep their size.
+   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-40px */
+.cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
@@ -509,6 +544,8 @@
 }
 
 /* ---- The buildiq square ------------------------------------------------ */
+/* The board square's size. Its orange is set in patches.css, beside the
+   brand orange it replaces, since this sheet names no colour literal. */
 .cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
 	box-sizing: border-box;
 	width: var(--cn-board-control-height);
@@ -1260,13 +1297,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border: 0;
 }
 
-/* One save per section: a footer row, bottom end of the card. */
+/* One save per section: a footer row, bottom end of the card, with no
+   hairline above it (DqBeheerinstellingen, DqInstellingen).
+   @spec openspec/changes/board-settings-save-row/specs/board-settings-save-row/spec.md#requirement-a-board-settings-save-row-has-no-divider-above-it */
 .cn-look-board .cn-settings-section__save {
 	display: flex;
 	justify-content: flex-end;
 	margin-top: 4px;
 	padding-top: 14px;
-	border-top: 1px solid var(--cn-board-hairline);
 }
 
 /* The Changes card of a page that saves in the header. */
@@ -1582,8 +1620,43 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* ---- List rows in a card (record list rows, audit rows) ----------------- */
+/* The boards draw a list row in a card as a title at weight 500 in the main
+   ink with a 13px muted line under it, both at the font's normal line height,
+   10px above and below: a two-line row is 56px (DqZaaktype "Versies",
+   DqSociaalDomein). An audit row's action is set at 500 as well, its time and
+   actor at 13px (DqHandhaving "Historie"). The dashboard's record list keeps
+   its own rules below.
+   @spec openspec/changes/board-list-row-titles/specs/board-list-row-titles/spec.md#requirement-a-board-list-row-is-titled-at-500-over-a-13px-line */
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 10px 0;
+}
+
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
+	color: var(--color-main-text);
+	font-weight: 500;
+	line-height: normal;
+}
+
 .cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__hint {
 	line-height: normal;
+}
+
+.cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__meta {
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__action:not(.cn-look-nextcloud *) {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__when:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__row-body:not(.cn-look-nextcloud *) {
+	font-size: 13px;
 }
 
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
@@ -1988,4 +2061,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
 	font-size: 18px;
+}
+
+/* ---- A card titled as a side card (`titleTone: "side"`) ------------------ */
+/* The boards title the cards in a page's right column as side cards: 15px,
+   600, muted (DqDagAfsluiten "Uw dag", DqZaaktypeOverzicht "Gegevens"). The
+   tone carries `!important` against the dashboard title rule and a theme
+   that colours every h3.
+   @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card */
+.cn-look-board .cn-widget-wrapper--side-title:not(.cn-look-nextcloud *) .cn-widget-wrapper__title {
+	font-size: var(--cn-board-side-heading-size, 15px) !important;
+	font-weight: 600 !important;
+	color: var(--color-text-maxcontrast) !important;
 }

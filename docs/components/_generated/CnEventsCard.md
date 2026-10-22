@@ -2,18 +2,26 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 2 direct references, 8 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 2 direct references, 10 files reached through imports.
+
+Through: `CnCalendarEventCreate`, `CnCalendarEventPicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type                                                       | Required | Default                    | Description                                                                                                                                            |
-| ------------- | ---------------------------------------------------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `source`      | `union`                                                    |          | `null`                     | Where the events come from: `{ kind: 'flow-task', id? }`. `id` may be left out or written `@objectId` for `objectId`. Also read from `content.source`. |
-| `endpoint`    | `string`                                                   |          | `''`                       | An events URL of its own; `{id}` is filled with the record id. Also read from `content.endpoint`.                                                      |
-| `objectId`    | `string&#124;number`                                       |          | `''`                       | The page's record id.                                                                                                                                  |
-| `apiBase`     | `string`                                                   |          | `'/apps/openregister/api'` | The OpenRegister API base.                                                                                                                             |
-| `content`     | `{source?: object, endpoint?: string, emptyText?: string}` |          | `\{\}`                     | The widget's manifest content: `source`, `endpoint`, `emptyText` (translated through the host).                                                        |
-| `emptyLabel`  | `string`                                                   |          | `''`                       | Shown when the record has no appointments.                                                                                                             |
-| `failedLabel` | `string`                                                   |          | `''`                       | Shown when the read failed.                                                                                                                            |
+| Name          | Type                                                                                      | Required | Default                    | Description                                                                                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------- | -------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`      | `union`                                                                                   |          | `null`                     | Where the events come from: `{ kind: 'flow-task', id? }`. `id` may be left out or written `@objectId` for `objectId`. Also read from `content.source`.                                  |
+| `endpoint`    | `string`                                                                                  |          | `''`                       | An events URL of its own; `{id}` is filled with the record id. Also read from `content.endpoint`.                                                                                       |
+| `objectId`    | `string&#124;number`                                                                      |          | `''`                       | The page's record id.                                                                                                                                                                   |
+| `apiBase`     | `string`                                                                                  |          | `'/apps/openregister/api'` | The OpenRegister API base.                                                                                                                                                              |
+| `content`     | `{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>}` |          | `\{\}`                     | The widget's manifest content: `source`, `endpoint`, `emptyText` (translated through the host) and `headerActions` (`link`, `create`): the buttons it reports for its card's title row. |
+| `emptyLabel`  | `string`                                                                                  |          | `''`                       | Shown when the record has no appointments.                                                                                                                                              |
+| `failedLabel` | `string`                                                                                  |          | `''`                       | Shown when the read failed.                                                                                                                                                             |
+
+### Events
+
+| Name     | Payload | Description                                                        |
+| -------- | ------- | ------------------------------------------------------------------ |
+| `header` | —       | The card's title-row actions, `{ actions }`, for the host to draw. |

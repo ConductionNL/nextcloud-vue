@@ -94,3 +94,7 @@ export default {
 
 
 `wide` is documented in the prop table of the component reference (board look, screens-chrome-parity).
+
+### Actions in the title row (`actionsInTitle`)
+
+With `actionsInTitle` the `actions` slot sits in the title row, beside the heading, the way the boards draw a section's buttons ("Regel toevoegen", "Dag toevoegen"). The description and the content run below across the width. Without it the actions float right above the content, as before.

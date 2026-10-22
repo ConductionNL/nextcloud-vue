@@ -909,16 +909,14 @@ export default {
 			if (Object.keys(errors).length > 0) {
 				return
 			}
-			const entry = { ...((this.content.add && this.content.add.defaults) || {}) }
-			for (const field of this.addFields) {
-				const value = this.draft[field.key]
-				if (value !== undefined && value !== null && String(value).trim() !== '') {
-					entry[field.key] = typeof value === 'string' ? value.trim() : value
-				}
-			}
+			const entry = this.newEntry()
+			const scalar = typeof entry !== 'object'
 			const unique = this.content.add && this.content.add.unique
 			const saved = await this.save((stored) => {
-				if (unique && stored.some((item) => item && String(readPath(item, unique)) === String(entry[unique]))) {
+				const duplicate = scalar
+					? (unique && stored.some((item) => String(item) === String(entry)))
+					: (unique && stored.some((item) => item && String(readPath(item, unique)) === String(entry[unique])))
+				if (duplicate) {
 					const error = new Error('duplicate')
 					error.userMessage = this.tr('This is already in the list.')
 					throw error
@@ -930,6 +928,31 @@ export default {
 				this.adding = false
 				this.loadLive()
 			}
+		},
+
+		/**
+		 * The entry the add form describes: an object of the filled add fields
+		 * over `add.defaults`, or, with `add.scalar`, the trimmed value of the
+		 * first add field itself (a list of strings such as `enumValues`).
+		 *
+		 * @return {object|string} The entry.
+		 * @spec openspec/changes/side-card-follows-row/specs/side-card-follows-row/spec.md#requirement-a-field-list-adds-plain-values
+		 */
+		newEntry() {
+			const add = this.content.add || {}
+			const trimmed = (value) => (typeof value === 'string' ? value.trim() : value)
+			if (add.scalar === true) {
+				const first = this.addFields[0]
+				return first ? trimmed(this.draft[first.key]) : ''
+			}
+			const entry = { ...(add.defaults || {}) }
+			for (const field of this.addFields) {
+				const value = this.draft[field.key]
+				if (value !== undefined && value !== null && String(value).trim() !== '') {
+					entry[field.key] = trimmed(value)
+				}
+			}
+			return entry
 		},
 
 		/**

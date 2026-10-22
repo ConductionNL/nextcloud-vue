@@ -98,6 +98,7 @@ const ALLOWED = new Map([
 	['src/utils/diagnostics.js:url', 'trackedFetch wraps the caller\'s URL, which the caller already prefixed'],
 	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
+	['src/integrations/builtin/calendar/calendarEventLink.js:`${eventsUrl}/link`', 'every caller passes a prefixUrl()-built events address (CnEventsCard, CnCalendarCard, CnCalendarTab)'],
 
 	// ── Built by a computed that wraps `prefixUrl()` itself.
 	['src/components/CnTimelineWidget/CnTimelineManage.vue:this.timelineUrl', 'the timelineUrl computed returns prefixUrl(...)'],

@@ -33,6 +33,10 @@ OCA.OpenRegister.integrations.register({
 
 Open any object in OpenRegister. Your tab is in the sidebar strip, ordered by `order`. If it is not, check the browser console: `register()` throws on a malformed descriptor rather than failing quietly.
 
+## The calendar card's buttons
+
+On a detail page the built-in calendar card can carry the calendar tab's two flows in its title row: `headerActions: ["link", "create"]` (in that order) draws "Bestaande koppelen", which links an event from the user's calendar through `…/objects/{r}/{s}/{id}/events/link`, and "Afspraak maken", which creates a meeting linked to the object. The list reads again afterwards, and a refused link shows the server's sentence. A manifest passes it as the integration widget's `props.headerActions`.
+
 ## Registration shape
 
 `id` and `label` are always required. In the default render mode, `tab` and `widget` are required too.
