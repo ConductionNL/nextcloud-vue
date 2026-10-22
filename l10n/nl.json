@@ -2519,7 +2519,13 @@
     "The action matrix could not be loaded: {reason}": "De rechten per actie konden niet worden geladen: {reason}",
     "The server did not confirm the action matrix. Nothing was saved.": "De server heeft de rechten per actie niet bevestigd. Er is niets opgeslagen.",
     "The action matrix is saved.": "De rechten per actie zijn opgeslagen.",
-    "The action matrix was not saved: {reason}": "De rechten per actie zijn niet opgeslagen: {reason}"
+    "The action matrix was not saved: {reason}": "De rechten per actie zijn niet opgeslagen: {reason}",
+    "Remove the stored value": "De opgeslagen waarde verwijderen",
+    "Only the first {count} choices are listed.": "Alleen de eerste {count} keuzes staan in de lijst.",
+    "Open on {day}": "Open op {day}",
+    "Opens on {day}": "Opent op {day}",
+    "Closes on {day}": "Sluit op {day}",
+    "{field}: a day closes before it opens, or a time is missing.": "{field}: een dag sluit voordat hij opent, of er ontbreekt een tijd."
   },
   "plurals": {
     "{count} member": [
