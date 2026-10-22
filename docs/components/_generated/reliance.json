@@ -760,7 +760,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 200,
+			"transitive": 201,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -811,6 +811,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -1006,7 +1007,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 11,
-			"transitive": 203,
+			"transitive": 204,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1057,6 +1058,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -1634,7 +1636,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 211,
+			"transitive": 212,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1686,6 +1688,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -2054,8 +2057,8 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 10,
-			"transitive": 208,
+			"direct": 11,
+			"transitive": 209,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2106,6 +2109,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -2640,9 +2644,9 @@
 			"page": null
 		},
 		"CnMenuWidget": {
-			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"direct": 1,
+			"transitive": 1,
+			"tier": "light",
 			"via": [],
 			"page": "cn-menu-widget"
 		},
@@ -3204,7 +3208,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 228,
+			"transitive": 229,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3260,6 +3264,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -3702,7 +3707,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 201,
+			"transitive": 202,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3754,6 +3759,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
@@ -4295,6 +4301,19 @@
 				"CnRegisterSchemaSelect"
 			],
 			"page": "cn-stages-widget-form"
+		},
+		"CnStatGridWidget": {
+			"direct": 0,
+			"transitive": 13,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnIndexPage",
+				"CnRegisterSchemaSelect",
+				"CnStatWidget",
+				"CnStatWidgetForm"
+			],
+			"page": "cn-stat-grid-widget"
 		},
 		"CnStatWidget": {
 			"direct": 5,
@@ -4949,7 +4968,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 191,
+			"transitive": 192,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4997,6 +5016,7 @@
 				"CnMapPoiPicker",
 				"CnMapWidget",
 				"CnMapWidgetForm",
+				"CnMenuWidget",
 				"CnNavCardGrid",
 				"CnNoteComposer",
 				"CnNotesCard",
