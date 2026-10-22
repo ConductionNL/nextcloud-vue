@@ -2238,7 +2238,8 @@
     "Creating…": "Creating…",
     "This could not be created. Try again.": "This could not be created. Try again.",
     "Could not copy": "Could not copy",
-    "The action failed.": "The action failed."
+    "The action failed.": "The action failed.",
+    "The warnings could not be loaded.": "The warnings could not be loaded."
   },
   "plurals": {
     "{count} member": [
