@@ -57,6 +57,7 @@
 				</template>
 				{{ linkExistingLabel }}
 			</NcButton>
+			<CnWidgetHeaderActionButtons v-if="bodyActions.length > 0" :actions="bodyActions" />
 		</div>
 
 		<!-- Loading -->
@@ -194,7 +195,9 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import CnWidgetHeaderActionButtons from '../../../components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { WIDGET_BODY_ACTIONS } from '../../../utils/widgetHeaderActions.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -239,6 +242,12 @@ export default {
 		CnStatusBadge,
 		CnContactPicker,
 		CnContactCreate,
+		CnWidgetHeaderActionButtons,
+	},
+
+	inject: {
+		/** The widget's manifest `bodyActions`, drawn after this tab's own buttons. */
+		cnWidgetBodyActions: { from: WIDGET_BODY_ACTIONS, default: null },
 	},
 
 	props: {
@@ -305,6 +314,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The widget's body actions, unwrapped.
+		 *
+		 * @return {Array<object>} The resolved buttons, or none.
+		 */
+		bodyActions() {
+			const provided = this.cnWidgetBodyActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
+
 		/**
 		 * Defensive view onto `this.contacts` — always an array.
 		 *

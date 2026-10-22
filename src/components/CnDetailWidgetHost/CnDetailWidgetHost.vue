@@ -429,7 +429,7 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
-import { resolveWidgetHeaderActions, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
+import { resolveWidgetHeaderActions, WIDGET_BODY_ACTIONS, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { HOST_WIDGET_ID } from '../../utils/widgetSelection.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -543,6 +543,9 @@ export default {
 			// The widget's manifest `headerActions`, for the card that titles
 			// it. In bare mode the surface (a tab panel) draws them instead.
 			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
+			// The widget's manifest `bodyActions`, for a leaf that draws its
+			// own button row in the body (the contacts tab).
+			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
 			// The hosted widget's id, read at call time, so a list can publish its
 			// rows under it for a card that follows them (side-card-follows-row).
 			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
@@ -1075,14 +1078,34 @@ export default {
 		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
 		 */
 		declaredHeaderActions() {
-			return resolveWidgetHeaderActions(this.widget, {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext)
+		},
+
+		/**
+		 * The widget's manifest `bodyActions` as buttons, for a leaf that draws
+		 * them in its own button row ("Partij toevoegen" beside the contacts
+		 * tab's Link and New buttons).
+		 *
+		 * @return {Array<object>} The buttons.
+		 */
+		declaredBodyActions() {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext, 'bodyActions')
+		},
+
+		/**
+		 * What a header or body action resolves and dispatches with.
+		 *
+		 * @return {object} `{ object, objectId, translate, dispatch }`.
+		 */
+		actionContext() {
+			return {
 				object: this.object || {},
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
 				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
 					? this.cnDispatchAction(action)
 					: dispatchAction(action, { router: this.$router || null })),
-			})
+			}
 		},
 
 		leafCardTitle() {
