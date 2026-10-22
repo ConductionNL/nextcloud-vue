@@ -7,6 +7,7 @@
 		:run="runUuid"
 		:detailRoute="detailRoute"
 		:listLabel="listLabel ? cnTranslate(listLabel) : ''"
+		:breadcrumb="(breadcrumb || []).map((crumb) => ({ ...crumb, label: cnTranslate(crumb.label) }))"
 		:palette="palette"
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
 		:flowDirection="flowDirection"
@@ -146,7 +147,8 @@ export default {
 
 		/**
 		 * Board look: an info notice under the path. Manifest key
-		 * `config.notice`, translated with the app's catalogue.
+		 * `config.notice`, translated with the app's catalogue; `{name}` is
+		 * the flow's name.
 		 */
 		notice: {
 			type: String,
@@ -170,6 +172,17 @@ export default {
 		listLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the levels before the flow, each its own link
+		 * (`[{ label, href? }]`, "Settings" / "Flows"); a crumb without an
+		 * href links to the flow list. Labels are translated with the app's
+		 * catalogue. Manifest key `config.breadcrumb`; wins over `listLabel`.
+		 */
+		breadcrumb: {
+			type: Array,
+			default: () => [],
 		},
 	},
 
