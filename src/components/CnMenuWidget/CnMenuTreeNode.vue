@@ -34,6 +34,7 @@
 					<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 				</span>
 				<span class="cn-menu-tree-node__label">{{ item.label }}</span>
+				<span v-if="typeof item.count === 'number'" class="cn-menu-tree-node__count">{{ item.count }}</span>
 			</component>
 		</div>
 		<ul
@@ -316,6 +317,18 @@ export default {
 	text-decoration: none;
 	padding: 2px 4px;
 	flex: 1;
+}
+
+/* The count a `countFrom` item reads, at the row's end (DqCatalogus "Zaaktypen 14"). */
+.cn-menu-tree-node__count {
+	margin-inline-start: auto;
+	padding: 0 7px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
 }
 
 .cn-menu-tree-node__label-button:focus-visible {

@@ -11,6 +11,13 @@ An item can take its children from the values of a facetable field with `childre
   "childrenFrom": { "register": "dossiq", "schema": "caseType", "field": "category", "url": "/index.php/apps/dossiq/settings/case-types?category={value}" } }
 ```
 
+An item can show a count at the end of its row with `countFrom`: `{ register, schema, filter? }` counts a register schema (one row asked, its `total`), `{ url, responsePath? }` counts the rows of an endpoint (its `total` when it answers one). A failed read draws no count. DqCatalogus: "Zaaktypen 14", "Objecttypen 7".
+
+```json
+{ "label": "Object types", "url": "/index.php/apps/dossiq/settings/catalogue",
+  "countFrom": { "url": "/apps/dossiq/api/catalogue/object-types", "responsePath": "results" } }
+```
+
 In the board look a tree with `expandedByDefault` draws no carets, and its second level as sub-folders: 28px in, 14px, in the muted ink.
 
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
