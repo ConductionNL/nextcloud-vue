@@ -513,10 +513,12 @@ export default {
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
 		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
-		 * field?, where } }`, `@self.<path>` in `where` read off the row) asks
-		 * a figure over each row's related objects, as a table's `aggregate`
-		 * column does, and offers it to the row's templates as `{key}`
-		 * (DqZaaktype Versies "31 lopende zaken").
+		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
+		 * row) asks a figure over each row's related objects, as a table's
+		 * `aggregate` column does, and offers it to the row's templates as
+		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
+		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
+		 * lopende zaken").
 		 *
 		 * @type {object}
 		 */
@@ -1539,7 +1541,7 @@ export default {
 				for (const [key, agg] of entries) {
 					jobs.push(fetchRowAggregate(agg, row)
 						.then((value) => {
-							next[rowId][key] = value
+							next[rowId][key] = this.aggregateText(agg, value)
 						})
 						.catch(() => {}))
 				}
@@ -1548,6 +1550,25 @@ export default {
 			if (id === this.aggregateRequestId) {
 				this.aggregateValues = next
 			}
+		},
+
+		/**
+		 * A count read through the aggregate's `text` forms (`{ zero?, one?,
+		 * other }`, `{count}` filled in, translated), else the figure itself.
+		 *
+		 * @param {object} agg The aggregate declaration.
+		 * @param {unknown} value The figure.
+		 * @return {unknown} The text, or the figure.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		aggregateText(agg, value) {
+			const forms = agg && agg.text
+			const count = Number(value)
+			if (!forms || typeof forms !== 'object' || !Number.isFinite(count)) {
+				return value
+			}
+			const form = (count === 0 && forms.zero) || (count === 1 && forms.one) || forms.other || forms.one
+			return typeof form === 'string' ? this.translate(form).replace(/\{count\}/g, String(count)) : value
 		},
 
 		/**

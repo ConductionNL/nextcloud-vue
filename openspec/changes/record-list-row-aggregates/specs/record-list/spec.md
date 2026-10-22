@@ -16,7 +16,7 @@ A record list row can say how much points at it.
 
 With `content.aggregates` CnRecordListWidget SHALL ask each declared figure for every row it shows, with `@self.<path>` in
 `where` read off that row, the same way a table's `aggregate` column does, and SHALL offer it to the row's templates under
-its key. A failed figure SHALL be left out of the row.
+its key, read through the declaration's `text` forms (`zero`, `one`, `other`) when it has them. A failed figure SHALL be left out of the row.
 
 #### Scenario: DqZaaktype
 

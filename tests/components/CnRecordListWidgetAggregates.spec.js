@@ -18,7 +18,7 @@ jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn
 jest.mock('@nextcloud/router', () => ({ generateUrl: (path, vars) => path.replace(/\{(\w+)\}/g, (_, k) => vars[k]) }))
 
 const VERSIONS = [{ id: 'v-4', version: 4, validFrom: '2026-10-02' }, { id: 'v-3', version: 3, validFrom: '2026-05-14' }]
-const RUNNING = { 'v-4': 31, 'v-3': 12 }
+const RUNNING = { 'v-4': 31, 'v-3': 0 }
 
 /**
  * @return {Promise<void>}
@@ -67,7 +67,14 @@ describe('CnRecordListWidget aggregates', () => {
 	it('offers the figure to the row templates under its key', async () => {
 		const w = mountList({ meta: '{runningCases} running cases', aggregates: AGGREGATES })
 		await flush()
-		expect(w.findAll('.cn-record-list__meta').map((node) => node.text())).toEqual(['31 running cases', '12 running cases'])
+		expect(w.findAll('.cn-record-list__meta').map((node) => node.text())).toEqual(['31 running cases', '0 running cases'])
+	})
+
+	it('reads a count through its text forms, zero included', async () => {
+		const aggregates = { runningCases: { ...AGGREGATES.runningCases, text: { zero: 'no running cases', one: '{count} running case', other: '{count} running cases' } } }
+		const w = mountList({ meta: '{runningCases}', aggregates })
+		await flush()
+		expect(w.findAll('.cn-record-list__meta').map((node) => node.text())).toEqual(['31 running cases', 'no running cases'])
 	})
 
 	it('asks nothing without aggregates', async () => {
