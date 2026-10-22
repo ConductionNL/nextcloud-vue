@@ -12,6 +12,7 @@
 		:flowDirection="flowDirection"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
+		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
 		@save="onSave"
 		@run="onRun" />
@@ -161,6 +162,15 @@ export default {
 		pill: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the tone of `pill` (a CnStatusBadge variant, "teal" on
+		 * DqFlow). Manifest key `config.pillVariant`.
+		 */
+		pillVariant: {
+			type: String,
+			default: 'default',
 		},
 
 		/**

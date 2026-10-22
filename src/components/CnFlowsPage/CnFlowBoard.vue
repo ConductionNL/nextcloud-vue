@@ -18,7 +18,7 @@
 				<h2 class="cn-flow-board__title" data-testid="flow-board-title">
 					{{ titleText }}
 				</h2>
-				<CnStatusBadge v-if="pillText" :label="pillText" variant="default" />
+				<CnStatusBadge v-if="pillText" :label="pillText" :variant="pill ? pillVariant : 'default'" />
 			</div>
 			<div v-if="!store.inRunView" class="cn-flow-board__actions">
 				<NcCheckboxRadioSwitch v-if="store.flow.id"
@@ -299,6 +299,8 @@ export default {
 		notice: { type: String, default: '' },
 		/** The pill beside the title ("Case type flow"). */
 		pill: { type: String, default: '' },
+		/** The tone of `pill` ("teal" on DqFlow); a lifecycle pill stays neutral. */
+		pillVariant: { type: String, default: 'default' },
 		/**
 		 * The records a test run can take as its subject: `{ register, schema,
 		 * labelField?, label? }`. Draws a header button ("Testen met een zaak",
