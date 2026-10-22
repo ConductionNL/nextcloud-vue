@@ -583,6 +583,14 @@
 	overflow: hidden;
 }
 
+/* In an admin settings section the section is the card: its table draws no
+   second edge inside it, and the header band runs to the section's inset
+   (DqInstellingen "Koppelingen", DqVthInstellingen "Legesregels"). */
+.cn-look-board .settings-section .cn-table-container.cn-table-container--board:not(.cn-look-nextcloud *) {
+	border: 0;
+	border-radius: 0;
+}
+
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
 	/* The body is a row: the card takes the width left beside a sidebar (the
 	   board's table card spans the content), and keeps the height of its rows. */
