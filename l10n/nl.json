@@ -2495,7 +2495,11 @@
     "The saved flow is tried with the record you pick. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het record dat u kiest. Er wordt niets gewijzigd of verstuurd.",
     "Nothing was changed or sent.": "Er is niets gewijzigd of verstuurd.",
     "Test result": "Testresultaat",
-    "To {recipients}": "Aan {recipients}"
+    "To {recipients}": "Aan {recipients}",
+    "Task saved": "Taak opgeslagen",
+    "Due by": "Uiterlijk op",
+    "Incoming": "Inkomend",
+    "Outgoing": "Uitgaand"
   },
   "plurals": {
     "{count} member": [
@@ -2669,6 +2673,10 @@
     "Also written on %n other record": [
       "Staat ook op %n ander dossier",
       "Staat ook op %n andere dossiers"
+    ],
+    "%n follower": [
+      "%n volger",
+      "%n volgers"
     ]
   }
 }

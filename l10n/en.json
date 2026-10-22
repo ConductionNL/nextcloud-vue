@@ -2245,7 +2245,11 @@
     "The saved flow is tried with the record you pick. Nothing is changed or sent.": "The saved flow is tried with the record you pick. Nothing is changed or sent.",
     "Nothing was changed or sent.": "Nothing was changed or sent.",
     "Test result": "Test result",
-    "To {recipients}": "To {recipients}"
+    "To {recipients}": "To {recipients}",
+    "Task saved": "Task saved",
+    "Due by": "Due by",
+    "Incoming": "Incoming",
+    "Outgoing": "Outgoing"
   },
   "plurals": {
     "{count} member": [
@@ -2402,6 +2406,10 @@
     "Also written on %n other record": [
       "Also written on %n other record",
       "Also written on %n other records"
+    ],
+    "%n follower": [
+      "%n follower",
+      "%n followers"
     ]
   }
 }

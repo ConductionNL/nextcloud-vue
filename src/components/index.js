@@ -236,6 +236,7 @@ export { CnStatsBlockWidget } from './CnStatsBlockWidget/index.js'
 // forms (KPI/delta/gauge/object-list/chart/stats-card/table). Each renderer
 // fetches its own OR aggregate at runtime via generateUrl; the forms self-fetch
 // schema properties. Consumed by LaunchPad's widget registry.
+export { CnStatGridWidget } from './CnStatGridWidget/index.js'
 export { CnStatWidget } from './CnStatWidget/index.js'
 export { CnStatWidgetForm } from './CnStatWidgetForm/index.js'
 export { CnDeltaWidget } from './CnDeltaWidget/index.js'

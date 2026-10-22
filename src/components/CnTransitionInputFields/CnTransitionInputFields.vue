@@ -176,12 +176,20 @@
 			</div>
 		</template>
 
-		<NcNoteCard v-if="notice && notice.text"
-			class="cn-transition-input-fields__wide"
-			:type="notice.type || 'info'"
-			:heading="notice.heading || ''">
-			{{ notice.text }}
-		</NcNoteCard>
+		<!-- A tinted box with the act's own icon (DqArchiveren "Daarna alleen
+		     lezen", a lock), drawn here rather than as a note card: a note
+		     card on the tinted card of a chosen act disappears into it. -->
+		<div v-if="notice && notice.text"
+			class="cn-transition-input-fields__notice cn-transition-input-fields__wide"
+			:class="`cn-transition-input-fields__notice--${notice.type || 'info'}`"
+			role="note"
+			data-testid="cn-transition-input-fields-notice">
+			<CnIcon :name="notice.icon || 'InformationOutline'" :size="20" class="cn-transition-input-fields__notice-icon" />
+			<span class="cn-transition-input-fields__notice-text">
+				<strong v-if="notice.heading">{{ notice.heading }}</strong>
+				<span>{{ notice.text }}</span>
+			</span>
+		</div>
 
 		<!-- A key the refusal names that this form never offered is not a
 		     field anybody can correct here. Saying so beats saying nothing:
@@ -197,11 +205,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
 import { readPath } from '../../utils/readPath.js'
 import { applyTemplateText, isInputFilled, resolveInputFields } from '../../utils/transitionInputs.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 let uid = 0
 
@@ -234,10 +243,10 @@ export default {
 	name: 'CnTransitionInputFields',
 
 	components: {
+		CnIcon,
 		CnResourceSelect,
 		CnTemplateSelect,
 		NcCheckboxRadioSwitch,
-		NcNoteCard,
 		NcSelect,
 		NcTextArea,
 		NcTextField,
@@ -370,7 +379,8 @@ export default {
 		},
 
 		/**
-		 * A note under the inputs: `{ type, heading, text }`.
+		 * A note under the inputs: `{ type, heading, text, icon? }`. `type` is
+		 * info (the default), warning or error; `icon` names a CnIcon.
 		 *
 		 * @type {object|null}
 		 */
@@ -737,6 +747,15 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+.cn-transition-input-fields__facts dt,
+.cn-transition-input-fields__facts dd {
+	display: block;
+	width: auto;
+	padding: 0;
+	text-align: start;
+	white-space: normal;
+}
+
 .cn-transition-input-fields__facts dt {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
@@ -746,5 +765,38 @@ export default {
 	margin: 2px 0 0;
 	font-size: 15px;
 	font-weight: 600;
+}
+
+.cn-transition-input-fields__notice {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	padding: 14px 16px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-primary-element-light);
+	color: var(--color-main-text);
+}
+
+.cn-transition-input-fields__notice--warning {
+	background: var(--color-warning-element-light, var(--color-background-dark));
+}
+
+.cn-transition-input-fields__notice--error {
+	background: var(--color-error-element-light, var(--color-background-dark));
+}
+
+.cn-transition-input-fields__notice-icon {
+	flex: none;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+}
+
+.cn-transition-input-fields__notice-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-transition-input-fields__notice-text strong {
+	color: var(--color-primary-element-light-text, var(--color-main-text));
 }
 </style>

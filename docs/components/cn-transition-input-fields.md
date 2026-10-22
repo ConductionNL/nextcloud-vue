@@ -57,7 +57,9 @@ A `template` input renders [`CnTemplateSelect`](./cn-template-select.md) with it
 
 `summary` is a read-only block above the inputs about what the action works on: `{ when, card: { icon, title, meta: [], badge }, title, facts: [{ label, path, fallback }], testid }`. `when`, the card's `title`, `meta` and `badge`, and each fact's `path` are dot paths into `context`; the block shows once `when` resolves. The card and the facts carry the test ids `<testid>-card` and `<testid>-facts`.
 
-`notice` is an `NcNoteCard` under the inputs: `{ type, heading, text }`.
+`notice` is a tinted box under the inputs: `{ type, heading, text, icon? }`. `type` is `info` (the default), `warning` or `error`; `icon` names a CnIcon (default `InformationOutline`). It is drawn as its own box rather than an `NcNoteCard`, which disappears into the tinted card of a chosen act.
+
+The summary's facts stack each label over its value, whatever Nextcloud's `apps.css` does to `dt` and `dd`.
 
 ## Props
 

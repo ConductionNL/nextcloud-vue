@@ -214,3 +214,10 @@ describe('CnFollowToggle', () => {
 		expect(mockSetWatcher).toHaveBeenCalledWith('pipelinq', 'ticket', 'c1', 'jan', false)
 	})
 })
+
+describe('CnFollowToggle followers label', () => {
+	it('counts one follower in the singular and more in the plural', () => {
+		expect(mountIt({ watcherCount: 1 }).vm.followersLabel).toBe('1 follower')
+		expect(mountIt({ watcherCount: 3 }).vm.followersLabel).toBe('3 followers')
+	})
+})

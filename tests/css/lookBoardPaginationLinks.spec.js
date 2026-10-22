@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * The boards size a page link's content box at 34px: a bordered link, and
- * "Volgende", draws 36px, the borderless current page 34px (DqZaken). Read
- * from the stylesheet text.
+ * "Volgende", draws 36px, the borderless current page 34px (DqZaken). A
+ * numbered link centres its number with no side padding; only the wide
+ * "Volgende" link pads 12px. Read from the stylesheet text.
  *
  * @spec openspec/changes/board-pagination-links/specs/board-pagination-links/spec.md#requirement-a-board-page-link-is-sized-as-the-boards-draw-it
  */
@@ -37,5 +38,10 @@ describe('look-board-index.css: board page link size', () => {
 		expect(body).toMatch(/min-width: 34px;/)
 		expect(body).toMatch(/\theight: 34px;/)
 		expect(body).toMatch(/border: 0;/)
+	})
+
+	it('pads a numbered link nothing at its sides and the wide link 12px', () => {
+		expect(ruleEndingWith('.cn-look-board .cn-pagination--board .cn-pagination__board-link')).toMatch(/\tpadding: 0;/)
+		expect(ruleEndingWith('.cn-look-board .cn-pagination--board .cn-pagination__board-link--wide')).toMatch(/padding: 0 12px;/)
 	})
 })
