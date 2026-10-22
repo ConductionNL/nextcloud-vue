@@ -12,7 +12,10 @@
   `layout-change` emission are byte-identical between the two input modes.
 -->
 <template>
-	<div ref="gridContainer" class="cn-dashboard-grid">
+	<div ref="gridContainer"
+		class="cn-dashboard-grid"
+		:class="{ 'cn-dashboard-grid--side-column': sideColumnStyle !== null }"
+		:style="sideColumnStyle">
 		<!--
 			Keyboard instructions, referenced by every grid item through
 			`aria-describedby`. Rendered once (not per item) so a screen
@@ -289,6 +292,21 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * A side column of a fixed width: `{ width, from? }`. The items from
+		 * column `from` (8 by default) on are drawn `width` px wide (the card,
+		 * not counting the item margins) and the columns before it share the
+		 * rest, so the side cards keep their width on any screen (DqMijnWerk).
+		 * Only on the full twelve-column grid and not while editing; GridStack
+		 * keeps the twelve columns underneath.
+		 *
+		 * @spec openspec/changes/dashboard-side-column-width/specs/dashboard-side-column-width/spec.md#requirement-a-dashboard-can-draw-its-side-column-at-a-fixed-width
+		 */
+		sideColumn: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -335,6 +353,26 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The CSS variables that draw the side column at its width, or null
+		 * when the grid keeps its twelve shares.
+		 *
+		 * @return {object|null}
+		 */
+		sideColumnStyle() {
+			const width = Number(this.sideColumn?.width)
+			if (this.editable || !Number.isFinite(width) || width <= 0) {
+				return null
+			}
+			const from = Math.floor(Number(this.sideColumn?.from ?? 8))
+			const split = Number.isFinite(from) && from > 0 && from < 12 ? from : 8
+			return {
+				'--cn-side-width': `${width}px`,
+				'--cn-side-from': String(split),
+				'--cn-side-span': String(12 - split),
+			}
+		},
+
 		/**
 		 * The layout's items top to bottom, then left to right: the order the
 		 * items are in the page, so GridStack places them in that order.
@@ -1286,6 +1324,20 @@ export default {
 
 .grid-stack {
 	background: transparent;
+}
+
+/* `sideColumn`: an item's left edge and width follow its column on two
+   scales, the columns before `--cn-side-from` sharing what the side column
+   leaves, the columns after it sharing the side column's fixed width (the
+   card plus its two item margins). GridStack writes `--gs-x` and `--gs-w` on
+   every item and its own left and width inline, hence !important. */
+.cn-dashboard-grid--side-column > .grid-stack.gs-12:not(.grid-stack-rtl) > .grid-stack-item {
+	--cn-side-cell: calc(var(--cn-side-width) + var(--gs-item-margin-left, 0px) + var(--gs-item-margin-right, 0px));
+	--cn-main-col: calc((100% - var(--cn-side-cell)) / var(--cn-side-from));
+	--cn-side-col: calc(var(--cn-side-cell) / var(--cn-side-span));
+	/* stylelint-disable-next-line csstools/use-logical -- GridStack places a left-to-right item by `left`. */
+	left: calc(min(var(--gs-x), var(--cn-side-from)) * var(--cn-main-col) + max(var(--gs-x) - var(--cn-side-from), 0) * var(--cn-side-col)) !important;
+	width: calc((min(var(--gs-x) + var(--gs-w), var(--cn-side-from)) - min(var(--gs-x), var(--cn-side-from))) * var(--cn-main-col) + (max(var(--gs-x) + var(--gs-w) - var(--cn-side-from), 0) - max(var(--gs-x) - var(--cn-side-from), 0)) * var(--cn-side-col)) !important;
 }
 
 /* Screen-reader-only text: the keyboard key map and the live region. Kept in

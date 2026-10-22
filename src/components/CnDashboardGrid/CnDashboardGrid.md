@@ -160,3 +160,5 @@ explicit event when you are writing new code:
 ```
 
 `float` (Boolean, default `true`): GridStack's `float`. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap.
+
+`sideColumn` (Object, default `null`): `{ width, from? }` draws the items from column `from` (8 by default) on at `width` px (the card, without its margins) and lets the columns before it share the rest, so the side cards keep their width on any screen (DqMijnWerk). Only on the full twelve-column grid and not while editing.
