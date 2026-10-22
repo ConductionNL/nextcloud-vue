@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.141.0",
+	"version": "2.142.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4618,6 +4618,11 @@
 							"type": "string",
 							"minLength": 1,
 							"description": "type='detail': a field path, read like a `visibleWhen` field, whose value picks the tabs of the page's tabs widgets and their order for this record, e.g. `@context.caseType.tabs` (DqAanbesteding). A non-empty list of tab ids keeps those tabs in that order; otherwise the declared tabs stay, and edit mode shows them all (2.128.0)."
+						},
+						"quickActionsFrom": {
+							"type": "string",
+							"minLength": 1,
+							"description": "type='detail': a field path, read like a `visibleWhen` field, whose list of `headerActions` ids picks this record's quick actions in that order, e.g. `@context.caseType.quickActions` (a case type that names the actions its cases need most). Only declared header actions are taken; an id nobody declares, or an action written out in the data, is dropped. An empty or missing list keeps `quickActions` (2.142.0)."
 						},
 						"sideColumnFrom": {
 							"type": "string",
