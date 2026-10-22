@@ -2183,6 +2183,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 }
 
+/* Under a bar list or a matrix the footnote sits in the chart's HTML body,
+   where it took the page's 15px text in the full ink. The board draws it as
+   the same small muted line as under a plot (DqDashboard "Klik een balk om
+   de zaken te zien"). A theme that sets every paragraph with !important
+   (thematiq's nldesign `p`) would win over it, hence the !important here.
+   @spec openspec/changes/board-chart-footnote/specs/board-chart-footnote/spec.md#requirement-a-board-chart-footnote-under-a-bar-list-or-matrix-is-a-small-muted-line */
+.cn-look-board .cn-chart-widget__html:not(.cn-look-nextcloud *) .cn-chart-widget__footnote {
+	font-size: 13px !important;
+	line-height: normal !important;
+	color: var(--color-text-maxcontrast) !important;
+}
+
 /* An activity item pads itself 4px, so the body takes 4px less. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
