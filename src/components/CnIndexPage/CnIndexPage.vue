@@ -10886,8 +10886,8 @@ export default {
 		 * group (`groupField`, default `group`) and the group above it
 		 * (`parentField`, default `parent`): a group id, or the id of another
 		 * record, read as that record's group. In the `groups` shape. Null without
-		 * the option or when the records cannot be read, so the pane lists
-		 * every group flat.
+		 * the option, when the records cannot be read or when none names a
+		 * group, so the pane lists every group flat.
 		 *
 		 * @param {object|undefined} from The `parentsFrom` config.
 		 * @return {Promise<Array<{id: string, parent: string|null}>|null>} The entries, or null.
@@ -10905,6 +10905,9 @@ export default {
 					{ query: { _limit: from.limit || 500 } },
 				)
 				const records = (Array.isArray(body?.results) ? body.results : []).filter((record) => record && record[groupField])
+				if (records.length === 0) {
+					return null
+				}
 				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
 				return records.map((record) => {
 					const parent = record[parentField] ? String(record[parentField]) : null

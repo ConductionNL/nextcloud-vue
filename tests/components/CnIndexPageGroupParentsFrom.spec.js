@@ -86,6 +86,13 @@ describe('CnIndexPage groups pane with parentsFrom', () => {
 		expect(w.vm.folderGroupList.every((group) => !group.parentId)).toBe(true)
 	})
 
+	it('falls back to every group, flat, while no record names a group', async () => {
+		mockFetchJson.mockResolvedValue({ results: [{ id: 'r-1', parent: null }] })
+		const w = mountPage({ source: 'groups', filterField: 'group', parentsFrom: PARENTS_FROM })
+		await flushPromises()
+		expect(w.vm.folderGroupList).toHaveLength(4)
+	})
+
 	it('reads no records without parentsFrom', async () => {
 		mountPage({ source: 'groups', filterField: 'group' })
 		await flushPromises()
