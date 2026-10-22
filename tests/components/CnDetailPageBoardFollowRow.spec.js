@@ -2,12 +2,11 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * In the board look the Follow control sits at the end of the meta row under
- * the title (the pills and the breadcrumb), not on a row of its own and not on
- * the title row beside the actions. Without the look it stays beside the
- * title.
+ * In the board look the Follow control sits on a row of its own under the
+ * breadcrumb, not on the title row beside the actions (DqZaak "Volgen").
+ * Without the look it stays beside the title.
  *
- * @spec openspec/changes/board-follow-in-meta-row/specs/board-follow-in-meta-row/spec.md#requirement-the-board-follow-control-ends-the-meta-row
+ * @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb
  */
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
@@ -46,13 +45,12 @@ function mountPage(props = {}) {
 }
 
 describe('CnDetailPage: the Follow control in the board look', () => {
-	it('draws it at the end of the meta row, with no row of its own', async () => {
+	it('draws it on its own row under the title row', async () => {
 		const w = mountPage({ look: 'board' })
 		await flushPromises()
-		const row2 = w.find('[data-testid="cn-detail-page-header-row2"]')
-		expect(row2.exists()).toBe(true)
-		expect(row2.find('.follow').exists()).toBe(true)
-		expect(w.find('[data-testid="cn-detail-page-header-row3"]').exists()).toBe(false)
+		const row3 = w.find('[data-testid="cn-detail-page-header-row3"]')
+		expect(row3.exists()).toBe(true)
+		expect(row3.find('.follow').exists()).toBe(true)
 		expect(w.find('.cn-detail-page__title-row .follow').exists()).toBe(false)
 		expect(w.findAll('.follow')).toHaveLength(1)
 	})
@@ -60,7 +58,7 @@ describe('CnDetailPage: the Follow control in the board look', () => {
 	it('keeps the count and the follower management', async () => {
 		const w = mountPage({ look: 'board' })
 		await flushPromises()
-		const follow = w.find('[data-testid="cn-detail-page-header-row2"] .follow')
+		const follow = w.find('[data-testid="cn-detail-page-header-row3"] .follow')
 		expect(follow.attributes('data-count')).toBe('2')
 		expect(follow.attributes('data-manage')).toBe('true')
 	})
@@ -72,9 +70,9 @@ describe('CnDetailPage: the Follow control in the board look', () => {
 		expect(w.find('.cn-detail-page__title-row .follow').exists()).toBe(true)
 	})
 
-	it('draws no Follow control when follow is off', async () => {
+	it('draws no row when follow is off', async () => {
 		const w = mountPage({ look: 'board', follow: false })
 		await flushPromises()
-		expect(w.find('.follow').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-detail-page-header-row3"]').exists()).toBe(false)
 	})
 })

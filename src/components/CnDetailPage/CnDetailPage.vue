@@ -493,7 +493,7 @@
 			     ground under the title. The breadcrumb does not render above the
 			     header in this look, so this is its only place. -->
 			<div
-				v-if="isBoard && (showsHeaderRow2 || showFollowToggle)"
+				v-if="isBoard && showsHeaderRow2"
 				class="cn-detail-page__header-row2"
 				data-testid="cn-detail-page-header-row2">
 				<div
@@ -535,12 +535,23 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
-				<!-- The Follow control ends the meta row, clear of the title row
-				     and its actions, without a row of its own. -->
+			</div>
+			<!-- Row 3 of the board look's header: the Follow control under the
+			     breadcrumb, clear of the title row and its actions (DqZaak
+			     "Volgen"). -->
+			<div
+				v-if="isBoard && showFollowToggle"
+				class="cn-detail-page__header-row3"
+				data-testid="cn-detail-page-header-row3">
 				<span
-					v-if="showFollowToggle"
-					class="cn-detail-page__interactions"
-					data-testid="cn-detail-page-interactions">
+					v-if="presenceSentence"
+					class="cn-detail-page__presence"
+					data-testid="cn-detail-page-presence">
+					<CnPresenceAvatars :present="presentOthers" :max="3" :size="24" />
+					<span>{{ presenceSentence }}</span>
+					<span aria-hidden="true">·</span>
+				</span>
+				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
 					<CnFollowToggle v-bind="followToggleProps" />
 				</span>
 			</div>
@@ -1356,7 +1367,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1388,6 +1399,7 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
+import CnPresenceAvatars from '../CnPresenceAvatars/CnPresenceAvatars.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
@@ -1434,6 +1446,7 @@ import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
@@ -1656,6 +1669,7 @@ export default {
 		CnSummaryAggregates,
 		CnDetailHeaderChips,
 		CnFollowToggle,
+		CnPresenceAvatars,
 		DockRight,
 		EyeOffOutline,
 		CnRelatedCollections,
@@ -2221,6 +2235,20 @@ export default {
 		 */
 		favourite: {
 			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * The board look's follow row (manifest `config.followRow`):
+		 * `presence: true` says who else has the record open now, with their
+		 * initials, before the Follow control (DqZaak "Anouk Bakker kijkt nu
+		 * ook naar deze zaak"); `count: false` draws no follower count.
+		 *
+		 * @type {{presence?: boolean, count?: boolean}|null}
+		 * @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking
+		 */
+		followRow: {
+			type: Object,
 			default: null,
 		},
 
@@ -3146,7 +3174,7 @@ export default {
 		// A getter, not a one-shot read: a page whose widgets arrive after mount
 		// would otherwise never subscribe, and `layoutItemCanDraw` would drop the
 		// presence row for good instead of until somebody arrives.
-		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence')
+		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence') || props.followRow?.presence === true
 		const { others: presentOthers } = useObjectPresence(
 			() => props.register || '',
 			() => props.schema || '',
@@ -4963,6 +4991,27 @@ export default {
 		},
 
 		/**
+		 * Who else has the record open now, in words, for the follow row:
+		 * one name, or the first name and how many more. Empty without
+		 * `followRow.presence` or while nobody else is there.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking
+		 */
+		presenceSentence() {
+			const others = this.followRow?.presence === true && Array.isArray(this.presentOthers) ? this.presentOthers : []
+			if (others.length === 0) {
+				return ''
+			}
+			const first = String(others[0]?.user || '')
+			const name = userDisplayName(first) || first
+			if (others.length === 1) {
+				return t('nextcloud-vue', '{name} is also looking at this record now', { name })
+			}
+			return n('nextcloud-vue', '{name} and %n other are also looking at this record now', '{name} and %n others are also looking at this record now', others.length - 1, { name })
+		},
+
+		/**
 		 * The props of the Follow control, wherever the header draws it.
 		 *
 		 * @return {object} The CnFollowToggle props.
@@ -4976,7 +5025,7 @@ export default {
 				objectId: String(this.objectId),
 				watching: self.watching === true,
 				notify: typeof self.watchNotify === 'boolean' ? self.watchNotify : null,
-				watcherCount: typeof self.watcherCount === 'number' ? self.watcherCount : null,
+				watcherCount: typeof self.watcherCount === 'number' && this.followRow?.count !== false ? self.watcherCount : null,
 				canManage: !!(self.can && self.can.manage === true),
 				notifies: this.followNotifies,
 			}

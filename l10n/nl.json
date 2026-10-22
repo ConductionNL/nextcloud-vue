@@ -2516,7 +2516,8 @@
     "Close side panel": "Zijpaneel sluiten",
     "Export selection as JSON": "Selectie exporteren als JSON",
     "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren",
-    "Bundling and test message": "Bundeling en testbericht"
+    "Bundling and test message": "Bundeling en testbericht",
+    "{name} is also looking at this record now": "{name} kijkt nu ook naar deze zaak"
   },
   "plurals": {
     "{count} member": [
@@ -2694,6 +2695,10 @@
     "%n follower": [
       "%n volger",
       "%n volgers"
+    ],
+    "{name} and %n other are also looking at this record now": [
+      "{name} en %n ander kijken nu ook naar deze zaak",
+      "{name} en %n anderen kijken nu ook naar deze zaak"
     ]
   }
 }
