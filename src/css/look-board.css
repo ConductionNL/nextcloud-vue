@@ -1891,6 +1891,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 22px 20px;
 }
 
+/* ---- A plain sections widget on a dashboard card ------------------------ */
+/* The card is flush, because a sections widget usually draws its own cards;
+   the plain one draws none, so its body takes the card's side inset and 20px
+   below (DqTermijnen "Jaarlijkse dwangsomaudit").
+   @spec openspec/changes/board-dashboard-plain-sections-inset/specs/board-dashboard-plain-sections-inset/spec.md#requirement-a-board-dashboard-card-insets-a-plain-sections-body */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-sections-widget--plain) {
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
 /* ---- A card of cards (DqDoorlooptijd "Naleving") ------------------------- */
 /* A sections widget laid out in columns on a dashboard card keeps the card's
    side inset and 20px below. Each section is a small card: a hairline edge,
