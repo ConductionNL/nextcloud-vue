@@ -221,7 +221,7 @@
 			:addTo="addLinkTo"
 			:showAdd="effectiveShowAdd && !headerButtonTakes('add')"
 			:showCount="showCount && !isBoardLook"
-			:showActionsMenu="!headerButtonsShown"
+			:showActionsMenu="actionsMenuShown"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
@@ -2188,6 +2188,20 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the toolbar draws the Actions menu (manifest
+		 * `config.showActionsMenu`): `true` keeps it beside header buttons
+		 * (DqAfdelingen: Downloaden beside the title, Acties above the
+		 * search), `false` leaves it out. Null derives it: drawn unless the
+		 * header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 */
+		showActionsMenu: {
+			type: Boolean,
+			default: null,
 		},
 
 		/**
@@ -8057,6 +8071,17 @@ export default {
 		 */
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
+		},
+
+		/**
+		 * Whether the toolbar draws the Actions menu: `showActionsMenu` when
+		 * set, else unless the header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 * @return {boolean}
+		 */
+		actionsMenuShown() {
+			return typeof this.showActionsMenu === 'boolean' ? this.showActionsMenu : !this.headerButtonsShown
 		},
 
 		/**
