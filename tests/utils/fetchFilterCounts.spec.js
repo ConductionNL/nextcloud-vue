@@ -8,7 +8,7 @@
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
-import { fetchFilterCounts, hasListValue, hasNullTest, hasOperatorKey, needsListEndpoint, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
+import { fetchFilterCounts, hasListValue, hasNestedPath, hasNullTest, hasOperatorKey, needsListEndpoint, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
@@ -321,5 +321,40 @@ describe('a lens that spells its operator in the key (screens-operator-key-lens-
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
 		expect(global.fetch).toHaveBeenCalledTimes(2)
+	})
+})
+
+describe('a lens on a field inside an object property (DqContacten "Woonplaats Zuiddrecht")', () => {
+	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
+
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('needs the list endpoint, which reads a dotted path the aggregation endpoints answer 0 for', () => {
+		expect(hasNestedPath({ 'residence.city': 'Zuiddrecht' })).toBe(true)
+		expect(hasNestedPath({ indicatieGeheim: true })).toBe(false)
+		expect(hasNestedPath({ '@self.owner': 'pieter' })).toBe(false)
+		expect(hasNestedPath(null)).toBe(false)
+		expect(needsListEndpoint({ 'residence.city': 'Zuiddrecht' })).toBe(true)
+	})
+
+	it('is counted through the list endpoint, the other lens still by aggregate', async () => {
+		global.fetch = jest.fn().mockResolvedValue(okResponse(4))
+		fetchAggregateValue.mockResolvedValue(1)
+		const counts = await fetchFilterCounts({
+			register: 'dossiq',
+			schema: 'brpPerson',
+			entries: [
+				{ key: 'city', filter: { 'residence.city': 'Zuiddrecht' } },
+				{ key: 'secret', filter: { indicatieGeheim: true } },
+			],
+		})
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		const url = new URL(global.fetch.mock.calls[0][0], 'http://localhost')
+		expect(url.searchParams.get('residence.city')).toBe('Zuiddrecht')
+		expect(fetchAggregateValue).toHaveBeenCalledTimes(1)
+		expect(fetchAggregateValue.mock.calls[0][0].filter).toEqual({ indicatieGeheim: true })
+		expect(counts).toEqual({ city: 4, secret: 1 })
 	})
 })

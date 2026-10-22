@@ -88,16 +88,34 @@ export function hasOperatorKey(filter) {
 }
 
 /**
+ * Whether a filter narrows on a field inside an object property, a dotted
+ * path (`{ 'residence.city': 'Zuiddrecht' }`). `@self.*` metadata keys are not
+ * paths.
+ *
+ * The aggregation endpoints answer 0 for such a key while the list endpoint
+ * reads it, so the lens read 0 beside a list that showed rows.
+ *
+ * @param {object} filter A filter map.
+ * @return {boolean} True when any key is a dotted path.
+ */
+export function hasNestedPath(filter) {
+	if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
+		return false
+	}
+	return Object.keys(filter).some((key) => key.includes('.') && !key.startsWith('@self.'))
+}
+
+/**
  * Whether the aggregation endpoints cannot express a filter, so it is counted
- * through the list endpoint: a list of values, a test for no value, or an
- * operator spelled in a key.
+ * through the list endpoint: a list of values, a test for no value, an
+ * operator spelled in a key, or a dotted path.
  *
  * @param {object} filter A filter map.
  * @return {boolean} True when the filter needs the list endpoint.
  * @spec openspec/changes/screens-operator-key-lens-counts/specs/index-page/spec.md
  */
 export function needsListEndpoint(filter) {
-	return hasListValue(filter) || hasNullTest(filter) || hasOperatorKey(filter)
+	return hasListValue(filter) || hasNullTest(filter) || hasOperatorKey(filter) || hasNestedPath(filter)
 }
 
 /**
