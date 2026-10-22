@@ -1575,6 +1575,27 @@ function namedFiltersFromRoute(instance, props) {
 }
 
 /**
+ * The named-source filters the page opens with: the ones the address carries,
+ * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
+ * `@myGroups`), unless the address names a saved view.
+ *
+ * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values | { from, to } }` map.
+ * @spec openspec/changes/named-source-default-filters/specs/index-page/spec.md#requirement-a-named-source-page-can-open-with-removable-default-filters
+ */
+function namedFiltersWithDefaults(instance, props) {
+	const fromRoute = namedFiltersFromRoute(instance, props)
+	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
+	const defaults = props.defaultFilters
+	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+		return fromRoute
+	}
+	return resolveFilterTokens(defaults)
+}
+
+/**
  * The named-source filters a query carries, as `namedFiltersFromRoute` reads them.
  *
  * @param {object} query The route query.
@@ -4200,7 +4221,7 @@ export default {
 		// `limit` (20 by default), moved by the pager.
 		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
 		const namedPaging = ref({ page: 1, limit: namedPageSize })
-		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
 
