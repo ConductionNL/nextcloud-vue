@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="resolvedTitle"
 		size="small"
 		:noClose="loading"
@@ -61,12 +66,14 @@
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnSavedViewEditDialog — rename an own saved view and, when asked, replace
@@ -80,7 +87,9 @@ import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, N
 export default {
 	name: 'CnSavedViewEditDialog',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField },
+	components: { CnDialog, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The view being edited (its `name` fills the field). */
