@@ -702,6 +702,33 @@
 	display: none;
 }
 
+/* The Status card draws its lines on the card itself (DqZaak): the status in
+   bold ink, the time in it small and muted, no grey box around them; the
+   attention flag under it sits under a hairline. */
+.cn-look-board .cn-status-explainer.cn-status-explainer:not(.cn-look-nextcloud *) {
+	background: transparent;
+	border-radius: 0;
+	gap: 2px;
+	padding: 0;
+}
+
+.cn-look-board .cn-status-explainer .cn-status-explainer__muted:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-status-explainer .cn-status-explainer__dwell:not(.cn-status-explainer__dwell--breached):not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-detail-page__sections-card .cn-attention-flag.cn-attention-flag:not(.cn-look-nextcloud *) {
+	border-top: 1px solid var(--cn-board-hairline);
+	gap: 6px;
+	padding: 10px 0 0;
+}
+
 /* The History card ends with the record's identifier. */
 .cn-look-board .cn-detail-page__side-item--with-identifier .cn-widget-wrapper {
 	border-bottom: none;
