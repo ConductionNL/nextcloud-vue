@@ -483,6 +483,20 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* ---- A widget's own action buttons -------------------------------------- */
+/* The boards draw a widget's labelled actions at the 40px control height too:
+   the history's "Exporteren" (DqZaakHistorie), the files bar's "Bestanden
+   toevoegen" (DqZaakDocumenten), an empty list's "Toevoegen" (DqZaakTaken),
+   the archiving card's "Nominatie herberekenen" (DqZaakArchivering). The
+   files bar's menu triggers and icon-only buttons keep their size.
+   @spec openspec/changes/board-widget-action-button-height/specs/board-widget-action-button-height/spec.md#requirement-a-widgets-labelled-action-button-is-40px */
+.cn-look-board .cn-timeline-manage__header-actions .button-vue:where(:not(.cn-look-nextcloud *)),
+.cn-look-board .cn-files-browser__bar .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)),
+.cn-look-board .cn-widget-empty-state__action .button-vue:where(:not(.cn-look-nextcloud *)),
+.cn-look-board .cn-retention__head .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
