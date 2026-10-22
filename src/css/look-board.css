@@ -2074,6 +2074,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 700;
 }
 
+/* A tree that opens fully draws no carets, and its second level as the
+   board's sub-folders (DqCatalogus "Informatie" under "Zaaktypen"): 28px in,
+   6px 10px, 14px in the muted ink. The highlight still wins for the open row.
+   @spec openspec/changes/menu-children-from-facet/specs/menu-widget/spec.md#requirement-a-board-tree-draws-its-second-level-as-sub-folders */
+.cn-look-board .cn-menu-widget--style-tree.cn-menu-widget--expanded:not(.cn-look-nextcloud *) .cn-menu-tree-node__caret,
+.cn-look-board .cn-menu-widget--style-tree.cn-menu-widget--expanded:not(.cn-look-nextcloud *) .cn-menu-tree-node__caret-spacer {
+	display: none;
+}
+
+.cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node--depth-2 > .cn-menu-tree-node__row {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-link-color: var(--color-text-maxcontrast);
+	padding-block: 6px;
+	padding-inline-start: 28px !important;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
 /* ---- Controls on an admin settings card -------------------------------- */
 /* The boards draw a settings card's text fields and its save and version
    buttons 40px tall with 14px labels (DqInstellingenAlgemeen "Naam van de
