@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.140.0",
+	"version": "2.141.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3108,6 +3108,7 @@
 								"sumField": { "type": "string", "description": "Numeric field summed when metric is 'sum' (required for sum)." },
 								"topN": { "type": "integer", "minimum": 1, "description": "Keep the N largest groups (sorted by value desc)." },
 								"otherBucket": { "type": "boolean", "description": "Fold the post-topN remainder into a single translated 'Other' slice (sum of the rest). The Other bucket never drilldown-navigates." },
+								"mergeByLabel": { "type": "boolean", "description": "Fold the groups whose labels read the same into one bar or slice, summed, before topN is applied (2.141.0): status types declared per case type count as one 'Received'. A merged bar drills down with every key behind it." },
 								"labelResolve": {
 									"type": "object",
 									"required": ["schema"],
