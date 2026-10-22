@@ -350,6 +350,7 @@ import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState } from '../../utils/listCreateAction.js'
@@ -516,6 +517,8 @@ export default {
 		 * board look it goes under the card's side padding and its outer cells
 		 * take that padding, so the column text lines up with the card title.
 		 * Without it the table stays inside the padding.
+		 * `headerSubtitle` is a line under the card title with the list's
+		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
@@ -539,6 +542,10 @@ export default {
 			error: '',
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
 			total: 0,
+			/** The card header's Download action once `content.export` offered it; null before. */
+			headerAction: null,
+			/** Whether the header was last told a counts line (`content.headerSubtitle`), so an empty one clears it. */
+			headerSubtitleShown: false,
 			/** Current 1-based page. Paging is SERVER-side (`_page`). */
 			page: 1,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
@@ -1266,6 +1273,21 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * `content.headerSubtitle` filled in (`{total}`, `{count:field=value}`),
+		 * or '' without one.
+		 *
+		 * @return {string}
+		 */
+		headerSubtitleText() {
+			const text = this.content.headerSubtitle
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+		},
+
 		resolvedSummary() {
 			const summary = this.content.summary
 			if (!summary || typeof summary.text !== 'string' || summary.text === '') {
@@ -1439,6 +1461,11 @@ export default {
 			},
 		},
 
+		/** The counts under the card title follow the rows (`content.headerSubtitle`). */
+		headerSubtitleText() {
+			this.emitHeader()
+		},
+
 		sourceKey() {
 			// The query changed, so page 3 of the OLD result set means nothing
 			// against the new one — and an out-of-range `_page` returns an empty
@@ -1561,12 +1588,38 @@ export default {
 			 * filtered here (`content.export`), handed to the host card.
 			 * @type {{action: {label: string, icon: string, run: Function}}}
 			 */
+			this.headerAction = {
+				label,
+				icon: 'Download',
+				run: () => window.location.assign(this.exportUrl(format)),
+			}
+			this.emitHeader()
+		},
+
+		/**
+		 * Tell the card around this list what its header shows: the Download
+		 * action (`content.export`) and the counts line under the title
+		 * (`content.headerSubtitle`). Nothing when the list has neither.
+		 *
+		 * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
+		 */
+		emitHeader() {
+			const subtitle = this.headerSubtitleText
+			// A line shown before is cleared with an empty one, so the card does
+			// not keep a stale count; a list that never had one stays silent.
+			if (!this.headerAction && subtitle === '' && !this.headerSubtitleShown) {
+				return
+			}
+			this.headerSubtitleShown = subtitle !== ''
+			/**
+			 * @event header The card header's parts: the Download action for the
+			 * list as filtered here (`content.export`) and the counts line under
+			 * the title (`content.headerSubtitle`).
+			 * @type {{action?: {label: string, icon: string, run: Function}, subtitle: string}}
+			 */
 			this.$emit('header', {
-				action: {
-					label,
-					icon: 'Download',
-					run: () => window.location.assign(this.exportUrl(format)),
-				},
+				...(this.headerAction ? { action: this.headerAction } : {}),
+				subtitle,
 			})
 		},
 

@@ -9,7 +9,7 @@
 			{{ emptyLabel }}
 		</p>
 		<template v-else>
-			<p class="cn-checklist-widget__summary" data-testid="cn-checklist-summary">
+			<p v-if="content.summaryInHeader !== true" class="cn-checklist-widget__summary" data-testid="cn-checklist-summary">
 				{{ summary }}
 			</p>
 			<ul class="cn-checklist-widget__items">
@@ -66,7 +66,9 @@ export default {
 		 * The widget configuration: `path` (where the items sit on the record,
 		 * default `checklist`), `idField` / `labelField` / `descriptionField` /
 		 * `checkedField` (default `id`, `label`, `description`, `checked`),
-		 * `emptyText` (shown when the record carries no items).
+		 * `emptyText` (shown when the record carries no items),
+		 * `summaryInHeader` (`true`: "2 of 4 done" is the line under the card
+		 * title instead of a line above the items).
 		 */
 		content: {
 			type: Object,
@@ -79,6 +81,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header'],
 
 	data() {
 		return {
@@ -149,6 +153,27 @@ export default {
 		emptyLabel() {
 			const text = this.content?.emptyText
 			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : t('nextcloud-vue', 'Nothing to check off')
+		},
+	},
+
+	watch: {
+		/**
+		 * With `summaryInHeader`, the card around the list shows "2 of 4 done"
+		 * under its title.
+		 *
+		 * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
+		 */
+		summary: {
+			immediate: true,
+			handler(summary) {
+				if (this.content?.summaryInHeader === true) {
+					/**
+					 * @event header The card header's line under the title.
+					 * @type {{subtitle: string}}
+					 */
+					this.$emit('header', { subtitle: this.items.length > 0 ? summary : '' })
+				}
+			},
 		},
 	},
 
