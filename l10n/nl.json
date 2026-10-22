@@ -2512,7 +2512,14 @@
     "The address could not be removed.": "Het adres kon niet worden verwijderd.",
     "Copying did not work. Select the address and copy it yourself.": "Kopiëren lukte niet. Selecteer het adres en kopieer het zelf.",
     "Remove {item}?": "{item} verwijderen?",
-    "Nothing planned yet.": "Nog niets gepland."
+    "Nothing planned yet.": "Nog niets gepland.",
+    "Allow group {group} to perform {action}": "Groep {group} mag {action} uitvoeren",
+    "Action authorization": "Rechten per actie",
+    "Choose which groups may perform each action. Administrators always may. An action without a ticked group is for administrators only.": "Kies per actie welke groepen die mogen uitvoeren. Beheerders mogen dat altijd. Een actie zonder aangevinkte groep is alleen voor beheerders.",
+    "The action matrix could not be loaded: {reason}": "De rechten per actie konden niet worden geladen: {reason}",
+    "The server did not confirm the action matrix. Nothing was saved.": "De server heeft de rechten per actie niet bevestigd. Er is niets opgeslagen.",
+    "The action matrix is saved.": "De rechten per actie zijn opgeslagen.",
+    "The action matrix was not saved: {reason}": "De rechten per actie zijn niet opgeslagen: {reason}"
   },
   "plurals": {
     "{count} member": [
