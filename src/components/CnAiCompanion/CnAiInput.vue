@@ -245,6 +245,7 @@ import {
 	SPEECH_LOCAL,
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 /** How long a dictation failure stays on screen, in ms. */
 const DICTATION_ERROR_TIMEOUT = 6000
@@ -269,7 +270,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {

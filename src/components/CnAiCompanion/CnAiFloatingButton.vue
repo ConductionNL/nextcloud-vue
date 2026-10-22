@@ -40,6 +40,7 @@
 
 <script>
 import Creation from 'vue-material-design-icons/Creation.vue'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 export default {
 	name: 'CnAiFloatingButton',
@@ -49,7 +50,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {
