@@ -1828,6 +1828,7 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border-dark);
 	border-radius: 16px;
+	color: var(--color-main-text);
 	font-size: 13px;
 	font-weight: 600;
 	gap: 4px;
