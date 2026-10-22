@@ -553,7 +553,7 @@
 }
 
 /* The same for a CnDetailCard (DqTaak "Notities", DqZaakEmail "E-mail",
-   DqZaakTaken "Afspraken", DqHandhaving "Historie"). */
+   DqZaakTaken "Afspraken", DqHandhaving "Historie", PtInzending "Bewijslog"). */
 .cn-look-board.cn-detail-page .cn-detail-card__header .cn-detail-card__icon {
 	display: none;
 }
