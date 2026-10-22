@@ -45,6 +45,12 @@ describe('CnMenuWidget countFrom', () => {
 		expect(counts(w)).toEqual(['14'])
 	})
 
+	it('sends an operator the way the list does, so current versions count once', async () => {
+		mockFetchJson.mockResolvedValue({ results: [{}], total: 14 })
+		await mountMenu([{ label: 'Case types', url: '/case-types', countFrom: { register: 'dossiq', schema: 'caseType', filter: { supersededBy: { isnull: true } } } }])
+		expect(mockFetchJson.mock.calls[0][1].query).toEqual({ 'supersededBy[isnull]': true, _limit: 1 })
+	})
+
 	it('counts the rows of an endpoint', async () => {
 		mockFetchJson.mockResolvedValue({ results: [{}, {}, {}] })
 		const w = await mountMenu([{ label: 'Object types', url: '/catalogue', countFrom: { url: '/apps/dossiq/api/catalogue/object-types', responsePath: 'results' } }])

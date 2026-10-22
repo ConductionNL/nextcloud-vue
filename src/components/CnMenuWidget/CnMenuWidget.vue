@@ -233,6 +233,27 @@ const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
+/**
+ * A filter map as the list endpoint takes it: an operator as `field[op]`
+ * (`{ supersededBy: { isnull: true } }` reads `supersededBy[isnull]=true`).
+ *
+ * @param {object|undefined} filter The filter map.
+ * @return {object} The query pairs.
+ */
+function listQueryOf(filter) {
+	const query = {}
+	for (const [key, value] of Object.entries(filter || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value)) {
+			for (const [op, operand] of Object.entries(value)) {
+				query[`${key}[${op}]`] = operand
+			}
+		} else {
+			query[key] = value
+		}
+	}
+	return query
+}
+
 export default {
 	name: 'CnMenuWidget',
 
@@ -526,7 +547,7 @@ export default {
 		/**
 		 * Read the count of every item that declares `countFrom`: the total
 		 * of a register schema (`{ register, schema, filter? }`, one row
-		 * asked), or the rows of an endpoint (`{ url, responsePath? }`, its
+		 * asked, an operator sent as `field[op]` as the list sends it), or the rows of an endpoint (`{ url, responsePath? }`, its
 		 * `total` when it answers one). A failed read draws no count.
 		 *
 		 * @return {Promise<void>}
@@ -548,7 +569,7 @@ export default {
 					if (from.register && from.schema) {
 						const body = await cnFetchJson(
 							`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
-							{ query: { ...(from.filter || {}), _limit: 1 } },
+							{ query: { ...listQueryOf(from.filter), _limit: 1 } },
 						)
 						return [key, Number.isFinite(Number(body?.total)) ? Number(body.total) : null]
 					}
