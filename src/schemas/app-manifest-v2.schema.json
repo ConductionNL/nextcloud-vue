@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.141.0",
+	"version": "2.142.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1581,9 +1581,14 @@
 					"type": "string",
 					"description": "Named vue-router route to navigate to on click."
 				},
+				"query": {
+					"type": "object",
+					"additionalProperties": { "type": "string" },
+					"description": "Query for `route`, e.g. { \"action\": \"create\" } to open an index page's create flow (detail-band, 2.140.0)."
+				},
 				"href": {
 					"type": "string",
-					"description": "External URL opened in a new tab on click."
+					"description": "External URL opened in a new tab on click. On a detail page it may name the record's fields as @object.<field> tokens."
 				},
 				"payload": {
 					"description": "Free-form payload echoed back to the host inside the @primary-action-click event."
@@ -4580,6 +4585,39 @@
 						"statusPill": {
 							"$ref": "#/$defs/headerPill",
 							"description": "type='detail': a pill above the title saying where the record stands."
+						},
+						"band": {
+							"type": "array",
+							"description": "type='detail': a row of widgets across the whole page, above the body and the side column (detail-band). An item is the id of a widget declared on the page, a widget definition, or { widgetId, span, chrome } where span is the share of the row in twelfths (default 12) and chrome is card or bare. The row wraps; each item follows its visibleWhen.",
+							"items": {
+								"oneOf": [
+									{ "type": "string", "minLength": 1 },
+									{
+										"type": "object",
+										"additionalProperties": false,
+										"required": ["widgetId"],
+										"properties": {
+											"widgetId": { "type": "string", "minLength": 1 },
+											"span": { "type": "integer", "minimum": 1, "maximum": 12 },
+											"chrome": { "type": "string", "enum": ["card", "bare"], "description": "card (default) or bare, for a widget that draws its own card; a banner defaults to bare." }
+										}
+									},
+									{
+										"type": "object",
+										"additionalProperties": true,
+										"required": ["type"],
+										"not": { "required": ["widgetId"] },
+										"properties": {
+											"id": { "type": "string" },
+											"type": { "type": "string", "minLength": 1 },
+											"title": { "type": "string" },
+											"span": { "type": "integer", "minimum": 1, "maximum": 12 },
+											"chrome": { "type": "string", "enum": ["card", "bare"], "description": "card (default) or bare, for a widget that draws its own card; a banner defaults to bare." },
+											"content": { "type": "object", "additionalProperties": true }
+										}
+									}
+								]
+							}
 						},
 						"sideColumn": {
 							"type": "array",

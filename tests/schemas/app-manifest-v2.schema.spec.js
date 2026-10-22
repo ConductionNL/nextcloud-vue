@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.141.0', () => {
+	it('the manifest schema version reads 2.142.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1418,7 +1418,20 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
 		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
 		// 2.141.0 lets a widget header link switch the page to a body tab (header-link-switches-tab) and a side card name the body tabs it shows beside (side-card-follows-row).
-		expect(schema.version).toBe('2.141.0')
+		expect(schema.version).toBe('2.142.0')
+	})
+
+	it('accepts the 2.142.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
+		const page = (band) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', config: { register: 'r', schema: 's', band } }] })
+		expect(validateManifestV2(page(['kpi', { widgetId: 'kpi', span: 3, chrome: 'bare' }, { type: 'banner', span: 12 }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ widgetId: 'kpi', span: 13 }])).valid).toBe(false)
+		expect(validateManifestV2(page([{ widgetId: 'kpi', chrome: 'frame' }])).valid).toBe(false)
+	})
+
+	it('accepts the 2.142.0 query on a primary action', () => {
+		const withPrimary = (primaryAction) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', primaryAction, config: { register: 'r', schema: 's' } }] })
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 'create' } })).valid).toBe(true)
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 3 } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {
