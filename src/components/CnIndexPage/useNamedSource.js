@@ -94,6 +94,7 @@ export function useNamedSource(props, options = {}) {
 			namedRows: computed(() => []),
 			namedLoading: computed(() => false),
 			namedQuickFilters: null,
+			namedReload: () => {},
 		}
 	}
 
@@ -111,6 +112,7 @@ export function useNamedSource(props, options = {}) {
 			namedRows: computed(() => []),
 			namedLoading: computed(() => false),
 			namedQuickFilters: null,
+			namedReload: () => {},
 		}
 	}
 
@@ -266,5 +268,7 @@ export function useNamedSource(props, options = {}) {
 		// any (the strip then also drives self-authored filters), else the
 		// source's own. Null when neither exists.
 		namedQuickFilters: tabs,
+		// Read the active tab again (the header's Refresh).
+		namedReload: loadActive,
 	}
 }
