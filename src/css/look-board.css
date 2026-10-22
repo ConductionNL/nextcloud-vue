@@ -2454,3 +2454,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* ---- A dashboard card's count chip -------------------------------------- */
+/* The count after a dashboard card's title (record-list `headerCount`) is
+   17px tall on the board: 1px 8px around a 13px figure on a 15px line
+   (DqDagAfsluiten "Nog open van vandaag 3"). It inherited the page's line
+   and stood 21.5px.
+   @spec openspec/changes/board-dashboard-widget-count/specs/board-dashboard-widget-count/spec.md#requirement-a-dashboard-cards-count-chip-is-17px */
+.cn-look-board .cn-dashboard-page__widget-count:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	padding: 1px 8px;
+	font-size: 13px;
+	line-height: 15px;
+}
