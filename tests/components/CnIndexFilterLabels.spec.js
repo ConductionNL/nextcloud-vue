@@ -111,6 +111,25 @@ describe('a range is one chip', () => {
 		expect(w.vm.activeFilterChips[0].label).not.toContain('within')
 	})
 
+	it('draws no chip for a fixed range filter, so removing a chip cannot clear it', () => {
+		const range = { from: '2026-10-01', to: '2026-10-31' }
+		const fixed = mountPage({
+			schema: null,
+			activeFilters: { dueAt: range },
+			fixedFilters: { dueAt: { from: '2026-10-01', to: '2026-10-31' } },
+			filterLabels: { dueAt: { label: 'Deadline' } },
+		})
+		expect(fixed.vm.activeFilterChips).toEqual([])
+
+		const other = mountPage({
+			schema: null,
+			activeFilters: { dueAt: range },
+			fixedFilters: { dueAt: { from: '2026-11-01', to: '2026-11-30' } },
+			filterLabels: { dueAt: { label: 'Deadline' } },
+		})
+		expect(other.vm.activeFilterChips).toHaveLength(1)
+	})
+
 	it('joins a [gte]/[lte] pair under the field and clears both when removed', () => {
 		const w = mountPage({ activeFilters: { 'deadline[gte]': '2026-10-01', 'deadline[lte]': '2026-11-15' } })
 		const chips = w.vm.activeFilterChips
