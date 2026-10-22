@@ -5,7 +5,9 @@
 ### Requirement: The Actions menu exports the selection
 
 The header Actions menu SHALL offer the built-in `export-selected` when its
-`items` name it. The entry SHALL be disabled, with a title saying why, until
+`items` name it and the list's own export is allowed: `allowExport`, a schema
+flagged exportable, and a register and schema slug to export from. Without
+any of those it SHALL not be drawn, and SHALL not export when run. The entry SHALL be disabled, with a title saying why, until
 one or more rows are selected. It SHALL read "Export selection as JSON"
 through the library's translate. Choosing it SHALL download OpenRegister's JSON
 export of the page's register and schema with the selected ids as `_ids`.
@@ -23,10 +25,27 @@ export of the page's register and schema with the selected ids as `_ids`.
 ### Requirement: A header action can be offered to administrators only
 
 A header action with `adminOnly: true` SHALL be left out of the header actions,
-the Actions menu included, unless Nextcloud reports the viewer as an
-administrator. Without `adminOnly` nothing SHALL change.
+the Actions menu included, and a header button that runs it SHALL not be drawn,
+unless Nextcloud reports the viewer as an administrator. Without `adminOnly` nothing SHALL change.
 
 #### Scenario: A user who is not an administrator
 - **GIVEN** a header action "Reload templates" with `adminOnly: true`
 - **WHEN** a user who is not an administrator opens the list
 - **THEN** the Actions menu SHALL not list it
+
+### Requirement: An index page runs an api-call header action
+
+An index page SHALL run a header action of type `api-call` itself, through the
+shared actions dispatcher the detail and dashboard pages use: it SHALL call
+the endpoint with the action's method and show the action's `successMessage`
+or `errorMessage`, run through the app's translate. An action with `confirm:
+true` SHALL run only after the person confirms. A call that went through SHALL
+reload the list unless the action sets `refresh: false`; a failed call SHALL
+not. Before, the page only emitted `header-action`, which no host handled, so
+the click did nothing.
+
+#### Scenario: Reload templates
+- **GIVEN** the case type list's "Reload templates" (`api-call`, `confirm: true`)
+- **WHEN** an administrator chooses it and confirms
+- **THEN** the endpoint SHALL be called once, its message shown, and the list reloaded
+

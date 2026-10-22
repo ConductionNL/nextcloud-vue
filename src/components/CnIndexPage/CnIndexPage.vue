@@ -596,6 +596,17 @@
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
 
+		<!-- Confirmation of an api-call header action that asks for one. -->
+		<CnConfirmDialog
+			v-if="headerApiCallPending"
+			ref="headerApiCallConfirmDialog"
+			:dialogTitle="cnTranslate(headerApiCallPending.confirmTitle || headerApiCallPending.label || '')"
+			:message="headerApiCallPending.confirmMessage ? cnTranslate(headerApiCallPending.confirmMessage) : t('nextcloud-vue', 'Are you sure you want to continue?')"
+			:confirmLabel="cnTranslate(headerApiCallPending.label || '')"
+			data-testid="cn-index-header-api-call-confirm"
+			@confirm="onHeaderApiCallConfirm"
+			@close="headerApiCallPending = null" />
+
 		<!-- Delete-saved-view confirm (saved-views-ui) -->
 		<CnConfirmDialog
 			v-if="viewPendingDelete"
@@ -1417,7 +1428,7 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, dispatchAction as dispatchSharedAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
@@ -4499,6 +4510,8 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			/** An `api-call` header action waiting on its confirmation, or null. */
+			headerApiCallPending: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
 			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
@@ -7938,6 +7951,13 @@ export default {
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
+				// A button that runs an `adminOnly` header action is drawn for an
+				// administrator only, as the action is in the Actions menu.
+				.filter((button) => {
+					const target = button.action === 'export' ? button.run : button.action
+					const entry = (this.headerActions || []).find((action) => action && action.id === target)
+					return !(entry && entry.adminOnly === true && !this.viewerIsAdmin())
+				})
 				.map((button, index) => {
 					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
 					let icon = typeof button.icon === 'string' ? button.icon : ''
@@ -10050,15 +10070,22 @@ export default {
 					run: () => { this.showMassCopyDialog = true },
 				}),
 
-				'export-selected': () => ({
-					key: 'export-selected',
-					label: t('nextcloud-vue', 'Export selection as JSON'),
-					icon: 'Export',
-					iconComponent: Export,
-					disabled: noSelection,
-					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
-					run: () => this.onExportSelected(),
-				}),
+				// Offered only where the list's own export is: `allowExport`, an
+				// exportable schema, and a register and schema to export from.
+				'export-selected': () => {
+					if (!this.showExportMenu) {
+						return null
+					}
+					return {
+						key: 'export-selected',
+						label: t('nextcloud-vue', 'Export selection as JSON'),
+						icon: 'Export',
+						iconComponent: Export,
+						disabled: noSelection,
+						title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
+						run: () => this.onExportSelected(),
+					}
+				},
 
 				'delete-selected': () => ({
 					key: 'delete-selected',
@@ -10256,15 +10283,25 @@ export default {
 
 		/**
 		 * Click dispatch from CnActionsBar's `@header-action`. Looks
-		 * up the resolved entry by id, invokes its handler if any,
-		 * and (unless the entry is `'none'`-suppressed) emits
+		 * up the resolved entry by id. An `api-call` entry runs here, after
+		 * its confirmation when it sets `confirm`; any other invokes its
+		 * handler if any and (unless the entry is `'none'`-suppressed) emits
 		 * `@header-action({ action: id, id })` upward.
 		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
 		 * @param {{action: string, id: string}} payload Bar payload.
+		 * @return {Promise<void>|undefined} The call, for an api-call entry that runs now.
 		 */
 		onHeaderAction(payload) {
 			const id = payload && (payload.id ?? payload.action)
 			const entry = this.mergedHeaderActions.find((e) => e.id === id)
+			if (entry && entry.type === 'api-call') {
+				if (entry.confirm === true) {
+					this.headerApiCallPending = entry
+					return undefined
+				}
+				return this.runHeaderApiCall(entry)
+			}
 			if (entry && typeof entry.handler === 'function') {
 				entry.handler()
 			} else {
@@ -10277,6 +10314,50 @@ export default {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * Run an `api-call` header action through the shared dispatcher, the
+		 * one detail and dashboard pages use: it calls the endpoint and shows
+		 * the action's success or error message, run through the app's
+		 * translate. A call that went through reloads the list, unless the
+		 * action sets `refresh: false`.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @param {object} entry The header action.
+		 * @return {Promise<{ok: boolean}>} The dispatcher's outcome.
+		 */
+		async runHeaderApiCall(entry) {
+			const outcome = (await dispatchSharedAction(entry, {
+				router: this.$router || null,
+				translate: (text) => this.cnTranslate(text),
+				tokenCtx: {},
+			})) || { ok: false }
+			if (outcome.ok === true && entry.refresh !== false) {
+				this.onRefreshEvent()
+			}
+			return outcome
+		},
+
+		/**
+		 * The confirmation of an `api-call` header action was given: run it and
+		 * report the outcome to the dialog.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @return {Promise<void>}
+		 */
+		async onHeaderApiCallConfirm() {
+			const entry = this.headerApiCallPending
+			if (!entry) {
+				return
+			}
+			const outcome = await this.runHeaderApiCall(entry)
+			const dialog = this.$refs.headerApiCallConfirmDialog
+			if (dialog && typeof dialog.setResult === 'function') {
+				dialog.setResult(outcome.ok === true
+					? { success: true }
+					: { error: (outcome.error && outcome.error.message) || t('nextcloud-vue', 'Action failed.') })
+			}
 		},
 
 		/**
@@ -12558,7 +12639,7 @@ export default {
 		 */
 		onExportSelected() {
 			const ids = this.internalSelectedIds.map((id) => String(id))
-			if (ids.length === 0) {
+			if (ids.length === 0 || !this.showExportMenu) {
 				return
 			}
 			window.location.assign(buildExportUrl(this.register, this.exportSchemaSlug, { _ids: ids }, 'json'))
