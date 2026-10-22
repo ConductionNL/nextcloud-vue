@@ -1502,6 +1502,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: flex-start;
 }
 
+/* A record list's notice is the board's note box too: 10px 14px, radius 10
+   (DqZaaktypeOverzicht).
+   @spec openspec/changes/board-record-list-notice-box/specs/board-record-list-notice-box/spec.md#requirement-a-board-record-list-notice-is-the-boards-note-box */
+.cn-look-board .cn-record-list__notice:not(.cn-look-nextcloud *) {
+	padding: 10px 14px;
+	border-radius: 10px;
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */
