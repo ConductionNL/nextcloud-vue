@@ -89,6 +89,16 @@ path such as `/apps/forms/s/{token}` opens in place. Any other address hides the
 ]
 ```
 
+A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, doneLabel?, errorText? }`) is not in the
+menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
+(`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
+whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
+template filled from the row ("Assign to {displayName}").
+
+`footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
+(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+capacity"). It shows with no rows too, and not when the value is empty or zero.
+
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
 (`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
