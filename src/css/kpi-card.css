@@ -535,6 +535,21 @@ a.cn-kpi-card--board * {
 	gap: 8px;
 }
 
+/* The tile with its icon in a circle at the end (DqDashboard, DqMijnTeam) is
+   the board's larger tile: padded 20px 22px, 8px between its lines, its 28px
+   figure at the font's normal line height, 153px with a two-line caption where
+   it drew 140. A theme sets the figure at line height 1 through an id
+   selector (`#app-content-vue .cn-stat-widget__value`), hence `!important`.
+   @spec openspec/changes/board-kpi-badge-tile-size/specs/stat-tile-board-look/spec.md */
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) {
+	--cn-kpi-stacked-padding: 20px 22px;
+	--cn-kpi-stacked-gap: 8px;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) .cn-kpi-card__value {
+	line-height: normal !important;
+}
+
 .cn-kpi-card__badge {
 	display: inline-flex;
 	flex: 0 0 auto;
