@@ -313,6 +313,12 @@
 									<span class="hidden-visually">{{ translateLabel(indicator.text) }}</span>
 								</span>
 							</span>
+							<!-- A muted line above the value, from `col.overline` or
+							     `col.overlineText` ("Zaken van" over the organisation). -->
+							<span
+								v-if="overlineValue(row, col)"
+								class="cn-table-cell__overline"
+								data-testid="cn-cell-overline">{{ overlineValue(row, col) }}</span>
 							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
 							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
 								<!-- Every column renders through CnCellRenderer: it resolves
@@ -1954,7 +1960,40 @@ export default {
 		 * @return {string} The secondary text, or ''.
 		 */
 		secondaryValue(row, col) {
-			const spec = col?.secondary
+			return this.cellLineValue(row, col?.secondary)
+		},
+
+		/**
+		 * The muted line above a cell's value, from `col.overline` (read like
+		 * `secondary`) or else `col.overlineText`, a fixed text in the host's
+		 * translation (PtToegangsverzoeken "Zaken van"). Returns '' when there
+		 * is nothing to draw.
+		 *
+		 * @spec openspec/changes/table-cell-overline/specs/data-table/spec.md#requirement-a-table-column-can-carry-a-muted-line-above-its-value
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {string} The overline text, or ''.
+		 */
+		overlineValue(row, col) {
+			const fromRow = this.cellLineValue(row, col?.overline)
+			if (fromRow !== '') {
+				return fromRow
+			}
+			return typeof col?.overlineText === 'string' && col.overlineText !== '' ? this.translateLabel(col.overlineText) : ''
+		},
+
+		/**
+		 * One extra line of a cell from its spec: a function is called with the
+		 * row; a string with `{field}` placeholders is a template filled from
+		 * the row; any other string is a field key. Shared by `secondary` and
+		 * `overline`.
+		 *
+		 * @spec openspec/changes/table-cell-overline/specs/data-table/spec.md#requirement-a-table-column-can-carry-a-muted-line-above-its-value
+		 * @param {object} row The row.
+		 * @param {Function|string|undefined} spec The line's spec.
+		 * @return {string} The text, or ''.
+		 */
+		cellLineValue(row, spec) {
 			if (typeof spec === 'function') {
 				const out = spec(row)
 				return out === null || out === undefined ? '' : String(out)

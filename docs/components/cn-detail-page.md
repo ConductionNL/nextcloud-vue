@@ -26,6 +26,8 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `loading` | Boolean | `false` | Loading state |
 | `loadingLabel` | String | `'Loading...'` | Message shown during loading |
 | `sidebar` | Boolean \| Object | `false` | Sidebar configuration. Accepts EITHER the legacy Boolean form (deprecated) OR the new Object form mirroring `CnIndexPage.sidebar`. See [Sidebar config object](#sidebar-config-object) below. |
+| `band` | Array | `[]` | A row of widgets across the whole page, above the body and the side column (manifest `config.band`). Each entry is a widget id from `widgets`, a widget definition, or `{ widgetId, span, chrome }`: `span` is the entry's share of the row in twelfths (default 12), and `chrome` is `card` or `bare` (a banner defaults to bare). Each entry follows its `visibleWhen`. |
+| `pageFilters` | Array | `[]` | Page-level filters (manifest `config.pageFilters`), as on a dashboard: each writes its choice into the page's workspace context, which the widgets read through `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its widgets (PtPortal "Periode"). |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is active) |
 | `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`). Used by legacy direct mounts; manifest-driven detail pages prefer the `register` + `schema` pair below and let the page fuse them. |
 | `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |

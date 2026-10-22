@@ -1418,9 +1418,23 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.139.0 adds the redaction page type (dq-abstract-record-widgets), quarter and year page filters with count, and loadOn, requestLabel, requestHint, truncatedText and namePath on endpoint widgets (dq-abstract-dash).
 		// 2.140.0 lets an index page follow live changes (pl4-index-live), gives a row indicator lt and gt (pl4-cells), the export launcher its entity types (pl4-export-action), a board columns read from a list on a referenced row with itemsPath, keyField and closedField (pl4-board), card cells and card actions (pl4-board-cells, pl4-board-card-actions), and a select-or-create reference its createModal (pl4-form-create-modal).
 		// 2.141.0 lets a widget header link switch the page to a body tab (header-link-switches-tab) and a side card name the body tabs it shows beside (side-card-follows-row).
-		// 2.144.0 lets a detail page's quick actions and next step follow the open tab (r23-detail-actions-per-tab), a chart aggregate merge groups by label (aggregate-merge-by-label), a detail page read its quick actions from a field of the record (quickActionsFrom, r23-quick-actions-from), and a dashboard set its side column's width with layout tracks (gridSideColumn, dashboard-side-column-width). 2.142.0 and 2.143.0 are batches 24p2 and 24hq.
-		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) and a header link's placement under the title (header-link-under-title). 2.145.0 and 2.146.0 are batches 24p2 and 24hq.
+		// 2.144.0 lets a detail page's quick actions and next step follow the open tab (r23-detail-actions-per-tab), a chart aggregate merge groups by label (aggregate-merge-by-label), a detail page read its quick actions from a field of the record (quickActionsFrom, r23-quick-actions-from), and a dashboard set its side column's width with layout tracks (gridSideColumn, dashboard-side-column-width).
+		// 2.145.0 gives a detail page a band of widgets above its body (pq-adm-a-detail-band) and a primary action a query (pq-adm-a-detail-page-filters).
+		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) and a header link's placement under the title (header-link-under-title). 2.146.0 is batch 24hq.
 		expect(schema.version).toBe('2.147.0')
+	})
+
+	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
+		const page = (band) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', config: { register: 'r', schema: 's', band } }] })
+		expect(validateManifestV2(page(['kpi', { widgetId: 'kpi', span: 3, chrome: 'bare' }, { type: 'banner', span: 12 }])).valid).toBe(true)
+		expect(validateManifestV2(page([{ widgetId: 'kpi', span: 13 }])).valid).toBe(false)
+		expect(validateManifestV2(page([{ widgetId: 'kpi', chrome: 'frame' }])).valid).toBe(false)
+	})
+
+	it('accepts the 2.145.0 query on a primary action', () => {
+		const withPrimary = (primaryAction) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', primaryAction, config: { register: 'r', schema: 's' } }] })
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 'create' } })).valid).toBe(true)
+		expect(validateManifestV2(withPrimary({ label: 'New page', route: 'Pages', query: { action: 3 } })).valid).toBe(false)
 	})
 
 	it('accepts the 2.135.0 header action href and refuses it with a handler, another type or a bad URL', () => {

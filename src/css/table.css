@@ -186,6 +186,18 @@
 	text-overflow: ellipsis;
 }
 
+/* The overline of a cell (`columns[].overline` / `overlineText`): muted and
+   smaller, on its own line above the value. Same theme hooks as the
+   secondary line. */
+.cn-data-table .cn-table-cell__overline {
+	display: block;
+	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-table-secondary-size, 0.9em);
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* Back to wrapping, for a column holding prose rather than a label:
    `columns: [{ key: 'description', cellClass: 'cn-cell--wrap' }]`. */
 .cn-data-table th.cn-cell--wrap,
