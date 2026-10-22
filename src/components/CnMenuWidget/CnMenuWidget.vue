@@ -215,25 +215,6 @@ const VALID_ORIENTATIONS = ['horizontal', 'vertical']
 const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
 
 /**
- * CnMenuWidget — renders a hierarchical navigation widget with three visual
- * styles (dropdown, megamenu, tree) and active-item highlighting based on
- * `window.location.pathname`.
- *
- * Active-item detection runs on mount and whenever `items` or the URL change;
- * ancestors of the active leaf are flagged "in-path" so the configured
- * highlight (`underline`, `background`, `left-bar`, `none`) renders
- * consistently. Keyboard navigation follows the WAI-ARIA Menu/Menubar pattern.
- *
- * Open dropdown/megamenu panels close on: re-clicking the toggle, Escape,
- * Tab, navigating a leaf, and clicking ANYWHERE else — including empty space
- * elsewhere in the widget itself, not just outside it entirely (a
- * document-level listener that checks containment against the open toggle
- * button + its own panel specifically, since the panels are plain in-DOM
- * markup, not a teleported popover with its own outside-click handling).
- *
- * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
- */
-/**
  * A filter map as the list endpoint takes it: an operator as `field[op]`
  * (`{ supersededBy: { isnull: true } }` reads `supersededBy[isnull]=true`).
  *
@@ -254,6 +235,25 @@ function listQueryOf(filter) {
 	return query
 }
 
+/**
+ * CnMenuWidget — renders a hierarchical navigation widget with three visual
+ * styles (dropdown, megamenu, tree) and active-item highlighting based on
+ * `window.location.pathname`.
+ *
+ * Active-item detection runs on mount and whenever `items` or the URL change;
+ * ancestors of the active leaf are flagged "in-path" so the configured
+ * highlight (`underline`, `background`, `left-bar`, `none`) renders
+ * consistently. Keyboard navigation follows the WAI-ARIA Menu/Menubar pattern.
+ *
+ * Open dropdown/megamenu panels close on: re-clicking the toggle, Escape,
+ * Tab, navigating a leaf, and clicking ANYWHERE else — including empty space
+ * elsewhere in the widget itself, not just outside it entirely (a
+ * document-level listener that checks containment against the open toggle
+ * button + its own panel specifically, since the panels are plain in-DOM
+ * markup, not a teleported popover with its own outside-click handling).
+ *
+ * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+ */
 export default {
 	name: 'CnMenuWidget',
 
