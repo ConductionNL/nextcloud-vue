@@ -503,6 +503,26 @@ export default {
 			return this.readWorkspace()
 		},
 
+		/**
+		 * The values of the other workspace keys the options source reads
+		 * (`@workspace.<key>` in `endpointSource` or `source`), as one string.
+		 * A change means the options are for something else now.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workspace-filter-dependent-options/specs/workspace-filter/spec.md#requirement-a-filter-reloads-its-options-when-a-workspace-key-it-reads-changes
+		 */
+		sourceWorkspaceValues() {
+			const text = JSON.stringify([this.content.endpointSource || null, this.content.source || null])
+			const own = this.writeKey
+			const keys = [...new Set([...text.matchAll(/@workspace\.([A-Za-z0-9_-]+)/g)].map((match) => match[1]))]
+				.filter((key) => key !== own)
+			if (keys.length === 0) {
+				return ''
+			}
+			const bag = this.readWorkspaceBag()
+			return JSON.stringify(keys.map((key) => bag[key] ?? null))
+		},
+
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading…')
 		},
@@ -526,6 +546,24 @@ export default {
 			if (val !== undefined) {
 				this.selected = val
 			}
+		},
+
+		/**
+		 * Another key the options read changed: read them again, and drop a
+		 * pick they no longer hold (the first option takes its place unless
+		 * there is an "All" choice).
+		 *
+		 * @spec openspec/changes/workspace-filter-dependent-options/specs/workspace-filter/spec.md#requirement-a-filter-reloads-its-options-when-a-workspace-key-it-reads-changes
+		 */
+		async sourceWorkspaceValues() {
+			await this.loadOptions()
+			const held = this.normalisedOptions.some((option) => String(option.value) === String(this.selected ?? ''))
+			if (held || this.selected === undefined || this.selected === '') {
+				return
+			}
+			const first = this.content.allLabel ? null : this.normalisedOptions.find((option) => option.value !== '')
+			this.selected = first ? first.value : ''
+			this.writeWorkspace(this.selected)
 		},
 	},
 

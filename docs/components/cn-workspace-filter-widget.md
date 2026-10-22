@@ -32,6 +32,16 @@ show the unfiltered set.
 | `source` | `{ register, schema, groupBy, filter? }` — OpenRegister's `/grouped` facet: each distinct value becomes an option with its object `count`. |
 | `endpointSource` | `{ url, params?, responsePath? }` — an app endpoint returning an array of options. |
 
+## Options that follow another key
+
+An options source that reads another workspace key (`@workspace.kind` in its `endpointSource` url or params, or in `source.filter`) is read again when that key changes. A pick the new options no longer hold is dropped: the first option takes its place, or the empty "All" choice when `allLabel` is set. This is a kind switch followed by a picker of that kind:
+
+```jsonc
+{ "type": "workspace-filter", "content": { "label": "Kind", "writes": "@workspace.kind", "options": [{ "value": "cohort", "label": "Groups" }, { "value": "teacher", "label": "Teachers" }] } },
+{ "type": "workspace-filter", "content": { "label": "Timetable of", "style": "select", "writes": "@workspace.id",
+  "endpointSource": { "url": "/apps/learniq/api/timetable/of/options", "params": { "kind": "@workspace.kind" }, "responsePath": "options" } } }
+```
+
 ## Config
 
 ```jsonc
