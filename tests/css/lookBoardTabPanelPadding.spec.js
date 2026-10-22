@@ -36,7 +36,8 @@ const panel = '.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__con
 describe('look-board-detail.css: the board tab panel', () => {
 	it('pads the panel as a board card', () => {
 		expect(rulesFor(panel)).toContain('padding: var(--cn-board-card-padding)')
-		expect(tokens).toContain('--cn-board-card-padding: 20px 22px')
+		expect(tokens).toContain('--cn-board-card-inline-padding: 22px')
+		expect(tokens).toContain('--cn-board-card-padding: 20px var(--cn-board-card-inline-padding)')
 	})
 
 	it('lets a list\'s footer Add bleed the card padding', () => {
