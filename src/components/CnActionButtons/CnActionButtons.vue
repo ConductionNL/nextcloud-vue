@@ -177,6 +177,7 @@
 			:dialogTitle="tr(formEntry.formTitle) || ''"
 			:eyebrow="tr(formEntry.formEyebrow) || ''"
 			:subtitle="tr(formEntry.formSubtitle) || ''"
+			:confirmLabel="tr(formEntry.formConfirmLabel) || ''"
 			:includeFields="formEntry.includeFields || null"
 			:excludeFields="formEntry.excludeFields || []"
 			:fieldOverrides="formEntry.fieldOverrides || {}"
@@ -190,6 +191,7 @@
 			:schema="formSchema"
 			:item="null"
 			:initialValues="formInitialValues"
+			:confirmLabel="tr(formEntry.formConfirmLabel) || ''"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
 
