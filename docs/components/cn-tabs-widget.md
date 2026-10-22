@@ -69,6 +69,8 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
 
 A widget that declares `headerLink` keeps it inside a tab. A panel draws no card header, so the strip draws the open tab's link beside it, before the Actions menu, and switches it with the tab. A tab whose widget declares none shows no link. The link is read from `headerLink` on the widget definition, else from its content (`content.headerLink`, or `viewAllRoute`). For a stack, the first widget's link counts; each card below it draws its own link in its card header.
 
+A single widget's `headerActions` (see [CnWidgetWrapper](./cn-widget-wrapper.md#buttons-in-the-header-headeractions)) are drawn in its panel's heading, beside the title, or on a row of their own above the panel when the panel has no heading.
+
 ```json
 {
   "id": "open-invoices",

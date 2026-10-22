@@ -506,6 +506,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="false"
 					:showRefresh="false">
@@ -569,6 +570,7 @@
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)">
 					<!-- Compact on purpose: a two-row tile is about 150px, less
@@ -609,6 +611,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -617,6 +620,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -692,6 +696,7 @@
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -701,6 +706,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -772,6 +778,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -782,6 +789,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -801,6 +809,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -810,6 +819,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -842,6 +852,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
@@ -849,6 +860,7 @@
 						:showActions="widgetShowActions(item)"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -869,6 +881,7 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
 						:subtitle="getWidgetSubtitle(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
@@ -881,6 +894,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -971,6 +985,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
 					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)"
 					:showRefresh="false">
@@ -1065,6 +1080,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { headerActionAsLink } from '../../utils/actionLink.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -1073,6 +1089,7 @@ import { generatedPageFilterOptions } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -3385,6 +3402,7 @@ export default {
 				widgetId: item.widgetId,
 				title: this.getWidgetTitle(item),
 				eyebrow: this.getWidgetEyebrow(item),
+				titleTone: this.getWidgetTitleTone(item),
 				subtitle: this.getWidgetSubtitle(item),
 				showTitle: this.widgetShowTitle(item),
 				showActions: this.widgetShowActions(item),
@@ -4525,6 +4543,19 @@ export default {
 		},
 
 		/**
+		 * The widget's title tone (`titleTone` on its definition): `side`
+		 * titles the card as a side card in the board look.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		getWidgetTitleTone(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def && def.titleTone === 'side' ? 'side' : ''
+		},
+
+		/**
 		 * The line above a widget's title (`eyebrow` on the widget
 		 * definition: "Saldo per week" above "Prognose 13 weken"), through the
 		 * host translate, or '' for none.
@@ -4712,6 +4743,22 @@ export default {
 				return []
 			}
 			return def?.buttons || []
+		},
+
+		/**
+		 * The widget's manifest `headerActions`, resolved for its card's title
+		 * row; a click goes through the action dispatcher with the page's
+		 * router.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 * @param {object} item Layout placement entry.
+		 * @return {Array<object>} The buttons, or none.
+		 */
+		getWidgetHeaderActions(item) {
+			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
+				translate: (key) => this.effectiveTranslate(key),
+				dispatch: (action) => dispatchAction(action, { router: this.$router || null }),
+			})
 		},
 
 		/**

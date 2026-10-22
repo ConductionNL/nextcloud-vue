@@ -16,6 +16,7 @@
 			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 			'cn-widget-wrapper--high-contrast': highContrast,
+			'cn-widget-wrapper--side-title': titleTone === 'side',
 		}"
 		:data-cn-high-contrast="highContrast ? 'true' : undefined"
 		:style="wrapperStyles">
@@ -91,6 +92,9 @@
 					v-bind="headerLinkAttrs">
 					{{ headerLinkLabel }}
 				</component>
+				<!-- The widget's manifest `headerActions`, provided by the
+				     detail host and drawn by the outermost card only. -->
+				<CnWidgetHeaderActionButtons v-if="declaredHeaderActions.length > 0" :actions="declaredHeaderActions" />
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -179,8 +183,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
 import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
@@ -226,6 +232,7 @@ export default {
 
 	components: {
 		CnActionsMenu,
+		CnWidgetHeaderActionButtons,
 	},
 
 	provide() {
@@ -237,6 +244,8 @@ export default {
 			 * @return {boolean}
 			 */
 			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
+			// A card inside this one does not draw the widget's header actions again.
+			[WIDGET_HEADER_ACTIONS]: null,
 		}
 	},
 
@@ -249,6 +258,12 @@ export default {
 		 * function so an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The widget's manifest `headerActions`, resolved and provided by
+		 * the detail host (a ref or an array of `{ key, label, icon,
+		 * variant, run }`). Null inside another card.
+		 */
+		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
 	},
 
 	props: {
@@ -402,6 +417,30 @@ export default {
 
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The title's tone: `side` titles the card as a side card in the
+		 * board look (a 15px muted heading), for a card in a page's right
+		 * column. Manifest: `titleTone` on the widget definition.
+		 *
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		titleTone: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Resolved header buttons, `[{ key, label, icon, variant, run }]`,
+		 * from a host that draws several cards and cannot provide them per
+		 * card (CnDashboardPage). A detail host's provided list wins.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 */
+		headerActions: {
 			type: Array,
 			default: () => [],
 		},
@@ -667,6 +706,21 @@ export default {
 	emits: ['refresh', 'request-feature'],
 
 	computed: {
+		/**
+		 * The provided header actions, unwrapped.
+		 *
+		 * @return {Array<object>} The buttons, or none.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
+		 */
+		declaredHeaderActions() {
+			const provided = this.cnWidgetHeaderActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			if (Array.isArray(list) && list.length > 0) {
+				return list
+			}
+			return Array.isArray(this.headerActions) ? this.headerActions : []
+		},
+
 		displayTitle() {
 			return this.title || 'Widget'
 		},
@@ -983,7 +1037,7 @@ export default {
 			if (this.titleVisible) {
 				return true
 			}
-			if (this.actionsSlotRenders()) {
+			if (this.actionsSlotRenders() || this.declaredHeaderActions.length > 0) {
 				return true
 			}
 			return this.showActions && this.hasActionsSlot
@@ -999,7 +1053,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag)
+			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag) || this.declaredHeaderActions.length > 0
 		},
 
 		/**

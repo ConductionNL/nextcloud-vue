@@ -35,7 +35,7 @@
 					</template>
 				</NcButton>
 				<NcButton
-					v-if="editable"
+					v-if="editable && content.addButton !== false"
 					class="cn-working-calendar__add"
 					variant="secondary"
 					data-testid="cn-working-calendar-add"
@@ -224,7 +224,8 @@ export default {
 	props: {
 		/**
 		 * The widget config: `{ calendar: { register, schema, id? | filter? },
-		 * previewUrl?, editable?, emptyText? }`.
+		 * previewUrl?, editable?, addButton?, emptyText? }`. `addButton: false` leaves the Add day button
+		 * out, for a host that draws it in its own title row and calls `openAdd()`.
 		 *
 		 * @type {object}
 		 */

@@ -24,6 +24,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `name` | String | *(required)* | Section title (passed to `NcSettingsSection`) |
+| `actionsInTitle` | Boolean | `false` | Draw the `actions` slot in the title row beside the heading, as the boards do, instead of floating it right above the content |
 | `description` | String | `''` | Brief section description shown under the title |
 | `detailedDescription` | String | `''` | Longer description rendered in a separate block below the title |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |

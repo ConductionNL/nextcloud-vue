@@ -29,6 +29,22 @@
 -->
 <template>
 	<CnDetailCard :title="resolvedTitle" :icon="Calendar" :collapsible="collapsible">
+		<!-- `headerActions`: the calendar tab's create and link-existing flows in the title row (detail page). -->
+		<template v-if="shownHeaderActions.length > 0" #actions>
+			<NcButton
+				v-for="action in shownHeaderActions"
+				:key="action"
+				:variant="action === 'create' ? 'primary' : 'secondary'"
+				:data-testid="`cn-calendar-card-${action}`"
+				@click="action === 'create' ? (showCreate = true) : (showPicker = true)">
+				<template #icon>
+					<Plus v-if="action === 'create'" :size="20" />
+					<LinkVariant v-else :size="20" />
+				</template>
+				{{ action === 'create' ? createLabel : linkLabel }}
+			</NcButton>
+		</template>
+
 		<!-- Loading -->
 		<NcLoadingIcon v-if="loading" />
 
@@ -94,20 +110,38 @@
 				{{ showAllLabel }} ({{ allEvents.length }})
 			</button>
 		</template>
+		<CnCalendarEventPicker
+			v-if="showPicker"
+			:apiBase="apiBase"
+			@link="onPickerLink"
+			@close="showPicker = false" />
+		<CnCalendarEventCreate
+			v-if="showCreate"
+			:register="register"
+			:schema="schema"
+			:objectId="objectId"
+			:apiBase="apiBase"
+			@created="onEventCreated"
+			@close="showCreate = false" />
 	</CnDetailCard>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
+import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { linkCalendarEvent } from './calendarEventLink.js'
 
 /**
  * CnCalendarCard — surface-aware compact widget for the calendar
@@ -117,7 +151,7 @@ import { userLocale } from '../../../utils/userLocale.js'
 export default {
 	name: 'CnCalendarCard',
 
-	components: { CnDetailCard, NcLoadingIcon, CalendarClock, CalendarCheck },
+	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnDetailCard, LinkVariant, NcButton, NcLoadingIcon, Plus, CalendarClock, CalendarCheck },
 
 	props: {
 		/** OpenRegister register id (slug or uuid). Optional for user-dashboard. */
@@ -158,6 +192,16 @@ export default {
 		openInCalendarLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Calendar') },
 		/** dashboard "show all" footer label. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/**
+		 * Buttons in the card's title row on a detail page: `create` makes a
+		 * meeting linked to the object, `link` links an existing one from the
+		 * user's calendar. In the order given; none by default.
+		 */
+		headerActions: { type: Array, default: () => [] },
+		/** Label of the `create` button. */
+		createLabel: { type: String, default: () => t('nextcloud-vue', 'Make an appointment') },
+		/** Label of the `link` button. */
+		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link an existing one') },
 	},
 
 	emits: ['show-all'],
@@ -168,10 +212,25 @@ export default {
 			allEvents: [],
 			loading: false,
 			error: '',
+			showCreate: false,
+			showPicker: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The title-row buttons to draw: only on a detail page with an
+		 * object, only the known ones, in the order given.
+		 *
+		 * @return {Array<string>}
+		 */
+		shownHeaderActions() {
+			if (this.surface !== 'detail-page' || !this.objectId || !Array.isArray(this.headerActions)) {
+				return []
+			}
+			return this.headerActions.filter((action, index, all) => ['create', 'link'].includes(action) && all.indexOf(action) === index)
+		},
+
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Meetings')
 		},
@@ -224,6 +283,33 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A meeting was made on this object: close the form, read the list again.
+		 *
+		 * @return {void}
+		 */
+		onEventCreated() {
+			this.showCreate = false
+			this.refresh()
+		},
+
+		/**
+		 * Link the picked meeting, then read the list again, or say why not.
+		 *
+		 * @param {{calendarUri: string, eventUid: string}} payload The picked event.
+		 * @return {Promise<void>}
+		 */
+		async onPickerLink(payload) {
+			this.showPicker = false
+			const result = await linkCalendarEvent(prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`), payload)
+			if (result.ok) {
+				this.error = ''
+				this.refresh()
+			} else {
+				this.error = result.error
+			}
+		},
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},

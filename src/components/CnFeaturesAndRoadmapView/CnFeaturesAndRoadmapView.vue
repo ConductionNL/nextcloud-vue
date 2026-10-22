@@ -460,7 +460,7 @@ export default {
 		 * @return {object}
 		 */
 		boardOptions() {
-			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton', 'actionsMenu']
+			const keys = ['layout', 'tabs', 'filter', 'filterLabel', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton', 'actionsMenu']
 			const options = {}
 			for (const key of keys) {
 				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
