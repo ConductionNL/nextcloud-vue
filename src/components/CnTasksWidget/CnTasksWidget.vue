@@ -116,7 +116,7 @@
 							{{ dueLabel(task) }}
 						</td>
 						<td>
-							<CnStatusBadge :label="stateLabel(task)" :variant="task.isTerminal === true ? 'default' : 'info'" />
+							<CnStatusBadge :label="stateLabel(task)" :variant="stateVariant(task)" />
 						</td>
 						<td class="cn-tasks-widget__cell-actions">
 							<NcButton
@@ -367,6 +367,7 @@ import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
 import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
@@ -499,6 +500,9 @@ export default {
 		 * - `completeUrl` — the route Complete posts to instead of the engine's
 		 *   own (`{id}` is the task uuid), for an app that checks something of
 		 *   its own before the engine completes the task.
+		 * - `stateVariants` — the status pill's tone by engine state
+		 *   (`{ active: 'purple', enabled: 'warning' }`); a state it does not
+		 *   name keeps info while open and default once finished.
 		 * - `claimCapabilityUrl` — a URL answering `{ claim: true|false }`;
 		 *   Claim is offered only when it answers true. Without it Claim is
 		 *   offered on every pooled task.
@@ -506,7 +510,7 @@ export default {
 		 * A task that carries a form is completed through CnTaskFormDialog, or
 		 * with its form inline in the focus and opened-row cards.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -1096,6 +1100,24 @@ export default {
 		stateLabel(task) {
 			const state = STATE_LABELS[task.state]
 			return state ? this.tr(state) : String(task.state || '')
+		},
+
+		/**
+		 * The tone of a task's status pill: `stateVariants[state]` when that
+		 * names a badge variant, else info for an open task and default for a
+		 * finished one.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The badge variant.
+		 * @spec openspec/changes/tasks-state-variants/specs/tasks-state-variants/spec.md#requirement-a-task-status-pill-can-take-its-tone-from-its-state
+		 */
+		stateVariant(task) {
+			const map = this.content && this.content.stateVariants
+			const named = map && typeof map === 'object' ? map[task.state] : undefined
+			if (isBadgeVariant(named)) {
+				return named
+			}
+			return task.isTerminal === true ? 'default' : 'info'
 		},
 
 		/**
