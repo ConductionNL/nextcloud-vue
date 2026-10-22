@@ -1948,6 +1948,7 @@
     "Hand back": "Hand back",
     "Pick up": "Pick up",
     "Task completed": "Task completed",
+    "{name} is also looking at this record now": "{name} is also looking at this record now",
     "This could not be done. Try again.": "This could not be done. Try again.",
     "{done} of {total} done": "{done} of {total} done",
     "Nothing to check off": "Nothing to check off",
@@ -2405,6 +2406,10 @@
     "Also written on %n other record": [
       "Also written on %n other record",
       "Also written on %n other records"
+    ],
+    "{name} and %n other are also looking at this record now": [
+      "{name} and %n other are also looking at this record now",
+      "{name} and %n others are also looking at this record now"
     ],
     "%n follower": [
       "%n follower",

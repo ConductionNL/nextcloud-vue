@@ -119,6 +119,18 @@
 	min-width: 0;
 }
 
+/* Who else is looking, before Volgen (DqZaak "Anouk Bakker kijkt nu ook naar
+   deze zaak"): the initials, the sentence and a dot, 13px in the muted ink.
+   @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking */
+.cn-look-board .cn-detail-page__presence {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
 .cn-look-board .cn-detail-page__header-row2 {
 	align-items: center;

@@ -742,6 +742,7 @@ When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegist
 |------|------|---------|-------------|
 | `favourite` | Boolean | `null` | Automatic when unset. `false` removes the star. |
 | `follow` | Boolean | `null` | Automatic when unset. `false` removes the Follow toggle, and the object read then no longer asks for `@self.can`. |
+| `followRow` | Object \| null | `null` | The board look's follow row (manifest `config.followRow`): `presence: true` says who else has the record open now, with their initials, before the Follow control ("Anouk Bakker is also looking at this record now", or "… and 2 others …"); `count: false` draws no follower count. |
 | `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
 | `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
 
