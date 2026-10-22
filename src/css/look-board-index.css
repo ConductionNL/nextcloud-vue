@@ -1577,3 +1577,22 @@
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
 }
+
+/* Board DqZakenSorteren: "Richting" over two stretched segments, an arrow
+   before each label, 3px track padding and 34px segments. */
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-label {
+	margin: 12px 0 6px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 20px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments {
+	padding: 3px;
+	gap: 2px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments .cn-segmented-control__option {
+	min-height: 34px;
+	gap: 6px;
+}
