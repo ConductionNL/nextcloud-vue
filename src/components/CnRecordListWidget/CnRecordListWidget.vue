@@ -193,7 +193,17 @@
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
 						<span class="cn-record-list__main">
-							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
+							<CnReferencePreview
+								v-if="item.title && item.preview"
+								class="cn-record-list__title"
+								:recordId="item.preview.recordId"
+								:register="item.preview.register"
+								:schema="item.preview.schema"
+								:fetchRecord="fetchPreviewRecord"
+								@openRecord="openPreviewed(item.preview.to)">
+								{{ item.title }}
+							</CnReferencePreview>
+							<span v-else-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
 							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
@@ -370,6 +380,7 @@ import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from
 import { inject, ref } from 'vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnReferencePreview from '../CnReferencePreview/CnReferencePreview.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRecordNoteRows from './CnRecordNoteRows.vue'
 import { interpolateUrlTokens, useEndpointSource } from '../../composables/useEndpointSource.js'
@@ -460,7 +471,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnReferencePreview, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -473,6 +484,8 @@ export default {
 		cnAppConfig: { default: () => ({}) },
 		/** The page's pre-bound action dispatcher (CnPageRenderer), for `rowAction`. */
 		cnDispatchAction: { default: null },
+		/** The page's reference previews (`pages[].referencePreview`, CnPageRenderer): `{ enabled, targetFor(routeName) }`. */
+		cnReferencePreview: { default: null },
 	},
 
 	props: {
@@ -744,12 +757,16 @@ export default {
 			return this.rows.slice(0, this.limit).map((raw, index) => {
 				const row = scalarRow(raw)
 				const link = this.rowLink(row)
+				// With reference previews on, the title is the reference (it
+				// opens the record) and the row is no link around it.
+				const preview = link ? this.previewOf(link) : null
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
 					row,
 					action: this.rowActionOf(row),
-					tag: link ? 'router-link' : 'div',
-					attrs: link ? { to: link } : {},
+					tag: link && !preview ? 'router-link' : 'div',
+					attrs: link && !preview ? { to: link } : {},
+					preview,
 					initials: this.initialsFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
@@ -1466,6 +1483,52 @@ export default {
 				return this.cnDispatchAction(wrapped)
 			}
 			return dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row), source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
+		/**
+		 * The reference preview of a row that opens a detail page, when the
+		 * page turns previews on (`pages[].referencePreview`, provided as
+		 * `cnReferencePreview`), else null.
+		 *
+		 * @param {{name: string, params: {id: string}}} link The row's route.
+		 * @return {{recordId: string, register: string, schema: string, to: object}|null}
+		 * @spec openspec/changes/reference-preview-from-page/specs/reference-preview-from-page/spec.md#requirement-a-page-can-turn-on-reference-previews
+		 */
+		previewOf(link) {
+			const preview = this.cnReferencePreview
+			if (!preview || preview.enabled !== true || typeof preview.targetFor !== 'function') {
+				return null
+			}
+			const target = preview.targetFor(link.name)
+			return target ? { recordId: link.params.id, register: target.register, schema: target.schema, to: link } : null
+		},
+
+		/**
+		 * Load a previewed record from OpenRegister. A record the reader may
+		 * not read answers nothing, and the card shows nothing of it.
+		 *
+		 * @param {{recordId: string, register: string, schema: string}} ref The reference.
+		 * @return {Promise<object|null>}
+		 */
+		async fetchPreviewRecord({ recordId, register, schema }) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register, schema, id: recordId }))
+				return data && typeof data === 'object' ? data : null
+			} catch {
+				return null
+			}
+		},
+
+		/**
+		 * Open a previewed record.
+		 *
+		 * @param {object} to The record's route.
+		 */
+		openPreviewed(to) {
+			if (this.$router && to) {
+				this.$router.push(to).catch?.(() => {})
+			}
 		},
 
 		rowLink(row) {

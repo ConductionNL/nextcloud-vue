@@ -488,6 +488,23 @@ export default {
 				return self.currentPage?.config?.slotColumns ?? null
 			},
 
+			// `pages[].referencePreview`: whether a reference on this page shows
+			// a summary of the record it points at, and the register and schema
+			// of the detail page a route opens (CnRecordListWidget rows).
+			cnReferencePreview: {
+				get enabled() {
+					return self.currentPage?.referencePreview === true
+				},
+
+				targetFor(routeName) {
+					const page = typeof routeName === 'string' ? self.pageById?.get(routeName) : null
+					const config = page?.type === 'detail' ? page.config || {} : null
+					return config && typeof config.register === 'string' && typeof config.schema === 'string'
+						? { register: config.register, schema: config.schema }
+						: null
+				},
+			},
+
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
 			// Loaded object for a type:"detail" page (reactive holder). See

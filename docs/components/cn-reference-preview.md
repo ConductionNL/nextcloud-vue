@@ -74,6 +74,8 @@ Set `referencePreview: true` on the page and the renderer wires the previews for
 { "id": "CaseDetail", "route": "/cases/:id", "type": "detail", "title": "Case", "referencePreview": true }
 ```
 
+On such a page, a record list (`record-list`) whose rows open a detail page (`rowRoute`) draws each row's title as a preview of the record that row opens: the register and schema come from that detail page, the card loads the record from OpenRegister, and activating the title opens it. A record the reader may not read loads nothing. Without the page key the rows stay plain links.
+
 ## Next
 
 Put the case beside the list it came from with [`CnIndexPage`'s split view](./cn-index-page.md#split-view), so a reader never loses their place at all.
