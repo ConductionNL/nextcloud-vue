@@ -464,6 +464,48 @@
 	flex: 1 1 300px;
 }
 
+/* The band (`config.band`): a wrapping row across the page, above the body
+   and the side column. An entry takes `--cn-band-span` twelfths of the row,
+   less its share of the gaps, and wraps under 220px. It is a full line in the
+   with-side flex row, like every child but the body and the column. */
+.cn-detail-page__band {
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(5 * var(--default-grid-baseline));
+	margin-block-end: calc(5 * var(--default-grid-baseline));
+}
+
+/* The page filters: a right-aligned row above the band's widgets, a label
+   before each control. */
+.cn-detail-page__page-filters {
+	display: flex;
+	flex: 1 1 100%;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
+}
+
+.cn-detail-page__page-filter {
+	display: inline-flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline));
+}
+
+.cn-detail-page__page-filter-label {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-detail-page__band-item {
+	flex: 1 1 calc(var(--cn-band-span, 12) / 12 * 100% - calc(5 * var(--default-grid-baseline)));
+	min-width: min(220px, 100%);
+}
+
+.cn-detail-page__band-item--full {
+	flex-basis: 100%;
+}
+
 .cn-detail-page__side {
 	display: flex;
 	flex-direction: column;

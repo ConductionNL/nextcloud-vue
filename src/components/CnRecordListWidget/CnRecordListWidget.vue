@@ -120,6 +120,9 @@
 					<div
 						v-if="presentation === 'rows' && item.action"
 						class="cn-record-list__row cn-record-list__row--action">
+						<span v-if="item.leading"
+							class="cn-record-list__leading"
+							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -170,13 +173,16 @@
 							{{ item.action.label }}
 						</component>
 					</div>
-					<!-- rows: title and meta, then the pill, the date and a chevron. -->
+					<!-- rows: title, meta and text, then the pill, the date and a chevron. -->
 					<component
 						:is="item.tag"
 						v-else-if="presentation === 'rows'"
 						class="cn-record-list__row"
 						:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 						v-bind="item.attrs">
+						<span v-if="item.leading"
+							class="cn-record-list__leading"
+							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -189,6 +195,7 @@
 						<span class="cn-record-list__main">
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
 							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
 								{{ linksLabel }}
 								<template v-for="(link, linkIndex) in item.links" :key="link.id">
@@ -219,7 +226,7 @@
 							<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 						</span>
 						<ChevronRight
-							v-if="item.tag !== 'div'"
+							v-if="item.tag !== 'div' && content.chevron !== false"
 							class="cn-record-list__chevron"
 							:size="18"
 							aria-hidden="true" />
@@ -471,7 +478,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
-		 * presentation?, variant?, lead?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -501,6 +508,9 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
+		 * and `chevron: false` leaves the chevron off a linked row
+		 * (DqDashboard).
 		 *
 		 * @type {object}
 		 */
@@ -746,6 +756,7 @@ export default {
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
+					leading: c.leading ? firstFilled(c.leading, row, this.translate, new Date(), this.templateContext) : '',
 					pill: this.pillOf(row),
 					badges: this.badgesOf(row),
 					due: this.dueOf(row),
@@ -2232,6 +2243,14 @@ export default {
 	display: flex;
 	flex: none;
 	gap: 16px;
+}
+
+.cn-record-list__leading {
+	flex: 0 0 52px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
 
 .cn-record-list__trailing {

@@ -69,12 +69,12 @@ beforeEach(() => {
 describe('the tasks source offers verbs from the task state', () => {
 	it('offers complete and hand back on a held task, with cancel in the menu', () => {
 		const verbs = resolveRecordSource('tasks').verbs(TASK)
-		expect(verbs.map((v) => [v.id, v.menu])).toEqual([['complete', false], ['unclaim', false], ['cancel', true]])
+		expect(verbs.map((v) => [v.id, v.menu])).toEqual([['complete', false], ['unclaim', false], ['edit', false], ['cancel', true]])
 	})
 
 	it('offers pick up on a task nobody holds', () => {
 		const verbs = resolveRecordSource('tasks').verbs({ ...TASK, assignee: null })
-		expect(verbs.map((v) => v.id)).toEqual(['complete', 'claim', 'cancel'])
+		expect(verbs.map((v) => v.id)).toEqual(['complete', 'claim', 'edit', 'cancel'])
 	})
 
 	it('offers nothing on a finished task', () => {
@@ -89,7 +89,7 @@ describe('a detail page on the tasks source', () => {
 		const wrapper = mountPage()
 		await flushPromises()
 
-		expect(buttonVerbs(wrapper)).toEqual(['complete', 'unclaim'])
+		expect(buttonVerbs(wrapper)).toEqual(['complete', 'unclaim', 'edit'])
 		expect(wrapper.vm.headerMenuEntries.map((e) => e.id)).toContain('cn-source-verb-cancel')
 	})
 
@@ -102,7 +102,7 @@ describe('a detail page on the tasks source', () => {
 		await flushPromises()
 
 		expect(mockPost).toHaveBeenCalledWith(`/index.php/apps/openregister/api/flow-tasks/${UUID}/unclaim`, {})
-		expect(buttonVerbs(wrapper)).toEqual(['complete', 'claim'])
+		expect(buttonVerbs(wrapper)).toEqual(['complete', 'claim', 'edit'])
 		expect(wrapper.emitted('transitioned')[0][0]).toMatchObject({ action: 'unclaim' })
 	})
 
@@ -128,7 +128,7 @@ describe('a detail page on the tasks source', () => {
 		await flushPromises()
 
 		expect(mockShowError).toHaveBeenCalledWith('complete refused: the task is held by anouk')
-		expect(buttonVerbs(wrapper)).toEqual(['complete', 'unclaim'])
+		expect(buttonVerbs(wrapper)).toEqual(['complete', 'unclaim', 'edit'])
 		expect(wrapper.emitted('transitioned')).toBeUndefined()
 	})
 

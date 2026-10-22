@@ -69,12 +69,14 @@ export function stageEntry(map, stage) {
  *
  * An entry is the id of a declared header action, or an action object of its
  * own. An object without an id gets `fallbackId`, since every dispatched
- * action is addressed by id.
+ * action is addressed by id. `{ id, tabs?, notTabs? }` without a label names
+ * a declared action and says beside which body tabs it shows (see `onTab`).
  *
  * @param {string|object|null} entry The entry.
  * @param {string} fallbackId Id for an inline action that names none.
- * @return {{id: string, inline: object|null}|null} The id, plus the inline definition when the entry carried one.
+ * @return {{id: string, inline: object|null, tabs?: Array<string>, notTabs?: Array<string>}|null} The id, plus the inline definition when the entry carried one.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+ * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
  */
 export function normalisePinnedAction(entry, fallbackId) {
 	if (typeof entry === 'string') {
@@ -83,11 +85,40 @@ export function normalisePinnedAction(entry, fallbackId) {
 	if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
 		return null
 	}
+	const scoped = Array.isArray(entry.tabs) || Array.isArray(entry.notTabs)
 	if (typeof entry.label !== 'string' || entry.label === '') {
-		return null
+		if (!scoped || typeof entry.id !== 'string' || entry.id === '') {
+			return null
+		}
+		return { id: entry.id, inline: null, tabs: entry.tabs, notTabs: entry.notTabs }
 	}
 	const id = typeof entry.id === 'string' && entry.id !== '' ? entry.id : fallbackId
-	return { id, inline: { ...entry, id } }
+	const { tabs, notTabs, ...action } = entry
+	const pinned = { id, inline: { ...action, id } }
+	return scoped ? { ...pinned, tabs, notTabs } : pinned
+}
+
+/**
+ * Whether an entry belongs beside the open body tab: one with `tabs` shows
+ * only while one of them is open, one with `notTabs` stands aside while one
+ * of those is open, one with neither shows beside every tab.
+ *
+ * @param {object|null} entry The entry, carrying `tabs` / `notTabs`.
+ * @param {string} activeTab The open body tab's id.
+ * @return {boolean}
+ * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
+ */
+export function onTab(entry, activeTab) {
+	if (!entry) {
+		return true
+	}
+	if (Array.isArray(entry.notTabs) && entry.notTabs.map((id) => String(id)).includes(activeTab)) {
+		return false
+	}
+	if (!Array.isArray(entry.tabs) || entry.tabs.length === 0) {
+		return true
+	}
+	return entry.tabs.map((id) => String(id)).includes(activeTab)
 }
 
 /**

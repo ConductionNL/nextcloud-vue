@@ -647,6 +647,90 @@
 			</template>
 		</CnNextStepCard>
 
+		<!-- The band (manifest `config.band`): a row of widgets across the whole
+		     page, above the body and the side column (PtPortal: the traffic
+		     figures and the start-page notice). Each entry takes `span`
+		     twelfths of the row and the row wraps. -->
+		<div
+			v-if="showsBand"
+			class="cn-detail-page__band"
+			data-testid="cn-detail-page-band">
+			<!-- The page filters (`config.pageFilters`), right-aligned above the
+			     band's widgets; each writes the page's workspace context. -->
+			<div
+				v-if="detailPageFilters.length > 0"
+				class="cn-detail-page__page-filters"
+				data-testid="cn-detail-page-page-filters">
+				<template v-for="pf in detailPageFilters" :key="pf.key">
+					<div v-if="pf.control === 'segmented'" class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<CnSegmentedControl
+							size="compact"
+							mode="toggle"
+							:options="pageFilterSegments(pf)"
+							:modelValue="workspaceContext[pf.key]"
+							:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</div>
+					<label v-else class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<NcSelect
+							:modelValue="selectedPageFilterOption(pf)"
+							:options="pageFilterSegments(pf)"
+							:clearable="pf.clearable === true"
+							:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+							:loading="pageFilterLoading[pf.key] === true"
+							:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							label="label"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</label>
+				</template>
+			</div>
+			<div
+				v-for="entry in bandWidgets"
+				:key="`band-${entry.widget.id}`"
+				class="cn-detail-page__band-item"
+				:class="{ 'cn-detail-page__band-item--full': entry.span === 12 }"
+				:style="{ '--cn-band-span': entry.span }"
+				:data-testid="`cn-detail-page-band-${entry.widget.id}`">
+				<!--
+					@slot `widget-${widget.id}`
+					@description The same per-widget slot the body grid and the side
+					column offer, for a widget placed in the band.
+				-->
+				<slot
+					:name="`widget-${entry.widget.id}`"
+					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
+					:widget="entry.widget"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="entry.widget"
+						:chrome="entry.chrome"
+						:showCardTitle="true"
+						:showActions="effectiveShowWidgetActions"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets" />
+				</slot>
+			</div>
+		</div>
+
 		<!-- Not-found state: the record behind the address does not exist. -->
 		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
 			<!--
@@ -1241,6 +1325,18 @@
 				@close="closeEditForm" />
 		</slot>
 
+		<!-- A record-source verb that asks for values first (the tasks source's
+		     Edit): its own form, saved through the source. -->
+		<CnFormDialog
+			v-if="sourceVerbForm"
+			ref="sourceVerbFormDialog"
+			:schema="sourceVerbForm.form.schema"
+			:item="sourceVerbForm.form.item || {}"
+			:dialogTitle="sourceVerbForm.label"
+			:fieldOverrides="sourceVerbForm.form.fieldOverrides || {}"
+			@confirm="onSourceVerbFormConfirm"
+			@close="sourceVerbForm = null" />
+
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
 		<CnRelationLinkModal
@@ -1263,7 +1359,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -1307,9 +1403,10 @@ import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { pageFilters } from '../../mixins/pageFilters.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
-import { headerActionAsLink } from '../../utils/actionLink.js'
+import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
@@ -1317,6 +1414,7 @@ import {
 	groupMenuEntries,
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
+	onTab,
 	pillCountSource,
 	pillLook,
 	resolveCountPill,
@@ -1332,6 +1430,8 @@ import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1549,6 +1649,7 @@ export default {
 		CnFormDialog,
 		CnDashboardGrid,
 		CnSegmentedControl,
+		NcSelect,
 		ViewDashboardOutline,
 		CnLifecycleActions,
 		CnActionButtons,
@@ -1571,7 +1672,7 @@ export default {
 		Restore,
 	},
 
-	mixins: [gridLayout, pageViews],
+	mixins: [gridLayout, pageFilters, pageViews],
 
 	inject: {
 		/**
@@ -2581,7 +2682,9 @@ export default {
 		 * for the few actions a handler uses on every record. At most three
 		 * render; later entries are dropped. An entry is an action object in
 		 * the `headerActions` shape, or the id of a declared header action,
-		 * which then leaves the Actions menu.
+		 * which then leaves the Actions menu. `{ id, tabs?, notTabs? }` names
+		 * a declared action that is a button only beside those body tabs, as
+		 * a side card follows them; elsewhere it stays in the Actions menu.
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2616,7 +2719,8 @@ export default {
 		 * object with `stages`), that map replaces `stages` for this record, so
 		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
-		 * the primary button inside it. See `CnNextStepCard`.
+		 * the primary button inside it. `tabs` / `notTabs` tie the card to
+		 * body tabs as a side card. See `CnNextStepCard`.
 		 *
 		 * @type {object|null}
 		 */
@@ -2700,10 +2804,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
-		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|null}
+		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
+		 * and then the record); `currentField` and `separator` may sit on any
+		 * of them.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
 		breadcrumb: {
-			type: Object,
+			type: [Object, Array],
 			default: null,
 		},
 
@@ -2757,6 +2866,39 @@ export default {
 		},
 
 		/**
+		 * A row of widgets across the whole page, above the body and the side
+		 * column (manifest `config.band`). Each entry is the id of a widget
+		 * declared in `widgets`, a widget definition, or `{ widgetId, span,
+		 * chrome }`; `span` is the entry's share of the row in twelfths
+		 * (default 12) and the row wraps; `chrome` is `card` or `bare` (a
+		 * banner defaults to bare, anything else to card, so a widget that
+		 * draws its own card, such as a KPI, asks for bare). Each entry
+		 * follows its `visibleWhen`. Empty (the default) draws no band.
+		 *
+		 * @type {Array<string|object>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		band: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Page-level filters (manifest `config.pageFilters`), the same a
+		 * dashboard takes: each writes its choice into the page's workspace
+		 * context, which every widget on the page reads through
+		 * `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its
+		 * widgets (PtPortal "Periode").
+		 *
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		pageFilters: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * A field path whose value picks the side column and its order for
 		 * this record (manifest `config.sideColumnFrom`), read like a
 		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
@@ -2768,6 +2910,21 @@ export default {
 		 * @spec openspec/changes/detail-side-column-from/specs/detail-page/spec.md#requirement-a-record-can-pick-the-side-column-and-its-order
 		 */
 		sideColumnFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A field path, read like a `visibleWhen` field, whose list of
+		 * declared header action ids picks this record's quick actions
+		 * (manifest `config.quickActionsFrom`, e.g.
+		 * `@context.caseType.quickActions`). Only ids of `headerActions` are
+		 * taken, so the record's data never defines an action. An empty or
+		 * missing list keeps `quickActions`.
+		 *
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		quickActionsFrom: {
 			type: String,
 			default: '',
 		},
@@ -3073,10 +3230,16 @@ export default {
 			// which no register answers.
 			{ schemaSlug: () => props.schema || sidebarSchema() },
 		)
+		// The page's workspace context, as a dashboard provides it: page
+		// filters write their choice here and a widget reads it through
+		// `@page.<key>` / `@workspace.<key>`.
+		const workspaceContext = ref({})
+		provide('cnWorkspaceContext', workspaceContext)
 		return {
 			...registryExposed,
 			subscriptionStatus: subscription.status,
 			lockState: lock,
+			workspaceContext,
 		}
 	},
 
@@ -3148,6 +3311,8 @@ export default {
 			menuHeaderActions: [],
 			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
 			sourceVerbBusy: false,
+			/** The record-source verb whose form is open, or null. */
+			sourceVerbForm: null,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -3415,6 +3580,35 @@ export default {
 		},
 
 		/**
+		 * The quick actions for this record: the declared header actions the
+		 * record lists through `quickActionsFrom`, in its order, else
+		 * `quickActions`. An entry is an id, or `{ id, ... }` without a label;
+		 * an id no header action declares is dropped.
+		 *
+		 * @return {Array<string|object>} The entries.
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		effectiveQuickActions() {
+			const declared = Array.isArray(this.quickActions) ? this.quickActions : []
+			if (!this.quickActionsFrom || !this.widgetVisibilityData) {
+				return declared
+			}
+			const listed = readVisibleWhenPath(this.widgetVisibilityData, this.quickActionsFrom)
+			if (!Array.isArray(listed)) {
+				return declared
+			}
+			const known = new Set((Array.isArray(this.headerActions) ? this.headerActions : []).map((action) => action && action.id))
+			const idOf = (entry) => {
+				if (typeof entry === 'string') {
+					return entry
+				}
+				return entry && typeof entry === 'object' && !('label' in entry) && typeof entry.id === 'string' ? entry.id : ''
+			}
+			const picked = listed.filter((entry) => known.has(idOf(entry)))
+			return picked.length > 0 ? picked : declared
+		},
+
+		/**
 		 * The quick actions as ids, plus definitions for the inline ones.
 		 * Capped at three, and never the action that is already the primary
 		 * button.
@@ -3424,7 +3618,7 @@ export default {
 		 */
 		pinnedQuickActions() {
 			const primaryId = this.stagePrimary?.id
-			return (Array.isArray(this.quickActions) ? this.quickActions : [])
+			return this.effectiveQuickActions
 				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
 				.filter((pinned) => pinned && pinned.id !== primaryId)
 				.slice(0, MAX_QUICK_ACTIONS)
@@ -3445,13 +3639,16 @@ export default {
 		},
 
 		/**
-		 * The quick actions in dispatchable form, in declaration order.
+		 * The quick actions in dispatchable form, in declaration order, less
+		 * the ones the open body tab leaves out.
 		 *
 		 * @return {Array<object>} The entries that are visible.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		quickActionEntries() {
 			return this.pinnedQuickActions
+				.filter((pinned) => onTab(pinned, this.activeBodyTab))
 				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
 				.filter(Boolean)
 		},
@@ -3475,7 +3672,46 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionHref() {
-			return this.stagePrimaryEntry?.href || ''
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.href || ''
+			}
+			return this.primaryActionLink?.href || ''
+		},
+
+		/**
+		 * The page's `primaryAction` as a link, when no stage action stands in
+		 * for it: `href` (its record tokens resolved) opens in a new tab, as the
+		 * schema says; `route` (with `query`) is an in-app link a plain click
+		 * routes to (PtPortal "Nieuwe pagina" opens the page create flow).
+		 *
+		 * @return {{href: string, to: object|null, target: string}|null} The link, or null.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-pages-own-primary-action-is-a-link
+		 */
+		primaryActionLink() {
+			const action = this.primaryAction
+			if (!action || typeof action !== 'object') {
+				return null
+			}
+			if (typeof action.href === 'string' && action.href !== '') {
+				const href = resolveManifestHref(interpolateUrlTokens(action.href, this.headerLinkTokenCtx))
+				return href ? { href, to: null, target: '_blank' } : null
+			}
+			if (typeof action.route === 'string' && action.route !== '') {
+				const to = { name: action.route, ...(action.query && typeof action.query === 'object' ? { query: action.query } : {}) }
+				const href = routeHref(to, this.$router)
+				return href ? { href, to, target: '_self' } : null
+			}
+			return null
+		},
+
+		/**
+		 * The token context a header link resolves its URL against: this record.
+		 *
+		 * @return {{objectId: (string|number), object: object}} The context.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-header-link-builds-its-url-from-the-record
+		 */
+		headerLinkTokenCtx() {
+			return { objectId: this.objectId, object: this.resolvedObject || {} }
 		},
 
 		/**
@@ -3485,7 +3721,10 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionTarget() {
-			return this.stagePrimaryEntry?.linkTarget || undefined
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.linkTarget || undefined
+			}
+			return this.primaryActionLink?.target || undefined
 		},
 
 		/**
@@ -3701,11 +3940,12 @@ export default {
 		/**
 		 * Whether the "what now" card renders.
 		 *
-		 * @return {boolean} True when the stage has a checklist and the body is showing.
+		 * @return {boolean} True when the stage has a checklist, the body is showing and the open tab allows it.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		showsNextStepCard() {
-			return Boolean(this.nextStepCard) && this.showsBody
+			return Boolean(this.nextStepCard) && this.showsBody && onTab(this.nextStep, this.activeBodyTab)
 		},
 
 		/**
@@ -3880,6 +4120,57 @@ export default {
 		 * @return {boolean} True when it has widgets and the body is showing.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 */
+		/**
+		 * The band's widgets, resolved and visible, each with its span.
+		 *
+		 * @return {Array<{widget: object, span: number, chrome: string}>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		bandWidgets() {
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return (Array.isArray(this.band) ? this.band : [])
+				.map((entry, index) => {
+					let widget = null
+					let span = 12
+					if (typeof entry === 'string') {
+						widget = declared.find((candidate) => candidate && candidate.id === entry) || null
+					} else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+						span = Number.isInteger(entry.span) ? Math.min(12, Math.max(1, entry.span)) : 12
+						if (typeof entry.widgetId === 'string') {
+							widget = declared.find((candidate) => candidate && candidate.id === entry.widgetId) || null
+						} else if (typeof entry.type === 'string') {
+							widget = entry.id ? entry : { ...entry, id: `cn-band-${index}` }
+						}
+					}
+					if (!widget) {
+						return null
+					}
+					const chrome = ['card', 'bare'].includes(entry?.chrome) ? entry.chrome : (widget.type === 'banner' ? 'bare' : 'card')
+					return { widget, span, chrome }
+				})
+				.filter((entry) => entry && this.sideWidgetVisible(entry.widget))
+		},
+
+		/**
+		 * Whether the band renders: it has a visible widget and the record shows.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		showsBand() {
+			return (this.bandWidgets.length > 0 || this.detailPageFilters.length > 0) && this.showsBody
+		},
+
+		/**
+		 * The declared page filters that carry a key.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		detailPageFilters() {
+			return (Array.isArray(this.pageFilters) ? this.pageFilters : []).filter((pf) => pf && pf.key)
+		},
+
 		showsSideColumn() {
 			return this.sideColumnWidgets.length > 0 && this.showsBody
 		},
@@ -4245,7 +4536,7 @@ export default {
 				.map((pinned) => pinned.inline)
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
-			const linked = combined.map(headerActionAsLink)
+			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
 			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
@@ -4712,30 +5003,45 @@ export default {
 		},
 
 		/**
-		 * The breadcrumb trail: the declared crumb (a router target from
+		 * The declared crumbs: `config.breadcrumb` as one crumb or a list,
+		 * without the crumbs that have no label.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @return {Array<object>}
+		 */
+		declaredCrumbs() {
+			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
+			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+		},
+
+		/**
+		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
-		 * as the current crumb. Empty without a `breadcrumb` label. The first
-		 * crumb carries `icon` only when the manifest declares one.
+		 * as the current crumb. Empty without a declared crumb. A crumb
+		 * carries `icon` only when the manifest declares one.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
-			const crumb = this.breadcrumb
-			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+			if (this.declaredCrumbs.length === 0) {
 				return []
 			}
-			const first = { label: this.effectiveTranslate(crumb.label) }
-			if (typeof crumb.icon === 'string' && crumb.icon !== '') {
-				first.icon = crumb.icon
-			}
-			if (crumb.route) {
-				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
-			} else if (crumb.href) {
-				first.href = crumb.href
-			}
-			return [first, { label: this.breadcrumbCurrentLabel }]
+			const crumbs = this.declaredCrumbs.map((crumb) => {
+				const entry = { label: this.effectiveTranslate(crumb.label) }
+				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
+					entry.icon = crumb.icon
+				}
+				if (crumb.route) {
+					entry.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}), ...(crumb.query ? { query: crumb.query } : {}) }
+				} else if (crumb.href) {
+					entry.href = crumb.href
+				}
+				return entry
+			})
+			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 
 		/**
@@ -4747,8 +5053,8 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbCurrentLabel() {
-			const field = this.breadcrumb && this.breadcrumb.currentField
-			if (typeof field === 'string' && field !== '') {
+			const field = this.breadcrumbOption('currentField')
+			if (field !== '') {
 				const value = stageOf(this.resolvedObject, field)
 				if (value !== '') {
 					return value
@@ -4765,8 +5071,7 @@ export default {
 		 * @return {string}
 		 */
 		breadcrumbSeparator() {
-			const separator = this.breadcrumb && this.breadcrumb.separator
-			return typeof separator === 'string' ? separator : ''
+			return this.breadcrumbOption('separator')
 		},
 
 		/**
@@ -5331,6 +5636,10 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		// Seeded before the first render, so a widget's first request already
+		// carries the page filter's value.
+		this.initPageFilters()
+		this.loadPageFilterOptions()
 	},
 
 	mounted() {
@@ -5384,6 +5693,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A key of the declared trail: the last crumb that sets it wins.
+		 *
+		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @param {string} key `currentField` or `separator`.
+		 * @return {string} Its value, or ''.
+		 */
+		breadcrumbOption(key) {
+			const found = [...this.declaredCrumbs].reverse().find((crumb) => typeof crumb[key] === 'string' && crumb[key] !== '')
+			return found ? found[key] : ''
+		},
+
 		/**
 		 * A body widget starts or stops showing its own cards in the side
 		 * column. While any does, the generic side cards stand aside.
@@ -5561,16 +5882,21 @@ export default {
 		 * the `run()` CnActionButtons bound for it, and announced to the host
 		 * with its declaration. A link action is left to the browser and
 		 * announces nothing. Without a stage action this is the page's
-		 * `primaryAction`, announced as before.
+		 * `primaryAction`, announced as before, and when it is an in-app link
+		 * a plain click routes there.
 		 *
+		 * @param {MouseEvent} [event] The click.
 		 * @return {void}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 */
-		onPrimaryActionClick() {
+		onPrimaryActionClick(event) {
 			const entry = this.stagePrimaryEntry
 			if (!entry) {
 				this.$emit('primary-action', this.primaryAction)
+				if (this.primaryActionLink?.to) {
+					followLinkClick(event, this.primaryActionLink.to, this.$router)
+				}
 				return
 			}
 			if (entry.href) {
@@ -5941,6 +6267,10 @@ export default {
 			if (!source || !objectId || this.sourceVerbBusy) {
 				return
 			}
+			if (verb.form && verb.form.schema) {
+				this.sourceVerbForm = verb
+				return
+			}
 			this.sourceVerbBusy = true
 			try {
 				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
@@ -5957,6 +6287,39 @@ export default {
 			} finally {
 				this.sourceVerbBusy = false
 			}
+		},
+
+		/**
+		 * Save the open record-source verb form through the source: only the
+		 * form's own fields are sent. The form shows the server's refusal and
+		 * stays open; on success it closes and the page redraws from the
+		 * record the source kept.
+		 *
+		 * @param {object} formData The form's values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async onSourceVerbFormConfirm(formData) {
+			const verb = this.sourceVerbForm
+			const source = this.recordSource
+			const dialog = this.$refs.sourceVerbFormDialog
+			if (!verb || !source || !this.objectId) {
+				return
+			}
+			const keys = Object.keys(verb.form.schema.properties || {})
+			const body = Object.fromEntries(keys.filter((key) => formData && key in formData).map((key) => [key, formData[key]]))
+			const outcome = await source.runVerb(String(this.objectId), verb.id, { body })
+			if (!outcome || outcome.ok !== true) {
+				dialog?.setResult({ error: String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.') })
+				return
+			}
+			dialog?.setResult({ success: true })
+			this.sourceVerbForm = null
+			if (verb.successMessage) {
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				showSuccess(verb.successMessage)
+			}
+			this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
 		},
 
 		/**
@@ -6746,16 +7109,7 @@ export default {
 		 * @return {boolean}
 		 */
 		sideWidgetOnTab(widget) {
-			if (this.editingBody) {
-				return true
-			}
-			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
-				return false
-			}
-			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
-				return true
-			}
-			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
+			return this.editingBody || onTab(widget, this.activeBodyTab)
 		},
 
 		/**

@@ -365,6 +365,8 @@ A widget then binds its data to the selected value. With an endpoint-bound [`sta
 
 Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible). The label and the option labels go through the app's translate.
 
+With `placement: "description"` a filter sits on the header's description line instead of in the filter row: a select as a compact select, one with `control: "segmented"` as a segmented group. They stand in the order the page declares them (DqProcesanalyse: "Gemiddeld | Mediaan", then "Laatste 12 maanden" and "Alle zaaktypen"), before a `dateRange` period group on the same line. A select is set off by a middle dot from a segmented group that follows it, not from another select.
+
 ### Options read from a source (`optionsFrom`)
 
 A filter can read its options instead of listing them, as the case-type filter of a reporting dashboard does:
@@ -597,6 +599,7 @@ A `header` widget whose content sets `ground: true` is drawn without a card; see
 ## `gridFloat`, `showButtons` and stacked stats blocks (zuiddrecht-pixel-gaps-3)
 
 - `gridFloat` (manifest `config.gridFloat`, default `true`): `false` packs widgets upward, so a size-to-content widget that shrinks closes the gap under it.
+- `gridSideColumn` (manifest `config.gridSideColumn`, and per view `views[].gridSideColumn`): `{ width, from? }` draws the layout entries with `track: "side"` at a fixed width and those with `track: "main"` in the rest (DqMijnWerk: side cards 320px); entries without a track keep the twelve shares. A view without one keeps the twelve shares (DqMijnTeam's two halves).
 - A placement or widget definition with `showButtons: false` renders without its footer links.
 - A `stats-block` definition with `content.layout: "stacked"` (or `props.layout`) renders its blocks in the stacked board look.
 

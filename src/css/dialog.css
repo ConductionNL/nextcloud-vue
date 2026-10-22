@@ -257,6 +257,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-start: 26px;
 }
 
+/* NcSelect's search is an NcInputField inside the select, and the select's
+   own margin rules win over the field's, so the raised label rose over what
+   stood above (DqZaakLocatie "Locatie toevoegen", DqZaakSamenwerken). The
+   select makes the label's room instead.
+   @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
+.cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
+	margin-block-start: 26px;
+}
+
 /* The doubled class outranks NcInputField's raised-label rule (focused or
    filled), which would pin the label's top as well and squash it. */
 .cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
@@ -303,6 +312,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	min-height: var(--cn-field-height, 40px);
 	border: 1px solid var(--color-border-maxcontrast);
 	border-radius: 8px;
+}
+
+/* A field's help line sits right under the control in 13px muted ink, flush
+   with the label, as the boards draw it (PtUitnodigen "De uitnodiging met een
+   eenmalige code gaat naar dit adres.", PtAccountUitgeven). The ink carries
+   `!important` against a theme that colours every span and p (thematiq).
+   @spec openspec/changes/board-dialog-field-help/specs/board-dialog-field-help/spec.md#requirement-a-board-dialog-fields-help-line-is-13px-muted-under-the-control */
+.cn-dialog-board .dialog__content .input-field__helper-text-message,
+.cn-dialog-board .dialog__content .textarea__helper-text-message {
+	padding: 4px 0 0;
+	color: var(--color-text-maxcontrast) !important;
+	font-size: 13px;
+	line-height: 1.3;
 }
 
 .cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
