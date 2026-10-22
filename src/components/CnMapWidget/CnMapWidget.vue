@@ -330,6 +330,17 @@ export default {
 		},
 
 		/**
+		 * Show Leaflet's zoom in and zoom out buttons. Off for a small preview
+		 * map that only shows where something is.
+		 *
+		 * @type {boolean}
+		 */
+		zoomControl: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Show the fullscreen toggle. Expands the widget to fill the viewport via a
 		 * CSS overlay, so it needs no Fullscreen-API permission prompt.
 		 *
@@ -709,7 +720,7 @@ export default {
 				: {
 						center: this.cfg.center,
 						zoom: this.cfg.zoom,
-						zoomControl: true,
+						zoomControl: this.zoomControl,
 						attributionControl: true,
 					}
 			this.map = L.map(this.$refs.mapEl, mapOptions)
