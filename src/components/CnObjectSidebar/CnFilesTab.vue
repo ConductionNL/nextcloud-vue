@@ -11,6 +11,8 @@
 			:source="browserSource"
 			:deleteLabel="deleteLabel"
 			:uploadButton="uploadButton"
+			:newMenu="newMenu"
+			:folderButton="folderButton"
 			:dropOverlay="dropOverlay"
 			:dropLabel="dropLabel"
 			:dropDetail="dropDetail"
@@ -348,6 +350,10 @@ export default {
 
 		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
 		uploadButton: { type: Boolean, default: false },
+		/** Whether the bar has the New menu; `false` leaves it out (CnFilesBrowser `newMenu`). */
+		newMenu: { type: Boolean, default: true },
+		/** Whether the bar has a New folder button (CnFilesBrowser `folderButton`). */
+		folderButton: { type: Boolean, default: false },
 		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
 		dropOverlay: { type: Boolean, default: false },
 		/** Forwarded to CnFilesBrowser: the drop state's line ("Laat los om toe te voegen"); the library's own without it. */
