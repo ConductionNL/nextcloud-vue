@@ -1578,3 +1578,35 @@
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
 }
+
+/* ---- The saved-views panel -------------------------------------------- */
+/* As DqFilterBeheren and DqFilterInMenu draw it: "Save view" the filled 40px
+   primary across the panel; a row padded 2px 4px 2px 10px with 8px between
+   its parts and radius 8, its name 6px from top and bottom at 14px/600; the
+   row's manage menu a 34px round button.
+   @spec openspec/changes/board-saved-views-panel-rows/specs/board-saved-views-panel-rows/spec.md */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__head .button-vue {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row {
+	gap: 8px;
+	padding: 2px 4px 2px 10px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name {
+	min-height: 0;
+	padding: 6px 0;
+	gap: 2px;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {
+	--button-size: 34px;
+	border-radius: 50%;
+}
