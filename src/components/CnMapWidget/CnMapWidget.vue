@@ -459,7 +459,7 @@ export default {
 	 * @event click
 	 * @description Fired when the user clicks the map background (no marker hit). Payload: `{ latlng, originalEvent }`.
 	 */
-	emits: ['map-ready', 'marker-click', 'bounds-change', 'click'],
+	emits: ['map-ready', 'marker-click', 'bounds-change', 'click', 'header'],
 
 	data() {
 		return {
@@ -553,6 +553,26 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
 		 */
+		/**
+		 * The line under the card title that says how many places the map
+		 * shows (`content.headerSubtitle`: `{ one, other }` or one string, with
+		 * `{total}`), once the marker source answered with markers ("1 locatie").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-widget-header-count/specs/map-widget-header-count/spec.md#requirement-a-map-card-can-say-how-many-places-it-shows
+		 */
+		headerSubtitleText() {
+			const spec = this.content?.headerSubtitle
+			if (!spec || !this.markersLoaded || this.markersFailed || this.markerCount === 0) {
+				return ''
+			}
+			const text = typeof spec === 'string' ? spec : (this.markerCount === 1 ? spec.one : spec.other)
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return this.cnTranslate(text).replace(/\{total\}/g, String(this.markerCount))
+		},
+
 		markerStatusText() {
 			const markers = this.cfg.markers
 			if (!markers || !markers.dataSource || !this.markersLoaded) {
@@ -622,6 +642,21 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Report the count line to the card around the map.
+		 *
+		 * @param {string} subtitle The line, or ''.
+		 */
+		headerSubtitleText(subtitle) {
+			if (this.content?.headerSubtitle) {
+				/**
+				 * @event header The card header's line under the title.
+				 * @type {{subtitle: string}}
+				 */
+				this.$emit('header', { subtitle })
+			}
+		},
+
 		// Keyed, never `deep: true` — see `layersKey`.
 		layersKey() {
 			if (this.map) {
