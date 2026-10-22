@@ -48,6 +48,17 @@ describe('look-board-detail.css: the side column notice', () => {
 		}
 	})
 
+	/**
+	 * NcNoteCard paints its ground with `!important`, so a plain
+	 * `background: transparent` left the note a second tinted box inside the
+	 * notice (COMPDIFF r22, DqZaak "Advies gevraagd" on 12 case boards).
+	 *
+	 * @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground
+	 */
+	it('clears the note card\'s own ground, which NcNoteCard sets with !important', () => {
+		expect(rulesFor(`${item} .cn-banner-widget__card.notecard`)).toContain('background-color: transparent !important')
+	})
+
 	it('takes no room when the banner does not render', () => {
 		expect(rulesFor(`${item}:not(:has(.cn-banner-widget))`)).toContain('display: none')
 	})
