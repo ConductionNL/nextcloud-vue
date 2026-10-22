@@ -1570,3 +1570,31 @@
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
 }
+
+/* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
+/* The board draws "3 zaken zonder adres" as a 15px title at its normal line
+   height with "Toon ze in de tabel" under it as a link flush with the title,
+   14px weight 600. The link stays NcButton's tertiary button, so the board
+   look takes away its box: no padding, border or minimum height.
+   @spec openspec/changes/board-map-missing-card/specs/board-map-missing-card/spec.md#requirement-the-board-map-views-missing-address-card-is-drawn-as-the-board-draws-it */
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > strong {
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue {
+	--button-padding: 0;
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	border-width: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__wrapper,
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__text {
+	margin: 0;
+	padding: 0;
+}
