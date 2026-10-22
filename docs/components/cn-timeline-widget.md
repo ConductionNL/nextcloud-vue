@@ -85,6 +85,8 @@ empty history.
 | `publicLabel` | "Visible to the requester" | Label of the public badge, filter option and composer switch. |
 | `exportName` | `history` | CSV file name prefix; the object id is appended. |
 | `composer` | `true` | `false` hides the note composer. |
+| `auditTrailLink` | unset | `true` ("Full audit trail in the sidebar") or a label: a link beside the event count that opens the object sidebar on its audit trail tab. Drawn only when the page has an object sidebar. |
+| `auditTrailTab` | `auditTrail` | The sidebar tab the audit trail link opens, for a page that declares its audit trail tab under its own id. |
 | `textBlocks` | `true` | `false` skips the standard notes. |
 | `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@row.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
 
