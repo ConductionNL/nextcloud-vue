@@ -266,6 +266,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-start: 26px;
 }
 
+/* A multiple select is the board's 40px field too (DqFilterDelen "Delen
+   met"): NcSelect draws a 24px search box inside a toggle edged by a ring.
+   The box takes the height through the clickable area, as a select outside a
+   dialog does, and the edge from the rule below; the toggle drops its ring.
+   @spec openspec/changes/board-dialog-multiselect-field/specs/board-dialog-multiselect-field/spec.md */
+.modal-mask.cn-dialog-board .dialog__content .v-select.select.vs--multiple {
+	--default-clickable-area: calc(var(--cn-field-height, 40px) + 4px);
+}
+
+.modal-mask.cn-dialog-board .dialog__content .v-select.select.vs--multiple .vs__dropdown-toggle {
+	padding: 0;
+	border: 0;
+	box-shadow: none;
+}
+
 /* The doubled class outranks NcInputField's raised-label rule (focused or
    filled), which would pin the label's top as well and squash it. */
 .cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
