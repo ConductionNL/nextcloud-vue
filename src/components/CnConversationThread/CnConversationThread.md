@@ -91,3 +91,15 @@ and a message's `note` is a muted line under its text:
     { id: 1, author: 'Sanne de Vries', time: '2026-10-03T14:10:00', side: 'them', channel: 'Phone', text: 'How do I ask for the documents?', note: 'Summarised by Pieter Jansen' },
   ]" />
 ```
+
+A reply can say where it goes and carry a choice: `reply-hint` is a line beside the reply label, and `reply-option`
+draws a switch under the box whose state is sent with the reply (`send` carries `{ logContactMoment: true }` after the
+text):
+
+```vue
+<CnConversationThread
+  title="Contact"
+  reply-hint="Goes to the message box in the portal"
+  :reply-option="{ label: 'Log as a contact moment on this case', key: 'logContactMoment' }"
+  :messages="[]" />
+```

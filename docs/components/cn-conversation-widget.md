@@ -34,6 +34,8 @@ oldest first by their time.
 | `replyAction` | An action descriptor run on Send instead of posting to `endpoint`; the app decides what sending means. It is dispatched with `args: [{ text, objectId }]` and `props.text` added, tokens resolved; afterwards the list is read again. |
 | `channelChips` | `true` draws channel chips above the thread (board DqZaakContact): All, then every `channelMap` label in map order, then any other channel a message uses, each with its count. Choosing one shows only that channel's messages. |
 | `headerAction` | A button beside the title, `{ label, icon?, ...action }` (DqZaakContact's "Contact vastleggen"). The label goes through the app's translate; the action is dispatched like `replyAction`, with `args: [{ objectId }]`, and the source is read again after it. |
+| `replyHint` | A line beside the reply label saying where the answer goes, through the app's translate ("Goes to the message box in the portal"). |
+| `replyOption` | A switch under the reply box, `{ label, key, value? }` (on unless `value` is false). Its state travels with the reply as `{ [key]: boolean }`: in `replyAction`'s `args[0]` and `props`, or in the endpoint's body. DqZaakContact: `{ "label": "Log as a contact moment on this case", "key": "logContactMoment" }`. |
 | `subtitle` | A line under the title, through the app's translate ("Oldest first, with the channel of each message"). |
 | `usAuthorField` / `themAuthorField` | Who wrote a message, per side; each falls back to `senderField`. A field written `@object.<path>` reads the bound record, such as the case's requester on an incoming message. |
 | `usAuthorFormat` / `themAuthorFormat` | `user`: the author is a user id, shown by its display name (the handler who logged an outgoing message). |

@@ -69,6 +69,8 @@ The `conversation` widget type reads the messages from a field on the record and
 | `title` | String | `''` | Heading of the thread. |
 | `subtitle` | String | `''` | A line under the title. |
 | `showDirection` | Boolean | `false` | Say each message's direction in words before its time ("Incoming · 3 Oct"), not only to a screen reader. |
+| `replyHint` | String | `''` | A line beside the reply label saying where the answer goes. |
+| `replyOption` | Object \| null | `null` | A switch under the reply box, `{ label, key, value? }`; `send` carries `{ [key]: state }` after the text, and an endpoint post carries it in its body. |
 | `titleTag` | String | `'h3'` | Element the heading renders as. |
 | `allowReply` | Boolean | `true` | Whether the reply box renders. |
 | `replyLabel` | String | `'Reply'` | Label of the reply box. |
