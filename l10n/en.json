@@ -2283,7 +2283,15 @@
     "Could not read the loaded sets.": "Could not read the loaded sets.",
     "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.",
     "The set \"{set}\" was removed.": "The set \"{set}\" was removed.",
-    "The set \"{set}\" was not removed.": "The set \"{set}\" was not removed."
+    "The set \"{set}\" was not removed.": "The set \"{set}\" was not removed.",
+    "Make an appointment": "Make an appointment",
+    "Add meeting": "Add meeting",
+    "Link existing": "Link existing",
+    "Link an existing one": "Link an existing one",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "The saved flow is tried with the record you pick. Nothing is changed or sent.",
+    "Nothing was changed or sent.": "Nothing was changed or sent.",
+    "Test result": "Test result",
+    "To {recipients}": "To {recipients}"
   },
   "plurals": {
     "{count} member": [

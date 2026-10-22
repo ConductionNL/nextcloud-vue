@@ -954,8 +954,8 @@
 		},
 		"CnDetailCard": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"transitive": 3,
+			"tier": "light",
 			"via": [],
 			"page": "cn-detail-card"
 		},
@@ -1314,9 +1314,12 @@
 		},
 		"CnEventsCard": {
 			"direct": 2,
-			"transitive": 8,
-			"tier": "medium",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker"
+			],
 			"page": "cn-events-card"
 		},
 		"CnExportWizard": {
@@ -1757,6 +1760,69 @@
 			"tier": "medium",
 			"via": [],
 			"page": "cn-follow-toggle"
+		},
+		"CnFollowingWidgetHost": {
+			"direct": 0,
+			"transitive": 136,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnDetailWidgetHost",
+				"CnEmailPicker",
+				"CnExportsWidget",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnIntegrationWidget",
+				"CnMapPoiPicker",
+				"CnMapWidget",
+				"CnNavCardGrid",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectDataWidget",
+				"CnObjectFilesWidget",
+				"CnObjectGeoWidget",
+				"CnObjectMetadataWidget",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnRelatedObjectsWidget",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnTimelineWidget",
+				"CnTranslatedBadge",
+				"CnVersionHistory",
+				"CnWidgetObjectTable",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
+			"page": "cn-following-widget-host"
 		},
 		"CnFormBuilder": {
 			"direct": 0,
@@ -2596,8 +2662,8 @@
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
-			"transitive": 2,
-			"tier": "light",
+			"transitive": 4,
+			"tier": "medium",
 			"via": [
 				"CnActionsMenu"
 			],
@@ -2818,7 +2884,7 @@
 		},
 		"CnObjectGeoWidget": {
 			"direct": 3,
-			"transitive": 4,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [
 				"CnActionsMenu",
@@ -4986,7 +5052,7 @@
 		},
 		"CnWidgetMapViewer": {
 			"direct": 0,
-			"transitive": 4,
+			"transitive": 5,
 			"tier": "medium",
 			"via": [
 				"CnActionsMenu",
@@ -5026,8 +5092,8 @@
 		},
 		"CnWidgetWrapper": {
 			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
+			"transitive": 4,
+			"tier": "medium",
 			"via": [
 				"CnActionsMenu"
 			],

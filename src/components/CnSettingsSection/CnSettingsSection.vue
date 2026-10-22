@@ -4,7 +4,7 @@
 		:description="description"
 		:docUrl="docUrl"
 		data-testid="cn-settings-section"
-		:class="{ 'cn-settings-section--wide': wide }"
+		:class="{ 'cn-settings-section--wide': wide, 'cn-settings-section--title-actions': actionsInTitle && Boolean($slots.actions) }"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->
 		<div v-if="$slots.actions" class="cn-settings-section__actions">
@@ -121,6 +121,17 @@ export default {
 	inheritAttrs: false,
 
 	props: {
+		/**
+		 * Draw the `actions` slot in the title row, beside the heading, as
+		 * the boards do, instead of floating it right above the content.
+		 *
+		 * @spec openspec/changes/settings-section-title-actions/specs/settings-section-title-actions/spec.md#requirement-a-settings-section-can-draw-its-actions-in-its-title-row
+		 */
+		actionsInTitle: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Section name/title */
 		name: {
 			type: String,
@@ -221,6 +232,31 @@ export default {
 
 .cn-settings-section__content {
 	clear: both;
+}
+
+/* Actions in the title row (`actionsInTitle`): the heading and the actions
+   share the first row, everything else runs below across the width. */
+.cn-settings-section--title-actions {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 12px;
+	align-items: start;
+}
+
+.cn-settings-section--title-actions :deep(> *) {
+	grid-column: 1 / -1;
+}
+
+.cn-settings-section--title-actions :deep(> h2) {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.cn-settings-section--title-actions > .cn-settings-section__actions {
+	grid-column: 2;
+	grid-row: 1;
+	float: none;
+	align-self: center;
 }
 
 .cn-settings-section__description-text {

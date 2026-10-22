@@ -16,7 +16,7 @@ import { mount, shallowMount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
-import { interpolateRowTokens, resolveRowFilter, rowTokenField } from '../../src/utils/rowTokens.js'
+import { actionForRow, resolveRowFilter, rowTokenField } from '../../src/utils/rowTokens.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), patch: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ generateUrl: (u, p = {}) => u.replace(/\{(\w+)\}/g, (_, k) => p[k]) }))
@@ -52,10 +52,10 @@ describe('row tokens', () => {
 			.toEqual({ courseId: 'm9', lifecycle: 'draft' })
 	})
 
-	it('fills a route with encoded row values', () => {
-		expect(interpolateRowTokens('/lessons/@row.id/compose?c=@row.courseId', { id: 'a/b', courseId: 'm1' }))
+	it('fills a row action target with encoded row values', () => {
+		expect(actionForRow({ type: 'navigate', target: '/lessons/@row.id/compose?c=@row.courseId' }, { id: 'a/b', courseId: 'm1' }).target)
 			.toBe('/lessons/a%2Fb/compose?c=m1')
-		expect(interpolateRowTokens('/lessons/@row.missing', {})).toBe('/lessons/')
+		expect(actionForRow({ type: 'navigate', target: '/lessons/@row.missing' }, { id: 'x' }).target).toBe('/lessons/')
 	})
 })
 
@@ -181,7 +181,7 @@ describe('CnObjectListWidget list filter values', () => {
 })
 
 describe('CnObjectListWidget row action on its row', () => {
-	it('fills @row tokens in a navigate target before dispatching, and renders it as no static link', async () => {
+	it('fills @row tokens in a navigate target before dispatching, and links each row on its own', async () => {
 		axios.get.mockReset()
 		axios.get.mockResolvedValue({ data: { results: [], total: 0 } })
 		const dispatch = jest.fn()
@@ -192,7 +192,10 @@ describe('CnObjectListWidget row action on its row', () => {
 			stubs: { CnDataTable: true },
 		})
 		await flush()
-		expect(w.vm.rowActionLink(action)).toEqual({})
+		// A row-token target is a link per row, not one static link (object-list-row-tokens).
+		const link = w.vm.rowActionLink(action)
+		expect(typeof link.href).toBe('function')
+		expect(typeof link.to).toBe('function')
 		w.vm.runRowAction(action, { id: 'l2' })
 		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ target: '/courses/m1/lessons/l2/compose' }))
 	})

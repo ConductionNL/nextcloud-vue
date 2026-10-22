@@ -2532,7 +2532,15 @@
     "Could not read the loaded sets.": "De geladen sets konden niet worden gelezen.",
     "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "De set \"{set}\" verwijderen? De objecten gaan naar de prullenbak, waar u ze kunt terugzetten. Wat u zelf heeft gemaakt, blijft staan.",
     "The set \"{set}\" was removed.": "De set \"{set}\" is verwijderd.",
-    "The set \"{set}\" was not removed.": "De set \"{set}\" is niet verwijderd."
+    "The set \"{set}\" was not removed.": "De set \"{set}\" is niet verwijderd.",
+    "Make an appointment": "Afspraak maken",
+    "Add meeting": "Vergadering toevoegen",
+    "Link existing": "Bestaande koppelen",
+    "Link an existing one": "Bestaande koppelen",
+    "The saved flow is tried with the record you pick. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het record dat u kiest. Er wordt niets gewijzigd of verstuurd.",
+    "Nothing was changed or sent.": "Er is niets gewijzigd of verstuurd.",
+    "Test result": "Testresultaat",
+    "To {recipients}": "Aan {recipients}"
   },
   "plurals": {
     "{count} member": [

@@ -26,6 +26,7 @@ expands the calendar's rules and its exceptions into dates, the same computation
 | `calendar` | `{ register, schema, id? \| filter? }`: the calendar object, by id or as the first match of `filter` (tokens resolved; nothing is read while one is unresolved). The object carries `workingWeekdays` (ISO, 1 = Monday), `rules` and `exceptions`. |
 | `previewUrl` | The preview endpoint, `/apps/openregister/api/flow-timers/calendars/preview` by default. It takes `{ calendar, year }` and answers `{ dates: [{ date, name }] }`. |
 | `editable` | `false` hides Add day. Otherwise it shows for administrators. |
+| `addButton` | `false` leaves the Add day button out while the form stays available: a host that draws Add day in its own title row (a settings section with `actionsInTitle`) calls the widget's `openAdd()`. |
 | `emptyText` | The text when no calendar is found. |
 
 **Add day** appends `{ date, name }` to the object's `exceptions` with one update through the object API, under the

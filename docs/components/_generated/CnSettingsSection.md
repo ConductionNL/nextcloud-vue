@@ -10,6 +10,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name                  | Type      | Required | Default                                            | Description                                                                                                                                  |
 | --------------------- | --------- | -------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actionsInTitle`      | `boolean` |          | `false`                                            | Draw the `actions` slot in the title row, beside the heading, as the boards do, instead of floating it right above the content.              |
 | `name`                | `string`  | ✓        | —                                                  | Section name/title                                                                                                                           |
 | `description`         | `string`  |          | `''`                                               | Brief section description (shown under title by NcSettingsSection)                                                                           |
 | `wide`                | `boolean` |          | `false`                                            | Span the whole row of the settings grid instead of one column. Only the board look draws a grid; elsewhere the section is full width anyway. |
