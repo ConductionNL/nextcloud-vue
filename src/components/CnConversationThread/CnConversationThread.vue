@@ -165,6 +165,11 @@ export default {
 		NcButton,
 	},
 
+	inject: {
+		/** The host app's translate, for the All chip in the host's word. */
+		cnTranslate: { default: null },
+	},
+
 	props: {
 		/**
 		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, note? }`.
@@ -374,7 +379,7 @@ export default {
 				return []
 			}
 			return [
-				{ label: t('nextcloud-vue', 'All'), count: this.rows.length },
+				{ label: this.allLabel, count: this.rows.length },
 				...this.channelLabels.map((label) => ({ label, count: this.rows.filter((row) => row.channel === label).length })),
 			]
 		},
@@ -398,6 +403,18 @@ export default {
 		 */
 		replyExtras() {
 			return this.optionShown ? { [this.replyOption.key]: this.optionOn === true } : {}
+		},
+
+		/**
+		 * The All chip: the host's word first, as its own filter chips read
+		 * ("Alles"), then the library's.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/conversation-all-chip-host-word/specs/conversation-source/spec.md#requirement-the-all-chip-reads-the-hosts-word
+		 */
+		allLabel() {
+			const host = typeof this.cnTranslate === 'function' ? this.cnTranslate('All') : 'All'
+			return typeof host === 'string' && host !== '' && host !== 'All' ? host : t('nextcloud-vue', 'All')
 		},
 
 		/** @return {number} The pressed chip: 0 for All. */
