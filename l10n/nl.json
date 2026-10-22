@@ -2165,6 +2165,8 @@
     "Hand back": "Teruggeven",
     "Pick up": "Oppakken",
     "Task completed": "Taak afgerond",
+    "Task saved": "Taak opgeslagen",
+    "Due by": "Uiterlijk op",
     "This could not be done. Try again.": "Dit lukte niet. Probeer het opnieuw.",
     "{done} of {total} done": "{done} van {total} klaar",
     "Nothing to check off": "Niets af te vinken",

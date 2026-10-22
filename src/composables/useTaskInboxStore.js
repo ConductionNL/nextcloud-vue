@@ -287,6 +287,30 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		},
 
 		/**
+		 * Edit a task's own fields (`PATCH /flow-tasks/{uuid}` with the
+		 * changed `title`, `description`, `dueAt`, `priority`). The engine
+		 * decides who may; its answer replaces the record, so a refused edit
+		 * leaves the task as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {object} changes The new values by field.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async editRecord(uuid, changes) {
+			const key = String(uuid || '').trim()
+			if (key === '' || !changes || typeof changes !== 'object') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`), changes)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
 		 * Store the task a write answered with as the detail record. An answer
 		 * that carries no task (an app route that returns only a status) is
 		 * followed by a fresh read, so the page never shows the state from

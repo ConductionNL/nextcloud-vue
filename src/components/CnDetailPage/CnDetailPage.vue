@@ -1241,6 +1241,18 @@
 				@close="closeEditForm" />
 		</slot>
 
+		<!-- A record-source verb that asks for values first (the tasks source's
+		     Edit): its own form, saved through the source. -->
+		<CnFormDialog
+			v-if="sourceVerbForm"
+			ref="sourceVerbFormDialog"
+			:schema="sourceVerbForm.form.schema"
+			:item="sourceVerbForm.form.item || {}"
+			:dialogTitle="sourceVerbForm.label"
+			:fieldOverrides="sourceVerbForm.form.fieldOverrides || {}"
+			@confirm="onSourceVerbFormConfirm"
+			@close="sourceVerbForm = null" />
+
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
 		<CnRelationLinkModal
@@ -3148,6 +3160,8 @@ export default {
 			menuHeaderActions: [],
 			/** Whether a record-source verb is in flight, so a double click cannot run it twice. */
 			sourceVerbBusy: false,
+			/** The record-source verb whose form is open, or null. */
+			sourceVerbForm: null,
 			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
 			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
@@ -5941,6 +5955,10 @@ export default {
 			if (!source || !objectId || this.sourceVerbBusy) {
 				return
 			}
+			if (verb.form && verb.form.schema) {
+				this.sourceVerbForm = verb
+				return
+			}
 			this.sourceVerbBusy = true
 			try {
 				const url = this.verbEndpoints && typeof this.verbEndpoints[verb.id] === 'string' ? this.verbEndpoints[verb.id] : undefined
@@ -5957,6 +5975,39 @@ export default {
 			} finally {
 				this.sourceVerbBusy = false
 			}
+		},
+
+		/**
+		 * Save the open record-source verb form through the source: only the
+		 * form's own fields are sent. The form shows the server's refusal and
+		 * stays open; on success it closes and the page redraws from the
+		 * record the source kept.
+		 *
+		 * @param {object} formData The form's values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async onSourceVerbFormConfirm(formData) {
+			const verb = this.sourceVerbForm
+			const source = this.recordSource
+			const dialog = this.$refs.sourceVerbFormDialog
+			if (!verb || !source || !this.objectId) {
+				return
+			}
+			const keys = Object.keys(verb.form.schema.properties || {})
+			const body = Object.fromEntries(keys.filter((key) => formData && key in formData).map((key) => [key, formData[key]]))
+			const outcome = await source.runVerb(String(this.objectId), verb.id, { body })
+			if (!outcome || outcome.ok !== true) {
+				dialog?.setResult({ error: String(outcome?.message || '').trim() || t('nextcloud-vue', 'This could not be done. Try again.') })
+				return
+			}
+			dialog?.setResult({ success: true })
+			this.sourceVerbForm = null
+			if (verb.successMessage) {
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				showSuccess(verb.successMessage)
+			}
+			this.$emit('transitioned', { action: verb.id, to: String(outcome.record?.state ?? ''), object: outcome.record || null })
 		},
 
 		/**

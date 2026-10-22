@@ -1948,6 +1948,8 @@
     "Hand back": "Hand back",
     "Pick up": "Pick up",
     "Task completed": "Task completed",
+    "Task saved": "Task saved",
+    "Due by": "Due by",
     "This could not be done. Try again.": "This could not be done. Try again.",
     "{done} of {total} done": "{done} of {total} done",
     "Nothing to check off": "Nothing to check off",
