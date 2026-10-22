@@ -427,6 +427,15 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The line under the title, in place of the schema's description: the
+		 * page's count ("48 zaken, 8 op deze pagina", DqFilterBeheren).
+		 */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+
 		/** Sidebar title. Defaults to schema.title when not set. */
 		title: {
 			type: String,
@@ -812,8 +821,11 @@ export default {
 			return this.schema?.title || 'Search'
 		},
 
-		/** Sidebar subname — schema description, shown below the name */
+		/** Sidebar subname: the subtitle the page hands it, else the schema description */
 		resolvedSubname() {
+			if (typeof this.subtitle === 'string' && this.subtitle !== '') {
+				return this.subtitle
+			}
 			return this.schema?.description || ''
 		},
 
