@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 5 direct references, 11 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 5 direct references, 12 files reached through imports.
 
 Through: `CnActionDialog`, `CnCellRenderer`, `CnFkResolveCell`, `CnIndexPage`.
 
@@ -81,4 +81,5 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `empty`               | —                      | Empty-state content shown when there are no rows (defaults to `emptyText`, or why an unavailable personal lens is empty). |
 | `'column-' + col.key` | `name`, `row`, `value` | Per-column cell override (`#column-&lt;key&gt;`), scoped with \{ row, value \}. Wins over CnCellRenderer.                 |
 | `row-actions`         | `row`                  | Per-row actions menu (e.g. a CnRowActions), scoped with \{ row \}. Supplying it adds the trailing actions column.         |
+| `row-detail`          | `row`                  | Content under a data row, across the full width (e.g. that row's child records), scoped with \{ row \}.                   |
 | `footer`              | `total`, `shown`       | Custom footer content, scoped with \{ total, shown \} (defaults to the built-in "View all" link).                         |

@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 2 files reached through imports.
+
+Through: `CnSettingsField`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
