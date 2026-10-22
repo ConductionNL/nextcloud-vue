@@ -5,3 +5,4 @@
 - **files**: `src/css/look-board-detail.css`
 - [x] Implement: hide `.cn-widget-wrapper__title-icon` in a detail page's card headers in the board look
 - [x] Test: `tests/css/lookBoardDetailCardTitleIcon.spec.js`
+- [x] Implement: hide `.cn-detail-card__icon` in a detail page's CnDetailCard headers in the board look (PtInzending, PtBericht, PtAccount)
