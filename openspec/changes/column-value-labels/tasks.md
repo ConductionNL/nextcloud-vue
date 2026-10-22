@@ -1,0 +1,3 @@
+- [ ] T01 CnDataTable.cellValue applies `contains`, `valueLabels` and `emptyLabel`
+- [ ] T02 Jest: an amount column with "Onbeperkt", a Ja/Nee column from a list, a coded column in words
+- [ ] T03 Docs: cn-data-table and the object-table widget list the three keys
