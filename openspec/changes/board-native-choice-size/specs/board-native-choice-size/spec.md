@@ -21,3 +21,7 @@ colour as its accent.
 
 - **GIVEN** the next-step dialog's option cards in the board look
 - **THEN** each radio draws 18x18 in #3669a5
+
+#### Scenario: the card shows through the radio
+- GIVEN a checked or disabled native radio in a board choice card
+- THEN its computed background is transparent, not the primary or grey ground Nextcloud and the theme paint

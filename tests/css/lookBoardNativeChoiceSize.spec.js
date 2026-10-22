@@ -42,4 +42,13 @@ describe('look-board.css: native radio and checkbox', () => {
 		expect(body).toContain('min-height: 18px;')
 		expect(body).toContain('accent-color: var(--color-primary-element);')
 	})
+
+	// The boards draw the radio on the card's own ground. Nextcloud and the
+	// theme paint a native radio's ground white, primary when checked and grey
+	// when disabled (with !important), which a native radio does not draw
+	// but the computed style reports (COMPDIFF r23 DqVolgendeStap, DqBesluit).
+	it('lets the card show through, also when checked or disabled', () => {
+		const body = ruleFor('.cn-look-board input[type="radio"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *)')
+		expect(body).toContain('background-color: transparent !important;')
+	})
 })
