@@ -4075,6 +4075,11 @@
 					"default": false,
 					"description": "Detail pages only. Puts the active tab in the address as ?_tab=<id> so a link points at a tab of a record rather than at the record. The underscore prefix keeps it out of resolveQueryFilters(), which reads every other query key as a filter. Refused on any other page type."
 				},
+				"listNavigation": {
+					"type": "boolean",
+					"default": false,
+					"description": "Detail pages only. Opened from an index page, the record offers previous and next within that list, with its search, sort and filters (the address carries them as `_from` and the list query). CnPageRenderer reads the list from OpenRegister; a list with a source of its own offers no step. Off by default."
+				},
 				"referencePreview": {
 					"type": "boolean",
 					"default": false,
