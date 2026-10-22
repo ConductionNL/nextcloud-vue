@@ -65,11 +65,13 @@
 
 <script>
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import CnAiChatPanel from './CnAiChatPanel.vue'
 import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAiChatStream } from '../../composables/useAiChatStream.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { ensureTranslations } from '../../l10n/index.js'
 
 const HEALTH_TIMEOUT = 5000
 
@@ -107,6 +109,27 @@ export default {
 
 	inject: {
 		cnAiContext: { default: null },
+		hostTranslate: { from: 'cnTranslate', default: null },
+	},
+
+	/**
+	 * The companion's buttons and panel ask `cnTranslate` for their labels.
+	 * Mounted on another app's page (Hermiq's companion on every page) no
+	 * host provides one, so a label the host leaves untranslated is read from
+	 * the library's own catalogue.
+	 *
+	 * @return {object} The provided values.
+	 * @spec openspec/changes/ai-companion-library-labels/specs/ai-chat-companion/spec.md#requirement-the-companion-reads-in-the-users-language-on-any-page
+	 */
+	provide() {
+		ensureTranslations()
+		const host = typeof this.hostTranslate === 'function' ? this.hostTranslate : null
+		return {
+			cnTranslate: (text, vars) => {
+				const hosted = host ? host(text, vars) : text
+				return hosted !== text ? hosted : t('nextcloud-vue', text, vars)
+			},
+		}
 	},
 
 	props: {
