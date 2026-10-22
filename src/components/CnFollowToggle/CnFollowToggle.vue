@@ -98,7 +98,7 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcLoadingIcon, NcPopover, NcSelect } from '@nextcloud/vue'
 import Bell from 'vue-material-design-icons/Bell.vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
@@ -260,7 +260,7 @@ export default {
 		},
 
 		followersLabel() {
-			return t('nextcloud-vue', '{count} followers', { count: this.count })
+			return n('nextcloud-vue', '%n follower', '%n followers', this.count)
 		},
 
 		tooltip() {

@@ -56,7 +56,7 @@
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
-			<div v-if="exportCsv && !(endpointActive && (epError || epAwaitingRequest))" class="cn-widget-object-table__footer">
+			<div v-if="exportCsv && !(endpointActive && (epError || epAwaitingRequest))" class="cn-widget-object-table__footer cn-widget-object-table__footer--export">
 				<NcButton
 					variant="tertiary"
 					data-testid="cn-widget-export-csv"

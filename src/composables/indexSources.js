@@ -467,6 +467,34 @@ export function taskDueLabel(task) {
 const TASK_TERMINAL_STATES = ['completed', 'terminated', 'disabled']
 
 /**
+ * The form the tasks source's Edit verb asks with: the task's own fields the
+ * engine lets the people working it change, filled from the task.
+ *
+ * @param {object} task The task.
+ * @return {{schema: object, item: object, fieldOverrides: object}} The form.
+ * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+ */
+function taskEditForm(task) {
+	const due = typeof task.dueAt === 'string' ? task.dueAt.slice(0, 10) : ''
+	return {
+		schema: {
+			type: 'object',
+			required: ['title'],
+			properties: {
+				title: { type: 'string', title: t('nextcloud-vue', 'Title') },
+				description: { type: 'string', format: 'textarea', title: t('nextcloud-vue', 'Description') },
+				dueAt: { type: 'string', format: 'date', title: t('nextcloud-vue', 'Due by') },
+				priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'], title: t('nextcloud-vue', 'Priority') },
+			},
+		},
+		item: { title: task.title || '', description: task.description || '', dueAt: due, priority: task.priority || 'normal' },
+		fieldOverrides: {
+			priority: { enumLabels: { low: t('nextcloud-vue', 'Low'), normal: t('nextcloud-vue', 'Normal'), high: t('nextcloud-vue', 'High'), urgent: t('nextcloud-vue', 'Urgent') } },
+		},
+	}
+}
+
+/**
  * The tasks source: the caller's inbox on OpenRegister's one task store.
  *
  * The viewer's inbox and nothing else. The endpoint answers from the
@@ -588,6 +616,7 @@ function tasksSource() {
 				held
 					? { id: 'unclaim', label: t('nextcloud-vue', 'Hand back'), icon: Undo, menu: false }
 					: { id: 'claim', label: t('nextcloud-vue', 'Pick up'), icon: HandBackRight, menu: false },
+				{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, menu: false, successMessage: t('nextcloud-vue', 'Task saved'), form: taskEditForm(task) },
 				{ id: 'cancel', label: t('nextcloud-vue', 'Cancel task'), icon: Cancel, menu: true },
 			]
 		},
@@ -597,10 +626,12 @@ function tasksSource() {
 		 *
 		 * @param {string} id The task uuid.
 		 * @param {string} verb The verb id.
-		 * @param {{url?: string}} [options] An app route to post the verb to instead of the engine's.
+		 * @param {{url?: string, body?: object}} [options] An app route to post the verb to instead of the engine's; for `edit`, the new values.
 		 * @return {Promise<{ok: boolean, record: (object|null), message: string}>} The outcome.
 		 */
-		runVerb: (id, verb, options) => store.runRecordVerb(id, verb, options || {}),
+		runVerb: (id, verb, options) => (verb === 'edit'
+			? store.editRecord(id, options?.body)
+			: store.runRecordVerb(id, verb, options || {})),
 
 		/**
 		 * Whether this task's checklist can still be ticked: not once it is finished.

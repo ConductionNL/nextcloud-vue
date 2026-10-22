@@ -48,6 +48,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `viewSwitchLinks` | Object | `null` | Board look: view switch segments that open another page, by mode (`table`, `cards`, `board`, `map`): `{ board: { route, params?, query? } }` or `{ map: { href } }`. The segment is a link in its place in the switch, for a board or a map that is a page of its own; a mode the page opens in place stays a button (manifest: `config.viewSwitchLinks`) |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
 | `quickFilterPlacement` | String | `''` | Where the quick-filter chips sit (`pages[].config.quickFilterPlacement`). `'toolbar'` keeps them on one row with the Filter button and the view switch, in whatever width that row has beside a side panel (DqTeamwachtrij): the chips take the room the buttons leave, and those that do not fit move into the overflow chip. The default leaves the layout as it was. `'row'` puts them on a row of their own above the toolbar, wrapping onto more lines instead of folding into the overflow chip (DqTeamwachtrij); beside a side panel the row sits in the list column. |
+| `quickFilterPlacementByView` | Object | `null` | The quick-filter placement per view mode (`pages[].config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`, each a `quickFilterPlacement` value. A view it does not name keeps `quickFilterPlacement` (dossiq's case list: `{ board: 'toolbar', map: 'toolbar' }` for DqWerkbord and DqZakenKaart, the table and cards views as DqZaken draws them). |
 | `searchPlacement` | String | `''` | Where the board look's search field sits (`pages[].config.searchPlacement`). `'toolbar'` puts it on row 1, before the Filter button and the view switch, taking the room they leave (DqTeamwachtrij); the default opens row 2 with it. No effect outside the board look. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
@@ -1339,6 +1340,15 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+An organisation's departments are its own, so a manifest can read the tree from records instead of naming groups: `parentsFrom: { register, schema, groupField?, parentField?, limit? }` lists the groups the records name (`groupField`, default `group`), each under the group in `parentField` (default `parent`), in the records' order. A parent may also be the id of another record, read as that record's group, so an organisation chart whose rows point at their parent row works as it is (dossiq's `organisatieRol`: `groupField: "ncGroupId"`, `parentField: "parentRoleId"`). When the records cannot be read, or none names a group yet, the pane lists every group, flat.
+
+```json
+"folderSidebar": {
+  "source": "groups", "filterField": "group",
+  "parentsFrom": { "register": "dossiq", "schema": "department" }
+}
+```
+
 ## A count in the subtitle (`countSubtitle`)
 
 | Prop | Type | Default | Description |
@@ -1392,7 +1402,7 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
 
 - **Header**: no icon; the title (28px), the count line and the buttons. `countText` is a template with `{shown}` (rows on this page), `{total}` and free text, default `"{shown} of {total}"`. The buttons render in a fixed order whatever the manifest declares: `export` (labelled "Download" by default), `actions-menu`, any other secondary button, the buildiq square, the primary button. An `add` button without an `icon` carries a plus. The buttons keep the board's look (a grey-bordered Download, a primary fill without a border) also under a theme that restyles every button.
 - **Toolbar**: no band. Row 1 holds the saved-view chips (with their counts; the selected one filled), a "Save view" button, the labelled Filter button with the number of active filters, and the view switch (icon-only segments in the order table, cards, board, map). Row 2 holds the search field and, when filters are active, "Active:", one removable chip per filter and "Clear all".
-- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`. With `bulkBandAlways` (`config.bulkBandAlways`) the band shows before a selection too, its buttons disabled until rows are selected, as DqZaken and DqWerkbord draw it.
+- **Bulk band**: its own row between the toolbar and the table, only while rows are selected: "With the selected &lt;plural&gt;", the bulk actions and the optional `bulkHint`. With `bulkBandAlways` (`config.bulkBandAlways`) the band shows before a selection too, its buttons disabled until rows are selected, as DqZaken and DqWerkbord draw it. A bulk action's `icon` draws before its label (16px).
 - **Table card**: white, radius 12, no shadow; one 34px menu button per row named "Actions for &lt;title&gt;", a grey-bordered square whatever the theme does to secondary buttons. The title column underlines the title (not its secondary line); `rowTitle: "plain"` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does. The row stays clickable either way.
 - **Footer**: inside the card (and under the card grid): the count text, `footerNote` after it, and numbered page links with Previous and Next. No First, Last or page-size select.
 - **Cards view**: the same header, toolbar and footer; `cardFields` (default: the first four list columns) names the facts shown on each card.

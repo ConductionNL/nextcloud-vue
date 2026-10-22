@@ -268,6 +268,53 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  */
 const OTHER_BUCKET_KEY = '__other__'
 
+/**
+ * The raw key of an aggregate group as a string, '' for an empty one.
+ *
+ * @param {{key: (string|number|null|undefined)}} group The group.
+ * @return {string}
+ */
+function aggregateKeyOf(group) {
+	return group.key === null || group.key === undefined ? '' : String(group.key)
+}
+
+/**
+ * The label a raw aggregate key shows without `labelResolve`.
+ *
+ * @param {string} key The raw key.
+ * @return {string}
+ */
+function aggregateLabelOf(key) {
+	return key === '' ? '—' : key
+}
+
+/**
+ * Fold aggregate groups that carry the same label into one (`mergeByLabel`):
+ * values summed, every raw key kept for the drilldown, the first colour
+ * kept, sorted again by value.
+ *
+ * @param {Array<{key: (string|number|null), value: number}>} groups The groups.
+ * @param {string[]} labels One label per group.
+ * @param {Array<string|undefined>} colors One colour per group, or none.
+ * @return {Array<{key: string, keys: string[], label: string, value: number, color?: string}>}
+ */
+function mergeGroupsByLabel(groups, labels, colors) {
+	const byLabel = new Map()
+	groups.forEach((group, i) => {
+		const label = labels[i]
+		const key = aggregateKeyOf(group)
+		const entry = byLabel.get(label)
+		if (entry) {
+			entry.value += Number(group.value) || 0
+			entry.keys.push(key)
+			entry.color = entry.color || colors[i]
+		} else {
+			byLabel.set(label, { key, keys: [key], label, value: Number(group.value) || 0, color: colors[i] })
+		}
+	})
+	return [...byLabel.values()].sort((a, b) => b.value - a.value)
+}
+
 /** Matrix text-cell tones a `colorMap` may name, as tint classes. */
 const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', error: 'error', danger: 'danger' })
 
@@ -718,6 +765,9 @@ export default {
 		 *   per-category colour off each referenced object (feeding the
 		 *   same per-category colour path as the `colorMap` prop, which
 		 *   wins on overlap). `metric: 'sum'` requires `sumField`.
+		 *   `mergeByLabel: true` folds groups whose labels read the same
+		 *   into one, summed, before `topN`; a merged bar drills down with
+		 *   all its keys as a list.
 		 *
 		 * Drilldown (Wave 3, #91): a sibling `drilldown: { route,
 		 * filterParam }` block makes every segment / bar click navigate to
@@ -731,7 +781,7 @@ export default {
 		 *   register?: string,
 		 *   schema?: string,
 		 *   filter?: object,
-		 *   aggregate?: ('count'|{ groupBy: string, metric?: string, sumField?: string, topN?: number, otherBucket?: boolean, labelResolve?: { register?: string, schema: string, labelField?: string, colorField?: string } }),
+		 *   aggregate?: ('count'|{ groupBy: string, metric?: string, sumField?: string, topN?: number, otherBucket?: boolean, mergeByLabel?: boolean, labelResolve?: { register?: string, schema: string, labelField?: string, colorField?: string } }),
 		 *   drilldown?: { route: string, filterParam: string },
 		 *   bucket?: { field: string, interval: string, metric?: string, metricField?: string, fromVar?: string, toVar?: string, staticRange?: { from: string, to: string } },
 		 *   graphql?: { query: string, variables?: object, selectors: object }
@@ -2370,6 +2420,15 @@ export default {
 		 */
 		async buildAggregateData(groups, agg) {
 			let sorted = [...groups].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0))
+			if (agg.mergeByLabel) {
+				// Merging needs every group's label before the top N is cut,
+				// so resolve them all and fold same-label groups first.
+				const keys = sorted.map((g) => aggregateKeyOf(g))
+				const resolved = agg.labelResolve && agg.labelResolve.schema
+					? await this.resolveAggregateLabels(agg, keys)
+					: { labels: keys.map(aggregateLabelOf), colors: [] }
+				sorted = mergeGroupsByLabel(sorted, resolved.labels, resolved.colors)
+			}
 			const topN = Number(agg.topN)
 			let other = null
 			if (Number.isFinite(topN) && topN > 0 && sorted.length > topN) {
@@ -2383,66 +2442,31 @@ export default {
 					}
 				}
 			}
-			let rawKeys = sorted.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
-			let labels = rawKeys.map((k) => (k === '' ? '—' : k))
+			const rawKeys = sorted.map((g) => (Array.isArray(g.keys) && g.keys.length > 1 ? g.keys : aggregateKeyOf(g)))
+			let labels = sorted.map((g) => (typeof g.label === 'string' ? g.label : aggregateLabelOf(aggregateKeyOf(g))))
 			let colorMap = null
-			if (agg.labelResolve && agg.labelResolve.schema) {
-				const resolved = await this.resolveAggregateRefs(
-					(this.dataSource && this.dataSource.register) || '',
-					agg.labelResolve,
-					rawKeys,
-				)
-				// A configured `labelResolve` means the groupBy value IS an
-				// opaque reference id, so the raw key is never a usable label —
-				// falling back to it renders a bare UUID in the chart. The
-				// usual cause is a DANGLING reference (the target object was
-				// deleted, or never existed), which resolves to an empty label.
-				// Empty keys keep their existing '—' placeholder.
-				labels = resolved.map((r, i) => {
-					if (r.label) {
-						return r.label
-					}
-					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
-				})
-				const withColor = resolved.filter((r) => r.color)
+			if (agg.mergeByLabel) {
+				const withColor = sorted.filter((g) => g.color)
 				if (withColor.length > 0) {
 					colorMap = {}
-					resolved.forEach((r, i) => {
-						if (r.color) {
-							colorMap[labels[i]] = r.color
+					withColor.forEach((g) => {
+						colorMap[g.label] = g.color
+					})
+				}
+			} else if (agg.labelResolve && agg.labelResolve.schema) {
+				const resolved = await this.resolveAggregateLabels(agg, rawKeys)
+				labels = resolved.labels
+				const colors = resolved.colors
+				if (colors.some(Boolean)) {
+					colorMap = {}
+					colors.forEach((color, i) => {
+						if (color) {
+							colorMap[labels[i]] = color
 						}
 					})
 				}
 			}
-			let values = sorted.map((g) => Number(g.value) || 0)
-			// Optional: collapse groups that resolve to the SAME label into one
-			// bucket (summing their values). Useful when the groupBy field is a
-			// per-parent reference — e.g. status types defined per case type, so
-			// several distinct "Received" ids should read as a single "Received"
-			// category. Drilldown keeps the first contributing key.
-			if (agg.mergeByLabel) {
-				const order = []
-				const acc = {}
-				labels.forEach((lab, i) => {
-					if (!Object.hasOwn(acc, lab)) {
-						acc[lab] = { value: 0, key: rawKeys[i] }
-						order.push(lab)
-					}
-					acc[lab].value += values[i]
-				})
-				labels = order
-				values = order.map((l) => acc[l].value)
-				rawKeys = order.map((l) => acc[l].key)
-				if (colorMap) {
-					const merged = {}
-					order.forEach((l) => {
-						if (colorMap[l]) {
-							merged[l] = colorMap[l]
-						}
-					})
-					colorMap = merged
-				}
-			}
+			const values = sorted.map((g) => Number(g.value) || 0)
 			if (other) {
 				rawKeys.push(other.key)
 				labels.push(other.label)
@@ -2457,6 +2481,35 @@ export default {
 			}
 			const name = agg.sumField || agg.metric || 'count'
 			return { ...base, series: [{ name, data: values }] }
+		},
+
+		/**
+		 * The display labels and colours of aggregate keys through
+		 * `labelResolve`. A configured `labelResolve` means a key IS an
+		 * opaque reference id, so a key that resolves to nothing (a deleted
+		 * or never-existing target) reads "Unknown", never the raw id; an
+		 * empty key keeps its '—' placeholder.
+		 *
+		 * @param {object} agg The aggregate block.
+		 * @param {string[]} keys The raw keys ('' for an empty one).
+		 * @return {Promise<{labels: string[], colors: Array<string|undefined>}>}
+		 */
+		async resolveAggregateLabels(agg, keys) {
+			const resolved = await this.resolveAggregateRefs(
+				(this.dataSource && this.dataSource.register) || '',
+				agg.labelResolve,
+				keys,
+			)
+			return {
+				labels: resolved.map((r, i) => {
+					if (r.label) {
+						return r.label
+					}
+					return keys[i] === '' ? '—' : t('nextcloud-vue', 'Unknown')
+				}),
+
+				colors: resolved.map((r) => r.color || undefined),
+			}
 		},
 
 		/**

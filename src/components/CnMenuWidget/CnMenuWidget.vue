@@ -205,6 +205,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 import CnMenuTreeNode from './CnMenuTreeNode.vue'
+import { cnFetchJson } from '../../utils/cnFetch.js'
+import { normalizeFacets } from '../../utils/facets.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
@@ -282,6 +284,8 @@ export default {
 			currentLocation: this.readLocation(),
 			topRefs: [],
 			barItemRefs: [],
+			/** Children read through `childrenFrom`, keyed by the item's dotted path. */
+			fetchedChildren: {},
 		}
 	},
 
@@ -298,8 +302,10 @@ export default {
 			}
 			// Labels are manifest strings: they go through the app's translate,
 			// children included, so "Case types" reads "Zaaktypen" (DqCatalogus).
+			// An item with `childrenFrom` adds the children read for it after
+			// its declared ones; those are data, not manifest strings.
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
-			const translated = (list) => list.map((item) => {
+			const translated = (list, prefix) => list.map((item, idx) => {
 				if (!item || typeof item !== 'object') {
 					return item
 				}
@@ -307,12 +313,17 @@ export default {
 				if (typeof item.label === 'string' && item.label !== '') {
 					out.label = translate(item.label)
 				}
-				if (Array.isArray(item.children)) {
-					out.children = translated(item.children)
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				const declared = Array.isArray(item.children) ? translated(item.children, key) : null
+				const fetched = this.fetchedChildren[key]
+				if (fetched && fetched.length > 0) {
+					out.children = [...(declared || []), ...fetched]
+				} else if (declared) {
+					out.children = declared
 				}
 				return out
 			})
-			return translated(arr)
+			return translated(arr, '')
 		},
 
 		/**
@@ -394,6 +405,7 @@ export default {
 				[`cn-menu-widget--style-${this.effectiveStyle}`]: true,
 				[`cn-menu-widget--highlight-${this.activeItemHighlight}`]: true,
 				[`cn-menu-widget--orientation-${this.orientation}`]: true,
+				'cn-menu-widget--expanded': this.expandedByDefault,
 			}
 		},
 
@@ -429,6 +441,16 @@ export default {
 		},
 	},
 
+	watch: {
+		'content.items': {
+			handler() {
+				this.loadChildrenFrom()
+			},
+
+			immediate: true,
+		},
+	},
+
 	mounted() {
 		this.boundLocationListener = () => {
 			this.currentLocation = this.readLocation()
@@ -454,6 +476,47 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the children of every item that declares `childrenFrom`
+		 * (`{ register, schema, field, url }`): one child per value the
+		 * field's facet holds, labelled by the facet, linking to `url` with
+		 * `{value}` filled in. A failed request leaves the item as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/menu-children-from-facet/specs/menu-widget/spec.md#requirement-a-menu-item-can-take-its-children-from-a-facet
+		 */
+		async loadChildrenFrom() {
+			const sources = []
+			const walk = (list, prefix) => (Array.isArray(list) ? list : []).forEach((item, idx) => {
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				const from = item && item.childrenFrom
+				if (from && from.register && from.schema && from.field) {
+					sources.push({ key, from })
+				}
+				walk(item && item.children, key)
+			})
+			walk(this.content?.items, '')
+			const entries = await Promise.all(sources.map(async ({ key, from }) => {
+				try {
+					const body = await cnFetchJson(
+						`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+						{ query: { _limit: 1, _facets: 'extend' } },
+					)
+					const values = normalizeFacets(body?.facets)[from.field]?.values || []
+					const template = typeof from.url === 'string' ? from.url : ''
+					return [key, values
+						.filter((value) => value.value !== null && value.value !== undefined && value.value !== '')
+						.map((value) => ({
+							label: String(value.label ?? value.value),
+							url: template.replace('{value}', encodeURIComponent(String(value.value))),
+						}))]
+				} catch {
+					return [key, []]
+				}
+			}))
+			this.fetchedChildren = Object.fromEntries(entries)
+		},
+
 		/**
 		 * Read the current browser location into a small bag.
 		 *

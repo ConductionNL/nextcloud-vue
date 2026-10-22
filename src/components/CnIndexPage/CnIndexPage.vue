@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': quickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -162,7 +162,7 @@
 		<!-- `quickFilterPlacement: "row"`: the chips on a row of their own above
 		     the toolbar, wrapping onto more lines (DqTeamwachtrij). -->
 		<div
-			v-if="quickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
+			v-if="effectiveQuickFilterPlacement === 'row' && tabStripEntries && tabStripEntries.length > 0"
 			class="cn-index-page__quick-filter-row"
 			data-testid="cn-index-page-quick-filter-row">
 			<CnQuickFilterBar
@@ -404,13 +404,13 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0 && quickFilterPlacement !== 'row'" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0 && effectiveQuickFilterPlacement !== 'row'" #filters>
 				<CnQuickFilterBar
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
-					:fit="quickFilterPlacement === 'toolbar'"
+					:fit="effectiveQuickFilterPlacement === 'toolbar'"
 					:multiple="quickFilterMultiple"
 					:activeIndex="shownQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -1413,6 +1413,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
@@ -2374,6 +2375,20 @@ export default {
 			type: String,
 			default: '',
 			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+		},
+
+		/**
+		 * The quick-filter placement per view mode (manifest
+		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
+		 * each `''`, `'toolbar'` or `'row'`. A view it does not name keeps
+		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
+		 * its board and map views, on their own row in its table view).
+		 *
+		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
+		 */
+		quickFilterPlacementByView: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -4382,6 +4397,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The quick-filter placement in the current view: its entry in
+		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
+		 *
+		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
+		 * @return {''|'toolbar'|'row'} The placement.
+		 */
+		effectiveQuickFilterPlacement() {
+			const byView = this.quickFilterPlacementByView
+			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
+			return ['', 'toolbar', 'row'].includes(own) ? own : this.quickFilterPlacement
+		},
+
 		/**
 		 * Whether the page draws cards beside its list (`sidePanel`).
 		 *
@@ -10993,11 +11021,13 @@ export default {
 		/**
 		 * Load the Nextcloud groups for `folderSidebar.source: 'groups'`, each
 		 * with its member count. `folderSidebar.groups` (`[{ id, parent? }]`)
-		 * picks and orders them and nests a group under its `parent`; without
-		 * it every group shows, by name. A refused request lists none.
+		 * picks and orders them and nests a group under its `parent`;
+		 * `folderSidebar.parentsFrom` reads that list from records instead.
+		 * Without either every group shows, by name. A refused request lists none.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+		 * @spec openspec/changes/group-parents-from-records/specs/index-page/spec.md#requirement-a-groups-pane-can-read-its-tree-from-records
 		 */
 		async loadFolderGroups() {
 			const cfg = this.folderSidebar
@@ -11007,7 +11037,9 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				const groups = await fetchGroups(axios, { search: cfg.search || '', limit: cfg.limit || 200 })
-				const declared = Array.isArray(cfg.groups) ? cfg.groups.filter((entry) => entry && entry.id) : null
+				const declared = Array.isArray(cfg.groups)
+					? cfg.groups.filter((entry) => entry && entry.id)
+					: await this.groupParentsFromRecords(cfg.parentsFrom)
 				if (!declared) {
 					this.folderGroupList = [...groups].sort((a, b) => a.name.localeCompare(b.name))
 					return
@@ -11020,6 +11052,44 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
 				this.folderGroupList = []
+			}
+		},
+
+		/**
+		 * The groups pane's tree read from records (`folderSidebar.parentsFrom`:
+		 * `{ register, schema, groupField?, parentField? }`): each record names a
+		 * group (`groupField`, default `group`) and the group above it
+		 * (`parentField`, default `parent`): a group id, or the id of another
+		 * record, read as that record's group. In the `groups` shape. Null without
+		 * the option, when the records cannot be read or when none names a
+		 * group, so the pane lists every group flat.
+		 *
+		 * @param {object|undefined} from The `parentsFrom` config.
+		 * @return {Promise<Array<{id: string, parent: string|null}>|null>} The entries, or null.
+		 * @spec openspec/changes/group-parents-from-records/specs/index-page/spec.md#requirement-a-groups-pane-can-read-its-tree-from-records
+		 */
+		async groupParentsFromRecords(from) {
+			if (!from || !from.register || !from.schema) {
+				return null
+			}
+			const groupField = from.groupField || 'group'
+			const parentField = from.parentField || 'parent'
+			try {
+				const body = await cnFetchJson(
+					`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+					{ query: { _limit: from.limit || 500 } },
+				)
+				const records = (Array.isArray(body?.results) ? body.results : []).filter((record) => record && record[groupField])
+				if (records.length === 0) {
+					return null
+				}
+				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
+				return records.map((record) => {
+					const parent = record[parentField] ? String(record[parentField]) : null
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+				})
+			} catch {
+				return null
 			}
 		},
 
