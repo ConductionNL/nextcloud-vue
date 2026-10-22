@@ -715,6 +715,12 @@ export default {
 
 	emits: ['refresh', 'request-feature'],
 
+	data() {
+		return {
+			titleIdSuffix: '',
+		}
+	},
+
 	computed: {
 		/**
 		 * The provided header actions, unwrapped.
@@ -845,16 +851,16 @@ export default {
 		},
 
 		/**
-		 * Stable DOM id for the header title `<h3>`, used as the
-		 * `aria-labelledby` target of the scrollable content region so the
-		 * region gets an accessible name from the widget title (WCAG 4.1.2).
-		 * Derived from `resolvedWidgetId` so it is stable and unique per
-		 * widget instance on the page.
+		 * DOM id for the header title `<h3>`, used as the `aria-labelledby`
+		 * target of the scrollable content region so the region gets an
+		 * accessible name from the widget title (WCAG 4.1.2). Derived from
+		 * `resolvedWidgetId`; a wrapper whose id is already taken on the page
+		 * adds its instance uid (see `mounted`).
 		 *
 		 * @return {string}
 		 */
 		titleId() {
-			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}${this.titleIdSuffix}`
 		},
 
 		/**
@@ -1015,6 +1021,15 @@ export default {
 			}
 			return styles
 		},
+	},
+
+	mounted() {
+		// Widgets sharing a widget id (object-data cards default to the object
+		// type) would share the title id and name every region after the first.
+		const id = `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		if (typeof document !== 'undefined' && document.querySelectorAll(`[id="${id}"]`).length > 1) {
+			this.titleIdSuffix = `-${this.$.uid}`
+		}
 	},
 
 	methods: {
