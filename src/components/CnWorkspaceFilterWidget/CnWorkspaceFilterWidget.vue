@@ -65,6 +65,15 @@
 			<NcButton type="submit" variant="primary" data-testid="cn-workspace-filter-submit">
 				{{ tr(content.submitLabel || '') || loadLabel }}
 			</NcButton>
+			<NcButton
+				v-if="exportTableId"
+				type="button"
+				variant="secondary"
+				class="cn-workspace-filter-widget__export"
+				data-testid="cn-workspace-filter-export"
+				@click="exportTable">
+				{{ tr(content.exportTable.label || '') || exportLabel }}
+			</NcButton>
 		</form>
 
 		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle' && style !== 'input'" class="cn-workspace-filter-widget__label">
@@ -166,7 +175,7 @@
 </template>
 
 <script>
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
@@ -257,8 +266,11 @@ export default {
 		 * when it is loaded and only when valid: `inputType: "quarter"` reads
 		 * `YYYY-Qn` and `"year"` reads `YYYY`, both seeded with the current one;
 		 * any other input takes a `pattern` (a regular expression) if given.
+		 * `exportTable: { exportId, label? }` adds a button beside the load
+		 * button that asks the object table with that `exportId` for its rows
+		 * as CSV (DqTermijnen "CSV exporteren").
 		 *
-		 * @type {{label?: string, submitLabel?: string, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * @type {{label?: string, submitLabel?: string, exportTable?: {exportId: string, label?: string}, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -446,6 +458,17 @@ export default {
 		/** The load button's label when the content names none. */
 		loadLabel() {
 			return t('nextcloud-vue', 'Load')
+		},
+
+		/** @return {string} The library label of the table export button. */
+		exportLabel() {
+			return t('nextcloud-vue', 'Export CSV')
+		},
+
+		/** @return {string} The `exportId` of the table the input exports, or ''. */
+		exportTableId() {
+			const target = this.content && this.content.exportTable
+			return target && typeof target.exportId === 'string' ? target.exportId : ''
 		},
 
 		/** The bare workspace key the selection writes (strips a `@workspace.` / `@page.` prefix). */
@@ -870,6 +893,16 @@ export default {
 				return quarterKey(today)
 			}
 			return this.inputType === 'year' ? String(today.getFullYear()) : ''
+		},
+
+		/**
+		 * Ask the table named by `exportTable.exportId` for its rows as CSV.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/workspace-filter-export-table/specs/workspace-filter-export-table/spec.md#requirement-a-workspace-filter-input-can-export-the-table-it-loads
+		 */
+		exportTable() {
+			emit('cn:widget:export', { exportId: this.exportTableId })
 		},
 
 		/**
