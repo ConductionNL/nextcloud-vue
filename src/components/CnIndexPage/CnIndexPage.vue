@@ -4554,17 +4554,23 @@ export default {
 		},
 
 		/**
-		 * The header actions without reserved ids, each through
+		 * The header actions without reserved ids, and without an `adminOnly`
+		 * one for a viewer who is not an administrator, each through
 		 * `resolveHeaderHandler` (a manifest `href` entry becomes a link with
 		 * `_dispatchSuppress`, so the page neither runs nor emits it).
 		 *
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-a-header-action-can-be-offered-to-administrators-only
 		 * @return {Array<object>}
 		 */
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
 			for (const entry of this.headerActions || []) {
+				// Only what is drawn: the endpoint behind the action checks access itself.
+				if (entry && entry.adminOnly === true && !this.viewerIsAdmin()) {
+					continue
+				}
 				if (entry && reserved.has(entry.id)) {
 					// eslint-disable-next-line no-console
 					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
@@ -9678,8 +9684,8 @@ export default {
 		 * actions, as before. `items` names them, in order: `header-actions`
 		 * (all of them), the id of one header action, or a built-in of the
 		 * actions bar's own menu, which the bar drops while header buttons show:
-		 * `import`, `export`, `refresh`, `copy-selected`, `delete-selected`
-		 * (disabled until a row is selected) and `documentation` (a link to
+		 * `import`, `export`, `refresh`, `copy-selected`, `export-selected`,
+		 * `delete-selected` (the three disabled until a row is selected) and `documentation` (a link to
 		 * `documentationUrl`, left out when the page has none). An unknown name
 		 * is left out. `{ heading }` and `separator` group the entries: an
 		 * entry of `kind` `heading` or `separator`, drawn only when an entry
@@ -9718,6 +9724,16 @@ export default {
 					disabled: noSelection,
 					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to copy') : '',
 					run: () => { this.showMassCopyDialog = true },
+				}),
+
+				'export-selected': () => ({
+					key: 'export-selected',
+					label: t('nextcloud-vue', 'Export selection as JSON'),
+					icon: 'Export',
+					iconComponent: Export,
+					disabled: noSelection,
+					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
+					run: () => this.onExportSelected(),
 				}),
 
 				'delete-selected': () => ({
@@ -12085,6 +12101,21 @@ export default {
 				: ((this.$route && this.$route.query) || {})
 			const url = buildExportUrl(this.register, this.exportSchemaSlug, query, format)
 			window.location.assign(url)
+		},
+
+		/**
+		 * Download OpenRegister's JSON export of the selected rows: the page's
+		 * register and schema, with the selected ids as `_ids`.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-the-actions-menu-exports-the-selection
+		 */
+		onExportSelected() {
+			const ids = this.internalSelectedIds.map((id) => String(id))
+			if (ids.length === 0) {
+				return
+			}
+			window.location.assign(buildExportUrl(this.register, this.exportSchemaSlug, { _ids: ids }, 'json'))
 		},
 
 		// ── Saved views (saved-views-ui) ─────────────────────────────────────

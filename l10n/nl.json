@@ -702,6 +702,8 @@
     "Searchable in SOLR": "Doorzoekbaar in SOLR",
     "Security": "Beveiliging",
     "Select 1 or more items to copy": "Selecteer 1 of meer items om te kopiëren",
+    "Export selection as JSON": "Selectie exporteren als JSON",
+    "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren",
     "Select 1 or more items to delete": "Selecteer 1 of meer items om te verwijderen",
     "Select a property to use as object description": "Selecteer een eigenschap om als objectbeschrijving te gebruiken",
     "Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)": "Selecteer een eigenschap om als objectafbeelding te gebruiken. bijv. logo (moet base64-gecodeerde afbeelding bevatten)",

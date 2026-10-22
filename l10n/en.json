@@ -676,6 +676,8 @@
     "Searchable in SOLR": "Searchable in SOLR",
     "Security": "Security",
     "Select 1 or more items to copy": "Select 1 or more items to copy",
+    "Export selection as JSON": "Export selection as JSON",
+    "Select 1 or more items to export": "Select 1 or more items to export",
     "Select 1 or more items to delete": "Select 1 or more items to delete",
     "Select a property to use as object description": "Select a property to use as object description",
     "Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)": "Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)",
