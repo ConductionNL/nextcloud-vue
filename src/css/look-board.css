@@ -2454,3 +2454,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* ---- A grouped card's count --------------------------------------------- */
+/* The count beside a group's title ("2 taken" beside a phase, DqZaaktype) is
+   the board's grey chip: 3px 10px around a 13px/600 figure on a 15px line,
+   the chip ground and the soft text. The widget drew a white 12px chip.
+   @spec openspec/changes/board-grouped-cards-count-chip/specs/board-grouped-cards-count-chip/spec.md#requirement-a-grouped-cards-count-is-the-boards-grey-chip */
+.cn-look-board .cn-grouped-cards__count:not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	line-height: 15px;
+}
