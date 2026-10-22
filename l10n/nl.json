@@ -2510,7 +2510,9 @@
     "The address could not be read.": "Het adres kon niet worden gelezen.",
     "The address could not be made.": "Het adres kon niet worden gemaakt.",
     "The address could not be removed.": "Het adres kon niet worden verwijderd.",
-    "Copying did not work. Select the address and copy it yourself.": "Kopiëren lukte niet. Selecteer het adres en kopieer het zelf."
+    "Copying did not work. Select the address and copy it yourself.": "Kopiëren lukte niet. Selecteer het adres en kopieer het zelf.",
+    "Remove {item}?": "{item} verwijderen?",
+    "Nothing planned yet.": "Nog niets gepland."
   },
   "plurals": {
     "{count} member": [

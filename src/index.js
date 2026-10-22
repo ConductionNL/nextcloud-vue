@@ -323,6 +323,7 @@ export {
 	CnSetupWizard,
 	CnShippedConfigurationSection,
 	CnSignatureCapture,
+	CnSlotGrid,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,

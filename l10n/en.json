@@ -2260,7 +2260,9 @@
     "The address could not be read.": "The address could not be read.",
     "The address could not be made.": "The address could not be made.",
     "The address could not be removed.": "The address could not be removed.",
-    "Copying did not work. Select the address and copy it yourself.": "Copying did not work. Select the address and copy it yourself."
+    "Copying did not work. Select the address and copy it yourself.": "Copying did not work. Select the address and copy it yourself.",
+    "Remove {item}?": "Remove {item}?",
+    "Nothing planned yet.": "Nothing planned yet."
   },
   "plurals": {
     "{count} member": [
