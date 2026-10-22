@@ -1,0 +1,4 @@
+- [x] utils/sidePanelCloseLabel.js
+- [x] CnIndexSidebar and CnObjectSidebar call it on mount
+- [x] nl/en string
+- [x] Spec tests/components/SidePanelCloseLabel.spec.js
