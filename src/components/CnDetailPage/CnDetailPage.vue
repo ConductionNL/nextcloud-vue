@@ -647,6 +647,90 @@
 			</template>
 		</CnNextStepCard>
 
+		<!-- The band (manifest `config.band`): a row of widgets across the whole
+		     page, above the body and the side column (PtPortal: the traffic
+		     figures and the start-page notice). Each entry takes `span`
+		     twelfths of the row and the row wraps. -->
+		<div
+			v-if="showsBand"
+			class="cn-detail-page__band"
+			data-testid="cn-detail-page-band">
+			<!-- The page filters (`config.pageFilters`), right-aligned above the
+			     band's widgets; each writes the page's workspace context. -->
+			<div
+				v-if="detailPageFilters.length > 0"
+				class="cn-detail-page__page-filters"
+				data-testid="cn-detail-page-page-filters">
+				<template v-for="pf in detailPageFilters" :key="pf.key">
+					<div v-if="pf.control === 'segmented'" class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<CnSegmentedControl
+							size="compact"
+							mode="toggle"
+							:options="pageFilterSegments(pf)"
+							:modelValue="workspaceContext[pf.key]"
+							:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</div>
+					<label v-else class="cn-detail-page__page-filter">
+						<span v-if="pf.label" class="cn-detail-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+						<NcSelect
+							:modelValue="selectedPageFilterOption(pf)"
+							:options="pageFilterSegments(pf)"
+							:clearable="pf.clearable === true"
+							:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+							:loading="pageFilterLoading[pf.key] === true"
+							:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							label="label"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+					</label>
+				</template>
+			</div>
+			<div
+				v-for="entry in bandWidgets"
+				:key="`band-${entry.widget.id}`"
+				class="cn-detail-page__band-item"
+				:class="{ 'cn-detail-page__band-item--full': entry.span === 12 }"
+				:style="{ '--cn-band-span': entry.span }"
+				:data-testid="`cn-detail-page-band-${entry.widget.id}`">
+				<!--
+					@slot `widget-${widget.id}`
+					@description The same per-widget slot the body grid and the side
+					column offer, for a widget placed in the band.
+				-->
+				<slot
+					:name="`widget-${entry.widget.id}`"
+					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
+					:widget="entry.widget"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="entry.widget"
+						:chrome="entry.chrome"
+						:showCardTitle="true"
+						:showActions="effectiveShowWidgetActions"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets" />
+				</slot>
+			</div>
+		</div>
+
 		<!-- Not-found state: the record behind the address does not exist. -->
 		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
 			<!--
@@ -1275,7 +1359,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -1319,9 +1403,10 @@ import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { pageFilters } from '../../mixins/pageFilters.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
-import { headerActionAsLink } from '../../utils/actionLink.js'
+import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
@@ -1345,6 +1430,8 @@ import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1562,6 +1649,7 @@ export default {
 		CnFormDialog,
 		CnDashboardGrid,
 		CnSegmentedControl,
+		NcSelect,
 		ViewDashboardOutline,
 		CnLifecycleActions,
 		CnActionButtons,
@@ -1584,7 +1672,7 @@ export default {
 		Restore,
 	},
 
-	mixins: [gridLayout, pageViews],
+	mixins: [gridLayout, pageFilters, pageViews],
 
 	inject: {
 		/**
@@ -2778,6 +2866,39 @@ export default {
 		},
 
 		/**
+		 * A row of widgets across the whole page, above the body and the side
+		 * column (manifest `config.band`). Each entry is the id of a widget
+		 * declared in `widgets`, a widget definition, or `{ widgetId, span,
+		 * chrome }`; `span` is the entry's share of the row in twelfths
+		 * (default 12) and the row wraps; `chrome` is `card` or `bare` (a
+		 * banner defaults to bare, anything else to card, so a widget that
+		 * draws its own card, such as a KPI, asks for bare). Each entry
+		 * follows its `visibleWhen`. Empty (the default) draws no band.
+		 *
+		 * @type {Array<string|object>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		band: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Page-level filters (manifest `config.pageFilters`), the same a
+		 * dashboard takes: each writes its choice into the page's workspace
+		 * context, which every widget on the page reads through
+		 * `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its
+		 * widgets (PtPortal "Periode").
+		 *
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		pageFilters: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * A field path whose value picks the side column and its order for
 		 * this record (manifest `config.sideColumnFrom`), read like a
 		 * `visibleWhen` field: `@context.caseType.sideCards` reads the list a
@@ -3109,10 +3230,16 @@ export default {
 			// which no register answers.
 			{ schemaSlug: () => props.schema || sidebarSchema() },
 		)
+		// The page's workspace context, as a dashboard provides it: page
+		// filters write their choice here and a widget reads it through
+		// `@page.<key>` / `@workspace.<key>`.
+		const workspaceContext = ref({})
+		provide('cnWorkspaceContext', workspaceContext)
 		return {
 			...registryExposed,
 			subscriptionStatus: subscription.status,
 			lockState: lock,
+			workspaceContext,
 		}
 	},
 
@@ -3545,7 +3672,46 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionHref() {
-			return this.stagePrimaryEntry?.href || ''
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.href || ''
+			}
+			return this.primaryActionLink?.href || ''
+		},
+
+		/**
+		 * The page's `primaryAction` as a link, when no stage action stands in
+		 * for it: `href` (its record tokens resolved) opens in a new tab, as the
+		 * schema says; `route` (with `query`) is an in-app link a plain click
+		 * routes to (PtPortal "Nieuwe pagina" opens the page create flow).
+		 *
+		 * @return {{href: string, to: object|null, target: string}|null} The link, or null.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-pages-own-primary-action-is-a-link
+		 */
+		primaryActionLink() {
+			const action = this.primaryAction
+			if (!action || typeof action !== 'object') {
+				return null
+			}
+			if (typeof action.href === 'string' && action.href !== '') {
+				const href = resolveManifestHref(interpolateUrlTokens(action.href, this.headerLinkTokenCtx))
+				return href ? { href, to: null, target: '_blank' } : null
+			}
+			if (typeof action.route === 'string' && action.route !== '') {
+				const to = { name: action.route, ...(action.query && typeof action.query === 'object' ? { query: action.query } : {}) }
+				const href = routeHref(to, this.$router)
+				return href ? { href, to, target: '_self' } : null
+			}
+			return null
+		},
+
+		/**
+		 * The token context a header link resolves its URL against: this record.
+		 *
+		 * @return {{objectId: (string|number), object: object}} The context.
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-header-link-builds-its-url-from-the-record
+		 */
+		headerLinkTokenCtx() {
+			return { objectId: this.objectId, object: this.resolvedObject || {} }
 		},
 
 		/**
@@ -3555,7 +3721,10 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		primaryActionTarget() {
-			return this.stagePrimaryEntry?.linkTarget || undefined
+			if (this.stagePrimaryEntry) {
+				return this.stagePrimaryEntry.linkTarget || undefined
+			}
+			return this.primaryActionLink?.target || undefined
 		},
 
 		/**
@@ -3951,6 +4120,57 @@ export default {
 		 * @return {boolean} True when it has widgets and the body is showing.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 */
+		/**
+		 * The band's widgets, resolved and visible, each with its span.
+		 *
+		 * @return {Array<{widget: object, span: number, chrome: string}>}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		bandWidgets() {
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return (Array.isArray(this.band) ? this.band : [])
+				.map((entry, index) => {
+					let widget = null
+					let span = 12
+					if (typeof entry === 'string') {
+						widget = declared.find((candidate) => candidate && candidate.id === entry) || null
+					} else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+						span = Number.isInteger(entry.span) ? Math.min(12, Math.max(1, entry.span)) : 12
+						if (typeof entry.widgetId === 'string') {
+							widget = declared.find((candidate) => candidate && candidate.id === entry.widgetId) || null
+						} else if (typeof entry.type === 'string') {
+							widget = entry.id ? entry : { ...entry, id: `cn-band-${index}` }
+						}
+					}
+					if (!widget) {
+						return null
+					}
+					const chrome = ['card', 'bare'].includes(entry?.chrome) ? entry.chrome : (widget.type === 'banner' ? 'bare' : 'card')
+					return { widget, span, chrome }
+				})
+				.filter((entry) => entry && this.sideWidgetVisible(entry.widget))
+		},
+
+		/**
+		 * Whether the band renders: it has a visible widget and the record shows.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
+		 */
+		showsBand() {
+			return (this.bandWidgets.length > 0 || this.detailPageFilters.length > 0) && this.showsBody
+		},
+
+		/**
+		 * The declared page filters that carry a key.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-filters/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-page-filters-that-its-widgets-read
+		 */
+		detailPageFilters() {
+			return (Array.isArray(this.pageFilters) ? this.pageFilters : []).filter((pf) => pf && pf.key)
+		},
+
 		showsSideColumn() {
 			return this.sideColumnWidgets.length > 0 && this.showsBody
 		},
@@ -4316,7 +4536,7 @@ export default {
 				.map((pinned) => pinned.inline)
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
-			const linked = combined.map(headerActionAsLink)
+			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
 			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
@@ -5416,6 +5636,10 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		// Seeded before the first render, so a widget's first request already
+		// carries the page filter's value.
+		this.initPageFilters()
+		this.loadPageFilterOptions()
 	},
 
 	mounted() {
@@ -5658,16 +5882,21 @@ export default {
 		 * the `run()` CnActionButtons bound for it, and announced to the host
 		 * with its declaration. A link action is left to the browser and
 		 * announces nothing. Without a stage action this is the page's
-		 * `primaryAction`, announced as before.
+		 * `primaryAction`, announced as before, and when it is an in-app link
+		 * a plain click routes there.
 		 *
+		 * @param {MouseEvent} [event] The click.
 		 * @return {void}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
 		 */
-		onPrimaryActionClick() {
+		onPrimaryActionClick(event) {
 			const entry = this.stagePrimaryEntry
 			if (!entry) {
 				this.$emit('primary-action', this.primaryAction)
+				if (this.primaryActionLink?.to) {
+					followLinkClick(event, this.primaryActionLink.to, this.$router)
+				}
 				return
 			}
 			if (entry.href) {

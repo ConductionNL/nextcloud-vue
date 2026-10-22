@@ -161,3 +161,17 @@ describe('CnTileWidget icon and colours', () => {
 		expect(tile.classes()).toContain('cn-tile-widget--tinted')
 	})
 })
+
+describe('CnTileWidget subtitle', () => {
+	it('draws the subtitle under the title when the tile names one', () => {
+		const { wrapper } = mountTile({ ...routeTile, subtitle: 'in the settings' }, null)
+		const text = wrapper.find('.cn-tile-widget__text')
+		expect(text.find('.cn-tile-widget__title').text()).toBe('New secret')
+		expect(text.find('.cn-tile-widget__subtitle').text()).toBe('in the settings')
+	})
+
+	it('draws no subtitle element without one', () => {
+		const { wrapper } = mountTile(routeTile, null)
+		expect(wrapper.find('.cn-tile-widget__subtitle').exists()).toBe(false)
+	})
+})
