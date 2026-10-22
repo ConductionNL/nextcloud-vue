@@ -334,10 +334,11 @@
    input sits hidden behind its icon and keeps its own box. The ground is the
    card's: Nextcloud and the theme paint it white, primary when checked and
    grey when disabled (the latter two `!important`), which a native radio does
-   not draw but its computed style still reports.
+   not draw but its computed style still reports. A board card's selection
+   checkbox keeps its own 16px and its collapsed quiet state (board.css).
    @spec openspec/changes/board-native-choice-size/specs/board-native-choice-size/spec.md#requirement-a-native-radio-or-checkbox-is-18px-in-the-board-look */
 .cn-look-board input[type="radio"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *),
-.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *) {
+.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-board-view__select):not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	width: 18px;
 	min-width: 18px;
