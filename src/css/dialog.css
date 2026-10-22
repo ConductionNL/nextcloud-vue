@@ -257,6 +257,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-start: 26px;
 }
 
+/* NcSelect's search is an NcInputField inside the select, and the select's
+   own margin rules win over the field's, so the raised label rose over what
+   stood above (DqZaakLocatie "Locatie toevoegen", DqZaakSamenwerken). The
+   select makes the label's room instead.
+   @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
+.cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
+	margin-block-start: 26px;
+}
+
 /* The doubled class outranks NcInputField's raised-label rule (focused or
    filled), which would pin the label's top as well and squash it. */
 .cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,

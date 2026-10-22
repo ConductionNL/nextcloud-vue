@@ -35,9 +35,70 @@
 			<slot name="actions" />
 		</template>
 
+		<!-- `boardLayout: "selects"` (DqBeheerinstellingen Configuratie): per
+		     group the register select, then a schema select per type in a
+		     grid of three, and one save button at the end. -->
+		<div
+			v-if="isBoardLook && boardLayout === 'selects' && !registersLoading && !registersError"
+			class="cn-register-mapping cn-register-mapping--board cn-register-mapping--selects"
+			data-testid="cn-register-mapping-selects">
+			<div
+				v-for="(group, groupIdx) in groups"
+				:key="groupIdx"
+				class="cn-register-mapping__selects-group">
+				<h3 v-if="groups.length > 1" class="cn-register-mapping__board-title">
+					{{ group.name }}
+				</h3>
+				<div class="cn-register-mapping__selects-register" data-testid="cn-register-mapping-register">
+					<NcSelect
+						:modelValue="selectedRegister(groupIdx)"
+						:options="registerSelectOptions"
+						:placeholder="labels.selectRegister"
+						:inputLabel="labels.register"
+						:clearable="false"
+						label="label"
+						trackBy="value"
+						@update:modelValue="handleRegisterChange(groupIdx, $event)" />
+				</div>
+				<div
+					v-if="selectedRegister(groupIdx)"
+					class="cn-register-mapping__select-grid"
+					:style="{ '--cn-register-mapping-columns': 3 }"
+					data-testid="cn-register-mapping-select-grid">
+					<NcSelect
+						v-for="type in group.types"
+						:key="type.slug + '-select'"
+						:modelValue="selectedSchema(groupIdx, type)"
+						:options="schemaSelectOptions(groupIdx)"
+						:placeholder="labels.selectSchema"
+						:inputLabel="type.label"
+						label="label"
+						trackBy="value"
+						@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
+				</div>
+				<NcNoteCard
+					v-if="selectedRegister(groupIdx) && schemaSelectOptions(groupIdx).length === 0"
+					type="warning">
+					{{ labels.noSchemas }}
+				</NcNoteCard>
+			</div>
+			<div v-if="showSaveButton" class="cn-register-mapping__board-save">
+				<NcButton
+					variant="primary"
+					:disabled="saving || !hasChanges"
+					data-testid="cn-register-mapping-board-save"
+					@click="handleSave">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : saveButtonText }}
+				</NcButton>
+			</div>
+		</div>
+
 		<!-- Group sections -->
 		<div
-			v-if="isBoardLook && !registersLoading && !registersError"
+			v-else-if="isBoardLook && !registersLoading && !registersError"
 			class="cn-register-mapping cn-register-mapping--board"
 			data-testid="cn-register-mapping-board">
 			<div class="cn-register-mapping__board-group" data-testid="cn-register-mapping-board-group">
@@ -490,6 +551,20 @@ export default {
 		look: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: how the types are drawn. `table` (default) is the open
+		 * group's type and schema table with the other groups as rows
+		 * (PqBeheer); `selects` is the register select and a schema select per
+		 * type in a grid of three for every group (DqBeheerinstellingen).
+		 *
+		 * @spec openspec/changes/register-mapping-select-grid/specs/register-mapping-select-grid/spec.md#requirement-the-board-look-can-draw-the-schemas-as-a-grid-of-selects
+		 */
+		boardLayout: {
+			type: String,
+			default: 'table',
+			validator: (value) => ['table', 'selects'].includes(value),
 		},
 
 		/**
@@ -1284,6 +1359,32 @@ export default {
 	margin: 0;
 	font-size: 15px;
 	font-weight: 700;
+}
+
+.cn-register-mapping__selects-group {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.cn-register-mapping__selects-register {
+	max-width: 50%;
+}
+
+.cn-register-mapping__select-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-register-mapping-columns, 3), minmax(0, 1fr));
+	gap: 16px;
+}
+
+@media (max-width: 768px) {
+	.cn-register-mapping__selects-register {
+		max-width: none;
+	}
+
+	.cn-register-mapping__select-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 .cn-register-mapping__board-select {

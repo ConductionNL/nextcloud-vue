@@ -196,7 +196,7 @@ export const pageViews = {
 		 * The declared views in one shape, labels translated. Entries without
 		 * an id or a label are dropped, as are repeated ids.
 		 *
-		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string}>}
+		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string, gridSideColumn: object|null}>}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
 		normalizedViews() {
@@ -221,6 +221,7 @@ export const pageViews = {
 					layout: Array.isArray(view.layout) ? view.layout : [],
 					emptyText: typeof view.emptyText === 'string' && view.emptyText !== '' ? translate(view.emptyText) : '',
 					title: typeof view.title === 'string' && view.title !== '' ? translate(view.title) : '',
+					gridSideColumn: view.gridSideColumn && typeof view.gridSideColumn === 'object' ? view.gridSideColumn : null,
 				}))
 		},
 

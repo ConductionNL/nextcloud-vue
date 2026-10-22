@@ -27,9 +27,41 @@
 					{{ showHints ? t('nextcloud-vue', 'Hide the explanations') : t('nextcloud-vue', 'Show the explanations') }}
 				</NcButton>
 			</div>
-			<div class="cn-settings-fields__grid" :class="`cn-settings-fields__grid--${columnCount}`">
+			<!-- `saveInline`: the save button beside the form instead of
+			     under it (DqBeheerinstellingen Serviceaccount). -->
+			<div v-if="inlineSave"
+				class="cn-settings-fields__inline-row"
+				data-testid="cn-settings-fields-inline-row">
+				<div class="cn-settings-fields__grid" :class="`cn-settings-fields__grid--${columnCount}`">
+					<CnSettingsField
+						v-for="field in mainFields"
+						:key="field.key"
+						class="cn-settings-fields__field"
+						:class="{ 'cn-settings-fields__field--wide': field.wide || isFullWidth(field) }"
+						:field="field"
+						:modelValue="form[field.key]"
+						:error="errors[field.key] || unreadable[field.key] || ''"
+						:hint="field.hint"
+						@update:modelValue="setValue(field, $event)"
+						@uploaded="onUploaded(field, $event)"
+						@action="runAction(field)" />
+				</div>
+				<div class="cn-settings-fields__inline-save">
+					<NcButton
+						variant="primary"
+						type="submit"
+						:disabled="saving || !dirty"
+						data-testid="cn-settings-fields-save">
+						<template v-if="saving" #icon>
+							<NcLoadingIcon :size="20" />
+						</template>
+						{{ resolvedSaveLabel }}
+					</NcButton>
+				</div>
+			</div>
+			<div v-else class="cn-settings-fields__grid" :class="`cn-settings-fields__grid--${columnCount}`">
 				<CnSettingsField
-					v-for="field in visibleFields"
+					v-for="field in mainFields"
 					:key="field.key"
 					class="cn-settings-fields__field"
 					:class="{ 'cn-settings-fields__field--wide': field.wide || isFullWidth(field) }"
@@ -42,6 +74,41 @@
 					@action="runAction(field)" />
 			</div>
 
+			<!-- The fields marked `advanced`, behind one disclosure after the
+			     rest (DqBeheerinstellingen Zaak-e-mail). Saved with the rest. -->
+			<div v-if="advancedFields.length > 0" class="cn-settings-fields__advanced">
+				<NcButton
+					variant="tertiary"
+					:aria-expanded="showAdvanced ? 'true' : 'false'"
+					:aria-controls="advancedId"
+					data-testid="cn-settings-fields-advanced-toggle"
+					@click="showAdvanced = !showAdvanced">
+					<template #icon>
+						<ChevronUp v-if="showAdvanced" :size="20" />
+						<ChevronDown v-else :size="20" />
+					</template>
+					{{ resolvedAdvancedLabel }}
+				</NcButton>
+				<div v-show="showAdvanced"
+					:id="advancedId"
+					class="cn-settings-fields__grid"
+					:class="`cn-settings-fields__grid--${columnCount}`"
+					data-testid="cn-settings-fields-advanced">
+					<CnSettingsField
+						v-for="field in advancedFields"
+						:key="field.key"
+						class="cn-settings-fields__field"
+						:class="{ 'cn-settings-fields__field--wide': field.wide || isFullWidth(field) }"
+						:field="field"
+						:modelValue="form[field.key]"
+						:error="errors[field.key] || unreadable[field.key] || ''"
+						:hint="field.hint"
+						@update:modelValue="setValue(field, $event)"
+						@uploaded="onUploaded(field, $event)"
+						@action="runAction(field)" />
+				</div>
+			</div>
+
 			<NcNoteCard v-if="notice"
 				:type="notice.type"
 				:role="notice.type === 'error' ? 'alert' : 'status'"
@@ -49,7 +116,7 @@
 				{{ notice.text }}
 			</NcNoteCard>
 
-			<div v-if="!autoSave && hasInputs" class="cn-settings-section__save cn-settings-fields__save">
+			<div v-if="!autoSave && hasInputs && !inlineSave" class="cn-settings-section__save cn-settings-fields__save">
 				<span v-if="dirty" class="cn-settings-fields__dirty" data-testid="cn-settings-fields-dirty">
 					{{ t('nextcloud-vue', 'Unsaved changes') }}
 				</span>
@@ -72,6 +139,8 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
@@ -308,7 +377,7 @@ function initialsOf(name) {
 export default {
 	name: 'CnSettingsFieldsSection',
 
-	components: { CnSettingsField, CnSettingsSection, NcButton, NcLoadingIcon, NcNoteCard },
+	components: { ChevronDown, ChevronUp, CnSettingsField, CnSettingsSection, NcButton, NcLoadingIcon, NcNoteCard },
 
 	inject: {
 		/** The app's translate function; identity outside CnAppRoot. */
@@ -486,6 +555,26 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Draw the save button beside the form instead of under it, for a
+		 * one-field form ("Use this account").
+		 *
+		 * @spec openspec/changes/settings-fields-inline-save-and-advanced/specs/settings-fields-inline-save-and-advanced/spec.md#requirement-a-section-can-draw-its-save-button-beside-the-form
+		 */
+		saveInline: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The label of the disclosure the fields marked `advanced` sit behind.
+		 * Defaults to "Advanced".
+		 */
+		advancedLabel: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['saved', 'save-error'],
@@ -507,6 +596,7 @@ export default {
 			values: {},
 			actionStates: {},
 			showHints: false,
+			showAdvanced: false,
 		}
 	},
 
@@ -589,6 +679,40 @@ export default {
 				&& !(field.foldable && this.hintsToggle && !this.showHints))
 		},
 
+		/**
+		 * The visible fields drawn in the form itself: every one not marked `advanced`.
+		 *
+		 * @return {Array<object>}
+		 */
+		mainFields() {
+			return this.visibleFields.filter((field) => field.advanced !== true)
+		},
+
+		/**
+		 * The visible fields marked `advanced`, drawn behind the disclosure.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/settings-fields-inline-save-and-advanced/specs/settings-fields-inline-save-and-advanced/spec.md#requirement-advanced-fields-sit-behind-one-disclosure
+		 */
+		advancedFields() {
+			return this.visibleFields.filter((field) => field.advanced === true)
+		},
+
+		/** @return {string} The id the disclosure's button controls. */
+		advancedId() {
+			return `cn-settings-fields-advanced-${this.$.uid}`
+		},
+
+		/** @return {string} The disclosure's label, translated. */
+		resolvedAdvancedLabel() {
+			return this.advancedLabel ? this.tr(this.advancedLabel) : t('nextcloud-vue', 'Advanced')
+		},
+
+		/** @return {boolean} Whether the save button stands beside the form. */
+		inlineSave() {
+			return this.saveInline && !this.autoSave && this.hasInputs
+		},
+
 		/** @return {boolean} Whether the section holds a field with a value to save. */
 		hasInputs() {
 			return this.resolvedFields.some((field) => !VALUELESS_TYPES.includes(field.type) && !field.scope)
@@ -607,6 +731,20 @@ export default {
 		/** @return {string} The Save button's label. */
 		resolvedSaveLabel() {
 			return this.saveLabel ? this.tr(this.saveLabel) : t('nextcloud-vue', 'Save')
+		},
+	},
+
+	watch: {
+		/**
+		 * Open the advanced fields when one of them is refused, so its
+		 * message is not hidden.
+		 *
+		 * @param {object} errors Field key to message.
+		 */
+		errors(errors) {
+			if (this.advancedFields.some((field) => errors[field.key])) {
+				this.showAdvanced = true
+			}
 		},
 	},
 
@@ -1256,6 +1394,35 @@ export default {
 
 .cn-settings-fields__field--wide {
 	grid-column: 1 / -1;
+}
+
+.cn-settings-fields__inline-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.cn-settings-fields__inline-row > .cn-settings-fields__grid {
+	flex: 0 1 50%;
+	min-width: min(100%, 280px);
+}
+
+/* The button lines up with the control, under a label that sits above it
+   in the board look (look-board.css sets the offset). */
+.cn-settings-fields__inline-save {
+	margin-block-start: var(--cn-settings-fields-label-offset, 0);
+}
+
+.cn-settings-fields__advanced {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.cn-settings-fields__advanced > .cn-settings-fields__grid {
+	align-self: stretch;
 }
 
 .cn-settings-fields__hints-toggle {

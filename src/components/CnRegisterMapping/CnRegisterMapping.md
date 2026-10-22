@@ -137,5 +137,6 @@ The register select lists every register without its schemas. Only the registers
 | `collapseGroups` | Boolean | `null` | Draw each group as a heading button that opens and closes it, with its configured count shown while closed; the groups start closed. `null` does this when there is more than one group, `true` or `false` forces it |
 | `look` | String | `''` | `board` or `nextcloud`; empty follows the provided `cnLook` |
 | `boardRowLimit` | Number | `4` | Board look: how many types the open group lists before the "show all" line; `0` lists every type |
+| `boardLayout` | String | `'table'` | Board look: `table` is the layout above; `selects` draws, per group, the register select and a schema select per type in a grid of three, then the save button (DqBeheerinstellingen) |
 | `autoMatch` | Boolean | `true` | Automatically match schema titles to type slugs when a register is selected |
 | `labels` | Object | *(see below)* | UI label overrides for all user-visible strings (register, schema, notConfigured, noSchemas, selectRegister, selectSchema, allConfigured, partiallyConfigured) |
