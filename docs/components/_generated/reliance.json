@@ -4221,6 +4221,19 @@
 			],
 			"page": "cn-stages-widget-form"
 		},
+		"CnStatGridWidget": {
+			"direct": 0,
+			"transitive": 13,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnIndexPage",
+				"CnRegisterSchemaSelect",
+				"CnStatWidget",
+				"CnStatWidgetForm"
+			],
+			"page": "cn-stat-grid-widget"
+		},
 		"CnStatWidget": {
 			"direct": 5,
 			"transitive": 12,
