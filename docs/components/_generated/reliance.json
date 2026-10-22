@@ -1763,7 +1763,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 136,
+			"transitive": 137,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
