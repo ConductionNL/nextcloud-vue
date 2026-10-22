@@ -1824,15 +1824,18 @@ export default {
 	font: inherit;
 }
 
+/* An outlined pill in the main ink (DqContact "BSN tonen"), not the theme's
+   button colour. */
 .cn-facts-widget__inline-button {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border-dark);
 	border-radius: 16px;
+	color: var(--color-main-text);
 	font-size: 13px;
 	font-weight: 600;
 	gap: 4px;
 	margin-inline-start: 8px;
-	min-height: 28px;
+	min-height: 30px;
 	padding: 0 10px;
 }
 
