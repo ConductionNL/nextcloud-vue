@@ -2384,3 +2384,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* ---- A setup step's choice radio ---------------------------------------- */
+/* The setup wizard's choice cards draw their radio 20px square in the primary
+   colour (DqInstellen "Voorbeeldgegevens laden"); the browser draws 13px, and
+   Nextcloud's input height stretched it to 13x36. Its weight outranks the
+   18px other native radios take.
+   @spec openspec/changes/board-setup-choice-radio/specs/board-setup-choice-radio/spec.md#requirement-a-setup-steps-choice-radio-is-20px */
+.cn-look-board .cn-setup-step .cn-choice-cards input.cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 20px;
+	min-width: 20px;
+	height: 20px;
+	min-height: 20px;
+	accent-color: var(--color-primary-element);
+}
