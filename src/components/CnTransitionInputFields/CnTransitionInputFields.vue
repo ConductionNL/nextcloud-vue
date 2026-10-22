@@ -217,7 +217,9 @@ let uid = 0
  *
  * Next to the schema-resolved widgets an input may declare `widget` (`text`,
  * `textarea`, `number`, `date`, `select`, `template`), `optionsSource` (a dot
- * path into `context`), `other`, `helperFrom`, `preview`, `default` and
+ * path into `context`), `optionsEndpoint` (`{ url, params?, responsePath? }`,
+ * the choices read from an app endpoint, `@context.<path>` filled in the url
+ * and params; a select by default), `other`, `helperFrom`, `preview`, `default` and
  * presentation keys; see `resolveInputFields` in `utils/transitionInputs.js`.
  *
  * ```vue
@@ -389,18 +391,47 @@ export default {
 			// The values with every change made since the host last passed
 			// them in, so two changes in one tick both survive.
 			latest: { ...this.modelValue },
+			/** Rows read by `optionsEndpoint` inputs, by field. */
+			endpointRows: {},
 		}
 	},
 
 	computed: {
 		/** Every declared input, resolved against the schema and the context. */
 		fields() {
-			return resolveInputFields(this.inputs, {
+			return resolveInputFields(this.effectiveInputs, {
 				schema: this.schema,
 				register: this.register,
-				context: this.context,
+				context: this.effectiveContext,
 				values: this.modelValue,
 			})
+		},
+
+		/**
+		 * The inputs, an `optionsEndpoint` one reading its rows from what the
+		 * endpoint answered.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/transition-options-endpoint/specs/transition-inputs/spec.md#requirement-a-select-input-reads-its-choices-from-an-endpoint
+		 */
+		effectiveInputs() {
+			return (Array.isArray(this.inputs) ? this.inputs : []).map((input) => (
+				input && input.optionsEndpoint && input.optionsEndpoint.url && input.field
+					? { widget: 'select', ...input, optionsSource: `__endpointRows.${input.field}` }
+					: input
+			))
+		},
+
+		/** @return {object} The context with the endpoint rows next to it. */
+		effectiveContext() {
+			return { ...(this.context || {}), __endpointRows: this.endpointRows }
+		},
+
+		/** @return {string} Changes when an endpoint input's request changes. */
+		endpointKey() {
+			return JSON.stringify((Array.isArray(this.inputs) ? this.inputs : [])
+				.filter((input) => input && input.optionsEndpoint && input.optionsEndpoint.url)
+				.map((input) => [input.field, this.endpointRequest(input.optionsEndpoint)]))
 		},
 
 		/** The inputs that are asked now. */
@@ -441,10 +472,60 @@ export default {
 		modelValue(values) {
 			this.latest = { ...values }
 		},
+
+		endpointKey: {
+			immediate: true,
+			handler() {
+				this.loadEndpointOptions()
+			},
+		},
 	},
 
 	methods: {
 		t,
+
+		/**
+		 * An endpoint's url and params with every `@context.<path>` filled
+		 * from the context (URL-encoded in the url).
+		 *
+		 * @param {object} endpoint `{ url, params? }`.
+		 * @return {{url: string, params: object}}
+		 */
+		endpointRequest(endpoint) {
+			const fill = (value, encode) => (typeof value === 'string'
+				? value.replace(/@context\.([\w.]+)/g, (match, path) => {
+						const found = readPath(this.context || {}, path)
+						const text = found === undefined || found === null ? '' : String(found)
+						return encode ? encodeURIComponent(text) : text
+					})
+				: value)
+			const params = {}
+			for (const [key, value] of Object.entries(endpoint.params || {})) {
+				params[key] = fill(value, false)
+			}
+			return { url: fill(endpoint.url, true), params }
+		},
+
+		/**
+		 * Read the rows of every `optionsEndpoint` input.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/transition-options-endpoint/specs/transition-inputs/spec.md#requirement-a-select-input-reads-its-choices-from-an-endpoint
+		 */
+		async loadEndpointOptions() {
+			const inputs = (Array.isArray(this.inputs) ? this.inputs : []).filter((input) => input && input.optionsEndpoint && input.optionsEndpoint.url && input.field)
+			if (inputs.length === 0) {
+				return
+			}
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			await Promise.all(inputs.map(async (input) => {
+				const { url, params } = this.endpointRequest(input.optionsEndpoint)
+				const rows = await axios.get(generateUrl(url), { params })
+					.then(({ data }) => (input.optionsEndpoint.responsePath ? readPath(data, input.optionsEndpoint.responsePath) : data))
+					.catch(() => [])
+				this.endpointRows = { ...this.endpointRows, [input.field]: Array.isArray(rows) ? rows : [] }
+			}))
+		},
 
 		/**
 		 * A context value as text, '' when absent.

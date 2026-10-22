@@ -33,6 +33,7 @@ Every key [`CnTransitionInputDialog`](./cn-transition-input-dialog.md) reads (`f
 |-----|-------------|
 | `widget` | `text`, `textarea`, `number`, `date`, `select` or `template`, whatever the schema says. |
 | `optionsSource` | A dot path into `context` holding the rows to pick from, read through `optionValue` (default `value`) and `optionLabel` (default `label`). With no rows the input is hidden and asks nothing. |
+| `optionsEndpoint` | `{ url, params?, responsePath? }`: the rows to pick from, read from an app endpoint when the inputs load; `@context.<path>` in the url (URL-encoded) and params fills from `context`. Read like `optionsSource`, a select by default; without rows the input is hidden. |
 | `other` | `{ label, input }`: adds an "Other" entry. The input it names is shown, and asked, only when this picker is hidden or Other is picked. Other is sent as `''`. |
 | `helperFrom` | `{ input, key }`: the helper text is `key` of the row picked in that other input, such as the legal basis of a picked reason. |
 | `preview` | `{ label, template, note, testid }`: a line under the input once the template resolves. Tokens are `{field}`, `{field\|date}`, `{today\|date}` and `{today+field\|date}` (today plus that many days); a token that resolves to nothing hides the line. The value carries the test id `<testid>-value`. |
