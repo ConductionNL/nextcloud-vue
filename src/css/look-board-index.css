@@ -1578,3 +1578,12 @@
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
 }
+
+/* ---- A saved view row's menu ------------------------------------------- */
+/* The menu trigger on a saved view row ("Beheer Termijn deze week") is a
+   round 34px button (DqFilterBeheren, DqFilterInMenu); NcActions drew the
+   8px element radius.
+   @spec openspec/changes/board-saved-view-menu-round/specs/board-saved-view-menu-round/spec.md#requirement-a-saved-view-rows-menu-trigger-is-round */
+.cn-look-board .cn-saved-views-panel__row .action-item__menutoggle:not(.cn-look-nextcloud *) {
+	border-radius: 17px;
+}
