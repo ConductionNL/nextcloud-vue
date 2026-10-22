@@ -2506,7 +2506,8 @@
     "within %n day": [
       "binnen %n dag",
       "binnen %n dagen"
-    ]
+    ],
+    "Search term: {term}": "Zoekterm: {term}"
   },
   "plurals": {
     "{count} member": [

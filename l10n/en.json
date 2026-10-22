@@ -2256,7 +2256,8 @@
     "within %n day": [
       "within %n day",
       "within %n days"
-    ]
+    ],
+    "Search term: {term}": "Search term: {term}"
   },
   "plurals": {
     "{count} member": [

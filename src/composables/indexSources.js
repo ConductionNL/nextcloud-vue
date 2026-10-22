@@ -1092,6 +1092,13 @@ function searchSource(config = {}, context = {}) {
 	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
 	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
 	let seq = 0
+	// Once the page's search box has sent a term, an empty box means no term,
+	// not the address's `?q=` again.
+	let boxUsed = false
+	const addressTerm = () => {
+		const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+		return String((query && query.get((config && config.termQuery) || 'q')) || '').trim()
+	}
 
 	/**
 	 * The labels of the objects a kind's status points at, by id: the
@@ -1231,8 +1238,9 @@ function searchSource(config = {}, context = {}) {
 				}
 			}
 			state.filters = filters
-			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
+			const typed = cfg && typeof cfg.searchTerm === 'string' ? cfg.searchTerm.trim() : ''
+			boxUsed = boxUsed || typed !== ''
+			const term = typed || (boxUsed ? '' : String((cfg && cfg.term) || addressTerm()).trim())
 			const mine = ++seq
 			state.term = term
 			if (term === '' || kinds.length === 0) {
@@ -1269,6 +1277,12 @@ function searchSource(config = {}, context = {}) {
 		 * @return {string} The term searched for, for a `{term}` in the title or count line.
 		 */
 		term: () => state.term,
+
+		// The page's search box searches again, and starts out holding the
+		// term from the address; the term shows as a removable chip.
+		searchParam: 'searchTerm',
+		initialSearch: () => String((config && config.term) || addressTerm()).trim(),
+		searchChip: true,
 
 		/**
 		 * @return {number} The active kind's total, or every kind's together on All.
