@@ -42,8 +42,13 @@
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
-			<div class="cn-tile-widget__title" :style="{ color: resolvedTextColor }">
-				{{ resolvedTitle }}
+			<div class="cn-tile-widget__text">
+				<div class="cn-tile-widget__title" :style="{ color: resolvedTextColor }">
+					{{ resolvedTitle }}
+				</div>
+				<div v-if="resolvedSubtitle" class="cn-tile-widget__subtitle" :style="{ color: resolvedTextColor }">
+					{{ resolvedSubtitle }}
+				</div>
 			</div>
 		</a>
 	</div>
@@ -106,6 +111,17 @@ export default {
 		resolvedTitle() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.tile.title ? fn(this.tile.title) : this.tile.title
+		},
+
+		/**
+		 * The optional line under the title (`tile.subtitle`), translated like
+		 * the title. Empty when the tile names none.
+		 *
+		 * @return {string}
+		 */
+		resolvedSubtitle() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.tile.subtitle ? fn(this.tile.subtitle) : ''
 		},
 
 		/**
@@ -276,6 +292,18 @@ export default {
 
 .cn-tile-widget__emoji {
 	font-size: 48px;
+}
+
+/* The text block takes no box of its own outside the board look, so the
+   title stays a direct flex item of the link. */
+.cn-tile-widget__text {
+	display: contents;
+}
+
+.cn-tile-widget__subtitle {
+	font-size: 13px;
+	text-align: center;
+	opacity: 0.85;
 }
 
 .cn-tile-widget__title {

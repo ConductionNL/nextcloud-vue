@@ -1554,6 +1554,51 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0;
 }
 
+/* ---- Link tiles (CnTileWidget) ------------------------------------------ */
+/* The board draws a link tile as a rounded card, its icon on the left beside
+   a 15px bold title and a 13px line under it, all left-aligned (PtThemas
+   "Themacatalogus", "Portalen en hun thema's"), not a square with a centred
+   48px icon.
+   @spec openspec/changes/board-link-tile/specs/board-link-tile/spec.md#requirement-a-board-link-tile-is-a-rounded-card-with-its-icon-beside-the-title */
+.cn-look-board .cn-tile-widget:not(.cn-look-nextcloud *) {
+	border-radius: var(--cn-board-card-radius, 12px);
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__link:not(.cn-look-nextcloud *) {
+	flex-direction: row;
+	justify-content: flex-start;
+	gap: 14px;
+	padding: 20px 22px;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__link:not(.cn-look-nextcloud *):hover {
+	transform: none;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__icon:not(.cn-look-nextcloud *),
+.cn-look-board .cn-tile-widget .cn-tile-widget__icon--svg:not(.cn-look-nextcloud *) {
+	width: 24px;
+	height: 24px;
+	font-size: 24px;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__text:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-tile-widget .cn-tile-widget__subtitle:not(.cn-look-nextcloud *) {
+	text-align: start;
+}
+
+.cn-look-board .cn-tile-widget .cn-tile-widget__title:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	line-height: 1.2;
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */
