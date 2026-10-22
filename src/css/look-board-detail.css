@@ -1132,6 +1132,27 @@
 	line-height: normal;
 }
 
+/* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
+/* The case-tab boards draw a list's table edge to edge in its card
+   (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
+   under the card's 22px side padding and its outer cells take that padding,
+   so the column text lines up with the card title. Other boards keep the
+   table inside the padding (DqTenant "Mandaten"), so it is an opt-in.
+   @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-an-object-list-can-run-its-table-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container {
+	margin-inline: -22px;
+	border: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):first-child {
+	padding-inline-start: 22px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):last-child {
+	padding-inline-end: 22px;
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
