@@ -1794,6 +1794,112 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 }
 
+/* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
+/* The board draws a timeline entry as a rail row: a 34px circle on a 2px
+   line, the message first at 15px weight 600, the kind, author and moment
+   under it as one 13px muted line, 6px above and 16px below; a two-line row is
+   58px. The theme sets paragraphs through its tokens with `!important`, so the
+   message and the siblings line hand it their size through those tokens. The
+   entry actions stay, over the row's end on hover and focus.
+   @spec openspec/changes/board-timeline-rows/specs/board-timeline-rows/spec.md#requirement-a-board-timeline-entry-is-a-rail-row */
+.cn-look-board .cn-timeline-manage__entry:not(.cn-look-nextcloud *) {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-height: 34px;
+	padding: 6px 0 16px 48px;
+	border-block-end: none;
+}
+
+.cn-look-board .cn-timeline-manage__entry:not(.cn-look-nextcloud *)::before {
+	content: '';
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--color-text-maxcontrast) 0 4px, transparent 4.5px), var(--color-background-dark);
+}
+
+.cn-look-board .cn-timeline-manage__entry:not(:last-child):not(.cn-look-nextcloud *)::after {
+	content: '';
+	position: absolute;
+	inset-block: 34px 0;
+	inset-inline-start: 16px;
+	width: 2px;
+	background: var(--color-border);
+}
+
+.cn-look-board .cn-timeline-manage__entry--pinned:not(.cn-look-nextcloud *) {
+	border-inline-start: none;
+}
+
+.cn-look-board .cn-timeline-manage__entry--pinned:not(.cn-look-nextcloud *)::before {
+	background: radial-gradient(circle, var(--color-primary-element) 0 4px, transparent 4.5px), var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-timeline-manage__message:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 15px;
+	--nldesign-component-paragraph-line-height: normal;
+	--nldesign-component-paragraph-font-weight: 600;
+	--nldesign-component-paragraph-color: var(--color-main-text);
+	order: -1;
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
+	gap: 0;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-timeline-manage__kind:not(.cn-look-nextcloud *) {
+	font-weight: inherit;
+	color: inherit;
+}
+
+.cn-look-board .cn-timeline-manage__author:not(.cn-look-nextcloud *)::before,
+.cn-look-board .cn-timeline-manage__moment:not(.cn-look-nextcloud *)::before {
+	content: '\00a0·\00a0';
+}
+
+.cn-look-board .cn-timeline-manage__badge:not(.cn-look-nextcloud *) {
+	margin-inline-start: 8px;
+	padding: 2px 8px;
+	border: none;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-weight: 600;
+}
+
+.cn-look-board .cn-timeline-manage__siblings:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-line-height: normal;
+	margin: 0;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-timeline-manage__actions:not(.cn-look-nextcloud *) {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-end: 0;
+	margin: 0;
+	background: var(--color-main-background);
+	opacity: 0;
+}
+
+.cn-look-board .cn-timeline-manage__entry:hover .cn-timeline-manage__actions:not(.cn-look-nextcloud *),
+.cn-look-board .cn-timeline-manage__entry:focus-within .cn-timeline-manage__actions:not(.cn-look-nextcloud *) {
+	opacity: 1;
+}
+
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
    board's card pads 24px at the sides and each row 14px, a soft hairline
