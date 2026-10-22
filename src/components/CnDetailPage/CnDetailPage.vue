@@ -2789,6 +2789,21 @@ export default {
 		},
 
 		/**
+		 * A field path, read like a `visibleWhen` field, whose list of
+		 * declared header action ids picks this record's quick actions
+		 * (manifest `config.quickActionsFrom`, e.g.
+		 * `@context.caseType.quickActions`). Only ids of `headerActions` are
+		 * taken, so the record's data never defines an action. An empty or
+		 * missing list keeps `quickActions`.
+		 *
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		quickActionsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Draw the header as a card (manifest `config.headerCard: true`): the
 		 * pills, the title and the actions on the page's surface colour inside
 		 * a bordered, rounded box, as the board's case header. Off by default,
@@ -3433,6 +3448,35 @@ export default {
 		},
 
 		/**
+		 * The quick actions for this record: the declared header actions the
+		 * record lists through `quickActionsFrom`, in its order, else
+		 * `quickActions`. An entry is an id, or `{ id, ... }` without a label;
+		 * an id no header action declares is dropped.
+		 *
+		 * @return {Array<string|object>} The entries.
+		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 */
+		effectiveQuickActions() {
+			const declared = Array.isArray(this.quickActions) ? this.quickActions : []
+			if (!this.quickActionsFrom || !this.widgetVisibilityData) {
+				return declared
+			}
+			const listed = readVisibleWhenPath(this.widgetVisibilityData, this.quickActionsFrom)
+			if (!Array.isArray(listed)) {
+				return declared
+			}
+			const known = new Set((Array.isArray(this.headerActions) ? this.headerActions : []).map((action) => action && action.id))
+			const idOf = (entry) => {
+				if (typeof entry === 'string') {
+					return entry
+				}
+				return entry && typeof entry === 'object' && !('label' in entry) && typeof entry.id === 'string' ? entry.id : ''
+			}
+			const picked = listed.filter((entry) => known.has(idOf(entry)))
+			return picked.length > 0 ? picked : declared
+		},
+
+		/**
 		 * The quick actions as ids, plus definitions for the inline ones.
 		 * Capped at three, and never the action that is already the primary
 		 * button.
@@ -3442,7 +3486,7 @@ export default {
 		 */
 		pinnedQuickActions() {
 			const primaryId = this.stagePrimary?.id
-			return (Array.isArray(this.quickActions) ? this.quickActions : [])
+			return this.effectiveQuickActions
 				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
 				.filter((pinned) => pinned && pinned.id !== primaryId)
 				.slice(0, MAX_QUICK_ACTIONS)
