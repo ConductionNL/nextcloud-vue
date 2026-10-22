@@ -179,6 +179,8 @@ export default {
 		 * count that record's related rows. Null elsewhere.
 		 */
 		cnObjectContext: { default: null },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for an action with a `type`. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -619,6 +621,7 @@ export default {
 					label: this.tl(action.label),
 					href,
 					target,
+					dispatch: !target && !href && typeof action.type === 'string' && action.type !== '' ? action : null,
 					primary: index === primaryIndex,
 					index,
 				}
@@ -826,16 +829,23 @@ export default {
 
 		/**
 		 * Run an attention-card action: route an in-app link, leave an
-		 * external link to the browser, and emit `action` for a button.
+		 * external link to the browser, dispatch a manifest action (one with a
+		 * `type`) through the page with its `@subject.` tokens filled, and
+		 * emit `action` for any other button.
 		 *
 		 * @param {MouseEvent} event The click.
 		 * @param {object} action The resolved action.
 		 * @return {void}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 * @spec openspec/changes/banner-action-dispatch/specs/banner-action-dispatch/spec.md#requirement-a-banner-action-can-be-a-manifest-action-on-the-subject
 		 */
 		onActionClick(event, action) {
 			if (action.target) {
 				followLinkClick(event, action.target, this.$router)
+				return
+			}
+			if (action.dispatch && typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(this.resolveSubject(action.dispatch))
 				return
 			}
 			if (!action.href) {
