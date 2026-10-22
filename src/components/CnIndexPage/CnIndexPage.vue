@@ -6093,14 +6093,15 @@ export default {
 		 */
 		/**
 		 * What the `quickFiltersFrom` tabs depend on, as one key: a change
-		 * asks again. Empty without the prop, or with `quickFilters` set.
+		 * asks again. Empty without the prop, or with `quickFilters` holding tabs.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
 		 */
 		quickFiltersFromKey() {
 			const from = this.quickFiltersFrom
-			if (this.quickFilters || !from || typeof from.field !== 'string' || from.field === '') {
+			const declared = Array.isArray(this.quickFilters) && this.quickFilters.length > 0
+			if (declared || !from || typeof from.field !== 'string' || from.field === '') {
 				return ''
 			}
 			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
@@ -7819,14 +7820,19 @@ export default {
 		},
 
 		/**
-		 * The quick-filter tabs to render: the `quickFilters` prop when set,
-		 * else a named source's own tabs (`useNamedSource` resolved the same
-		 * precedence for the LOAD side, so strip and fetch cannot disagree).
+		 * The quick-filter tabs to render: the `quickFilters` prop when it
+		 * holds tabs, else the tabs `quickFiltersFrom` made (an empty
+		 * `quickFilters` gives way to them, so a saved view can swap a page's
+		 * lenses for its own, DqTeamwachtrij), else a named source's own tabs
+		 * (`useNamedSource` resolved the same precedence for the LOAD side, so
+		 * strip and fetch cannot disagree).
 		 *
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
+			const declared = this.presented('quickFilters')
+			const tabs = Array.isArray(declared) && declared.length > 0 ? declared : (this.generatedQuickFilters || declared)
+			const own = withPersonalLenses(tabs, this.personalLenses)
 			if (own && own.length > 0) {
 				return own.map((tab) => this.withConfigLabels(tab))
 			}
