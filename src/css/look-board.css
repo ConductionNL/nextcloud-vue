@@ -483,6 +483,19 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* ---- A workspace filter's table export ---------------------------------- */
+/* "CSV exporteren" beside "Rapport laden" is the neutral secondary at the
+   40px control height, 14px in (DqTermijnen).
+   @spec openspec/changes/workspace-filter-export-table/specs/workspace-filter-export-table/spec.md#requirement-a-workspace-filter-input-can-export-the-table-it-loads */
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue.cn-workspace-filter-widget__export {
+	--button-size: var(--cn-board-control-height);
+	--button-padding: 14px;
+}
+
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue.cn-workspace-filter-widget__export .button-vue__text {
+	padding-inline: 0;
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
