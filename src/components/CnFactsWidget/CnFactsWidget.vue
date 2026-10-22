@@ -1840,7 +1840,7 @@ export default {
 	font-weight: 600;
 	gap: 4px;
 	margin-inline-start: 8px;
-	min-height: 28px;
+	min-height: 30px;
 	padding: 0 10px;
 }
 
