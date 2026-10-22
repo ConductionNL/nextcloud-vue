@@ -184,7 +184,7 @@
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
-			:bulkBandAlways="bulkBandAlways"
+			:bulkBandAlways="bulkBandIdleShown"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -7976,6 +7976,17 @@ export default {
 					.sort()
 			}
 			return out
+		},
+
+		/**
+		 * Whether the bulk band shows before a selection: `bulkBandAlways`, in
+		 * a view that selects rows (table, cards, list, board). The map and
+		 * the date views select nothing (DqZakenKaart).
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandIdleShown() {
+			return this.bulkBandAlways && ['table', 'cards', 'list', 'board'].includes(this.currentViewMode)
 		},
 
 		/**
