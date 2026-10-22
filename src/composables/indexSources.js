@@ -1025,6 +1025,18 @@ function searchSource(config = {}, context = {}) {
 	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
 	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
 	let seq = 0
+	let loaded = false
+
+	/**
+	 * The term in the address (`?q=`, or the page's `termQuery`), or ''.
+	 *
+	 * @param {object} [cfg] The page's source config.
+	 * @return {string}
+	 */
+	const termFromAddress = (cfg) => {
+		const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+		return String((query && query.get((cfg && cfg.termQuery) || (config && config.termQuery) || 'q')) || '').trim()
+	}
 
 	/**
 	 * The labels of the objects a kind's status points at, by id: the
@@ -1138,8 +1150,12 @@ function searchSource(config = {}, context = {}) {
 				}
 			}
 			state.filters = filters
-			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
+			// The search field's term once the page searches with it; the term
+			// in the address only on the first search, so clearing the field
+			// clears the search.
+			const fromAddress = loaded ? '' : termFromAddress(cfg)
+			loaded = true
+			const term = String((cfg && typeof cfg.term === 'string' ? cfg.term : fromAddress) || '').trim()
 			const mine = ++seq
 			state.term = term
 			if (term === '' || kinds.length === 0) {
@@ -1200,6 +1216,25 @@ function searchSource(config = {}, context = {}) {
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
 			},
 		],
+
+		/**
+		 * The page's search field searches here: its value arrives as `term`.
+		 */
+		searchParam: 'term',
+
+		/**
+		 * The search field's first value: the term in the address, so
+		 * `?q=Lindelaan` stands in the field.
+		 *
+		 * @return {string}
+		 */
+		initialSearch: () => termFromAddress(config),
+
+		/**
+		 * The Active line names the term ("Search term: Lindelaan") with a
+		 * button that clears it.
+		 */
+		termChip: true,
 
 		quickFilters: kinds.length > 0
 			? [

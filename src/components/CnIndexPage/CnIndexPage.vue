@@ -7787,6 +7787,11 @@ export default {
 				const field = this.cnTranslate((props[key] && props[key].title) || key)
 				chips.push({ key, label: `${field}: ${values.join(', ')}` })
 			}
+			// A searching source that asks for it names the term first
+			// ("Zoekterm: Lindelaan", DqZoekresultaten).
+			if (this.namedSourceSearches && this.namedSource && this.namedSource.termChip === true && this.namedSearchTerm) {
+				chips.unshift({ key: 'search-term', label: t('nextcloud-vue', 'Search term: {term}', { term: this.namedSearchTerm }) })
+			}
 			return chips
 		},
 
@@ -10131,6 +10136,9 @@ export default {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
 			}
+			if (this.namedSourceSearches && this.namedSource && this.namedSource.termChip === true) {
+				this.namedSearchTerm = ''
+			}
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
 				return
@@ -10322,6 +10330,10 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && chip.key === 'search-term') {
+				this.namedSearchTerm = ''
+				return
+			}
 			if (chip && typeof chip.quickFilterIndex === 'number') {
 				this.deselectQuickFilterChip(chip.quickFilterIndex)
 				return

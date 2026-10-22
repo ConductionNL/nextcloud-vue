@@ -128,6 +128,11 @@ export function useNamedSource(props, options = {}) {
 	const activeIndex = options.activeQuickFilterIndex || null
 	const activeFilters = options.activeFilters || null
 	const searchTerm = (typeof source.searchParam === 'string' && source.searchParam !== '') ? (options.searchTerm || null) : null
+	// A source that offers the field's first value (the search source's `?q=`)
+	// seeds it before the first load, so the field shows what was searched.
+	if (searchTerm && searchTerm.value === '' && typeof source.initialSearch === 'function') {
+		searchTerm.value = String(source.initialSearch() || '')
+	}
 	// A source that pages (`pages: true`) gets the page as `limit` and
 	// `offset`, from the pager the page draws for it.
 	const paging = source.pages === true ? (options.paging || null) : null
