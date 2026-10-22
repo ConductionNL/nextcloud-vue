@@ -1317,6 +1317,7 @@ import {
 	groupMenuEntries,
 	MAX_QUICK_ACTIONS,
 	normalisePinnedAction,
+	onTab,
 	pillCountSource,
 	pillLook,
 	resolveCountPill,
@@ -2581,7 +2582,9 @@ export default {
 		 * for the few actions a handler uses on every record. At most three
 		 * render; later entries are dropped. An entry is an action object in
 		 * the `headerActions` shape, or the id of a declared header action,
-		 * which then leaves the Actions menu.
+		 * which then leaves the Actions menu. `{ id, tabs?, notTabs? }` names
+		 * a declared action that is a button only beside those body tabs, as
+		 * a side card follows them; elsewhere it stays in the Actions menu.
 		 *
 		 * @type {Array<string|object>}
 		 */
@@ -2616,7 +2619,8 @@ export default {
 		 * object with `stages`), that map replaces `stages` for this record, so
 		 * a case type keeps its own stage texts. Otherwise `stages` stays.
 		 * Rendered above the body for a stage that declares a checklist, with
-		 * the primary button inside it. See `CnNextStepCard`.
+		 * the primary button inside it. `tabs` / `notTabs` tie the card to
+		 * body tabs as a side card. See `CnNextStepCard`.
 		 *
 		 * @type {object|null}
 		 */
@@ -3445,13 +3449,16 @@ export default {
 		},
 
 		/**
-		 * The quick actions in dispatchable form, in declaration order.
+		 * The quick actions in dispatchable form, in declaration order, less
+		 * the ones the open body tab leaves out.
 		 *
 		 * @return {Array<object>} The entries that are visible.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		quickActionEntries() {
 			return this.pinnedQuickActions
+				.filter((pinned) => onTab(pinned, this.activeBodyTab))
 				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
 				.filter(Boolean)
 		},
@@ -3701,11 +3708,12 @@ export default {
 		/**
 		 * Whether the "what now" card renders.
 		 *
-		 * @return {boolean} True when the stage has a checklist and the body is showing.
+		 * @return {boolean} True when the stage has a checklist, the body is showing and the open tab allows it.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
 		 */
 		showsNextStepCard() {
-			return Boolean(this.nextStepCard) && this.showsBody
+			return Boolean(this.nextStepCard) && this.showsBody && onTab(this.nextStep, this.activeBodyTab)
 		},
 
 		/**
@@ -6746,16 +6754,7 @@ export default {
 		 * @return {boolean}
 		 */
 		sideWidgetOnTab(widget) {
-			if (this.editingBody) {
-				return true
-			}
-			if (Array.isArray(widget.notTabs) && widget.notTabs.map((id) => String(id)).includes(this.activeBodyTab)) {
-				return false
-			}
-			if (!Array.isArray(widget.tabs) || widget.tabs.length === 0) {
-				return true
-			}
-			return widget.tabs.map((id) => String(id)).includes(this.activeBodyTab)
+			return this.editingBody || onTab(widget, this.activeBodyTab)
 		},
 
 		/**
