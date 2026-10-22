@@ -1042,3 +1042,30 @@
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
 }
+
+/* ---- A file's side card (CnFilesBrowser) --------------------------------- */
+/* The board's side card: radius 12, 20px 22px of padding, the title a 15px
+   muted heading at 600, the facts 8px 16px apart with the values at 500
+   (DqDocumentenBeheer "Wie mag dit zien", "Controlegetal"). The title's tone
+   carries `!important` against a theme that colours every h3.
+   @spec openspec/changes/board-files-side-card/specs/board-files-side-card/spec.md#requirement-a-board-file-side-card-is-the-boards-side-card */
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) {
+	gap: 10px;
+	padding: var(--cn-board-card-padding);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-title {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size);
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts {
+	gap: 8px 16px;
+}
+
+.cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
+	font-weight: 500;
+}
