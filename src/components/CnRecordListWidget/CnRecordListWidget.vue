@@ -170,7 +170,7 @@
 							{{ item.action.label }}
 						</component>
 					</div>
-					<!-- rows: title and meta, then the pill, the date and a chevron. -->
+					<!-- rows: title, meta and text, then the pill, the date and a chevron. -->
 					<component
 						:is="item.tag"
 						v-else-if="presentation === 'rows'"
@@ -189,6 +189,7 @@
 						<span class="cn-record-list__main">
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
 							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
 								{{ linksLabel }}
 								<template v-for="(link, linkIndex) in item.links" :key="link.id">
@@ -219,7 +220,7 @@
 							<span v-if="item.trailing" class="cn-record-list__trailing">{{ item.trailing }}</span>
 						</span>
 						<ChevronRight
-							v-if="item.tag !== 'div'"
+							v-if="item.tag !== 'div' && content.chevron !== false"
 							class="cn-record-list__chevron"
 							:size="18"
 							aria-hidden="true" />
@@ -501,6 +502,9 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
+		 * and `chevron: false` leaves the chevron off a linked row
+		 * (DqDashboard).
 		 *
 		 * @type {object}
 		 */

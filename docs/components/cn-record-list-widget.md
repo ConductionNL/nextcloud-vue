@@ -167,6 +167,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
+In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
+
 ## Props
 
 | Prop | Type | Default | Description |
