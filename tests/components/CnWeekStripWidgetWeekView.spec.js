@@ -11,6 +11,7 @@
  */
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
+import { nextTick, ref } from 'vue'
 import CnWeekStripWidget from '../../src/components/CnWeekStripWidget/CnWeekStripWidget.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
 
@@ -136,5 +137,17 @@ describe('CnWeekStripWidget week view', () => {
 		expect(summary.text()).toContain('Teacher ill')
 		expect(summary.text()).toContain('Cancelled')
 		expect(w.find('.cn-week-strip__heading').text()).toBe('My timetable')
+	})
+
+	it('reads the page workspace and waits for a required token', async () => {
+		const workspace = ref({})
+		const content = { ...CONTENT, endpointSource: { url: '/apps/school/api/timetable/of', params: { target: '@workspace.target', from: '@range.from', to: '@range.to' } } }
+		mount(CnWeekStripWidget, { props: { content, now: NOW }, global: { stubs, provide: { cnWorkspaceContext: workspace } } })
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		workspace.value = { target: 'cohort:c1' }
+		await nextTick()
+		await flush()
+		expect(axios.get).toHaveBeenCalledWith('/apps/school/api/timetable/of', expect.objectContaining({ params: { target: 'cohort:c1', from: '2026-10-05', to: '2026-10-10' } }))
 	})
 })

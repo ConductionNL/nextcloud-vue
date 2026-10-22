@@ -118,7 +118,7 @@ With an `endpointSource` the strip reads its items from an app endpoint for the 
 
 | Key | Meaning |
 |-----|---------|
-| `endpointSource` | `{ url, params?, responsePath? }`. `@range.from` is the first day shown and `@range.to` the day after the last (`YYYY-MM-DD`). Read again when the shown days change and on a page refresh. |
+| `endpointSource` | `{ url, params?, responsePath? }`. `@range.from` is the first day shown and `@range.to` the day after the last (`YYYY-MM-DD`). `@workspace.<key>` reads the dashboard's workspace, so a `workspace-filter` on the page picks whose week is shown; a required token without a value holds the read. Read again when the shown days or the workspace change, and on a page refresh. |
 | `itemsPath`, `itemLists` | The list of items in the answer (default `items`), and more lists of the same answer, each with its own item keys (`path`, `dateField`, `titleTemplate`, `timeFields`, ...). |
 | `titleTemplate`, `metaTemplates` | Templates as in a record list; a list in place of a template is candidates, the first that fills. |
 | `timeFields` | `{ start, end }`: an ISO moment or `HH:MM`, drawn as "09:00–09:50" in the Nextcloud locale. A day's items sort by start. |

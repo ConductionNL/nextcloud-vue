@@ -166,7 +166,7 @@
 <script>
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
@@ -248,7 +248,8 @@ export default {
 		 * The week view (`endpointSource` and the keys after it):
 		 * - `endpointSource` `{ url, params?, responsePath? }` reads the items from an app endpoint;
 		 *   `@range.from` and `@range.to` in it are the first day shown and the day after the last
-		 *   (`YYYY-MM-DD`). `itemsPath` (default `items`) is the list in the answer, and `itemLists`
+		 *   (`YYYY-MM-DD`); `@workspace.<key>` reads the page's workspace (a `workspace-filter`), and
+		 *   an unanswered required token holds the read. `itemsPath` (default `items`) is the list in the answer, and `itemLists`
 		 *   (`[{ path, dateField?, titleTemplate?, ... }]`) more lists of the same answer, each taking
 		 *   the item keys below for itself.
 		 * - Item keys: `titleTemplate` and `metaTemplates` (fillTemplate templates, a list being
@@ -296,10 +297,15 @@ export default {
 
 	setup(props) {
 		const range = ref(null)
+		const workspaceRaw = inject('cnWorkspaceContext', null)
+		const workspace = () => {
+			const bag = workspaceRaw && typeof workspaceRaw === 'object' && 'value' in workspaceRaw ? workspaceRaw.value : workspaceRaw
+			return bag && typeof bag === 'object' ? bag : {}
+		}
 		const hasEndpoint = () => Boolean(props.content && props.content.endpointSource && props.content.endpointSource.url)
 		const { data: answer, loading: answerLoading, error: answerError } = useEndpointSource(
 			() => (hasEndpoint() && range.value ? props.content.endpointSource : null),
-			{ ctx: () => ({ range: range.value || {} }) },
+			{ ctx: () => ({ range: range.value || {}, workspace: workspace() }) },
 		)
 		return { range, answer, answerLoading, answerError }
 	},
