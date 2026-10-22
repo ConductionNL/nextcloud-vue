@@ -483,6 +483,31 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* ---- A table's export button ------------------------------------------- */
+/* The boards draw "CSV exporteren" as a neutral 40px control: the main text
+   at 14px/600 on the main background with the control border (DqTermijnen).
+   It is a tertiary NcButton, on which a theme may point --color-main-text at
+   its button ink (thematiq draws the primary), so the row hands that ink the
+   main text.
+   @spec openspec/changes/board-table-export-button/specs/board-table-export-button/spec.md#requirement-a-board-table-export-button-is-a-neutral-40px-control */
+.cn-look-board .cn-widget-object-table__footer--export:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-color: var(--color-main-text);
+}
+
+.cn-look-board .cn-widget-object-table__footer--export:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: var(--cn-board-control-height);
+	--nldesign-component-button-font-weight: 600;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-widget-object-table__footer--export:not(.cn-look-nextcloud *) .button-vue:hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
 /* ---- Header action buttons (CnActionButtons) ----------------------------- */
 /* The board draws a page's secondary actions as neutral 40px buttons: the
    main background, a grey border, the main text at 600 (DqZaak "Bericht",
