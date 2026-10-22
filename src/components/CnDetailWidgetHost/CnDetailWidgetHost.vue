@@ -516,6 +516,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's action dispatcher (CnPageRenderer), for `headerActions`. */
 		cnDispatchAction: { default: null },
+		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
+		cnRecordEdit: { default: null },
 		/**
 		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
 		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
@@ -1102,6 +1104,7 @@ export default {
 				object: this.object || {},
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
+				recordEdit: this.cnRecordEdit,
 				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
 					? this.cnDispatchAction(action)
 					: dispatchAction(action, { router: this.$router || null })),

@@ -1639,7 +1639,18 @@ export default {
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
+		const canEditRecord = computed(() => this.canEditRecord)
 		return {
+			// The page's own record edit form, for a widget header button whose
+			// action is `edit-record` (DqZaaktype "Termijnen" Bewerken).
+			cnRecordEdit: {
+				get available() {
+					return canEditRecord.value
+				},
+
+				open: () => this.openEditForm(),
+			},
+
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,
