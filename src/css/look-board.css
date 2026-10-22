@@ -1823,6 +1823,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* An audit row is a board list row (DqHandhaving, DqTenant "Historie"): 10px
+   above and below, a hairline over every row including the first, the head
+   and the line under it at their normal line height, 2px apart: 56px, the
+   first line 21px under the card title.
+   @spec openspec/changes/board-audit-rows/specs/board-audit-rows/spec.md#requirement-a-board-audit-row-is-the-boards-list-row */
+.cn-look-board .cn-audit-card__row:not(.cn-look-nextcloud *) {
+	padding: 10px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: none;
+}
+
+.cn-look-board .cn-audit-card__row .cn-audit-card__row-head:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 .cn-look-board .cn-audit-card__row .cn-audit-card__action:not(.cn-look-nextcloud *) {
 	font-weight: 500;
 }
@@ -1832,7 +1847,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .cn-audit-card__row .cn-audit-card__row-body:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
 	font-size: 13px;
+	line-height: normal;
 }
 
 /* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
