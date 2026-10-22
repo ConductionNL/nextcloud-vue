@@ -33,7 +33,7 @@ opens the corresponding issue in a new tab.
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |
 | `disabled` | Boolean | No | When `true`, the view collapses to a single "disabled by your administrator" empty state. |
 | `categories` | Object | No | Feature category key to caption; the order of the groups in the board look. |
-| `board` | Object | No | Board look options for CnFeaturesBoard (`layout`, `tabs`, `filter`, `filterLabel`, `statusLabels`, `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`, `suggestButton`). See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look). Ignored in the default look. |
+| `board` | Object | No | Board look options for CnFeaturesBoard (`layout`, `tabs`, `filter`, `filterLabel`, `statusLabels`, `statusVariants`, `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`, `suggestButton`). See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look). Ignored in the default look. |
 | `title` | String | No | Page title in the board look. Empty reads "Features and roadmap". |
 | `appVersion` | String | No | The app version for `{appVersion}` in the board subtitle. |
 | `openbuiltUrl` | String | No | Override the OpenBuilt sidebar CTA target. Pass an absolute URL or a Nextcloud-relative path. Defaults to the in-instance OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`). |
