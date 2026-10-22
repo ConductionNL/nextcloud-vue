@@ -120,6 +120,9 @@
 					<div
 						v-if="presentation === 'rows' && item.action"
 						class="cn-record-list__row cn-record-list__row--action">
+						<span v-if="item.leading"
+							class="cn-record-list__leading"
+							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -177,6 +180,9 @@
 						class="cn-record-list__row"
 						:class="{ 'cn-record-list__row--link': item.tag !== 'div' }"
 						v-bind="item.attrs">
+						<span v-if="item.leading"
+							class="cn-record-list__leading"
+							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -472,7 +478,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
-		 * presentation?, variant?, lead?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -750,6 +756,7 @@ export default {
 					text: this.fill(c.text, row),
 					label: this.fill(c.label, row),
 					trailing: c.trailing ? firstFilled(c.trailing, row, this.translate, new Date(), this.templateContext) : '',
+					leading: c.leading ? firstFilled(c.leading, row, this.translate, new Date(), this.templateContext) : '',
 					pill: this.pillOf(row),
 					badges: this.badgesOf(row),
 					due: this.dueOf(row),
@@ -2236,6 +2243,14 @@ export default {
 	display: flex;
 	flex: none;
 	gap: 16px;
+}
+
+.cn-record-list__leading {
+	flex: 0 0 52px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
 
 .cn-record-list__trailing {
