@@ -93,6 +93,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	overflow: hidden;
 }
 
+/* A section's labelled buttons are text-only at the 40px control height, 16px
+   in (DqPersoonlijkeInstellingen "Waarneming registreren", "Opnieuw
+   beginnen"); NcButton drew 34px with an icon.
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-button-is-a-40px-text-button */
+.cn-look-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
+	--button-padding: 16px;
+}
+
+.cn-look-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: none;
+}
+
+.cn-look-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
 /* Header: padding 22px 24px 0. */
 .cn-dialog-header {
 	display: flex;
