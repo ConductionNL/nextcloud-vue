@@ -68,7 +68,10 @@
 							</template>
 						</CnSegmentedControl>
 					</template>
-					<div v-else class="cn-index-sidebar__sort-direction" role="radiogroup" :aria-label="t('nextcloud-vue', 'Direction')">
+					<div v-else
+						class="cn-index-sidebar__sort-direction"
+						role="radiogroup"
+						:aria-label="t('nextcloud-vue', 'Direction')">
 						<NcCheckboxRadioSwitch
 							type="radio"
 							name="cn-index-sidebar-sort-direction"
