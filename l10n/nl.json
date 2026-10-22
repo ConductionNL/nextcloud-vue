@@ -2486,7 +2486,12 @@
     "How this app compares": "Hoe deze app zich verhoudt",
     "This field is required": "Dit veld is verplicht",
     "Creating…": "Aanmaken…",
-    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw."
+    "This could not be created. Try again.": "Dit kon niet worden aangemaakt. Probeer het opnieuw.",
+    "Everything sent": "Alles verstuurd",
+    "Sending…": "Bezig met versturen…",
+    "Offline, {count} waiting to be sent": "Offline, {count} wachten op verzending",
+    "{count} waiting to be sent": "{count} wachten op verzending",
+    "{waiting} waiting to be sent, {stuck} stuck": "{waiting} wachten op verzending, {stuck} vastgelopen"
   },
   "plurals": {
     "{count} member": [

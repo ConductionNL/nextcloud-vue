@@ -4,7 +4,15 @@
 -->
 
 <template>
-	<div class="cn-offline-queue" data-testid="cn-offline-queue">
+	<button v-if="variant === 'badge'"
+		type="button"
+		class="cn-offline-queue__badge"
+		:class="badgeClass"
+		data-testid="cn-offline-queue-badge"
+		@click="requestSync">
+		{{ badgeLabel }}
+	</button>
+	<div v-else class="cn-offline-queue" data-testid="cn-offline-queue">
 		<div v-if="loading" class="cn-offline-queue__loading">
 			<NcLoadingIcon :size="24" />
 		</div>
@@ -232,9 +240,31 @@ export default {
 			type: Number,
 			default: 2000,
 		},
+
+		/**
+		 * `list` shows every operation; `badge` shows one pill with the
+		 * waiting and stuck counts that asks the host to send now when pressed.
+		 */
+		variant: {
+			type: String,
+			default: 'list',
+			validator: (v) => ['list', 'badge'].includes(v),
+		},
+
+		/** Badge: the host is sending right now. */
+		syncing: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Badge: the device has no connection, so pressing does nothing. */
+		offline: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['requeued', 'copy-refused', 'resolved'],
+	emits: ['requeued', 'copy-refused', 'resolved', 'sync'],
 
 	data() {
 		return {
@@ -274,6 +304,39 @@ export default {
 		},
 
 		/**
+		 * The badge text: sending, offline, everything sent, or the counts.
+		 *
+		 * @return {string} The label.
+		 */
+		badgeLabel() {
+			if (this.syncing) {
+				return t('nextcloud-vue', 'Sending…')
+			}
+			if (this.offline) {
+				return t('nextcloud-vue', 'Offline, {count} waiting to be sent', { count: this.waitingCount + this.stuckCount })
+			}
+			if (this.operations.length === 0 || (this.waitingCount === 0 && this.stuckCount === 0)) {
+				return t('nextcloud-vue', 'Everything sent')
+			}
+			return this.summaryLabel
+		},
+
+		/**
+		 * The badge's state class; the label always says the same in words.
+		 *
+		 * @return {string} The class.
+		 */
+		badgeClass() {
+			if (this.offline) {
+				return 'cn-offline-queue__badge--offline'
+			}
+			if (this.stuckCount > 0) {
+				return 'cn-offline-queue__badge--stuck'
+			}
+			return this.waitingCount > 0 || this.syncing ? 'cn-offline-queue__badge--waiting' : 'cn-offline-queue__badge--sent'
+		},
+
+		/**
 		 * The one line above the list.
 		 *
 		 * @return {string} The summary.
@@ -307,6 +370,22 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Badge: ask the host to send now, then read the queue again.
+		 *
+		 * @return {Promise<void>} Nothing.
+		 */
+		async requestSync() {
+			if (this.offline || this.syncing) {
+				return
+			}
+			/**
+			 * @event sync Badge: the person asked to send what is waiting now. The host sends; the badge reads the queue again.
+			 */
+			this.$emit('sync')
+			await this.load()
+		},
 
 		/**
 		 * Read the queue.
@@ -551,6 +630,32 @@ export default {
 
 .cn-offline-queue__status {
 	font-weight: bold;
+}
+
+.cn-offline-queue__badge {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--default-clickable-area);
+	padding: 0 12px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	cursor: pointer;
+}
+
+/* The badge's border repeats its words and never replaces them. */
+.cn-offline-queue__badge--stuck {
+	border-color: var(--color-error);
+}
+
+.cn-offline-queue__badge--waiting,
+.cn-offline-queue__badge--offline {
+	border-color: var(--color-warning);
+}
+
+.cn-offline-queue__badge--sent {
+	border-color: var(--color-success);
 }
 
 /* The colour repeats the word beside it and never replaces it. */

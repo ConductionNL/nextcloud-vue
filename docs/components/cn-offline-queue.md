@@ -150,11 +150,22 @@ milliseconds. It defaults to `2000`. Set it to `0` and the list stops polling,
 which is what a test wants and what a device on a metered connection may want
 too.
 
+## Badge
+
+`variant="badge"` draws one pill for a page header instead of the list: "Everything sent", "3 waiting to be sent", "2 waiting to be sent, 1 stuck", "Sending…" or "Offline, 3 waiting to be sent". Pressing it emits `sync`; the host sends what is waiting and the badge reads the queue again. `syncing` and `offline` come from the host, and pressing does nothing while either is true. Decisions on conflicts and stuck entries stay on the list variant.
+
+```vue
+<CnOfflineQueue variant="badge" :deviceId="deviceId" :syncing="sending" :offline="!navigatorOnline" @sync="sendNow" />
+```
+
+Reusers: shillinq's warehouse scanner, learniq attendance on a tablet, buildiq site inspections.
+
 ## Accessibility
 
 Every status is rendered as a **word**: Waiting, Sending, Needs a decision,
 Stuck, Sent. The colour only repeats it. This is the surface that tells
 somebody their morning's work is stuck, so a coloured dot alone would leave that
-unsaid for a reader who cannot see it (WCAG 2.2 SC 1.4.1).
+unsaid for a reader who cannot see it (WCAG 2.2 SC 1.4.1). The badge is a
+button whose text is the whole state; its border colour only repeats it.
 
 <GeneratedRef />

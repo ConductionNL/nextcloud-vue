@@ -2236,7 +2236,12 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Everything sent": "Everything sent",
+    "Sending…": "Sending…",
+    "Offline, {count} waiting to be sent": "Offline, {count} waiting to be sent",
+    "{count} waiting to be sent": "{count} waiting to be sent",
+    "{waiting} waiting to be sent, {stuck} stuck": "{waiting} waiting to be sent, {stuck} stuck"
   },
   "plurals": {
     "{count} member": [
