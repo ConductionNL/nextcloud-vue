@@ -184,7 +184,7 @@
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
-			:bulkBandAlways="bulkBandAlways && !viewBulkBand"
+			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
 			:bulkLead="viewBulkBandLead"
 			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
@@ -8258,6 +8258,17 @@ export default {
 			const count = this.internalSelectedIds.length
 			const template = count === 1 ? lead.one : (lead.other || lead.one)
 			return typeof template === 'string' && template !== '' ? this.cnTranslate(template).replace(/\{count\}/g, String(count)) : ''
+		},
+
+		/**
+		 * Whether the bulk band shows before a selection: `bulkBandAlways`, in
+		 * a view that selects rows (table, cards, list, board). The map and
+		 * the date views select nothing (DqZakenKaart).
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandIdleShown() {
+			return this.bulkBandAlways && ['table', 'cards', 'list', 'board'].includes(this.currentViewMode)
 		},
 
 		/**
