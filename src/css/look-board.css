@@ -554,6 +554,13 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* The same beside a CnDetailCard's title (DqTaak "Notitie toevoegen" on the
+   notes card, a detail card's declared header actions).
+   @spec openspec/changes/board-detail-card-header-button-height/specs/board-detail-card-header-button-height/spec.md#requirement-a-labelled-detail-card-header-button-is-40px */
+.cn-look-board .cn-detail-card__header-right .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- A labelled menu button ------------------------------------------- */
 /* "Acties" and "Meer" are 40px tall wherever they stand (a page header, a
    card header, a tab strip), as the header buttons beside them (DqTenant,
