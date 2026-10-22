@@ -154,6 +154,15 @@
 	display: contents;
 }
 
+/* A title row that holds the 40px buttons is already 6px taller than the
+   title's text, so there the description drops its own 6px top margin and
+   the line under the title stays 13px below its text (DqDashboard,
+   DqMijnWerk, DqMijnTeam; live 19).
+   @spec openspec/changes/board-dashboard-description-gap/specs/board-dashboard-description-gap/spec.md#requirement-the-board-dashboard-description-adds-no-margin-of-its-own-above-it */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header:has(> .cn-dashboard-page__header-actions > *) .cn-dashboard-page__description {
+	margin-top: 0;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
