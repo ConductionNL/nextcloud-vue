@@ -157,6 +157,15 @@ export default {
 		actionLabel: { type: String, default: () => t('nextcloud-vue', 'Change') },
 		/** Shown on an entry the server refused (`authorized: false`). */
 		refusedLabel: { type: String, default: () => t('nextcloud-vue', '(refused)') },
+		/**
+		 * What happened, in words, by action (`claim`) or by action and the
+		 * state it led to (`complete:completed`, tried first). `{actor}` and
+		 * `{state}` are filled in; a label that names the actor leaves it off
+		 * the line under it. An action without a label shows as written.
+		 *
+		 * @type {Object<string, string>|null}
+		 */
+		actionLabels: { type: Object, default: null },
 		/** Shown when a `source` or `endpoint` read failed. */
 		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The history could not be loaded') },
 	},
@@ -282,8 +291,40 @@ export default {
 		 * @return {string} The line.
 		 */
 		formatAction(entry) {
+			const label = this.labelFor(entry)
+			if (label !== null) {
+				return label
+					.replace('{actor}', this.actorName(entry))
+					.replace('{state}', entry.stateAfter || '')
+			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
+		},
+
+		/**
+		 * The `actionLabels` entry for an entry: by action and state first,
+		 * then by action.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string|null} The label, or null when none is declared.
+		 * @spec openspec/changes/audit-trail-action-labels/specs/audit-trail/spec.md#requirement-a-trail-can-say-what-happened-in-words
+		 */
+		labelFor(entry) {
+			const labels = this.actionLabels
+			const action = entry.action || entry.event
+			if (!labels || !action) {
+				return null
+			}
+			const label = labels[`${action}:${entry.stateAfter || ''}`] ?? labels[action]
+			return typeof label === 'string' && label !== '' ? label : null
+		},
+
+		/**
+		 * @param {object} entry The entry.
+		 * @return {string} Who did it, by name where the entry carries one.
+		 */
+		actorName(entry) {
+			return entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
 		},
 
 		/**
@@ -294,8 +335,8 @@ export default {
 		 * @return {string} The line.
 		 */
 		formatActor(entry) {
-			const actor = entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
-			const parts = [actor]
+			const named = (this.labelFor(entry) || '').includes('{actor}')
+			const parts = [named ? '' : this.actorName(entry)]
 			if (entry.performerType && entry.performerType !== 'user') {
 				parts.push(`(${entry.performerType})`)
 			}

@@ -14,6 +14,7 @@
 		:scope="resolvedScope"
 		:title="resolvedTitle"
 		:maxDisplay="resolvedMaxDisplay"
+		:actionLabels="actionLabels"
 		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 </template>
 
@@ -89,7 +90,7 @@ export default {
 		source: { type: Object, default: null },
 		/** A trail URL of its own; also read from `content.endpoint`. */
 		endpoint: { type: String, default: '' },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, actionLabels? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -162,6 +163,23 @@ export default {
 		},
 
 		/** @return {string} The empty line the content names, through the host's translate, or ''. */
+		/**
+		 * `content.actionLabels`, each label through the app's translate.
+		 *
+		 * @return {Object<string, string>|null}
+		 * @spec openspec/changes/audit-trail-action-labels/specs/audit-trail/spec.md#requirement-a-trail-can-say-what-happened-in-words
+		 */
+		actionLabels() {
+			const labels = this.content.actionLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, text]) => typeof text === 'string' && text !== '')
+				.map(([key, text]) => [key, translate(text)]))
+		},
+
 		emptyText() {
 			const text = this.content.emptyText
 			if (typeof text !== 'string' || text === '') {
