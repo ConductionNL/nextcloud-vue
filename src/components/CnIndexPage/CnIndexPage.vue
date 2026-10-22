@@ -7760,6 +7760,13 @@ export default {
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
+				// A button that runs an `adminOnly` header action is drawn for an
+				// administrator only, as the action is in the Actions menu.
+				.filter((button) => {
+					const target = button.action === 'export' ? button.run : button.action
+					const entry = (this.headerActions || []).find((action) => action && action.id === target)
+					return !(entry && entry.adminOnly === true && !this.viewerIsAdmin())
+				})
 				.map((button, index) => {
 					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
 					let icon = typeof button.icon === 'string' ? button.icon : ''
@@ -9726,15 +9733,22 @@ export default {
 					run: () => { this.showMassCopyDialog = true },
 				}),
 
-				'export-selected': () => ({
-					key: 'export-selected',
-					label: t('nextcloud-vue', 'Export selection as JSON'),
-					icon: 'Export',
-					iconComponent: Export,
-					disabled: noSelection,
-					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
-					run: () => this.onExportSelected(),
-				}),
+				// Offered only where the list's own export is: `allowExport`, an
+				// exportable schema, and a register and schema to export from.
+				'export-selected': () => {
+					if (!this.showExportMenu) {
+						return null
+					}
+					return {
+						key: 'export-selected',
+						label: t('nextcloud-vue', 'Export selection as JSON'),
+						icon: 'Export',
+						iconComponent: Export,
+						disabled: noSelection,
+						title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
+						run: () => this.onExportSelected(),
+					}
+				},
 
 				'delete-selected': () => ({
 					key: 'delete-selected',
@@ -12112,7 +12126,7 @@ export default {
 		 */
 		onExportSelected() {
 			const ids = this.internalSelectedIds.map((id) => String(id))
-			if (ids.length === 0) {
+			if (ids.length === 0 || !this.showExportMenu) {
 				return
 			}
 			window.location.assign(buildExportUrl(this.register, this.exportSchemaSlug, { _ids: ids }, 'json'))

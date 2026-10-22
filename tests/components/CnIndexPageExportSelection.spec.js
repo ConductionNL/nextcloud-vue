@@ -63,8 +63,10 @@ describe('the Actions menu exports the selection', () => {
 	})
 	afterEach(() => assign.mockRestore())
 
+	const EXPORTABLE = { title: 'Case type', slug: 'caseType', exportable: true, properties: {} }
+
 	it('waits for a selection, then downloads the export of the selected ids as JSON', async () => {
-		const w = mountPage({ schema: { title: 'Case type', slug: 'caseType', properties: {} }, headerButtons: [ADD, { action: 'actions-menu', items: ['export-selected'] }] })
+		const w = mountPage({ allowExport: true, schema: EXPORTABLE, headerButtons: [ADD, { action: 'actions-menu', items: ['export-selected'] }] })
 		expect(entry(w, 'export-selected').text()).toBe('Export selection as JSON')
 		expect(entry(w, 'export-selected').attributes('disabled')).toBeDefined()
 
@@ -78,6 +80,22 @@ describe('the Actions menu exports the selection', () => {
 		expect(url).toContain('format=json')
 		expect(url).toContain('_ids[]=a&_ids[]=b')
 	})
+
+	it('is offered only where the list itself may be exported', async () => {
+		const menu = { headerButtons: [ADD, { action: 'actions-menu', items: ['export-selected', 'refresh'] }], selectedIds: ['a'] }
+		const variants = [
+			{ ...menu, schema: EXPORTABLE },
+			{ ...menu, allowExport: true, schema: { ...EXPORTABLE, exportable: false } },
+			{ ...menu, allowExport: true, schema: EXPORTABLE, register: '' },
+			{ ...menu, allowExport: true, schema: { title: 'Case type', exportable: true, properties: {} } },
+		]
+		for (const variant of variants) {
+			const w = mountPage(variant)
+			expect(entry(w, 'export-selected').exists()).toBe(false)
+			w.vm.onExportSelected()
+		}
+		expect(assign).not.toHaveBeenCalled()
+	})
 })
 
 describe('a header action can be offered to administrators only', () => {
@@ -89,6 +107,15 @@ describe('a header action can be offered to administrators only', () => {
 		const w = mountPage(menu)
 		expect(entry(w, 'reload').exists()).toBe(false)
 		expect(entry(w, 'goto').exists()).toBe(true)
+	})
+
+	it('draws no header button that runs it for a user who is not an administrator', () => {
+		getCurrentUser.mockReturnValue({ uid: 'pieter', isAdmin: false })
+		const buttons = { headerButtons: [ADD, { action: 'reload', label: 'Reload templates' }, { action: 'goto', label: 'Go to' }], headerActions: actions }
+		expect(mountPage(buttons).vm.resolvedHeaderButtons.map((b) => b.action)).toEqual(['add', 'goto'])
+
+		getCurrentUser.mockReturnValue({ uid: 'admin', isAdmin: true })
+		expect(mountPage(buttons).vm.resolvedHeaderButtons.map((b) => b.action)).toEqual(['add', 'reload', 'goto'])
 	})
 
 	it('offers it to an administrator', () => {
