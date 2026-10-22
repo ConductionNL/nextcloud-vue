@@ -241,11 +241,14 @@ export default {
 	watch: {
 		// The suffix only applies together with a slug field; drop it when the
 		// field is cleared so it cannot silently re-activate on a later pick.
-		'schema.configuration.objectSlugField'(value) {
-			if (!value && this.schema.configuration.objectSlugSuffix) {
-				this.schema.configuration.objectSlugSuffix = false
-			}
+		'schema.configuration.objectSlugField': {
+			handler(value) {
+				if (!value && this.schema.configuration.objectSlugSuffix) {
+					this.schema.configuration.objectSlugSuffix = false
+				}
+			},
 		},
+
 		'schema.configuration.allowedTags': {
 			immediate: true,
 			handler(tags) {
