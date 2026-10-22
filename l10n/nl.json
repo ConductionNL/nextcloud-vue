@@ -2668,6 +2668,10 @@
     "Also written on %n other record": [
       "Staat ook op %n ander dossier",
       "Staat ook op %n andere dossiers"
+    ],
+    "%n follower": [
+      "%n volger",
+      "%n volgers"
     ]
   }
 }
