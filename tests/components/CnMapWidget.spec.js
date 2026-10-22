@@ -687,6 +687,24 @@ describe('CnMapWidget — controls', () => {
 		wrapper.unmount()
 	})
 
+	it('draws no controls at all with content.controls false (a map on a card, as the case board draws it)', async () => {
+		const wrapper = mountWidget({ content: { controls: false } })
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		expect(controlBar(L)).toBeFalsy()
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('keeps the zoom control by default', async () => {
+		const wrapper = mountWidget({})
+		await flush()
+		await nextTick()
+		expect(require('leaflet').default.map.mock.calls.at(-1)[1].zoomControl).toBe(true)
+		wrapper.unmount()
+	})
+
 	it('fitToMarkers() re-measures before it re-fits the marker bounds', async () => {
 		const wrapper = mountWidget({
 			markers: { features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [5, 52] }, properties: {} }] },

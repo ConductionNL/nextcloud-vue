@@ -509,6 +509,18 @@ export default {
 		},
 
 		/**
+		 * Whether the map draws its controls: zoom, fit, locate and fullscreen.
+		 * `content.controls: false` draws none, for a small map on a card that
+		 * only shows where things are (the case board's Locations card).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/map-without-controls/specs/map-widget/spec.md#requirement-a-map-can-draw-without-controls
+		 */
+		controlsShown() {
+			return this.content?.controls !== false
+		},
+
+		/**
 		 * The image layer, when the map is a picture: the first `image` layer with
 		 * a safe URL and a positive width and height. Null for a geographic map.
 		 *
@@ -703,13 +715,13 @@ export default {
 						zoomSnap: 0.25,
 						maxBounds: paddedImageBounds(image.width, image.height),
 						maxBoundsViscosity: 1,
-						zoomControl: true,
+						zoomControl: this.controlsShown,
 						attributionControl: true,
 					}
 				: {
 						center: this.cfg.center,
 						zoom: this.cfg.zoom,
-						zoomControl: true,
+						zoomControl: this.controlsShown,
 						attributionControl: true,
 					}
 			this.map = L.map(this.$refs.mapEl, mapOptions)
@@ -1185,6 +1197,9 @@ export default {
 			}
 
 			const buttons = []
+			if (!this.controlsShown) {
+				return
+			}
 			if (this.fitControl) {
 				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: ICON_FIT, onClick: () => this.fitToMarkers() })
 			}

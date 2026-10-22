@@ -93,6 +93,8 @@ Beyond Leaflet's own zoom and attribution controls, the widget mounts a control 
 | `locateControl`     | `true`  | **Show my location** — browser geolocation; warns (never throws) when denied or on an insecure origin. |
 | `fullscreenControl` | `true`  | **Toggle fullscreen** — a CSS overlay, so no Fullscreen-API permission prompt. |
 
+A small map on a card that only shows where things are can do without all of them: `content.controls: false` (manifest) draws neither Leaflet's zoom control nor the bar.
+
 `fitToMarkers()` is also callable directly through a template ref:
 
 ```vue
