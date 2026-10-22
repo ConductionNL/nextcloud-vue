@@ -82,7 +82,7 @@ empty history.
 |-----|---------|-------------|
 | `manage` | `false` | `true` renders the manage view. |
 | `title`, `subtitle` | "History", "What happened, who did it and when, newest first" | Headings (translated through the app). |
-| `publicLabel` | "Visible to the applicant" | Label of the public badge, filter option and composer switch. |
+| `publicLabel` | "Visible to the requester" | Label of the public badge, filter option and composer switch. |
 | `exportName` | `history` | CSV file name prefix; the object id is appended. |
 | `composer` | `true` | `false` hides the note composer. |
 | `textBlocks` | `true` | `false` skips the standard notes. |

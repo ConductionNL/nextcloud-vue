@@ -33,7 +33,7 @@
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					{{ t('nextcloud-vue', 'Add a note') }}
+					{{ t('nextcloud-vue', 'Add note') }}
 				</NcButton>
 				<NcButton data-testid="cn-timeline-export" @click="exportEntries">
 					<template #icon>
@@ -153,7 +153,7 @@
 			data-testid="cn-timeline-composer"
 			@submit.prevent="submit">
 			<h3 class="cn-timeline-manage__composer-title">
-				{{ t('nextcloud-vue', 'Add a note') }}
+				{{ t('nextcloud-vue', 'Add note') }}
 			</h3>
 			<p class="cn-timeline-manage__composer-hint">
 				{{ t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible') }}
@@ -164,13 +164,13 @@
 				:options="blockOptions"
 				:clearable="true"
 				label="label"
-				:inputLabel="t('nextcloud-vue', 'Standard note')"
+				:inputLabel="t('nextcloud-vue', 'Template')"
 				:placeholder="t('nextcloud-vue', 'Write your own')"
 				data-testid="cn-timeline-block"
 				@update:modelValue="pickBlock" />
 
 			<label class="cn-timeline-manage__draft-label" :for="draftId">
-				{{ t('nextcloud-vue', 'Write a note on this record') }}
+				{{ t('nextcloud-vue', 'Note') }}
 			</label>
 			<textarea :id="draftId"
 				v-model="draft"
@@ -186,7 +186,7 @@
 				type="submit"
 				:disabled="saving || !draft.trim()"
 				data-testid="cn-timeline-save">
-				{{ t('nextcloud-vue', 'Add to the timeline') }}
+				{{ t('nextcloud-vue', 'Add it to the timeline') }}
 			</NcButton>
 		</form>
 
@@ -277,7 +277,7 @@ export default {
 		},
 
 		publicLabel() {
-			return this.content.publicLabel ? this.translate(this.content.publicLabel) : t('nextcloud-vue', 'Visible to the applicant')
+			return this.content.publicLabel ? this.translate(this.content.publicLabel) : t('nextcloud-vue', 'Visible to the requester')
 		},
 
 		composerEnabled() {
