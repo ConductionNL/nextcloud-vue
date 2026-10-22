@@ -571,12 +571,14 @@ export default {
 		 * key (`"number"`), a template with `{field}` placeholders
 		 * (`"{number} · {requester}"`, dotted paths allowed; `{startAt|weekday}`
 		 * formats through `fillTemplate`), or a function of the row. Empty fields leave their placeholder blank; a line that
-		 * resolves to nothing is not drawn.
+		 * resolves to nothing is not drawn. `secondaryLabels` names a field's
+		 * values on that line, `{ field: { value: label, '*': label } }`
+		 * (i18n keys; `'*'` for any other value).
 		 *
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string))}|string>}
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -2004,29 +2006,38 @@ export default {
 			if (spec.includes('{')) {
 				const filled = joinTemplateParts(spec, (key) => (key.includes('|')
 					? fillTemplate(`{${key}}`, row)
-					: this.secondaryFieldText(row, key)))
+					: this.secondaryFieldText(row, key, col)))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
 			}
-			return this.secondaryFieldText(row, spec)
+			return this.secondaryFieldText(row, spec, col)
 		},
 
 		/**
-		 * The text of one field on a secondary line. An enum field reads as its
-		 * label (`x-enum-labels`, in the user's language), as an enum cell
-		 * does, so "regular" reads "Gewone vergadering". Anything else is the
-		 * stored value as text.
+		 * The text of one field on a secondary line. A value the column's
+		 * `secondaryLabels[key]` names reads as that label, else as its `'*'`
+		 * label, translated. An enum field reads as its label (`x-enum-labels`,
+		 * in the user's language), as an enum cell does, so "regular" reads
+		 * "Gewone vergadering". Anything else is the stored value as text.
 		 *
 		 * @spec openspec/changes/screens-secondary-enum-label/specs/data-table/spec.md
 		 * @param {object} row The row.
 		 * @param {string} key The field key (dotted paths allowed).
+		 * @param {object} [col] The column, for its `secondaryLabels`.
 		 * @return {string} The text, or '' when the field is empty.
 		 */
-		secondaryFieldText(row, key) {
+		secondaryFieldText(row, key, col) {
 			const value = this.getCellValue(row, key)
 			if (value === null || value === undefined) {
 				return ''
+			}
+			const named = col?.secondaryLabels?.[key]
+			if (named && typeof named === 'object' && typeof value !== 'object') {
+				const label = Object.hasOwn(named, String(value)) ? named[String(value)] : named['*']
+				if (typeof label === 'string' && label !== '') {
+					return this.translateLabel(label)
+				}
 			}
 			const property = this.getSchemaProperty(key)
 			if (typeof value !== 'object' && value !== '' && Array.isArray(property.enum) && property.enum.length > 0) {
