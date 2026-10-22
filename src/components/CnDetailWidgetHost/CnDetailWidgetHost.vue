@@ -1592,23 +1592,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-detail-page__catalog-action {
-	align-items: center;
-	background: var(--color-primary-element-light);
-	border: 0;
-	border-radius: 16px;
-	color: var(--color-primary-element-light-text, var(--color-primary-element));
-	cursor: pointer;
-	display: inline-flex;
-	font: inherit;
-	font-size: 13px;
-	font-weight: 700;
-	gap: 6px;
-	min-height: 32px;
-	padding: 0 14px;
-	white-space: nowrap;
-}
-
 /* A leaf card in a narrow cell keeps its title and count: the title row
    wraps and the actions move under it instead of squeezing the title out. */
 .cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {
