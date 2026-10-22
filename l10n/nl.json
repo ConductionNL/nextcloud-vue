@@ -2525,7 +2525,14 @@
     "Open on {day}": "Open op {day}",
     "Opens on {day}": "Opent op {day}",
     "Closes on {day}": "Sluit op {day}",
-    "{field}: a day closes before it opens, or a time is missing.": "{field}: een dag sluit voordat hij opent, of er ontbreekt een tijd."
+    "{field}: a day closes before it opens, or a time is missing.": "{field}: een dag sluit voordat hij opent, of er ontbreekt een tijd.",
+    "No shipped set is loaded.": "Er is geen meegeleverde set geladen.",
+    "Remove the set {set}": "De set {set} verwijderen",
+    "Removing…": "Verwijderen…",
+    "Could not read the loaded sets.": "De geladen sets konden niet worden gelezen.",
+    "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "De set \"{set}\" verwijderen? De objecten gaan naar de prullenbak, waar u ze kunt terugzetten. Wat u zelf heeft gemaakt, blijft staan.",
+    "The set \"{set}\" was removed.": "De set \"{set}\" is verwijderd.",
+    "The set \"{set}\" was not removed.": "De set \"{set}\" is niet verwijderd."
   },
   "plurals": {
     "{count} member": [
