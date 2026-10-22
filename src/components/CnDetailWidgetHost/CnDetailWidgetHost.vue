@@ -144,7 +144,7 @@
 		     case) is absent. Mounting it would hand the leaf an empty host, and a
 		     leaf falls back to the page's own object from there. -->
 		<span
-			v-else-if="isIntegration && widgetPropsPending"
+			v-else-if="(isIntegration && widgetPropsPending) || consumerWidgetWaiting"
 			hidden
 			data-testid="cn-detail-widget-props-pending" />
 
@@ -367,6 +367,7 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
+import { getByPath } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -1232,7 +1233,59 @@ export default {
 			if (title) {
 				base.title = title
 			}
-			return { ...base, ...this.declaredContent }
+			return { ...base, ...this.declaredContent, ...this.consumerWidgetProps }
+		},
+
+		/**
+		 * Whether the widget is the app's own (a consumer registry entry).
+		 *
+		 * @return {boolean}
+		 */
+		isConsumerWidget() {
+			const type = this.widget && this.widget.type
+			return Boolean(type && this.cnRegistry && this.cnRegistry[type])
+		},
+
+		/**
+		 * The props an app widget takes from its manifest `props`: literals,
+		 * and `@objectId` / `@object.<field>` / `@config.<key>` /
+		 * `@content.<path>` tokens. A token that does not resolve is left out,
+		 * so the component's own default holds; only declared props pass.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {object} The prop bag, `{}` for any other widget.
+		 */
+		consumerWidgetProps() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return {}
+			}
+			const bag = {}
+			for (const [key, written] of Object.entries(declared)) {
+				const value = typeof written === 'string' && written.startsWith('@content.')
+					? getByPath(this.content || {}, written.slice('@content.'.length))
+					: this.resolvedWidgetProps[key]
+				if (value === undefined || value === null || (typeof value === 'string' && value.charAt(0) === '@')) {
+					continue
+				}
+				bag[key] = value
+			}
+			return pickDeclaredProps(this.renderer, bag, this.widget.type)
+		},
+
+		/**
+		 * Whether an app widget that asks for `@objectId` has none yet.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {boolean} true while the widget must not mount.
+		 */
+		consumerWidgetWaiting() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object') {
+				return false
+			}
+			const asksForId = Object.values(declared).includes('@objectId')
+			return asksForId && (this.objectId === null || this.objectId === undefined || this.objectId === '')
 		},
 
 		/**
