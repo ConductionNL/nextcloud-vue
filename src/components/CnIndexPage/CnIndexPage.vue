@@ -7923,6 +7923,9 @@ export default {
 				}
 				const ends = rangeEnds(raw)
 				if (ends) {
+					if (this.isFixedFilter(key, raw)) {
+						continue
+					}
 					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
 					continue
 				}
@@ -8912,6 +8915,10 @@ export default {
 			const fixed = this.fixedFilters
 			if (!fixed || !Object.hasOwn(fixed, key)) {
 				return false
+			}
+			// A range (`{ from, to }`) is compared whole: String() would make every object equal.
+			if (value !== null && typeof value === 'object') {
+				return JSON.stringify(fixed[key]) === JSON.stringify(value)
 			}
 			return String(fixed[key]) === String(value)
 		},
