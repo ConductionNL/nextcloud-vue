@@ -1780,13 +1780,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
-/* A sections widget stacked as cards (a settings tab, PtPortalInstellingen
-   "Gegevens van de portal", "Huisstijl") titles each card as the board does:
-   18px at weight 700 on a 1.2 line, where the component draws 600 on 1.5.
-   @spec openspec/changes/board-sections-card-heading/specs/board-sections-card-heading/spec.md#requirement-a-board-stacked-section-card-is-titled-at-700-on-a-12-line */
+/* A sections widget stacked as cards (a settings tab) titles each card as the
+   dossiq settings boards do (DqBeheerinstellingen, and the Pt boards since
+   design-system #349): 17px at weight 700 on a 1.3 line, where the
+   component draws 18px at 600 on 1.5.
+   @spec openspec/changes/board-sections-card-heading/specs/board-sections-card-heading/spec.md#requirement-a-board-stacked-section-card-is-titled-as-the-dossiq-settings-cards */
 .cn-look-board .cn-sections-widget--cards:not(.cn-sections-widget--grid) .cn-sections-widget__heading:not(.cn-look-nextcloud *) {
+	font-size: 17px;
 	font-weight: 700;
-	line-height: 1.2;
+	line-height: 1.3;
 }
 
 /* ---- Week strip (DqMijnWerk "Termijnen deze week") ---------------------- */
