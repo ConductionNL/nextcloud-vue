@@ -1639,7 +1639,11 @@ export default {
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
+		const lastChange = computed(() => this.lastChange)
 		return {
+			// The record's newest create or update entry, for a widget that names
+			// who changed it last (`recordLastChange`); null until read.
+			cnRecordLastChange: lastChange,
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,
@@ -2932,6 +2936,20 @@ export default {
 		},
 
 		/**
+		 * Read the record's newest create or update entry (as
+		 * `headerMetaLastChange` does) for the widgets on the page: a facts
+		 * card reads it as `_lastChange.userName` / `_lastChange.created`
+		 * ("Laatst gewijzigd op 3 oktober door Pieter Jansen", DqContact
+		 * "Historie"). `headerMetaLastChange` provides it as well.
+		 *
+		 * @spec openspec/changes/record-last-change-in-widgets/specs/record-last-change-in-widgets/spec.md#requirement-a-widget-can-read-who-changed-the-record-last
+		 */
+		recordLastChange: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The accessible name of the tab list under the board look (manifest
 		 * `config.tabsLabel`). Empty gives "<type> parts", for example "Case
 		 * parts", from the page title.
@@ -3320,7 +3338,7 @@ export default {
 		 * @return {string} The key, '' when nothing is to be read.
 		 */
 		lastChangeKey() {
-			if (!this.headerMetaLastChange || !this.register || !this.schema || !this.objectId) {
+			if (!(this.headerMetaLastChange || this.recordLastChange) || !this.register || !this.schema || !this.objectId) {
 				return ''
 			}
 			return `${this.register}/${this.schema}/${this.objectId}`
