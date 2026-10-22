@@ -5303,7 +5303,7 @@
 						},
 						"pageFilters": {
 							"type": "array",
-							"description": "type='dashboard': page-level filter controls in the header. Each selection is written into the page's workspace context, so a widget reads it through a `@page.<key>` / `@workspace.<key>` token (an endpoint widget also in its `responsePath`). Maps to the CnDashboardPage `pageFilters` prop.",
+							"description": "type='dashboard' and type='detail': page-level filter controls, in a dashboard's header and in a detail page's band (detail-page-filters, 2.141.0). Each selection is written into the page's workspace context, so a widget reads it through a `@page.<key>` / `@workspace.<key>` token (an endpoint widget also in its `responsePath`). Maps to the CnDashboardPage `pageFilters` prop.",
 							"items": {
 								"type": "object",
 								"required": ["key"],
