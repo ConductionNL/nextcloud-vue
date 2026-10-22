@@ -582,6 +582,24 @@
 	padding-top: calc(14px - var(--cn-board-first-line-leading));
 }
 
+/* Facts that open on the column grid are a data card too (DqContact
+   "Contact", DqOrganisatie "Organisatie").
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
+	padding-top: calc(14px - var(--cn-board-first-line-leading));
+}
+
+/* Running text (DqZaak "Het verzoek") sits 12px below the title's box and
+   keeps its own half-leading, at 1.6 as drawn.
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-facts-widget__text:not(.cn-detail-page__side *) {
+	line-height: 1.6;
+}
+
 /* A header-less card keeps the full 20px 22px. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content {
 	padding: var(--cn-board-card-padding);
@@ -647,6 +665,18 @@
 
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
 	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
+}
+
+/* A side card that opens on a lead (DqZaak "Aanvrager", DqOrganisatie "KvK en
+   adres") draws the lead row 12px below the title, its two lines at their
+   normal height so they centre on the 40px tile.
+   @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__lead:first-child) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__lead-text {
+	line-height: normal;
 }
 
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
