@@ -160,6 +160,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'stacked-bar',
 	'stages',
 	'stat',
+	'stat-grid',
 	'stats-block',
 	'status-explainer',
 	'switch-rows',

@@ -569,6 +569,11 @@
 					"default": true,
 					"description": "Whether the column header is clickable to sort. Defaults to true."
 				},
+				"filterField": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The stored field the header filter filters on, when it is not `key`. A dotted path (\"address.place\") names a field inside an object property. Gives a computed column (`aggregate`) a header filter on a field the server stores."
+				},
 				"width": {
 					"type": "string",
 					"description": "Optional CSS width (e.g. \"200px\", \"15%\"). When omitted CnDataTable falls back to its built-in default-width heuristic by type+format."
@@ -665,6 +670,11 @@
 							"type": "object",
 							"additionalProperties": true,
 							"description": "Filter applied to the related collection. String values \"@self.<path>\" are replaced per-row with `getCellValue(row, path)`; everything else is a literal."
+						},
+						"filterable": {
+							"type": "boolean",
+							"default": false,
+							"description": "Give the column a header filter through OpenRegister's related-row filter (`_related[<schema>][<fk>]`): `where` must link one field to \"@self.id\"; a count offers rows WITH a related row matching the other `where` entries, a max over `field` a date range on a related row's `field`."
 						}
 					}
 				},

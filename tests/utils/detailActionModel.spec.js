@@ -5,6 +5,7 @@ import {
 	groupMenuEntries,
 	isChecklistItemDone,
 	normalisePinnedAction,
+	onTab,
 	resolveNextStep,
 	resolvePill,
 	resolveTabCount,
@@ -51,6 +52,31 @@ describe('detailActionModel', () => {
 			expect(normalisePinnedAction(null, 'x')).toBeNull()
 			expect(normalisePinnedAction({ id: 'no-label' }, 'x')).toBeNull()
 			expect(normalisePinnedAction(['a'], 'x')).toBeNull()
+		})
+
+		it('keeps the tabs of a declared action named by id, and of an inline one', () => {
+			expect(normalisePinnedAction({ id: 'message', notTabs: ['ai'] }, 'x'))
+				.toEqual({ id: 'message', inline: null, tabs: undefined, notTabs: ['ai'] })
+			expect(normalisePinnedAction({ id: 'doc', tabs: ['files'] }, 'x').tabs).toEqual(['files'])
+			expect(normalisePinnedAction({ id: 'plan', label: 'Plan', notTabs: ['ai'] }, 'x').notTabs).toEqual(['ai'])
+		})
+	})
+
+	describe('onTab', () => {
+		it('shows an entry without tabs beside every tab', () => {
+			expect(onTab({}, 'ai')).toBe(true)
+			expect(onTab(null, 'ai')).toBe(true)
+			expect(onTab({ tabs: [] }, 'ai')).toBe(true)
+		})
+
+		it('shows an entry with tabs only while one of them is open', () => {
+			expect(onTab({ tabs: ['files', 'tasks'] }, 'tasks')).toBe(true)
+			expect(onTab({ tabs: ['files'] }, 'ai')).toBe(false)
+		})
+
+		it('stands an entry aside while one of its notTabs is open', () => {
+			expect(onTab({ notTabs: ['ai'] }, 'ai')).toBe(false)
+			expect(onTab({ notTabs: ['ai'] }, 'overview')).toBe(true)
 		})
 	})
 

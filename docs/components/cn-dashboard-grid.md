@@ -131,3 +131,8 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## `float`
 
 `float` (default `true`) is GridStack's own setting: every item stays on the row it was placed on. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap instead of leaving a band (CnDashboardPage `gridFloat`, manifest `config.gridFloat`). A `sizeToContent` cell lets its content take its own height, so it can shrink to it.
+
+
+## `sideColumn`
+
+`sideColumn` (`{ width, from? }`, default `null`) draws a side column at a fixed width: layout items with `track: "side"` are `width` px wide from column `from` (8 by default), the card without its item margins, and items with `track: "main"` share what is left. An item without a track keeps the twelve shares, so a row of four tiles across the split stays four equal tiles. GridStack keeps its twelve columns underneath; only each item's left edge and width are drawn on the two scales. It applies on the full twelve-column grid and not while editing (CnDashboardPage `gridSideColumn`, manifest `config.gridSideColumn` or a view's `gridSideColumn`).

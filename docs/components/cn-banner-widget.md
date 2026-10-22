@@ -26,7 +26,7 @@ For the manifest keys and the attention card see the [dashboard widget catalog](
 | `kicker` | `string` | Attention card: the label above the title. |
 | `title` | `string` | Attention card: the title. Falls back to `text`. |
 | `reason` | `string` | Attention card: the line that says why it needs attention. |
-| `actions` | `Array` | Attention card: the actions. |
+| `actions` | `Array` | Attention card: the actions. Each is a link (`route`, `href`), a manifest action with a `type` (`open-modal`, `handler`, ...) dispatched through the page with `@subject.<path>` filled from the card's subject (`{ "type": "open-modal", "target": "CaseLifecycleMenuDialog", "props": { "caseId": "@subject.id", "act": "suspend" } }`), or a button that emits `action`. |
 | `maxActions` | `number \| null` | Attention card: the most actions shown. |
 | `stacked` | `boolean` | Attention card: the actions under the text, with a 16px title. |
 | `content` | `object` | The stored content blob; flat props win on collision. |
