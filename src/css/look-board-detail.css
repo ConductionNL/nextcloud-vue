@@ -15,6 +15,8 @@
 .cn-look-board {
 	/* The notice card at the top of the side column. */
 	--cn-board-notice-bg: var(--color-warning-light, #fdf1d6);
+	/* The notice's text and icon. */
+	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
 	/* Card h2 and side heading. */
@@ -774,6 +776,25 @@
    @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
 	background-color: transparent !important;
+}
+
+/* The notice text and its icon take the notice ink, and the icon is the
+   board's 18px, 10px before the text and 2px down to sit on the first line
+   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
+   `!important`. */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink) !important;
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink);
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon svg:not(.cn-look-nextcloud *) {
+	height: 18px;
+	width: 18px;
 }
 
 /* A notice whose condition does not hold renders no banner; its slot then
