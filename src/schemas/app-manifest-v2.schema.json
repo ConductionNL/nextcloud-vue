@@ -3109,6 +3109,7 @@
 								"sumField": { "type": "string", "description": "Numeric field summed when metric is 'sum' (required for sum)." },
 								"topN": { "type": "integer", "minimum": 1, "description": "Keep the N largest groups (sorted by value desc)." },
 								"otherBucket": { "type": "boolean", "description": "Fold the post-topN remainder into a single translated 'Other' slice (sum of the rest). The Other bucket never drilldown-navigates." },
+								"mergeByLabel": { "type": "boolean", "description": "Fold the groups whose labels read the same into one bar or slice, summed, before topN is applied (2.141.0): status types declared per case type count as one 'Received'. A merged bar drills down with every key behind it." },
 								"labelResolve": {
 									"type": "object",
 									"required": ["schema"],

@@ -57,6 +57,21 @@ describe('Wave 3 — chart aggregate + drilldown + views', () => {
 		expect(result.valid).toBe(true)
 	})
 
+	it('accepts mergeByLabel on an aggregate and refuses a non-boolean (2.141.0)', () => {
+		const chart = (mergeByLabel) => manifestWith([{
+			widgetKey: 'chart',
+			...grid,
+			props: { chartKind: 'bar' },
+			dataSource: {
+				register: 'crm',
+				schema: 'case',
+				aggregate: { groupBy: 'status', topN: 5, mergeByLabel, labelResolve: { schema: 'statusType' } },
+			},
+		}])
+		expect(validateManifest(chart(true)).errors).toEqual([])
+		expect(validateManifest(chart('yes')).valid).toBe(false)
+	})
+
 	it('still accepts the STRING aggregate: count shorthand (back-compat)', () => {
 		const result = validateManifest(manifestWith([{
 			widgetKey: 'chart',
