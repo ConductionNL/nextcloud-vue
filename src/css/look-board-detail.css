@@ -562,6 +562,30 @@
 	font-size: 13px;
 }
 
+/* A message keeps 64px free on the side away from its avatar, so the two
+   sides read as two columns; the line above it is 13px in the soft ink at the
+   normal line height, and our bubble's text is in the main ink. Each names
+   the thread to outrank the component's scoped rules (DqZaakContact).
+   @spec openspec/changes/board-conversation-gutter-and-meta-ink/specs/board-conversation/spec.md#requirement-a-board-message-keeps-a-gutter-opposite-its-avatar */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message:not(.cn-look-nextcloud *) {
+	padding-inline-end: 64px;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us:not(.cn-look-nextcloud *) {
+	padding-inline-start: 64px;
+	padding-inline-end: 0;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__meta:not(.cn-look-nextcloud *),
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__meta time:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	line-height: normal;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
 /* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
    the thread to outrank the component's scoped muted ink. */
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
