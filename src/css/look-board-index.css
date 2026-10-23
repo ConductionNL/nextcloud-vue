@@ -805,8 +805,11 @@
 	padding: 0;
 }
 
-/* The title column: a 15px weight 600 link, the secondary line under it. */
-.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title {
+/* The title column: a 15px weight 600 link, the secondary line under it. A
+   table in a card or a settings section shows its first column as plain text
+   (DqInstellingen, DqTermijnen, DqDoorlooptijd).
+   @spec openspec/changes/board-widget-table-plain-title/specs/board-widget-table-plain-title/spec.md */
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title:not(.cn-widget-object-table *) {
 	color: var(--color-main-text);
 	font-size: 15px;
 	font-weight: 600;
