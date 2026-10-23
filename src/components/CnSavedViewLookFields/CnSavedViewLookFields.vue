@@ -10,7 +10,7 @@
 			:labelVisible="true"
 			:helperText="t('nextcloud-vue', 'Shown when you point at the view in the menu.')"
 			data-testid="cn-saved-view-description"
-			@update:modelValue="(v) => $emit('update:description', v)" />
+			@update:modelValue="onDescription" />
 		<div
 			class="cn-saved-view-look__icons"
 			role="radiogroup"
@@ -28,7 +28,7 @@
 				:aria-label="name"
 				:title="name"
 				:data-icon="name"
-				@click="$emit('update:icon', name === defaultIcon ? '' : name)">
+				@click="onIcon(name)">
 				<component :is="componentOf(name)" :size="20" />
 			</button>
 		</div>
@@ -91,6 +91,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Pass the typed description on.
+		 *
+		 * @param {string} value The description.
+		 * @return {void}
+		 */
+		onDescription(value) {
+			/** @event update:description The typed description. */
+			this.$emit('update:description', value)
+		},
+
+		/**
+		 * Pass the chosen icon on; the menu's own default icon is stored as none.
+		 *
+		 * @param {string} name The icon name.
+		 * @return {void}
+		 */
+		onIcon(name) {
+			/** @event update:icon The chosen icon name, '' for the menu's default. */
+			this.$emit('update:icon', name === this.defaultIcon ? '' : name)
+		},
+
 		t,
 
 		/**
