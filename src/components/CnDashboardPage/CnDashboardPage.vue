@@ -1857,6 +1857,9 @@ export default {
 		 * before it, valued `YYYY-Qn` and seeded with the current one;
 		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
 		 * (the default) renders no controls and leaves the context untouched.
+		 * `control: 'none'` seeds its value like any page filter but draws no
+		 * control: a fixed period the widgets read and the description names
+		 * (`{filter.<key>}`).
 		 *
 		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
@@ -2638,7 +2641,9 @@ export default {
 		 */
 		rowPageFilters() {
 			const inDescription = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
-			return (this.pageFilters || []).filter((pf) => pf && pf.key && !inDescription.includes(pf))
+			// `control: "none"` holds a value for the widgets and the
+			// description and draws no control (DqDoorlooptijd's fixed period).
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'none' && !inDescription.includes(pf))
 		},
 
 		/**
@@ -2654,7 +2659,7 @@ export default {
 			if (!this.showHeader) {
 				return []
 			}
-			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.placement === 'description')
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.control !== 'none' && pf.placement === 'description')
 		},
 
 		/**
