@@ -2537,6 +2537,10 @@
     "%n week": [
       "%n week",
       "%n weeks"
+    ],
+    "%n minute": [
+      "%n minute",
+      "%n minutes"
     ]
   }
 }

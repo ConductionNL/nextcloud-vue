@@ -2804,6 +2804,10 @@
     "%n week": [
       "%n week",
       "%n weken"
+    ],
+    "%n minute": [
+      "%n minuut",
+      "%n minuten"
     ]
   }
 }
