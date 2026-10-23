@@ -1,0 +1,2 @@
+- [x] Board-look channel pill ink, line height and specificity in look-board-detail.css
+- [x] CSS spec tests/css/lookBoardThreadChannelPill.spec.js
