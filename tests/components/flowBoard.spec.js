@@ -173,7 +173,7 @@ describe('CnFlowBoard', () => {
 			nodeCatalog: [{ id: 'dossiq.set-status', displayName: 'Set status' }, { id: 'integriq.call', displayName: 'External call' }, { id: 'dossiq.ask', displayName: 'Ask a person' }],
 		})
 
-		expect(w.vm.paletteGroups.map((group) => [group.app, group.entries.length])).toEqual([['dossiq', 2], ['integriq', 1]])
+		expect(w.vm.paletteSections.map((group) => [group.app, group.entries.length])).toEqual([['dossiq', 2], ['integriq', 1]])
 		expect(w.find('[data-testid="flow-board-palette"]').text()).toContain('Only what a case can do itself.')
 		expect(w.findComponent({ name: 'CnFlowDetail' }).props('addStep')).toBe(false)
 	})
