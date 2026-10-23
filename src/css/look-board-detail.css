@@ -575,6 +575,27 @@
 	line-height: 16px;
 }
 
+/* The reply box under a conversation (DqZaakContact): a hairline and 16px
+   above it, 10px between its parts, the field 10px 12px at 15px/1.5 with
+   room for two lines (67px), the option at 14px.
+   @spec openspec/changes/board-conversation-reply-box/specs/board-conversation-reply-box/spec.md#requirement-the-board-reply-box */
+.cn-look-board .cn-conversation-thread__reply:not(.cn-look-nextcloud *) {
+	gap: 10px;
+	padding-top: 16px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-conversation-thread__input:not(.cn-look-nextcloud *) {
+	min-height: calc(3em + 22px);
+	padding: 10px 12px;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-conversation-thread__reply-option:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* The case Status card as the board draws it: no grey box, the status's
    explanation as its bold line, the time in the status muted under it.
    @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
