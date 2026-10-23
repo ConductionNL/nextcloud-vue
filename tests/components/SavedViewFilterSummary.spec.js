@@ -9,8 +9,8 @@
  */
 import { mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
-import CnSavedViewsPanel from '../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue'
 import CnIndexSidebar from '../../src/components/CnIndexSidebar/CnIndexSidebar.vue'
+import CnSavedViewsPanel from '../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue'
 
 const VIEWS = [
 	{ id: 1, name: 'Open', owner: 'alice', query: { filters: { status: 'open' }, search: 'Lindelaan' } },
