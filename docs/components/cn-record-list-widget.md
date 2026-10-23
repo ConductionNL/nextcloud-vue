@@ -126,6 +126,19 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 }
 ```
 
+With `groupBy`, `footerAction.group` names a group value: the action then ends that group's heading instead of standing under the list, and the heading is drawn even when no row is in that group (after the other groups, or under the empty text). `footerAction.variant: "tonal"` draws the action as a tonal pill (primary-light, 34px, fully rounded, 13px semibold) instead of a secondary button. Board DqZaakGerelateerd puts "Vervolg plannen" at the end of "Gepland vervolg" this way.
+
+```json
+"footerAction": {
+  "label": "Plan follow-up",
+  "icon": "CalendarClock",
+  "type": "open-modal",
+  "target": "PlanFollowUpDialog",
+  "group": "planned",
+  "variant": "tonal"
+}
+```
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
