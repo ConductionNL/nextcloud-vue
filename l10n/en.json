@@ -2360,7 +2360,8 @@
     "Also who read it": "Also who read it",
     "{shown} of {total} events, changes only": "{shown} of {total} events, changes only",
     "Opened the record": "Opened the record",
-    "Viewed": "Viewed"
+    "Viewed": "Viewed",
+    "w{week}": "w{week}"
   },
   "plurals": {
     "{count} member": [

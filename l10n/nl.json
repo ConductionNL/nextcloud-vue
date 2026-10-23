@@ -2610,7 +2610,8 @@
     "Also who read it": "Ook wie het las",
     "{shown} of {total} events, changes only": "{shown} van {total} gebeurtenissen, alleen wijzigingen",
     "Opened the record": "Heeft het geopend",
-    "Viewed": "Ingezien"
+    "Viewed": "Ingezien",
+    "w{week}": "w{week}"
   },
   "plurals": {
     "{count} member": [
