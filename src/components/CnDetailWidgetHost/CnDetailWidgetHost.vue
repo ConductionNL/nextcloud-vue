@@ -170,6 +170,7 @@
 		<CnWidgetWrapper
 			v-else-if="wrapsMountLeaf"
 			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
 			:showActions="false"
@@ -207,6 +208,7 @@
 		<CnWidgetWrapper
 			v-else-if="wrapsLeafTab"
 			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
 			:subtitle="widgetSubtitle"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
@@ -1219,6 +1221,10 @@ export default {
 		},
 
 		leafCardTitle() {
+			// An empty title is a card without one (a `titleWhen` entry that says so).
+			if (this.widget && this.widget.title === '') {
+				return ''
+			}
 			const title = widgetTitleOf(this.widget)
 			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
 		},
@@ -1645,6 +1651,9 @@ export default {
 		effectiveShowCardTitle() {
 			if (this.showCardTitle !== null) {
 				return this.showCardTitle
+			}
+			if (this.widget?.title === '' && this.content.title === undefined) {
+				return false
 			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},

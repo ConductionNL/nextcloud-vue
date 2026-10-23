@@ -573,7 +573,7 @@
 				<slot
 					:name="`widget-${headerWidgetDef.id}`"
 					:item="{ id: headerWidgetDef.id, widgetId: headerWidgetDef.id }"
-					:widget="headerWidgetDef"
+					:widget="titled(headerWidgetDef)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -581,7 +581,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="headerWidgetDef"
+						:widget="titled(headerWidgetDef)"
 						chrome="bare"
 						:objectId="objectId"
 						:object="currentObject"
@@ -594,7 +594,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -712,7 +712,7 @@
 				<slot
 					:name="`widget-${entry.widget.id}`"
 					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
-					:widget="entry.widget"
+					:widget="titled(entry.widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -720,7 +720,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="entry.widget"
+						:widget="titled(entry.widget)"
 						:chrome="entry.chrome"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -735,7 +735,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets" />
+						:availableWidgets="titledWidgets" />
 				</slot>
 			</div>
 		</div>
@@ -992,7 +992,7 @@
 						<slot
 							:name="`widget-${item.widgetId}`"
 							:item="item"
-							:widget="findWidget(item)"
+							:widget="titled(findWidget(item))"
 							:objectId="objectId"
 							:object="resolvedObject"
 							:objectData="resolvedObject"
@@ -1000,7 +1000,7 @@
 							:register="register"
 							:schema="schema">
 							<CnDetailWidgetHost
-								:widget="findWidget(item)"
+								:widget="titled(findWidget(item))"
 								chrome="card"
 								inGridCell
 								:showCardTitle="showCardTitle(item)"
@@ -1016,7 +1016,7 @@
 								:integrationContext="effectiveIntegrationContext"
 								:hideEmpty="hideEmpty"
 								:cnRegistry="cnRegistry"
-								:availableWidgets="bodyGridWidgets"
+								:availableWidgets="titledBodyGridWidgets"
 								@geoSaved="onGeoSaved"
 								@openIntegration="onAutoBodyOpenIntegration"
 								@selectObject="onRelatedObjectSelect" />
@@ -1212,7 +1212,7 @@
 				<slot
 					:name="`widget-${widget.id}`"
 					:item="{ id: widget.id, widgetId: widget.id }"
-					:widget="widget"
+					:widget="titled(widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -1221,7 +1221,7 @@
 					:schema="schema">
 					<component
 						:is="widget.follows ? 'CnFollowingWidgetHost' : 'CnDetailWidgetHost'"
-						:widget="widget"
+						:widget="titled(widget)"
 						chrome="card"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -1236,7 +1236,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -1258,7 +1258,7 @@
 		<CnWidgetStyleEditorModal
 			v-if="showWidgetConfig"
 			:show="showWidgetConfig"
-			:widget="configWidget"
+			:widget="titled(configWidget)"
 			:deletable="true"
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
@@ -1460,6 +1460,7 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { createWidgetSelection, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
+import { withTitlesWhen, withTitleWhen } from '../../utils/widgetTitleWhen.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -4982,6 +4983,37 @@ export default {
 		},
 
 		/**
+		 * The page's widget definitions with each `titleWhen` resolved against
+		 * the record, as the cards, the tab strip and the leaves read them.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledWidgets() {
+			return withTitlesWhen(this.widgets, this.titleData)
+		},
+
+		/**
+		 * The body grid's widget definitions with each `titleWhen` resolved.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledBodyGridWidgets() {
+			return withTitlesWhen(this.bodyGridWidgets, this.titleData)
+		},
+
+		/**
+		 * What a `titleWhen` reads: the record with its `@context` rows, null
+		 * while the record or those rows are on their way.
+		 *
+		 * @return {object|null}
+		 */
+		titleData() {
+			return this.visibilityRowsPending ? null : this.widgetVisibilityData
+		},
+
+		/**
 		 * The grid widgets whose `visibleWhen` needs a request (endpoint or
 		 * source), with what they ask, as one key: a change re-asks them.
 		 *
@@ -7271,6 +7303,17 @@ export default {
 		 * @param {{ widgetId: string }} item Layout item.
 		 * @return {object|undefined} The matching widget definition.
 		 */
+		/**
+		 * A widget definition with its `titleWhen` resolved against the record.
+		 *
+		 * @param {object|null|undefined} def The definition.
+		 * @return {object|null|undefined} The definition to hand on.
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titled(def) {
+			return withTitleWhen(def, this.titleData)
+		},
+
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
 				|| this.findViewWidget(item.widgetId)

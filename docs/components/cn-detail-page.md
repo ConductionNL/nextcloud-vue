@@ -217,6 +217,14 @@ The column sits to the right of the body and holds facts: the deadline, the requ
 
 The column drops under the body when the page is too narrow for both. That is decided by the room the page has, not by the viewport, so it also holds beside an open sidebar. A `layout` grid keeps working next to it.
 
+## A widget title that depends on the record
+
+A widget definition may carry `titleWhen: [{ when?, text }]`. The page resolves it against the record and its `@context` rows before the card, the tab strip or a leaf card reads the title: the first entry whose `when` holds becomes the plain `title`, an entry without `when` always holds, and while the record loads or no entry holds the written `title` stays. An empty `text` is a card without a title row. dossiq titles the case Files card "Documents for this request" on a case type that reviews its documents and draws it untitled on the others (DqZaakDocumenten, DqDocumentenBeheer):
+
+```json
+{ "id": "case-files", "title": "Files", "titleWhen": [{ "when": { "field": "@context.caseType.documentReview.enabled", "op": "eq", "value": true }, "text": "Documents for this request" }, { "text": "" }] }
+```
+
 ## A body widget's own cards in the side column
 
 A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: `Wie mag dit zien: <file>` and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:
