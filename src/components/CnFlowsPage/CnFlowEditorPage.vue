@@ -10,6 +10,7 @@
 		:breadcrumb="(breadcrumb || []).map((crumb) => ({ ...crumb, label: cnTranslate(crumb.label) }))"
 		:palette="palette"
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
+		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
@@ -127,6 +128,17 @@ export default {
 		},
 
 		/**
+		 * Board look: the palette's groups as the page curates them,
+		 * `[{ app?, label?, tone?, entries: [{ type, label?, short? }] }]`;
+		 * every other step stays behind "More steps". Labels are translated
+		 * with the app's catalogue. Manifest key `config.paletteGroups`.
+		 */
+		paletteGroups: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Board look: `down` lays the steps out top to bottom and opens them
 		 * at their own size instead of zoomed to fit; `right` (default) lays
 		 * them left to right. Manifest key `config.flowDirection`.
@@ -214,6 +226,18 @@ export default {
 		 */
 		flowId() {
 			return this.id || this.$route?.params?.id || ''
+		},
+
+		/**
+		 * @return {Array<object>} The curated palette groups with their labels translated.
+		 */
+		translatedPaletteGroups() {
+			const tr = (text) => (text ? this.cnTranslate(text) : text)
+			return (this.paletteGroups || []).map((group) => ({
+				...group,
+				label: tr(group?.label),
+				entries: (group?.entries || []).map((step) => ({ ...step, label: tr(step?.label), short: tr(step?.short) })),
+			}))
 		},
 
 		/**

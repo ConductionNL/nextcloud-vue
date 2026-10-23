@@ -110,7 +110,7 @@
 				class="cn-flow-board__card cn-flow-board__palette"
 				:aria-label="t('nextcloud-vue', 'Steps')"
 				data-testid="flow-board-palette">
-				<section v-for="group in paletteGroups"
+				<section v-for="group in paletteSections"
 					:key="group.app"
 					class="cn-flow-board__palette-group">
 					<h4 class="cn-flow-board__palette-app">
@@ -128,10 +128,19 @@
 						</li>
 					</ul>
 				</section>
+				<button v-if="paletteCurated"
+					type="button"
+					class="cn-flow-board__palette-more"
+					:disabled="store.graphLocked"
+					data-testid="flow-board-palette-more"
+					@click="stepPickerOpen = true">
+					{{ t('nextcloud-vue', 'More steps') }}
+				</button>
 				<p v-if="paletteFootnote" class="cn-flow-board__palette-note">
 					{{ paletteFootnote }}
 				</p>
 			</aside>
+			<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
 
 			<section class="cn-flow-board__card cn-flow-board__canvas" :aria-label="t('nextcloud-vue', 'Flow canvas')">
 				<CnFlowDetail :id="id"
@@ -259,6 +268,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
 import TestTube from 'vue-material-design-icons/TestTube.vue'
+import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
@@ -281,7 +291,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -298,6 +308,16 @@ export default {
 		palette: { type: String, default: 'picker' },
 		/** Free text under the path in the palette card. */
 		paletteFootnote: { type: String, default: '' },
+		/**
+		 * The palette's groups as the page curates them, in order:
+		 * `[{ app?, label?, tone?, entries: [{ type, label?, short? }] }]`.
+		 * `type` is a catalogue id; `label` replaces the step's catalogue name
+		 * and the group's app name; `tone` and `short` name the step's pill on
+		 * the canvas. Steps the catalogue lacks are left out, and every other
+		 * step stays behind "More steps". Empty draws the whole catalogue,
+		 * grouped per app (DqFlow: four groups, nine steps).
+		 */
+		paletteGroups: { type: Array, default: () => [] },
 		/** `down` runs the steps top to bottom and opens them at their own size (DqFlow); default `right`, left to right and fitted. */
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
@@ -328,7 +348,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false }
+		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false }
 	},
 
 	computed: {
@@ -491,14 +511,24 @@ export default {
 			return { tone: 'success', text: this.t('nextcloud-vue', 'The flow is valid.') }
 		},
 
+		/** @return {boolean} Whether the page curates the palette. */
+		paletteCurated() {
+			return Array.isArray(this.paletteGroups) && this.paletteGroups.length > 0
+		},
+
 		/**
-		 * The palette grouped by owning app, each group named by the app's
-		 * display name (its id when Nextcloud names none), the app that owns
-		 * this flow first.
+		 * The palette's groups: the page's curated ones when it names them,
+		 * else the catalogue grouped by owning app, each group named by the
+		 * app's display name (its id when Nextcloud names none), the app that
+		 * owns this flow first.
 		 *
+		 * @spec openspec/changes/flow-board-palette-groups/specs/flow-board/spec.md#requirement-a-flow-page-can-curate-its-palette
 		 * @return {Array<{app: string, name: string, entries: Array<object>}>} The groups.
 		 */
-		paletteGroups() {
+		paletteSections() {
+			if (this.paletteCurated) {
+				return this.curatedSections
+			}
 			const groups = {}
 			;(this.store.nodeCatalog || []).forEach((entry) => {
 				const app = String(entry?.app || String(entry?.id || '').split('.')[0] || '')
@@ -510,6 +540,29 @@ export default {
 			const list = Object.values(groups)
 			const host = list.findIndex((group) => group.app === this.app)
 			return host > 0 ? [list[host], ...list.slice(0, host), ...list.slice(host + 1)] : list
+		},
+
+		/**
+		 * The page's curated groups, each step resolved against the catalogue
+		 * under the page's label; a step the catalogue lacks is left out, and a
+		 * group left with none is not drawn.
+		 *
+		 * @return {Array<{app: string, name: string, tone: string, entries: Array<object>}>} The groups.
+		 */
+		curatedSections() {
+			const catalog = this.store.nodeCatalog || []
+			return this.paletteGroups
+				.map((group, index) => {
+					const entries = (Array.isArray(group?.entries) ? group.entries : [])
+						.map((step) => {
+							const entry = step && catalog.find((item) => item && item.id === step.type)
+							return entry ? { ...entry, displayName: step.label || entry.displayName, short: step.short || '' } : null
+						})
+						.filter(Boolean)
+					const app = String(group?.app || (entries[0] ? String(entries[0].id).split('.')[0] : '') || index)
+					return { app, name: group?.label || this.appNames[app] || app, tone: group?.tone || '', entries }
+				})
+				.filter((group) => group.entries.length > 0)
 		},
 
 		/** @return {object|null} The run on screen. */
@@ -947,6 +1000,23 @@ export default {
 
 .cn-flow-board__palette-step:hover {
 	background: var(--color-background-hover);
+}
+
+/* The way to every other step under a curated palette, quiet beside the steps. */
+.cn-flow-board__palette-more {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.cn-flow-board__palette-more:disabled {
+	color: var(--color-text-maxcontrast);
+	cursor: default;
 }
 
 .cn-flow-board__palette-note {
