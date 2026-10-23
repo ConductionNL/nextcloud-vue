@@ -81,4 +81,12 @@ describe('CnEventsCard header actions', () => {
 		expect(init).toMatchObject({ method: 'POST', body: JSON.stringify({ calendarUri: 'personal', eventUid: 'ev-1' }) })
 		expect(wrapper.find('[data-testid="cn-events-card-link-error"]').text()).toBe('Not your task')
 	})
+
+	it('reports the create action without the primary variant and with its own icon when asked', async () => {
+		const wrapper = mountCard({ headerActions: ['create'], createVariant: 'secondary', createIcon: 'CalendarPlusOutline' })
+		await flush()
+		const [create] = lastHeader(wrapper).actions
+		expect(create.variant).toBeUndefined()
+		expect(create.icon).toBe('CalendarPlusOutline')
+	})
 })
