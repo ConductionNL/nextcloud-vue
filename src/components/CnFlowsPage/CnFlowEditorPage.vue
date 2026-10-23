@@ -14,6 +14,9 @@
 		:flowDirection="flowDirection"
 		:nodeLook="nodeLook"
 		:notice="notice ? cnTranslate(notice) : ''"
+		:saveAsVersion="saveAsVersion"
+		:metaParts="metaParts"
+		:metaNote="metaNote ? cnTranslate(metaNote) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
 		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
@@ -175,6 +178,34 @@ export default {
 		 * the flow's name.
 		 */
 		notice: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: edit a published flow in place; Save publishes the edits
+		 * as the next version and runs already started keep theirs. Manifest
+		 * key `config.saveAsVersion`.
+		 */
+		saveAsVersion: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: which of `trigger`, `steps` and `version` the path names
+		 * after the flow, in that order. Manifest key `config.metaParts`.
+		 */
+		metaParts: {
+			type: Array,
+			default: () => ['trigger', 'steps', 'version'],
+		},
+
+		/**
+		 * Board look: a closing note after the path's meta ("changes apply to
+		 * new cases"), translated. Manifest key `config.metaNote`.
+		 */
+		metaNote: {
 			type: String,
 			default: '',
 		},

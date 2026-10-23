@@ -331,6 +331,15 @@ export default {
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
 		/**
+		 * Edit a published flow in place; Save publishes the edits as the next
+		 * version, and runs already started keep theirs (DqFlow).
+		 */
+		saveAsVersion: { type: Boolean, default: false },
+		/** Which of `trigger`, `steps` and `version` the path names after the flow, in that order. */
+		metaParts: { type: Array, default: () => ['trigger', 'steps', 'version'] },
+		/** A closing note after the path's meta ("changes apply to new cases"). */
+		metaNote: { type: String, default: '' },
+		/**
 		 * The levels before the flow in the path, each its own link:
 		 * `[{ label, href? }]` ("Settings" / "Flows"). A crumb without an
 		 * `href` links to the flow list. Empty draws the one `listLabel` link.
@@ -468,14 +477,20 @@ export default {
 				return parts.filter(Boolean).join(' · ')
 			}
 			const parts = []
+			const shown = Array.isArray(this.metaParts) ? this.metaParts : []
 			const trigger = this.triggerText
-			if (trigger) {
+			if (trigger && shown.includes('trigger')) {
 				parts.push(this.t('nextcloud-vue', 'trigger {trigger}', { trigger }))
 			}
 			const count = this.store.nodes.length
-			parts.push(count === 1 ? this.t('nextcloud-vue', '1 step') : this.t('nextcloud-vue', '{count} steps', { count }))
-			if (this.store.flow.version) {
+			if (shown.includes('steps')) {
+				parts.push(count === 1 ? this.t('nextcloud-vue', '1 step') : this.t('nextcloud-vue', '{count} steps', { count }))
+			}
+			if (this.store.flow.version && shown.includes('version')) {
 				parts.push(this.t('nextcloud-vue', 'version {version}', { version: this.store.flow.version }))
+			}
+			if (this.metaNote) {
+				parts.push(this.metaNote)
 			}
 			return parts.join(' · ')
 		},
@@ -685,6 +700,13 @@ export default {
 	},
 
 	watch: {
+		saveAsVersion: {
+			immediate: true,
+			handler(on) {
+				this.store.savesAsVersion = on === true
+			},
+		},
+
 		// A selected step takes the panel back from the run history.
 		'store.selectedNodeId': function(id) {
 			if (id) {
@@ -701,6 +723,10 @@ export default {
 		}
 		const { default: axios } = await import('@nextcloud/axios')
 		this.appNames = await appDisplayNames(axios)
+	},
+
+	beforeUnmount() {
+		this.store.savesAsVersion = false
 	},
 
 	methods: {
