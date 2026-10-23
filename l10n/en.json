@@ -2354,7 +2354,9 @@
       "%n weeks"
     ],
     "Opened from the row {row}": "Opened from the row {row}",
-    "Week {week}": "Week {week}"
+    "Week {week}": "Week {week}",
+    "More default views": "More default views",
+    "Fewer default views": "Fewer default views"
   },
   "plurals": {
     "{count} member": [

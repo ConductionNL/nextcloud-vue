@@ -2725,3 +2725,15 @@ describe('app-manifest-v2 — card pill resolve (pill-color-field)', () => {
 		expect(validateManifestV2(page({ cardLayout: { headPill: { field: 'caseType', resolve: { colour: 'red' } } } })).valid).toBe(false)
 	})
 })
+
+describe('default views carry a line and a secondary mark (default-views-secondary)', () => {
+	const page = (view) => ({ ...MINIMAL_V2, menu: [], pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultSavedViews: [view] } }] })
+
+	it('accepts description and secondary on a default view', () => {
+		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, description: 'Handler is me', secondary: true })).valid).toBe(true)
+	})
+
+	it('refuses a secondary mark that is not a boolean', () => {
+		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, secondary: 'yes' })).valid).toBe(false)
+	})
+})

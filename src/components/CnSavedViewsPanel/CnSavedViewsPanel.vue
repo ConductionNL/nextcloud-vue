@@ -73,7 +73,7 @@
 				</p>
 				<ul class="cn-saved-views-panel__list">
 					<li
-						v-for="row in section.rows"
+						v-for="row in shownRows(section)"
 						:key="`view-${idOf(row.view)}`"
 						class="cn-saved-views-panel__row"
 						:class="{ 'cn-saved-views-panel__row--selected': isSelected(row.view) }">
@@ -182,6 +182,17 @@
 						</NcActions>
 					</li>
 				</ul>
+				<button
+					v-if="secondaryRows(section).length > 0"
+					type="button"
+					class="cn-saved-views-panel__more"
+					data-testid="cn-saved-views-more-defaults"
+					:aria-expanded="moreDefaultsOpen ? 'true' : 'false'"
+					@click="moreDefaultsOpen = !moreDefaultsOpen">
+					<ChevronUp v-if="moreDefaultsOpen" :size="18" />
+					<ChevronDown v-else :size="18" />
+					{{ moreDefaultsOpen ? t('nextcloud-vue', 'Fewer default views') : t('nextcloud-vue', 'More default views') }}
+				</button>
 			</template>
 		</template>
 	</section>
@@ -189,6 +200,8 @@
 
 <script>
 import { NcActionButton, NcActions, NcActionSeparator, NcButton } from '@nextcloud/vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
@@ -234,6 +247,8 @@ export default {
 		NcActions,
 		NcActionSeparator,
 		NcButton,
+		ChevronDown,
+		ChevronUp,
 		ContentCopy,
 		ContentSaveOutline,
 		LockOutline,
@@ -296,6 +311,13 @@ export default {
 		'update-request',
 	],
 
+	data() {
+		return {
+			/** Whether the default views marked `secondary` are shown. */
+			moreDefaultsOpen: false,
+		}
+	},
+
 	computed: {
 		/** @return {boolean} Whether the panel is drawn as the boards draw it. */
 		isBoardLook() {
@@ -324,6 +346,35 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The default views marked `secondary` in a section: they wait behind
+		 * "More default views" (DqFilterBeheren draws three defaults and keeps
+		 * the rest a click away).
+		 *
+		 * @param {{key: string, rows: Array<object>}} section The section.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/default-views-secondary/specs/default-views-secondary/spec.md#requirement-a-default-view-can-wait-behind-more-default-views
+		 */
+		secondaryRows(section) {
+			return section.key === 'seeded' ? section.rows.filter((row) => row.view.secondary === true) : []
+		},
+
+		/**
+		 * The rows a section shows: every row, less the secondary defaults
+		 * while they are folded away, unless the applied view is one of them.
+		 *
+		 * @param {{key: string, rows: Array<object>}} section The section.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/default-views-secondary/specs/default-views-secondary/spec.md#requirement-a-default-view-can-wait-behind-more-default-views
+		 */
+		shownRows(section) {
+			const secondary = this.secondaryRows(section)
+			if (secondary.length === 0 || this.moreDefaultsOpen || secondary.some((row) => this.isSelected(row.view))) {
+				return section.rows
+			}
+			return section.rows.filter((row) => row.view.secondary !== true)
+		},
+
 		/**
 		 * The stable id of a view: its id, else its slug.
 		 *
@@ -465,6 +516,25 @@ export default {
 	font-size: 12px;
 	font-weight: 600;
 	vertical-align: middle;
+}
+
+.cn-saved-views-panel__more {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	align-self: flex-start;
+	min-height: var(--default-clickable-area);
+	padding: 0 8px;
+	border: 0;
+	border-radius: var(--border-radius-element, var(--border-radius-large));
+	background: transparent;
+	color: var(--color-primary-element-light-text);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-saved-views-panel__more:hover {
+	background: var(--color-background-hover);
 }
 
 .cn-saved-views-panel__note {

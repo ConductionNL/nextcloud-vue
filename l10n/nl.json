@@ -2605,7 +2605,9 @@
       "%n weeks"
     ],
     "Opened from the row {row}": "Geopend vanuit de rij {row}",
-    "Week {week}": "Week {week}"
+    "Week {week}": "Week {week}",
+    "More default views": "Meer standaardweergaven",
+    "Fewer default views": "Minder standaardweergaven"
   },
   "plurals": {
     "{count} member": [
