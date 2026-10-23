@@ -856,6 +856,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
+	/* Resolved here, outside any entry: a theme may recolour the primary text
+	   on the open entry (thematiq's active label), and the count read there
+	   turned dark red on its red pill. */
+	--cn-nav-count-attention-text: var(--color-primary-element-text);
 	width: 264px;
 	background: var(--color-main-background);
 	border-inline-end: 1px solid var(--color-border);
@@ -1037,7 +1041,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    a light ground (#8A0000 under thematiq), not the text on an error pill. */
 .cn-look-board .cn-app-nav__count--attention {
 	background: var(--color-error);
-	color: var(--color-primary-element-text);
+	color: var(--cn-nav-count-attention-text);
 }
 
 /* The footer: Help, then Advanced, whatever the declared order. */
