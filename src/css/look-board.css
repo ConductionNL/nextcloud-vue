@@ -2464,6 +2464,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 22px 20px;
 }
 
+/* Inside a sections widget the sections body already takes the card's inset,
+   so a widget table there takes none of its own (DqTermijnen Kwartaalrapport,
+   1074px in a 1120px card).
+   @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget .cn-widget-object-table {
+	padding: 0;
+}
+
 /* ---- A plain sections widget on a dashboard card ------------------------ */
 /* The card is flush, because a sections widget usually draws its own cards;
    the plain one draws none, so its body takes the card's side inset and 20px
