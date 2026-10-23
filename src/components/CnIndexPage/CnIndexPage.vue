@@ -613,6 +613,8 @@
 			ref="deleteViewConfirmDialog"
 			variant="error"
 			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
+			:eyebrow="deleteViewEyebrow"
+			:subtitle="deleteViewSubtitle"
 			:message="deleteViewMessage"
 			:confirmLabel="t('nextcloud-vue', 'Delete view')"
 			confirmIcon="DeleteOutline"
@@ -7355,6 +7357,28 @@ export default {
 		currentSavedViewsUserId() {
 			const user = getCurrentUser()
 			return (user && user.uid) || ''
+		},
+
+		/**
+		 * The line above the delete-saved-view confirm's title: "Saved view"
+		 * in the board look, as on the view's edit and share dialogs.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-delete-view-confirm-header/specs/board-delete-view-confirm-header/spec.md#requirement-the-board-delete-view-confirm-names-the-saved-view
+		 */
+		deleteViewEyebrow() {
+			return this.isBoardLook ? t('nextcloud-vue', 'Saved view') : ''
+		},
+
+		/**
+		 * The line under the delete-saved-view confirm's title: the view's
+		 * name, in the board look.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-delete-view-confirm-header/specs/board-delete-view-confirm-header/spec.md#requirement-the-board-delete-view-confirm-names-the-saved-view
+		 */
+		deleteViewSubtitle() {
+			return this.isBoardLook && this.viewPendingDelete ? String(this.viewPendingDelete.name || '') : ''
 		},
 
 		/**
