@@ -759,6 +759,7 @@
 				class="cn-index-page__main"
 				:class="{
 					'cn-index-page__main--map': currentViewMode === 'map',
+					'cn-index-page__main--list': currentViewMode === 'list',
 					'cn-index-page__main--table': currentViewMode === 'table',
 					'cn-index-page__main--split': splitLayout === 'split',
 				}"
