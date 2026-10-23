@@ -1038,7 +1038,8 @@ export default {
 						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
-						tone: this.cellToneOf(col, item.row, text),
+						// An empty cell draws no coloured label.
+						tone: text === '' ? '' : this.cellToneOf(col, item.row, text),
 					}
 				}),
 			}))
