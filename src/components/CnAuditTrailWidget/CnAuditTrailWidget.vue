@@ -18,6 +18,7 @@
 			:maxDisplay="resolvedMaxDisplay"
 			:excludeActions="resolvedExcludeActions"
 			:actionLabels="actionLabels"
+			:valueLabels="valueLabels"
 			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 		<p v-if="footnote" class="cn-audit-trail-widget__footnote" data-testid="cn-audit-trail-widget-footnote">
 			{{ footnote }}
@@ -101,6 +102,7 @@ export default {
 		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
 		excludeActions: { type: Array, default: () => [] },
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -204,6 +206,25 @@ export default {
 			}
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
 			return fillTemplate(translate(note), this.ctx.object || this.ctx.objectData || null)
+		},
+
+		/**
+		 * `content.valueLabels`, each word through the app's translate.
+		 *
+		 * @return {{[key: string]: {[value: string]: string}}|null}
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		valueLabels() {
+			const labels = this.content.valueLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, words]) => words && typeof words === 'object')
+				.map(([key, words]) => [key, Object.fromEntries(Object.entries(words)
+					.filter(([, text]) => typeof text === 'string' && text !== '')
+					.map(([value, text]) => [value, translate(text)]))]))
 		},
 
 		emptyText() {
