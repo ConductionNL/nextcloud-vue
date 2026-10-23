@@ -2349,14 +2349,11 @@
     "Transfer": "Transfer",
     "No transfer": "No transfer",
     "Depends on the result": "Depends on the result",
-    "%n week": [
-      "%n week",
-      "%n weeks"
-    ],
     "Opened from the row {row}": "Opened from the row {row}",
     "Week {week}": "Week {week}",
     "More default views": "More default views",
-    "Fewer default views": "Fewer default views"
+    "Fewer default views": "Fewer default views",
+    "More steps": "More steps"
   },
   "plurals": {
     "{count} member": [
@@ -2529,6 +2526,10 @@
     "{count} hour ago": [
       "{count} hour ago",
       "{count} hours ago"
+    ],
+    "%n week": [
+      "%n week",
+      "%n weeks"
     ]
   }
 }

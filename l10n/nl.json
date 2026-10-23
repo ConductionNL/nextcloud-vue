@@ -2599,15 +2599,11 @@
     "Transfer": "Overdracht",
     "No transfer": "Geen overdracht",
     "Depends on the result": "Hangt af van het resultaat",
-    "%n week": [
-      "%n week",
-      "%n weken",
-      "%n weeks"
-    ],
     "Opened from the row {row}": "Geopend vanuit de rij {row}",
     "Week {week}": "Week {week}",
     "More default views": "Meer standaardweergaven",
-    "Fewer default views": "Minder standaardweergaven"
+    "Fewer default views": "Minder standaardweergaven",
+    "More steps": "Meer stappen"
   },
   "plurals": {
     "{count} member": [
@@ -2797,6 +2793,10 @@
     "{count} hour ago": [
       "{count} uur geleden",
       "{count} uur geleden"
+    ],
+    "%n week": [
+      "%n week",
+      "%n weken"
     ]
   }
 }
