@@ -365,10 +365,6 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptions } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
-import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
-import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-
 /**
  * CnIndexSidebar — Reusable NcAppSidebar wrapper with Search + Columns tabs.
  *
@@ -382,6 +378,10 @@ import { CnIcon } from '../CnIcon/index.js'
  * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
  * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).
  */
+import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
+import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
+import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 export default {
 	name: 'CnIndexSidebar',
 
@@ -933,10 +933,6 @@ export default {
 	},
 
 	watch: {
-		isBoardLook() {
-			this.applyCloseLabel()
-		},
-
 		activeTab(tab) {
 			if (tab) {
 				this.internalActiveTab = tab
@@ -978,29 +974,10 @@ export default {
 	},
 
 	mounted() {
-		this.applyCloseLabel()
+		labelSidePanelClose(this.$refs.appSidebar)
 	},
 
 	methods: {
-		/**
-		 * The board look names the close button "Close side panel" ("Zijpaneel
-		 * sluiten", board DqZakenSorteren). NcAppSidebar offers no prop for it,
-		 * so its own label is replaced; the Nextcloud look keeps it.
-		 *
-		 * @spec openspec/changes/sidebar-close-label-board/specs/index-sidebar/spec.md#requirement-the-board-look-names-the-close-button-close-side-panel
-		 * @return {void}
-		 */
-		applyCloseLabel() {
-			const sidebar = this.$refs.appSidebar
-			if (!sidebar || !('closeTranslated' in sidebar.$data)) {
-				return
-			}
-			if (this.originalCloseLabel === undefined) {
-				this.originalCloseLabel = sidebar.$data.closeTranslated
-			}
-			sidebar.$data.closeTranslated = this.isBoardLook ? t('nextcloud-vue', 'Close side panel') : this.originalCloseLabel
-		},
-
 		t,
 
 		/**

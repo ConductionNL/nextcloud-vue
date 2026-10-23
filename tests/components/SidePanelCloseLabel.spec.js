@@ -21,10 +21,10 @@ const NcAppSidebar = {
 }
 
 describe('the side panel close button', () => {
-	it('is named "Close side panel" on the index side panel in the board look', () => {
+	it('is named "Close side panel" on the index side panel', () => {
 		const w = mount(CnIndexSidebar, {
 			props: { open: true, schema: { properties: {} }, showMetadata: false },
-			global: { provide: { cnLook: 'board' }, stubs: { NcAppSidebar, NcAppSidebarTab: { template: '<div><slot /></div>' }, NcButton: true, NcCheckboxRadioSwitch: true, NcTextField: true, NcSelect: true, NcPopover: true, CnDateRangePicker: true, CnIcon: true } },
+			global: { stubs: { NcAppSidebar, NcAppSidebarTab: { template: '<div><slot /></div>' }, NcButton: true, NcCheckboxRadioSwitch: true, NcTextField: true, NcSelect: true, NcPopover: true, CnDateRangePicker: true, CnIcon: true } },
 		})
 		expect(w.findComponent({ name: 'NcAppSidebar' }).vm.closeTranslated).toBe('Close side panel')
 	})
