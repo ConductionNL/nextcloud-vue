@@ -1032,14 +1032,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* The open entry sits on the tonal primary. NcAppNavigationItem paints an
    active entry with a 16% (22% hovered) primary mix at `!important`, so the
    board value needs `!important` too; the selector is the more specific one.
-   The link carries the same ground. */
+   The link is transparent so the entry's ground shows, also when a theme
+   repaints the entry (thematiq's soft accent wash). */
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active:hover {
 	background-color: var(--color-primary-element-light) !important;
 }
 
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
-	background: var(--color-primary-element-light);
+	background: transparent;
 	color: var(--color-primary-element-light-text);
 	font-weight: 600;
 }
