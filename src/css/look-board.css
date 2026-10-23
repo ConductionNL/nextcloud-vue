@@ -1387,8 +1387,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* Section actions sit at the end of the title row. The row is a grid, so a
-   long title wraps beside the buttons instead of running under them, and in a
-   narrow card the buttons drop under the title and description. */
+   long title wraps beside the buttons instead of running under them. A
+   half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
+   about 504px inside); only a card under 400px, such as on a phone, drops
+   them under the title and description.
+   @spec openspec/changes/board-half-card-title-actions/specs/board-half-card-title-actions/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) {
 	/* `!important`: the card rules above set `display: flex` at higher specificity for a section in a wrapping element. */
 	display: grid !important;
@@ -1431,7 +1434,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: center;
 }
 
-@container (max-width: 520px) {
+@container (max-width: 400px) {
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions,
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .settings-section__desc) > .cn-settings-section__actions {
 		grid-row: auto;
