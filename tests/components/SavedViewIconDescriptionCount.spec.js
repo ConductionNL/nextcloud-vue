@@ -22,9 +22,9 @@ const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').
 const CnSavedViewEditDialog = require('../../src/components/CnSavedViewEditDialog/CnSavedViewEditDialog.vue').default
 const CnSavedViewLookFields = require('../../src/components/CnSavedViewLookFields/CnSavedViewLookFields.vue').default
 const CnSaveViewDialog = require('../../src/components/CnSaveViewDialog/CnSaveViewDialog.vue').default
+const { getSemanticIconComponent } = require('../../src/components/CnIcon/semanticIcons.js')
 const { defaultFilterViews } = require('../../src/utils/savedViewHelpers.js')
 const { SAVED_VIEW_ICONS, SAVED_VIEW_MENU_DEFAULT_ICON, savedViewIcon, syncSavedViewMenu, withSavedViewMenu } = require('../../src/utils/savedViewMenu.js')
-const { getSemanticIconComponent } = require('../../src/components/CnIcon/semanticIcons.js')
 
 const own = { id: 1, name: 'Mine', owner: 'alice', description: 'My open cases', '@self': { access: 'owner' }, query: { filters: { status: 'open' }, icon: 'ClockOutline' } }
 
