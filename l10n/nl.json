@@ -1961,6 +1961,8 @@
     "Manage \"{name}\"": "Beheer {name}",
     "Presentation": "Presentatie",
     "Save a copy": "Kopie opslaan",
+    "More default views": "Meer standaardweergaven",
+    "Fewer default views": "Minder standaardweergaven",
     "Save the current filters to \"{name}\"": "Huidige filters opslaan in \"{name}\"",
     "Share": "Delen",
     "Update with current filters": "Bijwerken met huidige filters",

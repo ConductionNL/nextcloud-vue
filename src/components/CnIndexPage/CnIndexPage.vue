@@ -6097,7 +6097,9 @@ export default {
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
 		 */
 		defaultFilterViews() {
-			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string'
+				? { ...entry, name: this.cnTranslate(entry.name), ...(typeof entry.description === 'string' && entry.description !== '' ? { description: this.cnTranslate(entry.description) } : {}) }
+				: entry))
 			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
