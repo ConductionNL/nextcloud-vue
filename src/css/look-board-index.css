@@ -137,6 +137,23 @@
 	margin-inline-start: 0;
 }
 
+/* Save view only stays on row 1 while the chips leave it room: with six chips
+   and the overflow button the chips took 967 of 1120px and Save view wrapped,
+   pulling the Filter unit to the end of row 2 (DqZaken, probed live). The chip
+   bar keeps room for Save view and wraps its chips inside that width; Save
+   view keeps to the top of row 1 and the Filter unit starts row 2.
+   @spec openspec/changes/board-toolbar-save-stays-on-row-one/specs/board-toolbar-save-stays-on-row-one/spec.md#requirement-save-view-stays-on-row-1-beside-the-chips */
+.cn-look-board .cn-index-page:not(.cn-index-page--quick-filters-toolbar) .cn-actions-bar--board .cn-actions-bar__row--views > .cn-quick-filter-bar--inline {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: calc(100% - var(--cn-board-save-view-room, 170px));
+}
+
+.cn-look-board .cn-index-page:not(.cn-index-page--quick-filters-toolbar) .cn-actions-bar--board .cn-actions-bar__row--views > .cn-saved-views__save {
+	align-self: flex-start;
+	margin-top: 2px;
+}
+
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-controls {
 	display: flex;
 	flex: 0 0 auto;
