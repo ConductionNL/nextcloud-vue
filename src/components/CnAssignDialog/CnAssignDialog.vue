@@ -17,7 +17,7 @@
 					:modelValue="picked ? picked.id : null"
 					:inputId="assigneeId"
 					:inputLabel="assigneeLabel"
-					:labelOutside="true"
+					:labelOutside="false"
 					:options="shownOptions"
 					:loading="searching"
 					:filterable="false"
@@ -492,6 +492,15 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+}
+
+/* The assignee label sits above its field, as the note's does. */
+.cn-assign-dialog__field :deep(.select__label) {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
 }
 
 .cn-assign-dialog__hint {

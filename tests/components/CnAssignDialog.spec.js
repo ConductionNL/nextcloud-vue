@@ -32,7 +32,7 @@ const HANDOVER = {
 
 const SearchSelect = {
 	name: 'CnSearchSelect',
-	props: ['modelValue', 'options', 'inputLabel', 'loading', 'placeholder'],
+	props: ['modelValue', 'options', 'inputLabel', 'labelOutside', 'loading', 'placeholder'],
 	emits: ['update:modelValue', 'search'],
 	template: '<div class="ss" />',
 }
@@ -114,6 +114,14 @@ describe('CnAssignDialog', () => {
 		const toggle = w.find('[data-testid="cn-assign-dialog-toggle-doorzending"]')
 		expect(toggle.text()).toContain('Tell the applicant (2026-0082)')
 		expect(toggle.text()).toContain('Sanne de Vries then gets a message that the case moves.')
+	})
+
+	it('draws the assignee label above the field, not only for assistive technology (DqOverdragen "Nieuw team")', async () => {
+		const w = await mountDialog()
+		const select = w.findComponent(SearchSelect)
+		expect(select.props('inputLabel')).toBe('New team')
+		expect(select.props('labelOutside')).toBe(false)
+		w.unmount()
 	})
 
 	it('searches the configured kinds and offers what was typed when allowed', async () => {
