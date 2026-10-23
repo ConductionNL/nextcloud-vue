@@ -16,6 +16,7 @@
 		:maxDisplay="resolvedMaxDisplay"
 		:excludeActions="resolvedExcludeActions"
 		:actionLabels="actionLabels"
+		:valueLabels="valueLabels"
 		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 </template>
 
@@ -93,7 +94,7 @@ export default {
 		endpoint: { type: String, default: '' },
 		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
 		excludeActions: { type: Array, default: () => [] },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -181,6 +182,25 @@ export default {
 			return Object.fromEntries(Object.entries(labels)
 				.filter(([, text]) => typeof text === 'string' && text !== '')
 				.map(([key, text]) => [key, translate(text)]))
+		},
+
+		/**
+		 * `content.valueLabels`, each word through the app's translate.
+		 *
+		 * @return {{[key: string]: {[value: string]: string}}|null}
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		valueLabels() {
+			const labels = this.content.valueLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, words]) => words && typeof words === 'object')
+				.map(([key, words]) => [key, Object.fromEntries(Object.entries(words)
+					.filter(([, text]) => typeof text === 'string' && text !== '')
+					.map(([value, text]) => [value, translate(text)]))]))
 		},
 
 		emptyText() {

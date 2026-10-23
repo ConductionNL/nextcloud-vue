@@ -167,13 +167,22 @@ export default {
 		refusedLabel: { type: String, default: () => t('nextcloud-vue', '(refused)') },
 		/**
 		 * What happened, in words, by action (`claim`) or by action and the
-		 * state it led to (`complete:completed`, tried first). `{actor}` and
-		 * `{state}` are filled in; a label that names the actor leaves it off
+		 * state it led to (`complete:completed`, tried first). `{actor}`,
+		 * `{state}` and `{changed.<key>}` (a value the entry recorded, in the
+		 * words of `valueLabels`) are filled in; a label that names the actor leaves it off
 		 * the line under it. An action without a label shows as written.
 		 *
 		 * @type {Object<string, string>|null}
 		 */
 		actionLabels: { type: Object, default: null },
+		/**
+		 * Words for the values an action label quotes as `{changed.<key>}`:
+		 * `{ purpose: { handling: 'Handling' } }`. A value without an entry
+		 * shows as written.
+		 *
+		 * @type {{[key: string]: {[value: string]: string}}|null}
+		 */
+		valueLabels: { type: Object, default: null },
 		/** Shown when a `source` or `endpoint` read failed. */
 		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The history could not be loaded') },
 	},
@@ -314,9 +323,29 @@ export default {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
+					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
 			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
+		},
+
+		/**
+		 * A value the entry recorded under `changed` (an audit entry's context),
+		 * in the words of `valueLabels`; '' when it recorded none.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {string} key The recorded key.
+		 * @return {string} The value in words.
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		changedValue(entry, key) {
+			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
+			const value = changed[key]
+			if (value === null || value === undefined || typeof value === 'object') {
+				return ''
+			}
+			const words = this.valueLabels && this.valueLabels[key]
+			return words && typeof words[value] === 'string' ? words[value] : String(value)
 		},
 
 		/**
