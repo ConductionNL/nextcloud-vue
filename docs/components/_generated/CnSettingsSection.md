@@ -25,6 +25,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `empty`               | `boolean` |          | `false`                                            | Whether the section has no data to show                                                                                                            |
 | `emptyMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'No data available')` | Message shown when section is empty                                                                                                                |
 | `footerLink`          | `object`  |          | `null`                                             | A link at the end of the card to where its list is managed: `{ label, href }`, the label already translated. Drawn only with both and a safe href. |
+| `openedFrom`          | `string`  |          | `''`                                               | The row this card is opened from, already translated: the card shows only while the page's hash names its `id` (the row's settings link, `#<id>`), and says "Opened from the row {row}" under its title in place of its description (DqInstellingen "Kadaster (BRK) en WOZ"). Empty: the card is always shown. |
 
 ### Slots
 
