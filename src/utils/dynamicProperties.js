@@ -486,6 +486,181 @@ export function valueArrayFor(answers, config, definitions = []) {
 }
 
 /**
+ * Whether an answer counts as given. An empty list is no answer either: it is
+ * what an untouched list widget holds.
+ *
+ * @param {unknown} value The answer.
+ * @return {boolean} True when there is something to store.
+ */
+function isAnswered(value) {
+	if (value === undefined || value === null || value === '') {
+		return false
+	}
+	return !(Array.isArray(value) && value.length === 0)
+}
+
+/**
+ * An answer as the text an array-mode entry stores.
+ *
+ * @param {unknown} value The answer.
+ * @return {string} The stored text; a non-scalar answer is JSON-encoded.
+ */
+function storedText(value) {
+	return (typeof value === 'object') ? JSON.stringify(value) : String(value)
+}
+
+/**
+ * Read one stored answer for the field it fills.
+ *
+ * An array-mode entry stores every answer as text. A number, switch, list or
+ * JSON field cannot show text, so the text is read back for the field's type;
+ * text that does not read as that type is kept as it is rather than dropped.
+ *
+ * @param {unknown} stored The stored value.
+ * @param {object} prop The field's JSON Schema property.
+ * @return {unknown} The value for the form.
+ */
+function readStoredAnswer(stored, prop) {
+	if (typeof stored !== 'string') {
+		return stored
+	}
+	const type = prop && prop.type
+	if (type === 'number' || type === 'integer') {
+		const number = Number(stored)
+		return stored.trim() !== '' && Number.isFinite(number) ? number : stored
+	}
+	if (type === 'boolean') {
+		return stored === 'true' ? true : (stored === 'false' ? false : stored)
+	}
+	if (type === 'array' || type === 'object') {
+		try {
+			const parsed = JSON.parse(stored)
+			if ((type === 'array') === Array.isArray(parsed) && parsed !== null && typeof parsed === 'object') {
+				return parsed
+			}
+		} catch {
+			// Not JSON: the text itself is the answer.
+		}
+	}
+	return stored
+}
+
+/**
+ * The answers a record already stores for an array-mode declaration, keyed
+ * the way the form keys its data-driven fields.
+ *
+ * Only questions in `properties` are read: an entry for a definition the
+ * form does not ask has no field to fill. An empty stored answer is no
+ * answer, so the field keeps its default.
+ *
+ * @param {object|null} record The record being edited.
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @param {object} properties The dynamic properties, from `propertiesFromDefinitions`.
+ * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+ * @return {object} Form-data keys mapped to the stored answers.
+ */
+export function storedAnswersFor(record, config, properties = {}) {
+	if (!record || !usesArrayValues(config)) {
+		return {}
+	}
+	const entries = record[config.values.arrayKey]
+	if (!Array.isArray(entries)) {
+		return {}
+	}
+	const definitionRef = config.values.definitionRef || 'definition'
+	const valueKey = config.values.valueKey || 'value'
+	const out = {}
+	for (const entry of entries) {
+		if (!entry || typeof entry !== 'object') {
+			continue
+		}
+		const key = DYNAMIC_KEY_PREFIX + String(entry[definitionRef] ?? '')
+		if (!Object.hasOwn(properties, key) || !isAnswered(entry[valueKey])) {
+			continue
+		}
+		out[key] = readStoredAnswer(entry[valueKey], properties[key])
+	}
+	return out
+}
+
+/**
+ * Whether an answer is the one an entry already stores.
+ *
+ * @param {unknown} stored The stored value.
+ * @param {unknown} value The form's answer.
+ * @return {boolean} True when saving the answer would store the same thing.
+ */
+function sameAnswer(stored, value) {
+	if (stored === undefined || stored === null) {
+		return false
+	}
+	if (storedText(value) === String(stored)) {
+		return true
+	}
+	if (typeof value !== 'object' || typeof stored !== 'string') {
+		return false
+	}
+	try {
+		return JSON.stringify(JSON.parse(stored)) === JSON.stringify(value)
+	} catch {
+		return false
+	}
+}
+
+/**
+ * The array an array-mode declaration stores, after a form answered it.
+ *
+ * Merges the form's answers over what the record stored: a changed answer
+ * replaces its entry in place, an unchanged one keeps its stored entry as it
+ * was, a cleared one loses its entry, a new one is added at the end, and an
+ * entry for a definition the form did not ask stays. A form only asks the
+ * questions its case type asks today, so replacing the whole array would
+ * erase every answer it was not shown.
+ *
+ * @param {Array<object>|undefined} existing The stored array (absent on a new record).
+ * @param {Array<{definitionId: string, value: unknown}>} answers The form's answers for this declaration.
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @param {Array<object>} [definitions] The definition records, for their names.
+ * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-saving-an-edit-keeps-what-was-not-changed
+ * @return {Array<object>} The array to store.
+ */
+export function mergeValueArray(existing, answers, config, definitions = []) {
+	if (!usesArrayValues(config)) {
+		return Array.isArray(existing) ? existing : []
+	}
+	const values = config.values
+	const definitionRef = values.definitionRef || 'definition'
+	const valueKey = values.valueKey || 'value'
+	const fresh = new Map(valueArrayFor(
+		(answers || []).filter(({ value }) => isAnswered(value)),
+		config,
+		definitions,
+	).map((entry) => [String(entry[definitionRef]), entry]))
+	const answered = new Map((answers || []).map((a) => [String(a.definitionId), a.value]))
+
+	const out = []
+	for (const entry of (Array.isArray(existing) ? existing : [])) {
+		const id = String((entry && entry[definitionRef]) ?? '')
+		if (!answered.has(id)) {
+			out.push(entry)
+			continue
+		}
+		const value = answered.get(id)
+		if (!isAnswered(value)) {
+			fresh.delete(id)
+			continue
+		}
+		// A second entry for the same definition finds its replacement taken.
+		const kept = sameAnswer(entry[valueKey], value) ? entry : fresh.get(id)
+		if (kept) {
+			out.push(kept)
+		}
+		fresh.delete(id)
+	}
+	return out.concat([...fresh.values()])
+}
+
+/**
  * The value-schema records to write for one saved parent object.
  *
  * An answer left empty writes no row: an absent row and a row holding `''`
