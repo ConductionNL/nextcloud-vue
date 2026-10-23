@@ -3377,8 +3377,8 @@
 				},
 				"method": {
 					"type": "string",
-					"enum": ["POST", "PUT", "GET"],
-					"description": "api-call: HTTP method (default POST); GET sends the resolved params as the query string, and with download: true downloads the file the endpoint answers (DqDoorlooptijd). toggle writeUrl: default PUT."
+					"enum": ["POST", "PUT", "PATCH", "GET"],
+					"description": "api-call: HTTP method (default POST); PATCH changes only the fields in the body (an OpenRegister object); GET sends the resolved params as the query string, and with download: true downloads the file the endpoint answers (DqDoorlooptijd). toggle writeUrl: default PUT."
 				},
 				"payload": {
 					"type": "object",
