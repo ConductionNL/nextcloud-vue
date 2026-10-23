@@ -1430,10 +1430,11 @@
 	color: var(--cn-board-text-soft);
 }
 
-/* The folder pane as a card (DqAfdelingen): 280px, a hairline border, 12px
-   corners, with each folder's count in a grey pill. */
+/* The folder pane as a card (DqAfdelingen): 310px, a hairline border, 12px
+   corners, with each folder's count in a grey pill.
+   @spec openspec/changes/board-folder-pane-width/specs/board-folder-pane-width/spec.md */
 .cn-look-board .cn-index-page__folder-pane {
-	flex: 0 0 280px;
+	flex: 0 0 310px;
 	align-self: flex-start;
 	margin-inline-end: 20px;
 	padding: 14px;
