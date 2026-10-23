@@ -171,8 +171,8 @@ import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFil
  *   appraisal values; `periodText` writes the period (`{period} after the
  *   decision`); `decidedBy` says who decides; `selectionListLookup:
  *   { url, param?, label? }` reads a selection list URL as words
- *   ("6.1, Ingewilligd"), the URL's last segment when the lookup fails. When the candidates agree the
- *   facts show that outcome, otherwise "Depends on the result". A failed
+ *   ("6.1, Ingewilligd"), the URL's last segment when the lookup fails. Each fact the candidates
+ *   agree on shows that value; a fact they differ on reads "Depends on the result". A failed
  *   read keeps the plain facts.
  * - `pendingNote`: the note under the facts of a record not closed yet.
  * - `legalHold: true`: a section with the record's active legal holds
@@ -339,10 +339,10 @@ export default {
 		/**
 		 * The outcome the record's type expects before it closes: the agreed
 		 * appraisal, period and selection list row of the candidate rules, or
-		 * `mixed` when they disagree; null when nothing was read.
+		 * the facts that differ between them marked; null when nothing was read.
 		 *
 		 * @spec openspec/changes/retention-expected-outcome/specs/retention-widget/spec.md#requirement-an-open-record-shows-the-outcome-its-type-expects
-		 * @return {{appraisal: string, period: string, selectionListRow: string, mixed: boolean}|null}
+		 * @return {{appraisal: string, period: string, selectionListRow: string, appraisalDiffers: boolean, periodDiffers: boolean, rowsDiffer: boolean}|null}
 		 */
 		expectedOutcome() {
 			const rows = this.expectedRows
@@ -353,14 +353,18 @@ export default {
 			const pick = (row, key) => String(readPath(row, fields[key]) ?? '')
 			const outcomes = rows.map((row) => ({ appraisal: pick(row, 'appraisal'), period: pick(row, 'period'), selectionListRow: pick(row, 'selectionListRow') }))
 			const first = outcomes[0]
-			const agree = outcomes.every((o) => o.appraisal === first.appraisal && o.period === first.period)
 			if (first.appraisal === '' && first.period === '') {
 				return null
 			}
-			const sameRow = outcomes.every((o) => o.selectionListRow === first.selectionListRow)
-			return agree
-				? { ...first, selectionListRow: sameRow ? (this.selectionListLabel || first.selectionListRow) : '', rowsDiffer: !sameRow, mixed: false }
-				: { appraisal: '', period: '', selectionListRow: '', rowsDiffer: true, mixed: true }
+			const same = (key) => outcomes.every((o) => o[key] === first[key])
+			return {
+				appraisal: same('appraisal') ? first.appraisal : '',
+				period: same('period') ? first.period : '',
+				selectionListRow: same('selectionListRow') ? (this.selectionListLabel || first.selectionListRow) : '',
+				appraisalDiffers: !same('appraisal'),
+				periodDiffers: !same('period'),
+				rowsDiffer: !same('selectionListRow'),
+			}
 		},
 
 		/**
@@ -384,8 +388,8 @@ export default {
 			const depends = t('nextcloud-vue', 'Depends on the result')
 			const config = this.content.expected || {}
 			const facts = [
-				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: expected.mixed ? depends : this.appraisalLabel(expected.appraisal) },
-				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: expected.mixed ? depends : this.periodLabel(expected.period) },
+				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: expected.appraisalDiffers ? depends : this.appraisalLabel(expected.appraisal) },
+				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: expected.periodDiffers ? depends : this.periodLabel(expected.period) },
 			]
 			if (expected.selectionListRow || expected.rowsDiffer) {
 				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: expected.rowsDiffer ? depends : expected.selectionListRow })
@@ -414,7 +418,7 @@ export default {
 		transfers() {
 			const keep = Array.isArray(this.content.transfer?.keepValues) ? this.content.transfer.keepValues.map(String) : ['bewaren', 'blijvend_bewaren', 'retain', 'keep']
 			const stored = this.retention && this.retention.appraisal
-			const appraisal = stored || (this.expectedOutcome && !this.expectedOutcome.mixed ? this.expectedOutcome.appraisal : '')
+			const appraisal = stored || (this.expectedOutcome ? this.expectedOutcome.appraisal : '')
 			return keep.includes(String(appraisal || ''))
 		},
 

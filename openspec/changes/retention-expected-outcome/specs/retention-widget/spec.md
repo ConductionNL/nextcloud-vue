@@ -2,12 +2,17 @@
 
 ### Requirement: An open record shows the outcome its type expects
 
-With `content.expected` set, CnRetentionWidget SHALL read the candidate rules of a record that OpenRegister has not nominated yet, and SHALL show the appraisal, retention period and selection list row they agree on. When the rules disagree it SHALL say the outcome depends on the result. When the rules cannot be read it SHALL show the plain pending facts. The disposal date SHALL stay "decided when it closes".
+With `content.expected` set, CnRetentionWidget SHALL read the candidate rules of a record that OpenRegister has not nominated yet, and SHALL show each of the appraisal, retention period and selection list row they agree on. A fact the rules differ on SHALL read that it depends on the result. When the rules cannot be read it SHALL show the plain pending facts. The disposal date SHALL stay "decided when it closes".
 
 #### Scenario: every result type destroys after five years
 - **GIVEN** an open case whose type's result types all say `vernietigen` after `P5Y`
 - **WHEN** the Archiving card renders
 - **THEN** it SHALL show Appraisal "Destroy" and Retention period "5 years after the decision"
+
+#### Scenario: the result types agree on the appraisal only
+- **GIVEN** result types that all destroy, some after five years and some after one
+- **WHEN** the Archiving card renders
+- **THEN** Appraisal SHALL read "Destroy" and Retention period "Depends on the result"
 
 #### Scenario: the result types disagree
 - **GIVEN** result types that destroy and keep

@@ -206,6 +206,14 @@ describe('CnRetentionWidget before the record closes', () => {
 		expect(pending(w)['Selection list row']).toBe('Depends on the result')
 	})
 
+	it('shows each fact the result types agree on, and only the others depend on the result', async () => {
+		answer([RESULT_TYPES[0], { ...RESULT_TYPES[1], archivalPeriod: 'P1Y' }])
+		const w = await mountWidget({ expected: EXPECTED })
+		expect(pending(w).Appraisal).toBe('Destroy')
+		expect(pending(w)['Retention period']).toBe('Depends on the result')
+		expect(pending(w)['Selection list row']).toBe('11.1.2, Woo-verzoeken')
+	})
+
 	it('says the outcome depends on the result when the result types disagree', async () => {
 		answer([RESULT_TYPES[0], { id: 'r3', archivalAction: 'bewaren', archivalPeriod: 'P20Y' }])
 		const w = await mountWidget({ expected: EXPECTED })
