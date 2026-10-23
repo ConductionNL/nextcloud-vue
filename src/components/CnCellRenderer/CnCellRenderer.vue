@@ -475,11 +475,16 @@ export default {
 	inject: {
 		/**
 		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
-		 * Map of formatter-id → `(value, row, property) => string|number`.
+		 * Map of formatter-id → `(value, row, property, options, context) => string|number`;
+		 * `context` is the page record, `{ objectId, object }`.
 		 * Defaults to an empty object so standalone use (no CnAppRoot
 		 * ancestor) is unaffected.
 		 */
 		cnFormatters: { default: () => ({}) },
+		/** The detail page's record context (`{ objectId, object }`), for a formatter's fifth argument. */
+		cnObjectContext: { default: null },
+		/** The v2 grid's record holder (`{ value: { objectId, objectData } }`), the same. */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Cell-widget registry, provided by CnAppRoot (`cnCellWidgets`).
 		 * Map of widget-id → Vue component. Resolves a column's `widget` id;
@@ -1561,6 +1566,19 @@ export default {
 			return typeof fn === 'function' ? fn : null
 		},
 
+		/**
+		 * The record of the page the table sits on, for a formatter that needs
+		 * more than its row: `{ objectId, object }`, both null outside a detail page.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null)}}
+		 * @spec openspec/changes/cell-formatter-page-record/specs/cell-renderer/spec.md#requirement-a-cell-formatter-can-read-the-page-record
+		 */
+		formatterContext() {
+			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+			const ctx = unwrap(this.cnObjectContext) || unwrap(this.cnDetailObjectContext) || {}
+			return { objectId: ctx.objectId ?? null, object: ctx.object || ctx.objectData || null }
+		},
+
 		/** True when an explicit formatter is in play for this cell. */
 		hasFormatter() {
 			return this.formatterFn !== null
@@ -1607,7 +1625,7 @@ export default {
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
-					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined)
+					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined, this.formatterContext)
 				} catch (e) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
