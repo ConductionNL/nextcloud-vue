@@ -2334,7 +2334,8 @@
     "just now": "just now",
     "this morning": "this morning",
     "this afternoon": "this afternoon",
-    "this evening": "this evening"
+    "this evening": "this evening",
+    "{subject}, checklist": "{subject}, checklist"
   },
   "plurals": {
     "{count} member": [
