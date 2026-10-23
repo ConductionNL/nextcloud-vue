@@ -44,8 +44,8 @@ const CARD = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-wi
 const INSET = 'var(--cn-board-dashboard-card-inset)'
 
 describe('look-board.css: widgets on a board dashboard card keep its side inset', () => {
-	it('defines the inset as 24px', () => {
-		expect(board).toMatch(/\.cn-look-board\s*\{[^}]*--cn-board-dashboard-card-inset:\s*24px;/)
+	it('defines the inset as 22px, as 51 of the Dq boards draw it', () => {
+		expect(board).toMatch(/\.cn-look-board\s*\{[^}]*--cn-board-dashboard-card-inset:\s*22px;/)
 	})
 
 	it.each([
