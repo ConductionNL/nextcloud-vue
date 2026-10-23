@@ -1,3 +1,4 @@
+import { getSemanticIconComponent } from '../../src/components/CnIcon/semanticIcons.js'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -58,9 +59,11 @@ describe('saved view menu icons', () => {
 		expect(menu.find((item) => item.label === 'Bezwaar').icon).toBe('Gavel')
 	})
 
-	it('falls back to the filter icon', () => {
+	it('falls back to the filter icon, one the navigation resolves without the app registering it', () => {
 		const menu = withSavedViewMenu([], normalizeSavedViewMenu([{ id: 'v', page: 'Cases', name: 'Mine' }]))
-		expect(menu.find((item) => item.label === 'Mine').icon).toBe('FilterOutline')
+		const icon = menu.find((item) => item.label === 'Mine').icon
+		expect(icon).toBe('FilterVariant')
+		expect(getSemanticIconComponent(icon)).toBeTruthy()
 	})
 
 	it('takes a view icon on sync', () => {

@@ -161,7 +161,7 @@ export function withSavedViewMenu(menu, entries, options = {}) {
 					label: e.name,
 					route: e.page,
 					query: { savedView: e.id },
-					icon: e.icon || 'FilterOutline',
+					icon: e.icon || 'FilterVariant',
 					...(e.badge || {}),
 				}))
 			: [{ id: SAVED_VIEW_MENU_EMPTY, type: 'hint', label: t('nextcloud-vue', 'Add a view to the menu from Filters') }]),
