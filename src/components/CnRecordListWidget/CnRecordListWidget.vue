@@ -686,7 +686,7 @@ export default {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
 		const appConfigRaw = inject('cnAppConfig', ref({}))
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, refusal, refetch } = useEndpointSource(
 			() => {
 				const app = props.content?.requiresApp
 				return typeof app === 'string' && app !== '' && !isAppInstalled(app) ? null : (props.content?.endpointSource || null)
@@ -728,7 +728,7 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
 	},
 
 	data() {
@@ -1363,8 +1363,17 @@ export default {
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
-		/** @return {string} The error line. */
+		/**
+		 * The error line: an endpoint's refusal (401/403) in its own words,
+		 * through the app's catalogue, else `errorText`, else the default.
+		 *
+		 * @return {string} The error line.
+		 * @spec openspec/changes/record-list-endpoint-refusal/specs/record-list/spec.md#requirement-a-refused-endpoint-read-says-why
+		 */
 		errorLabel() {
+			if (this.endpointActive && this.epRefusal) {
+				return this.translate(this.epRefusal)
+			}
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
 
