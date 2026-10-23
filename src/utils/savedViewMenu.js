@@ -98,6 +98,8 @@ export function toggleSavedViewMenuEntry(entries, entry) {
  * current names, icons and badges, and no entry for a view that was deleted or is
  * no longer shared with the user. Other pages' entries are left alone. A
  * view's badge is read from its `menuBadge` (see `withSavedViewMenu`).
+ * An entry may name its view by uuid (as an example set writes it); it is
+ * matched and stored under the view's id from then on.
  *
  * @param {Array<object>} entries The current list.
  * @param {string} page The page's route name.
@@ -105,7 +107,13 @@ export function toggleSavedViewMenuEntry(entries, entry) {
  * @return {Array<{id: string, page: string, name: string}>} The new list.
  */
 export function syncSavedViewMenu(entries, page, views) {
-	const byId = new Map((Array.isArray(views) ? views : []).map((v) => [String(v.id || v.slug), v]))
+	const list = Array.isArray(views) ? views : []
+	const byId = new Map(list.map((v) => [String(v.id || v.slug), v]))
+	for (const v of list) {
+		if (v && v.uuid && !byId.has(String(v.uuid))) {
+			byId.set(String(v.uuid), v)
+		}
+	}
 	return normalizeSavedViewMenu(entries)
 		.filter((e) => e.page !== page || byId.has(e.id))
 		.map((e) => {
@@ -113,7 +121,8 @@ export function syncSavedViewMenu(entries, page, views) {
 				return e
 			}
 			const view = byId.get(e.id)
-			const { badge, icon, ...rest } = e
+			const { badge, icon, id, ...rest } = e
+			rest.id = String(view.id || view.slug || id)
 			const next = normalizeBadge(view.menuBadge)
 			const nextIcon = typeof view.icon === 'string' && view.icon !== '' ? view.icon : icon
 			return normalizeSavedViewMenu([{ ...rest, name: view.name || e.name, ...(nextIcon ? { icon: nextIcon } : {}), ...(next ? { badge: next } : {}) }])[0]
