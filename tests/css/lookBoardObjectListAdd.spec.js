@@ -29,6 +29,19 @@ describe('a list card\'s Add', () => {
 		expect(body).toContain('display: none;')
 	})
 
+	it('leaves the empty state\'s own Add out of a board-look catalog card', () => {
+		const body = bodyOf(detail, '.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add)')
+		expect(body).toContain('display: none;')
+		expect(widget).toContain('<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">')
+	})
+
+	it('keeps the empty state\'s Add in the Nextcloud look', () => {
+		for (const sel of detail.split('}').map((r) => r.split('{')[0].trim()).filter((s) => s.includes('cn-object-list-widget__empty-add'))) {
+			expect(sel).toMatch(/^\.cn-look-board /)
+			expect(sel).toContain(':not(.cn-look-nextcloud *)')
+		}
+	})
+
 	it('is a 40px button in the board-look title row', () => {
 		const body = bodyOf(detail, '.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *))')
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')

@@ -14,3 +14,10 @@ In the board look a catalog list card (object-list or table, off a tab panel) SH
 
 - **GIVEN** the same card in the Nextcloud look
 - **THEN** the Add is the footer bar and an Actions menu item, as before
+
+#### Scenario: an empty list card in the board look
+
+- **GIVEN** a catalog list card with no rows in the board look
+- **THEN** it shows the empty text and the title-row Add only
+- **AND** the empty state draws no Add of its own; a filter's clear action stays
+- **AND** in the Nextcloud look the empty state keeps its Add
