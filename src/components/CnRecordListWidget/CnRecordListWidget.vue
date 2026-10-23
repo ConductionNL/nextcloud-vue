@@ -88,6 +88,41 @@
 				</tr>
 			</tbody>
 		</table>
+		<!-- checklist: an optional bar of the done share, then the rows in
+		     columns, a done row ticked and an open one an empty circle
+		     (DqTenant Inrichten). -->
+		<div
+			v-else-if="presentation === 'checklist'"
+			class="cn-record-list__checklist-wrap">
+			<div
+				v-if="content.progress"
+				class="cn-record-list__checklist-bar"
+				role="progressbar"
+				:aria-valuenow="checklistDone"
+				aria-valuemin="0"
+				:aria-valuemax="items.length"
+				:aria-label="headerNote || undefined"
+				data-testid="cn-record-list-checklist-bar">
+				<span class="cn-record-list__checklist-fill" :style="{ width: `${checklistPercent}%` }" />
+			</div>
+			<ul
+				class="cn-record-list__checklist"
+				:style="{ '--cn-record-list-columns': checklistColumns }"
+				data-testid="cn-record-list-checklist">
+				<li
+					v-for="item in items"
+					:key="item.key"
+					class="cn-record-list__check"
+					:class="{ 'cn-record-list__check--done': isChecked(item.row) }"
+					data-testid="cn-record-list-check">
+					<span class="cn-record-list__check-mark" aria-hidden="true">
+						<Check v-if="isChecked(item.row)" :size="14" />
+					</span>
+					<span class="cn-record-list__check-title">{{ item.title }}</span>
+					<span class="hidden-visually">{{ isChecked(item.row) ? doneLabel : openLabel }}</span>
+				</li>
+			</ul>
+		</div>
 		<!-- notes: a field per row for what happened, recorded on the row's
 		     own notes endpoint (DqDagAfsluiten "Nog open van vandaag"). -->
 		<CnRecordNoteRows
@@ -414,7 +449,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes', 'checklist']
 
 /**
  * Compare two table cell texts: as numbers when both read as one, else as text.
@@ -534,6 +569,10 @@ export default {
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
+		 * `presentation: "checklist"` draws the rows in `columns` (default 3),
+		 * a row for which `done` (a condition over the row) holds ticked, and
+		 * `progress: true` adds a bar of the done share (DqTenant Inrichten);
+		 * `headerNote` can say "{count:status=completed} of {total} steps done".
 		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
 		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
 		 * row) asks a figure over each row's related objects, as a table's
@@ -985,6 +1024,47 @@ export default {
 				resolved.href = link.href
 			}
 			return resolved
+		},
+
+		/**
+		 * The checklist's columns (`content.columns`, 1 to 4, default 3).
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistColumns() {
+			const value = Number(this.content?.columns)
+			return Number.isFinite(value) && value >= 1 ? Math.min(4, Math.floor(value)) : 3
+		},
+
+		/**
+		 * How many checklist rows are done.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistDone() {
+			return this.items.filter((item) => this.isChecked(item.row)).length
+		},
+
+		/**
+		 * The done share of the checklist, in whole percent.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistPercent() {
+			return this.items.length > 0 ? Math.round((this.checklistDone / this.items.length) * 100) : 0
+		},
+
+		/** @return {string} What a done checklist row says to a screen reader. */
+		doneLabel() {
+			return t('nextcloud-vue', 'Done')
+		},
+
+		/** @return {string} What an open checklist row says to a screen reader. */
+		openLabel() {
+			return t('nextcloud-vue', 'Not done yet')
 		},
 
 		/** @return {string} The header note with `{total}` filled. */
@@ -1662,6 +1742,19 @@ export default {
 		},
 
 		/**
+		 * Whether a checklist row is done: `content.done` (a condition over
+		 * the row) holds for it.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		isChecked(row) {
+			const done = this.content?.done
+			return Boolean(done && typeof done === 'object' && row && evaluateVisibleWhenLocal(done, row))
+		},
+
+		/**
 		 * A `count` badge: how many entries a row's field holds (a list counts
 		 * its items, a number is itself), as `one` or `other` with `{count}`.
 		 * Nothing at 0.
@@ -2321,6 +2414,64 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__checklist-bar {
+	height: 8px;
+	margin-block-end: 16px;
+	border-radius: 4px;
+	background: var(--color-background-dark);
+	overflow: hidden;
+}
+
+.cn-record-list__checklist-fill {
+	display: block;
+	height: 100%;
+	border-radius: 4px;
+	background: var(--color-primary-element);
+}
+
+.cn-record-list__checklist {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-record-list-columns, 3), minmax(0, 1fr));
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-record-list__check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 28px;
+}
+
+.cn-record-list__check--done {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__check-mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: 50%;
+}
+
+.cn-record-list__check--done .cn-record-list__check-mark {
+	border-color: transparent;
+	background: var(--color-success-hover, var(--color-background-dark));
+	color: var(--color-success-text, var(--color-success));
+}
+
+@media (max-width: 640px) {
+	.cn-record-list__checklist {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 .cn-record-list__set-field-done {
 	display: inline-flex;
 	align-items: center;
