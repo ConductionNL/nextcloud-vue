@@ -1748,6 +1748,8 @@
     "Manage \"{name}\"": "Manage \"{name}\"",
     "Presentation": "Presentation",
     "Save a copy": "Save a copy",
+    "Icon": "Icon",
+    "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu.",
     "More default views": "More default views",
     "Fewer default views": "Fewer default views",
     "Save the current filters to \"{name}\"": "Save the current filters to \"{name}\"",

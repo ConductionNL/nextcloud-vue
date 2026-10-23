@@ -141,7 +141,7 @@ describe('saved views in the app menu', () => {
 		const out = withSavedViewMenu(menu, [entry])
 		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'Rel', 'Contacts', 'saved-views-caption', 'saved-view-7'])
 		expect(out[4]).toMatchObject({ type: 'caption', label: 'My views' })
-		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
+		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterVariant', order: expect.any(Number) })
 		expect(out[3].order < out[4].order && out[4].order < out[5].order).toBe(true)
 		expect(withSavedViewMenu(menu, [])).toBe(menu)
 	})
@@ -153,7 +153,7 @@ describe('CnSavedViewEditDialog', () => {
 		expect(w.vm.name).toBe('Mine')
 		await w.setData({ name: '  Mine, overdue ' })
 		w.vm.onConfirm()
-		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine, overdue', replaceCriteria: false })
+		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine, overdue', replaceCriteria: false, description: '', icon: '' })
 	})
 
 	it('keeps the form open with the refusal', () => {
@@ -272,8 +272,9 @@ describe('CnIndexPage with saved views', () => {
 		const w = mountPage({}, { menu })
 		await flush()
 		await w.get('[data-testid="cn-saved-views-menu"]').trigger('click')
-		expect(menu.toggle).toHaveBeenCalledWith({ id: '1', page: 'Cases', name: 'Mine' })
-		expect(menu.sync).toHaveBeenCalledWith('Cases', [{ ...own, menuBadge: null }])
+		const badge = { count: { register: 'procest', schema: 'case', filter: own.query.filters } }
+		expect(menu.toggle).toHaveBeenCalledWith({ id: '1', page: 'Cases', name: 'Mine', badge })
+		expect(menu.sync).toHaveBeenCalledWith('Cases', [{ ...own, menuBadge: badge }])
 	})
 
 	it('applies the view a menu entry names, and keeps naming it in the address', async () => {
@@ -338,7 +339,7 @@ describe('the view dialogs, as the boards draw them', () => {
 		expect(w.text()).toContain('sees the change at once')
 		w.vm.replaceCriteria = true
 		w.vm.onConfirm()
-		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine', replaceCriteria: true })
+		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine', replaceCriteria: true, description: '', icon: '' })
 	})
 
 	it('the delete confirm names who it was shared with', () => {
