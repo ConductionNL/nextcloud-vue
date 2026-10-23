@@ -93,6 +93,9 @@
 					</template>
 				</div>
 			</div>
+			<p v-if="content.footnote" class="cn-working-calendar__footnote" data-testid="cn-working-calendar-footnote">
+				{{ cnTranslate(content.footnote) }}
+			</p>
 
 			<form
 				v-if="adding"
@@ -224,8 +227,10 @@ export default {
 	props: {
 		/**
 		 * The widget config: `{ calendar: { register, schema, id? | filter? },
-		 * previewUrl?, editable?, addButton?, emptyText? }`. `addButton: false` leaves the Add day button
-		 * out, for a host that draws it in its own title row and calls `openAdd()`.
+		 * previewUrl?, editable?, addButton?, emptyText?, footnote? }`. `addButton: false` leaves the Add day button
+		 * out, for a host that draws it in its own title row and calls `openAdd()`. `footnote` is a
+		 * line under the month grid, through the host's translate: what the colours mean
+		 * (DqInstellingenAlgemeen "Rood: feestdag of sluitingsdag.").
 		 *
 		 * @type {object}
 		 */
@@ -699,6 +704,14 @@ export default {
 .cn-working-calendar__note {
 	color: var(--color-text-maxcontrast);
 	margin: 0;
+}
+
+/* @spec openspec/changes/working-calendar-footnote/specs/working-calendar-footnote/spec.md */
+.cn-working-calendar__footnote {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-working-calendar__form {
