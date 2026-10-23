@@ -1793,6 +1793,15 @@
 	border-color: var(--cn-board-control-border);
 }
 
+/* The narrowing select ("Zaaktype:") fits the chosen value, not the longest
+   option in the catalogue (DqWerkbord), with room for the caret. A browser
+   without field-sizing keeps the options' width.
+   @spec openspec/changes/board-narrow-select-fits-choice/specs/board-narrow-select-fits-choice/spec.md#requirement-the-board-views-narrowing-select-fits-the-chosen-value */
+.cn-look-board .cn-index-page__board-select--fit:not(.cn-look-nextcloud *) {
+	field-sizing: content;
+	padding-inline-end: 28px;
+}
+
 /* ---- Page tabs (CnIndexPage `pageTabs`, DqContracten) ------------------ */
 /* The sibling-page tabs are links; the board draws them as folder tabs in
    the main ink at 14px, the open one at 700 on a white bottom edge, with no
