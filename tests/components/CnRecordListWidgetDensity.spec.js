@@ -29,7 +29,7 @@ function bodiesOf(selector) {
 	const out = []
 	let m
 	while ((m = re.exec(board))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			out.push(m[2])
 		}
 	}

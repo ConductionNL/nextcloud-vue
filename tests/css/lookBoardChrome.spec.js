@@ -28,7 +28,7 @@ function rulesFor(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		const selectors = m[1].split(',').map((s) => s.trim())
+		const selectors = m[1].split(/,(?![^(]*\))/).map((s) => s.trim())
 		if (selectors.some((s) => (exact ? s.endsWith(text) : s.includes(text)))) {
 			out.push(m[2])
 		}
@@ -48,7 +48,7 @@ describe('look-board.css: scope', () => {
 		let m
 		let count = 0
 		while ((m = re.exec(css))) {
-			for (const selector of m[1].split(',').map((s) => s.trim()).filter(Boolean)) {
+			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
 				count++
 				if (isTeleported(selector)) {
 					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)).toBe(true)
@@ -64,7 +64,7 @@ describe('look-board.css: scope', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g
 		let m
 		while ((m = re.exec(css))) {
-			for (const selector of m[1].split(',').map((s) => s.trim())) {
+			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim())) {
 				if (isTeleported(selector)) {
 					// A teleported popper sits outside the page, so it opts out by the body:
 					// no board styling while any page keeps the Nextcloud look.
@@ -194,7 +194,7 @@ describe('look-board.css: the navigation', () => {
 		let m
 		while ((m = re.exec(css))) {
 			if (/\.app-navigation-entry\.active/.test(m[1]) && /!important/.test(m[2])) {
-				important.push(...m[1].split(',').map((s) => s.trim()))
+				important.push(...m[1].split(/,(?![^(]*\))/).map((s) => s.trim()))
 			}
 		}
 		expect(important.length).toBeGreaterThan(0)

@@ -24,7 +24,7 @@ function tokenBodyOf(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[2].includes('--nldesign-component-button') && m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[2].includes('--nldesign-component-button') && m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			return m[2]
 		}
 	}

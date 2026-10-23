@@ -33,7 +33,7 @@ function rule(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(style))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			return m[2]
 		}
 	}

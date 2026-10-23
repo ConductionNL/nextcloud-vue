@@ -22,7 +22,7 @@ function rulesFor(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			out.push(m[2])
 		}
 	}
@@ -89,7 +89,7 @@ describe('look-board.css: the board menu', () => {
 	})
 
 	it('leaves the Nextcloud look alone: every menu rule needs a board-look root', () => {
-		const selectors = css.match(/[^{}]+(?=\{)/g).join(',').split(',').map((s) => s.trim())
+		const selectors = css.match(/[^{}]+(?=\{)/g).join(',').split(/,(?![^(]*\))/).map((s) => s.trim())
 		const menu = selectors.filter((s) => s.includes('action-item__popper'))
 		expect(menu.length).toBeGreaterThan(0)
 		menu.forEach((s) => expect(s.startsWith('body:has(.cn-look-board):not(:has(.cn-look-nextcloud))')).toBe(true))

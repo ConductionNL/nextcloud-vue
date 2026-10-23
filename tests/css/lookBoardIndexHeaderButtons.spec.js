@@ -19,7 +19,7 @@ function rulesEndingWith(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).some((s) => s.endsWith(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).some((s) => s.endsWith(needle))) {
 			out.push(m[2])
 		}
 	}
@@ -49,7 +49,7 @@ describe('look-board-index.css: header buttons', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g
 		let m
 		while ((m = re.exec(css))) {
-			for (const selector of m[1].split(',').map((s) => s.trim()).filter(Boolean)) {
+			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
 				if (selector.includes('cn-index-page__header-buttons')) {
 					expect(selector.startsWith('.cn-look-board .cn-index-page')).toBe(true)
 				}
