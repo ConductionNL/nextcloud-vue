@@ -762,6 +762,12 @@
 	padding-inline: 16px;
 }
 
+/* The row's actions menu (a 34px toggle) adds no height to a card table's
+   row: the cell has no block padding, so the row stays at its text's 40px. */
+.cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table .cn-table-col--actions {
+	padding-block: 0;
+}
+
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td > .cn-cell-renderer {
 	display: block;
 	min-width: 0;
