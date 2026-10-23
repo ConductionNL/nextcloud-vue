@@ -2167,6 +2167,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 24px 10px;
 }
 
+/* Inside a plain or grid sections widget the sections body already takes
+   the card's side inset, so a record list there takes none of its own (DqTermijnen "Totale
+   dwangsom in 2026" under the Jaar form).
+   @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--plain .cn-record-list,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--grid .cn-record-list {
+	padding-inline: 0;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
 	border-top: 1px solid var(--color-border-dark, var(--color-border));
 }
@@ -2464,11 +2473,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 22px 20px;
 }
 
-/* Inside a sections widget the sections body already takes the card's inset,
-   so a widget table there takes none of its own (DqTermijnen Kwartaalrapport,
+/* Inside a plain or grid sections widget the sections body already takes
+   the card's inset, so a widget table there takes none of its own (DqTermijnen Kwartaalrapport,
    1074px in a 1120px card).
    @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget .cn-widget-object-table {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--plain .cn-widget-object-table,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid .cn-widget-object-table {
 	padding: 0;
 }
 

@@ -8,7 +8,7 @@
 ### Requirement: A table inside a dashboard sections card is inset once
 
 In the board look, a widget table inside a sections widget on a dashboard card SHALL take no side or bottom padding of
-its own, so it spans the sections body.
+its own, so it spans the sections body, and a record list there SHALL take no side padding of its own.
 
 #### Scenario: DqTermijnen Kwartaalrapport
 
