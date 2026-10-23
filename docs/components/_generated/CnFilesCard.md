@@ -29,6 +29,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name      | Bindings  | Description |
-| --------- | --------- | ----------- |
-| `actions` | `refresh` |             |
+| Name      | Bindings  | Description                                                    |
+| --------- | --------- | -------------------------------------------------------------- |
+| `actions` | `refresh` | actions Header actions of the card, e.g. an Add button. Scope: |
