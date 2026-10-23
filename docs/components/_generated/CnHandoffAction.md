@@ -16,6 +16,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name   | Payload | Description |
-| ------ | ------- | ----------- |
-| `done` | —       |             |
+| Name   | Payload | Description                                                    |
+| ------ | ------- | -------------------------------------------------------------- |
+| `done` | —       | The hand-off went through. Payload: the target app's response. |
