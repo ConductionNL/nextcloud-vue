@@ -38,6 +38,11 @@ describe('look-board.css: choice cards', () => {
 		expect(idle).toContain('border-color: var(--color-border-maxcontrast)')
 	})
 
+	it('keeps a chosen option and its details frame white (design-system #371)', () => {
+		const chosen = rule(`${cards} .cn-choice-cards__row--selected${guard},\n${cards} .cn-choice-cards__row--selected:hover${guard},\n${cards} .cn-choice-cards__cell--with-details${guard}`)
+		expect(chosen).toContain('background: var(--color-main-background)')
+	})
+
 	it('draws the radio at 18px', () => {
 		const radio = rule(`${cards} .cn-choice-cards__row-input${guard}`)
 		expect(radio).toContain('width: 18px')
