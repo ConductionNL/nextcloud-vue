@@ -2149,7 +2149,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:hover,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:focus-visible,
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row *:not(.cn-status-badge):not(.cn-status-badge *):not(.cn-record-list__due) {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row *:where(:not(.cn-status-badge, .cn-status-badge *, .cn-record-list__due)) {
 	color: inherit;
 	text-decoration: none !important;
 }

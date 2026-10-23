@@ -27,7 +27,7 @@ function inheritingSelectors() {
 	let m
 	while ((m = re.exec(css))) {
 		if (/color:\s*inherit/.test(m[2])) {
-			out.push(...m[1].split(',').map((s) => s.trim()).filter((s) => s.startsWith(PREFIX)))
+			out.push(...m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter((s) => s.startsWith(PREFIX)))
 		}
 	}
 	return out
@@ -42,9 +42,9 @@ describe('look-board: a dashboard row keeps its pills in their own ink', () => {
 
 	it('leaves a status pill and a due text out of the inherited ink', () => {
 		for (const selector of inheritingSelectors().filter((s) => s.startsWith(`${PREFIX} *`))) {
-			expect(selector).toContain(':not(.cn-status-badge)')
-			expect(selector).toContain(':not(.cn-status-badge *)')
-			expect(selector).toContain(':not(.cn-record-list__due)')
+			// Inside :where, so the exemption adds no specificity and the rest of
+			// the row still inherits as before.
+			expect(selector).toContain(':where(:not(.cn-status-badge, .cn-status-badge *, .cn-record-list__due))')
 		}
 	})
 })
