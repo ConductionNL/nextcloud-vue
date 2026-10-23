@@ -120,7 +120,8 @@
 		     that never asked for a limit keeps every action as a button. -->
 		<NcActions
 			v-if="overflowActions.length > 0"
-			:menuName="overflowMenuName"
+			:menuName="overflowOnly ? undefined : overflowMenuName"
+			:aria-label="overflowOnly ? overflowTriggerLabel : undefined"
 			:forceMenu="true"
 			data-testid="cn-action-buttons-overflow">
 			<template v-for="entry in overflowActions">
@@ -381,6 +382,29 @@ export default {
 		},
 
 		/**
+		 * Every collapsible action in the `···` menu, none as a button: the
+		 * trigger is icon only and named by `overflowAriaLabel` (a card's
+		 * "Actions for Volledigheid toetsen").
+		 *
+		 * @type {boolean}
+		 */
+		overflowOnly: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The accessible name of the icon-only trigger under `overflowOnly`.
+		 * Empty falls back to the overflow label.
+		 *
+		 * @type {string}
+		 */
+		overflowAriaLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Explicit Vue Router instance for `navigate` / `open-page` /
 		 * `onSuccessRoute`. Falls back to `this.$router`. Only needed for
 		 * standalone mounts outside a router tree.
@@ -524,6 +548,9 @@ export default {
 			if (this.display === 'menu') {
 				return []
 			}
+			if (this.overflowOnly) {
+				return this.visibleActions.filter((a) => !this.isCollapsible(a))
+			}
 			if (!(this.inline > 0)) {
 				return this.visibleActions
 			}
@@ -541,7 +568,7 @@ export default {
 		 * @return {Array<object>} Actions to render as menu items.
 		 */
 		overflowActions() {
-			if (this.display === 'menu' || !(this.inline > 0)) {
+			if (this.display === 'menu' || !(this.inline > 0 || this.overflowOnly)) {
 				return []
 			}
 			const shown = new Set(this.barActions.map((a) => a.id))
@@ -555,6 +582,15 @@ export default {
 		 */
 		overflowMenuName() {
 			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Name of the icon-only trigger under `overflowOnly`.
+		 *
+		 * @return {string} The label.
+		 */
+		overflowTriggerLabel() {
+			return this.overflowAriaLabel || this.overflowMenuName
 		},
 
 		/**

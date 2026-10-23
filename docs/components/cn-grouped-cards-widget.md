@@ -35,13 +35,18 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupsPath` | Where the list of groups sits in the payload (default `groups`). |
 | `itemsKey` | The list of cards in each group (default `items`). |
 | `groupTitle`, `itemTitle` | Templates (`{path}` tokens, as in a record list). |
-| `itemMeta` | A template, or a list joined with " · "; a part whose token is empty is left out. |
+| `itemMeta` | A template, or a list joined with " · "; a part whose token is empty is left out. A part `{ count, one, other }` is the number at the card's `count` path in the singular or plural text, `{count}` filled in ("1 free place", "3 free places"); a part `{ text, when }` shows only when the local condition holds on the card ("You are signed up"). |
 | `groupCount` | `{ one, other }` with `{count}`: a count pill in the group header. |
 | `extraGroup` | `{ title, path, itemText, join? }`: a dashed box of entries read at `path`, on one line. |
 | `columns` | Groups side by side (1 to 4, default 2); one column on a narrow screen. |
 | `actions` | A row of actions above the groups, as CnActionButtons draws them, drawn also while there are no groups (DqZaaktype "Bekijken als flow", "Taak toevoegen"). |
 | `emptyText`, `groupEmptyText`, `errorText` | The texts of an empty grid, an empty group and a failed read. A failed read offers Try again. |
-| `groupLines` | Templates drawn under a group's title, each left out when it does not fill. |
+| `groupLines` | Templates drawn under a group's title, each left out when it does not fill. An entry `{ text, when }` is drawn only when the local condition `when` (`{ field, op, value }`, `all` / `any`) holds on the group; an entry `{ count, one, other }` (with an optional `when`) counts as an `itemMeta` part does. |
+| `itemActions` | Actions on every card, drawn as CnActionButtons draws them (`api-call`, `open-form`, `navigate`, ...). `@item.<path>` and `@group.<path>` in their strings read the card and its group: URL-encoded in `url`, `target` and `href`; a string that is exactly one token takes the value with its type. `visibleWhen` is the local condition over `item.<path>` and `group.<path>`, so Join, Move here and Leave each show when they apply. |
+| `itemActionsMenu` | `true` puts each card's `itemActions` in one icon-only "···" menu named "Actions for {title}" instead of a row of buttons; in the board look the trigger is the 34px bordered square of a row menu (DqZaaktype "Fasen en taken"). |
+| `groupProgress` | `{ valuePath, label? }`: a progress bar of the group's value (0 to 100) at `valuePath`, `label` filled from the group. |
+| `heading` | A template filled from the payload, drawn as a heading above the groups when the widget is a page of its own (`{name}` of an offer). |
+| `extraItemsKey`, `extraItemsHeading` | A second list of each group under its own heading (who did not sign up, the courses still to do). `extraItemTitle`, `extraItemMeta` and `extraItemActions` work as for the cards; a plain string entry reads as `{ value }`. |
 | `itemFlag` | `{ field, label }`: a card whose `field` is true carries `label` ("Overdue") in the error colour. |
 | `itemsPath`, `itemGroupField` | Read the cards from one flat list of the payload: a card joins the group whose `id` its `itemGroupField` names. |
 | `ungroupedTitle` | With `itemsPath`, the group of the cards that name no group. Without it they are left out. |
