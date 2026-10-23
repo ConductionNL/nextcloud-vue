@@ -2579,7 +2579,8 @@
     "just now": "zojuist",
     "this morning": "vanochtend",
     "this afternoon": "vanmiddag",
-    "this evening": "vanavond"
+    "this evening": "vanavond",
+    "Week {week}": "Week {week}"
   },
   "plurals": {
     "{count} member": [
