@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.148.0', () => {
+	it('the manifest schema version reads 2.149.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1422,7 +1422,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.145.0 gives a detail page a band of widgets above its body (pq-adm-a-detail-band) and a primary action a query (pq-adm-a-detail-page-filters).
 		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) a header link's placement under the title (header-link-under-title) and a detail page's opt-in previous and next within the list it was opened from (listNavigation, detail-list-navigation-wired). 2.146.0 is batch 24hq.
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
-		expect(schema.version).toBe('2.148.0')
+		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
+		expect(schema.version).toBe('2.149.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1546,6 +1547,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		})
 		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
+	})
+
+	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.149.0)', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'pm', route: '/pm', type: 'dashboard', title: 'PM', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: '12m', label: 'Last 12 months', months: 12 }] })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: 'x', label: 'None', months: 0 }] })).valid).toBe(false)
 	})
 
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {

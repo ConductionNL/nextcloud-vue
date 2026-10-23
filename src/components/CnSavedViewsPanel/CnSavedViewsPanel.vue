@@ -6,7 +6,7 @@
 	<section class="cn-saved-views-panel" data-testid="cn-saved-views-panel" :aria-label="t('nextcloud-vue', 'Saved views')">
 		<div class="cn-saved-views-panel__head">
 			<NcButton
-				variant="secondary"
+				:variant="isBoardLook ? 'primary' : 'secondary'"
 				:wide="true"
 				data-testid="cn-saved-views-save"
 				@click="onSaveRequest">
@@ -60,6 +60,13 @@
 					class="cn-saved-views-panel__section"
 					:data-testid="`cn-saved-views-section-${section.key}`">
 					{{ section.label }}
+					<span
+						v-if="section.key === 'seeded'"
+						class="cn-saved-views-panel__read-only"
+						data-testid="cn-saved-views-read-only">
+						<LockOutline :size="14" />
+						{{ t('nextcloud-vue', 'Read only') }}
+					</span>
 				</h4>
 				<p v-if="sectionHint(section.key)" class="cn-saved-views-panel__note">
 					{{ sectionHint(section.key) }}
@@ -172,11 +179,13 @@
 import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import PinOffOutline from 'vue-material-design-icons/PinOffOutline.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { savedViewsList } from '../../mixins/savedViewsList.js'
 import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
 
@@ -212,6 +221,7 @@ export default {
 		NcButton,
 		ContentCopy,
 		ContentSaveOutline,
+		LockOutline,
 		PencilOutline,
 		PinOffOutline,
 		PinOutline,
@@ -220,6 +230,11 @@ export default {
 	},
 
 	mixins: [savedViewsList],
+
+	inject: {
+		/** The look CnAppRoot (or the page) draws in. */
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/**
@@ -254,6 +269,11 @@ export default {
 	],
 
 	computed: {
+		/** @return {boolean} Whether the panel is drawn as the boards draw it. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/** @return {boolean} Whether Add to menu is offered. */
 		canPin() {
 			return Array.isArray(this.menuIds)
@@ -313,7 +333,7 @@ export default {
 				return this.t('nextcloud-vue', 'From colleagues. You can use them and save a copy.')
 			}
 			if (key === 'seeded') {
-				return this.t('nextcloud-vue', 'Read only. Shipped with the app; a new version updates them.')
+				return this.t('nextcloud-vue', 'Shipped with the app; a new version updates them.')
 			}
 			return ''
 		},
@@ -375,6 +395,20 @@ export default {
 	margin: 8px 0 0;
 	font-size: var(--font-size-small, 13px);
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-views-panel__read-only {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-inline-start: 8px;
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+	vertical-align: middle;
 }
 
 .cn-saved-views-panel__note {

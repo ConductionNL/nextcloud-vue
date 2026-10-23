@@ -40,3 +40,13 @@ describe('Save view in the toolbar', () => {
 		expect(headerSavesView.call({ headerButtonsShown: false, resolvedHeaderButtons: [{ action: 'save-view' }] })).toBe(false)
 	})
 })
+
+describe('Save view switched off for a page (DqTaken, DqOrganisaties draw none)', () => {
+	it('is left out with savedViewSave: false, kept by default', () => {
+		const toolbarSave = CnIndexPage.computed.toolbarSavesView
+		expect(toolbarSave.call({ headerSavesView: false, savedViewSave: true })).toBe(true)
+		expect(toolbarSave.call({ headerSavesView: false, savedViewSave: false })).toBe(false)
+		expect(toolbarSave.call({ headerSavesView: true, savedViewSave: true })).toBe(false)
+		expect(CnIndexPage.props.savedViewSave.default).toBe(true)
+	})
+})

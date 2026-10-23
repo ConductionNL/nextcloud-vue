@@ -389,7 +389,8 @@
 
 /* ---- A select outside a dialog ----------------------------------------- */
 /* The board's select is its control: a 1px grey edge that meets 3:1, radius
-   8, 40px high, 36px in a filter row (a page's, the timeline's). NcSelect draws its field as an
+   8, 40px high, 36px in a filter row (a page's, a dashboard's description
+   row, the timeline's). NcSelect draws its field as an
    NcInputField, 30px inside a 34px toggle, edged by a 35%-transparent ring
    (DqProcesanalyse "Periode", DqDoorlooptijd, DqTermijnen "Jaar"). The field
    is the clickable area less NcSelect's 2px border on either side, so the
@@ -408,6 +409,7 @@
 }
 
 .cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *),
 .cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *) {
 	--cn-board-select-height: 36px;
 }
@@ -598,13 +600,13 @@
 }
 
 /* ---- A card header button --------------------------------------------- */
-/* The boards draw a labelled button beside a card's title at the 40px
-   control height (DqZaakTaken "Nieuwe taak", DqZaakGerelateerd "Deelzaak
-   aanmaken", DqTermijnen "CSV exporteren"); NcButton draws 34px from
-   --button-size. Menu triggers and icon-only buttons keep their size.
-   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-40px */
+/* The boards draw a labelled button in a card's title row 34px (DqZaaktype
+   "Taak toevoegen", "Bewerken"; DqZaaktypeOverzicht "Regel toevoegen";
+   DqCatalogus "Objecttype toevoegen"), smaller than the 40px controls of a
+   page header or a form. Menu triggers and icon-only buttons keep their size.
+   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-34px */
 .cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
-	--button-size: var(--cn-board-control-height);
+	--button-size: 34px;
 }
 
 /* The same beside a CnDetailCard's title (DqTaak "Notitie toevoegen" on the
@@ -615,12 +617,13 @@
 }
 
 /* ---- A labelled menu button ------------------------------------------- */
-/* "Acties" and "Meer" are 40px tall wherever they stand (a page header, a
-   card header, a tab strip), as the header buttons beside them (DqTenant,
-   DqAfdelingen, DqZaaktype). The min-height outranks the tab strip's 34px.
-   An icon-only menu, a row's "...", keeps its own size.
+/* "Acties" and "Meer" are 40px tall in a page or card header, as the header
+   buttons beside them (DqTenant, DqAfdelingen, DqZaaktype). The Actions
+   button at the end of a detail page's tab strip keeps the strip's 34px
+   (DqZaak, DqContact: look-board-detail.css). An icon-only menu, a row's
+   "...", keeps its own size.
    @spec openspec/changes/board-labelled-menu-trigger-height/specs/board-labelled-menu-trigger-height/spec.md#requirement-a-labelled-board-menu-button-is-40px */
-.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)) {
 	--button-size: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
 }
@@ -1964,6 +1967,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
+/* A macro reads as the boards draw a card's list row: the name at weight 500
+   over its 13px line, both at the font's normal line height, 56px a row
+   (DqZaakAssistent "Macro's").
+   @spec openspec/changes/board-macros-rows/specs/board-macros-rows/spec.md#requirement-a-board-macros-row-is-a-board-list-row */
+.cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__name {
+	font-weight: 500;
+	line-height: normal;
+}
+
 /* ---- List rows in a card (record list rows, audit rows) ----------------- */
 /* The boards draw a list row in a card as a title at weight 500 in the main
    ink with a 13px muted line under it, both at the font's normal line height,
@@ -1979,6 +1992,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
 	color: var(--color-main-text);
 	font-weight: 500;
+	line-height: normal;
+}
+
+.cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__hint {
 	line-height: normal;
 }
 
@@ -2124,7 +2141,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
-   board's card pads 24px at the sides and each row 14px, a soft hairline
+   board's card pads 24px at the sides and each row 12px (the Dq dashboards;
+   the pipelinq board's 14px gives way), a soft hairline
    between rows, the title 15px weight 600 and the meta 13px muted. A row is a
    link, but only the hover says so: no underline on any text run, however the
    host styles its links (`!important`, because a host rule such as
@@ -2138,7 +2156,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row {
-	padding: 14px 0;
+	padding: 12px 0;
 	flex-wrap: wrap;
 	gap: 8px 16px;
 }
@@ -2556,11 +2574,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	min-height: var(--cn-field-height, 40px);
 }
 
-/* Any labelled button on the card is 40px, a text-only one 16px in at both
-   sides (DqBeheerinstellingen "Opslaan", "Verbinding testen";
+/* Any labelled button in the card's body is 40px, a text-only one 16px in at
+   both sides (DqBeheerinstellingen "Opslaan", "Verbinding testen";
    PtBeheerinstellingen "Adres opslaan"), not only the card's own save row.
+   The title row's actions keep 34px (DqVthInstellingen "Regel toevoegen").
    @spec openspec/changes/board-settings-section-buttons/specs/board-settings-section-buttons/spec.md#requirement-a-labelled-button-on-a-board-settings-card-is-40px */
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *) {
 	--button-size: var(--cn-field-height, 40px);
 }
 
@@ -2619,4 +2638,48 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin: 0;
 	font-size: 14px;
 	line-height: normal;
+}
+
+/* A dialog's options as the boards draw them (DqVolgendeStap, DqBesluit,
+   DqDocumentGenereren, DqFilterBewerken): rounded at 10px, an idle option
+   edged in the dark border grey, and an 18px radio. The chosen and the
+   refused options keep their own edges. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:not(.cn-look-nextcloud *) {
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-choice-cards__row--selected):not(.cn-choice-cards__row--disabled):not(.cn-look-nextcloud *) {
+	border-color: var(--color-border-maxcontrast);
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
+	width: 18px;
+	height: 18px;
+}
+
+/* ---- A dashboard card's count chip -------------------------------------- */
+/* The count after a dashboard card's title (record-list `headerCount`) is
+   17px tall on the board: 1px 8px around a 13px figure on a 15px line
+   (DqDagAfsluiten "Nog open van vandaag 3"). It inherited the page's line
+   and stood 21.5px.
+   @spec openspec/changes/board-dashboard-widget-count/specs/board-dashboard-widget-count/spec.md#requirement-a-dashboard-cards-count-chip-is-17px */
+.cn-look-board .cn-dashboard-page__widget-count:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	padding: 1px 8px;
+	font-size: 13px;
+	line-height: 15px;
+}
+
+/* ---- A grouped card's count --------------------------------------------- */
+/* The count beside a group's title ("2 taken" beside a phase, DqZaaktype) is
+   the board's grey chip: 3px 10px around a 13px/600 figure on a 15px line,
+   the chip ground and the soft text. The widget drew a white 12px chip.
+   @spec openspec/changes/board-grouped-cards-count-chip/specs/board-grouped-cards-count-chip/spec.md#requirement-a-grouped-cards-count-is-the-boards-grey-chip */
+.cn-look-board .cn-grouped-cards__count:not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	line-height: 15px;
 }

@@ -30,6 +30,7 @@ const DEF_FOR_CONTEXT = {
 	subject: 'sentinelSubjectToken',
 	context: 'sentinelContextToken',
 	deprecated: 'sentinelDeprecatedToken',
+	link: 'sentinelLinkToken',
 }
 
 function manifest(config, widgets) {
@@ -86,6 +87,7 @@ describe('schema guard accepts known + deprecated, rejects out-of-vocabulary', (
 		['@config.currency config', manifest({ widgets: [{ content: { format: { currency: '@config.currency' } } }] })],
 		['@total visibleWhen (manifest-form-logic)', manifest({ fields: [{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { source: { register: 'r', schema: 's' }, field: '@total', op: 'gt', value: 0 } }] })],
 		['@context.caseType.category in a detail widget visibleWhen', manifest({ visibilityContext: { caseType: { field: 'caseType', register: 'r', schema: 'ct' } }, widgets: [{ id: 'w', visibleWhen: { field: '@context.caseType.category', op: 'in', value: ['Sociaal domein'] } }] })],
+		['@object.phone|tel link (party-actions)', manifest({ widgets: [{ content: { actions: [{ id: 'call', type: 'navigate', target: '@object.phone|tel' }, { id: 'route', type: 'navigate', target: '@object.address|geo' }] } }] })],
 		['@route.id in top-level widget dataSource', manifest(undefined, [{ widgetKey: 'w', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, dataSource: { filter: { id: '@objectId' } } }])],
 	])('accepts %s', (_label, m) => {
 		expect(validateManifestV2(m).valid).toBe(true)
@@ -105,6 +107,7 @@ describe('schema guard accepts known + deprecated, rejects out-of-vocabulary', (
 		['@currentFiscalYearX (near-miss)', manifest({ filter: { d: '@currentFiscalYearX' } })],
 		['@page (bare, no key)', manifest({ x: '@page' })],
 		['@object. (empty field)', manifest({ filter: { d: '@object.' } })],
+		['@object.phone|fax (no such link)', manifest({ widgets: [{ content: { actions: [{ id: 'x', target: '@object.phone|fax' }] } }] })],
 		['@caseType.category (a name without the @context. prefix)', manifest({ widgets: [{ id: 'w', visibleWhen: { field: '@caseType.category' } }] })],
 		['@invented in top-level widget filter', manifest(undefined, [{ widgetKey: 'w', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, dataSource: { filter: { d: '@totallyInvented' } } }])],
 	])('rejects out-of-vocabulary %s', (_label, m) => {

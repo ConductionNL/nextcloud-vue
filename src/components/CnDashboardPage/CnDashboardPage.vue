@@ -1086,6 +1086,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { generatedPageFilterOptions, periodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -2417,7 +2418,12 @@ export default {
 		 * @return {string}
 		 */
 		resolvedDescription() {
-			return this.description ? this.effectiveTranslate(this.description) : this.description
+			if (!this.description) {
+				return this.description
+			}
+			// `{filter.<key>}`: the page filter's active choice, read as a period
+			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
+			return this.effectiveTranslate(this.description).replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
 		},
 
 		/**
@@ -3226,6 +3232,28 @@ export default {
 		 * @param {string|null} to ISO-8601 upper bound (or null).
 		 * @return {string|null} Formatted label, or null when both bounds are empty.
 		 */
+		/**
+		 * A page filter's active choice read as a period, for `{filter.<key>}`
+		 * in the description: the declared (or generated) option the workspace
+		 * holds, its label through the host translate.
+		 *
+		 * @param {string} key The page filter's key.
+		 * @return {string} The period, '' when the filter or its choice is missing.
+		 * @spec openspec/changes/description-period-from-filter/specs/description-period-from-filter/spec.md#requirement-a-dashboard-description-reads-the-active-period-of-a-page-filter
+		 */
+		pageFilterPeriodText(key) {
+			const pf = (this.pageFilters || []).find((filter) => filter && filter.key === key)
+			if (!pf) {
+				return ''
+			}
+			const options = Array.isArray(pf.options) ? pf.options : (generatedPageFilterOptions(pf) || this.pageFilterFetched[pf.key] || [])
+			const option = options.find((o) => o && o.value === this.workspaceContext[pf.key])
+			if (!option) {
+				return ''
+			}
+			return periodText({ ...option, label: option.label ? this.effectiveTranslate(option.label) : String(option.value) }, new Date(), userLocale())
+		},
+
 		formatRangeLabel(from, to) {
 			if (!from && !to) {
 				return null

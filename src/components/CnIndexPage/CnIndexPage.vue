@@ -223,7 +223,7 @@
 			:addTo="addLinkTo"
 			:showAdd="effectiveShowAdd && !headerButtonTakes('add')"
 			:showCount="showCount && !isBoardLook"
-			:showActionsMenu="!headerButtonsShown"
+			:showActionsMenu="actionsMenuShown"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
@@ -363,7 +363,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
-					:save="!headerSavesView"
+					:save="toolbarSavesView"
 					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
@@ -2285,6 +2285,20 @@ export default {
 		},
 
 		/**
+		 * Whether the toolbar draws the Actions menu (manifest
+		 * `config.showActionsMenu`): `true` keeps it beside header buttons
+		 * (DqAfdelingen: Downloaden beside the title, Acties above the
+		 * search), `false` leaves it out. Null derives it: drawn unless the
+		 * header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 */
+		showActionsMenu: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
 		 * How the board look draws the table's title column (manifest
 		 * `config.rowTitle`): `link` (the default) underlines the title,
 		 * `plain` draws it as bold text without an underline over a 13px muted
@@ -2450,6 +2464,16 @@ export default {
 		 * @spec openspec/changes/saved-view-chips-switch/specs/saved-views/spec.md#requirement-an-index-page-can-leave-the-saved-view-chips-out-of-the-toolbar
 		 */
 		savedViewChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the toolbar draws Save view (manifest `config.savedViewSave`).
+		 * `false` leaves it out for a page whose board draws none (DqTaken,
+		 * DqOrganisaties); the views stay in the side panel.
+		 */
+		savedViewSave: {
 			type: Boolean,
 			default: true,
 		},
@@ -8382,12 +8406,15 @@ export default {
 		},
 
 		/**
-		 * Whether the header buttons render: there are some, the title shows
-		 * (they sit beside it) and no `#header` slot replaces the header.
+		 * Whether the toolbar draws Save view: not when the page switches it
+		 * off (`savedViewSave: false`) or its header carries one.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
+		toolbarSavesView() {
+			return this.savedViewSave !== false && !this.headerSavesView
+		},
+
 		/**
 		 * Whether the page header carries a save-view button, so the toolbar
 		 * leaves its own Save view out.
@@ -8399,8 +8426,26 @@ export default {
 			return this.headerButtonsShown && (this.resolvedHeaderButtons || []).some((button) => button && button.action === 'save-view')
 		},
 
+		/**
+		 * Whether the header buttons render: there are some, the title shows
+		 * (they sit beside it) and no `#header` slot replaces the header.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {boolean}
+		 */
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
+		},
+
+		/**
+		 * Whether the toolbar draws the Actions menu: `showActionsMenu` when
+		 * set, else unless the header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 * @return {boolean}
+		 */
+		actionsMenuShown() {
+			return typeof this.showActionsMenu === 'boolean' ? this.showActionsMenu : !this.headerButtonsShown
 		},
 
 		/**

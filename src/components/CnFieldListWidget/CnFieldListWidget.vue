@@ -32,6 +32,11 @@
 					:reduce="(option) => option.value"
 					:clearable="false"
 					label="label" />
+				<NcCheckboxRadioSwitch
+					v-else-if="field.type === 'checkbox'"
+					v-model="draft[field.key]">
+					{{ field.label }}
+				</NcCheckboxRadioSwitch>
 				<NcTextField
 					v-else
 					v-model="draft[field.key]"
@@ -43,9 +48,19 @@
 				variant="primary"
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-submit">
-				{{ addLabel }}
+				{{ editingKey !== null ? saveLabel : addLabel }}
+			</NcButton>
+			<NcButton
+				v-if="editingKey !== null"
+				variant="tertiary"
+				data-testid="cn-field-list-cancel-edit"
+				@click="cancelEdit">
+				{{ tr('Cancel') }}
 			</NcButton>
 		</form>
+		<p v-if="lead" class="cn-field-list-widget__lead" data-testid="cn-field-list-lead">
+			{{ lead }}
+		</p>
 		<p v-if="rows.length === 0" class="cn-field-list-widget__empty" data-testid="cn-field-list-empty">
 			{{ emptyLabel }}
 		</p>
@@ -150,7 +165,12 @@
 				<div class="cn-field-list-widget__line">
 					<span v-if="row.initials" class="cn-field-list-widget__avatar" aria-hidden="true">{{ row.initials }}</span>
 					<span class="cn-field-list-widget__main">
-						<span class="cn-field-list-widget__title">{{ row.title }}</span>
+						<a
+							v-if="row.href"
+							class="cn-field-list-widget__title"
+							:href="row.href"
+							v-bind="row.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}">{{ row.title }}</a>
+						<span v-else class="cn-field-list-widget__title">{{ row.title }}</span>
 						<span v-if="row.meta" class="cn-field-list-widget__meta">{{ row.meta }}</span>
 					</span>
 					<CnStatusBadge
@@ -167,6 +187,15 @@
 						:data-testid="`cn-field-list-action-${action.id}-${row.key}`"
 						@click="runAction(action, row)">
 						{{ action.label }}
+					</NcButton>
+					<NcButton
+						v-if="canEdit"
+						variant="tertiary"
+						:disabled="busy !== ''"
+						:aria-label="`${editLabel}: ${row.title}`"
+						:data-testid="`cn-field-list-edit-${row.index}`"
+						@click="startEdit(row)">
+						{{ editLabel }}
 					</NcButton>
 					<NcButton
 						v-if="canRemove"
@@ -225,6 +254,11 @@
 					:reduce="(option) => option.value"
 					:clearable="false"
 					label="label" />
+				<NcCheckboxRadioSwitch
+					v-else-if="field.type === 'checkbox'"
+					v-model="draft[field.key]">
+					{{ field.label }}
+				</NcCheckboxRadioSwitch>
 				<NcTextField
 					v-else
 					v-model="draft[field.key]"
@@ -236,7 +270,14 @@
 				variant="secondary"
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-submit">
-				{{ addLabel }}
+				{{ editingKey !== null ? saveLabel : addLabel }}
+			</NcButton>
+			<NcButton
+				v-if="editingKey !== null"
+				variant="tertiary"
+				data-testid="cn-field-list-cancel-edit"
+				@click="cancelEdit">
+				{{ tr('Cancel') }}
 			</NcButton>
 		</form>
 
@@ -248,7 +289,7 @@
 </template>
 
 <script>
-import { NcActionButton, NcActions, NcButton, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
@@ -275,10 +316,41 @@ import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
  *
  * @spec openspec/changes/abstract-field-list/specs/field-list/spec.md
  */
+/**
+ * A link a row title may carry: http(s) or root-relative, '' otherwise.
+ *
+ * @param {unknown} value The candidate.
+ * @return {string} The link.
+ */
+function safeRowHref(value) {
+	const text = typeof value === 'string' ? value.trim() : ''
+	return /^(\/(?!\/)|https?:\/\/)/i.test(text) ? text : ''
+}
+
+/**
+ * The link of a row title: a path to a safe link, or `{ path, scheme }` for
+ * a `mailto:` or `tel:` link to the value.
+ *
+ * @param {object} entry The row entry.
+ * @param {string|{path: string, scheme: string}} spec The `row.href` config.
+ * @return {string} The link, '' for none.
+ */
+function rowHref(entry, spec) {
+	if (spec && typeof spec === 'object') {
+		const value = readPath(entry, spec.path)
+		const text = typeof value === 'string' ? value.trim() : ''
+		if (text === '' || !['mailto', 'tel'].includes(spec.scheme)) {
+			return ''
+		}
+		return `${spec.scheme}:${spec.scheme === 'tel' ? text.replace(/[^\d+]/g, '') : encodeURIComponent(text).replace(/%40/g, '@')}`
+	}
+	return safeRowHref(readPath(entry, spec))
+}
+
 export default {
 	name: 'CnFieldListWidget',
 
-	components: { CnStatusBadge, NcActionButton, NcActions, NcButton, NcNoteCard, NcSelect, NcTextField },
+	components: { CnStatusBadge, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -301,6 +373,12 @@ export default {
 		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
 		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'footer'` — the add form opens from a button.
 		 * - `readOnly`, `hint`, `emptyText`.
+		 * - `row.href` — the path of a link for the row title; only http(s) and root-relative links, an absolute one opens in a new tab.
+		 * - `lead` — a line above the rows, translated, with `{path}` filled from the object.
+		 * - `edit` — `true` or `{ label?, saveLabel? }`: an Edit button per row opens the form prefilled and saves the entry in place.
+		 * - `add.fields[].type: 'checkbox'`; `add.exclusive` — flags only one entry holds; `add.requireOneOf` (+ `requireOneOfMessage`) — keys of which one must be filled.
+		 * - `row.href` may be `{ path, scheme: 'mailto'|'tel' }`.
+		 * - `afterSave` — `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens; when it fails the save stands and `failureText` shows.
 		 *
 		 * @type {object}
 		 */
@@ -345,6 +423,8 @@ export default {
 			draft: {},
 			/** Whether the add form is open (only with `add.trigger: 'button'`). */
 			adding: false,
+			/** The key of the entry the form edits; null while it adds. */
+			editingKey: null,
 			errors: {},
 			busy: '',
 			notice: '',
@@ -383,12 +463,15 @@ export default {
 					.map((part) => this.text(entry, part))
 					.filter((part) => part !== '')
 					.join(' · ')
+				const href = spec.href ? rowHref(entry, spec.href) : ''
 				return {
 					key,
 					index,
 					item,
 					entry,
 					title,
+					href,
+					external: /^https?:\/\//i.test(href),
 					initials: spec.avatar ? this.initials(title) : '',
 					meta,
 					pill: this.pillOf(entry, spec.pill),
@@ -409,6 +492,23 @@ export default {
 		/** Whether entries can be added. */
 		canAdd() {
 			return !this.readOnly && this.addFields.length > 0 && Boolean(this.content.field)
+		},
+
+		/** Whether entries can be edited in place (`edit`). */
+		canEdit() {
+			return !this.readOnly && Boolean(this.content.edit) && Boolean(this.content.field) && this.addFields.length > 0
+		},
+
+		/** @return {string} The edit button's label. */
+		editLabel() {
+			const edit = this.content.edit
+			return this.tr((edit && typeof edit === 'object' && edit.label) || 'Edit')
+		},
+
+		/** @return {string} The submit label while editing. */
+		saveLabel() {
+			const edit = this.content.edit
+			return this.tr((edit && typeof edit === 'object' && edit.saveLabel) || 'Save')
 		},
 
 		/** Whether entries can be removed. */
@@ -478,6 +578,22 @@ export default {
 
 		removeLabel() {
 			return this.tr((this.content.remove && this.content.remove.label) || 'Remove')
+		},
+
+		/**
+		 * The line above the rows, filled from the object.
+		 *
+		 * @spec openspec/changes/field-list-links-lead-after-save/specs/field-list/spec.md#requirement-a-field-list-links-its-rows-leads-with-the-object-and-calls-after-a-save
+		 * @return {string}
+		 */
+		lead() {
+			if (!this.content.lead) {
+				return ''
+			}
+			return this.tr(this.content.lead).replace(/\{([\w.]+)\}/g, (m, path) => {
+				const value = readPath(this.objectData || {}, path)
+				return value === undefined || value === null ? '' : String(value)
+			})
 		},
 
 		hint() {
@@ -773,7 +889,8 @@ export default {
 		resetDraft() {
 			const draft = {}
 			for (const field of this.addFields) {
-				const first = field.type === 'select' && field.options.length > 0 ? field.options[0].value : ''
+				const empty = field.type === 'checkbox' ? false : ''
+				const first = field.type === 'select' && field.options.length > 0 ? field.options[0].value : empty
 				draft[field.key] = field.default !== undefined ? field.default : first
 			}
 			this.draft = draft
@@ -874,12 +991,41 @@ export default {
 				 * @type {{field: string, value: Array}}
 				 */
 				this.$emit('saved', { field: this.content.field, value: this.saved })
+				await this.runAfterSave(axios)
 				return true
 			} catch (e) {
 				this.notify(e && e.userMessage ? e.userMessage : serverErrorMessage(e))
 				return false
 			} finally {
 				this.busy = ''
+			}
+		},
+
+		/**
+		 * Call `afterSave` once a save went through. A failure leaves the save
+		 * standing and shows `failureText`.
+		 *
+		 * @spec openspec/changes/field-list-links-lead-after-save/specs/field-list/spec.md#requirement-a-field-list-links-its-rows-leads-with-the-object-and-calls-after-a-save
+		 * @param {object} axios The HTTP client.
+		 * @return {Promise<void>}
+		 */
+		async runAfterSave(axios) {
+			const after = this.content.afterSave
+			if (!after || typeof after.url !== 'string' || after.url === '') {
+				return
+			}
+			try {
+				const method = String(after.method || 'POST').toLowerCase()
+				const url = prefixUrl(this.resolve(after.url, {}))
+				if (method === 'get') {
+					await axios.get(url)
+				} else {
+					await axios[method](url, this.resolve(after.body || {}, {}))
+				}
+			} catch {
+				if (after.failureText) {
+					this.notify(this.tr(after.failureText), 'warning')
+				}
 			}
 		},
 
@@ -905,6 +1051,10 @@ export default {
 					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
 				}
 			}
+			const oneOf = Array.isArray(this.content.add?.requireOneOf) ? this.content.add.requireOneOf : []
+			if (oneOf.length > 0 && oneOf.every((key) => String(this.draft[key] ?? '').trim() === '')) {
+				errors[oneOf[0]] = this.tr(this.content.add.requireOneOfMessage || 'Fill this in.')
+			}
 			this.errors = errors
 			if (Object.keys(errors).length > 0) {
 				return
@@ -912,22 +1062,84 @@ export default {
 			const entry = this.newEntry()
 			const scalar = typeof entry !== 'object'
 			const unique = this.content.add && this.content.add.unique
+			const editing = this.editingKey
 			const saved = await this.save((stored) => {
+				const others = stored.filter((item, index) => editing === null || this.keyOf(item, index) !== editing)
 				const duplicate = scalar
-					? (unique && stored.some((item) => String(item) === String(entry)))
-					: (unique && stored.some((item) => item && String(readPath(item, unique)) === String(entry[unique])))
+					? (unique && others.some((item) => String(item) === String(entry)))
+					: (unique && others.some((item) => item && String(readPath(item, unique)) === String(entry[unique])))
 				if (duplicate) {
 					const error = new Error('duplicate')
 					error.userMessage = this.tr('This is already in the list.')
 					throw error
 				}
-				return [...stored, entry]
+				const next = editing === null
+					? [...stored, entry]
+					: stored.map((item, index) => (this.keyOf(item, index) === editing ? (scalar ? entry : { ...item, ...entry }) : item))
+				return this.withExclusive(next, editing === null ? next.length - 1 : next.findIndex((item, index) => this.keyOf(stored[index], index) === editing))
 			}, '*')
 			if (saved) {
 				this.resetDraft()
 				this.adding = false
+				this.editingKey = null
 				this.loadLive()
 			}
+		},
+
+		/**
+		 * Keep an `add.exclusive` flag on one entry: when the entry at `index`
+		 * has it, every other entry loses it (one primary address).
+		 *
+		 * @param {Array<object>} list The list to save.
+		 * @param {number} index The entry just added or edited.
+		 * @return {Array<object>} The list.
+		 * @spec openspec/changes/field-list-edit/specs/field-list/spec.md#requirement-a-field-list-entry-can-be-edited-and-one-entry-can-be-the-primary
+		 */
+		withExclusive(list, index) {
+			const flags = Array.isArray(this.content.add?.exclusive) ? this.content.add.exclusive : []
+			const chosen = list[index]
+			if (!chosen || typeof chosen !== 'object') {
+				return list
+			}
+			return list.map((item, i) => {
+				if (i === index || !item || typeof item !== 'object') {
+					return item
+				}
+				const cleared = { ...item }
+				for (const flag of flags) {
+					if (chosen[flag] === true && cleared[flag] === true) {
+						cleared[flag] = false
+					}
+				}
+				return cleared
+			})
+		},
+
+		/**
+		 * Open an entry in the form, prefilled.
+		 *
+		 * @param {object} row The row.
+		 * @return {void}
+		 * @spec openspec/changes/field-list-edit/specs/field-list/spec.md#requirement-a-field-list-entry-can-be-edited-and-one-entry-can-be-the-primary
+		 */
+		startEdit(row) {
+			const draft = {}
+			for (const [index, field] of this.addFields.entries()) {
+				const scalarValue = this.content.add?.scalar === true && index === 0 ? row.item : undefined
+				const value = row.item && typeof row.item === 'object' ? readPath(row.item, field.key) : scalarValue
+				draft[field.key] = value === undefined || value === null ? (field.type === 'checkbox' ? false : '') : value
+			}
+			this.draft = draft
+			this.errors = {}
+			this.editingKey = row.key
+			this.adding = true
+		},
+
+		/** Close the form without saving the edit. */
+		cancelEdit() {
+			this.editingKey = null
+			this.adding = false
+			this.resetDraft()
 		},
 
 		/**
@@ -1045,6 +1257,11 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	min-width: 0;
+}
+
+.cn-field-list-widget__lead {
+	margin: 0;
+	font-weight: bold;
 }
 
 .cn-field-list-widget__rows {

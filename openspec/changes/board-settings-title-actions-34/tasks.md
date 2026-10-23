@@ -1,0 +1,2 @@
+- [x] look-board.css: the 40px settings-card rule skips .cn-settings-section__actions
+- [x] Spec tests/css/lookBoardSettingsTitleActions.spec.js; lookBoardSettingsSectionButtons.spec.js follows the selector

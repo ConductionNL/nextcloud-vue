@@ -8,6 +8,37 @@
 			{{ text(description) }}
 		</p>
 
+		<template v-if="setsUrl">
+			<NcNoteCard v-if="setResult"
+				:type="setResult.ok ? 'success' : 'error'"
+				:role="setResult.ok ? 'status' : 'alert'"
+				data-testid="cn-shipped-set-result">
+				{{ setResult.text }}
+			</NcNoteCard>
+			<NcNoteCard v-if="setsError" type="error" data-testid="cn-shipped-sets-error">
+				{{ setsError }}
+			</NcNoteCard>
+			<p v-else-if="sets.length === 0" class="cn-shipped-configuration__muted" data-testid="cn-shipped-sets-empty">
+				{{ t('nextcloud-vue', 'No shipped set is loaded.') }}
+			</p>
+			<ul v-else class="cn-shipped-configuration__sets">
+				<li v-for="set in sets"
+					:key="set.id"
+					class="cn-shipped-configuration__set"
+					:data-testid="'cn-shipped-set-' + set.id">
+					<span>{{ text(set.label) }}</span>
+					<NcButton v-if="removeSetUrl"
+						variant="error"
+						:disabled="removingSet !== ''"
+						:aria-label="t('nextcloud-vue', 'Remove the set {set}', { set: text(set.label) })"
+						:data-testid="'cn-shipped-remove-' + set.id"
+						@click="removeSet(set)">
+						{{ removingSet === set.id ? t('nextcloud-vue', 'Removing…') : t('nextcloud-vue', 'Remove') }}
+					</NcButton>
+				</li>
+			</ul>
+		</template>
+
 		<NcSelect v-if="schemas.length > 1"
 			v-model="schemaOption"
 			class="cn-shipped-configuration__picker"
@@ -16,7 +47,7 @@
 			:clearable="false"
 			data-testid="cn-shipped-schema" />
 
-		<table class="cn-shipped-configuration__table" data-testid="cn-shipped-configuration-table">
+		<table v-if="endpoint" class="cn-shipped-configuration__table" data-testid="cn-shipped-configuration-table">
 			<thead>
 				<tr>
 					<th scope="col">
@@ -77,7 +108,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { showSuccess } from '@nextcloud/dialogs'
+import { showConfirmation, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard, NcSelect } from '@nextcloud/vue'
@@ -108,6 +139,11 @@ export const SHIPPED_STATES = Object.freeze({
  * a register that holds objects is said as such (`countUrl`), not as "nothing
  * seeded".
  *
+ * With `setsUrl` it also lists the loaded sets (`{ sets: [{ id, label }] }`),
+ * and with `removeSetUrl` each has a Remove button that asks first, posts to
+ * that path with `{id}` filled in, and shows the answer's `message` (an error
+ * when `success` is not true). Either part can be used on its own.
+ *
  * @spec openspec/changes/shipped-configuration-section/specs/shipped-configuration-section/spec.md
  */
 export default {
@@ -121,8 +157,20 @@ export default {
 	},
 
 	props: {
-		/** The app path of the shipped ledger (`/apps/<app>/api/starter/shipped`). */
-		endpoint: { type: String, required: true },
+		/** The app path of the shipped ledger (`/apps/<app>/api/starter/shipped`); empty shows no ledger. */
+		endpoint: { type: String, default: '' },
+		/**
+		 * An app path that lists the loaded sets, `{ sets: [{ id, label }] }`
+		 * (`/apps/<app>/api/setup/example-sets`); empty shows no list.
+		 */
+		setsUrl: { type: String, default: '' },
+		/**
+		 * The app path that removes one set, `{id}` filled in, posted after a
+		 * confirm and answering `{ success, message }`. Empty shows no Remove button.
+		 */
+		removeSetUrl: { type: String, default: '' },
+		/** The question asked before a removal, `{set}` filled in. Defaults to a sentence on what goes. */
+		removeSetQuestion: { type: String, default: '' },
 		/** The schemas to show, `[{ slug, label }]`; the first is shown first. */
 		schemas: { type: Array, default: () => [] },
 		/**
@@ -143,6 +191,10 @@ export default {
 			loadError: '',
 			adoptError: '',
 			adopting: '',
+			sets: [],
+			setsError: '',
+			setResult: null,
+			removingSet: '',
 		}
 	},
 
@@ -178,6 +230,7 @@ export default {
 
 	mounted() {
 		this.reload()
+		this.reloadSets()
 	},
 
 	methods: {
@@ -198,7 +251,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async reload() {
-			if (!this.schema) {
+			if (!this.schema || !this.endpoint) {
 				return
 			}
 			try {
@@ -213,6 +266,68 @@ export default {
 				this.rows = []
 				this.present = null
 				this.loadError = t('nextcloud-vue', 'Could not read the shipped configuration.')
+			}
+		},
+
+		/**
+		 * Read the loaded sets, keeping entries with a usable id and label.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async reloadSets() {
+			if (!this.setsUrl) {
+				return
+			}
+			try {
+				const { data } = await axios.get(generateUrl(this.setsUrl))
+				const list = Array.isArray(data && data.sets) ? data.sets : []
+				this.sets = list.filter((set) => set && typeof set.id === 'string' && /^[a-z0-9-]+$/.test(set.id) && typeof set.label === 'string')
+				this.setsError = ''
+			} catch {
+				this.sets = []
+				this.setsError = t('nextcloud-vue', 'Could not read the loaded sets.')
+			}
+		},
+
+		/**
+		 * Ask, remove one set, say what the server said, and read the sets again.
+		 * Closing the question is a no.
+		 *
+		 * @param {{id: string, label: string}} set The set.
+		 * @return {Promise<void>}
+		 */
+		async removeSet(set) {
+			const label = this.text(set.label)
+			const confirmed = await showConfirmation({
+				name: t('nextcloud-vue', 'Remove the set {set}', { set: label }),
+				text: this.removeSetQuestion
+					? this.text(this.removeSetQuestion).replace('{set}', label)
+					: t('nextcloud-vue', 'Remove the set "{set}"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.', { set: label }),
+				labelConfirm: t('nextcloud-vue', 'Remove'),
+				labelReject: t('nextcloud-vue', 'Cancel'),
+			}).then((answer) => answer === true, () => false)
+			if (!confirmed) {
+				return
+			}
+			this.removingSet = set.id
+			this.setResult = null
+			try {
+				const { data } = await axios.post(generateUrl(this.removeSetUrl.replace('{id}', encodeURIComponent(set.id))))
+				const ok = Boolean(data && data.success === true)
+				const said = data && typeof data.message === 'string' && data.message !== '' ? data.message : ''
+				this.setResult = {
+					ok,
+					text: said || (ok
+						? t('nextcloud-vue', 'The set "{set}" was removed.', { set: label })
+						: t('nextcloud-vue', 'The set "{set}" was not removed.', { set: label })),
+				}
+				await this.reloadSets()
+			} catch (error) {
+				const data = error && error.response && error.response.data
+				const said = data && typeof (data.message || data.reason) === 'string' ? (data.message || data.reason) : ''
+				this.setResult = { ok: false, text: said || t('nextcloud-vue', 'The set "{set}" was not removed.', { set: label }) }
+			} finally {
+				this.removingSet = ''
 			}
 		},
 
@@ -305,6 +420,21 @@ export default {
 .cn-shipped-configuration__intro,
 .cn-shipped-configuration__muted {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-shipped-configuration__sets {
+	list-style: none;
+	margin: 0 0 12px;
+	padding: 0;
+}
+
+.cn-shipped-configuration__set {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-shipped-configuration__picker {

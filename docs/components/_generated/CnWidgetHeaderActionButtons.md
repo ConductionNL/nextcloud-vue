@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name      | Type    | Required | Default | Description                                                   |
-| --------- | ------- | -------- | ------- | ------------------------------------------------------------- |
-| `actions` | `array` | ✓        | —       | The resolved buttons: `[{ key, label, icon, variant, run }]`. |
+| Name      | Type    | Required | Default | Description                                                                                        |
+| --------- | ------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `actions` | `array` | ✓        | —       | The resolved buttons: `[{ key, label, icon, variant, run }]`; `variant: "link"` draws a text link. |

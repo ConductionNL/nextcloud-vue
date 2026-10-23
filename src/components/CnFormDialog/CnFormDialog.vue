@@ -5215,7 +5215,10 @@ export default {
 					} else if (v.pattern !== undefined && v.pattern !== null && touched) {
 						try {
 							if (!new RegExp(v.pattern).test(value)) {
-								newErrors[field.key] = 'Invalid format.'
+								// `validation.patternMessage` names what is wrong, in the app's words.
+								newErrors[field.key] = typeof v.patternMessage === 'string' && v.patternMessage !== ''
+									? this.cnTranslate(v.patternMessage)
+									: 'Invalid format.'
 							}
 						} catch {
 							// Ignore invalid regex patterns

@@ -119,6 +119,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 |------|-------|-------------|
 | `#column-{key}` | `{ row, value }` | Override the cell renderer for a specific column key |
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
+| `#row-detail` | `{ row }` | A full-width row under each data row, for what belongs to that row (CnObjectListWidget puts the row's child records here). Not draggable and not a drop target. |
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
 
@@ -233,6 +234,12 @@ The first column names the row: it carries the row link, the title look and the 
 
 ```json
 { "key": "title", "label": "Case", "secondary": "{number} · {requester.name}" }
+```
+
+`secondaryLabels` names a field's values on that line in words, `{ field: { value: label, "*": label } }`; the labels are i18n keys and `"*"` names any other value. A case type list reads "Meegeleverd · Woo" for a type the app shipped and "Eigen zaaktype · ..." for one an organisation made:
+
+```json
+{ "key": "title", "label": "Case type", "secondary": "{@self.owner} · {subject}", "secondaryLabels": { "@self.owner": { "__system__": "Shipped", "*": "Own case type" } } }
 ```
 
 A placeholder can carry a format, the same ones a widget row template takes: `{startAt|date}` reads "5 okt", `{startAt|weekday}` reads "ma 5 okt", `{startAt|weekday:today}` reads "Vandaag, ma 5 okt" on today's date, `{startAt|time}` reads "08.45", and `{amount|currency:EUR}` writes an amount. An agenda column reads "Intake" over "Vandaag, ma 5 okt, 08.45":

@@ -1293,3 +1293,11 @@
 .cn-look-board .cn-sidebar-tab__composer-toggle .button-vue:where(:not(.cn-look-nextcloud *)) {
 	--button-size: var(--cn-board-control-height);
 }
+
+/* A facts card's tinted action ("Contact vastleggen", "Aan een programma
+   koppelen") is set at 600 on the boards (DqContact, DqZaakGerelateerd); the
+   widget drew it bold.
+   @spec openspec/changes/board-facts-action-weight/specs/board-facts-action-weight/spec.md#requirement-a-facts-cards-action-is-set-at-600 */
+.cn-look-board .cn-facts-widget__action:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+}

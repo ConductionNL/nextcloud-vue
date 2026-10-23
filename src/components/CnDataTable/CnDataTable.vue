@@ -216,157 +216,172 @@
 					</tr>
 
 					<!-- Data rows -->
-					<tr
+					<template
 						v-for="(row, rowIndex) in effectiveRows"
 						v-else
-						:key="row[rowKey]"
-						:draggable="reorderable ? 'true' : undefined"
-						class="cn-table-row"
-						data-testid="cn-object-row"
-						:data-testid-row-id="row[rowKey]"
-						:class="[
-							isSelected(row) ? 'cn-table-row--selected' : '',
-							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
-							isUnreadRow(row) ? 'cn-table-row--unread' : '',
-							rowClass ? rowClass(row) : '',
-							reorderable ? 'cn-table-row--reorderable' : '',
-							dragOverIndex === rowIndex ? 'cn-table-row--drop-target' : '',
-						]"
-						@dragstart="onRowDragStart(rowIndex, $event)"
-						@dragover="onRowDragOver(rowIndex, $event)"
-						@dragleave="onRowDragLeave(rowIndex)"
-						@drop="onRowDrop(row, rowIndex, $event)"
-						@dragend="onRowDragEnd"
-						@mousedown="onRowMouseDown"
-						@click="onRowClick(row, $event)"
-						@auxclick="onRowAuxClick(row, $event)"
-						@contextmenu="onRowContextMenu(row, $event)">
-						<!-- Checkbox -->
-						<td v-if="selectable"
-							class="cn-table-col--checkbox"
-							:class="pinClass(0)"
-							:style="pinStyle(0)"
-							@click.stop
-							@auxclick.stop>
-							<NcCheckboxRadioSwitch
-								:modelValue="isSelected(row)"
-								:aria-label="selectRowLabel"
-								@update:modelValue="toggleSelect(row)" />
-						</td>
+						:key="row[rowKey]">
+						<tr
+							:draggable="reorderable ? 'true' : undefined"
+							class="cn-table-row"
+							data-testid="cn-object-row"
+							:data-testid-row-id="row[rowKey]"
+							:class="[
+								isSelected(row) ? 'cn-table-row--selected' : '',
+								rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
+								isUnreadRow(row) ? 'cn-table-row--unread' : '',
+								rowClass ? rowClass(row) : '',
+								reorderable ? 'cn-table-row--reorderable' : '',
+								dragOverIndex === rowIndex ? 'cn-table-row--drop-target' : '',
+							]"
+							@dragstart="onRowDragStart(rowIndex, $event)"
+							@dragover="onRowDragOver(rowIndex, $event)"
+							@dragleave="onRowDragLeave(rowIndex)"
+							@drop="onRowDrop(row, rowIndex, $event)"
+							@dragend="onRowDragEnd"
+							@mousedown="onRowMouseDown"
+							@click="onRowClick(row, $event)"
+							@auxclick="onRowAuxClick(row, $event)"
+							@contextmenu="onRowContextMenu(row, $event)">
+							<!-- Checkbox -->
+							<td v-if="selectable"
+								class="cn-table-col--checkbox"
+								:class="pinClass(0)"
+								:style="pinStyle(0)"
+								@click.stop
+								@auxclick.stop>
+								<NcCheckboxRadioSwitch
+									:modelValue="isSelected(row)"
+									:aria-label="selectRowLabel"
+									@update:modelValue="toggleSelect(row)" />
+							</td>
 
-						<!-- Leading icon -->
-						<td
-							v-if="rowIcon"
-							class="cn-table-col--icon"
-							:class="pinClass(selectable ? 1 : 0)"
-							:style="pinStyle(selectable ? 1 : 0)">
-							<CnIcon :name="getRowIcon(row)" :size="20" />
-						</td>
+							<!-- Leading icon -->
+							<td
+								v-if="rowIcon"
+								class="cn-table-col--icon"
+								:class="pinClass(selectable ? 1 : 0)"
+								:style="pinStyle(selectable ? 1 : 0)">
+								<CnIcon :name="getRowIcon(row)" :size="20" />
+							</td>
 
-						<!-- Data cells -->
-						<td
-							v-for="(col, colIndex) in effectiveColumns"
-							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
-							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
-							@mouseenter="titleWhenClipped">
-							<!-- A row with a `rowClickRoute` is a real link: this anchor
-							     is stretched over the whole row by CSS, so hovering shows
-							     the URL, a middle or ctrl click opens a new tab natively,
-							     and the row is reachable with Tab. The row's own click
-							     handlers treat it as a nested control and leave it be. -->
-							<a v-if="colIndex === titleColumnIndex && rowLinks[String(row[rowKey])]"
-								class="cn-table-row__link"
-								:href="rowLinks[String(row[rowKey])].href"
-								:aria-label="rowLinkLabel(row, col)"
-								draggable="false"
-								data-testid="cn-row-link"
-								@click="onRowLinkClick(row, $event)" />
-							<!-- The padlock rides the FIRST data cell, beside whatever
-							     names the row. Deliberately OUTSIDE the #column-<key>
-							     slot: a consumer overriding that column's rendering is
-							     customising their own data, not opting out of being told
-							     the record is locked. It renders nothing when unlocked,
-							     so an unlocked table is byte-for-byte what it was. -->
-							<CnUnreadMarker
-								v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
-							<CnLockIndicator
-								v-if="colIndex === titleColumnIndex"
-								:object="row"
-								:size="16" />
-							<!-- Declared state indicators ride the first data cell
-							     beside the padlock. Each one renders as an icon WITH a
-							     text alternative and a tooltip, never as colour alone,
-							     and an indicator the page did not declare cannot appear
-							     however the record is shaped. Past the cap the rest move
-							     into the row menu, because a row of nine icons is not a
-							     row anyone can triage at a glance. -->
-							<span v-if="colIndex === titleColumnIndex && indicatorsFor(row).shown.length > 0"
-								class="cn-table-row-indicators"
-								data-testid="cn-row-indicators">
-								<span v-for="indicator in indicatorsFor(row).shown"
-									:key="indicator.id || indicator.field"
-									class="cn-table-row-indicator"
-									:title="translateLabel(indicator.tooltip || indicator.text)"
-									:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
-									<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
-									<span class="hidden-visually">{{ translateLabel(indicator.text) }}</span>
+							<!-- Data cells -->
+							<td
+								v-for="(col, colIndex) in effectiveColumns"
+								:key="col.key"
+								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
+								:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
+								@mouseenter="titleWhenClipped">
+								<!-- A row with a `rowClickRoute` is a real link: this anchor
+								     is stretched over the whole row by CSS, so hovering shows
+								     the URL, a middle or ctrl click opens a new tab natively,
+								     and the row is reachable with Tab. The row's own click
+								     handlers treat it as a nested control and leave it be. -->
+								<a v-if="colIndex === titleColumnIndex && rowLinks[String(row[rowKey])]"
+									class="cn-table-row__link"
+									:href="rowLinks[String(row[rowKey])].href"
+									:aria-label="rowLinkLabel(row, col)"
+									draggable="false"
+									data-testid="cn-row-link"
+									@click="onRowLinkClick(row, $event)" />
+								<!-- The padlock rides the FIRST data cell, beside whatever
+								     names the row. Deliberately OUTSIDE the #column-<key>
+								     slot: a consumer overriding that column's rendering is
+								     customising their own data, not opting out of being told
+								     the record is locked. It renders nothing when unlocked,
+								     so an unlocked table is byte-for-byte what it was. -->
+								<CnUnreadMarker
+									v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
+								<CnLockIndicator
+									v-if="colIndex === titleColumnIndex"
+									:object="row"
+									:size="16" />
+								<!-- Declared state indicators ride the first data cell
+								     beside the padlock. Each one renders as an icon WITH a
+								     text alternative and a tooltip, never as colour alone,
+								     and an indicator the page did not declare cannot appear
+								     however the record is shaped. Past the cap the rest move
+								     into the row menu, because a row of nine icons is not a
+								     row anyone can triage at a glance. -->
+								<span v-if="colIndex === titleColumnIndex && indicatorsFor(row).shown.length > 0"
+									class="cn-table-row-indicators"
+									data-testid="cn-row-indicators">
+									<span v-for="indicator in indicatorsFor(row).shown"
+										:key="indicator.id || indicator.field"
+										class="cn-table-row-indicator"
+										:title="translateLabel(indicator.tooltip || indicator.text)"
+										:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
+										<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
+										<span class="hidden-visually">{{ translateLabel(indicator.text) }}</span>
+									</span>
 								</span>
-							</span>
-							<!-- A muted line above the value, from `col.overline` or
-							     `col.overlineText` ("Zaken van" over the organisation). -->
-							<span
-								v-if="overlineValue(row, col)"
-								class="cn-table-cell__overline"
-								data-testid="cn-cell-overline">{{ overlineValue(row, col) }}</span>
-							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
-							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
-								<!-- Every column renders through CnCellRenderer: it resolves
-							     col.formatter / col.widget against the injected registries
-							     (cnFormatters / cnCellWidgets), uses the schema property when
-							     one is available (else {}) for type-aware rendering, and
-							     falls back to formatValue(). Columns with `aggregate` get a
-							     count of related objects (see cellValue/loadAggregates). The
-							     #column-{key} slot still wins. -->
-								<CnCellRenderer
-									:value="cellValue(row, col)"
-									:property="columnProperty(col)"
-									:formatter="col.formatter || null"
-									:formatterOptions="col.formatterOptions || null"
-									:widget="col.widget || null"
-									:widgetProps="col.widgetProps || undefined"
-									:secondary="col.widget === 'avatar' ? secondaryValue(row, col) : ''"
-									:format="columnFormat(col)"
-									:row="row"
-									:rowKey="rowKey" />
-							</slot>
-							<!-- A second, muted line under the value, from `col.secondary`:
-							     a field key, a "{field} · {other}" template, or a function
-							     of the row. Lets one column read "title" over "number ·
-							     requester" without a custom cell. -->
-							<span
-								v-if="col.widget !== 'avatar' && secondaryValue(row, col)"
-								class="cn-table-cell__secondary"
-								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
-							<!-- A row that entered a file-content search through an attached
-							     file names it (OpenRegister `@self.matchedFile`): plain text,
-							     file name only, under the first cell. -->
-							<span
-								v-if="colIndex === titleColumnIndex && matchedFileOf(row)"
-								class="cn-table-cell__secondary cn-table-cell__matched-file"
-								data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
-						</td>
+								<!-- A muted line above the value, from `col.overline` or
+								     `col.overlineText` ("Zaken van" over the organisation). -->
+								<span
+									v-if="overlineValue(row, col)"
+									class="cn-table-cell__overline"
+									data-testid="cn-cell-overline">{{ overlineValue(row, col) }}</span>
+								<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
+								<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+									<!-- Every column renders through CnCellRenderer: it resolves
+								     col.formatter / col.widget against the injected registries
+								     (cnFormatters / cnCellWidgets), uses the schema property when
+								     one is available (else {}) for type-aware rendering, and
+								     falls back to formatValue(). Columns with `aggregate` get a
+								     count of related objects (see cellValue/loadAggregates). The
+								     #column-{key} slot still wins. -->
+									<CnCellRenderer
+										:value="cellValue(row, col)"
+										:property="columnProperty(col)"
+										:formatter="col.formatter || null"
+										:formatterOptions="col.formatterOptions || null"
+										:widget="col.widget || null"
+										:widgetProps="col.widgetProps || undefined"
+										:secondary="col.widget === 'avatar' ? secondaryValue(row, col) : ''"
+										:format="columnFormat(col)"
+										:row="row"
+										:rowKey="rowKey" />
+								</slot>
+								<!-- A second, muted line under the value, from `col.secondary`:
+								     a field key, a "{field} · {other}" template, or a function
+								     of the row. Lets one column read "title" over "number ·
+								     requester" without a custom cell. -->
+								<span
+									v-if="col.widget !== 'avatar' && secondaryValue(row, col)"
+									class="cn-table-cell__secondary"
+									data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
+								<!-- A row that entered a file-content search through an attached
+								     file names it (OpenRegister `@self.matchedFile`): plain text,
+								     file name only, under the first cell. -->
+								<span
+									v-if="colIndex === titleColumnIndex && matchedFileOf(row)"
+									class="cn-table-cell__secondary cn-table-cell__matched-file"
+									data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
+							</td>
 
-						<!-- Row actions -->
-						<td v-if="$slots['row-actions']"
-							class="cn-table-col--actions"
-							:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
-							@click.stop
-							@auxclick.stop>
-							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
-							<slot name="row-actions" :row="row" />
-						</td>
-					</tr>
+							<!-- Row actions -->
+							<td v-if="$slots['row-actions']"
+								class="cn-table-col--actions"
+								:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
+								@click.stop
+								@auxclick.stop>
+								<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
+								<slot name="row-actions" :row="row" />
+							</td>
+						</tr>
+						<!-- A full-width row under each data row, for what belongs to
+						     that row (its child records). Not draggable and not a drop
+						     target: a reorder moves the data rows only. -->
+						<tr
+							v-if="$slots['row-detail']"
+							class="cn-table-row-detail"
+							data-testid="cn-row-detail"
+							:data-testid-row-id="row[rowKey]">
+							<td :colspan="totalColumns" class="cn-table-row-detail__cell">
+								<!-- @slot Content under a data row, across the full width (e.g. that row's child records), scoped with { row }. -->
+								<slot name="row-detail" :row="row" />
+							</td>
+						</tr>
+					</template>
 				</tbody>
 			</table>
 		</div>
@@ -571,12 +586,14 @@ export default {
 		 * key (`"number"`), a template with `{field}` placeholders
 		 * (`"{number} · {requester}"`, dotted paths allowed; `{startAt|weekday}`
 		 * formats through `fillTemplate`), or a function of the row. Empty fields leave their placeholder blank; a line that
-		 * resolves to nothing is not drawn.
+		 * resolves to nothing is not drawn. `secondaryLabels` names a field's
+		 * values on that line, `{ field: { value: label, '*': label } }`
+		 * (i18n keys; `'*'` for any other value).
 		 *
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string))}|string>}
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -1960,7 +1977,7 @@ export default {
 		 * @return {string} The secondary text, or ''.
 		 */
 		secondaryValue(row, col) {
-			return this.cellLineValue(row, col?.secondary)
+			return this.cellLineValue(row, col?.secondary, col)
 		},
 
 		/**
@@ -1975,7 +1992,7 @@ export default {
 		 * @return {string} The overline text, or ''.
 		 */
 		overlineValue(row, col) {
-			const fromRow = this.cellLineValue(row, col?.overline)
+			const fromRow = this.cellLineValue(row, col?.overline, col)
 			if (fromRow !== '') {
 				return fromRow
 			}
@@ -1991,9 +2008,10 @@ export default {
 		 * @spec openspec/changes/table-cell-overline/specs/data-table/spec.md#requirement-a-table-column-can-carry-a-muted-line-above-its-value
 		 * @param {object} row The row.
 		 * @param {Function|string|undefined} spec The line's spec.
+		 * @param {object} [col] The column, for its `secondaryLabels`.
 		 * @return {string} The text, or ''.
 		 */
-		cellLineValue(row, spec) {
+		cellLineValue(row, spec, col) {
 			if (typeof spec === 'function') {
 				const out = spec(row)
 				return out === null || out === undefined ? '' : String(out)
@@ -2004,29 +2022,38 @@ export default {
 			if (spec.includes('{')) {
 				const filled = joinTemplateParts(spec, (key) => (key.includes('|')
 					? fillTemplate(`{${key}}`, row)
-					: this.secondaryFieldText(row, key)))
+					: this.secondaryFieldText(row, key, col)))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
 			}
-			return this.secondaryFieldText(row, spec)
+			return this.secondaryFieldText(row, spec, col)
 		},
 
 		/**
-		 * The text of one field on a secondary line. An enum field reads as its
-		 * label (`x-enum-labels`, in the user's language), as an enum cell
-		 * does, so "regular" reads "Gewone vergadering". Anything else is the
-		 * stored value as text.
+		 * The text of one field on a secondary line. A value the column's
+		 * `secondaryLabels[key]` names reads as that label, else as its `'*'`
+		 * label, translated. An enum field reads as its label (`x-enum-labels`,
+		 * in the user's language), as an enum cell does, so "regular" reads
+		 * "Gewone vergadering". Anything else is the stored value as text.
 		 *
 		 * @spec openspec/changes/screens-secondary-enum-label/specs/data-table/spec.md
 		 * @param {object} row The row.
 		 * @param {string} key The field key (dotted paths allowed).
+		 * @param {object} [col] The column, for its `secondaryLabels`.
 		 * @return {string} The text, or '' when the field is empty.
 		 */
-		secondaryFieldText(row, key) {
+		secondaryFieldText(row, key, col) {
 			const value = this.getCellValue(row, key)
 			if (value === null || value === undefined) {
 				return ''
+			}
+			const named = col?.secondaryLabels?.[key]
+			if (named && typeof named === 'object' && typeof value !== 'object') {
+				const label = Object.hasOwn(named, String(value)) ? named[String(value)] : named['*']
+				if (typeof label === 'string' && label !== '') {
+					return this.translateLabel(label)
+				}
 			}
 			const property = this.getSchemaProperty(key)
 			if (typeof value !== 'object' && value !== '' && Array.isArray(property.enum) && property.enum.length > 0) {
