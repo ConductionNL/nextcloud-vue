@@ -26,3 +26,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name       | Payload | Description                                                                                                                             |
 | ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `show-all` | —       | User clicked the "show all" footer button — emitted with no payload. Parents typically open the host app's full files view in response. |
+
+### Slots
+
+| Name      | Bindings  | Description                                                    |
+| --------- | --------- | -------------------------------------------------------------- |
+| `actions` | `refresh` | actions Header actions of the card, e.g. an Add button. Scope: |

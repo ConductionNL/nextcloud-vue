@@ -40,7 +40,7 @@
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
 			<template v-if="allowCreate && !waitingForContext" #action>
-				<NcButton @click="openCreate">
+				<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
