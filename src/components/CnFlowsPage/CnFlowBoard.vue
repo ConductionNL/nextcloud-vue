@@ -201,17 +201,50 @@
 						{{ stepName }}
 					</h3>
 					<!-- The step type as a pill under the name (DqFlow "Beslistabel van OpenRegister"). -->
-					<CnStatusBadge :label="stepTypeLabel"
+					<CnStatusBadge :label="stepTypePill"
 						variant="purple"
 						class="cn-flow-board__step-type"
 						data-testid="flow-board-step-type" />
-					<dl v-if="stepSettings.length > 0" class="cn-flow-board__settings">
-						<div v-for="setting in stepSettings"
-							:key="setting.key"
+					<div v-if="stepFields.length > 0" class="cn-flow-board__settings">
+						<div v-for="field in stepFields"
+							:key="field.key"
 							class="cn-flow-board__setting"
 							data-testid="flow-board-step-setting">
-							<dt>{{ setting.label }}</dt>
-							<dd>{{ setting.value }}</dd>
+							<NcCheckboxRadioSwitch v-if="field.widget === 'switch'"
+								type="switch"
+								:modelValue="field.value === true"
+								:disabled="store.graphLocked"
+								@update:modelValue="setStepField(field, $event)">
+								{{ field.label }}
+							</NcCheckboxRadioSwitch>
+							<NcSelect v-else-if="field.widget === 'select'"
+								:modelValue="field.option"
+								:options="field.options"
+								:inputLabel="field.label"
+								:clearable="false"
+								:disabled="store.graphLocked"
+								label="label"
+								@update:modelValue="setStepField(field, $event ? $event.value : '')" />
+							<NcTextArea v-else-if="field.widget === 'textarea'"
+								:modelValue="fieldDraft(field)"
+								:label="field.label"
+								:disabled="store.graphLocked"
+								resize="vertical"
+								@update:modelValue="drafts[field.key] = $event"
+								@blur="commitStepField(field)" />
+							<NcTextField v-else
+								:modelValue="fieldDraft(field)"
+								:label="field.label"
+								:disabled="store.graphLocked"
+								@update:modelValue="drafts[field.key] = $event"
+								@blur="commitStepField(field)"
+								@keydown.enter="commitStepField(field)" />
+						</div>
+					</div>
+					<dl v-if="stepOutcomes.length > 0" class="cn-flow-board__outcomes" data-testid="flow-board-step-outcomes">
+						<div v-for="outcome in stepOutcomes" :key="outcome.id" class="cn-flow-board__outcome">
+							<dt>{{ outcome.label }}</dt>
+							<dd>{{ outcome.target }}</dd>
 						</div>
 					</dl>
 					<div class="cn-flow-board__step-actions">
@@ -225,12 +258,14 @@
 							{{ t('nextcloud-vue', 'Open the last run on the canvas') }}
 						</NcButton>
 					</div>
-					<h4 class="cn-flow-board__subtitle">
-						{{ t('nextcloud-vue', 'Recent log lines of this step') }}
-					</h4>
-					<CnFlowStepLog :lines="recentStepLines"
-						withDay
-						:emptyText="t('nextcloud-vue', 'This step has not run yet.')" />
+					<details class="cn-flow-board__step-log" data-testid="flow-board-step-log">
+						<summary class="cn-flow-board__subtitle">
+							{{ t('nextcloud-vue', 'Recent log lines of this step') }}
+						</summary>
+						<CnFlowStepLog :lines="recentStepLines"
+							withDay
+							:emptyText="t('nextcloud-vue', 'This step has not run yet.')" />
+					</details>
 					<div class="cn-flow-board__step-footer">
 						<NcButton variant="tertiary"
 							:disabled="store.graphLocked"
@@ -267,7 +302,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import TestTube from 'vue-material-design-icons/TestTube.vue'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
@@ -292,7 +327,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard },
+	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -365,7 +400,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false }
+		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {} }
 	},
 
 	computed: {
@@ -639,34 +674,83 @@ export default {
 		},
 
 		/**
-		 * The selected step's settings as its owner declares them in the
-		 * catalogue's `configForm`: label and value, a select's option label,
-		 * Yes or No for a switch. Unset settings are left out.
+		 * The selected step's settings as fields, as its owner declares them in
+		 * the catalogue's `configForm`: the ones the step sets and the required
+		 * ones. A field with options is a select, a boolean a switch, a
+		 * textarea or an object value a text area; the rest a text field.
+		 * Every other setting stays behind Edit step.
 		 *
-		 * @return {Array<{key: string, label: string, value: string}>} The settings.
+		 * @spec openspec/changes/flow-board-inspector-fields/specs/flow-board/spec.md#requirement-the-flow-board-inspector-edits-the-selected-steps-settings-and-names-its-outcomes
+		 * @return {Array<object>} The fields.
 		 */
-		stepSettings() {
+		stepFields() {
 			const node = this.store.selectedNode
 			const entry = node ? this.store.catalogEntry(node.type) : null
 			const config = (node && node.config) || {}
 			const form = (entry && Array.isArray(entry.configForm)) ? entry.configForm : []
+			const isSet = (value) => value !== undefined && value !== null && value !== ''
 			return form
-				.filter((field) => field && field.key && config[field.key] !== undefined && config[field.key] !== null && config[field.key] !== '')
+				.filter((field) => field && field.key && (isSet(config[field.key]) || field.required === true))
 				.map((field) => {
-					const raw = config[field.key]
-					const option = Array.isArray(field.options) ? field.options.find((o) => o && o.value === raw) : null
-					let value
-					if (option) {
-						value = String(option.label ?? option.value)
-					} else if (typeof raw === 'boolean') {
-						value = raw ? this.t('nextcloud-vue', 'Yes') : this.t('nextcloud-vue', 'No')
-					} else if (typeof raw === 'object') {
-						value = JSON.stringify(raw)
-					} else {
-						value = String(raw)
+					const value = config[field.key]
+					const options = Array.isArray(field.options)
+						? field.options.map((o) => (o && typeof o === 'object' ? { value: o.value, label: String(o.label ?? o.value) } : { value: o, label: String(o) }))
+						: []
+					let widget = 'text'
+					if (options.length > 0) {
+						widget = 'select'
+					} else if (field.type === 'boolean' || field.type === 'switch' || typeof value === 'boolean') {
+						widget = 'switch'
+					} else if (field.type === 'textarea' || field.type === 'json' || (value !== null && typeof value === 'object')) {
+						widget = 'textarea'
 					}
-					return { key: field.key, label: field.label || field.key, value }
+					return {
+						key: field.key,
+						label: field.label || field.key,
+						widget,
+						value,
+						options,
+						option: options.find((o) => o.value === value) || null,
+						isObject: value !== null && typeof value === 'object',
+					}
 				})
+		},
+
+		/**
+		 * Where the selected step goes next: each outgoing line by its name
+		 * ("Ja", "Nee"), else "Next", with the step it leads to.
+		 *
+		 * @return {Array<{id: string, label: string, target: string}>} The outcomes.
+		 */
+		stepOutcomes() {
+			const id = this.store.selectedNodeId
+			if (!id) {
+				return []
+			}
+			const nameOf = (target) => {
+				const node = this.store.nodes.find((item) => item.id === target)
+				return (node && (node.name || node.label)) || target
+			}
+			return (this.store.canvasEdges || [])
+				.filter((line) => line.source === id)
+				.map((line) => ({ id: line.id, label: (line.data && line.data.label) || this.t('nextcloud-vue', 'Next'), target: nameOf(line.target) }))
+		},
+
+		/**
+		 * The selected step's type pill: the palette's name for it and the app
+		 * that does it ("Beslistabel van OpenRegister"), else the catalogue's.
+		 *
+		 * @return {string} The pill text.
+		 */
+		stepTypePill() {
+			const type = String(this.store.selectedNode?.type || '')
+			const group = (Array.isArray(this.paletteGroups) ? this.paletteGroups : []).find((item) => (item?.entries || []).some((step) => step && step.type === type))
+			const step = group ? group.entries.find((item) => item && item.type === type) : null
+			if (!group) {
+				return this.stepTypeLabel
+			}
+			const app = String(group.app || type.split('.')[0] || '')
+			return this.t('nextcloud-vue', '{type} from {app}', { type: (step && step.label) || this.stepTypeLabel, app: group.label || this.appNames[app] || app })
 		},
 
 		/** @return {string} The selected step's name. */
@@ -700,6 +784,13 @@ export default {
 	},
 
 	watch: {
+		// A field's typing belongs to the step it was typed for.
+		'store.selectedNodeId': {
+			handler() {
+				this.drafts = {}
+			},
+		},
+
 		saveAsVersion: {
 			immediate: true,
 			handler(on) {
@@ -730,6 +821,61 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * What a text field shows: the typing in progress, else the setting.
+		 *
+		 * @param {object} field A step field.
+		 * @return {string} The text.
+		 */
+		fieldDraft(field) {
+			if (Object.hasOwn(this.drafts, field.key)) {
+				return this.drafts[field.key]
+			}
+			if (field.isObject) {
+				return JSON.stringify(field.value, null, 2)
+			}
+			return field.value === undefined || field.value === null ? '' : String(field.value)
+		},
+
+		/**
+		 * Write a text field's typing to the step when the field is left; an
+		 * object setting is written back as an object when the text is JSON.
+		 *
+		 * @param {object} field A step field.
+		 * @return {void}
+		 */
+		commitStepField(field) {
+			if (!Object.hasOwn(this.drafts, field.key)) {
+				return
+			}
+			let value = this.drafts[field.key]
+			if (field.isObject) {
+				try {
+					value = JSON.parse(value)
+				} catch {
+					return
+				}
+			}
+			delete this.drafts[field.key]
+			this.setStepField(field, value)
+		},
+
+		/**
+		 * Write one setting of the selected step, as one undoable edit.
+		 *
+		 * @spec openspec/changes/flow-board-inspector-fields/specs/flow-board/spec.md#requirement-the-flow-board-inspector-edits-the-selected-steps-settings-and-names-its-outcomes
+		 * @param {object} field A step field.
+		 * @param {string|boolean|object} value The new value.
+		 * @return {void}
+		 */
+		setStepField(field, value) {
+			const node = this.store.selectedNode
+			if (!node || JSON.stringify(node.config?.[field.key]) === JSON.stringify(value)) {
+				return
+			}
+			this.store.setNodeConfigById(node.id, { ...(node.config || {}), [field.key]: value })
+		},
+
 		/**
 		 * The pill on a step's card: the app that does it, with the page's short
 		 * type when it gives one, in the palette group's tone (the app that owns
@@ -1124,15 +1270,35 @@ export default {
 	margin: 0;
 }
 
-.cn-flow-board__setting dt {
-	font-size: 13px;
+.cn-flow-board__setting :deep(.input-field),
+.cn-flow-board__setting :deep(.v-select) {
+	margin: 0;
+}
+
+/* Where the step goes next: "Ja  Deelzaak welstandsadvies" (DqFlow). */
+.cn-flow-board__outcomes {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 6px 16px;
+	margin: 0;
+}
+
+.cn-flow-board__outcome {
+	display: contents;
+}
+
+.cn-flow-board__outcome dt {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-flow-board__setting dd {
-	margin: 2px 0 0;
+.cn-flow-board__outcome dd {
+	margin: 0;
 	font-weight: 600;
 	overflow-wrap: anywhere;
+}
+
+.cn-flow-board__step-log summary {
+	cursor: pointer;
 }
 
 .cn-flow-board__inspector-empty {

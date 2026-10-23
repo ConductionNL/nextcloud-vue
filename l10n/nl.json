@@ -1764,6 +1764,7 @@
     "done in {duration}": "klaar in {duration}",
     "trigger {trigger}": "trigger {trigger}",
     "version {version}": "versie {version}",
+    "{type} from {app}": "{type} van {app}",
     "Start step": "Start",
     "More steps": "Meer stappen",
     "{count} steps": "{count} stappen",
