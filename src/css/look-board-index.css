@@ -208,6 +208,16 @@
 	cursor: pointer;
 }
 
+/* Inside a record card the chip row is 36px, 12px in (DqZaakContact's channel
+   chips, as DqZaakHistorie's). */
+.cn-look-board .cn-conversation-thread .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 18px;
+	height: 36px;
+	min-height: 36px;
+	padding: 0 12px;
+	border-radius: 18px;
+}
+
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab:hover {
 	background: var(--color-background-hover);
