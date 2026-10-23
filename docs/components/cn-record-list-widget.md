@@ -171,6 +171,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
 
+`aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -1923,9 +1923,9 @@
     "Show them in the table": "Toon ze in de tabel",
     "Linked": "Gekoppeld",
     "Now": "Nu",
-    "Tell me above a number": "Melden boven een aantal",
+    "Tell me above a number": "Melden vanaf een aantal",
     "Threshold": "Grens",
-    "A message to you when there are {threshold} or more": "Bericht aan u als het er {threshold} of meer zijn",
+    "A message to you when there are {threshold} or more": "Bericht aan u als er {threshold} of meer zijn",
     "Save this search or open a saved one to set an alert on it.": "Sla deze zoekopdracht op of open een opgeslagen zoekopdracht om er een melding op te zetten.",
     "The alert could not be saved.": "De melding kon niet worden opgeslagen.",
     "Your exports could not be loaded.": "Uw exports konden niet worden geladen.",
@@ -2513,7 +2513,13 @@
     "Visible to the requester": "Zichtbaar voor de verzoeker",
     "Add it to the timeline": "Aan de tijdlijn toevoegen",
     "Saved view": "Opgeslagen weergave",
-    "Close side panel": "Zijpaneel sluiten"
+    "Close side panel": "Zijpaneel sluiten",
+    "Export selection as JSON": "Selectie exporteren als JSON",
+    "Select 1 or more items to export": "Selecteer 1 of meer items om te exporteren",
+    "Bundling and test message": "Bundeling en testbericht",
+    "{name} is also looking at this record now": "{name} kijkt nu ook naar deze zaak",
+    "Sorted by {field}, {direction}.": "Gesorteerd op {field}, {direction}.",
+    "Full audit trail in the sidebar": "Volledige audit trail in de zijbalk"
   },
   "plurals": {
     "{count} member": [
@@ -2691,6 +2697,10 @@
     "%n follower": [
       "%n volger",
       "%n volgers"
+    ],
+    "{name} and %n other are also looking at this record now": [
+      "{name} en %n ander kijken nu ook naar deze zaak",
+      "{name} en %n anderen kijken nu ook naar deze zaak"
     ]
   }
 }

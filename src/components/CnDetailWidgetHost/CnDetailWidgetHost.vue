@@ -411,6 +411,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { pickConditionalText } from '../../utils/conditionalText.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -518,6 +519,8 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
 		cnRecordEdit: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a subtitle that depends on them. */
+		cnDetailVisibilityRows: { default: null },
 		/**
 		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
 		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
@@ -857,7 +860,15 @@ export default {
 		 */
 		widgetSubtitle() {
 			const subtitle = (this.widget && this.widget.subtitle) || this.content.subtitle || ''
-			return typeof subtitle === 'string' ? subtitle : ''
+			if (!Array.isArray(subtitle)) {
+				return typeof subtitle === 'string' ? subtitle : ''
+			}
+			// `[{ when, text }]`: the line depends on the record and the records the
+			// page reads beside it (`@context.<name>`), as a `visibleWhen` does.
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const object = this.object || null
+			const data = object && (!this.cnDetailVisibilityRows || rows) ? { ...object, '@context': rows || {} } : null
+			return pickConditionalText(subtitle, data)
 		},
 
 		/**

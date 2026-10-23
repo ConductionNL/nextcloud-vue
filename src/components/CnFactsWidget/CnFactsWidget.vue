@@ -391,6 +391,8 @@ export default {
 	inject: {
 		cnTranslate: { default: () => (key) => key },
 		cnObjectContext: { default: null },
+		/** The detail page's newest change of the record (`recordLastChange`), read as `_lastChange.*`. */
+		cnRecordLastChange: { default: null },
 		cnWorkspaceContext: { default: null },
 		/** The page's app config; its `currency` is the reporting currency a money value falls back to. */
 		cnAppConfig: { default: null },
@@ -551,6 +553,11 @@ export default {
 		 */
 		record() {
 			let record = this.endpointRequest || this.resolvedSource ? this.fetched : this.objectData
+			const provided = this.cnRecordLastChange
+			const lastChange = provided && typeof provided === 'object' && 'value' in provided ? provided.value : null
+			if (record && record === this.objectData && lastChange) {
+				record = { ...record, _lastChange: lastChange }
+			}
 			const path = this.content?.source?.path
 			if (this.resolvedSource && !this.endpointRequest && typeof path === 'string' && path !== '' && record) {
 				const inner = readPath(record, path)
@@ -1838,11 +1845,12 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border-dark);
 	border-radius: 16px;
+	color: var(--color-main-text);
 	font-size: 13px;
 	font-weight: 600;
 	gap: 4px;
 	margin-inline-start: 8px;
-	min-height: 28px;
+	min-height: 30px;
 	padding: 0 10px;
 }
 

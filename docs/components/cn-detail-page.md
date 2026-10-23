@@ -732,6 +732,7 @@ A case type with `"sideCards": ["consent", "people", "deadline"]` shows those th
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
 - `config.breadcrumb` may be a list of crumbs for a record that sits more than one level deep: `[{ "label": "Settings", "href": "..." }, { "label": "Case types", "route": "CaseTypes" }]` reads "Settings / Case types / Omgevingsvergunning regulier". `currentField` and `separator` may sit on any crumb of the list.
 - `config.headerMetaLastChange: true` reads the record's newest create or update entry from its audit trail and offers it to `headerMeta` as `{_lastChange.userName}`, `{_lastChange.user|user}` and `{_lastChange.created|date}`: "last changed {_lastChange.created|date} by {_lastChange.userName}" (DqZaaktype). A trail that cannot be read leaves the tokens empty.
+- `config.recordLastChange: true` reads that same entry for the widgets on the page (provided as `cnRecordLastChange`; `headerMetaLastChange` provides it too). A facts card reads it as `_lastChange.userName` and `_lastChange.created`: "Last changed on {date} by {user}" (DqContact, DqOrganisatie "Historie").
 - `showWidgetActions` (manifest `config.showWidgetActions`, default `true`): `false` drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`. A definition with `showActions: false` drops its menu either way. A catalog card that offers an Add action keeps the menu that holds it.
 - With `headerWidget` a long title now wraps beside the header actions instead of pushing them onto the next row.
 
@@ -743,6 +744,7 @@ When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegist
 |------|------|---------|-------------|
 | `favourite` | Boolean | `null` | Automatic when unset. `false` removes the star. |
 | `follow` | Boolean | `null` | Automatic when unset. `false` removes the Follow toggle, and the object read then no longer asks for `@self.can`. |
+| `followRow` | Object \| null | `null` | The board look's follow row (manifest `config.followRow`): `presence: true` says who else has the record open now, with their initials, before the Follow control ("Anouk Bakker is also looking at this record now", or "… and 2 others …"); `count: false` draws no follower count. |
 | `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
 | `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
 

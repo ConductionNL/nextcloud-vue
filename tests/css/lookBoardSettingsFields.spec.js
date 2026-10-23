@@ -28,7 +28,7 @@ function rulesFor(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			out.push(m[2])
 		}
 	}
@@ -39,14 +39,14 @@ const card = '.cn-look-board .settings-section:not(.cn-look-nextcloud *)'
 
 describe('look-board.css: fields in a settings card', () => {
 	it('moves a text field label above the control and makes room for it', () => {
-		const label = rulesFor(`${card} .input-field__input + .input-field__label`)
+		const label = rulesFor(`${card} .input-field__input:not(.v-select *) + .input-field__label`)
 		expect(label).toMatch(/inset-block-start: auto/)
 		expect(label).toMatch(/inset-block-end: calc\(100% \+ 6px\)/)
 		expect(label).toMatch(/font-size: 14px/)
 		expect(label).toMatch(/font-weight: 600/)
 		expect(label).toMatch(/background: none/)
 		expect(label).toMatch(/line-height: normal/)
-		expect(rulesFor(`${card} .input-field:has(.input-field__label)`)).toMatch(/margin-block-start: 22px/)
+		expect(rulesFor(`${card} .input-field:has(.input-field__label):not(.v-select *)`)).toMatch(/margin-block-start: 22px/)
 	})
 
 	it('hands the theme the label weight and ink, which it sets with !important', () => {

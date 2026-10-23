@@ -583,6 +583,8 @@
 			v-if="viewPendingEdit"
 			ref="editViewDialog"
 			:view="viewPendingEdit"
+			:savedSummary="criteriaSummaryOf(savedViewState(viewPendingEdit))"
+			:currentSummary="list ? criteriaSummaryOf(currentViewState()) : ''"
 			@confirm="onEditViewConfirm"
 			@close="viewPendingEdit = null" />
 
@@ -593,6 +595,17 @@
 			:view="viewPendingShare"
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
+
+		<!-- Confirmation of an api-call header action that asks for one. -->
+		<CnConfirmDialog
+			v-if="headerApiCallPending"
+			ref="headerApiCallConfirmDialog"
+			:dialogTitle="cnTranslate(headerApiCallPending.confirmTitle || headerApiCallPending.label || '')"
+			:message="headerApiCallPending.confirmMessage ? cnTranslate(headerApiCallPending.confirmMessage) : t('nextcloud-vue', 'Are you sure you want to continue?')"
+			:confirmLabel="cnTranslate(headerApiCallPending.label || '')"
+			data-testid="cn-index-header-api-call-confirm"
+			@confirm="onHeaderApiCallConfirm"
+			@close="headerApiCallPending = null" />
 
 		<!-- Delete-saved-view confirm (saved-views-ui) -->
 		<CnConfirmDialog
@@ -863,6 +876,7 @@
 					:selectable="selectable"
 					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
+					:rowClickRoute="rowLinkRoute"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1351,6 +1365,7 @@
 			:open="sidebarOpen"
 			:schema="effectiveSchema"
 			:title="shownTitle"
+			:subtitle="sidebarSubtitle"
 			:icon="resolvedIcon"
 			:searchValue="effectiveSearchValue"
 			:visibleColumns="effectiveVisibleColumns"
@@ -1414,7 +1429,7 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, dispatchAction as dispatchSharedAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
@@ -1435,6 +1450,7 @@ import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1444,11 +1460,12 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { loadMyTeam, peekMyTeam } from '../../utils/myTeam.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
@@ -1458,7 +1475,8 @@ import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
-import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
+import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
+import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
@@ -1518,6 +1536,16 @@ const CALENDAR_PAGE_SIZE = 200
  * @type {string}
  */
 const RANGE_SEPARATOR = '..'
+
+/**
+ * Whether a filter map names the `@myTeam` token anywhere.
+ *
+ * @param {object} filters A view's filters.
+ * @return {boolean}
+ */
+function usesMyTeam(filters) {
+	return JSON.stringify(filters || {}).includes(`"${MY_TEAM_TOKEN}"`)
+}
 
 /** Key of the synthetic follow column (`showFollowColumn`). */
 const FOLLOW_COLUMN_KEY = '__follow'
@@ -4483,6 +4511,8 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			/** An `api-call` header action waiting on its confirmation, or null. */
+			headerApiCallPending: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
 			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
@@ -4632,6 +4662,19 @@ export default {
 		},
 
 		/**
+		 * Where a table row links to, so the row is a real link (Tab, screen
+		 * reader, new tab): the `viewTo` target, when a row click opens it.
+		 *
+		 * @return {((row: object) => (object|null))|null} The row link target, or null.
+		 */
+		rowLinkRoute() {
+			if (!this.rowClickOpens || typeof this.viewTo !== 'function') {
+				return null
+			}
+			return (row) => this.viewTo(row) || null
+		},
+
+		/**
 		 * Merged page-level header actions: drops reserved ids and
 		 * resolves declarative `handler` keywords (`navigate` / `emit`
 		 * / `none` / registry name) to either a function or
@@ -4669,17 +4712,23 @@ export default {
 		},
 
 		/**
-		 * The header actions without reserved ids, each through
+		 * The header actions without reserved ids, and without an `adminOnly`
+		 * one for a viewer who is not an administrator, each through
 		 * `resolveHeaderHandler` (a manifest `href` entry becomes a link with
 		 * `_dispatchSuppress`, so the page neither runs nor emits it).
 		 *
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-a-header-action-can-be-offered-to-administrators-only
 		 * @return {Array<object>}
 		 */
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
 			for (const entry of this.headerActions || []) {
+				// Only what is drawn: the endpoint behind the action checks access itself.
+				if (entry && entry.adminOnly === true && !this.viewerIsAdmin()) {
+					continue
+				}
 				if (entry && reserved.has(entry.id)) {
 					// eslint-disable-next-line no-console
 					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
@@ -7916,6 +7965,13 @@ export default {
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
+				// A button that runs an `adminOnly` header action is drawn for an
+				// administrator only, as the action is in the Actions menu.
+				.filter((button) => {
+					const target = button.action === 'export' ? button.run : button.action
+					const entry = (this.headerActions || []).find((action) => action && action.id === target)
+					return !(entry && entry.adminOnly === true && !this.viewerIsAdmin())
+				})
 				.map((button, index) => {
 					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
 					let icon = typeof button.icon === 'string' ? button.icon : ''
@@ -8078,6 +8134,12 @@ export default {
 			}
 			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
 			const ranges = new Map()
+			// An applied saved view names itself; its own filters are not chips
+			// (DqFilterBeheren draws "Wacht op inwoner" with no chip for it).
+			const view = this.appliedSavedView
+			const viewFilters = view && view.query && view.query.filters && typeof view.query.filters === 'object' ? view.query.filters : {}
+			const ownToView = (key, value) => Object.hasOwn(viewFilters, key)
+				&& (Array.isArray(viewFilters[key]) ? viewFilters[key].map(String) : [String(viewFilters[key])]).includes(String(value))
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
 				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
 				if (bound) {
@@ -8105,6 +8167,7 @@ export default {
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
 					.filter((value) => !this.isFixedFilter(key, value))
+					.filter((value) => !ownToView(key, value))
 					.map((value) => this.activeFilterValueLabel(key, value))
 				if (values.length === 0) {
 					continue
@@ -8565,6 +8628,25 @@ export default {
 			return this.filterMenu && this.filterableFields.length > 0 && !this.boardFilterMenu
 		},
 
+		/**
+		 * The side panel's line under its title: the page's `sidebar.subtitle`
+		 * (a string, or `{ singular, plural }`) with `{total}` and `{shown}`
+		 * filled ("48 zaken, 8 op deze pagina", DqFilterBeheren), or '' to keep
+		 * the schema's description.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-sidebar-count-subtitle/specs/index-sidebar-count-subtitle/spec.md
+		 */
+		sidebarSubtitle() {
+			const declared = this.sidebar && this.sidebar.subtitle
+			const total = this.effectivePagination && this.effectivePagination.total
+			if (!declared || typeof total !== 'number' || total < 0) {
+				return ''
+			}
+			const shown = Array.isArray(this.effectiveObjects) ? this.effectiveObjects.length : null
+			return countLine(declared, total, { shown, translate: this.cnTranslate, appId: this.cnAppId })
+		},
+
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
@@ -8597,6 +8679,7 @@ export default {
 				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
 				title: this.shownTitle,
+				subtitle: this.sidebarSubtitle,
 				icon: this.resolvedIcon,
 				searchValue: this.effectiveSearchValue,
 				visibleColumns: this.effectiveVisibleColumns,
@@ -8661,6 +8744,24 @@ export default {
 	},
 
 	watch: {
+		// A group filter's chip names the group: ask for each id's display
+		// name (cached, once per id per page).
+		effectiveActiveFilters: {
+			immediate: true,
+			handler(filters) {
+				for (const [key, raw] of Object.entries(filters || {})) {
+					if (!this.isGroupFilter(key)) {
+						continue
+					}
+					for (const value of (Array.isArray(raw) ? raw : [raw])) {
+						if (typeof value === 'string' && value !== '' && value.charAt(0) !== '@') {
+							loadGroupDisplayName(value)
+						}
+					}
+				}
+			},
+		},
+
 		// A lens that asks the source for other rows reads the source again.
 		lensSourceParams(now, before) {
 			if (JSON.stringify(now) === JSON.stringify(before) || !this.isSelfFetchMode) {
@@ -9966,8 +10067,8 @@ export default {
 		 * actions, as before. `items` names them, in order: `header-actions`
 		 * (all of them), the id of one header action, or a built-in of the
 		 * actions bar's own menu, which the bar drops while header buttons show:
-		 * `import`, `export`, `refresh`, `copy-selected`, `delete-selected`
-		 * (disabled until a row is selected) and `documentation` (a link to
+		 * `import`, `export`, `refresh`, `copy-selected`, `export-selected`,
+		 * `delete-selected` (the three disabled until a row is selected) and `documentation` (a link to
 		 * `documentationUrl`, left out when the page has none). An unknown name
 		 * is left out. `{ heading }` and `separator` group the entries: an
 		 * entry of `kind` `heading` or `separator`, drawn only when an entry
@@ -10007,6 +10108,23 @@ export default {
 					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to copy') : '',
 					run: () => { this.showMassCopyDialog = true },
 				}),
+
+				// Offered only where the list's own export is: `allowExport`, an
+				// exportable schema, and a register and schema to export from.
+				'export-selected': () => {
+					if (!this.showExportMenu) {
+						return null
+					}
+					return {
+						key: 'export-selected',
+						label: t('nextcloud-vue', 'Export selection as JSON'),
+						icon: 'Export',
+						iconComponent: Export,
+						disabled: noSelection,
+						title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
+						run: () => this.onExportSelected(),
+					}
+				},
 
 				'delete-selected': () => ({
 					key: 'delete-selected',
@@ -10204,15 +10322,25 @@ export default {
 
 		/**
 		 * Click dispatch from CnActionsBar's `@header-action`. Looks
-		 * up the resolved entry by id, invokes its handler if any,
-		 * and (unless the entry is `'none'`-suppressed) emits
+		 * up the resolved entry by id. An `api-call` entry runs here, after
+		 * its confirmation when it sets `confirm`; any other invokes its
+		 * handler if any and (unless the entry is `'none'`-suppressed) emits
 		 * `@header-action({ action: id, id })` upward.
 		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
 		 * @param {{action: string, id: string}} payload Bar payload.
+		 * @return {Promise<void>|undefined} The call, for an api-call entry that runs now.
 		 */
 		onHeaderAction(payload) {
 			const id = payload && (payload.id ?? payload.action)
 			const entry = this.mergedHeaderActions.find((e) => e.id === id)
+			if (entry && entry.type === 'api-call') {
+				if (entry.confirm === true) {
+					this.headerApiCallPending = entry
+					return undefined
+				}
+				return this.runHeaderApiCall(entry)
+			}
 			if (entry && typeof entry.handler === 'function') {
 				entry.handler()
 			} else {
@@ -10225,6 +10353,50 @@ export default {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * Run an `api-call` header action through the shared dispatcher, the
+		 * one detail and dashboard pages use: it calls the endpoint and shows
+		 * the action's success or error message, run through the app's
+		 * translate. A call that went through reloads the list, unless the
+		 * action sets `refresh: false`.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @param {object} entry The header action.
+		 * @return {Promise<{ok: boolean}>} The dispatcher's outcome.
+		 */
+		async runHeaderApiCall(entry) {
+			const outcome = (await dispatchSharedAction(entry, {
+				router: this.$router || null,
+				translate: (text) => this.cnTranslate(text),
+				tokenCtx: {},
+			})) || { ok: false }
+			if (outcome.ok === true && entry.refresh !== false) {
+				this.onRefreshEvent()
+			}
+			return outcome
+		},
+
+		/**
+		 * The confirmation of an `api-call` header action was given: run it and
+		 * report the outcome to the dialog.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @return {Promise<void>}
+		 */
+		async onHeaderApiCallConfirm() {
+			const entry = this.headerApiCallPending
+			if (!entry) {
+				return
+			}
+			const outcome = await this.runHeaderApiCall(entry)
+			const dialog = this.$refs.headerApiCallConfirmDialog
+			if (dialog && typeof dialog.setResult === 'function') {
+				dialog.setResult(outcome.ok === true
+					? { success: true }
+					: { error: (outcome.error && outcome.error.message) || t('nextcloud-vue', 'Action failed.') })
+			}
 		},
 
 		/**
@@ -10422,6 +10594,33 @@ export default {
 		 *
 		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string, sortKeys: Array<{key: string, order: string}>}}
 		 */
+		/**
+		 * A view's state as the edit dialog shows it under a criteria choice:
+		 * its filters, search term and sort in sentences, read against the
+		 * page schema's titles.
+		 *
+		 * @param {object} state A view state (`extractViewState` or `currentViewState`).
+		 * @return {string} The sentences.
+		 * @spec openspec/changes/saved-view-edit-board-form/specs/saved-views/spec.md
+		 */
+		criteriaSummaryOf(state) {
+			const schema = this.effectiveSchema
+			return viewCriteriaSummary(state, {
+				properties: (schema && schema.properties) || {},
+				translate: (text) => this.cnTranslate(text),
+			})
+		},
+
+		/**
+		 * A saved view's state, as `extractViewState` reads it.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {object} Its state.
+		 */
+		savedViewState(view) {
+			return extractViewState(view)
+		},
+
 		currentViewState() {
 			return {
 				filters: this.list.activeFilters.value,
@@ -10882,8 +11081,8 @@ export default {
 		/**
 		 * The text an Active chip shows for one filter value: the page's
 		 * `filterLabels` value, the referenced object's label, the facet
-		 * bucket's label, the schema's `oneOf` title, the sidebar field's
-		 * `enumLabels`, else the value itself.
+		 * bucket's label, the schema's `oneOf` title, a group's display name,
+		 * the sidebar field's `enumLabels`, else the value itself.
 		 *
 		 * @param {string} key The filter key.
 		 * @param {unknown} value One value of that filter.
@@ -10891,6 +11090,22 @@ export default {
 		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
+		/**
+		 * Whether a filter holds Nextcloud group ids: its column draws the
+		 * group cell, or its schema property marks a group.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {boolean}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
+		 */
+		isGroupFilter(key) {
+			const column = (Array.isArray(this.columns) ? this.columns : []).find((c) => c && typeof c === 'object' && c.key === key)
+			if (column && column.widget === 'group') {
+				return true
+			}
+			return isGroupProp(this.effectiveSchema?.properties?.[key])
+		},
+
 		activeFilterValueLabel(key, value) {
 			const id = String(value)
 			const named = this.filterLabels && this.filterLabels[key] && this.filterLabels[key].values
@@ -10909,10 +11124,23 @@ export default {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && prop.referenceType === 'nextcloud-group') {
+				const name = groupDisplayName(id)
+				if (name === null) {
+					loadGroupDisplayName(id)
+				}
+				return name || id
+			}
 			const options = prop && Array.isArray(prop.oneOf) ? prop.oneOf : []
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
 				return this.cnTranslate(option.title)
+			}
+			if (this.isGroupFilter(key)) {
+				const name = groupDisplayName(id)
+				if (name) {
+					return name
+				}
 			}
 			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
 			const enumLabel = field && field.enumLabels && field.enumLabels[id]
@@ -12463,6 +12691,21 @@ export default {
 			window.location.assign(url)
 		},
 
+		/**
+		 * Download OpenRegister's JSON export of the selected rows: the page's
+		 * register and schema, with the selected ids as `_ids`.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-the-actions-menu-exports-the-selection
+		 */
+		onExportSelected() {
+			const ids = this.internalSelectedIds.map((id) => String(id))
+			if (ids.length === 0 || !this.showExportMenu) {
+				return
+			}
+			window.location.assign(buildExportUrl(this.register, this.exportSchemaSlug, { _ids: ids }, 'json'))
+		},
+
 		// ── Saved views (saved-views-ui) ─────────────────────────────────────
 
 		/**
@@ -12503,10 +12746,15 @@ export default {
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
-			if (view && view.seeded === true) {
-				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
-				state.filters = resolveFilterTokens(state.filters, ctx)
+			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
+			// and an optional one that answers nothing (no team) is dropped. A
+			// `@myTeam` still being read applies the view once it is known.
+			if (usesMyTeam(state.filters) && peekMyTeam() === null) {
+				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
+				return
 			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
@@ -12792,7 +13040,9 @@ export default {
 			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
 				return
 			}
-			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			// OpenRegister answers a view with a numeric `id` and its `uuid`; a
+			// menu entry or a shared link may name either.
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id || (v.uuid !== undefined && String(v.uuid) === id))
 			if (view) {
 				this.onApplySavedView(view, { keepSavedViewKey: true })
 			}

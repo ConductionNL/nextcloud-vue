@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-notification-matrix" data-testid="cn-notification-matrix">
+	<div class="cn-notification-matrix" :class="{ 'cn-notification-matrix--board': isBoardLook }" data-testid="cn-notification-matrix">
 		<p v-if="adminMode" class="cn-notification-matrix__note" data-testid="cn-nm-admin-note">
 			{{ adminNote }}
 		</p>
@@ -24,67 +24,69 @@
 						data-testid="cn-nm-channel-header"
 						:data-channel="channel.id">
 						{{ channel.label }}
-						<span
-							v-if="channelState(channel).usable === false"
-							class="cn-notification-matrix__muted"
-							data-testid="cn-nm-channel-unusable">
-							{{ channelState(channel).reason || unavailableText }}
-						</span>
-
-						<template v-if="channelState(channel).usable !== false">
-							<label class="cn-notification-matrix__muted">
-								{{ digestLabel }}
-								<select
-									data-testid="cn-nm-digest-mode"
-									:data-channel="channel.id"
-									:value="digestFor(channel).mode"
-									@change="onDigestMode(channel, $event)">
-									<option
-										v-for="mode in digestModes"
-										:key="`dm-${channel.id}-${mode.id}`"
-										:value="mode.id">
-										{{ mode.label }}
-									</option>
-								</select>
-							</label>
-
-							<label
-								v-if="digestFor(channel).mode !== 'off'"
-								class="cn-notification-matrix__muted">
-								{{ digestTimeLabel }}
-								<input
-									type="time"
-									data-testid="cn-nm-digest-time"
-									:data-channel="channel.id"
-									:value="digestFor(channel).timeOfDay"
-									@change="onDigestTime(channel, $event)">
-							</label>
-
+						<template v-if="!isBoardLook">
 							<span
-								v-if="digestFor(channel).mode !== 'off'"
+								v-if="channelState(channel).usable === false"
 								class="cn-notification-matrix__muted"
-								data-testid="cn-nm-digest-immediate-note">
-								{{ digestImmediateNote }}
+								data-testid="cn-nm-channel-unusable">
+								{{ channelState(channel).reason || unavailableText }}
 							</span>
 
-							<button
-								class="cn-notification-matrix__test"
-								data-testid="cn-nm-test-send"
-								:data-channel="channel.id"
-								:aria-label="testSendLabel(channel)"
-								@click="onTestSend(channel)">
-								{{ testSendText }}
-							</button>
+							<template v-if="channelState(channel).usable !== false">
+								<label class="cn-notification-matrix__muted">
+									{{ digestLabel }}
+									<select
+										data-testid="cn-nm-digest-mode"
+										:data-channel="channel.id"
+										:value="digestFor(channel).mode"
+										@change="onDigestMode(channel, $event)">
+										<option
+											v-for="mode in digestModes"
+											:key="`dm-${channel.id}-${mode.id}`"
+											:value="mode.id">
+											{{ mode.label }}
+										</option>
+									</select>
+								</label>
 
-							<span
-								v-if="testResultFor(channel) !== null"
-								class="cn-notification-matrix__muted"
-								data-testid="cn-nm-test-result"
-								:data-channel="channel.id"
-								:data-ok="String(testResultFor(channel).ok === true)"
-								role="status">
-								{{ testResultText(channel) }}
-							</span>
+								<label
+									v-if="digestFor(channel).mode !== 'off'"
+									class="cn-notification-matrix__muted">
+									{{ digestTimeLabel }}
+									<input
+										type="time"
+										data-testid="cn-nm-digest-time"
+										:data-channel="channel.id"
+										:value="digestFor(channel).timeOfDay"
+										@change="onDigestTime(channel, $event)">
+								</label>
+
+								<span
+									v-if="digestFor(channel).mode !== 'off'"
+									class="cn-notification-matrix__muted"
+									data-testid="cn-nm-digest-immediate-note">
+									{{ digestImmediateNote }}
+								</span>
+
+								<button
+									class="cn-notification-matrix__test"
+									data-testid="cn-nm-test-send"
+									:data-channel="channel.id"
+									:aria-label="testSendLabel(channel)"
+									@click="onTestSend(channel)">
+									{{ testSendText }}
+								</button>
+
+								<span
+									v-if="testResultFor(channel) !== null"
+									class="cn-notification-matrix__muted"
+									data-testid="cn-nm-test-result"
+									:data-channel="channel.id"
+									:data-ok="String(testResultFor(channel).ok === true)"
+									role="status">
+									{{ testResultText(channel) }}
+								</span>
+							</template>
 						</template>
 					</th>
 				</tr>
@@ -163,19 +165,107 @@
 							:checked="cellFor(row.event, channel, row.scope).value"
 							:disabled="isLockedFor(row.event, channel, row.scope)"
 							:aria-label="cellLabelFor(row.event, channel, row.scope)"
+							:aria-describedby="isBoardLook ? sourceIdFor(row.event, channel, row.scope) : null"
 							@change="onToggle(row.event, channel, $event, row.scope)">
-						<span class="cn-notification-matrix__muted" data-testid="cn-nm-source">
+						<!-- The board look draws only the checkbox; why it is set stays said, and stays visible when the cell is locked. -->
+						<span
+							:id="sourceIdFor(row.event, channel, row.scope)"
+							class="cn-notification-matrix__muted"
+							:class="{ 'hidden-visually': isBoardLook && !isLockedFor(row.event, channel, row.scope) }"
+							data-testid="cn-nm-source">
 							{{ sourceTextFor(row.event, channel, row.scope) }}
 						</span>
 					</td>
 				</tr>
 			</tbody>
 		</table>
+
+		<!-- The board look keeps the grid to its checkboxes; each channel's bundling, its time and the test send live here. -->
+		<details
+			v-if="isBoardLook"
+			class="cn-notification-matrix__channels"
+			data-testid="cn-nm-channel-settings">
+			<summary class="cn-notification-matrix__channels-summary">
+				{{ channelSettingsTitle }}
+			</summary>
+			<div
+				v-for="channel in channels"
+				:key="`cs-${channel.id}`"
+				class="cn-notification-matrix__channel"
+				:data-channel="channel.id">
+				<h4 class="cn-notification-matrix__channel-name">
+					{{ channel.label }}
+				</h4>
+				<span
+					v-if="channelState(channel).usable === false"
+					class="cn-notification-matrix__muted"
+					data-testid="cn-nm-channel-unusable">
+					{{ channelState(channel).reason || unavailableText }}
+				</span>
+
+				<template v-if="channelState(channel).usable !== false">
+					<label class="cn-notification-matrix__muted">
+						{{ digestLabel }}
+						<select
+							data-testid="cn-nm-digest-mode"
+							:data-channel="channel.id"
+							:value="digestFor(channel).mode"
+							@change="onDigestMode(channel, $event)">
+							<option
+								v-for="mode in digestModes"
+								:key="`dm-${channel.id}-${mode.id}`"
+								:value="mode.id">
+								{{ mode.label }}
+							</option>
+						</select>
+					</label>
+
+					<label
+						v-if="digestFor(channel).mode !== 'off'"
+						class="cn-notification-matrix__muted">
+						{{ digestTimeLabel }}
+						<input
+							type="time"
+							data-testid="cn-nm-digest-time"
+							:data-channel="channel.id"
+							:value="digestFor(channel).timeOfDay"
+							@change="onDigestTime(channel, $event)">
+					</label>
+
+					<span
+						v-if="digestFor(channel).mode !== 'off'"
+						class="cn-notification-matrix__muted"
+						data-testid="cn-nm-digest-immediate-note">
+						{{ digestImmediateNote }}
+					</span>
+
+					<button
+						class="cn-notification-matrix__test"
+						data-testid="cn-nm-test-send"
+						:data-channel="channel.id"
+						:aria-label="testSendLabel(channel)"
+						@click="onTestSend(channel)">
+						{{ testSendText }}
+					</button>
+
+					<span
+						v-if="testResultFor(channel) !== null"
+						class="cn-notification-matrix__muted"
+						data-testid="cn-nm-test-result"
+						:data-channel="channel.id"
+						:data-ok="String(testResultFor(channel).ok === true)"
+						role="status">
+						{{ testResultText(channel) }}
+					</span>
+				</template>
+			</div>
+		</details>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { normalizeLook } from '../../composables/useLook.js'
 import {
 	channelAvailability,
 	PREFERENCE_LEVELS,
@@ -243,6 +333,11 @@ import {
  */
 export default {
 	name: 'CnNotificationMatrix',
+
+	inject: {
+		/** The look CnAppRoot (or the page) draws in. */
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/**
@@ -357,6 +452,21 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the matrix draws the board's grid.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/notification-matrix-board-grid/specs/notification-matrix/spec.md
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/** @return {string} The disclosure under the board grid. */
+		channelSettingsTitle() {
+			return t('nextcloud-vue', 'Bundling and test message')
+		},
+
 		/** @return {Array<object>} The events, in their groups. */
 		groups() {
 			const byKey = new Map()
@@ -440,6 +550,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The id of a cell's source line, which describes its checkbox.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The row's scope.
+		 * @return {string} The id.
+		 */
+		sourceIdFor(event, channel, scope) {
+			return `cn-nm-src-${this.$?.uid ?? 0}-${event.id}-${scope}-${channel.id}`.replace(/[^A-Za-z0-9_-]/g, '_')
+		},
+
 		t,
 
 		/**
@@ -955,5 +1077,94 @@ export default {
 
 .cn-notification-matrix__note {
 	color: var(--color-text-maxcontrast);
+}
+
+/* The board look (DqPersoonlijkeInstellingen "Meldingen"): muted 13px/600
+   headers over a hairline, the channel columns 96px with a centred 20px
+   checkbox, the event rows 10px high with the soft rule. The caption stays for
+   assistive technology. */
+.cn-notification-matrix--board {
+	.cn-notification-matrix__caption {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.cn-notification-matrix__table {
+		font-size: 14px;
+	}
+
+	.cn-notification-matrix__table thead th {
+		padding: 8px 10px 8px 0;
+		border-block-end: 1px solid var(--color-border);
+		color: var(--color-text-maxcontrast);
+		font-size: 13px;
+		font-weight: 600;
+		vertical-align: bottom;
+	}
+
+	.cn-notification-matrix__table thead th[data-channel] {
+		inline-size: 96px;
+		padding-inline: 4px;
+		text-align: center;
+	}
+
+	.cn-notification-matrix__table tbody th,
+	.cn-notification-matrix__table tbody td {
+		padding: 10px 10px 10px 0;
+		border-block-end: 1px solid var(--color-background-dark);
+		font-weight: 400;
+		line-height: 1.4;
+		vertical-align: middle;
+	}
+
+	.cn-notification-matrix__table tbody td {
+		padding-inline: 4px;
+		text-align: center;
+	}
+
+	.cn-notification-matrix__table tbody td input[type='checkbox'] {
+		inline-size: 20px;
+		min-inline-size: 20px;
+		block-size: 20px;
+		min-block-size: 20px;
+		margin: 0;
+	}
+
+	.cn-notification-matrix__group {
+		padding: 4px 0;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--color-text-maxcontrast);
+	}
+
+	.cn-notification-matrix__channels {
+		margin-block-start: 16px;
+	}
+
+	.cn-notification-matrix__channels-summary {
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.cn-notification-matrix__channel {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 8px 16px;
+		padding-block: 10px;
+		border-block-end: 1px solid var(--color-background-dark);
+	}
+
+	.cn-notification-matrix__channel-name {
+		flex: 1 0 100%;
+		margin: 0;
+		font-size: 14px;
+		font-weight: 600;
+	}
 }
 </style>

@@ -109,13 +109,27 @@
 	height: 16px;
 }
 
-/* The Follow control at the end of row 2.
-   @spec openspec/changes/board-follow-in-meta-row/specs/board-follow-in-meta-row/spec.md#requirement-the-board-follow-control-ends-the-meta-row */
-.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__interactions {
+/* Row 3: the Follow control under the breadcrumb, on the full width.
+   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
+.cn-look-board .cn-detail-page__header-row3 {
 	align-items: center;
-	display: inline-flex;
-	flex: none;
+	display: flex;
+	flex: 1 0 100%;
+	flex-wrap: wrap;
 	gap: 8px;
+	min-width: 0;
+}
+
+/* Who else is looking, before Volgen (DqZaak "Anouk Bakker kijkt nu ook naar
+   deze zaak"): the initials, the sentence and a dot, 13px in the muted ink.
+   @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking */
+.cn-look-board .cn-detail-page__presence {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */

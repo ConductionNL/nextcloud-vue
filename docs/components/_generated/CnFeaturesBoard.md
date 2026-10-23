@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 24 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 25 files reached through imports.
 
 Through: `CnActionDialog`, `CnBuildiqEditButton`, `CnCellRenderer`, `CnDataTable`, `CnFkResolveCell`, `CnFlowDetail`, `CnGraphCanvas`, `CnIndexPage`, `CnRoadmapTab`.
 
@@ -20,6 +20,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `filter`              | `string`  |          | `'chips'` | `chips`: pill buttons with a count. `segmented`: a segmented control without counts.                                                                                      |
 | `filterLabel`         | `string`  |          | `''`      | The status filter's accessible name, through the host translate (DqFunctionaliteiten "Toon"); empty: "Status".                                                            |
 | `statusLabels`        | `object`  |          | `\{\}`    | Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`).                                                                            |
+| `statusVariants`      | `object`  |          | `\{\}`    | Overrides of the status tones, by key, as CnStatusBadge variants (DqFunctionaliteiten: `{ planned: 'default' }`).                                                         |
 | `next`                | `number`  |          | `3`       | How many issues the Next card lists; 0 hides the card.                                                                                                                    |
 | `issueLabels`         | `object`  |          | `\{\}`    | Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card.                                                                                   |
 | `repo`                | `string`  |          | `''`      | `&lt;owner&gt;/&lt;repo&gt;` on the forge, for the Roadmap tab and the Next card.                                                                                         |

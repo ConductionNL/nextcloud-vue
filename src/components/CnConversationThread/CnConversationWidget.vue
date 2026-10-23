@@ -14,6 +14,8 @@
 			:replyLabel="content.replyLabel ? tr(content.replyLabel) : undefined"
 			:placeholder="tr(content.placeholder || '')"
 			:sendLabel="content.sendLabel ? tr(content.sendLabel) : undefined"
+			:replyHint="tr(content.replyHint || '')"
+			:replyOption="replyOption"
 			:endpoint="replyAction ? '' : endpoint"
 			:loading="loading"
 			:emptyText="content.emptyText ? tr(content.emptyText) : undefined"
@@ -138,6 +140,19 @@ export default {
 		channelLabels() {
 			const map = this.content?.channelMap && typeof this.content.channelMap === 'object' ? this.content.channelMap : {}
 			return [...new Set(Object.values(map).filter((label) => typeof label === 'string' && label !== '').map((label) => this.tr(label)))]
+		},
+
+		/**
+		 * `content.replyOption` with its label translated, or null.
+		 *
+		 * @return {{label: string, key: string, value?: boolean}|null}
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
+		 */
+		replyOption() {
+			const option = this.content?.replyOption
+			return option && typeof option === 'object' && option.label && option.key
+				? { ...option, label: this.tr(option.label) }
+				: null
 		},
 
 		/** @return {object|null} The reply action, or null. */
@@ -298,15 +313,17 @@ export default {
 		 * path is the thread's own.
 		 *
 		 * @param {string} text The reply.
+		 * @param {object} [extras] The reply option's state, `{ [key]: boolean }`.
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/conversation-source/specs/conversation-source/spec.md#requirement-a-reply-can-run-an-app-action
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
 		 */
-		async onSend(text) {
+		async onSend(text, extras = {}) {
 			if (!this.replyAction) {
 				return
 			}
 			const resolved = resolveDeepTokens(this.replyAction, this.tokenCtx)
-			const action = { ...resolved, args: [{ text, objectId: this.objectId }], props: { ...(resolved.props || {}), text } }
+			const action = { ...resolved, args: [{ text, objectId: this.objectId, ...extras }], props: { ...(resolved.props || {}), text, ...extras } }
 			const result = typeof this.cnDispatchAction === 'function'
 				? this.cnDispatchAction(action)
 				: dispatchAction(action, { router: this.$router || null })

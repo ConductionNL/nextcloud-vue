@@ -292,6 +292,37 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-start: 26px;
 }
 
+/* A multiple select is the board's 40px field too (DqFilterDelen "Delen
+   met"). The edge goes on the toggle, which holds the chips and the search,
+   so the chosen people and groups sit inside the field; the search inside it
+   draws no edge of its own. NcSelect drew the toggle with a ring. Focus darkens
+   the edge to the text colour, as NcSelect's own focus does, and keeps the
+   ring patches.css puts on the toggle (WCAG 2.4.7).
+   @spec openspec/changes/board-dialog-multiselect-field/specs/board-dialog-multiselect-field/spec.md */
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .vs__dropdown-toggle {
+	box-sizing: border-box;
+	min-height: var(--cn-field-height, 40px);
+	max-height: none;
+	padding: 3px 4px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	box-shadow: none;
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple:not(.vs--disabled) .vs__dropdown-toggle:focus-within {
+	border-color: var(--color-main-text);
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__main-wrapper {
+	height: auto;
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__input,
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__input:hover:not([disabled]) {
+	border: 0;
+	box-shadow: none;
+}
+
 /* The doubled class outranks NcInputField's raised-label rule (focused or
    filled), which would pin the label's top as well and squash it. */
 .cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,

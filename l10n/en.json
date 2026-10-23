@@ -2263,7 +2263,13 @@
     "Visible to the requester": "Visible to the requester",
     "Add it to the timeline": "Add it to the timeline",
     "Saved view": "Saved view",
-    "Close side panel": "Close side panel"
+    "Close side panel": "Close side panel",
+    "Export selection as JSON": "Export selection as JSON",
+    "Select 1 or more items to export": "Select 1 or more items to export",
+    "Bundling and test message": "Bundling and test message",
+    "{name} is also looking at this record now": "{name} is also looking at this record now",
+    "Sorted by {field}, {direction}.": "Sorted by {field}, {direction}.",
+    "Full audit trail in the sidebar": "Full audit trail in the sidebar"
   },
   "plurals": {
     "{count} member": [
@@ -2424,6 +2430,10 @@
     "%n follower": [
       "%n follower",
       "%n followers"
+    ],
+    "{name} and %n other are also looking at this record now": [
+      "{name} and %n other are also looking at this record now",
+      "{name} and %n others are also looking at this record now"
     ]
   }
 }

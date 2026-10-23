@@ -91,3 +91,20 @@ describe('CnConversationWidget channels and header action', () => {
 		expect(w.find('[data-testid="cn-conversation-header-action"]').exists()).toBe(false)
 	})
 })
+
+describe('CnConversationThread: the All chip in the host\'s word', () => {
+	const MESSAGES = [{ id: 1, text: 'a', channel: 'Phone' }, { id: 2, text: 'b', channel: 'Email' }]
+
+	it('reads the host\'s word for All, as its own filter chips do ("Alles")', () => {
+		const w = mount(CnConversationThread, {
+			props: { messages: MESSAGES, channelFilter: true, allowReply: false },
+			global: { provide: { cnTranslate: (key) => (key === 'All' ? 'Alles' : key) } },
+		})
+		expect(w.vm.channelChips[0].label).toBe('Alles')
+	})
+
+	it('falls back to the library\'s word without a host translation', () => {
+		const w = mount(CnConversationThread, { props: { messages: MESSAGES, channelFilter: true, allowReply: false } })
+		expect(w.vm.channelChips[0].label).toBe('All')
+	})
+})

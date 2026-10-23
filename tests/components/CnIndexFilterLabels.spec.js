@@ -9,9 +9,18 @@
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+ * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
  */
 import { mount } from '@vue/test-utils'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import { clearGroupNameCache, loadGroupDisplayName } from '../../src/utils/groupAutocomplete.js'
+
+jest.mock('@nextcloud/axios', () => ({
+	__esModule: true,
+	default: {
+		get: jest.fn(() => Promise.resolve({ data: { ocs: { data: [{ id: 'zuiddrecht-woo-en-informatie', label: 'Woo en informatie', source: 'groups' }] } } })),
+	},
+}))
 
 const NL = { Status: 'Status', Ongoing: 'lopend', Deadline: 'Deadline' }
 
@@ -142,5 +151,25 @@ describe('a range is one chip', () => {
 			{ key: 'deadline[gte]', values: [] },
 			{ key: 'deadline[lte]', values: [] },
 		])
+	})
+})
+
+describe('a group filter is named by the group\'s display name', () => {
+	beforeEach(() => clearGroupNameCache())
+
+	it('reads the display name of a group column\'s value once it is known', async () => {
+		const w = mountPage({
+			columns: [{ key: 'assignedGroup', label: 'Team', widget: 'group' }],
+			activeFilters: { assignedGroup: 'zuiddrecht-woo-en-informatie' },
+			filterLabels: { assignedGroup: { label: 'Team' } },
+		})
+		await loadGroupDisplayName('zuiddrecht-woo-en-informatie')
+		await w.vm.$nextTick()
+		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Team: Woo en informatie'])
+	})
+
+	it('shows the id of a value that is no group field', () => {
+		const w = mountPage({ activeFilters: { status: 'zuiddrecht-woo-en-informatie' } })
+		expect(w.vm.activeFilterChips[0].label).toBe('Status: zuiddrecht-woo-en-informatie')
 	})
 })

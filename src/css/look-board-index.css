@@ -564,6 +564,22 @@
 	border-radius: 8px;
 }
 
+/* The band's text sits at the font's normal line height, and its lead keeps
+   6px before the buttons (DqZaken "Met de geselecteerde zaken"). */
+.cn-look-board .cn-actions-bar__band:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-lead:not(.cn-look-nextcloud *) {
+	margin-inline-end: 6px;
+}
+
+/* The boards draw the band as its lead and its buttons only: the hint line
+   under them is left out (DqZaken). */
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint:not(.cn-look-nextcloud *) {
+	display: none;
+}
+
 .cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint {
 	flex: 0 0 100%;
 	font-size: 13px;
@@ -581,6 +597,14 @@
 	background: var(--color-main-background);
 	box-shadow: none;
 	overflow: hidden;
+}
+
+/* In an admin settings section the section is the card: its table draws no
+   second edge inside it, and the header band runs to the section's inset
+   (DqInstellingen "Koppelingen", DqVthInstellingen "Legesregels"). */
+.cn-look-board .settings-section .cn-table-container.cn-table-container--board:not(.cn-look-nextcloud *) {
+	border: 0;
+	border-radius: 0;
 }
 
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
@@ -1514,6 +1538,24 @@
 
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-header__figure:has(> .cn-index-sidebar__header-icon) {
 	display: none;
+}
+
+/* The panel's fields are 40px tall (DqZakenSorteren "Sorteren op", the
+   search field); NcInputField, also NcSelect's search box, draws 30px. The
+   wrapper holds the input and its 2px focus ring, as on a board form. A
+   multiple select's search box sits beside its chips and keeps its height.
+   @spec openspec/changes/board-field-heights/specs/board-field-heights/spec.md#requirement-side-panel-fields-and-page-filters-are-as-tall-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel {
+	--cn-field-height: 40px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__main-wrapper:not(.vs--multiple *) {
+	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__input:not(.vs--multiple *) {
+	height: var(--cn-field-height);
+	min-height: var(--cn-field-height);
 }
 
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {

@@ -93,10 +93,20 @@
 					:placeholder="fill(field.placeholder)"
 					@search="(typed) => onSearch(field, typed)"
 					@update:modelValue="(value) => setValue(field.field, value && typeof value === 'object' ? value.id : value)" />
-				<NcSelect v-else-if="field.type === 'select'"
+				<!-- An optional select or text field: its label above the control,
+				     "(optional)" in grey after it (DqUwWachtrij "Sjabloon (niet
+				     verplicht)"). -->
+				<CnFormField v-if="labelsOutside(field)"
+					:controlId="controlId(field)"
+					:text="fill(field.label) || field.field"
+					:optional="true" />
+				<NcSelect v-if="field.type === 'select'"
 					:modelValue="selectedOption(field)"
 					:options="optionsOf(field)"
+					:inputId="controlId(field)"
 					:inputLabel="fill(field.label) || field.field"
+					:labelOutside="labelsOutside(field)"
+					:placeholder="fill(field.placeholder)"
 					:clearable="field.required === false"
 					@update:modelValue="(option) => pick(field, option)" />
 				<NcTextField v-else-if="field.type === 'secret'"
@@ -106,10 +116,12 @@
 					:label="text(field.label) || field.field"
 					:placeholder="secretStored(field) ? t('nextcloud-vue', 'Stored. Type a new value to replace it.') : ''"
 					@update:modelValue="(value) => setValue(field.field, value)" />
-				<NcTextField v-else
+				<NcTextField v-else-if="field.type !== 'checkbox' && field.type !== 'search'"
+					:id="controlId(field)"
 					:modelValue="values[field.field] || ''"
 					:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
 					:label="fill(field.label) || field.field"
+					:labelOutside="labelsOutside(field)"
 					@update:modelValue="(value) => setValue(field.field, value)" />
 				<span v-if="field.hint && field.type !== 'checkbox'" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
 			</div>
@@ -172,6 +184,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTe
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import CnFormField from '../CnFormField/CnFormField.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
@@ -220,7 +233,9 @@ let reasonSeq = 0
  *   reader types, shows each as `optionLabel` with `optionSecondary` under
  *   it (templates on the found record), leaves the record in hand out with
  *   `excludeSelf`, and sends the chosen record's id. Every field's `label`,
- *   `hint` and `placeholder` are templates filled from the record.
+ *   `hint` and `placeholder` (search and select) are templates filled from the record.
+ *   An optional select or text field (`required: false`) draws its label above
+ *   the control with "(optional)" after it.
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
@@ -234,7 +249,7 @@ let reasonSeq = 0
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnDialog, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { CheckCircle, CircleOutline, CnDialog, CnFormField, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -289,6 +304,7 @@ export default {
 			refusal: '',
 			done: false,
 			reasonId: `cn-action-dialog-reason-${++reasonSeq}`,
+			fieldIdPrefix: `cn-action-dialog-field-${reasonSeq}`,
 		}
 	},
 
@@ -457,6 +473,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a field's label sits above its control with "(optional)" after
+		 * it: a select or a text field the action does not require.
+		 *
+		 * @spec openspec/changes/action-dialog-optional-fields/specs/action-dialog/spec.md#requirement-an-optional-field-says-so-beside-its-label
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 */
+		labelsOutside(field) {
+			return field.required === false && !['checkbox', 'search', 'secret'].includes(field.type)
+		},
+
+		/**
+		 * The id of a field's control, which its outside label points at.
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 */
+		controlId(field) {
+			return `${this.fieldIdPrefix}-${field.field}`
+		},
+
 		t,
 
 		/**
