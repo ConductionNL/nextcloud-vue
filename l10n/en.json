@@ -2324,7 +2324,11 @@
     "The action failed.": "The action failed.",
     "The warnings could not be loaded.": "The warnings could not be loaded.",
     "Filter by type": "Filter by type",
-    "activities": "activities"
+    "activities": "activities",
+    "Also who read it": "Also who read it",
+    "{shown} of {total} events, changes only": "{shown} of {total} events, changes only",
+    "Opened the record": "Opened the record",
+    "Viewed": "Viewed"
   },
   "plurals": {
     "{count} member": [

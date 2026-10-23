@@ -2575,7 +2575,11 @@
     "Filter by type": "Filteren op soort",
     "activities": "activiteiten",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "Also who read it": "Ook wie het las",
+    "{shown} of {total} events, changes only": "{shown} van {total} gebeurtenissen, alleen wijzigingen",
+    "Opened the record": "Heeft het geopend",
+    "Viewed": "Ingezien"
   },
   "plurals": {
     "{count} member": [
