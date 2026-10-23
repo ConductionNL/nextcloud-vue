@@ -80,7 +80,12 @@ async function getJson(path, params = {}) {
 function loadSchema(register, schema) {
 	const key = `${register}|${schema}`
 	if (!schemaCache.has(key)) {
-		schemaCache.set(key, getJson(`/apps/openregister/api/schemas/${encodeURIComponent(schema)}`, { register }).catch(() => null))
+		// A failed read is forgotten, so the next opening asks again instead
+		// of naming every filter by its raw key for the rest of the session.
+		schemaCache.set(key, getJson(`/apps/openregister/api/schemas/${encodeURIComponent(schema)}`, { register }).catch(() => {
+			schemaCache.delete(key)
+			return null
+		}))
 	}
 	return schemaCache.get(key)
 }
@@ -228,6 +233,7 @@ export default {
 						schema: typeof config.schema === 'string' ? config.schema : '',
 						baseFilter: resolveFilterMap(config.filter, {}, { config: this.cnAppConfig || {} }),
 						countSubtitle: config.countSubtitle || null,
+						filterLabels: (config.filterLabels && typeof config.filterLabels === 'object') ? config.filterLabels : {},
 					}
 				})
 		},
@@ -324,6 +330,7 @@ export default {
 			const summary = summarizeViewFilters(state, {
 				properties: (schema && schema.properties) || {},
 				valueLabels: this.valueLabels[page.id] || {},
+				filterLabels: page.filterLabels,
 				translate: this.cnTranslate,
 			})
 			return summary || page.title

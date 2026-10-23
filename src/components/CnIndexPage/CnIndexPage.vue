@@ -2572,7 +2572,9 @@ export default {
 		 * Sourced from `pages[].config.filterLabels`.
 		 *
 		 * A range filter's entry may set `relative: true`, naming a range
-		 * from today in words ("within 7 days").
+		 * from today in words ("within 7 days"). An entry with
+		 * `hidden: true` is a working-list rule every view carries: the line
+		 * that says what a saved view shows leaves it out.
 		 *
 		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
 		 */
@@ -11102,8 +11104,9 @@ export default {
 		/**
 		 * What a saved view filters on, in the Active line's words, for the
 		 * line under its name in the side panel: its search term, then each
-		 * filter ("Search term: Lindelaan, Status: Open"). '' when it filters
-		 * on nothing.
+		 * filter ("Search term: Lindelaan, Status: Open"). A filter the page's
+		 * `filterLabels` marks `hidden` (a working-list rule every view
+		 * carries) is left out. '' when it filters on nothing else.
 		 *
 		 * @param {object} view The saved view.
 		 * @return {string}
@@ -11116,8 +11119,11 @@ export default {
 			if (term !== '') {
 				parts.push(t('nextcloud-vue', 'Search term: {term}', { term }))
 			}
+			const hidden = (key) => Boolean(this.filterLabels && this.filterLabels[key] && this.filterLabels[key].hidden === true)
 			for (const chip of this.filterChipsOf(filters)) {
-				parts.push(chip.label)
+				if (!hidden(chip.key)) {
+					parts.push(chip.label)
+				}
 			}
 			return parts.join(', ')
 		},
