@@ -463,6 +463,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -1086,7 +1087,7 @@ export default {
 			return Math.max(0, ...this.rows.slice(0, this.limit).map((row) => Number(readPath(row, field)) || 0))
 		},
 
-		/** @return {object|null} The header link with `{total}` filled and tokens resolved. */
+		/** @return {object|null} The header link with `{total}` filled and tokens resolved; null while an href param is unresolved. */
 		headerLink() {
 			const link = this.content?.headerLink
 			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
@@ -1102,7 +1103,15 @@ export default {
 					resolved.query = resolveFilterTokens(link.query, this.tokenCtx)
 				}
 			} else if (typeof link.href === 'string') {
-				resolved.href = link.href
+				if (link.params && typeof link.params === 'object') {
+					const href = this.filledHref(link.href, link.params)
+					if (href === null) {
+						return null
+					}
+					resolved.href = href
+				} else {
+					resolved.href = link.href
+				}
 			}
 			return resolved
 		},
@@ -1329,6 +1338,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * An href with its `{name}` placeholders filled from `params` (tokens
+		 * such as `@object.masterEntityRef` resolved, each value URL-encoded)
+		 * and made a Nextcloud URL; null while a value is missing, so the link
+		 * is left out rather than pointing nowhere.
+		 *
+		 * @param {string} href The href, `/apps/<app>/...` with placeholders.
+		 * @param {object} params The placeholder values or tokens.
+		 * @return {string|null} The URL, or null.
+		 * @spec openspec/changes/record-list-header-href-params/specs/record-widgets/spec.md#requirement-a-record-list-header-link-can-fill-its-url-from-the-record
+		 */
+		filledHref(href, params) {
+			const values = resolveFilterTokens(params, this.tokenCtx)
+			let missing = false
+			const path = href.replace(/\{(\w+)\}/g, (match, name) => {
+				const value = values[name]
+				if (value === null || value === undefined || value === '' || typeof value === 'object' || (typeof value === 'string' && value.startsWith('@'))) {
+					missing = true
+					return ''
+				}
+				return encodeURIComponent(String(value))
+			})
+			if (missing) {
+				return null
+			}
+			return path.startsWith('/') && !path.startsWith('//') ? generateUrl(path) : path
+		},
+
 		/**
 		 * Translate a manifest string through the host app.
 		 *
