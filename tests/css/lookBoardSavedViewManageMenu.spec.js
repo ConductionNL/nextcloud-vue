@@ -12,7 +12,8 @@
 const fs = require('fs')
 const path = require('path')
 
-const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const strip = (file) => fs.readFileSync(path.join(__dirname, '../../src/css', file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const css = strip('look-board.css') + strip('look-board-index.css')
 
 /**
  * The body of the first rule whose selector list holds this selector.
@@ -54,5 +55,15 @@ describe('look-board.css: saved view manage menu', () => {
 
 	it('draws Delete in the error red', () => {
 		expect(ruleFor(`${MENU} li.action[data-testid="cn-saved-views-delete"] > .action-button`)).toContain('color: var(--color-error-text);')
+	})
+
+	it('marks the row whose menu is open as the applied one', () => {
+		const row = '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open))'
+		const bodyOf = (selector) => {
+			const at = css.indexOf(`${selector} {`)
+			return at < 0 ? null : css.slice(at, css.indexOf('}', at))
+		}
+		expect(bodyOf(row)).toContain('background: var(--color-primary-element-light);')
+		expect(bodyOf(`${row} .cn-saved-views-panel__name-text`)).toContain('color: var(--color-primary-element-light-text);')
 	})
 })

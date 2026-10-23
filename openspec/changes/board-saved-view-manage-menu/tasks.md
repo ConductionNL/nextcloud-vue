@@ -17,3 +17,9 @@
 - **files**: `src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue`
 - [x] Implement: 14px pin in the board look, ", in the menu" in the accessible name
 - [x] Test: `tests/components/SavedViewManageMenuBoard.spec.js`
+
+### Task 4: The row whose menu is open
+- **spec_ref**: `openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-the-row-whose-menu-is-open-is-marked`
+- **files**: `src/css/look-board-index.css`
+- [x] Implement: tint and ink on the selected row and the row with its menu open
+- [x] Test: `tests/css/lookBoardSavedViewManageMenu.spec.js`

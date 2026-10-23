@@ -45,3 +45,14 @@ accessible name SHALL end in ", in the menu" in every look.
 
 - **GIVEN** "Termijn deze week" is in Pieter's menu
 - **THEN** its panel row starts with a pin and is announced as "Termijn deze week, in het menu"
+
+### Requirement: The row whose menu is open is marked
+
+In the board look the saved view row whose manage menu is open SHALL be drawn as the applied view's row: on the primary
+tint with its name in the deep primary ink.
+
+#### Scenario: DqFilterBeheren
+
+- **GIVEN** the panel in the board look with no view applied
+- **WHEN** the reader opens "Beheer Wacht op inwoner"
+- **THEN** the "Wacht op inwoner" row is tinted and its name is in the deep primary ink
