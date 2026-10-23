@@ -116,6 +116,13 @@ describe('CnAssignDialog', () => {
 		expect(toggle.text()).toContain('Sanne de Vries then gets a message that the case moves.')
 	})
 
+	it('shows a toggle\'s noteFallback when the record lacks a value its note names', async () => {
+		axios.get.mockResolvedValue({ data: { identifier: '2026-0082' } })
+		const w = await mountDialog({ ...HANDOVER, toggles: [{ field: 'doorzending', label: 'Tell the applicant', note: '{initiatorDisplayName} then gets a message.', noteFallback: 'The applicant then gets a message.' }] })
+		expect(w.find('[data-testid="cn-assign-dialog-toggle-doorzending"]').text()).toContain('The applicant then gets a message.')
+		w.unmount()
+	})
+
 	it('searches the configured kinds and offers what was typed when allowed', async () => {
 		const w = await mountDialog()
 		await type(w, 'Jur')
