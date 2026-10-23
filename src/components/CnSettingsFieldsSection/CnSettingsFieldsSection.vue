@@ -480,6 +480,17 @@ export default {
 			required: true,
 		},
 
+		/**
+		 * The row this card is opened from (CnSettingsSection `openedFrom`): the
+		 * card shows only while the page's hash names its `id`.
+		 *
+		 * @spec openspec/changes/settings-section-opened-from-row/specs/settings-section-opened-from-row/spec.md#requirement-a-settings-card-can-be-opened-from-a-row
+		 */
+		openedFrom: {
+			type: String,
+			default: '',
+		},
+
 		/** Columns of the field grid: 1 to 4. A narrow card stacks them. */
 		columns: {
 			type: Number,
@@ -633,6 +644,7 @@ export default {
 				error: this.loadError !== '',
 				errorMessage: this.loadError,
 				onRetry: this.load,
+				openedFrom: this.openedFrom,
 			}
 		},
 

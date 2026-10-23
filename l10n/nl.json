@@ -2603,7 +2603,8 @@
       "%n week",
       "%n weken",
       "%n weeks"
-    ]
+    ],
+    "Opened from the row {row}": "Geopend vanuit de rij {row}"
   },
   "plurals": {
     "{count} member": [
