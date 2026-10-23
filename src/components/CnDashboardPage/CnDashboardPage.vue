@@ -1087,7 +1087,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
-import { generatedPageFilterOptions, periodText } from '../../utils/periodOptions.js'
+import { generatedPageFilterOptions, periodText, rangePeriodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -2427,7 +2427,11 @@ export default {
 			}
 			// `{filter.<key>}`: the page filter's active choice, read as a period
 			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
-			return this.effectiveTranslate(this.description).replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
+			// `{dateRange}`: the dashboard's active date range, read as a period
+			// (DqDashboard "Hoe het team ervoor staat · oktober 2026").
+			return this.effectiveTranslate(this.description)
+				.replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
+				.replace(/\{dateRange\}/g, () => this.dateRangePeriodText())
 		},
 
 		/**
@@ -3256,6 +3260,29 @@ export default {
 				return ''
 			}
 			return periodText({ ...option, label: option.label ? this.effectiveTranslate(option.label) : String(option.value) }, new Date(), userLocale())
+		},
+
+		/**
+		 * The dashboard's active date range read as a period, for
+		 * `{dateRange}` in the description: a calendar preset as its month,
+		 * quarter or year, another preset as its translated label, a custom
+		 * range as its dates.
+		 *
+		 * @return {string} The period, '' without an active range.
+		 * @spec openspec/changes/description-period-from-date-range/specs/description-period-from-date-range/spec.md#requirement-a-dashboard-description-reads-the-active-date-range-as-a-period
+		 */
+		dateRangePeriodText() {
+			const rng = this.currentRange || this.dashboardDateRange
+			if (!this.dateRangeEnabled || !rng) {
+				return ''
+			}
+			const preset = rng.preset && rng.preset !== 'custom'
+				? this.effectivePresets.find((p) => p && p.id === rng.preset)
+				: null
+			const label = preset ? translatePresetLabel(preset.label, this.effectiveTranslate) : ''
+			return rangePeriodText(rng, preset ? { ...preset, label } : null, userLocale())
+				|| this.formatRangeLabel(rng.from || null, rng.to || null)
+				|| ''
 		},
 
 		formatRangeLabel(from, to) {
