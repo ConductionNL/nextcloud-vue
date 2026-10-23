@@ -304,6 +304,22 @@
 	height: 16px;
 }
 
+/* ---- A native radio or checkbox ---------------------------------------- */
+/* The boards draw a native radio or checkbox 18px square in the primary
+   colour (DqVolgendeStap, DqBesluit option cards). The browser draws 13px and
+   Nextcloud's input height stretched it to 13x36. NcCheckboxRadioSwitch's
+   input sits hidden behind its icon and keeps its own box.
+   @spec openspec/changes/board-native-choice-size/specs/board-native-choice-size/spec.md#requirement-a-native-radio-or-checkbox-is-18px-in-the-board-look */
+.cn-look-board input[type="radio"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *),
+.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 18px;
+	min-width: 18px;
+	height: 18px;
+	min-height: 18px;
+	accent-color: var(--color-primary-element);
+}
+
 /* ---- A banner's actions (CnBannerWidget) ------------------------------- */
 /* The boards draw a banner's actions as the board's buttons: 40px tall, 14px
    text, a primary with no edge (PtDashboard "Verzoek beoordelen"). The banner
@@ -1967,6 +1983,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
+/* A macro reads as the boards draw a card's list row: the name at weight 500
+   over its 13px line, both at the font's normal line height, 56px a row
+   (DqZaakAssistent "Macro's").
+   @spec openspec/changes/board-macros-rows/specs/board-macros-rows/spec.md#requirement-a-board-macros-row-is-a-board-list-row */
+.cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__name {
+	font-weight: 500;
+	line-height: normal;
+}
+
 /* ---- List rows in a card (record list rows, audit rows) ----------------- */
 /* The boards draw a list row in a card as a title at weight 500 in the main
    ink with a 13px muted line under it, both at the font's normal line height,
@@ -1982,6 +2008,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
 	color: var(--color-main-text);
 	font-weight: 500;
+	line-height: normal;
+}
+
+.cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__hint {
 	line-height: normal;
 }
 
@@ -2127,7 +2157,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
-   board's card pads 24px at the sides and each row 14px, a soft hairline
+   board's card pads 24px at the sides and each row 12px (the Dq dashboards;
+   the pipelinq board's 14px gives way), a soft hairline
    between rows, the title 15px weight 600 and the meta 13px muted. A row is a
    link, but only the hover says so: no underline on any text run, however the
    host styles its links (`!important`, because a host rule such as
@@ -2141,7 +2172,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row {
-	padding: 14px 0;
+	padding: 12px 0;
 	flex-wrap: wrap;
 	gap: 8px 16px;
 }

@@ -2521,7 +2521,8 @@
     "Sorted by {field}, {direction}.": "Gesorteerd op {field}, {direction}.",
     "Full audit trail in the sidebar": "Volledige audit trail in de zijbalk",
     "Read only": "Alleen lezen",
-    "Shipped with the app; a new version updates them.": "Geleverd door de app; een nieuwe versie werkt ze bij."
+    "Shipped with the app; a new version updates them.": "Geleverd door de app; een nieuwe versie werkt ze bij.",
+    "Image": "Afbeelding"
   },
   "plurals": {
     "{count} member": [

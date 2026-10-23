@@ -2271,7 +2271,8 @@
     "Sorted by {field}, {direction}.": "Sorted by {field}, {direction}.",
     "Full audit trail in the sidebar": "Full audit trail in the sidebar",
     "Read only": "Read only",
-    "Shipped with the app; a new version updates them.": "Shipped with the app; a new version updates them."
+    "Shipped with the app; a new version updates them.": "Shipped with the app; a new version updates them.",
+    "Image": "Image"
   },
   "plurals": {
     "{count} member": [
