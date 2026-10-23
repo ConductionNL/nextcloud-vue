@@ -1436,7 +1436,7 @@ import {
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { firstFilled } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
@@ -1632,6 +1632,27 @@ function readGrantedPurposes() {
  * </CnDetailPage>
  * ```
  */
+/**
+ * A header pill's label with the record's fields filled in ("Version
+ * {version} published" reads "Version 4 published"). A field the record does
+ * not have is left out rather than shown as a token.
+ *
+ * @param {string} label The translated label.
+ * @param {object|null} object The record.
+ * @return {string} The label to show.
+ * @spec openspec/changes/detail-pill-label-tokens/specs/detail-page/spec.md#requirement-a-header-pill-label-can-name-the-records-fields
+ */
+function pillLabelFilled(label, object) {
+	if (typeof label !== 'string' || !label.includes('{')) {
+		return label
+	}
+	const filled = fillTemplate(label, object)
+	if (filled !== '') {
+		return filled
+	}
+	return label.replace(/\{[^{}]*\}/g, '').replace(/\s+/g, ' ').trim()
+}
+
 export default {
 	name: 'CnDetailPage',
 
@@ -4099,7 +4120,7 @@ export default {
 					if (typeof resolved === 'string' && resolved !== '') {
 						return { ...pill, ...look, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
 					}
-					return { ...pill, ...look, key, label: this.effectiveTranslate(pill.label) }
+					return { ...pill, ...look, key, label: pillLabelFilled(this.effectiveTranslate(pill.label), this.resolvedObject) }
 				})
 				.filter(Boolean)
 		},
