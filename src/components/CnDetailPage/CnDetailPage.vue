@@ -23,7 +23,7 @@
 <template>
 	<div
 		class="cn-detail-page"
-		:class="[{ 'cn-detail-page--with-side': showsSideColumn }, boardClass]"
+		:class="[{ 'cn-detail-page--with-side': showsSideColumn, 'cn-detail-page--card-buttons-regular': cardButtons === 'regular' }, boardClass]"
 		data-testid="cn-detail-page"
 		:style="{ maxWidth: maxWidth }">
 		<!-- Skip link to the page's primary action. Off screen until it takes
@@ -1838,6 +1838,18 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * How tall the labelled buttons in the page's card title rows stand in
+		 * the board look: `compact` (34px, setting and case-type pages) or
+		 * `regular` (the 40px control height, the case page's tab cards:
+		 * DqZaakContact "Live gesprek"). Manifest `config.cardButtons`.
+		 */
+		cardButtons: {
+			type: String,
+			default: 'compact',
+			validator: (value) => ['compact', 'regular'].includes(value),
 		},
 
 		/**
