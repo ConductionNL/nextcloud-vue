@@ -183,6 +183,18 @@ export default {
 		 * @type {{[key: string]: {[value: string]: string}}|null}
 		 */
 		valueLabels: { type: Object, default: null },
+		/**
+		 * Records beside the object whose events belong in its history:
+		 * `[{ as, register, schema, filter, limit? }]`. The card lists the
+		 * objects matching `filter` (`@objectId` is this object; at most
+		 * `limit`, default 5), reads their trails and merges the entries with
+		 * the object's own, newest first. A related entry is labelled by
+		 * `actionLabels["<as>.<action>"]` first. Object scope only.
+		 *
+		 * @type {Array<{as: string, register: string, schema: string, filter?: object, limit?: number}>}
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		relatedSources: { type: Array, default: () => [] },
 		/** Shown when a `source` or `endpoint` read failed. */
 		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The history could not be loaded') },
 	},
@@ -295,7 +307,11 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					const list = data.results || data.rows || data
-					this.entries = Array.isArray(list) ? list : []
+					const own = Array.isArray(list) ? list : []
+					const related = await this.fetchRelatedEntries()
+					this.entries = related.length > 0
+						? [...own, ...related].sort((a, b) => entryTime(b) - entryTime(a))
+						: own
 				} else {
 					this.entries = []
 					this.failed = this.sourceUrl !== null
@@ -308,6 +324,47 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * The entries of the records beside the object (`relatedSources`),
+		 * each tagged with its source's `as`. A read that fails leaves that
+		 * source out.
+		 *
+		 * @return {Promise<Array<object>>} The entries.
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		async fetchRelatedEntries() {
+			if (this.scope !== 'object' || this.sourceUrl !== null || !this.objectId || !Array.isArray(this.relatedSources)) {
+				return []
+			}
+			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const read = async (url) => {
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
+				if (!response.ok) {
+					throw new Error(String(response.status))
+				}
+				const data = await response.json()
+				const list = data.results || data.rows || data
+				return Array.isArray(list) ? list : []
+			}
+			const perSource = await Promise.all(this.relatedSources
+				.filter((source) => source && source.register && source.schema)
+				.map(async (source) => {
+					try {
+						const params = new URLSearchParams({ _limit: String(Number(source.limit) > 0 ? Number(source.limit) : 5), _order: JSON.stringify({ '@self.created': 'DESC' }) })
+						for (const [key, value] of Object.entries(source.filter || {})) {
+							params.set(key, value === '@objectId' ? this.objectId : String(value))
+						}
+						const objects = await read(`${this.apiBase}/objects/${source.register}/${source.schema}?${params.toString()}`)
+						const ids = objects.map((object) => object?.id || object?.['@self']?.id || object?.uuid).filter(Boolean)
+						const trails = await Promise.all(ids.map((id) => read(`${this.apiBase}/objects/${source.register}/${source.schema}/${id}/audit-trails?limit=${limit}`).catch(() => [])))
+						return trails.flat().map((entry) => ({ ...entry, relatedAs: source.as || source.schema }))
+					} catch {
+						return []
+					}
+				}))
+			return perSource.flat()
 		},
 
 		/**
@@ -362,7 +419,10 @@ export default {
 			if (!labels || !action) {
 				return null
 			}
-			const label = labels[`${action}:${entry.stateAfter || ''}`] ?? labels[action]
+			const state = entry.stateAfter || ''
+			const prefix = entry.relatedAs ? `${entry.relatedAs}.` : ''
+			const label = (prefix ? (labels[`${prefix}${action}:${state}`] ?? labels[`${prefix}${action}`]) : undefined)
+				?? labels[`${action}:${state}`] ?? labels[action]
 			return typeof label === 'string' && label !== '' ? label : null
 		},
 

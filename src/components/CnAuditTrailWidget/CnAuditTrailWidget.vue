@@ -17,6 +17,7 @@
 		:excludeActions="resolvedExcludeActions"
 		:actionLabels="actionLabels"
 		:valueLabels="valueLabels"
+		:relatedSources="relatedSources"
 		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
 </template>
 
@@ -94,7 +95,7 @@ export default {
 		endpoint: { type: String, default: '' },
 		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
 		excludeActions: { type: Array, default: () => [] },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -201,6 +202,17 @@ export default {
 				.map(([key, words]) => [key, Object.fromEntries(Object.entries(words)
 					.filter(([, text]) => typeof text === 'string' && text !== '')
 					.map(([value, text]) => [value, translate(text)]))]))
+		},
+
+		/**
+		 * `content.relatedSources`: records beside the object whose events
+		 * join its history (see CnAuditTrailCard).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		relatedSources() {
+			return Array.isArray(this.content.relatedSources) ? this.content.relatedSources : []
 		},
 
 		emptyText() {

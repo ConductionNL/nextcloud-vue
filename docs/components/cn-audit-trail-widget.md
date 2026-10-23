@@ -21,7 +21,7 @@ import { CnAuditTrailWidget } from '@conduction/nextcloud-vue'
 | `scope` | `string` | `''` | `object` (default) is one object's trail. `app` lists the app-wide feed, narrowed to `register` / `schema` when set, and needs no object. Also read from `content.scope`. |
 | `source` | `object` | `null` | Read the trail of something that is not an object, such as `{ kind: 'flow-task' }` for the page's task (see [CnAuditTrailCard](./cn-audit-trail-card.md)). Also read from `content.source`. |
 | `endpoint` | `string` | `''` | A trail URL of its own. Also read from `content.endpoint`. |
-| `content` | `object` | `{}` | The stored widget content: `{ title, maxDisplay, scope?, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. `emptyText` replaces the empty line and goes through the app's translate. `actionLabels` words each action (see [CnAuditTrailCard](./cn-audit-trail-card.md)), each label through the app's translate; `valueLabels` words the values a label quotes as `{changed.<key>}`, also through it. |
+| `content` | `object` | `{}` | The stored widget content: `{ title, maxDisplay, scope?, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources? }`. `relatedSources` merges the events of records beside the object (see [CnAuditTrailCard](./cn-audit-trail-card.md)). `emptyText` replaces the empty line and goes through the app's translate. `actionLabels` words each action (see [CnAuditTrailCard](./cn-audit-trail-card.md)), each label through the app's translate; `valueLabels` words the values a label quotes as `{changed.<key>}`, also through it. |
 
 ## Reference (auto-generated)
 
