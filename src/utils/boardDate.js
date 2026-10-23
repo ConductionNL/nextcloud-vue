@@ -192,6 +192,59 @@ export function formatRelativeDate(value, options = {}) {
 }
 
 /**
+ * How long ago a past moment was, as people say it: "just now", "10 min ago",
+ * "2 hours ago", then "this morning", "this afternoon" or "this evening" for
+ * the rest of today, "yesterday", the weekday for two to six days back
+ * ("Friday") and the board's short date after that. A future moment reads as
+ * `formatRelativeDate` does.
+ *
+ * @param {unknown} value The moment.
+ * @param {Date} [now] The reference moment.
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/relative-ago-formatter/specs/relative-ago-formatter/spec.md#requirement-a-template-reads-a-past-moment-as-how-long-ago-it-was
+ */
+export function formatAgo(value, now = new Date()) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const elapsed = now.getTime() - date.getTime()
+	if (elapsed < 0) {
+		return formatRelativeDate(date, { now })
+	}
+	const minutes = Math.floor(elapsed / 60000)
+	if (minutes < 1) {
+		return t('nextcloud-vue', 'just now')
+	}
+	if (minutes < 60) {
+		return n('nextcloud-vue', '{count} min ago', '{count} min ago', minutes, { count: minutes })
+	}
+	if (minutes < 180) {
+		const hours = Math.floor(minutes / 60)
+		return n('nextcloud-vue', '{count} hour ago', '{count} hours ago', hours, { count: hours })
+	}
+	const days = ageInDays(date, now)
+	if (days === 0) {
+		const hour = date.getHours()
+		if (hour < 12) {
+			return t('nextcloud-vue', 'this morning')
+		}
+		return hour < 18 ? t('nextcloud-vue', 'this afternoon') : t('nextcloud-vue', 'this evening')
+	}
+	if (days === 1) {
+		return t('nextcloud-vue', 'yesterday')
+	}
+	if (days < 7) {
+		try {
+			return new Intl.DateTimeFormat(boardDateLocale(), { weekday: 'long' }).format(date)
+		} catch {
+			return new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(date)
+		}
+	}
+	return formatBoardDate(date, now)
+}
+
+/**
  * How long something has waited: "4 uur" under 24 hours (at least 1), else
  * "1 dag" / "3 dagen" in whole calendar days. Plural forms come from the
  * library's own catalogue (`nextcloud-vue`). A date in the future reads as
