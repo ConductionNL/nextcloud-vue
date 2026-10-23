@@ -1,0 +1,2 @@
+- [x] Board-look page tab type, ink and active weight in look-board-index.css
+- [x] CSS spec tests/css/lookBoardIndexPageTabs.spec.js

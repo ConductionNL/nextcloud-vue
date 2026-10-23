@@ -1674,3 +1674,15 @@
 	margin: 0;
 	padding: 0;
 }
+
+/* Page tabs read as tabs, not links: tab type in main-text ink. The colour is
+   `!important` because the nldesign link rules force theirs (DqContracten). */
+.cn-look-board .cn-index-page__page-tab:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: 1.2;
+	color: var(--color-main-text) !important;
+}
+
+.cn-look-board .cn-index-page__page-tab--active:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
