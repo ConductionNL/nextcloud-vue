@@ -417,14 +417,20 @@
 	--cn-board-select-height: 36px;
 }
 
-/* A select on the description line is as wide as its choice: the board draws
-   "Laatste 12 maanden" and "Alle zaaktypen" as compact selects beside the
-   period group (DqProcesanalyse), where NcSelect's own 260px minimum pushed
-   the last one onto a line of its own.
+/* A select on the description line is compact, 190px: the board draws
+   "Laatste 12 maanden" and "Alle zaaktypen" beside the period group on one
+   line (DqProcesanalyse), where NcSelect's own 260px minimum pushed the last
+   one onto a line of its own. NcSelect's choice is laid over its search
+   field, so it cannot size the select to the choice itself.
    @spec openspec/changes/board-description-select-compact/specs/board-description-select-compact/spec.md#requirement-a-description-select-is-as-wide-as-its-choice */
 .cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select {
 	min-width: 0;
-	width: auto;
+	width: 190px;
+}
+
+/* Without a clear button showing, the choice may run up to the chevron. */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select:has(.vs__clear[style*='display: none']) .vs__selected {
+	padding-inline-end: 44px;
 }
 
 /* ---- A text field and a multiple select --------------------------------- */

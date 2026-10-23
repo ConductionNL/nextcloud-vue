@@ -7,8 +7,8 @@
 
 ### Requirement: A description select is as wide as its choice
 
-In the board look, a select on a dashboard description line SHALL have no minimum width of its own beyond its choice,
-so the line's controls stay on one line where the board draws them on one.
+In the board look, a select on a dashboard description line SHALL be 190px wide, without NcSelect's 260px minimum, and its choice SHALL run up to the chevron while no clear
+button shows, so the line's controls stay on one line where the board draws them on one.
 
 #### Scenario: DqProcesanalyse
 
