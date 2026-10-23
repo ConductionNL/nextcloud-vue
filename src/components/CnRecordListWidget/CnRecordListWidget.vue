@@ -196,6 +196,12 @@
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
+							<!-- `duePlacement: "below"`: the due text as a line under the title (DqDagAfsluiten "Morgen eerst"). -->
+							<span
+								v-if="item.due && dueBelow"
+								class="cn-record-list__due cn-record-list__due--below"
+								:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
+								data-testid="cn-record-list-due">{{ item.due.text }}</span>
 							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
 								{{ linksLabel }}
 								<template v-for="(link, linkIndex) in item.links" :key="link.id">
@@ -204,7 +210,7 @@
 								</template>
 							</span>
 						</span>
-						<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="item.pill || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
 							<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 							<CnStatusBadge
 								v-if="item.pill"
@@ -219,7 +225,7 @@
 								size="small"
 								:data-testid="`cn-record-list-badge-${badge.kind}`" />
 							<span
-								v-if="item.due"
+								v-if="item.due && !dueBelow"
 								class="cn-record-list__due"
 								:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 								data-testid="cn-record-list-due">{{ item.due.text }}</span>
@@ -926,6 +932,17 @@ export default {
 			}
 			const sign = dir === 'descending' ? -1 : 1
 			return [...rows].sort((a, b) => sign * compareCells(a.cells[index].text, b.cells[index].text))
+		},
+
+		/**
+		 * Whether a row draws its due text under its title (`duePlacement:
+		 * "below"`) instead of at its end.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-due-below/specs/record-list-due-below/spec.md#requirement-a-rows-due-text-can-sit-under-its-title
+		 */
+		dueBelow() {
+			return this.content?.duePlacement === 'below'
 		},
 
 		/** @return {string} The note under the list (`footnote`), translated. */
@@ -2614,6 +2631,12 @@ export default {
 	flex: 0 0 120px;
 	gap: 6px;
 	justify-content: flex-end;
+}
+
+.cn-record-list__due--below {
+	font-size: 13px;
+	font-weight: 600;
+	white-space: normal;
 }
 
 .cn-record-list__due--column {
