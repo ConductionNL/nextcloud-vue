@@ -2722,6 +2722,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-color: var(--color-border-maxcontrast);
 }
 
+/* A chosen option stays white under its primary edge, as every Dq dialog board
+   draws it (design-system #371); the Nextcloud look keeps the tint.
+   @spec openspec/changes/board-choice-row-chosen-white/specs/board-choice-row-chosen-white/spec.md#requirement-a-chosen-board-option-is-white */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:not(.cn-look-nextcloud *) {
+	background: var(--color-main-background);
+}
+
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
 	width: 18px;
 	height: 18px;
