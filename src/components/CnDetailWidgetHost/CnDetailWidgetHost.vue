@@ -370,6 +370,24 @@
 				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
+		<!-- A library widget that draws its own title row and asks for the
+		     card (registry `ownsTitle` + `chrome: "card"`): an untitled card
+		     on a card surface, so it does not float bare in a tab stack. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSelfTitledWidget"
+			:showTitle="false"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			class="cn-detail-page__self-titled-card"
+			data-testid="cn-detail-widget-self-titled-card">
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
 		<!-- Every other content-driven catalog widget, and every bare-mode
 		     catalog widget. These self-fetch from OpenRegister. The object
 		     context is forwarded too (the same shape CnWidgetGrid merges on the
@@ -949,6 +967,22 @@ export default {
 				return false
 			}
 			return typeof entry === 'object' && entry.chrome === 'card'
+		},
+
+		/**
+		 * Whether a library widget that draws its own title row gets an
+		 * untitled card: on a card surface outside a body grid cell, when its
+		 * registry entry owns its title and asks for the card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/retention-card-in-tab-stack/specs/detail-page/spec.md
+		 */
+		wrapsSelfTitledWidget() {
+			if (this.isBare || this.inGridCell || !this.widget || !this.widget.type || this.isContentOnly || this.isCard || this.wrapsConsumerWidget) {
+				return false
+			}
+			const entry = getWidgetTypeEntry(this.widget.type)
+			return Boolean(entry && entry.ownsTitle && entry.chrome === 'card')
 		},
 
 		/**

@@ -314,6 +314,7 @@ registerDashboardWidget('retention', {
 	icon: 'ArchiveOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+	chrome: 'card',
 })
 
 registerDashboardWidget('schema-rules', {
