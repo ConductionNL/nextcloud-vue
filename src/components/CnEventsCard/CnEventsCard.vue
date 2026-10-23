@@ -119,9 +119,10 @@ export default {
 		 * the buttons it reports for its card's title row.
 		 *
 		 * `createVariant: "secondary"` and `createIcon` draw the create action
-		 * as the quiet header action with its own icon.
+		 * as the quiet header action with its own icon. `menuActions` (`link`,
+		 * `create`) puts those flows in the card's Actions menu instead.
 		 *
-		 * @type {{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>, createVariant?: string, createIcon?: string}}
+		 * @type {{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>, menuActions?: Array<string>, createVariant?: string, createIcon?: string}}
 		 */
 		content: { type: Object, default: () => ({}) },
 
@@ -205,11 +206,13 @@ export default {
 					run: () => { this.showCreate = true },
 				},
 			}
-			const actions = this.url === '' ? [] : asked.filter((key, index) => known[key] && asked.indexOf(key) === index).map((key) => known[key])
+			const pick = (keys) => (this.url === '' ? [] : keys.filter((key, index) => known[key] && keys.indexOf(key) === index).map((key) => known[key]))
+			const actions = pick(asked)
+			const inMenu = Array.isArray(this.content?.menuActions) ? this.content.menuActions.filter((key) => !asked.includes(key)) : []
 			/**
-			 * @event header The card's title-row actions, `{ actions }`, for the host to draw.
+			 * @event header The card's title-row actions and Actions-menu items, `{ actions, menuActions }`, for the host to draw.
 			 */
-			this.$emit('header', { actions })
+			this.$emit('header', { actions, menuActions: pick(inMenu) })
 		},
 
 		/**
