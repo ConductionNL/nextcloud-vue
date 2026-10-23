@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.145.0', () => {
+	it('the manifest schema version reads 2.147.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1420,7 +1420,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.141.0 lets a widget header link switch the page to a body tab (header-link-switches-tab) and a side card name the body tabs it shows beside (side-card-follows-row).
 		// 2.144.0 lets a detail page's quick actions and next step follow the open tab (r23-detail-actions-per-tab), a chart aggregate merge groups by label (aggregate-merge-by-label), a detail page read its quick actions from a field of the record (quickActionsFrom, r23-quick-actions-from), and a dashboard set its side column's width with layout tracks (gridSideColumn, dashboard-side-column-width).
 		// 2.145.0 gives a detail page a band of widgets above its body (pq-adm-a-detail-band) and a primary action a query (pq-adm-a-detail-page-filters).
-		expect(schema.version).toBe('2.145.0')
+		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) a header link's placement under the title (header-link-under-title) and a detail page's opt-in previous and next within the list it was opened from (listNavigation, detail-list-navigation-wired). 2.146.0 is batch 24hq.
+		expect(schema.version).toBe('2.147.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {

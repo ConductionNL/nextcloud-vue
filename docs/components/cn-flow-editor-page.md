@@ -32,9 +32,11 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `paletteFootnote` | `String` | `''` | Board look: a line under the palette (`config.paletteFootnote`, translated). |
 | `flowDirection` | `String` | `'right'` | Board look: `down` lays the steps out top to bottom and opens them at their own size (`config.flowDirection`, DqFlow); `right` left to right, fitted. |
 | `testSubject` | `Object` | `null` | Board look: `{ register, schema, labelField?, label? }` (`config.testSubject`). Draws a header button ("Testen met een zaak") that opens a picker on that register and schema and tries the saved flow with the picked record through OpenRegister's dry-run (`POST /api/flows/{id}/dry-run`): steps without side effects run, every other step says what it would do, and nothing is changed or sent. The per-step result (CnFlowDryRunResult) shows beside the canvas. `label` is translated; without it the button reads "Test with a record". |
-| `notice` | `String` | `''` | Board look: an info notice under the path (`config.notice`, translated). |
-| `pill` | `String` | `''` | Board look: the pill beside the flow's name, such as "Case type flow" (`config.pill`, translated). Empty shows Draft or Retired for a flow in that state. |
+| `notice` | `String` | `''` | Board look: an info notice under the path (`config.notice`, translated); `{name}` is the flow's name. |
+| `pill` | `String` | `''` | Board look: the pill at the start of the path row, such as "Case type flow" (`config.pill`, translated). Empty shows Draft or Retired for a flow in that state. |
+| `pillVariant` | `String` | `'default'` | Board look: the tone of `pill`, a CnStatusBadge variant such as `teal` (DqFlow; `config.pillVariant`). A Draft or Retired pill stays neutral. |
 | `listLabel` | `String` | `''` | Board look: the list's name at the start of the path, such as "Settings / Flows" (`config.listLabel`, translated). Empty reads "Flows". |
+| `breadcrumb` | `Array` | `[]` | Board look: the levels before the flow, each its own link (`config.breadcrumb`, `[{ label, href? }]`, labels translated): `[{ "label": "Settings", "href": "/index.php/settings/admin/dossiq" }, { "label": "Flows" }]` reads "Settings / Flows / the flow". A crumb without an href links to the flow list. Wins over `listLabel`. |
 
 ## The board look
 

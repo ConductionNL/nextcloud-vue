@@ -183,8 +183,10 @@
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
-			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
-			:bulkBandAlways="bulkBandAlways"
+			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
+			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
+			:bulkLead="viewBulkBandLead"
+			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -194,8 +196,8 @@
 			:inlineActionCount="inlineActionCount"
 			:showMassImport="showMassImport"
 			:showMassExport="showMassExport"
-			:showMassCopy="showMassCopy"
-			:showMassDelete="showMassDelete"
+			:showMassCopy="showMassCopy && !viewBulkBand"
+			:showMassDelete="showMassDelete && !viewBulkBand"
 			:viewMode="currentViewMode"
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
@@ -213,7 +215,7 @@
 			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
+			:searchPlaceholder="shownSearchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -225,7 +227,7 @@
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
-			:bulkActions="mergedBulkActions"
+			:bulkActions="viewBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
 			@add="onAddClick"
@@ -361,6 +363,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:save="!headerSavesView"
 					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
@@ -599,6 +602,7 @@
 			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
 			:message="deleteViewMessage"
 			:confirmLabel="t('nextcloud-vue', 'Delete view')"
+			confirmIcon="DeleteOutline"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -1266,7 +1270,7 @@
 				<!-- A notice under the list (`notice`): DqPrivacy's "Een
 				     AVG-verzoek is een zaak met ..." band. -->
 				<NcNoteCard
-					v-if="notice && notice.text"
+					v-if="notice && notice.text && !noticeOnPage"
 					class="cn-index-page__notice"
 					:type="noticeType"
 					data-testid="cn-index-page-notice">
@@ -1319,6 +1323,16 @@
 			</div>
 		</div>
 
+		<!-- The notice under the list card, on the page ground
+		     (`notice.placement: 'page'`, DqContracten). -->
+		<NcNoteCard
+			v-if="notice && notice.text && noticeOnPage"
+			class="cn-index-page__notice cn-index-page__notice--page"
+			:type="noticeType"
+			data-testid="cn-index-page-notice">
+			{{ cnTranslate(notice.text) }}
+		</NcNoteCard>
+
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
 		     AND sidebar.show !== false.
 
@@ -1336,7 +1350,7 @@
 			v-if="shouldRenderInlineSidebar"
 			:open="sidebarOpen"
 			:schema="effectiveSchema"
-			:title="title"
+			:title="shownTitle"
 			:icon="resolvedIcon"
 			:searchValue="effectiveSearchValue"
 			:visibleColumns="effectiveVisibleColumns"
@@ -1369,7 +1383,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1419,6 +1433,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -1573,6 +1588,27 @@ function declaredFilterFields(props) {
 function namedFiltersFromRoute(instance, props) {
 	const route = instance && instance.proxy && instance.proxy.$route
 	return namedFiltersFromQuery((route && route.query) || {}, props)
+}
+
+/**
+ * The named-source filters the page opens with: the ones the address carries,
+ * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
+ * `@myGroups`), unless the address names a saved view.
+ *
+ * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values | { from, to } }` map.
+ * @spec openspec/changes/named-source-default-filters/specs/index-page/spec.md#requirement-a-named-source-page-can-open-with-removable-default-filters
+ */
+function namedFiltersWithDefaults(instance, props) {
+	const fromRoute = namedFiltersFromRoute(instance, props)
+	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
+	const defaults = props.defaultFilters
+	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+		return fromRoute
+	}
+	return resolveFilterTokens(defaults)
 }
 
 /**
@@ -1986,8 +2022,12 @@ export default {
 		 * the list, such as who decides what. The text goes through the host
 		 * translate.
 		 *
-		 * @type {{text: string, variant?: string}|null}
+		 * `placement: 'page'` draws it under the list card, on the page
+		 * ground, instead of inside the list under its rows.
+		 *
+		 * @type {{text: string, variant?: string, placement?: string}|null}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
 		 */
 		notice: {
 			type: Object,
@@ -2155,6 +2195,32 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-bulk-band-is-its-own-row
 		 */
 		bulkHint: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: another shape of the bulk band per view mode, keyed by
+		 * the view (`board`, `cards`, ...). `{ lead?: { one, other }, actions?:
+		 * Array<id|{ id, label? }>, cancel?: boolean, hint?: boolean }`: the
+		 * lead counts the selection (`{count}`, through the app's translate),
+		 * `actions` picks and relabels bulk actions, `cancel` adds a Cancel
+		 * button that clears the selection, `hint: true` keeps `bulkHint`. In
+		 * such a view the band shows only with a selection and without the
+		 * built-in copy and delete (DqWerkbord: "1 zaak geselecteerd · Status
+		 * wijzigen · Annuleren"). Manifest key `config.bulkBandViews`.
+		 */
+		bulkBandViews: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Board look: the plural the bulk band names ("With the selected
+		 * cases"), through the app's translate and lower-cased. Wins over the
+		 * schema's plural. Manifest key `config.bulkNoun`.
+		 */
+		bulkNoun: {
 			type: String,
 			default: '',
 		},
@@ -2439,6 +2505,22 @@ export default {
 		quickFilterMaxVisible: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * How the Active line names a filter: per filter key an optional
+		 * `label` for the field and `values` naming each value, both through
+		 * the app's translate. Wins over the schema and sidebar names.
+		 * Sourced from `pages[].config.filterLabels`.
+		 *
+		 * A range filter's entry may set `relative: true`, naming a range
+		 * from today in words ("within 7 days").
+		 *
+		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
+		 */
+		filterLabels: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Manual column definitions (used instead of schema when provided) */
@@ -3439,6 +3521,20 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A search placeholder per view (manifest `config.searchPlaceholderByView`),
+		 * `{ table?, cards?, board?, map? }`, through the app's translate: the
+		 * board view asks "Zoek op zaak of verzoeker", the map "Filter op zaak of
+		 * aanvrager" (DqWerkbord, DqZakenKaart). A view it does not name keeps
+		 * `searchPlaceholder`.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 */
+		searchPlaceholderByView: {
+			type: Object,
+			default: null,
+		},
+
 		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
 		cardsLabel: {
 			type: String,
@@ -3649,6 +3745,21 @@ export default {
 		 * @type {object|null}
 		 */
 		fixedFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Filters the list opens with (manifest `config.defaultFilters`), as
+		 * `{ field: value | [values] }`: applied when the address names no
+		 * filter and no saved view, shown on the Active line and removed with
+		 * their chip or "Clear all" like any other filter. An address that
+		 * names a filter wins (DqContracten "Status: actief en verlopend").
+		 *
+		 * @spec openspec/changes/index-default-filters/specs/index-page/spec.md#requirement-an-index-page-can-open-with-removable-default-filters
+		 * @type {object|null}
+		 */
+		defaultFilters: {
 			type: Object,
 			default: null,
 		},
@@ -4200,7 +4311,7 @@ export default {
 		// `limit` (20 by default), moved by the pager.
 		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
 		const namedPaging = ref({ page: 1, limit: namedPageSize })
-		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
 
@@ -4210,6 +4321,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedReload,
 		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
 
 		return {
@@ -4221,6 +4333,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedReload,
 			namedActiveFilters,
 			namedPaging,
 			namedSearchTerm,
@@ -4243,6 +4356,8 @@ export default {
 
 	data() {
 		return {
+			/** The order a named source that `sortsRows` shows its rows in. */
+			namedSort: { key: '', order: 'asc' },
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4744,7 +4859,14 @@ export default {
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
-				return this.namedRows
+				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
+				const key = sortsRows && this.namedSort ? this.namedSort.key : ''
+				if (!key) {
+					return this.namedRows
+				}
+				const direction = this.namedSort.order === 'desc' ? -1 : 1
+				const text = (row) => String(row && row[key] !== undefined && row[key] !== null ? row[key] : '')
+				return [...(this.namedRows || [])].sort((a, b) => direction * text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: 'base' }))
 			}
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
@@ -5973,14 +6095,15 @@ export default {
 		 */
 		/**
 		 * What the `quickFiltersFrom` tabs depend on, as one key: a change
-		 * asks again. Empty without the prop, or with `quickFilters` set.
+		 * asks again. Empty without the prop, or with `quickFilters` holding tabs.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
 		 */
 		quickFiltersFromKey() {
 			const from = this.quickFiltersFrom
-			if (this.quickFilters || !from || typeof from.field !== 'string' || from.field === '') {
+			const declared = Array.isArray(this.quickFilters) && this.quickFilters.length > 0
+			if (declared || !from || typeof from.field !== 'string' || from.field === '') {
 				return ''
 			}
 			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
@@ -6959,6 +7082,20 @@ export default {
 		},
 
 		/**
+		 * The search field's placeholder: the open view's own
+		 * (`searchPlaceholderByView`), else the page's or its preset's.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 * @return {string}
+		 */
+		shownSearchPlaceholder() {
+			const byView = this.searchPlaceholderByView
+			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : ''
+			const text = typeof own === 'string' && own !== '' ? own : this.presented('searchPlaceholder')
+			return text ? this.cnTranslate(text) : text
+		},
+
+		/**
 		 * The term a named source searched for, for `{term}` in the title and
 		 * the count line ("Zoeken: Lindelaan"), or ''.
 		 *
@@ -7017,6 +7154,10 @@ export default {
 		tableHeaderFilters() {
 			if (!this.headerFilters) {
 				return false
+			}
+			// A named source that narrows its own rows asks for the buttons.
+			if (this.isNamedSource && this.namedSource && this.namedSource.headerFilters === true) {
+				return true
 			}
 			if (this.effectiveSchema || this.isSelfFetchMode) {
 				return true
@@ -7157,10 +7298,16 @@ export default {
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() {
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				return this.namedSort.key || null
+			}
 			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
 		},
 
 		effectiveSortOrder() {
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				return this.namedSort.order || 'asc'
+			}
 			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
 		},
 
@@ -7591,6 +7738,16 @@ export default {
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
 		 */
 		/**
+		 * Whether the notice sits under the list card rather than inside it.
+		 *
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
+		 * @return {boolean}
+		 */
+		noticeOnPage() {
+			return Boolean(this.notice && this.notice.placement === 'page')
+		},
+
+		/**
 		 * The notice band's NcNoteCard type: its `variant`, else info.
 		 *
 		 * @return {string}
@@ -7665,14 +7822,19 @@ export default {
 		},
 
 		/**
-		 * The quick-filter tabs to render: the `quickFilters` prop when set,
-		 * else a named source's own tabs (`useNamedSource` resolved the same
-		 * precedence for the LOAD side, so strip and fetch cannot disagree).
+		 * The quick-filter tabs to render: the `quickFilters` prop when it
+		 * holds tabs, else the tabs `quickFiltersFrom` made (an empty
+		 * `quickFilters` gives way to them, so a saved view can swap a page's
+		 * lenses for its own, DqTeamwachtrij), else a named source's own tabs
+		 * (`useNamedSource` resolved the same precedence for the LOAD side, so
+		 * strip and fetch cannot disagree).
 		 *
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
+			const declared = this.presented('quickFilters')
+			const tabs = Array.isArray(declared) && declared.length > 0 ? declared : (this.generatedQuickFilters || declared)
+			const own = withPersonalLenses(tabs, this.personalLenses)
 			if (own && own.length > 0) {
 				return own.map((tab) => this.withConfigLabels(tab))
 			}
@@ -7900,18 +8062,46 @@ export default {
 
 		/**
 		 * The active filters as chips for the board toolbar's second row, one
-		 * per filter: "Team: Woo". A filter with no value is not active.
+		 * per filter: "Team: Woo". A filter with no value is not active. A
+		 * range, as one `{from, to}` value or as `key[gte]`/`key[lte]` keys, is
+		 * one chip; `keys` lists the filter keys it stands for. Several values
+		 * of one filter read as a list in the locale ("A en B").
 		 *
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
-		 * @return {Array<{key: string, label: string}>}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
 		 */
 		activeFilterChips() {
 			if (!this.isBoardLook) {
 				return []
 			}
-			const props = this.effectiveSchema?.properties || {}
-			const chips = [...this.quickFilterActiveChips]
+			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
+			const ranges = new Map()
 			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
+				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+				if (bound) {
+					const value = Array.isArray(raw) ? raw[0] : raw
+					if (value === null || value === undefined || value === '' || this.isFixedFilter(key, value)) {
+						continue
+					}
+					if (!ranges.has(bound[1])) {
+						ranges.set(bound[1], { from: null, to: null, keys: [] })
+						chips.push({ key: bound[1], rangeOf: bound[1] })
+					}
+					const range = ranges.get(bound[1])
+					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
+					range.keys.push(key)
+					continue
+				}
+				const ends = rangeEnds(raw)
+				if (ends) {
+					if (this.isFixedFilter(key, raw)) {
+						continue
+					}
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
+					continue
+				}
 				const values = (Array.isArray(raw) ? raw : [raw])
 					.filter((value) => value !== null && value !== undefined && value !== '')
 					.filter((value) => !this.isFixedFilter(key, value))
@@ -7919,10 +8109,30 @@ export default {
 				if (values.length === 0) {
 					continue
 				}
-				const field = this.cnTranslate((props[key] && props[key].title) || key)
-				chips.push({ key, label: `${field}: ${values.join(', ')}` })
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
 			}
-			return chips
+			return chips.map((chip) => {
+				if (!chip.rangeOf) {
+					return chip
+				}
+				const range = ranges.get(chip.rangeOf)
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
+			})
+		},
+
+		/**
+		 * The Active line's chip for the search term, on a named source that
+		 * asks for one (`searchChip`, the search source): "Search term: Lindelaan".
+		 *
+		 * @spec openspec/changes/search-source-term-in-box/specs/index-page/spec.md#requirement-the-search-page-keeps-its-term-in-the-search-box
+		 * @return {Array<{key: string, label: string, searchTerm: true}>}
+		 */
+		searchTermChips() {
+			const term = String(this.namedSearchTerm || '').trim()
+			if (!this.namedSourceSearches || this.namedSource.searchChip !== true || term === '') {
+				return []
+			}
+			return [{ key: 'search-term', label: t('nextcloud-vue', 'Search term: {term}', { term }), searchTerm: true }]
 		},
 
 		/**
@@ -8007,15 +8217,75 @@ export default {
 		},
 
 		/**
+		 * The bulk band shape `bulkBandViews` gives the current view, or null.
+		 *
+		 * @return {?{lead?: {one?: string, other?: string}, actions?: Array<string|{id: string, label?: string}>, cancel?: boolean, hint?: boolean}}
+		 */
+		viewBulkBand() {
+			const views = this.bulkBandViews
+			const shape = views && typeof views === 'object' ? views[this.currentViewMode] : null
+			return shape && typeof shape === 'object' ? shape : null
+		},
+
+		/**
+		 * The bulk actions the band offers: the view's pick and labels, else all.
+		 *
+		 * @return {Array<object>}
+		 */
+		viewBulkActions() {
+			const shape = this.viewBulkBand
+			if (!shape || !Array.isArray(shape.actions)) {
+				return this.mergedBulkActions
+			}
+			return shape.actions
+				.map((pick) => {
+					const id = typeof pick === 'string' ? pick : (pick && pick.id)
+					const action = this.mergedBulkActions.find((entry) => entry && entry.id === id)
+					if (!action) {
+						return null
+					}
+					return pick && typeof pick === 'object' && typeof pick.label === 'string' && pick.label !== '' ? { ...action, label: pick.label } : action
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The view's lead line counting the selection ("1 zaak geselecteerd"),
+		 * or '' for the band's own lead.
+		 *
+		 * @return {string}
+		 */
+		viewBulkBandLead() {
+			const lead = this.viewBulkBand ? this.viewBulkBand.lead : null
+			if (!lead || typeof lead !== 'object') {
+				return ''
+			}
+			const count = this.internalSelectedIds.length
+			const template = count === 1 ? lead.one : (lead.other || lead.one)
+			return typeof template === 'string' && template !== '' ? this.cnTranslate(template).replace(/\{count\}/g, String(count)) : ''
+		},
+
+		/**
+		 * Whether the bulk band shows before a selection: `bulkBandAlways`, in
+		 * a view that selects rows (table, cards, list, board). The map and
+		 * the date views select nothing (DqZakenKaart).
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandIdleShown() {
+			return this.bulkBandAlways && ['table', 'cards', 'list', 'board'].includes(this.currentViewMode)
+		},
+
+		/**
 		 * The plural the board bulk band names: "With the selected cases".
-		 * The schema's `titlePlural` (or `plural`), else the lower-cased
-		 * schema title with an `s`, else nothing (the band says "items").
+		 * The page's `bulkNoun`, else the schema's `titlePlural` (or
+		 * `plural`), else nothing (the band says "items").
 		 *
 		 * @return {string}
 		 */
 		boardBulkNoun() {
 			const schema = this.effectiveSchema || {}
-			const plural = schema.titlePlural || schema.pluralTitle || schema.plural
+			const plural = this.bulkNoun || schema.titlePlural || schema.pluralTitle || schema.plural
 			if (typeof plural === 'string' && plural !== '') {
 				return this.cnTranslate(plural).toLowerCase()
 			}
@@ -8055,6 +8325,17 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
+		/**
+		 * Whether the page header carries a save-view button, so the toolbar
+		 * leaves its own Save view out.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/saved-views-hide-toolbar-save/specs/saved-views/spec.md
+		 */
+		headerSavesView() {
+			return this.headerButtonsShown && (this.resolvedHeaderButtons || []).some((button) => button && button.action === 'save-view')
+		},
+
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
 		},
@@ -8074,13 +8355,16 @@ export default {
 
 		/**
 		 * Whether the actions bar shows the Export menu: `showExportMenu`,
-		 * unless a header button took the export over.
+		 * unless a header button, or an Actions menu listing `export`, took
+		 * the export over (DqAanMijToegewezen).
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
 		barShowsExportMenu() {
-			return this.showExportMenu && !this.headerButtonTakes('export')
+			const menuExports = this.headerButtonsShown && this.resolvedHeaderButtons
+				.some((button) => button.action === 'actions-menu' && Array.isArray(button.items) && button.items.includes('export'))
+			return this.showExportMenu && !this.headerButtonTakes('export') && !menuExports
 		},
 
 		/**
@@ -8312,7 +8596,7 @@ export default {
 			return {
 				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
-				title: this.title,
+				title: this.shownTitle,
 				icon: this.resolvedIcon,
 				searchValue: this.effectiveSearchValue,
 				visibleColumns: this.effectiveVisibleColumns,
@@ -8893,6 +9177,10 @@ export default {
 			const fixed = this.fixedFilters
 			if (!fixed || !Object.hasOwn(fixed, key)) {
 				return false
+			}
+			// A range (`{ from, to }`) is compared whole: String() would make every object equal.
+			if (value !== null && typeof value === 'object') {
+				return JSON.stringify(fixed[key]) === JSON.stringify(value)
 			}
 			return String(fixed[key]) === String(value)
 		},
@@ -10116,6 +10404,9 @@ export default {
 			if (this.sortSource.value) {
 				this.sortSource = { ...this.sortSource, value: '', page: 1 }
 			}
+			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+				this.namedSort = { key: (payload && payload.key) || '', order: (payload && payload.order) || 'asc' }
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -10294,6 +10585,9 @@ export default {
 			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
+			}
+			if (this.searchTermChips.length > 0) {
+				this.namedSearchTerm = ''
 			}
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
@@ -10486,13 +10780,76 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && chip.searchTerm === true) {
+				this.onSearchEvent('')
+				return
+			}
 			if (chip && typeof chip.quickFilterIndex === 'number') {
 				this.deselectQuickFilterChip(chip.quickFilterIndex)
+				return
+			}
+			if (chip && Array.isArray(chip.keys) && chip.keys.length > 0) {
+				for (const key of chip.keys) {
+					this.onFilterEvent({ key, values: [] })
+				}
 				return
 			}
 			if (chip && typeof chip.key === 'string') {
 				this.onFilterEvent({ key: chip.key, values: [] })
 			}
+		},
+
+		/**
+		 * The field an Active chip names: the page's `filterLabels` label, the
+		 * schema property's title, the sidebar field's title, else the key.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {string} The translated field name.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
+		 */
+		activeFilterFieldLabel(key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && typeof named.label === 'string' && named.label !== '') {
+				return this.cnTranslate(named.label)
+			}
+			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && typeof prop.title === 'string' && prop.title !== '') {
+				return this.cnTranslate(prop.title)
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			if (field && typeof field.title === 'string' && field.title !== '') {
+				return this.cnTranslate(field.title)
+			}
+			return this.cnTranslate(key)
+		},
+
+		/**
+		 * The text of a range chip: in words for a range from today when the
+		 * page's `filterLabels` entry sets `relative`, else its date ends in
+		 * the person's locale.
+		 *
+		 * @param {unknown} from The lower end, or null.
+		 * @param {unknown} to The upper end, or null.
+		 * @param {string} key The filter key the range is on.
+		 * @return {string} The text.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+		 */
+		activeFilterRangeText(from, to, key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && named.relative === true) {
+				const words = relativeRangeText(from, to, {
+					translate: (text) => t('nextcloud-vue', text),
+					translatePlural: (one, many, count) => n('nextcloud-vue', one, many, count),
+				})
+				if (words !== null) {
+					return words
+				}
+			}
+			return rangeChipText(from, to, {
+				translate: (text, vars) => t('nextcloud-vue', text, vars),
+				locale: getCanonicalLocale() || undefined,
+			})
 		},
 
 		/**
@@ -10523,17 +10880,23 @@ export default {
 		},
 
 		/**
-		 * The text an Active chip shows for one filter value: the referenced
-		 * object's label, the facet bucket's label, the schema's `oneOf` title,
-		 * else the value itself.
+		 * The text an Active chip shows for one filter value: the page's
+		 * `filterLabels` value, the referenced object's label, the facet
+		 * bucket's label, the schema's `oneOf` title, the sidebar field's
+		 * `enumLabels`, else the value itself.
 		 *
 		 * @param {string} key The filter key.
 		 * @param {unknown} value One value of that filter.
 		 * @return {string} The label.
 		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
 		activeFilterValueLabel(key, value) {
 			const id = String(value)
+			const named = this.filterLabels && this.filterLabels[key] && this.filterLabels[key].values
+			if (named && typeof named[id] === 'string' && named[id] !== '') {
+				return this.cnTranslate(named[id])
+			}
 			const refs = this.refLabels[key]
 			if (refs && typeof refs[id] === 'string' && refs[id] !== '') {
 				return refs[id]
@@ -10550,6 +10913,11 @@ export default {
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
 				return this.cnTranslate(option.title)
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			const enumLabel = field && field.enumLabels && field.enumLabels[id]
+			if (typeof enumLabel === 'string' && enumLabel !== '') {
+				return this.cnTranslate(enumLabel)
 			}
 			return id
 		},
@@ -11407,6 +11775,14 @@ export default {
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
+			if (this.isNamedSource) {
+				this.internalRefreshing = true
+				try {
+					await this.namedReload()
+				} finally {
+					this.internalRefreshing = false
+				}
+			}
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
 				this.internalRefreshing = true
 				try {

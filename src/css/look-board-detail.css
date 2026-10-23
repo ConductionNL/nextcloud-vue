@@ -15,6 +15,8 @@
 .cn-look-board {
 	/* The notice card at the top of the side column. */
 	--cn-board-notice-bg: var(--color-warning-light, #fdf1d6);
+	/* The notice's text and icon. */
+	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
 	/* Card h2 and side heading. */
@@ -59,7 +61,6 @@
 
 .cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions {
 	flex-shrink: 1;
-	gap: 8px;
 	justify-content: flex-end;
 }
 
@@ -108,15 +109,13 @@
 	height: 16px;
 }
 
-/* Row 3: the Follow control under the breadcrumb, on the full width.
-   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
-.cn-look-board .cn-detail-page__header-row3 {
+/* The Follow control at the end of row 2.
+   @spec openspec/changes/board-follow-in-meta-row/specs/board-follow-in-meta-row/spec.md#requirement-the-board-follow-control-ends-the-meta-row */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-page__interactions {
 	align-items: center;
-	display: flex;
-	flex: 1 0 100%;
-	flex-wrap: wrap;
+	display: inline-flex;
+	flex: none;
 	gap: 8px;
-	min-width: 0;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
@@ -545,6 +544,34 @@
 	font-weight: 600;
 }
 
+/* The case Status card as the board draws it: no grey box, the status's
+   explanation as its bold line, the time in the status muted under it.
+   @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
+.cn-look-board .cn-status-explainer.cn-status-explainer {
+	gap: 2px;
+	background-color: transparent;
+	padding: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-status-explainer__muted.cn-status-explainer__muted {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-status-explainer__dwell {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+/* The attention flag under the status sits under a hairline (DqZaak). */
+.cn-look-board .cn-detail-page__sections-card .cn-attention-flag.cn-attention-flag:not(.cn-look-nextcloud *) {
+	gap: 6px;
+	padding: 10px 0 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail
@@ -590,11 +617,11 @@
 /* 12px from the title's glyphs to the first line's glyphs, as drawn.
    @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
@@ -777,6 +804,25 @@
    @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
 	background-color: transparent !important;
+}
+
+/* The notice text and its icon take the notice ink, and the icon is the
+   board's 18px, 10px before the text and 2px down to sit on the first line
+   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
+   `!important`. */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink) !important;
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink);
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon svg:not(.cn-look-nextcloud *) {
+	height: 18px;
+	width: 18px;
 }
 
 /* A notice whose condition does not hold renders no banner; its slot then
@@ -1132,6 +1178,27 @@
 	line-height: normal;
 }
 
+/* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
+/* The case-tab boards draw a list's table edge to edge in its card
+   (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
+   under the card's 22px side padding and its outer cells take that padding,
+   so the column text lines up with the card title. Other boards keep the
+   table inside the padding (DqTenant "Mandaten"), so it is an opt-in.
+   @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-an-object-list-can-run-its-table-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container {
+	margin-inline: calc(-1 * var(--cn-board-card-inline-padding));
+	border: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):first-child {
+	padding-inline-start: var(--cn-board-card-inline-padding);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):last-child {
+	padding-inline-end: var(--cn-board-card-inline-padding);
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
@@ -1204,4 +1271,11 @@
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
 	line-height: normal;
+}
+
+/* The notes tab's "Add note" button, when the add form waits behind it, is
+   the board's 40px control (DqZaakEmail "Notitie toevoegen").
+   @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
+.cn-look-board .cn-sidebar-tab__composer-toggle .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }

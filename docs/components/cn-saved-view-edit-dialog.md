@@ -13,3 +13,5 @@ Rename an own saved view and, when asked, replace its criteria with the filters,
 | `close` | none | Dialog dismissed. |
 
 Call `setError(message)` on the ref after a refused save: the form stays open with the message.
+
+The dialog renders through `CnDialog`: under the board look it is the board dialog (board header, round close button) and takes the shared dialog props `look`, `width`, `eyebrow` and `subtitle`.

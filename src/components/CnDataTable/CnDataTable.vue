@@ -430,6 +430,7 @@ import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
 import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
@@ -507,6 +508,17 @@ import '../../css/table.css'
  * @type {string[]}
  */
 const SYSTEM_DATE_KEYS = ['@self.created', '@self.updated', '@self.published', '@self.depublished']
+
+/**
+ * Whether a column's aggregate is read from the host app's endpoint.
+ *
+ * @param {object} col The column.
+ * @return {boolean} True for `aggregate.endpoint` with `aggregate.key`.
+ */
+function isEndpointAggregate(col) {
+	const agg = col && col.aggregate
+	return !!agg && typeof agg.endpoint === 'string' && agg.endpoint !== '' && typeof agg.key === 'string' && agg.key !== ''
+}
 
 export default {
 	name: 'CnDataTable',
@@ -1051,6 +1063,13 @@ export default {
 			 */
 			aggregateValues: {},
 			/**
+			 * Columns whose endpoint aggregate answered `available: false`, by
+			 * column key; such a column is not drawn.
+			 *
+			 * @type {{[colKey: string]: boolean}}
+			 */
+			aggregateUnavailable: {},
+			/**
 			 * Whether the table currently overflows its scrollport horizontally.
 			 * Drives the keyboard tab stop on `.cn-data-table__scroll`; see the
 			 * comment on that element.
@@ -1242,6 +1261,16 @@ export default {
 		 * Schema columns take precedence when schema is provided and no manual columns given.
 		 */
 		effectiveColumns() {
+			return this.allColumns.filter((c) => !this.isAggregateHidden(c))
+		},
+
+		/**
+		 * Every column the table is configured with, before an endpoint
+		 * aggregate whose source is absent is left out (see `effectiveColumns`).
+		 *
+		 * @return {Array<object>} The columns.
+		 */
+		allColumns() {
 			const cols = (this.schema && this.columns.length === 0)
 				? columnsFromSchema(this.schema, {
 						exclude: this.excludeColumns,
@@ -2091,7 +2120,7 @@ export default {
 		 * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-aggregate-can-take-the-highest-value
 		 */
 		async loadAggregates() {
-			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && (c.aggregate.op === 'count' || (c.aggregate.op === 'max' && c.aggregate.field)))
+			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && (isEndpointAggregate(c) || c.aggregate.op === 'count' || (c.aggregate.op === 'max' && c.aggregate.field)))
 			if (aggCols.length === 0) {
 				if (Object.keys(this.aggregateValues).length > 0) {
 					this.aggregateValues = {}
@@ -2108,6 +2137,9 @@ export default {
 				next[rowKey] = {}
 				for (const col of aggCols) {
 					const agg = col.aggregate
+					if (isEndpointAggregate(col)) {
+						continue
+					}
 					if (!agg.register || !agg.schema) {
 						continue
 					}
@@ -2136,12 +2168,78 @@ export default {
 						}))
 				}
 			}
+			for (const col of aggCols.filter(isEndpointAggregate)) {
+				jobs.push(this.loadEndpointAggregate(col, next, id))
+			}
 			await Promise.all(jobs)
 			if (id !== this.aggregateRequestId) {
 				return
 			}
 			this.aggregateValues = next
 			this.aggregateLoading = false
+		},
+
+		/**
+		 * Whether a column is left out: an aggregate whose `requiresApp` is
+		 * not installed, or whose endpoint answered `available: false`.
+		 *
+		 * @param {object} col The column.
+		 * @return {boolean} True when the column is not drawn.
+		 * @spec openspec/changes/aggregate-from-endpoint/specs/cn-data-table/spec.md
+		 */
+		isAggregateHidden(col) {
+			const agg = col && typeof col === 'object' ? col.aggregate : null
+			if (!agg) {
+				return false
+			}
+			if (typeof agg.requiresApp === 'string' && agg.requiresApp !== '' && !isAppInstalled(agg.requiresApp)) {
+				return true
+			}
+			return this.aggregateUnavailable[col.key] === true
+		},
+
+		/**
+		 * Read an endpoint aggregate for the visible rows in one request:
+		 * GET `aggregate.endpoint` with `keys` (the rows' `aggregate.key`
+		 * values), answered by `{ available, values: { key: value } }`. A row
+		 * the answer does not name, or with no key, counts 0. `available: false`
+		 * hides the column.
+		 *
+		 * @param {object} col The column.
+		 * @param {object} next The values being built, by row then column.
+		 * @param {number} id The batch id, to drop a stale answer.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/aggregate-from-endpoint/specs/cn-data-table/spec.md
+		 */
+		async loadEndpointAggregate(col, next, id) {
+			const agg = col.aggregate
+			const keyOf = (row) => {
+				const value = this.getCellValue(row, agg.key)
+				return value === undefined || value === null || value === '' ? '' : String(value)
+			}
+			const keys = [...new Set(this.rows.map(keyOf).filter((k) => k !== ''))]
+			let values = {}
+			if (keys.length > 0) {
+				try {
+					const res = await axios.get(generateUrl(agg.endpoint), { params: { keys } })
+					const body = (res && res.data) || {}
+					if (body.available === false) {
+						if (id === this.aggregateRequestId) {
+							this.aggregateUnavailable = { ...this.aggregateUnavailable, [col.key]: true }
+						}
+						return
+					}
+					values = body.values && typeof body.values === 'object' ? body.values : {}
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDataTable] aggregate "${col.key}" endpoint failed`, e)
+					return
+				}
+			}
+			for (const row of this.rows) {
+				const k = keyOf(row)
+				next[String(row[this.rowKey])][col.key] = k !== '' && values[k] !== undefined ? values[k] : 0
+			}
 		},
 
 		isSelected(row) {

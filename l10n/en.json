@@ -2248,7 +2248,22 @@
     "Task saved": "Task saved",
     "Due by": "Due by",
     "Incoming": "Incoming",
-    "Outgoing": "Outgoing"
+    "Outgoing": "Outgoing",
+    "{from} through {to}": "{from} through {to}",
+    "from {from}": "from {from}",
+    "up to {to}": "up to {to}",
+    "this week": "this week",
+    "within %n day": [
+      "within %n day",
+      "within %n days"
+    ],
+    "Search term: {term}": "Search term: {term}",
+    "New contact": "New contact",
+    "Template": "Template",
+    "Visible to the requester": "Visible to the requester",
+    "Add it to the timeline": "Add it to the timeline",
+    "Saved view": "Saved view",
+    "Close side panel": "Close side panel"
   },
   "plurals": {
     "{count} member": [

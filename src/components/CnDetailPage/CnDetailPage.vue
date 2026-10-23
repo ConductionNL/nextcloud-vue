@@ -488,11 +488,12 @@
 				</CnActionsMenu>
 			</div>
 			<!-- Row 2 of the board look's header (screens-detail-page-parity): the
-			     pills, the breadcrumb, a middle dot and the meta line, on the
+			     pills, the breadcrumb, a middle dot, the meta line and the Follow
+			     control, on the
 			     ground under the title. The breadcrumb does not render above the
 			     header in this look, so this is its only place. -->
 			<div
-				v-if="isBoard && showsHeaderRow2"
+				v-if="isBoard && (showsHeaderRow2 || showFollowToggle)"
 				class="cn-detail-page__header-row2"
 				data-testid="cn-detail-page-header-row2">
 				<div
@@ -534,15 +535,12 @@
 					:object="resolvedObject"
 					:schema="currentSchema"
 					:register="register" />
-			</div>
-			<!-- Row 3 of the board look's header: the Follow control under the
-			     breadcrumb, clear of the title row and its actions (DqZaak
-			     "Volgen"). -->
-			<div
-				v-if="isBoard && showFollowToggle"
-				class="cn-detail-page__header-row3"
-				data-testid="cn-detail-page-header-row3">
-				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
+				<!-- The Follow control ends the meta row, clear of the title row
+				     and its actions, without a row of its own. -->
+				<span
+					v-if="showFollowToggle"
+					class="cn-detail-page__interactions"
+					data-testid="cn-detail-page-interactions">
 					<CnFollowToggle v-bind="followToggleProps" />
 				</span>
 			</div>
@@ -1727,7 +1725,18 @@ export default {
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
+		const canEditRecord = computed(() => this.canEditRecord)
 		return {
+			// The page's own record edit form, for a widget header button whose
+			// action is `edit-record` (DqZaaktype "Termijnen" Bewerken).
+			cnRecordEdit: {
+				get available() {
+					return canEditRecord.value
+				},
+
+				open: () => this.openEditForm(),
+			},
+
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,
@@ -3038,6 +3047,21 @@ export default {
 		},
 
 		/**
+		 * Read the record's newest create or update entry from its audit
+		 * trail and offer it to `headerMeta` as `{_lastChange.userName}`,
+		 * `{_lastChange.user|user}` and `{_lastChange.created|date}`
+		 * ("laatst gewijzigd 2 okt door Lars de Koning", DqZaaktype). A record
+		 * does not say who changed it last; its trail does. A trail that
+		 * cannot be read leaves the tokens empty.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 */
+		headerMetaLastChange: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The accessible name of the tab list under the board look (manifest
 		 * `config.tabsLabel`). Empty gives "<type> parts", for example "Case
 		 * parts", from the page title.
@@ -3245,6 +3269,8 @@ export default {
 
 	data() {
 		return {
+			/** The newest create or update entry of the record's audit trail (`headerMetaLastChange`). */
+			lastChange: null,
 			/** The rows a list on this page shows and the one selected (side-card-follows-row). */
 			widgetSelection: markRaw(createWidgetSelection()),
 			/** The id of the side column's slot for a body widget's own cards. */
@@ -3419,7 +3445,21 @@ export default {
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
 		headerMetaText() {
-			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
+			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
+			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', record, { schema: this.currentSchema, translate: this.effectiveTranslate })
+		},
+
+		/**
+		 * What the last-change read depends on.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 * @return {string} The key, '' when nothing is to be read.
+		 */
+		lastChangeKey() {
+			if (!this.headerMetaLastChange || !this.register || !this.schema || !this.objectId) {
+				return ''
+			}
+			return `${this.register}/${this.schema}/${this.objectId}`
 		},
 
 		/**
@@ -5440,6 +5480,13 @@ export default {
 	},
 
 	watch: {
+		lastChangeKey: {
+			immediate: true,
+			handler() {
+				this.loadLastChange()
+			},
+		},
+
 		// The records a condition names are read again for another record.
 		visibilityRefsKey: {
 			immediate: true,
@@ -5693,6 +5740,38 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the record's newest create or update audit entry into
+		 * `lastChange`; a failed read leaves it null.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 * @return {Promise<void>}
+		 */
+		async loadLastChange() {
+			const key = this.lastChangeKey
+			this.lastChange = null
+			if (key === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}/{id}/audit-trails',
+					{ register: this.register, schema: this.schema, id: this.objectId },
+				)
+				const res = await axios.get(url, { params: { _limit: 1, sort: 'created', order: 'DESC', action: 'create,update' } })
+				const rows = (res && res.data && Array.isArray(res.data.results)) ? res.data.results : []
+				if (key === this.lastChangeKey) {
+					this.lastChange = rows[0] || null
+				}
+			} catch {
+				// No trail to read: the meta line drops the tokens.
+			}
+		},
+
 		/**
 		 * A key of the declared trail: the last crumb that sets it wins.
 		 *

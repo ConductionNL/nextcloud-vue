@@ -57,12 +57,22 @@
 				     "Saldo per week" above "Prognose 13 weken". -->
 				<!-- A subtitle (`subtitle`) is a muted line under the title:
 				     "Dit kwartaal, beslist binnen de termijn". -->
-				<div v-if="resolvedEyebrow || resolvedSubtitle" class="cn-widget-wrapper__title-stack">
+				<div v-if="resolvedEyebrow || resolvedSubtitle || headerLinkUnderTitle" class="cn-widget-wrapper__title-stack">
 					<span v-if="resolvedEyebrow" class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
 					<h3 :id="titleId" class="cn-widget-wrapper__title">
 						{{ resolvedTitle }}
 					</h3>
 					<span v-if="resolvedSubtitle" class="cn-widget-wrapper__subtitle" data-testid="cn-widget-wrapper-subtitle">{{ resolvedSubtitle }}</span>
+					<!-- `headerLink.placement: "title"`: the link under the title
+					     instead of among the actions (DqDashboard "Alles bekijken"). -->
+					<component
+						:is="headerLinkTag"
+						v-if="headerLinkUnderTitle"
+						class="cn-widget-wrapper__header-link cn-widget-wrapper__header-link--under-title"
+						data-testid="cn-widget-wrapper-header-link"
+						v-bind="headerLinkAttrs">
+						{{ headerLinkLabel }}
+					</component>
 				</div>
 				<h3 v-else :id="titleId" class="cn-widget-wrapper__title">
 					{{ resolvedTitle }}
@@ -86,7 +96,7 @@
 				     anchor. Sits before the slot and the overflow menu. -->
 				<component
 					:is="headerLinkTag"
-					v-if="headerLinkTag"
+					v-if="headerLinkTag && !headerLinkUnderTitle"
 					class="cn-widget-wrapper__header-link"
 					data-testid="cn-widget-wrapper-header-link"
 					v-bind="headerLinkAttrs">
@@ -811,6 +821,17 @@ export default {
 		},
 
 		/**
+		 * Whether the header link sits under the title (`placement: "title"`)
+		 * rather than among the header's actions.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/header-link-under-title/specs/header-link-under-title/spec.md#requirement-a-header-link-can-sit-under-the-title
+		 */
+		headerLinkUnderTitle() {
+			return Boolean(this.headerLinkTag) && this.headerLink?.placement === 'title'
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -1053,7 +1074,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag) || this.declaredHeaderActions.length > 0
+			return this.showActions || this.actionsSlotRenders() || (Boolean(this.headerLinkTag) && !this.headerLinkUnderTitle) || this.declaredHeaderActions.length > 0
 		},
 
 		/**
@@ -1335,6 +1356,13 @@ export default {
 	font-weight: var(--cn-widget-header-link-weight, 600);
 	text-decoration: none;
 	white-space: nowrap;
+}
+
+/* Under the title it starts at the title's edge and reads as a link. */
+.cn-widget-wrapper__header-link--under-title {
+	align-self: flex-start;
+	padding: 0;
+	text-decoration: underline;
 }
 
 .cn-widget-wrapper__header-link:hover,

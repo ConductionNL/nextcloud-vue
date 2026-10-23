@@ -415,7 +415,9 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-user-settings-dialog__close {
+/* One class more than NcButton's own `position: relative`, which otherwise
+   wins at the same weight and leaves the button stretched in the body row. */
+.cn-user-settings-dialog__body > .cn-user-settings-dialog__close {
 	position: absolute;
 	top: 8px;
 	inset-inline-end: 8px;

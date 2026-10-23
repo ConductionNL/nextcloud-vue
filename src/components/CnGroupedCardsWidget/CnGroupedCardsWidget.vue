@@ -5,6 +5,13 @@
 
 <template>
 	<div class="cn-grouped-cards" data-testid="cn-grouped-cards">
+		<!-- `actions`: a row of buttons above the groups ("Bekijken als flow",
+		     "Taak toevoegen" on DqZaaktype). -->
+		<CnActionButtons
+			v-if="topActions.length > 0"
+			class="cn-grouped-cards__actions"
+			:actions="topActions"
+			data-testid="cn-grouped-cards-actions" />
 		<p v-if="error"
 			class="cn-grouped-cards__state"
 			role="alert"
@@ -190,6 +197,8 @@ export default {
 		 *   from that group: `{ type: "open-form", endpoint: { url:
 		 *   "/apps/x/api/phases/@group.id/steps", method: "POST" }, ... }`
 		 *   adds a card to the group.
+		 * - `actions` is a row of actions (as CnActionButtons draws them) above the
+		 *   groups, drawn also while there are none ("View as flow", "Add a task").
 		 * - `groupLines` lists templates drawn under a group's title, each left out when it does not fill
 		 *   (a list in place of a template is candidates, the first that fills).
 		 * - `itemFlag` (`{ field, label }`) marks a card whose `field` is true with `label` ("Overdue").
@@ -245,6 +254,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The row of actions above the groups (`content.actions`).
+		 *
+		 * @return {Array<object>} The actions.
+		 * @spec openspec/changes/grouped-cards-actions/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-widget-can-carry-a-row-of-actions-above-its-groups
+		 */
+		topActions() {
+			const actions = this.content?.actions
+			return Array.isArray(actions) ? actions.filter((action) => action && typeof action === 'object') : []
+		},
+
 		/** @return {number} The groups side by side. */
 		columns() {
 			const value = Number(this.content?.columns)
@@ -499,6 +519,10 @@ export default {
 </script>
 
 <style scoped>
+.cn-grouped-cards__actions {
+	margin-block-end: 16px;
+}
+
 .cn-grouped-cards__grid {
 	display: grid;
 	grid-template-columns: repeat(var(--cn-grouped-cards-columns, 2), minmax(0, 1fr));

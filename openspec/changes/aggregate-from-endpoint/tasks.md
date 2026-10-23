@@ -1,0 +1,4 @@
+- [x] Endpoint aggregate in CnDataTable (one request, keys, values)
+- [x] Hide on requiresApp absent or available: false
+- [x] Component spec tests/components/CnDataTableEndpointAggregate.spec.js
+- [x] Docs in docs/components/cn-data-table.md

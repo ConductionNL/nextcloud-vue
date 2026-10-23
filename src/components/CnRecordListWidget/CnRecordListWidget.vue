@@ -378,6 +378,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
@@ -1333,12 +1334,7 @@ export default {
 		 * @return {string} The text.
 		 */
 		withTotal(label) {
-			return this.translate(label)
-				.replace(/\{total\}/g, String(this.total))
-				.replace(/\{count:([^=}]+)=([^}]*)\}/g, (match, field, value) => {
-					const wanted = value.trim()
-					return String(this.rows.filter((row) => String(readPath(row, field.trim())) === wanted).length)
-				})
+			return fillCountLabel(this.translate(label), this.total, this.rows)
 		},
 
 		/**
@@ -1881,13 +1877,18 @@ export default {
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
 			const header = { link: this.headerLink, note: this.headerNote }
+			// `headerSubtitle`: the counts as the muted line under the card title.
+			const subtitle = this.content?.headerSubtitle
+			if (typeof subtitle === 'string' && subtitle !== '' && !this.error) {
+				header.subtitle = this.withTotal(subtitle)
+			}
 			// `headerCount: true`: the card draws the total as a chip after its title.
 			if (this.content?.headerCount === true && !this.error) {
 				header.count = this.total
 			}
 			/**
 			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
+			 * @type {{link: (object|null), note: string, count: (number|undefined), subtitle: (string|undefined)}} The header link (resolved, with `{total}` filled), the note, with `headerCount` the total, and with `headerSubtitle` the line under the title.
 			 */
 			this.$emit('header', header)
 		},

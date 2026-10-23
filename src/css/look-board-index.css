@@ -1209,6 +1209,13 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	font-size: 14px;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-date {
 	margin-inline-start: auto;
 	color: var(--color-main-text);
@@ -1577,4 +1584,51 @@
 	padding: 0 6px;
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
+}
+
+/* Board DqZakenSorteren: "Richting" over two stretched segments, an arrow
+   before each label, 3px track padding and 34px segments. */
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-label {
+	margin: 12px 0 6px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 20px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments {
+	padding: 3px;
+	gap: 2px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments .cn-segmented-control__option {
+	min-height: 34px;
+	gap: 6px;
+}
+
+/* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
+/* The board draws "3 zaken zonder adres" as a 15px title at its normal line
+   height with "Toon ze in de tabel" under it as a link flush with the title,
+   14px weight 600. The link stays NcButton's tertiary button, so the board
+   look takes away its box: no padding, border or minimum height.
+   @spec openspec/changes/board-map-missing-card/specs/board-map-missing-card/spec.md#requirement-the-board-map-views-missing-address-card-is-drawn-as-the-board-draws-it */
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > strong {
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue {
+	--button-padding: 0;
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	border-width: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__wrapper,
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__text {
+	margin: 0;
+	padding: 0;
 }

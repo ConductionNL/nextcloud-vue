@@ -59,6 +59,22 @@ describe('look-board-detail.css: the side column notice', () => {
 		expect(rulesFor(`${item} .cn-banner-widget__card.notecard`)).toContain('background-color: transparent !important')
 	})
 
+	/**
+	 * @spec openspec/changes/board-notice-ink/specs/board-notice-ink/spec.md#requirement-the-side-notice-text-and-icon-take-the-notice-ink
+	 */
+	it('sets the text and icon in the notice ink, with the board\'s 18px icon 10px before the text', () => {
+		const note = rulesFor(`${item} .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *)`)
+		expect(note).toContain('color: var(--cn-board-notice-ink) !important')
+		expect(note).toContain('gap: 10px')
+		const icon = rulesFor(`${item} .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *)`)
+		expect(icon).toContain('color: var(--cn-board-notice-ink)')
+		expect(icon).toContain('margin-top: 2px')
+		const svg = rulesFor(`${item} .cn-banner-widget__card .notecard__icon svg:not(.cn-look-nextcloud *)`)
+		expect(svg).toContain('height: 18px')
+		expect(svg).toContain('width: 18px')
+		expect(css).toContain('--cn-board-notice-ink: var(--color-warning-text, #7a4f00)')
+	})
+
 	it('takes no room when the banner does not render', () => {
 		expect(rulesFor(`${item}:not(:has(.cn-banner-widget))`)).toContain('display: none')
 	})
