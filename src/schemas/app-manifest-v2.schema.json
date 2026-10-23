@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.149.0",
+	"version": "2.152.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4909,6 +4909,14 @@
 									"label": {
 										"type": "string",
 										"description": "One label for the control's label filter."
+									},
+									"description": {
+										"type": "string",
+										"description": "default-views-secondary (2.152.0): the line under the view in the side panel, what it shows. Translatable."
+									},
+									"secondary": {
+										"type": "boolean",
+										"description": "default-views-secondary (2.152.0): true lists the view behind \"More default views\" in the side panel, folded until opened or applied."
 									},
 									"icon": {
 										"type": "string",

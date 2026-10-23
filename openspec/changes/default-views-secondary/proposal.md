@@ -15,4 +15,4 @@ rest under "Meer standaardweergaven", folded. A default view also had no way to 
 
 ## Scope
 
-nextcloud-vue. Index page config is open, so no schema change. Two new l10n keys (en, nl).
+nextcloud-vue. SCHEMA 2.152.0 (placeholder, renumber at merge): `description` and `secondary` on `config.defaultSavedViews[]`, whose items allow no other keys. Two new l10n keys (en, nl).
