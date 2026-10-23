@@ -1290,6 +1290,66 @@
 	font-weight: 500;
 }
 
+/* ---- A file list (CnFilesBrowser) --------------------------------------- */
+/* The board's compact card table (DqDocumentenBeheer): a near-white header at
+   14px/600 in the muted ink, 10px 12px; 14px cells, 11px 12px, a hairline
+   above each row. The theme paints every `th` through its table header
+   tokens, so the cell hands them the board's ground. A ticked row keeps its
+   ground while focus sits on its checkbox; the checkbox shows the focus.
+   @spec openspec/changes/board-files-table/specs/board-files-table/spec.md#requirement-a-board-file-list-is-the-boards-compact-table */
+.cn-look-board .cn-files-browser__table th:not(.cn-look-nextcloud *) {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 0;
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__table td:not(.cn-look-nextcloud *) {
+	padding: 11px 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: 0;
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__row:focus-within:not(:hover):not(.cn-look-nextcloud *) {
+	background-color: transparent;
+}
+
+/* The sort control is the bare label; Nextcloud's button rule made it a
+   34px grey button at 15px/400. */
+.cn-look-board .cn-files-browser__sort:not(.cn-look-nextcloud *) {
+	--nldesign-component-button-font-weight: 600;
+	min-height: 0;
+	height: auto;
+	margin: 0;
+	border-radius: 0;
+	background: transparent;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: inherit;
+}
+
+/* The menu column holds the 34px bordered menu between 12px of padding. */
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)):not(.cn-look-nextcloud *) {
+	width: 58px;
+}
+
+.cn-look-board .cn-files-browser__table .cn-files-browser__name:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-files-browser__table .cn-files-browser__name-secondary:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
