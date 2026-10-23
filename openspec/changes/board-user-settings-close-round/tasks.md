@@ -1,0 +1,2 @@
+- [x] dialog.css rule
+- [x] Spec tests/css/dialogBoardUserSettingsClose.spec.js

@@ -87,6 +87,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	background: var(--color-primary-element-light);
 }
 
+/* Its close button is a 44px round button in the corner
+   (DqPersoonlijkeInstellingen "Sluiten"); NcButton draws 34px with radius 8.
+   The radius is a length, not 50%: an icon-only NcButton pads itself with
+   --button-radius. The mask's classes raise the rule above NcButton's own.
+   @spec openspec/changes/board-user-settings-close-round/specs/board-user-settings-close-round/spec.md */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .cn-user-settings-dialog__close.button-vue {
+	--button-size: 44px;
+	--button-radius: 22px;
+	--button-padding: 0;
+	border-radius: 22px;
+}
+
 .modal-mask.cn-dialog-board.cn-user-settings-dialog .dialog__content {
 	gap: 0;
 	padding: 0;
