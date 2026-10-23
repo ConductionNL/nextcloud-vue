@@ -649,13 +649,17 @@ export default {
 		 *
 		 * @return {Array<object>}
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-draw-the-rows-the-source-answers
+		 * @spec openspec/changes/facts-from-object/specs/facts-widget/spec.md#requirement-an-entry-can-read-the-page-object-on-a-sourced-card
 		 */
 		blocks() {
 			const sourceRecord = this.record
-			if (!sourceRecord) {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			// A source that finds nothing still leaves the entries that read the
+			// page's own object (`from: "object"`).
+			const ownEntries = Boolean(this.objectData) && fields.some((field) => field && field.from === 'object')
+			if (!sourceRecord && !ownEntries) {
 				return []
 			}
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
 			const hideEmpty = this.content?.hideEmpty !== false
 			const out = []
 			fields.forEach((field, index) => {
@@ -664,6 +668,9 @@ export default {
 				}
 				// `from: "object"` reads the page's own object while the card shows a `source`.
 				const record = field.from === 'object' && this.objectData ? this.objectData : sourceRecord
+				if (!record) {
+					return
+				}
 				if (field.when && !evaluateVisibleWhenLocal(field.when, record)) {
 					return
 				}
