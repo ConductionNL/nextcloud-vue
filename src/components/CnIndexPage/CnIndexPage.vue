@@ -2502,6 +2502,19 @@ export default {
 		},
 
 		/**
+		 * Whether an applied saved view names the page and its side panel
+		 * (manifest `config.savedViewTitle`): a view opened from the menu or
+		 * the panel heads the list with its own name (DqFilterInMenu "Termijn
+		 * deze week"). Off, the page keeps its title.
+		 *
+		 * @spec openspec/changes/saved-view-names-the-page/specs/saved-view-names-the-page/spec.md#requirement-an-applied-saved-view-can-name-the-page
+		 */
+		savedViewTitle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
 		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
 		 * the Filter button and the view switch, in whatever width that row has
@@ -7211,11 +7224,16 @@ export default {
 		},
 
 		/**
-		 * The page title with `{term}` filled in.
+		 * The page title with `{term}` filled in, or the applied saved view's
+		 * name when `savedViewTitle` is on.
 		 *
 		 * @return {string}
 		 */
 		shownTitle() {
+			const view = this.savedViewTitle ? this.appliedSavedView : null
+			if (view && typeof view.name === 'string' && view.name !== '') {
+				return this.cnTranslate(view.name)
+			}
 			const title = this.presented('title')
 			// A title with the term is translated here, before the term goes in,
 			// so its catalogue entry is found ("Zoeken: {term}").
