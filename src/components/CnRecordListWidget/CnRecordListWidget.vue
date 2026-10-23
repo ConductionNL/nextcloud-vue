@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -267,6 +267,12 @@
 						<span v-if="item.leading"
 							class="cn-record-list__leading"
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
+						<span v-if="pillFirst && item.pill" class="cn-record-list__pill-start">
+							<CnStatusBadge
+								:label="item.pill.label"
+								:variant="item.pill.variant"
+								size="small" />
+						</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -294,10 +300,10 @@
 								</template>
 							</span>
 						</span>
-						<span v-if="item.pill || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="(item.pill && !pillFirst) || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
 							<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 							<CnStatusBadge
-								v-if="item.pill"
+								v-if="item.pill && !pillFirst"
 								:label="item.pill.label"
 								:variant="item.pill.variant"
 								size="small" />
@@ -666,6 +672,9 @@ export default {
 		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
 		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
 		 * lopende zaken").
+		 * In `rows`, `ruleAbove: true` rules above the first row too, and
+		 * `pillAt: "start"` draws the pill before the title (DqZaakDocumenten
+		 * "Weigeringsgronden tot nu toe").
 		 *
 		 * @type {object}
 		 */
@@ -765,6 +774,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether a row's pill comes before its title (`pillAt: "start"`). */
+		pillFirst() {
+			return this.content?.pillAt === 'start'
+		},
+
 		/**
 		 * The action under the list (`footerAction`: `{ label, icon?, type,
 		 * ..., disabledWhen?, disabledReason? }`), labels through the host
@@ -2783,8 +2797,14 @@ export default {
 }
 
 /* rows */
-.cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
+.cn-record-list--rows .cn-record-list__item + .cn-record-list__item,
+.cn-record-list--rule-above .cn-record-list__item:first-child {
 	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-list__pill-start {
+	display: flex;
+	flex: none;
 }
 
 .cn-record-list__bar {
