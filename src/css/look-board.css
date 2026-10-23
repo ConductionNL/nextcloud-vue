@@ -598,13 +598,13 @@
 }
 
 /* ---- A card header button --------------------------------------------- */
-/* The boards draw a labelled button beside a card's title at the 40px
-   control height (DqZaakTaken "Nieuwe taak", DqZaakGerelateerd "Deelzaak
-   aanmaken", DqTermijnen "CSV exporteren"); NcButton draws 34px from
-   --button-size. Menu triggers and icon-only buttons keep their size.
-   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-40px */
+/* The boards draw a labelled button in a card's title row 34px (DqZaaktype
+   "Taak toevoegen", "Bewerken"; DqZaaktypeOverzicht "Regel toevoegen";
+   DqCatalogus "Objecttype toevoegen"), smaller than the 40px controls of a
+   page header or a form. Menu triggers and icon-only buttons keep their size.
+   @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-34px */
 .cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
-	--button-size: var(--cn-board-control-height);
+	--button-size: 34px;
 }
 
 /* The same beside a CnDetailCard's title (DqTaak "Notitie toevoegen" on the
