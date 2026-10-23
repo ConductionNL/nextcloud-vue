@@ -283,7 +283,7 @@
 						data-testid="cn-board-narrow">
 						<span class="cn-index-page__board-control-label">{{ boardNarrowLabel }}</span>
 						<select
-							class="cn-index-page__board-select"
+							class="cn-index-page__board-select cn-index-page__board-select--fit"
 							data-testid="cn-board-narrow-select"
 							:value="boardNarrowValue"
 							@change="onBoardNarrowChange($event.target.value)">
