@@ -1324,3 +1324,25 @@
 .cn-look-board .cn-facts-widget__action:not(.cn-look-nextcloud *) {
 	font-weight: 600;
 }
+
+/* ---- A card's Add ------------------------------------------------------ */
+/* The board draws a list card's Add as the neutral secondary at the 40px
+   control height, right-aligned in the title row (DqZaakGerelateerd
+   "Deelzaak aanmaken", DqZaakTaken "Toevoegen"). CnDetailWidgetHost renders
+   that button in the board look, so the list's footer Add bar, which ADR-062
+   draws in the Nextcloud look, is hidden in the card. The size outranks a
+   card title row's 34px buttons.
+   @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-object-list-widget__add {
+	display: none;
+}
+
+/* An empty list card shows its text under the title-row Add, without the
+   empty state's own Add. A filter's "clear" action stays. */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add) {
+	display: none;
+}
+
+.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
