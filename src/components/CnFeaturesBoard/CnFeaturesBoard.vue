@@ -827,9 +827,11 @@ export default {
 	color: var(--color-border-dark);
 }
 
+/* The board draws the segmented filter as a track across the content row,
+   its options at the start. */
 .cn-features-board__filter--segmented {
-	display: inline-flex;
-	align-self: flex-start;
+	align-self: stretch;
+	justify-content: flex-start;
 	gap: 2px;
 	padding: 3px;
 	border-radius: 8px;
