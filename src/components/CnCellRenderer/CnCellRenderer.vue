@@ -53,6 +53,13 @@
 			</span>
 		</template>
 
+		<!-- Built-in "label" widget: the value's label (an enum's translated
+		     label) as plain text, where a list wants words and no pill. -->
+		<template v-else-if="widget === 'label'">
+			<span v-if="hasValue" :title="rawTitle">{{ labelledValue }}</span>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "badge" widget: renders the value as a status pill. An enum
 		     value shows its label (x-enum-labels, translated) unless a formatter
 		     shapes it; the colour stays keyed on the raw value. -->
@@ -382,7 +389,12 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
-		<!-- Boolean: icon -->
+		<!-- Boolean: words when `widgetProps.trueLabel` / `falseLabel` name
+		     them (the value `widgetProps.pill` names as a pill), else an icon -->
+		<template v-else-if="propertyType === 'boolean' && booleanWord !== ''">
+			<CnStatusBadge v-if="booleanPilled" :label="booleanWord" />
+			<span v-else>{{ booleanWord }}</span>
+		</template>
 		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
@@ -735,6 +747,29 @@ export default {
 
 		propertyType() {
 			return this.property?.type || (typeof this.value)
+		},
+
+		/**
+		 * A boolean's word from `widgetProps.trueLabel` / `falseLabel`,
+		 * translated, or '' when the column names none.
+		 *
+		 * @return {string}
+		 */
+		booleanWord() {
+			const props = this.widgetProps || {}
+			const word = this.value === true ? props.trueLabel : (this.value === false ? props.falseLabel : '')
+			return typeof word === 'string' && word !== '' ? this.cnTranslate(word) : ''
+		},
+
+		/**
+		 * Whether this boolean's word is drawn as a pill: `widgetProps.pill`
+		 * names the value that is.
+		 *
+		 * @return {boolean}
+		 */
+		booleanPilled() {
+			const pill = (this.widgetProps || {}).pill
+			return typeof pill === 'boolean' && pill === this.value
 		},
 
 		isEnum() {
