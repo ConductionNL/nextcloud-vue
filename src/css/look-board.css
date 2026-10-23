@@ -2005,6 +2005,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 10px 0;
 }
 
+/* A row that opens its record is a link, and the nldesign theme paints every
+   `<a>` in its link colour with an underline (`!important`, through its link
+   tokens). The boards draw it as a list row: the title in the main ink, the
+   meta muted, no underline (DqContact, DqOrganisatie "Zaken"); the row hands
+   the theme the values its rules read. Hover still underlines the title.
+   @spec openspec/changes/board-record-list-row-link-ink/specs/record-widgets/spec.md#requirement-a-board-list-row-that-is-a-link-draws-no-link-ink */
+.cn-look-board a.cn-record-list__row--link:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
 .cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
 	color: var(--color-main-text);
 	font-weight: 500;
