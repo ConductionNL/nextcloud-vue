@@ -20,6 +20,15 @@
 				</h2>
 			</div>
 			<div v-if="!store.inRunView" class="cn-flow-board__actions">
+				<NcButton v-if="testSubjectReady"
+					:disabled="store.dryRunning || !store.flow.id"
+					data-testid="flow-board-test"
+					@click="testOpen = true">
+					<template #icon>
+						<TestTube :size="16" />
+					</template>
+					{{ testLabel }}
+				</NcButton>
 				<NcCheckboxRadioSwitch v-if="store.flow.id"
 					type="switch"
 					:modelValue="store.flow.enabled !== false"
@@ -37,15 +46,6 @@
 					data-testid="flow-board-run"
 					@click="onRun">
 					{{ t('nextcloud-vue', 'Run') }}
-				</NcButton>
-				<NcButton v-if="testSubjectReady"
-					:disabled="store.dryRunning || !store.flow.id"
-					data-testid="flow-board-test"
-					@click="testOpen = true">
-					<template #icon>
-						<TestTube :size="16" />
-					</template>
-					{{ testLabel }}
 				</NcButton>
 				<CnBuildiqEditButton />
 				<NcButton variant="primary"
