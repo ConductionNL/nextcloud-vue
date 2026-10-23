@@ -2757,6 +2757,14 @@
     "{name} and %n other are also looking at this record now": [
       "{name} en %n ander kijken nu ook naar deze zaak",
       "{name} en %n anderen kijken nu ook naar deze zaak"
+    ],
+    "%n week": [
+      "%n week",
+      "%n weken"
+    ],
+    "%n minute": [
+      "%n minuut",
+      "%n minuten"
     ]
   }
 }

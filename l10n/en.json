@@ -2489,6 +2489,14 @@
     "{name} and %n other are also looking at this record now": [
       "{name} and %n other are also looking at this record now",
       "{name} and %n others are also looking at this record now"
+    ],
+    "%n week": [
+      "%n week",
+      "%n weeks"
+    ],
+    "%n minute": [
+      "%n minute",
+      "%n minutes"
     ]
   }
 }
