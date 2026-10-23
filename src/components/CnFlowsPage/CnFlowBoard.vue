@@ -716,7 +716,7 @@ export default {
 		nodeBadge(node) {
 			const type = String(node?.type || '')
 			if (this.store.roleOfNodeType(type) === 'trigger') {
-				return { label: this.t('nextcloud-vue', 'Start'), variant: 'default' }
+				return { label: this.t('nextcloud-vue', 'Start step'), variant: 'default' }
 			}
 			const curated = (Array.isArray(this.paletteGroups) ? this.paletteGroups : []).find((group) => (group?.entries || []).some((step) => step && step.type === type))
 			const step = curated ? curated.entries.find((item) => item && item.type === type) : null
