@@ -2353,7 +2353,8 @@
     "Week {week}": "Week {week}",
     "More default views": "More default views",
     "Fewer default views": "Fewer default views",
-    "More steps": "More steps"
+    "More steps": "More steps",
+    "More views": "More views"
   },
   "plurals": {
     "{count} member": [

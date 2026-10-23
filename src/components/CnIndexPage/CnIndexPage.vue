@@ -202,6 +202,7 @@
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
 			:disabledViewModes="viewSwitchDisabledModes"
+			:viewSwitch="isBoardLook ? presented('viewSwitch') : null"
 			:viewModeLinks="viewSwitchLinkTargets"
 			:cardsLabel="cardsLabel"
 			:tableLabel="tableLabel"

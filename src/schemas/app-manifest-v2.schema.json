@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.151.0",
+	"version": "2.152.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5543,7 +5543,7 @@
 									"searchPlaceholder": { "type": "string", "minLength": 1, "description": "The search placeholder while the preset applies." },
 									"footerNote": { "type": "string", "minLength": 1, "description": "The footer note while the preset applies." },
 									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
-									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." },
+									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map", "list"] }, "description": "The drawn view segments while the preset applies." },
 									"addLabel": { "type": "string", "minLength": 1, "description": "The add button label while the preset applies (index-scope-presentation)." },
 									"headerButtons": { "type": "array", "description": "The header buttons while the preset applies; same shape as config.headerButtons (index-scope-presentation)." },
 									"breadcrumb": { "description": "The breadcrumb while the preset applies; same shape as config.breadcrumb (index-scope-presentation).", "anyOf": [{ "$ref": "#/$defs/breadcrumbCrumb" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/breadcrumbCrumb" } }] },
@@ -5556,8 +5556,8 @@
 							"type": "array",
 							"minItems": 1,
 							"uniqueItems": true,
-							"items": { "type": "string", "enum": ["table", "cards", "board", "map"] },
-							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, board, map. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
+							"items": { "type": "string", "enum": ["table", "cards", "board", "map", "list"] },
+							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". The segments are drawn in the order named, `list` included; a view the page offers that is not named is listed under More views (view-switch-order-and-more, 2.152.0). Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
 						},
 						"filterStrip": {
 							"type": "object",

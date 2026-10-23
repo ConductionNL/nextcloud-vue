@@ -2603,7 +2603,8 @@
     "Week {week}": "Week {week}",
     "More default views": "Meer standaardweergaven",
     "Fewer default views": "Minder standaardweergaven",
-    "More steps": "Meer stappen"
+    "More steps": "Meer stappen",
+    "More views": "Meer weergaven"
   },
   "plurals": {
     "{count} member": [

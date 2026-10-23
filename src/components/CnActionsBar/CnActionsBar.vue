@@ -108,6 +108,26 @@
 						</button>
 					</template>
 				</div>
+				<!-- Board look: the views `viewSwitch` leaves out, under More views. -->
+				<NcActions v-if="viewOverflow.length > 0"
+					class="cn-actions-bar__view-more"
+					:class="{ 'cn-actions-bar__view-more--active': viewOverflowActive }"
+					:aria-label="t('nextcloud-vue', 'More views')"
+					:menuName="viewOverflowActive ? viewOverflowActive.label : ''"
+					data-testid="cn-actions-bar-view-more">
+					<NcActionButton v-for="entry in viewOverflow"
+						:key="entry.mode"
+						:modelValue="viewMode === entry.mode"
+						type="radio"
+						:data-mode="entry.mode"
+						@click="onViewOverflowPick(entry.mode)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="18" />
+							<component :is="entry.fallback" v-else :size="18" />
+						</template>
+						{{ entry.label }}
+					</NcActionButton>
+				</NcActions>
 			</div>
 		</div>
 		<div v-if="!isBoardLayout" class="cn-actions-bar__info">
@@ -749,6 +769,19 @@ export default {
 		},
 
 		/**
+		 * Board look: the view switch's segments and their order (manifest
+		 * `config.viewSwitch`), `list` included; every other offered view is
+		 * listed under More views. Null keeps the fixed order.
+		 *
+		 * @type {Array<string>|null}
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		viewSwitch: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * Board look: view modes that open another PAGE instead of switching in
 		 * place, by mode: `{ board: { href, to? } }`. Such a segment is drawn as
 		 * a link in its place in the switch; `to` (a router location) is pushed
@@ -1379,16 +1412,67 @@ export default {
 				const links = this.viewModeLinks && typeof this.viewModeLinks === 'object' ? this.viewModeLinks : {}
 				const linked = Object.keys(links).filter((mode) => !modes.includes(mode) && links[mode] && typeof links[mode].href === 'string' && links[mode].href !== '')
 				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode) && !linked.includes(mode))
+				defs.list.boardFallback = FormatListBulleted
 				const all = [...modes, ...linked, ...disabled]
+				// `viewSwitch` names the segments and their order; the views
+				// it leaves out go under More views (viewOverflow).
+				const named = this.namedViewSwitch
 				const fixed = ['table', 'cards', 'board', 'map']
-				const rest = all.filter((mode) => !fixed.includes(mode))
-				return [...fixed.filter((mode) => all.includes(mode)), ...rest]
+				const ordered = named
+					? named.filter((mode) => all.includes(mode))
+					: [...fixed.filter((mode) => all.includes(mode)), ...all.filter((mode) => !fixed.includes(mode))]
+				return ordered
 					.filter((mode) => defs[mode])
 					.map((mode) => ({ mode, ...defs[mode], disabled: disabled.includes(mode), link: linked.includes(mode) ? links[mode] : null }))
 			}
 			return modes
 				.filter((mode) => defs[mode])
 				.map((mode) => ({ mode, ...defs[mode] }))
+		},
+
+		/**
+		 * Board look: the `viewSwitch` list, or null without one.
+		 *
+		 * @return {Array<string>|null}
+		 */
+		namedViewSwitch() {
+			return Array.isArray(this.viewSwitch) && this.viewSwitch.length > 0 ? this.viewSwitch : null
+		},
+
+		/**
+		 * Board look: the views the page offers that `viewSwitch` does not
+		 * name, listed under More views after the segments.
+		 *
+		 * @return {Array<{mode: string, label: string, icon: string, fallback: object}>}
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		viewOverflow() {
+			const named = this.namedViewSwitch
+			if (!this.isBoardLayout || !named) {
+				return []
+			}
+			const modes = [...this.availableViewModes]
+			if (this.showMap && !modes.includes('map')) {
+				modes.push('map')
+			}
+			const labels = {
+				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
+				cards: { label: this.cardsLabel || t('nextcloud-vue', 'Cards'), icon: this.cardsIcon, fallback: ViewGridOutline },
+				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
+				board: { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline },
+				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
+				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
+			}
+			return modes.filter((mode) => !named.includes(mode) && labels[mode]).map((mode) => ({ mode, ...labels[mode] }))
+		},
+
+		/**
+		 * The More views entry that is open, or null.
+		 *
+		 * @return {object|null}
+		 */
+		viewOverflowActive() {
+			return this.viewOverflow.find((entry) => entry.mode === this.viewMode) || null
 		},
 
 		/** The full sort option object matching `sortValue` (for NcSelect). */
@@ -1443,6 +1527,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open a view chosen under More views.
+		 *
+		 * @param {string} mode The view.
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		onViewOverflowPick(mode) {
+			this.$emit('view-mode-change', mode)
+		},
+
 		/**
 		 * A click on a segment that opens another page: a plain click goes
 		 * through the router when the link names a route; a modified click

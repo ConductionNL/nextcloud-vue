@@ -431,6 +431,15 @@
 	color: var(--color-main-text);
 }
 
+/* More views (`viewSwitch` leaves a view out): its trigger beside the track,
+   drawn pressed while one of its views is open.
+   @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-more--active .button-vue {
+	background: var(--color-main-background) !important;
+	box-shadow: 0 1px 2px var(--color-box-shadow) !important;
+	color: var(--color-main-text);
+}
+
 /* A segment that opens another page: the same box as a button segment, as a link. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--link {
 	display: inline-flex;
