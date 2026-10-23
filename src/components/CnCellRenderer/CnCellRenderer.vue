@@ -432,6 +432,7 @@ import { readPath } from '../../utils/readPath.js'
 import { indicatorApplies } from '../../utils/rowIndicators.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { isWithheld, withheldReason } from '../../utils/withheldValue.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -793,10 +794,13 @@ export default {
 
 		/**
 		 * `avatar` widget: the name shown beside the picture. Read from the
-		 * row field `widgetProps.nameField` when set, else the cell value.
+		 * row field `widgetProps.nameField` when set; a cell holding a user id
+		 * (`widgetProps.user`) shows that user's display name once it is
+		 * known; else the cell value.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 * @spec openspec/changes/avatar-cell-user-display-name/specs/data-table/spec.md#requirement-an-avatar-cell-holding-a-user-id-shows-the-users-display-name
 		 */
 		avatarName() {
 			const props = this.widgetProps || {}
@@ -804,6 +808,12 @@ export default {
 				const name = objectFieldValue(this.row, props.nameField)
 				if (typeof name === 'string' && name !== '') {
 					return name
+				}
+			}
+			if (props.user === true && this.avatarUserId !== '') {
+				const displayName = userDisplayName(this.avatarUserId)
+				if (displayName !== '') {
+					return displayName
 				}
 			}
 			if (!this.hasValue || typeof this.value === 'object') {
