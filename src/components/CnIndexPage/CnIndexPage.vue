@@ -1467,7 +1467,7 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { loadMyTeam, peekMyTeam } from '../../utils/myTeam.js'
+import { fillMyTeamToken, loadMyTeam, peekMyTeam, peekMyTeamName } from '../../utils/myTeam.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
@@ -8680,7 +8680,8 @@ export default {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
 				if (countText) {
-					return this.cnTranslate(countText)
+					const translated = this.cnTranslate(countText)
+					return fillMyTeamToken(translated, translated.includes('{myTeam}') ? (peekMyTeamName() || '') : '')
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
