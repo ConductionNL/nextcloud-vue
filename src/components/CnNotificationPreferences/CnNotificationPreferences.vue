@@ -26,9 +26,9 @@
 				{{ t('nextcloud-vue', 'Choose which notifications you want to receive. Items you leave unchanged use the app default.') }}
 			</p>
 			<div v-for="group in groupedEntries" :key="group.schema" class="cn-notif-prefs__group">
-				<h4 v-if="groupedEntries.length > 1" class="cn-notif-prefs__group-title">
+				<component :is="innerHeadingTag" v-if="groupedEntries.length > 1" class="cn-notif-prefs__group-title cn-inner-heading">
 					{{ group.schemaTitle }}
-				</h4>
+				</component>
 				<div class="cn-notif-prefs__grid">
 					<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__card">
 						<NcCheckboxRadioSwitch type="switch"
@@ -85,6 +85,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
 import BellOutline from 'vue-material-design-icons/BellOutline.vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import { notificationRuleLabel } from '../../utils/notificationRuleLabel.js'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
@@ -100,6 +101,8 @@ export default {
 		BellOutline,
 		BellOffOutline,
 	},
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**
