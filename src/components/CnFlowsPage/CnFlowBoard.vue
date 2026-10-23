@@ -25,17 +25,22 @@
 					data-testid="flow-board-test"
 					@click="testOpen = true">
 					<template #icon>
-						<TestTube :size="16" />
+						<Autorenew :size="18" />
 					</template>
 					{{ testLabel }}
 				</NcButton>
-				<NcCheckboxRadioSwitch v-if="store.flow.id"
-					type="switch"
-					:modelValue="store.flow.enabled !== false"
-					data-testid="flow-board-enabled"
-					@update:modelValue="onEnabledChange">
-					{{ store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
-				</NcCheckboxRadioSwitch>
+				<span v-if="store.flow.id" class="cn-flow-board__toggle-row" data-testid="flow-board-enabled">
+					<button type="button"
+						role="switch"
+						class="cn-flow-board__toggle"
+						:aria-checked="store.flow.enabled !== false ? 'true' : 'false'"
+						:aria-labelledby="toggleLabelId"
+						data-testid="flow-board-enabled-switch"
+						@click="onEnabledChange(store.flow.enabled === false)" />
+					<span :id="toggleLabelId" class="cn-flow-board__toggle-label">
+						{{ store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
+					</span>
+				</span>
 				<NcButton :disabled="store.checking || !store.nodes.length"
 					data-testid="flow-board-check"
 					@click="store.check()">
@@ -52,6 +57,9 @@
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					data-testid="flow-board-save"
 					@click="$emit('save')">
+					<template #icon>
+						<Check :size="18" />
+					</template>
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
 			</div>
@@ -303,7 +311,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
-import TestTube from 'vue-material-design-icons/TestTube.vue'
+import Autorenew from 'vue-material-design-icons/Autorenew.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
@@ -328,7 +337,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, TestTube, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { Autorenew, Check, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -401,7 +410,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {} }
+		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
@@ -1090,6 +1099,58 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+}
+
+/* Active as the board draws it: a 42x24 track with a white knob, its label
+   beside it at 15/600 (DqFlow). */
+.cn-flow-board__toggle-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-flow-board__toggle {
+	position: relative;
+	flex: none;
+	width: 42px;
+	height: 24px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 12px;
+	background: var(--color-border-maxcontrast);
+	cursor: pointer;
+}
+
+.cn-flow-board__toggle::after {
+	content: '';
+	position: absolute;
+	inset-block-start: 3px;
+	inset-inline-start: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--color-main-background);
+	transition: transform 0.15s ease;
+}
+
+.cn-flow-board__toggle[aria-checked='true'] {
+	background: var(--color-primary-element);
+}
+
+.cn-flow-board__toggle[aria-checked='true']::after {
+	transform: translateX(18px);
+}
+
+.cn-flow-board__toggle:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-flow-board__toggle-label {
+	font-size: 15px;
+	font-weight: 600;
 }
 
 .cn-flow-board__test-intro {
