@@ -1424,7 +1424,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
 		// 2.150.0 adds a board's declared states (board.states, columnFields[].states, board-declared-states).
-		expect(schema.version).toBe('2.150.0')
+		// 2.153.0 adds an action's confirm wording (confirmTitle, confirmMessage, confirmLabel, confirmIcon); renumber at merge.
+		expect(schema.version).toBe('2.153.0')
+	})
+
+	it('accepts an action\'s confirm wording (2.153.0)', () => {
+		const fields = require('../../src/schemas/app-manifest-v2.schema.json').$defs.actionFields.properties
+		for (const key of ['confirmTitle', 'confirmMessage', 'confirmLabel', 'confirmIcon']) {
+			expect(fields[key].type).toBe('string')
+		}
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
