@@ -124,14 +124,38 @@
 		<!-- `groupBy`: a heading per group, each group its own list, named by
 		     its heading. Without it this is one list, as before. -->
 		<template v-for="group in itemGroups" v-else :key="group.key">
+			<div
+				v-if="group.label && footerGroup !== '' && group.value === footerGroup"
+				class="cn-record-list__group-head"
+				data-testid="cn-record-list-group-head">
+				<h3
+					:id="group.headingId"
+					class="cn-record-list__group-heading"
+					data-testid="cn-record-list-group-heading">
+					{{ group.label }}
+				</h3>
+				<NcButton
+					variant="secondary"
+					:class="{ 'cn-record-list__action--tonal': footerTonal }"
+					:disabled="footerDisabled"
+					:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+					data-testid="cn-record-list-footer-action"
+					@click="runFooterAction">
+					<template v-if="footerAction.icon" #icon>
+						<CnIcon :name="footerAction.icon" :size="16" />
+					</template>
+					{{ footerAction.label }}
+				</NcButton>
+			</div>
 			<h3
-				v-if="group.label"
+				v-else-if="group.label"
 				:id="group.headingId"
 				class="cn-record-list__group-heading"
 				data-testid="cn-record-list-group-heading">
 				{{ group.label }}
 			</h3>
 			<ul
+				v-if="group.items.length > 0"
 				class="cn-record-list__list"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
@@ -385,11 +409,39 @@
 		     says why (`disabledReason`: "Kan zodra de beslissing is
 		     verzonden"). -->
 		<div
-			v-if="footerAction && !error"
+			v-if="footerGroupHead && rows.length === 0 && !error && !loading"
+			class="cn-record-list__group-head"
+			data-testid="cn-record-list-group-head">
+			<h3 class="cn-record-list__group-heading" data-testid="cn-record-list-group-heading">
+				{{ footerGroupHead }}
+			</h3>
+			<NcButton
+				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:disabled="footerDisabled"
+				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+				data-testid="cn-record-list-footer-action"
+				@click="runFooterAction">
+				<template v-if="footerAction.icon" #icon>
+					<CnIcon :name="footerAction.icon" :size="16" />
+				</template>
+				{{ footerAction.label }}
+			</NcButton>
+		</div>
+		<p
+			v-if="footerGroup !== '' && footerDisabled && footerAction && footerAction.reason && !error"
+			:id="footerReasonId"
+			class="cn-record-list__footer-reason"
+			data-testid="cn-record-list-footer-reason">
+			{{ footerAction.reason }}
+		</p>
+		<div
+			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
 			data-testid="cn-record-list-footer">
 			<NcButton
 				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -687,6 +739,41 @@ export default {
 		},
 
 		/**
+		 * The group value `footerAction.group` puts the action in, with
+		 * `groupBy`; '' when the action stands under the list.
+		 *
+		 * @spec openspec/changes/record-list-group-action/specs/record-list/spec.md#requirement-a-record-lists-action-can-end-a-group-heading-as-a-tonal-pill
+		 * @return {string}
+		 */
+		footerGroup() {
+			const group = this.content?.footerAction?.group
+			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
+				return ''
+			}
+			return String(group)
+		},
+
+		/**
+		 * The heading of the action's group, for the list without rows.
+		 *
+		 * @return {string}
+		 */
+		footerGroupHead() {
+			if (this.footerGroup === '') {
+				return ''
+			}
+			const c = this.content
+			const labels = c.valueLabels && typeof c.valueLabels[c.groupBy] === 'object' ? c.valueLabels[c.groupBy] : {}
+			const named = labels[this.footerGroup] || this.footerGroup
+			return this.translate(named)
+		},
+
+		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
+		footerTonal() {
+			return this.content?.footerAction?.variant === 'tonal'
+		},
+
+		/**
 		 * What `footerAction.disabledWhen` depends on, so it is evaluated again
 		 * when the condition, the record or the workspace changes.
 		 *
@@ -867,7 +954,7 @@ export default {
 		 * or not at all. Without `groupBy` all rows are one unheaded group.
 		 *
 		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
-		 * @return {Array<{key: string, label: string, headingId: string, items: Array<object>}>} The groups.
+		 * @return {Array<{key: string, value: string, label: string, headingId: string, items: Array<object>}>} The groups.
 		 */
 		itemGroups() {
 			if (!this.isGrouped) {
@@ -894,10 +981,15 @@ export default {
 			if (buckets.has('')) {
 				values.push('')
 			}
+			if (this.footerGroup !== '' && !buckets.has(this.footerGroup)) {
+				buckets.set(this.footerGroup, [])
+				values.splice(buckets.has('') ? values.length - 1 : values.length, 0, this.footerGroup)
+			}
 			return values.map((value, index) => {
 				const named = value === '' ? c.groupEmptyLabel : (labels[value] || value)
 				return {
 					key: `group-${value}`,
+					value,
 					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
 					headingId: `${this.groupIdBase}-${index}`,
 					items: buckets.get(value),
@@ -1357,7 +1449,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -2379,6 +2471,34 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.4;
+}
+
+.cn-record-list__group-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.cn-record-list__group-head .cn-record-list__group-heading {
+	margin: 0;
+}
+
+.cn-record-list__action--tonal.button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-record-list__action--tonal.button-vue:hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
 }
 
 .cn-record-list__footer {
