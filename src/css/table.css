@@ -177,6 +177,20 @@
 /* The secondary line of a cell (`columns[].secondary`): muted, smaller, on its
    own line under the value. Theme hooks: --cn-table-secondary-size and
    --cn-table-secondary-color. */
+/* Pills beside a cell's value (`col.pills`, "Geheimhouding"). */
+.cn-data-table td > .cn-table-cell__pills {
+	display: inline-flex;
+	gap: 6px;
+	margin-inline-start: 8px;
+	vertical-align: middle;
+}
+
+.cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
 .cn-data-table .cn-table-cell__secondary {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));

@@ -357,6 +357,18 @@
 										:row="row"
 										:rowKey="rowKey" />
 								</slot>
+								<!-- Pills beside the value, from `col.pills`: each one whose
+								     condition holds on the row ("Geheimhouding", DqContacten). -->
+								<span
+									v-if="cellPills(row, col).length > 0"
+									class="cn-table-cell__pills">
+									<CnStatusBadge
+										v-for="(pill, pillIndex) in cellPills(row, col)"
+										:key="pillIndex"
+										:label="pill.label"
+										:variant="pill.variant"
+										data-testid="cn-cell-pill" />
+								</span>
 								<!-- A second, muted line under the value, from `col.secondary`:
 								     a field key, a "{field} · {other}" template, or a function
 								     of the row. Lets one column read "title" over "number ·
@@ -469,11 +481,12 @@ import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNav
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
-import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
+import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 
 // CnDataTable has no scoped styles of its own — its entire look lives in the
@@ -561,6 +574,7 @@ export default {
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnStatusBadge,
 		CnPagination,
 		CnUnreadMarker,
 		ChevronDown,
@@ -2000,6 +2014,26 @@ export default {
 		 */
 		columnFormat(col) {
 			return (col && typeof col.format === 'object') ? col.format : null
+		},
+
+		/**
+		 * The pills a cell draws beside its value: each `col.pills` entry
+		 * (`{ field, equals | in | ..., label, variant? }`, the row-indicator
+		 * condition grammar) whose condition holds on the row, its label
+		 * translated.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {Array<{label: string, variant: string}>} The pills, in declared order.
+		 * @spec openspec/changes/column-cell-pills/specs/data-table/spec.md#requirement-a-column-can-put-a-pill-beside-a-cells-value
+		 */
+		cellPills(row, col) {
+			if (!col || !Array.isArray(col.pills) || col.pills.length === 0) {
+				return []
+			}
+			return col.pills
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '' && typeof pill.field === 'string' && indicatorApplies(pill, row || {}))
+				.map((pill) => ({ label: this.translateLabel(pill.label), variant: typeof pill.variant === 'string' ? pill.variant : 'default' }))
 		},
 
 		/**

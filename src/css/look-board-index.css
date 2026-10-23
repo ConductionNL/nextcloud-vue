@@ -770,6 +770,15 @@
 	white-space: nowrap;
 }
 
+/* A cell with pills beside its value ("*****4054 Geheimhouding", DqContacten)
+   keeps value and pills on one line.
+   @spec openspec/changes/column-cell-pills/specs/data-table/spec.md#requirement-a-column-can-put-a-pill-beside-a-cells-value */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
 /* A narrow header cuts its label, not its filter funnel. */
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
 	max-width: calc(100% - 26px);
