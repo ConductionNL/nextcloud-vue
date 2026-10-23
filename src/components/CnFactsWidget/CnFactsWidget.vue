@@ -242,6 +242,7 @@ import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
@@ -417,6 +418,7 @@ export default {
 		 *
 		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
+		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
@@ -476,6 +478,8 @@ export default {
 			copied: '',
 			/** Labels of the referenced objects read so far, by `refKey`. */
 			labels: {},
+			/** The `countFrom` totals read so far, by `countKey`. */
+			counts: {},
 			/** The outcome of each `actions[]` condition that needs a request, by action id. */
 			remoteVisibility: {},
 			/** Sequence of the source reads, so an older answer never replaces a newer one. */
@@ -509,6 +513,21 @@ export default {
 				object: this.objectData || injected.object || null,
 				workspace: unwrap(this.cnWorkspaceContext) || {},
 			}
+		},
+
+		/**
+		 * The entries' `countFrom` lists (`{ register, schema, filter? }`), each
+		 * once, keyed by what they count on this record.
+		 *
+		 * @return {string} A stable key of the lists to count.
+		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
+		 */
+		countJobsKey() {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const keys = fields
+				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
+				.map((field) => this.countKey(field.countFrom))
+			return JSON.stringify([...new Set(keys)])
 		},
 
 		/**
@@ -852,6 +871,13 @@ export default {
 	},
 
 	watch: {
+		countJobsKey: {
+			immediate: true,
+			handler() {
+				this.loadCounts()
+			},
+		},
+
 		sourceKey: {
 			immediate: true,
 			handler() {
@@ -1047,6 +1073,46 @@ export default {
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
 		 * @spec openspec/changes/facts-entry-empty-value/specs/facts-widget/spec.md#requirement-a-facts-entry-can-name-its-empty-value
 		 */
+		/**
+		 * The key of one `countFrom` list on this record: register, schema and
+		 * the filter with its tokens resolved.
+		 *
+		 * @param {{register: string, schema: string, filter?: object}} countFrom The list.
+		 * @return {string} The key.
+		 */
+		countKey(countFrom) {
+			return JSON.stringify([countFrom.register, countFrom.schema, resolveDeepTokens(countFrom.filter || {}, this.tokenCtx)])
+		},
+
+		/**
+		 * Count every `countFrom` list with the list endpoint's total. A count
+		 * that cannot be read stays unset, so its row is left out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
+		 */
+		async loadCounts() {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const seen = new Set()
+			for (const field of fields) {
+				const countFrom = field && field.countFrom
+				if (!countFrom || typeof countFrom !== 'object' || !countFrom.register || !countFrom.schema) {
+					continue
+				}
+				const key = this.countKey(countFrom)
+				if (seen.has(key)) {
+					continue
+				}
+				seen.add(key)
+				try {
+					const total = await fetchListTotal(countFrom.register, countFrom.schema, countFrom.filter || {}, this.tokenCtx)
+					this.counts = { ...this.counts, [key]: total }
+				} catch {
+					this.counts = { ...this.counts, [key]: null }
+				}
+			}
+		},
+
 		entryValue(record, field, kind) {
 			const value = this.bareEntryValue(record, field, kind)
 			if (value === '') {
@@ -1065,6 +1131,10 @@ export default {
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
 		 */
 		bareEntryValue(record, field, kind) {
+			if (field.countFrom && typeof field.countFrom === 'object') {
+				const total = this.counts[this.countKey(field.countFrom)]
+				return Number.isFinite(total) ? String(total) : ''
+			}
 			if (kind === 'progress') {
 				return this.progressOf(record, field).value
 			}
