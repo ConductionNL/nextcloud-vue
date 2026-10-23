@@ -187,6 +187,21 @@
 			<template v-if="hasRendererHeaderItems" #actions>
 				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<CnWidgetEmptyState
 				v-if="rendererHeader.empty"
 				:name="rendererHeader.empty.name"
@@ -218,6 +233,21 @@
 			<template v-if="leafCardIcon" #title-icon>
 				<CnIcon :name="leafCardIcon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component :is="resolveRegistryTab(widget.integrationId)" v-bind="integrationProps" />
 		</CnWidgetWrapper>
 
@@ -301,6 +331,21 @@
 					{{ action.label }}
 				</NcActionButton>
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -331,6 +376,21 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
 		</CnWidgetWrapper>
 
@@ -360,6 +420,21 @@
 			<template v-if="hasRendererHeaderItems" #actions>
 				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -388,6 +463,21 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -445,6 +535,7 @@ import { isActivityWidget } from '../../utils/headerMeta.js'
 import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -821,6 +912,26 @@ export default {
 		 */
 		resolvedTitle() {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
+		},
+
+		/**
+		 * The widgets `content.leadWidgetIds` names, drawn inside this card before
+		 * its own content (DqZaakDocumenten: the review summary in the Files
+		 * card), those whose `visibleWhen` holds against the record.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-lead-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-lead-with-other-widgets
+		 */
+		leadWidgets() {
+			const ids = this.content && Array.isArray(this.content.leadWidgetIds) ? this.content.leadWidgetIds : []
+			if (ids.length === 0) {
+				return []
+			}
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const data = this.object ? { ...this.object, '@context': rows || {} } : null
+			return ids
+				.map((id) => (this.availableWidgets || []).find((def) => def && def.id === id))
+				.filter((def) => def && (!def.visibleWhen || (data !== null && evaluateVisibleWhenLocal(def.visibleWhen, data))))
 		},
 
 		/** @return {boolean} Whether the reported header has anything for the title row. */
