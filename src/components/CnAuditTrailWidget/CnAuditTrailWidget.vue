@@ -4,23 +4,30 @@
 -->
 
 <template>
-	<CnAuditTrailCard
+	<div
 		v-if="resolvedScope === 'app' || resolvedSource || resolvedEndpoint || (resolvedRegister && resolvedSchema && resolvedObjectId)"
-		:source="resolvedSource"
-		:endpoint="resolvedEndpoint"
-		:register="resolvedRegister"
-		:schema="resolvedSchema"
-		:objectId="resolvedObjectId"
-		:scope="resolvedScope"
-		:title="resolvedTitle"
-		:maxDisplay="resolvedMaxDisplay"
-		:excludeActions="resolvedExcludeActions"
-		:actionLabels="actionLabels"
-		v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
+		class="cn-audit-trail-widget">
+		<CnAuditTrailCard
+			:source="resolvedSource"
+			:endpoint="resolvedEndpoint"
+			:register="resolvedRegister"
+			:schema="resolvedSchema"
+			:objectId="resolvedObjectId"
+			:scope="resolvedScope"
+			:title="resolvedTitle"
+			:maxDisplay="resolvedMaxDisplay"
+			:excludeActions="resolvedExcludeActions"
+			:actionLabels="actionLabels"
+			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
+		<p v-if="footnote" class="cn-audit-trail-widget__footnote" data-testid="cn-audit-trail-widget-footnote">
+			{{ footnote }}
+		</p>
+	</div>
 </template>
 
 <script>
 import CnAuditTrailCard from '../CnAuditTrailCard/CnAuditTrailCard.vue'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 
 /**
  * CnAuditTrailWidget — thin built-in widget wrapping CnAuditTrailCard with
@@ -93,7 +100,7 @@ export default {
 		endpoint: { type: String, default: '' },
 		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
 		excludeActions: { type: Array, default: () => [] },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -183,6 +190,22 @@ export default {
 				.map(([key, text]) => [key, translate(text)]))
 		},
 
+		/**
+		 * `content.footnote`, a muted line under the trail with the record's
+		 * fields filled in ("Reference {identifier}"); '' when a field is empty.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/audit-trail-footnote/specs/audit-trail/spec.md#requirement-a-history-card-can-end-in-a-line-about-the-record
+		 */
+		footnote() {
+			const note = this.content.footnote
+			if (typeof note !== 'string' || note === '') {
+				return ''
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return fillTemplate(translate(note), this.ctx.object || this.ctx.objectData || null)
+		},
+
 		emptyText() {
 			const text = this.content.emptyText
 			if (typeof text !== 'string' || text === '') {
@@ -224,3 +247,16 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* The card keeps its own box; the wrapper only adds the line under it. */
+.cn-audit-trail-widget {
+	display: contents;
+}
+
+.cn-audit-trail-widget__footnote {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+</style>
