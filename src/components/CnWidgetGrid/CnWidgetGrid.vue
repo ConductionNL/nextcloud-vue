@@ -84,6 +84,8 @@ export default {
 	name: 'CnWidgetGrid',
 
 	inject: {
+		/** The app of the CnAppRoot above, named on this component's diagnostics reports. */
+		cnDiagnosticsAppId: { default: null },
 		cnRegistry: { default: () => ({}) },
 		/**
 		 * Per-page slot→columns override map, published by `CnPageRenderer`
@@ -332,7 +334,7 @@ export default {
 							+ 'Importing a widget\'s own module gives you the component but registers no type.'
 							: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
 								+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.')
-					reportDiagnosticOnce(`unknown-component|widget|${key}`, { kind: 'unknown-component', name: String(key), where: 'widget' })
+					reportDiagnosticOnce(`unknown-component|widget|${key}`, { kind: 'unknown-component', name: String(key), where: 'widget' , appId: this.cnDiagnosticsAppId })
 					// Render a visible, designed placeholder instead of silently
 					// skipping — a page whose widgets ALL fail to resolve must not
 					// leave a blank pane (2026-07-06 audit: petstore dashboard).

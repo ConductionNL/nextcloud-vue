@@ -425,6 +425,8 @@ export default {
 	},
 
 	inject: {
+		/** The app of the CnAppRoot above, named on this component's diagnostics reports. */
+		cnDiagnosticsAppId: { default: null },
 		cnManifest: { default: null },
 		/**
 		 * The same manifest as `cnManifest`, but provided as a REF.
@@ -1230,7 +1232,7 @@ export default {
 				if (!resolved) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
-					reportDiagnosticOnce(`unknown-component|page|${name}`, { kind: 'unknown-component', name: String(name), where: 'page' })
+					reportDiagnosticOnce(`unknown-component|page|${name}`, { kind: 'unknown-component', name: String(name), where: 'page' , appId: this.cnDiagnosticsAppId })
 					return null
 				}
 				return resolved
@@ -1239,7 +1241,7 @@ export default {
 			if (!component) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
-				reportDiagnosticOnce(`unknown-component|pageType|${page.type}`, { kind: 'unknown-component', name: String(page.type), where: 'pageType' })
+				reportDiagnosticOnce(`unknown-component|pageType|${page.type}`, { kind: 'unknown-component', name: String(page.type), where: 'pageType' , appId: this.cnDiagnosticsAppId })
 				return null
 			}
 			return component
@@ -1671,7 +1673,7 @@ export default {
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`)
-				reportDiagnosticOnce(`unknown-component|sidebar|${name}`, { kind: 'unknown-component', name: String(name), where: 'sidebar' })
+				reportDiagnosticOnce(`unknown-component|sidebar|${name}`, { kind: 'unknown-component', name: String(name), where: 'sidebar' , appId: this.cnDiagnosticsAppId })
 				return null
 			}
 			return resolved
@@ -1786,6 +1788,7 @@ export default {
 			kind: 'render-error',
 			component: (instance && instance.$options && (instance.$options.name || instance.$options.__name)) || 'unknown',
 			message: error && error.message ? String(error.message) : String(error),
+			appId: this.cnDiagnosticsAppId,
 		}))
 	},
 
@@ -2579,7 +2582,7 @@ export default {
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
-				reportDiagnosticOnce(`unknown-component|page|${registryName}`, { kind: 'unknown-component', name: String(registryName), where: 'page' })
+				reportDiagnosticOnce(`unknown-component|page|${registryName}`, { kind: 'unknown-component', name: String(registryName), where: 'page' , appId: this.cnDiagnosticsAppId })
 				return null
 			}
 			return resolved

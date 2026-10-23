@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * @spec openspec/changes/app-diagnostics-channel/tasks.md#task-1
+ * @spec openspec/changes/diagnostics-reports-name-their-app/specs/app-diagnostics/spec.md#requirement-every-diagnostics-report-names-the-app-it-came-from
  */
 import { mount } from '@vue/test-utils'
 
@@ -43,6 +44,21 @@ describe('CnAppRoot diagnostics', () => {
 		expect(fn).toHaveBeenCalledWith(expect.objectContaining({ kind: 'request', pageId: 'home', at: expect.any(Number) }))
 		w.unmount()
 		expect(hasDiagnosticsListener()).toBe(false)
+	})
+
+	it('stamps its page only on its own or an unknown app\'s report, and hands on the app id', async () => {
+		const fn = jest.fn()
+		const w = mountRoot({ diagnostics: fn })
+		reportDiagnostic({ kind: 'request', path: '/a', appId: 'myapp' })
+		reportDiagnostic({ kind: 'request', path: '/b', appId: 'otherapp' })
+		reportDiagnostic({ kind: 'request', path: '/c' })
+		await tick()
+		expect(fn.mock.calls.map((c) => [c[0].path, c[0].appId, c[0].pageId])).toEqual([
+			['/a', 'myapp', 'home'],
+			['/b', 'otherapp', null],
+			['/c', null, 'home'],
+		])
+		w.unmount()
 	})
 
 	it('adds no listener without a diagnostics function', () => {

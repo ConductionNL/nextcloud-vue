@@ -765,7 +765,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
-import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
+import { addDiagnosticsListener, bindDiagnosticsApp, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { createManifestTranslate } from '../../utils/manifestTranslate.js'
@@ -965,7 +965,9 @@ export default {
 
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.manifestTranslate,
-			cnDiagnostics: (report) => reportDiagnostic(report),
+			cnDiagnostics: (report) => reportDiagnostic({ appId: this.appId || null, ...report }),
+			// The app a descendant's diagnostics report names (diagnostics-reports-name-their-app).
+			cnDiagnosticsAppId: this.appId || null,
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
@@ -3404,6 +3406,8 @@ export default {
 	},
 
 	created() {
+		// Requests this app's stores make name this app (diagnostics-reports-name-their-app).
+		bindDiagnosticsApp(this.$pinia, this.appId)
 		this.syncDiagnostics()
 	},
 
@@ -3560,7 +3564,9 @@ export default {
 			}
 			if (typeof this.diagnostics === 'function') {
 				this.removeDiagnostics = addDiagnosticsListener((report) => {
-					const name = this.$route ? this.$route.name : null
+					// Another app's report keeps its own page, which this app's route cannot name.
+					const own = report.appId === null || report.appId === undefined || report.appId === this.appId
+					const name = own && this.$route ? this.$route.name : null
 					this.diagnostics({ ...report, pageId: name === undefined || name === null ? null : String(name) })
 				})
 			}

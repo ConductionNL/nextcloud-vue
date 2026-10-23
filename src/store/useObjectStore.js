@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { toRaw } from 'vue'
-import { reportDiagnosticOnce, trackedFetch } from '../utils/diagnostics.js'
+import { reportDiagnosticOnce, trackedFetchFrom } from '../utils/diagnostics.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
 import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
@@ -557,7 +557,7 @@ const baseActions = {
 		// `makeUrl` wraps `_buildUrl` / `_buildUrlWithParams`, so `url` is built
 		// from the prefixed `_options.baseUrl` like every other request here.
 		let url = makeUrl(null)
-		const response = await trackedFetch(url, init)
+		const response = await trackedFetchFrom(this, url, init)
 		if (!response || response.status !== 404) {
 			return response
 		}
@@ -569,7 +569,7 @@ const baseActions = {
 		let retry
 		try {
 			url = makeUrl(fallback)
-			retry = await trackedFetch(url, init)
+			retry = await trackedFetchFrom(this, url, init)
 		} catch {
 			return response
 		}
@@ -683,7 +683,7 @@ const baseActions = {
 		}
 
 		try {
-			const response = await trackedFetch(
+			const response = await trackedFetchFrom(this, 
 				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -737,7 +737,7 @@ const baseActions = {
 			const config = this._getTypeConfig(type)
 			const init = { method: 'GET', headers: this._buildHeaders() }
 			const response = config.collectionUrl
-				? await trackedFetch(this._buildCollectionUrl(config, fetchParams), init)
+				? await trackedFetchFrom(this, this._buildCollectionUrl(config, fetchParams), init)
 				: await this._fetchWithSchemaFallback(
 						type,
 						(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
@@ -1162,7 +1162,7 @@ const baseActions = {
 			const runOne = async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -1249,7 +1249,7 @@ const baseActions = {
 			const fetches = toFetch.map(async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})

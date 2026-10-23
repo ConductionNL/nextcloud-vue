@@ -1,4 +1,4 @@
-import { trackedFetch } from '../../utils/diagnostics.js'
+import { trackedFetchFrom } from '../../utils/diagnostics.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so lifecycle
 // transitions inherit the active tenant UUID (multi-tenancy-context).
 import { networkError, parseResponseError } from '../../utils/errors.js'
@@ -61,7 +61,7 @@ export function lifecyclePlugin() {
 						options.body = JSON.stringify(body)
 					}
 
-					const response = await trackedFetch(url, options)
+					const response = await trackedFetchFrom(this, url, options)
 
 					if (!response.ok) {
 						this.lifecycleError = await parseResponseError(response, action)

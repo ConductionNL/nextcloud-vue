@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * @spec openspec/changes/app-diagnostics-channel/tasks.md#task-3
+ * @spec openspec/changes/diagnostics-reports-name-their-app/specs/app-diagnostics/spec.md#requirement-every-diagnostics-report-names-the-app-it-came-from
  */
 import { mount } from '@vue/test-utils'
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
@@ -26,11 +27,11 @@ const Thrower = {
 	},
 }
 
-function mountAt(routeName, errorHandler) {
+function mountAt(routeName, errorHandler, appId = null) {
 	return mount(CnPageRenderer, {
 		props: { manifest },
 		global: {
-			provide: { cnCustomComponents: { Thrower }, cnTranslate: (k) => k },
+			provide: { cnCustomComponents: { Thrower }, cnTranslate: (k) => k, cnDiagnosticsAppId: appId },
 			mocks: { $route: { name: routeName, params: {}, query: {} }, $router: { push: jest.fn() } },
 			plugins: [(app) => { app.config.errorHandler = errorHandler }],
 			stubs: { 'router-view': true },
@@ -69,5 +70,12 @@ describe('CnPageRenderer diagnostics', () => {
 		const report = fn.mock.calls.map((c) => c[0]).find((r) => r.kind === 'render-error')
 		expect(report).toMatchObject({ component: 'KpiOmzet', message: 'kpi exploded' })
 		expect(handler).toHaveBeenCalled()
+	})
+
+	it('names the app of the CnAppRoot above it', async () => {
+		mountAt('broken', undefined, 'openbuild-preview')
+		await tick()
+		const report = fn.mock.calls.map((c) => c[0]).find((r) => r.kind === 'unknown-component')
+		expect(report.appId).toBe('openbuild-preview')
 	})
 })

@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * @spec openspec/changes/app-diagnostics-channel/tasks.md#task-2
+ * @spec openspec/changes/diagnostics-reports-name-their-app/specs/app-diagnostics/spec.md#requirement-every-diagnostics-report-names-the-app-it-came-from
  */
 const fs = require('fs')
 const path = require('path')
 const { setActivePinia, createPinia } = require('pinia')
 const { useObjectStore } = require('../../src/store/useObjectStore.js')
-const { addDiagnosticsListener, clearReportedDiagnostics } = require('../../src/utils/diagnostics.js')
+const { addDiagnosticsListener, bindDiagnosticsApp, clearReportedDiagnostics } = require('../../src/utils/diagnostics.js')
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -50,5 +51,21 @@ describe('store requests are reported', () => {
 		const reports = fn.mock.calls.map((c) => c[0])
 		expect(reports.find((r) => r.kind === 'request' && r.rows === 1)).toBeTruthy()
 		expect(reports.find((r) => r.kind === 'binding')).toMatchObject({ problem: 'missing-schema' })
+	})
+
+	it('names the app of the pinia the store belongs to', async () => {
+		const fn = jest.fn()
+		remove = addDiagnosticsListener(fn)
+		global.fetch = jest.fn().mockResolvedValue({ status: 200, ok: true, json: async () => ({ results: [] }), clone() { return { json: async () => ({ results: [] }) } } })
+		const pinia = createPinia()
+		setActivePinia(pinia)
+		bindDiagnosticsApp(pinia, 'openbuild-preview')
+		const store = useObjectStore()
+		store.registerObjectType('permit', 'permit', 'permits', {})
+		await store.fetchCollection('permit')
+		await tick()
+		const requests = fn.mock.calls.map((c) => c[0]).filter((r) => r.kind === 'request')
+		expect(requests.length).toBeGreaterThan(0)
+		expect(requests.every((r) => r.appId === 'openbuild-preview')).toBe(true)
 	})
 })

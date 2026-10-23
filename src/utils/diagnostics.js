@@ -7,7 +7,8 @@
  * sends nothing anywhere itself. Without a listener no report is built and
  * no timing is taken.
  *
- * A report is a plain object with `kind` and `at`; `CnAppRoot` adds `pageId`.
+ * A report is a plain object with `kind`, `at` and `appId` (the app it came
+ * from, or null when that cannot be told); `CnAppRoot` adds `pageId`.
  * It never holds a request or response body, a header, a query value or a
  * user id. The one free text is a render error's message, handed over in
  * memory.
@@ -18,6 +19,35 @@
 
 const listeners = new Set()
 const dropped = new WeakSet()
+const appOfPinia = new WeakMap()
+
+/**
+ * Bind an app id to the pinia an app runs with, so a request its stores make
+ * names that app. `CnAppRoot` calls it with its own pinia.
+ *
+ * @param {object|null} pinia The pinia instance.
+ * @param {string} appId The app id.
+ * @spec openspec/changes/diagnostics-reports-name-their-app/specs/app-diagnostics/spec.md#requirement-every-diagnostics-report-names-the-app-it-came-from
+ */
+export function bindDiagnosticsApp(pinia, appId) {
+	if (pinia && typeof pinia === 'object' && typeof appId === 'string' && appId !== '') {
+		appOfPinia.set(pinia, appId)
+	}
+}
+
+/**
+ * The app a store (or a pinia) belongs to, or null.
+ *
+ * @param {object|null} scope A pinia store (it holds its pinia as `_p` or `$pinia`) or a pinia.
+ * @return {string|null} The app id.
+ */
+function appIdOf(scope) {
+	if (!scope || typeof scope !== 'object') {
+		return null
+	}
+	const pinia = scope._p || scope.$pinia || scope
+	return (pinia && typeof pinia === 'object' && appOfPinia.get(pinia)) || null
+}
 
 /**
  * Add a listener. Returns the function that removes it.
@@ -94,7 +124,10 @@ export function reportDiagnostic(report) {
 	if (listeners.size === 0) {
 		return
 	}
-	const built = { at: Date.now(), ...(typeof report === 'function' ? report() : report) }
+	const built = { at: Date.now(), appId: null, ...(typeof report === 'function' ? report() : report) }
+	if (built.appId === undefined || built.appId === '') {
+		built.appId = null
+	}
 	for (const listener of [...listeners]) {
 		safeCall(listener, { ...built })
 	}
@@ -112,8 +145,9 @@ const reported = new Set()
  * @param {string} [binding.register] The register slug.
  * @param {Array<(string|object)>} [binding.columns] Declared columns (keys or `{ key, aggregate?, expression? }`).
  * @param {Array<string>} [binding.includeFields] Declared form fields.
+ * @param {string|null} [binding.appId] The app whose page declares it.
  */
-export function reportBindingProblems(schema, { register = '', columns = [], includeFields = null } = {}) {
+export function reportBindingProblems(schema, { register = '', columns = [], includeFields = null, appId = null } = {}) {
 	if (listeners.size === 0 || !schema || typeof schema.properties !== 'object' || schema.properties === null) {
 		return
 	}
@@ -130,6 +164,7 @@ export function reportBindingProblems(schema, { register = '', columns = [], inc
 				schema: slug,
 				property,
 				where,
+				appId,
 			})
 		}
 	}
@@ -152,10 +187,15 @@ export function reportBindingProblems(schema, { register = '', columns = [], inc
  * @param {object|(() => object)} report The report, or a function building it.
  */
 export function reportDiagnosticOnce(key, report) {
-	if (listeners.size === 0 || reported.has(key)) {
+	if (listeners.size === 0) {
 		return
 	}
-	reported.add(key)
+	const appId = report && typeof report === 'object' ? (report.appId || null) : null
+	const scoped = `${appId ?? ''}|${key}`
+	if (reported.has(scoped)) {
+		return
+	}
+	reported.add(scoped)
 	reportDiagnostic(report)
 }
 
@@ -200,15 +240,30 @@ async function rowsOf(response) {
 }
 
 /**
+ * `trackedFetch` made by a store: the report names the store's app.
+ *
+ * @param {object} scope The store making the request.
+ * @param {string} url The request URL.
+ * @param {object} [init] The fetch options.
+ * @param {string} [source] `store` (default).
+ * @return {Promise<Response>} The response.
+ * @spec openspec/changes/diagnostics-reports-name-their-app/specs/app-diagnostics/spec.md#requirement-every-diagnostics-report-names-the-app-it-came-from
+ */
+export function trackedFetchFrom(scope, url, init, source = 'store') {
+	return trackedFetch(url, init, source, scope)
+}
+
+/**
  * `fetch`, reporting a `request` when someone listens. With no listener it is
  * exactly `fetch`: no timing, no report object.
  *
  * @param {string} url The request URL.
  * @param {object} [init] The fetch options.
  * @param {string} [source] `store` (default) or `cnFetch`.
+ * @param {object|null} [scope] The store making the request; its pinia names the app.
  * @return {Promise<Response>} The response.
  */
-export async function trackedFetch(url, init, source = 'store') {
+export async function trackedFetch(url, init, source = 'store', scope = null) {
 	if (listeners.size === 0) {
 		return fetch(url, init)
 	}
@@ -219,13 +274,13 @@ export async function trackedFetch(url, init, source = 'store') {
 		response = await fetch(url, init)
 	} catch (error) {
 		const path = cleanDiagnosticPath(url)
-		reportDiagnostic({ kind: 'request', method, path, status: 0, durationMs: Math.round(performance.now() - started), rows: null, source, objectType: objectTypeOf(path) })
+		reportDiagnostic({ kind: 'request', method, path, status: 0, durationMs: Math.round(performance.now() - started), rows: null, source, objectType: objectTypeOf(path), appId: appIdOf(scope) })
 		throw error
 	}
 	const durationMs = Math.round(performance.now() - started)
 	const path = cleanDiagnosticPath(url)
 	const status = response && typeof response.status === 'number' ? response.status : 0
 	const rows = status >= 200 && status < 300 ? await rowsOf(response) : null
-	reportDiagnostic({ kind: 'request', method, path, status, durationMs, rows, source, objectType: objectTypeOf(path) })
+	reportDiagnostic({ kind: 'request', method, path, status, durationMs, rows, source, objectType: objectTypeOf(path), appId: appIdOf(scope) })
 	return response
 }

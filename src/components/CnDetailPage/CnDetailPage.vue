@@ -1688,6 +1688,8 @@ export default {
 	mixins: [gridLayout, pageFilters, pageViews],
 
 	inject: {
+		/** The app of the CnAppRoot above, named on this component's diagnostics reports. */
+		cnDiagnosticsAppId: { default: null },
 		/**
 		 * Consumer widget registry provided by CnAppRoot — the SAME injection
 		 * CnWidgetGrid reads. A consuming app registers its own components
@@ -5663,7 +5665,7 @@ export default {
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
 		currentSchema(schema) {
 			this.syncSidebarState()
-			reportBindingProblems(schema, { register: this.register, includeFields: this.includeFields })
+			reportBindingProblems(schema, { register: this.register, includeFields: this.includeFields , appId: this.cnDiagnosticsAppId })
 
 			// Put the Data widget back if the body materialized before the
 			// schema arrived. See materializeAutoBody(): fetchObject and

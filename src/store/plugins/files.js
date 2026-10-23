@@ -1,4 +1,4 @@
-import { trackedFetch } from '../../utils/diagnostics.js'
+import { trackedFetchFrom } from '../../utils/diagnostics.js'
 // `buildHeaders` is no longer imported directly — every fetch goes
 // through `this._buildHeaders()` so the active tenant UUID (when set)
 // is stamped on every outbound request (multi-tenancy-context).
@@ -75,7 +75,7 @@ export function filesPlugin(options = {}) {
 
 				try {
 					const url = buildTagsUrl(this._options.baseUrl)
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -120,7 +120,7 @@ export function filesPlugin(options = {}) {
 				try {
 					const url = this._buildUrl(type, objectId) + '/filesMultipart'
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'POST',
 						headers: this._buildHeaders(null),
 						body: formData,
@@ -167,7 +167,7 @@ export function filesPlugin(options = {}) {
 				try {
 					const url = this._buildUrl(type, objectId) + `/files/${fileId}/publish`
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'POST',
 						headers: this._buildHeaders(),
 					})
@@ -202,7 +202,7 @@ export function filesPlugin(options = {}) {
 				try {
 					const url = this._buildUrl(type, objectId) + `/files/${fileId}/depublish`
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'POST',
 						headers: this._buildHeaders(),
 					})
@@ -237,7 +237,7 @@ export function filesPlugin(options = {}) {
 				try {
 					const url = this._buildUrl(type, objectId) + `/files/${fileId}`
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -281,7 +281,7 @@ export function filesPlugin(options = {}) {
 				try {
 					const url = this._buildUrl(type, objectId) + '/files/batch'
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'POST',
 						headers: this._buildHeaders(),
 						body: JSON.stringify({

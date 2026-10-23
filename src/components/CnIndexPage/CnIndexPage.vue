@@ -1904,6 +1904,8 @@ export default {
 	},
 
 	inject: {
+		/** The app of the CnAppRoot above, named on this component's diagnostics reports. */
+		cnDiagnosticsAppId: { default: null },
 		cnCustomComponents: { default: () => ({}) },
 		/** The app's named formatters, provided by CnAppRoot, for the map list's pills and template tokens. */
 		cnFormatters: { default: () => ({}) },
@@ -8867,7 +8869,7 @@ export default {
 		effectiveSchema: {
 			immediate: true,
 			handler(schema) {
-				reportBindingProblems(schema, { register: this.register, columns: this.declaredColumns, includeFields: this.includeFields })
+				reportBindingProblems(schema, { register: this.register, columns: this.declaredColumns, includeFields: this.includeFields , appId: this.cnDiagnosticsAppId })
 			},
 		},
 

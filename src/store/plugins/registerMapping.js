@@ -1,4 +1,4 @@
-import { trackedFetch } from '../../utils/diagnostics.js'
+import { trackedFetchFrom } from '../../utils/diagnostics.js'
 import { discardResponseBody } from '../../utils/discardResponseBody.js'
 import { prefixUrl } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so registerMapping
@@ -102,7 +102,7 @@ export function registerMappingPlugin() {
 						url += '?_extend[]=schemas'
 					}
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -167,7 +167,7 @@ export function registerMappingPlugin() {
 
 				// Fetch from API as fallback
 				try {
-					const response = await trackedFetch(
+					const response = await trackedFetchFrom(this, 
 						prefixUrl(`/apps/openregister/api/registers/${id}?_extend[]=schemas`),
 						{ method: 'GET', headers: this._buildHeaders() },
 					)

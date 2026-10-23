@@ -1,5 +1,5 @@
 import { toRaw } from 'vue'
-import { trackedFetch } from '../utils/diagnostics.js'
+import { trackedFetchFrom } from '../utils/diagnostics.js'
 // `buildHeaders` is reached via `this._buildHeaders()` (declared on
 // the base object store) so sub-resource fetches inherit the active
 // tenant UUID (multi-tenancy-context).
@@ -83,7 +83,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 						+ '/' + endpoint
 						+ buildQueryString(params)
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})

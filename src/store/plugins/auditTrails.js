@@ -1,4 +1,4 @@
-import { trackedFetch } from '../../utils/diagnostics.js'
+import { trackedFetchFrom } from '../../utils/diagnostics.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so tenant
 // scoping (multi-tenancy-context) survives every audit-trail fetch.
 import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
@@ -119,7 +119,7 @@ export function auditTrailsPlugin(options = {}) {
 				try {
 					const url = buildGlobalUrl(this._options.baseUrl) + buildQueryString(params)
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -168,7 +168,7 @@ export function auditTrailsPlugin(options = {}) {
 				try {
 					const url = buildGlobalUrl(this._options.baseUrl) + '/statistics'
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -208,7 +208,7 @@ export function auditTrailsPlugin(options = {}) {
 				try {
 					const url = buildGlobalUrl(this._options.baseUrl) + `/${id}`
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -256,7 +256,7 @@ export function auditTrailsPlugin(options = {}) {
 				try {
 					const url = buildGlobalUrl(this._options.baseUrl)
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 						body: JSON.stringify({ ids }),

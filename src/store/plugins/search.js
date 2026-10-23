@@ -1,4 +1,4 @@
-import { trackedFetch } from '../../utils/diagnostics.js'
+import { trackedFetchFrom } from '../../utils/diagnostics.js'
 import { normalizeFacets } from '../../utils/facets.js'
 import { buildQueryString, prefixUrl } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so cross-schema
@@ -292,7 +292,7 @@ export function searchPlugin() {
 					const baseUrl = this._options?.baseUrl || prefixUrl('/apps/openregister/api/objects')
 					const url = `${baseUrl}/${register}/${schema}` + buildQueryString(queryParams)
 
-					const response = await trackedFetch(url, {
+					const response = await trackedFetchFrom(this, url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -351,7 +351,7 @@ export function searchPlugin() {
 			 */
 			async _fetchSearchSchema(schemaId) {
 				try {
-					const response = await trackedFetch(getSchemaApiUrl(schemaId), {
+					const response = await trackedFetchFrom(this, getSchemaApiUrl(schemaId), {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -372,7 +372,7 @@ export function searchPlugin() {
 			 */
 			async _fetchSearchRegister(registerId) {
 				try {
-					const response = await trackedFetch(getRegisterApiUrl(registerId), {
+					const response = await trackedFetchFrom(this, getRegisterApiUrl(registerId), {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
