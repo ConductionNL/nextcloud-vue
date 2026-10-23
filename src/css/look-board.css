@@ -2454,3 +2454,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
 }
+
+/* A heading inside a widget follows the outline in the board look, so it may
+   be drawn as h3 rather than h4 (mixins/innerHeading.js). It keeps the h4
+   size. The selector weighs two elements: above Nextcloud's `h3 {}`, below
+   any class a widget sizes its own heading with. */
+html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
+	font-size: 1.4em;
+}

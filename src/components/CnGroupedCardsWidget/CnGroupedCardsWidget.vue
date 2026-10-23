@@ -31,9 +31,9 @@
 				:aria-labelledby="group.headingId"
 				data-testid="cn-grouped-cards-group">
 				<header class="cn-grouped-cards__group-header">
-					<h4 :id="group.headingId" class="cn-grouped-cards__group-title">
+					<component :is="innerHeadingTag" :id="group.headingId" class="cn-grouped-cards__group-title cn-inner-heading">
 						{{ group.title }}
-					</h4>
+					</component>
 					<span v-if="group.count" class="cn-grouped-cards__count" data-testid="cn-grouped-cards-count">{{ group.count }}</span>
 				</header>
 				<p
@@ -71,9 +71,9 @@
 				:aria-labelledby="extra.headingId"
 				data-testid="cn-grouped-cards-extra">
 				<header class="cn-grouped-cards__group-header">
-					<h4 :id="extra.headingId" class="cn-grouped-cards__group-title">
+					<component :is="innerHeadingTag" :id="extra.headingId" class="cn-grouped-cards__group-title cn-inner-heading">
 						{{ extra.title }}
-					</h4>
+					</component>
 				</header>
 				<p class="cn-grouped-cards__extra-text">
 					{{ extra.text }}
@@ -88,6 +88,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { languageMapText } from '../../utils/languageMapText.js'
@@ -160,6 +161,8 @@ export default {
 	name: 'CnGroupedCardsWidget',
 
 	components: { CnActionButtons, NcButton, NcLoadingIcon },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/** The host app's translate function. */

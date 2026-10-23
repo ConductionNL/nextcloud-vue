@@ -122,7 +122,7 @@
 					:key="group.key"
 					class="cn-object-list-widget__group"
 					data-testid="object-list-group">
-					<h4 class="cn-object-list-widget__group-heading">
+					<component :is="innerHeadingTag" class="cn-object-list-widget__group-heading cn-inner-heading">
 						<!-- `groupLabelResolve` reuses the fkResolve cell for the
 						     heading itself: `groupBy` may bucket by a uuid that is
 						     ONE MORE hop past what `extend` inlined (e.g. a
@@ -140,7 +140,7 @@
 							{{ group.label }}
 						</template>
 						({{ group.rows.length }})
-					</h4>
+					</component>
 					<CnDataTable
 						:columns="resolvedColumns"
 						:rows="group.rows"
@@ -349,6 +349,7 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
@@ -399,6 +400,8 @@ export default {
 	name: 'CnObjectListWidget',
 
 	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**
