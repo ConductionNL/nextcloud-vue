@@ -516,6 +516,20 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A first widget that renders nothing (DqZaakEmail) takes no room: the next
+   card starts under the strip and joins the open tab as the first card does.
+   Heavier than the stack-item rule above, so it wins.
+   @spec openspec/changes/board-tab-stack-empty-first/specs/board-tab-stack-empty-first/spec.md#requirement-a-board-tab-stack-skips-a-first-widget-that-renders-nothing */
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) {
+	display: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-widget-wrapper,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-detail-card {
+	border-top: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+}
+
 /* A case widget that draws its own card (CnConversationWidget,
    CnDocumentReviewWidget) is a board card: the board radius and padding.
    As the first card of a stack it joins the open tab like a widget card,
