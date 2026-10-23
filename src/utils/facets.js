@@ -122,6 +122,11 @@ export function facetOptions(facet, missingLabel) {
  * @return {object} The parameters to merge into the request
  */
 export function facetFilterParams(key, values) {
+	// One value held on its own (a default filter, `?status=ended`) is a
+	// selection of one.
+	if (typeof values === 'string' || typeof values === 'number' || typeof values === 'boolean') {
+		return values === '' ? {} : facetFilterParams(key, [values])
+	}
 	if (!Array.isArray(values) || values.length === 0) {
 		return {}
 	}
