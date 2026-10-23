@@ -8,7 +8,9 @@ so each select was 256px wide and the case type select wrapped onto a line of it
 
 ## What changes
 
-In the board look a select on a dashboard description line takes the width of its choice (no 260px minimum).
+In the board look a select on a dashboard description line is 190px wide (no 260px minimum), and its choice runs up to
+the chevron while no clear button shows. NcSelect lays its choice over its search field, so the select cannot size to
+the choice itself. Checked by injection on :8080: both selects on the description line, "Laatste 12 maanden" in full.
 
 ## Scope
 
