@@ -1742,6 +1742,18 @@
 	gap: 6px;
 }
 
+/* ---- The map list row's date (DqZakenKaart) ---------------------------- */
+/* A 14px clock 4px before "1 nov", 13px semibold in the soft text colour.
+   @spec openspec/changes/board-map-list-due-clock/specs/board-map-list-due-clock/spec.md#requirement-a-board-map-list-rows-date-carries-a-clock */
+.cn-look-board .cn-index-page__map-due:not(.cn-look-nextcloud *) {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+}
+
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
 /* The board draws "3 zaken zonder adres" as a 15px title at its normal line
    height with "Toon ze in de tabel" under it as a link flush with the title,

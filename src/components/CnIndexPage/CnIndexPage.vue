@@ -1021,7 +1021,7 @@
 												<CnIcon :name="pill.icon" :size="14" />
 											</template>
 										</CnStatusBadge>
-										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+										<span v-if="item.due" class="cn-index-page__map-due"><ClockOutline v-if="isBoardLook" :size="14" aria-hidden="true" />{{ item.due }}</span>
 									</span>
 								</div>
 							</li>
@@ -1405,6 +1405,7 @@ import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextc
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
@@ -1838,6 +1839,7 @@ export default {
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
+		ClockOutline,
 		Close,
 		Cog,
 		DatabaseSearch,
