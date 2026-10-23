@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.149.0', () => {
+	it('the manifest schema version reads 2.151.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1423,7 +1423,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) a header link's placement under the title (header-link-under-title) and a detail page's opt-in previous and next within the list it was opened from (listNavigation, detail-list-navigation-wired). 2.146.0 is batch 24hq.
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
-		expect(schema.version).toBe('2.149.0')
+		// 2.151.0 gives the card record layout a toned note line under the meta line (`cardLayout.note`, card-layout-note).
+		expect(schema.version).toBe('2.151.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1547,6 +1548,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		})
 		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
+	})
+
+	/**
+	 * @spec openspec/changes/card-layout-note/specs/card-layout-note/spec.md#requirement-a-record-card-can-draw-a-toned-note-under-its-meta-line
+	 */
+	it('accepts a card layout note with a purple or teal tone, and refuses another tone (2.151.0)', () => {
+		const page = (note) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', cardLayout: { title: 'title', note } } }] })
+		expect(validateManifestV2(page({ field: 'coveredFor', formatter: 'coveredFor', tone: 'purple' })).valid).toBe(true)
+		expect(validateManifestV2(page({ field: 'coveredFor' })).valid).toBe(true)
+		expect(validateManifestV2(page({ field: 'coveredFor', tone: 'red' })).valid).toBe(false)
+		expect(validateManifestV2(page({ formatter: 'coveredFor' })).valid).toBe(false)
 	})
 
 	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.149.0)', () => {

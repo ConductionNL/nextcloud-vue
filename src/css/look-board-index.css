@@ -1253,6 +1253,21 @@
 	font-size: 14px;
 }
 
+.cn-look-board .cn-object-card--board .cn-object-card__record-note {
+	margin: 0;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
+	color: var(--cn-status-purple-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--teal {
+	color: var(--cn-status-teal-text);
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot {
 	display: flex;
 	align-items: center;
