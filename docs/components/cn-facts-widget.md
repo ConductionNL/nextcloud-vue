@@ -217,6 +217,8 @@ page's own object instead, so one card can show the client's name and the ticket
 }
 ```
 
+When the `source` finds nothing, the `from: "object"` entries still show and the others are left out, so a card does not lose the page object's own facts (DqTenant's Status card for an organisation without a subscription record).
+
 ## Two columns, label above value (`columns: 2`)
 
 `columns: 2` lays the rows out in two columns with the label above the value and a hairline under each fact (one
