@@ -2350,6 +2350,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast) !important;
 }
 
+/* A stat grid card draws plain figures at the card inset (DqDagAfsluiten
+   "Uw dag"): 14px under the title, 16px apart, each a 13px label over a 24px
+   figure, 2px apart, without the stat tile's padding or edge. The cell's
+   variables are set on the cell, over a board tile's own.
+   @spec openspec/changes/board-stat-grid-flat/specs/board-stat-grid-flat/spec.md#requirement-a-board-stat-grid-draws-flat-figures-at-the-card-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stat-grid {
+	gap: 16px;
+	margin: 4px 0 0;
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stat-grid .cn-kpi-card.cn-kpi-card--stacked {
+	--cn-kpi-stacked-padding: 0;
+	--cn-kpi-stacked-gap: 2px;
+	--cn-kpi-stacked-title-size: 13px;
+	--cn-kpi-stacked-value-size: 24px;
+	border-width: 0;
+}
+
 /* An activity item pads itself 4px, so the body takes 4px less. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
