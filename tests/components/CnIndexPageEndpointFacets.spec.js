@@ -88,4 +88,20 @@ describe('endpoint source facets', () => {
 		const select = wrapper.find('[data-testid="cn-source-facet-channel"] select')
 		expect(select.element.value).toBe('webform')
 	})
+
+	it('draws no picker for a facet declared picker: false, and still reads its counts', async () => {
+		mockGet.mockResolvedValue({ data: ANSWER })
+		const $route = { query: {}, params: {}, path: '/postvak' }
+		const $router = { replace: jest.fn(() => Promise.resolve()), push: jest.fn() }
+		const quiet = { ...sourceConfig, facets: [{ ...sourceConfig.facets[0], picker: false }] }
+		const wrapper = mount(CnIndexPage, {
+			propsData: { title: 'Mailbox', entitySource: 'endpoint', sourceConfig: quiet, columns: [{ key: 'subject', label: 'Message' }] },
+			global: { mocks: { $route, $router } },
+			mocks: { $route, $router },
+			stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnIndexSidebar: true },
+		})
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-source-facet-channel"]').exists()).toBe(false)
+		expect(wrapper.vm.namedSource.facets()).toEqual({ channel: ANSWER.channels })
+	})
 })
