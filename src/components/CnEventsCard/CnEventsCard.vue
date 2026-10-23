@@ -118,7 +118,10 @@ export default {
 		 * (translated through the host) and `headerActions` (`link`, `create`):
 		 * the buttons it reports for its card's title row.
 		 *
-		 * @type {{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>}}
+		 * `createVariant: "secondary"` and `createIcon` draw the create action
+		 * as the quiet header action with its own icon.
+		 *
+		 * @type {{source?: object, endpoint?: string, emptyText?: string, headerActions?: Array<string>, createVariant?: string, createIcon?: string}}
 		 */
 		content: { type: Object, default: () => ({}) },
 
@@ -195,7 +198,12 @@ export default {
 			const asked = Array.isArray(this.content?.headerActions) ? this.content.headerActions : []
 			const known = {
 				link: { label: t('nextcloud-vue', 'Link an existing one'), icon: 'LinkVariant', run: () => { this.showPicker = true } },
-				create: { label: t('nextcloud-vue', 'Make an appointment'), icon: 'Plus', variant: 'primary', run: () => { this.showCreate = true } },
+				create: {
+					label: t('nextcloud-vue', 'Make an appointment'),
+					icon: typeof this.content?.createIcon === 'string' && this.content.createIcon !== '' ? this.content.createIcon : 'Plus',
+					...(this.content?.createVariant === 'secondary' ? {} : { variant: 'primary' }),
+					run: () => { this.showCreate = true },
+				},
 			}
 			const actions = this.url === '' ? [] : asked.filter((key, index) => known[key] && asked.indexOf(key) === index).map((key) => known[key])
 			/**
