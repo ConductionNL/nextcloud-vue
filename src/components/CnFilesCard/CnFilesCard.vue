@@ -14,6 +14,13 @@
 -->
 <template>
 	<CnDetailCard :title="resolvedTitle" :icon="Paperclip" :collapsible="collapsible">
+		<template v-if="$slots.actions" #actions>
+			<!--
+				@slot actions Header actions of the card, e.g. an Add button. Scope:
+				`{ refresh }`, which reads the files again after the host added one.
+			-->
+			<slot name="actions" :refresh="fetchFiles" />
+		</template>
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="files.length === 0" class="cn-files-card__empty">
 			{{ noFilesLabel }}

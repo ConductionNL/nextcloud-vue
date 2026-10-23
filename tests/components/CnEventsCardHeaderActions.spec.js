@@ -81,4 +81,23 @@ describe('CnEventsCard header actions', () => {
 		expect(init).toMatchObject({ method: 'POST', body: JSON.stringify({ calendarUri: 'personal', eventUid: 'ev-1' }) })
 		expect(wrapper.find('[data-testid="cn-events-card-link-error"]').text()).toBe('Not your task')
 	})
+
+	it('reports the create action without the primary variant and with its own icon when asked', async () => {
+		const wrapper = mountCard({ headerActions: ['create'], createVariant: 'secondary', createIcon: 'CalendarPlusOutline' })
+		await flush()
+		const [create] = lastHeader(wrapper).actions
+		expect(create.variant).toBeUndefined()
+		expect(create.icon).toBe('CalendarPlusOutline')
+	})
+
+	it('puts the flows named in menuActions in the card\'s Actions menu, not the title row', async () => {
+		const wrapper = mountCard({ headerActions: ['create'], menuActions: ['link'] })
+		await flush()
+		const header = lastHeader(wrapper)
+		expect(header.actions.map((a) => a.label)).toEqual(['Make an appointment'])
+		expect(header.menuActions.map((a) => a.label)).toEqual(['Link an existing one'])
+		header.menuActions[0].run()
+		await flush()
+		expect(wrapper.find('.picker').exists()).toBe(true)
+	})
 })

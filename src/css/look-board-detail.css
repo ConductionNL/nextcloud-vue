@@ -562,14 +562,17 @@
 	font-size: 13px;
 }
 
-.cn-look-board .cn-conversation-thread__channel {
+/* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
+   the thread to outrank the component's scoped muted ink. */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
 	padding: 1px 8px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
 	background: var(--color-main-background);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
+	line-height: 16px;
 }
 
 /* The case Status card as the board draws it: no grey box, the status's
@@ -1323,4 +1326,26 @@
    @spec openspec/changes/board-facts-action-weight/specs/board-facts-action-weight/spec.md#requirement-a-facts-cards-action-is-set-at-600 */
 .cn-look-board .cn-facts-widget__action:not(.cn-look-nextcloud *) {
 	font-weight: 600;
+}
+
+/* ---- A card's Add ------------------------------------------------------ */
+/* The board draws a list card's Add as the neutral secondary at the 40px
+   control height, right-aligned in the title row (DqZaakGerelateerd
+   "Deelzaak aanmaken", DqZaakTaken "Toevoegen"). CnDetailWidgetHost renders
+   that button in the board look, so the list's footer Add bar, which ADR-062
+   draws in the Nextcloud look, is hidden in the card. The size outranks a
+   card title row's 34px buttons.
+   @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-object-list-widget__add {
+	display: none;
+}
+
+/* An empty list card shows its text under the title-row Add, without the
+   empty state's own Add. A filter's "clear" action stays. */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add) {
+	display: none;
+}
+
+.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }

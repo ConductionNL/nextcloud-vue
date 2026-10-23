@@ -254,7 +254,7 @@
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
-			:showActions="actionsShown || catalogAddEnabled"
+			:showActions="actionsShown || catalogAddInMenu || rendererHeader.menuActions.length > 0"
 			:showRefresh="false"
 			:showRequestFeature="false"
 			:headerLink="cardHeaderLink"
@@ -265,15 +265,40 @@
 			<!-- A renderer that reports its own header (`header` event:
 			     `{ link, note, action, actions, pill }`, e.g. record-list's "3 in
 			     totaal", a facts card's status pill). -->
-			<template v-if="hasRendererHeaderItems" #actions>
-				<CnDetailWidgetHeaderItems :header="rendererHeader" />
-			</template>
-			<template v-if="catalogAddEnabled" #action-items>
-				<NcActionButton @click="invokeCatalogAdd">
+			<template v-if="hasRendererHeaderItems || catalogAddInHeader" #actions>
+				<CnDetailWidgetHeaderItems v-if="hasRendererHeaderItems" :header="rendererHeader" />
+				<!-- The board look draws the catalog Add as a button in the title
+				     row; the list's footer Add is hidden there (look-board-detail.css). -->
+				<NcButton
+					v-if="catalogAddInHeader"
+					variant="secondary"
+					class="cn-detail-page__catalog-add"
+					data-testid="cn-detail-widget-catalog-add"
+					@click="invokeCatalogAdd">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ addLabel }}
+				</NcButton>
+			</template>
+			<template v-if="catalogAddInMenu || rendererHeader.menuActions.length > 0" #action-items>
+				<NcActionButton v-if="catalogAddInMenu" @click="invokeCatalogAdd">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ addLabel }}
+				</NcActionButton>
+				<!-- `menuActions` a renderer reports: items in the card's Actions menu. -->
+				<NcActionButton
+					v-for="(action, index) in rendererHeader.menuActions"
+					:key="`menu-${index}-${action.label}`"
+					:closeAfterClick="true"
+					data-testid="cn-detail-widget-menu-action"
+					@click="action.run()">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
 				</NcActionButton>
 			</template>
 			<component
@@ -394,7 +419,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcButton } from '@nextcloud/vue'
 import { computed } from 'vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -496,6 +521,7 @@ export default {
 		CnWidgetEmptyState,
 		CnWidgetWrapper,
 		NcActionButton,
+		NcButton,
 		CnEmptyContent,
 		Plus,
 	},
@@ -764,7 +790,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null },
+			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null, menuActions: [] },
 		}
 	},
 
@@ -1506,6 +1532,29 @@ export default {
 		},
 
 		/**
+		 * Whether the catalog Add is a button in the card's title row: the board
+		 * look draws it there, right-aligned, instead of in the Actions menu and
+		 * the list's footer bar.
+		 *
+		 * @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button
+		 * @return {boolean} true when the header button renders.
+		 */
+		catalogAddInHeader() {
+			return this.catalogAddEnabled && !this.isBare && normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the catalog Add is an item of the card's Actions menu, as
+		 * ADR-062 places it in the Nextcloud look.
+		 *
+		 * @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button
+		 * @return {boolean} true when the menu item renders.
+		 */
+		catalogAddInMenu() {
+			return this.catalogAddEnabled && !this.catalogAddInHeader
+		},
+
+		/**
 		 * Whether the widget's overflow Actions menu renders: the definition's
 		 * own `showActions` when it is a boolean, else the surface's
 		 * `showActions`.
@@ -1610,7 +1659,9 @@ export default {
 				: null
 			// `subtitle`: a muted line under the card title (a task table's "1 open, 3 done").
 			const subtitle = header && typeof header.subtitle === 'string' ? header.subtitle : ''
-			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty }
+			// `menuActions`: items for the card's Actions menu instead of the title row.
+			const menuActions = (header && Array.isArray(header.menuActions) ? header.menuActions : []).filter(usable)
+			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty, menuActions }
 		},
 
 		/**

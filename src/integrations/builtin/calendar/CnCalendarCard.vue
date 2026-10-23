@@ -34,11 +34,15 @@
 			<NcButton
 				v-for="action in shownHeaderActions"
 				:key="action"
-				:variant="action === 'create' ? 'primary' : 'secondary'"
+				:variant="action === 'create' && createVariant !== 'secondary' ? 'primary' : 'secondary'"
 				:data-testid="`cn-calendar-card-${action}`"
 				@click="action === 'create' ? (showCreate = true) : (showPicker = true)">
 				<template #icon>
-					<Plus v-if="action === 'create'" :size="20" />
+					<CnIcon v-if="action === 'create' && createIcon"
+						:name="createIcon"
+						:size="20"
+						data-testid="cn-calendar-card-create-icon" />
+					<Plus v-else-if="action === 'create'" :size="20" />
 					<LinkVariant v-else :size="20" />
 				</template>
 				{{ action === 'create' ? createLabel : linkLabel }}
@@ -139,6 +143,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnIcon from '../../../components/CnIcon/CnIcon.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
 import { linkCalendarEvent } from './calendarEventLink.js'
@@ -151,7 +156,7 @@ import { linkCalendarEvent } from './calendarEventLink.js'
 export default {
 	name: 'CnCalendarCard',
 
-	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnDetailCard, LinkVariant, NcButton, NcLoadingIcon, Plus, CalendarClock, CalendarCheck },
+	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnDetailCard, CnIcon, LinkVariant, NcButton, NcLoadingIcon, Plus, CalendarClock, CalendarCheck },
 
 	props: {
 		/** OpenRegister register id (slug or uuid). Optional for user-dashboard. */
@@ -200,6 +205,10 @@ export default {
 		headerActions: { type: Array, default: () => [] },
 		/** Label of the `create` button. */
 		createLabel: { type: String, default: () => t('nextcloud-vue', 'Make an appointment') },
+		/** `secondary` draws the `create` button outlined instead of primary. */
+		createVariant: { type: String, default: 'primary' },
+		/** Icon name of the `create` button; a plus without it. */
+		createIcon: { type: String, default: '' },
 		/** Label of the `link` button. */
 		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link an existing one') },
 	},

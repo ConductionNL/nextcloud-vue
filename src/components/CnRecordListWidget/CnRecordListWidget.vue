@@ -64,6 +64,9 @@
 							{{ col.label }}
 						</template>
 					</th>
+					<th v-if="rowActions.length > 0" scope="col" class="cn-record-list__cell--actions">
+						{{ rowActionsHeader }}
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -78,12 +81,34 @@
 							:label="cell.text"
 							:variant="cell.tone"
 							size="small" />
-						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to">
+						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to" class="cn-record-list__cell-text">
 							{{ cell.text }}
 						</router-link>
-						<template v-else>
-							{{ cell.text }}
-						</template>
+						<span v-else class="cn-record-list__cell-text">{{ cell.text }}</span>
+						<span v-if="cell.sub" class="cn-record-list__cell-sub">{{ cell.sub }}</span>
+					</td>
+					<td v-if="rowActions.length > 0" class="cn-record-list__cell--actions">
+						<NcActions
+							v-if="item.rowActions.length > 0"
+							:aria-label="rowActionsLabel"
+							data-testid="cn-record-list-row-actions">
+							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
+								<NcActionLink
+									v-if="entry.href"
+									:href="entry.href"
+									:target="entry.external ? '_blank' : undefined"
+									:data-testid="`cn-record-list-row-action-${entry.index}`">
+									{{ entry.action.label }}
+								</NcActionLink>
+								<NcActionButton
+									v-else
+									:closeAfterClick="true"
+									:data-testid="`cn-record-list-row-action-${entry.index}`"
+									@click="runRowActionEntry(entry.action, item.row)">
+									{{ entry.action.label }}
+								</NcActionButton>
+							</template>
+						</NcActions>
 					</td>
 				</tr>
 			</tbody>
@@ -99,14 +124,38 @@
 		<!-- `groupBy`: a heading per group, each group its own list, named by
 		     its heading. Without it this is one list, as before. -->
 		<template v-for="group in itemGroups" v-else :key="group.key">
+			<div
+				v-if="group.label && footerGroup !== '' && group.value === footerGroup"
+				class="cn-record-list__group-head"
+				data-testid="cn-record-list-group-head">
+				<h3
+					:id="group.headingId"
+					class="cn-record-list__group-heading"
+					data-testid="cn-record-list-group-heading">
+					{{ group.label }}
+				</h3>
+				<NcButton
+					variant="secondary"
+					:class="{ 'cn-record-list__action--tonal': footerTonal }"
+					:disabled="footerDisabled"
+					:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+					data-testid="cn-record-list-footer-action"
+					@click="runFooterAction">
+					<template v-if="footerAction.icon" #icon>
+						<CnIcon :name="footerAction.icon" :size="16" />
+					</template>
+					{{ footerAction.label }}
+				</NcButton>
+			</div>
 			<h3
-				v-if="group.label"
+				v-else-if="group.label"
 				:id="group.headingId"
 				class="cn-record-list__group-heading"
 				data-testid="cn-record-list-group-heading">
 				{{ group.label }}
 			</h3>
 			<ul
+				v-if="group.items.length > 0"
 				class="cn-record-list__list"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
@@ -360,11 +409,39 @@
 		     says why (`disabledReason`: "Kan zodra de beslissing is
 		     verzonden"). -->
 		<div
-			v-if="footerAction && !error"
+			v-if="footerGroupHead && rows.length === 0 && !error && !loading"
+			class="cn-record-list__group-head"
+			data-testid="cn-record-list-group-head">
+			<h3 class="cn-record-list__group-heading" data-testid="cn-record-list-group-heading">
+				{{ footerGroupHead }}
+			</h3>
+			<NcButton
+				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:disabled="footerDisabled"
+				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+				data-testid="cn-record-list-footer-action"
+				@click="runFooterAction">
+				<template v-if="footerAction.icon" #icon>
+					<CnIcon :name="footerAction.icon" :size="16" />
+				</template>
+				{{ footerAction.label }}
+			</NcButton>
+		</div>
+		<p
+			v-if="footerGroup !== '' && footerDisabled && footerAction && footerAction.reason && !error"
+			:id="footerReasonId"
+			class="cn-record-list__footer-reason"
+			data-testid="cn-record-list-footer-reason">
+			{{ footerAction.reason }}
+		</p>
+		<div
+			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
 			data-testid="cn-record-list-footer">
 			<NcButton
 				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -662,6 +739,41 @@ export default {
 		},
 
 		/**
+		 * The group value `footerAction.group` puts the action in, with
+		 * `groupBy`; '' when the action stands under the list.
+		 *
+		 * @spec openspec/changes/record-list-group-action/specs/record-list/spec.md#requirement-a-record-lists-action-can-end-a-group-heading-as-a-tonal-pill
+		 * @return {string}
+		 */
+		footerGroup() {
+			const group = this.content?.footerAction?.group
+			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
+				return ''
+			}
+			return String(group)
+		},
+
+		/**
+		 * The heading of the action's group, for the list without rows.
+		 *
+		 * @return {string}
+		 */
+		footerGroupHead() {
+			if (this.footerGroup === '') {
+				return ''
+			}
+			const c = this.content
+			const labels = c.valueLabels && typeof c.valueLabels[c.groupBy] === 'object' ? c.valueLabels[c.groupBy] : {}
+			const named = labels[this.footerGroup] || this.footerGroup
+			return this.translate(named)
+		},
+
+		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
+		footerTonal() {
+			return this.content?.footerAction?.variant === 'tonal'
+		},
+
+		/**
 		 * What `footerAction.disabledWhen` depends on, so it is evaluated again
 		 * when the condition, the record or the workspace changes.
 		 *
@@ -842,7 +954,7 @@ export default {
 		 * or not at all. Without `groupBy` all rows are one unheaded group.
 		 *
 		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
-		 * @return {Array<{key: string, label: string, headingId: string, items: Array<object>}>} The groups.
+		 * @return {Array<{key: string, value: string, label: string, headingId: string, items: Array<object>}>} The groups.
 		 */
 		itemGroups() {
 			if (!this.isGrouped) {
@@ -869,10 +981,15 @@ export default {
 			if (buckets.has('')) {
 				values.push('')
 			}
+			if (this.footerGroup !== '' && !buckets.has(this.footerGroup)) {
+				buckets.set(this.footerGroup, [])
+				values.splice(buckets.has('') ? values.length - 1 : values.length, 0, this.footerGroup)
+			}
 			return values.map((value, index) => {
 				const named = value === '' ? c.groupEmptyLabel : (labels[value] || value)
 				return {
 					key: `group-${value}`,
+					value,
 					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
 					headingId: `${this.groupIdBase}-${index}`,
 					items: buckets.get(value),
@@ -904,6 +1021,8 @@ export default {
 			const indentPath = this.content?.indentPath
 			const rows = this.items.map((item) => ({
 				key: item.key,
+				row: item.row,
+				rowActions: this.rowActions.length > 0 ? this.rowActionsOf(item.row) : [],
 				to: item.attrs.to || null,
 				depth: indentPath ? Math.max(0, Math.floor(Number(readPath(item.row, indentPath)) || 0)) : 0,
 				cells: this.tableColumns.map((col) => {
@@ -913,6 +1032,7 @@ export default {
 					return {
 						key: col.key,
 						text,
+						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
 						tone: this.cellToneOf(col, item.row, text),
@@ -1108,6 +1228,17 @@ export default {
 					doneLabel: action.doneLabel ? this.translate(action.doneLabel) : '',
 					ariaLabel: action.ariaLabel ? this.translate(action.ariaLabel) : '',
 				}))
+		},
+
+		/**
+		 * The heading of the `table` presentation's actions column.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
+		 */
+		rowActionsHeader() {
+			const own = this.content?.rowActionsHeader
+			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
 		},
 
 		/** @return {string} The accessible name of a row's actions menu. */
@@ -1318,7 +1449,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -1531,15 +1662,21 @@ export default {
 		 * Run a `rowAction` that is not a plain link through the page's
 		 * dispatcher: a `handler` gets the row as its last argument, an
 		 * `open-modal` gets it as the `row` prop, an `object-op` acts on it.
+		 * With `endpoint` it calls that app URL for the row, as a `rowActions`
+		 * endpoint entry does.
 		 *
 		 * @param {object} row The row.
 		 * @return {unknown} What the dispatcher returns.
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 * @spec openspec/changes/record-list-row-action-endpoint/specs/record-list/spec.md#requirement-a-rows-one-action-can-call-an-app-endpoint-for-that-row
 		 */
 		runRowAction(row) {
 			const action = this.content?.rowAction
 			if (!action || typeof action !== 'object') {
 				return undefined
+			}
+			if (typeof action.endpoint === 'string' && action.endpoint !== '') {
+				return this.runRowActionEntry(action, row)
 			}
 			const type = action.type || 'handler'
 			let wrapped = action
@@ -2342,6 +2479,34 @@ export default {
 	line-height: 1.4;
 }
 
+.cn-record-list__group-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.cn-record-list__group-head .cn-record-list__group-heading {
+	margin: 0;
+}
+
+.cn-record-list__action--tonal.button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-record-list__action--tonal.button-vue:hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
+}
+
 .cn-record-list__footer {
 	display: flex;
 	flex-direction: column;
@@ -2537,6 +2702,19 @@ export default {
 .cn-record-list__table td {
 	padding: 8px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-record-list__cell-sub {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-list__table .cn-record-list__cell--actions {
+	width: 1%;
+	padding-inline-start: 12px;
+	text-align: end;
+	white-space: nowrap;
 }
 
 .cn-record-list__sort {

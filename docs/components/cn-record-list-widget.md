@@ -69,6 +69,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+- `endpoint` (with `method`, default POST) makes it a button that calls that app URL for the row, as a `rowActions` endpoint entry does: `@objectId` and the row's `{field}` tokens filled in, the list read again afterwards, a refusal shown in the server's words (else `errorText`). A row whose `labels` entry is an empty string has no action, so DqZaakBesluiten shows "Herinneren" on an open advice request only.
 
 ### Several actions per row, and links onwards
 
@@ -126,6 +127,19 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 }
 ```
 
+With `groupBy`, `footerAction.group` names a group value: the action then ends that group's heading instead of standing under the list, and the heading is drawn even when no row is in that group (after the other groups, or under the empty text). `footerAction.variant: "tonal"` draws the action as a tonal pill (primary-light, 34px, fully rounded, 13px semibold) instead of a secondary button. Board DqZaakGerelateerd puts "Vervolg plannen" at the end of "Gepland vervolg" this way.
+
+```json
+"footerAction": {
+  "label": "Plan follow-up",
+  "icon": "CalendarClock",
+  "type": "open-modal",
+  "target": "PlanFollowUpDialog",
+  "group": "planned",
+  "variant": "tonal"
+}
+```
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
@@ -150,6 +164,15 @@ In a tab panel there is no card header, so neither is drawn.
 | `alertAbove` | A number above it reads bold in the danger colour. |
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
 | `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
+
+A column's `sub` is a template drawn as a muted second line under the cell's text (board OrArchivering: the list's title, with "1.204 records" under it). It draws nothing when it fills empty.
+
+`rowActions` works in the table too: the table ends with a column headed `rowActionsHeader` (default "Actions") holding each row's menu, with the same entries, `visibleWhen` and `endpoint` calls as the `rows` presentation. A row with no action left has an empty cell.
+
+```json
+"columns": [{ "label": "List", "value": "{title}", "sub": "{summary}" }, { "label": "Status", "value": "{statusLabel}" }],
+"rowActions": [{ "label": "Approve", "endpoint": "/apps/openregister/api/archival/destruction-lists/{uuid}/approve", "visibleWhen": { "field": "status", "value": "in_review" } }]
+```
 
 `tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
 

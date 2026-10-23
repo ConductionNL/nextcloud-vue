@@ -24,4 +24,11 @@ describe('look-board.css: buttons on a settings card', () => {
 		expect(selector).toContain(':not(.cn-settings-section__actions *)')
 		expect(css.slice(at, css.indexOf('}', at))).toContain('--button-size: var(--cn-field-height, 40px);')
 	})
+
+	// DqInstellingenAlgemeen "Ander logo": the image field's button sits
+	// beside the logo at 34px on the board; the 40px rule caught it (COMPDIFF r24).
+	it('leaves the image field\'s button at 34px too', () => {
+		const at = css.indexOf('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty))')
+		expect(css.slice(at, css.indexOf('{', at))).toContain(':not(.cn-settings-field__image-row *)')
+	})
 })
