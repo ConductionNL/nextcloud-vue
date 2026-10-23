@@ -36,7 +36,7 @@ describe('look-board.css: native radio and checkbox', () => {
 	it('draws them 18px square in the primary colour, leaving the switch input alone', () => {
 		const body = ruleFor('.cn-look-board input[type="radio"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *)')
 		expect(body).not.toBeNull()
-		expect(ruleFor('.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *)')).toBe(body)
+		expect(ruleFor('.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-board-view__select):not(.cn-look-nextcloud *)')).toBe(body)
 		expect(body).toContain('width: 18px;')
 		expect(body).toContain('height: 18px;')
 		expect(body).toContain('min-height: 18px;')
