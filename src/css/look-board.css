@@ -2350,6 +2350,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast) !important;
 }
 
+/* A text card sits at the card inset with its text 8px under the title
+   (DqDagAfsluiten "Hoe dit werkt"), its blocks at the widget's size and a
+   1.5 line height. CnTextWidget pads itself 16px inline and the theme sets
+   every p at 15px, hence the !important.
+   @spec openspec/changes/board-dashboard-text-card/specs/board-dashboard-text-card/spec.md#requirement-a-board-dashboard-text-card-sits-at-the-card-inset-under-its-title */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-text-widget {
+	margin-top: -2px;
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > * {
+	font-size: inherit !important;
+	line-height: 1.5 !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > :first-child {
+	margin-top: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > :last-child {
+	margin-bottom: 0;
+}
+
 /* An activity item pads itself 4px, so the body takes 4px less. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
