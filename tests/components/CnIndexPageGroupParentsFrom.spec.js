@@ -22,6 +22,8 @@ jest.mock('../../src/utils/cnFetch.js', () => {
 	return { ...actual, cnFetchJson: (...a) => mockFetchJson(...a) }
 })
 
+jest.mock('../../src/utils/userDisplayName.js', () => ({ userDisplayName: (uid) => ({ lars: 'Lars de Koning' })[uid] || '' }))
+
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 const ocs = (data) => ({ data: { ocs: { data } } })
@@ -111,5 +113,30 @@ describe('CnIndexPage groups pane with parentsFrom', () => {
 		await flushPromises()
 		const byId = Object.fromEntries(w.vm.folderGroupList.map((group) => [group.id, group.parentId]))
 		expect(byId).toEqual({ gemeente: null, fysiek: 'gemeente', vergunningen: 'fysiek' })
+	})
+
+	it('adds the heading parts the selected group\'s record carries, a user by name', async () => {
+		mockFetchJson.mockResolvedValue({
+			results: [
+				{ id: 'r-1', ncGroupId: 'gemeente' },
+				{ id: 'r-2', ncGroupId: 'fysiek', parentRoleId: 'r-1' },
+				{ id: 'r-3', ncGroupId: 'vergunningen', parentRoleId: 'r-2', teamLead: 'lars' },
+			],
+		})
+		const w = mountPage({
+			source: 'groups',
+			filterField: 'group',
+			countText: '{count} staff',
+			parentsFrom: { register: 'dossiq', schema: 'organisatieRol', groupField: 'ncGroupId', parentField: 'parentRoleId' },
+			headingParts: [{ field: 'teamLead', text: 'team lead {value}', format: 'user' }],
+		})
+		await flushPromises()
+		w.vm.onFolderSelect('vergunningen')
+		await flushPromises()
+		expect(w.find('[data-testid="cn-index-page-scope-subtitle"]').text()).toBe('Fysiek domein · 18 staff · team lead Lars de Koning')
+
+		w.vm.onFolderSelect('fysiek')
+		await flushPromises()
+		expect(w.find('[data-testid="cn-index-page-scope-subtitle"]').text()).toBe('Gemeente Zuiddrecht · 96 staff')
 	})
 })

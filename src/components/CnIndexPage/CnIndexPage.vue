@@ -1487,6 +1487,7 @@ import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeL
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -5807,9 +5808,15 @@ export default {
 		 * pane (or with `folderSidebar.heading: true`), its name and, under
 		 * it, its parent folder and its count. The count reads
 		 * `folderSidebar.countText` (`{count}`, through the app's translate),
-		 * else "{count} members" on a groups pane.
+		 * else "{count} members" on a groups pane. `folderSidebar.headingParts`
+		 * (`[{ field, text, format? }]`) adds a part per field the selected
+		 * group's record carries (`parentsFrom`): `text` with `{value}`, through
+		 * the app's translate; `format: "user"` names a user id by its display
+		 * name ("team lead Lars de Koning", DqAfdelingen). An empty field adds
+		 * nothing.
 		 *
 		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 * @spec openspec/changes/folder-heading-parts/specs/index-page/spec.md#requirement-a-group-heading-can-name-what-its-record-carries
 		 */
 		scopeHeading() {
 			const cfg = this.folderSidebar
@@ -5833,6 +5840,18 @@ export default {
 				} else if (cfg.source === 'groups') {
 					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
 				}
+			}
+			const record = scope.record && typeof scope.record === 'object' ? scope.record : {}
+			for (const part of (Array.isArray(cfg.headingParts) ? cfg.headingParts : [])) {
+				const raw = part && part.field ? this.getByPath(record, part.field) : null
+				if (raw === null || raw === undefined || raw === '') {
+					continue
+				}
+				const value = part.format === 'user' ? userDisplayName(raw) : String(raw)
+				if (value === '') {
+					continue
+				}
+				parts.push(part.text ? this.cnTranslate(part.text).replace('{value}', value) : value)
 			}
 			return { name, subtitle: parts.join(' · ') }
 		},
@@ -11865,7 +11884,7 @@ export default {
 				const byId = new Map(groups.map((group) => [group.id, group]))
 				this.folderGroupList = declared
 					.filter((entry) => byId.has(String(entry.id)))
-					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null, record: entry.record || null }))
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
@@ -11904,7 +11923,7 @@ export default {
 				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
 				return records.map((record) => {
 					const parent = record[parentField] ? String(record[parentField]) : null
-					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent), record }
 				})
 			} catch {
 				return null
