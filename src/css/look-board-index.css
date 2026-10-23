@@ -760,6 +760,15 @@
 	white-space: nowrap;
 }
 
+/* A column that opts into wrapping (`cellClass: "cn-cell--wrap"`) wraps over
+   lines, as DqTaken draws its task titles and subjects.
+   @spec openspec/changes/board-index-wrap-cell/specs/data-table/spec.md#requirement-a-board-index-column-can-wrap-its-value */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-cell--wrap > .cn-cell-renderer {
+	overflow: visible;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 /* A narrow header cuts its label, not its filter funnel. */
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
 	max-width: calc(100% - 26px);
