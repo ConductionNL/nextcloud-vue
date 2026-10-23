@@ -2346,6 +2346,56 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
 }
 
+/* A vertical NC widget is the board's activity list (DqMijnWerk "Recente
+   activiteit"): hairline rows 12px above and below the text, a 10px dot in
+   the icon's place, the title 14px in the main ink and wrapping, the first
+   hairline 12px under the title. Thematiq underlines links with a heavier
+   selector, hence the !important.
+   @spec openspec/changes/board-nc-widget-activity-rows/specs/board-nc-widget-activity-rows/spec.md#requirement-a-board-dashboard-nc-widget-draws-its-items-as-activity-rows */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body--vertical {
+	gap: 0;
+	padding: 2px var(--cn-board-dashboard-card-inset) 10px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__body--vertical a.cn-nc-widget-widget__item--vertical {
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-icon-wrap {
+	flex: 0 0 10px;
+	width: 10px;
+	height: 10px;
+	margin-top: 6px;
+	border-radius: 50%;
+	background: var(--color-primary-element);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-icon-wrap img {
+	display: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-text {
+	gap: 2px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-title {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 1.45;
+	white-space: normal;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-subtitle {
+	font-size: 13px;
+	line-height: normal;
+}
+
 /* A widget table sits inside the card's 22px table inset, its header band
    and cells 12px in from the table's edge, as the boards draw it
    (DqTermijnen, DqDoorlooptijd, DqProcesanalyse); it does not run to the
