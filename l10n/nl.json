@@ -2581,7 +2581,11 @@
     "Show my location": "Naar mijn locatie",
     "Toggle fullscreen": "Volledig scherm",
     "{name}, in the menu": "{name}, in het menu",
-    "{name} (copy)": "{name} (kopie)"
+    "{name} (copy)": "{name} (kopie)",
+    "just now": "zojuist",
+    "this morning": "vanochtend",
+    "this afternoon": "vanmiddag",
+    "this evening": "vanavond"
   },
   "plurals": {
     "{count} member": [
@@ -2763,6 +2767,14 @@
     "{name} and %n other are also looking at this record now": [
       "{name} en %n ander kijken nu ook naar deze zaak",
       "{name} en %n anderen kijken nu ook naar deze zaak"
+    ],
+    "{count} min ago": [
+      "{count} min geleden",
+      "{count} min geleden"
+    ],
+    "{count} hour ago": [
+      "{count} uur geleden",
+      "{count} uur geleden"
     ]
   }
 }
