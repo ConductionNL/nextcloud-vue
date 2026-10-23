@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.149.0",
+	"version": "2.150.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5317,8 +5317,21 @@
 							"description": "type='dashboard' | type='detail': the accessible name of the page's view switch, e.g. \"Whose work\"; defaults to \"View\" (view-switch-containers). Maps to `viewsLabel`."
 						},
 						"headerMeta": {
-							"type": "string",
-							"minLength": 1,
+							"oneOf": [
+								{ "type": "string", "minLength": 1 },
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["count", "one", "other"],
+									"description": "header-meta-plural: the line in the singular or the plural by a `headerMetaCounts` total (\"1 lopende zaak\" / \"2 lopende zaken\"); each form is translated on its own; `zero`, when given, is used for none (an empty string leaves the line out).",
+									"properties": {
+										"count": { "type": "string", "minLength": 1, "description": "The `headerMetaCounts` name whose total picks the form." },
+										"one": { "type": "string", "description": "The form for exactly one." },
+										"other": { "type": "string", "description": "The form for any other number." },
+										"zero": { "type": "string", "description": "The form for none; without it, none reads `other`." }
+									}
+								}
+							],
 							"description": "type='detail', board look: the meta line on row 2 of the header, after the breadcrumb and a middle dot (screens-detail-page-parity). A field template such as `\"via {channel}\"`: every `{path}` is read from the record, and a line with an empty value is dropped. Maps to CnDetailPage `headerMeta`. type='index' | 'dashboard' | 'settings' (page-header-breadcrumb): the note after the breadcrumb and a middle dot under the title; on an index page `{total}` and `{shown}` are the list's counts."
 						},
 						"headerMetaCounts": {

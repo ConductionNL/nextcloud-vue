@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.149.0', () => {
+	it('the manifest schema version reads 2.150.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1423,7 +1423,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.147.0 adds a card layout's footer part (cardLayout.footerCell, card-layout-footer-cell), the bulk band's shape per view and its plural (bulkBandViews, bulkNoun), a saved view's own bulk band and count subtitle (bulkBandAlways, countSubtitle), an open-form action's confirm label (formConfirmLabel) a header link's placement under the title (header-link-under-title) and a detail page's opt-in previous and next within the list it was opened from (listNavigation, detail-list-navigation-wired). 2.146.0 is batch 24hq.
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
-		expect(schema.version).toBe('2.149.0')
+		// 2.150.0 (renumbered at batch time) lets a detail page's headerMeta pick a singular or plural form by a headerMetaCounts total (header-meta-plural).
+		expect(schema.version).toBe('2.150.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -2705,5 +2706,20 @@ describe('app-manifest-v2 — card pill resolve (pill-color-field)', () => {
 
 	it('refuses an unknown resolve key on a card pill', () => {
 		expect(validateManifestV2(page({ cardLayout: { headPill: { field: 'caseType', resolve: { colour: 'red' } } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — headerMeta plural forms (header-meta-plural)', () => {
+	const page = (headerMeta) => ({ ...MINIMAL_V2, pages: [{ id: 'OrganisationDetail', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { register: 'dossiq', schema: 'kvkCompany', headerMeta } }] })
+
+	it('accepts a string and a { count, one, other, zero? } form', () => {
+		expect(validateManifestV2(page('via {channel}')).valid).toBe(true)
+		expect(validateManifestV2(page({ count: 'open', one: '{count:open} open case', other: '{count:open} open cases', zero: '' })).valid).toBe(true)
+	})
+
+	it('refuses a plural form without its count or its forms', () => {
+		expect(validateManifestV2(page({ one: 'x', other: 'y' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x', other: 'y', few: 'z' })).valid).toBe(false)
 	})
 })
