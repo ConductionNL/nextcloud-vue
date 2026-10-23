@@ -413,6 +413,7 @@ export default {
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
@@ -1007,10 +1008,14 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/facts-entry-empty-value/specs/facts-widget/spec.md#requirement-a-facts-entry-can-name-its-empty-value
 		 */
 		entryValue(record, field, kind) {
 			const value = this.bareEntryValue(record, field, kind)
-			return value !== '' && typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
+			if (value === '') {
+				return typeof field.emptyValue === 'string' && field.emptyValue !== '' ? this.tr(field.emptyValue) : ''
+			}
+			return typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
 		},
 
 		/**
