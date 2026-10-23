@@ -6061,6 +6061,7 @@ export default {
 				counts: this.savedViewCounts,
 				selectedViewId: this.appliedSavedViewId,
 				menuIds: this.savedViewMenuIds,
+				summaries: Object.fromEntries(this.viewsForControl.map((view) => [viewIdOf(view), this.viewFilterSummary(view)])),
 			}
 		},
 
@@ -8161,62 +8162,17 @@ export default {
 			if (!this.isBoardLook) {
 				return []
 			}
-			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
-			const ranges = new Map()
 			// An applied saved view names itself; its own filters are not chips
 			// (DqFilterBeheren draws "Wacht op inwoner" with no chip for it).
 			const view = this.appliedSavedView
 			const viewFilters = view && view.query && view.query.filters && typeof view.query.filters === 'object' ? view.query.filters : {}
 			const ownToView = (key, value) => Object.hasOwn(viewFilters, key)
 				&& (Array.isArray(viewFilters[key]) ? viewFilters[key].map(String) : [String(viewFilters[key])]).includes(String(value))
-			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
-				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
-				if (bound) {
-					const value = Array.isArray(raw) ? raw[0] : raw
-					if (value === null || value === undefined || value === '' || this.isFixedFilter(key, value)) {
-						continue
-					}
-					if (!ranges.has(bound[1])) {
-						ranges.set(bound[1], { from: null, to: null, keys: [] })
-						chips.push({ key: bound[1], rangeOf: bound[1] })
-					}
-					const range = ranges.get(bound[1])
-					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
-					range.keys.push(key)
-					continue
-				}
-				const ends = rangeEnds(raw)
-				if (ends) {
-					if (this.isFixedFilter(key, raw)) {
-						continue
-					}
-					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
-					continue
-				}
-				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-					const text = this.activeFilterOperatorText(key, raw)
-					if (text !== '' && !this.isFixedFilter(key, raw)) {
-						chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${text}` })
-					}
-					continue
-				}
-				const values = (Array.isArray(raw) ? raw : [raw])
-					.filter((value) => value !== null && value !== undefined && value !== '')
-					.filter((value) => !this.isFixedFilter(key, value))
-					.filter((value) => !ownToView(key, value))
-					.map((value) => this.activeFilterValueLabel(key, value))
-				if (values.length === 0) {
-					continue
-				}
-				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
-			}
-			return chips.map((chip) => {
-				if (!chip.rangeOf) {
-					return chip
-				}
-				const range = ranges.get(chip.rangeOf)
-				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
-			})
+			return [
+				...this.searchTermChips,
+				...this.quickFilterActiveChips,
+				...this.filterChipsOf(this.effectiveActiveFilters, (key, value) => this.isFixedFilter(key, value) || ownToView(key, value)),
+			]
 		},
 
 		/**
@@ -11077,6 +11033,92 @@ export default {
 				return this.cnTranslate(field.title)
 			}
 			return this.cnTranslate(key)
+		},
+
+		/**
+		 * Filters as chips in the Active line's words, one per filter: "Team:
+		 * Woo". A filter with no value gives none. A range, as one `{from, to}`
+		 * value or as `key[gte]`/`key[lte]` keys, is one chip; `keys` lists the
+		 * filter keys it stands for. Several values of one filter read as a list
+		 * in the locale ("A en B").
+		 *
+		 * @param {object} filters The filters, by key.
+		 * @param {Function} [isFixed] `(key, value) => boolean`: a value that gets no chip.
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
+		 */
+		filterChipsOf(filters, isFixed = () => false) {
+			const chips = []
+			const ranges = new Map()
+			for (const [key, raw] of Object.entries(filters || {})) {
+				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+				if (bound) {
+					const value = Array.isArray(raw) ? raw[0] : raw
+					if (value === null || value === undefined || value === '' || isFixed(key, value)) {
+						continue
+					}
+					if (!ranges.has(bound[1])) {
+						ranges.set(bound[1], { from: null, to: null, keys: [] })
+						chips.push({ key: bound[1], rangeOf: bound[1] })
+					}
+					const range = ranges.get(bound[1])
+					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
+					range.keys.push(key)
+					continue
+				}
+				const ends = rangeEnds(raw)
+				if (ends) {
+					if (isFixed(key, raw)) {
+						continue
+					}
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
+					continue
+				}
+				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+					const text = this.activeFilterOperatorText(key, raw)
+					if (text !== '' && !isFixed(key, raw)) {
+						chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${text}` })
+					}
+					continue
+				}
+				const values = (Array.isArray(raw) ? raw : [raw])
+					.filter((value) => value !== null && value !== undefined && value !== '')
+					.filter((value) => !isFixed(key, value))
+					.map((value) => this.activeFilterValueLabel(key, value))
+				if (values.length === 0) {
+					continue
+				}
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
+			}
+			return chips.map((chip) => {
+				if (!chip.rangeOf) {
+					return chip
+				}
+				const range = ranges.get(chip.rangeOf)
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
+			})
+		},
+
+		/**
+		 * What a saved view filters on, in the Active line's words, for the
+		 * line under its name in the side panel: its search term, then each
+		 * filter ("Search term: Lindelaan, Status: Open"). '' when it filters
+		 * on nothing.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {string}
+		 */
+		viewFilterSummary(view) {
+			const query = (view && view.query) || {}
+			const filters = query.filters || (view && (view.filters || view.filter)) || {}
+			const parts = []
+			const term = typeof query.search === 'string' ? query.search.trim() : ''
+			if (term !== '') {
+				parts.push(t('nextcloud-vue', 'Search term: {term}', { term }))
+			}
+			for (const chip of this.filterChipsOf(filters)) {
+				parts.push(chip.label)
+			}
+			return parts.join(', ')
 		},
 
 		/**

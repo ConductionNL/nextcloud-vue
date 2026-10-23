@@ -276,7 +276,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		it('offers only the views saved for this page\'s register and schema, plus the unscoped ones', async () => {
 			const wrapper = mountPage({ allowSavedViews: true })
 			await flush()
-			const names = wrapper.findAll('[data-testid="cn-saved-views-item"]').map((w) => w.text())
+			const names = wrapper.findAll('[data-testid="cn-saved-views-item"] .cn-saved-views-panel__name-text').map((w) => w.text())
 			expect(names).toEqual(expect.arrayContaining(['Open cases', 'My open cases']))
 			expect(names).not.toEqual(expect.arrayContaining(['Big companies']))
 			expect(names).not.toEqual(expect.arrayContaining(['Shared by hand']))
@@ -285,7 +285,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		it('shows another schema\'s views on the page over that schema', async () => {
 			const wrapper = mountPage({ allowSavedViews: true, schema: { slug: 'company', properties: {} } })
 			await flush()
-			const names = wrapper.findAll('[data-testid="cn-saved-views-item"]').map((w) => w.text())
+			const names = wrapper.findAll('[data-testid="cn-saved-views-item"] .cn-saved-views-panel__name-text').map((w) => w.text())
 			expect(names).toEqual(expect.arrayContaining(['Big companies']))
 			expect(names).not.toEqual(expect.arrayContaining(['Open cases']))
 		})
@@ -293,7 +293,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		it('lets savedViewsScope group pages regardless of their source', async () => {
 			const wrapper = mountPage({ allowSavedViews: true, savedViewsScope: 'everything' })
 			await flush()
-			const names = wrapper.findAll('[data-testid="cn-saved-views-item"]').map((w) => w.text())
+			const names = wrapper.findAll('[data-testid="cn-saved-views-item"] .cn-saved-views-panel__name-text').map((w) => w.text())
 			expect(names).toEqual(expect.arrayContaining(['Shared by hand', 'My open cases']))
 			expect(names).not.toEqual(expect.arrayContaining(['Open cases', 'Big companies']))
 		})
