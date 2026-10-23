@@ -2744,6 +2744,10 @@ describe('default views carry a line and a secondary mark (default-views-seconda
 	it('refuses a secondary mark that is not a boolean', () => {
 		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, secondary: 'yes' })).valid).toBe(false)
 	})
+})
+
+describe('app-manifest-v2 — headerMeta plural forms (header-meta-plural)', () => {
+	const page = (headerMeta) => ({ ...MINIMAL_V2, pages: [{ id: 'OrganisationDetail', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { register: 'dossiq', schema: 'kvkCompany', headerMeta } }] })
 
 	it('accepts a string and a { count, one, other, zero? } form', () => {
 		expect(validateManifestV2(page('via {channel}')).valid).toBe(true)
