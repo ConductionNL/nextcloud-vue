@@ -1046,15 +1046,18 @@ export default {
 
 		/**
 		 * The `table` presentation's columns: `{ label, value, align?, alertAbove? }`,
-		 * `value` a template over the row.
+		 * `value` a template over the row, or a list of templates of which the
+		 * first that fills is shown (a row that holds only some fields).
 		 *
 		 * @return {Array<object>} The columns with a key and a translated label.
 		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 * @spec openspec/changes/record-list-table-column-candidates/specs/record-list-table/spec.md#requirement-a-table-column-can-name-candidate-templates
 		 */
 		tableColumns() {
 			const columns = Array.isArray(this.content?.columns) ? this.content.columns : []
+			const isTemplate = (value) => typeof value === 'string' || (Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string'))
 			return columns
-				.filter((col) => col && typeof col === 'object' && typeof col.value === 'string')
+				.filter((col) => col && typeof col === 'object' && isTemplate(col.value))
 				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '' }))
 		},
 
@@ -1082,7 +1085,8 @@ export default {
 						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
-						tone: this.cellToneOf(col, item.row, text),
+						// An empty cell draws no coloured label.
+						tone: text === '' ? '' : this.cellToneOf(col, item.row, text),
 					}
 				}),
 			}))

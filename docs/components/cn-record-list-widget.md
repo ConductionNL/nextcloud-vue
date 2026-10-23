@@ -161,7 +161,7 @@ In a tab panel there is no card header, so neither is drawn.
 
 | Key | Meaning |
 |-----|---------|
-| `value` | A template over the row, the cell text. |
+| `value` | A template over the row, the cell text, or a list of templates of which the first that fills is shown (`["{identifier} {title}", "{domain}"]`). |
 | `align` | `"end"` right-aligns the cell, for numbers. |
 | `alertAbove` | A number above it reads bold in the danger colour. |
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
