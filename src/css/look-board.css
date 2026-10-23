@@ -2804,6 +2804,22 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	accent-color: var(--color-primary-element);
 }
 
+/* The chosen setup choice is edged by a real 2px border, as DqInstellen
+   measures it, instead of a 1px border and a 1px inset shadow; the padding
+   gives the second pixel back so the words stay put. The board draws no
+   option icon, only the radio and the words.
+   @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *) {
+	padding: 11px 13px;
+	border-width: 2px;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-icon:not(.cn-look-nextcloud *) {
+	display: none;
+}
+
 /* ---- A dashboard chart's bar list --------------------------------------- */
 /* The rows stand 27px apart, as DqDashboard draws them ("Zaken per status":
    14px text, 10px between). A row is a drill button, which took Nextcloud's
