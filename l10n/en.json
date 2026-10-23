@@ -1578,6 +1578,8 @@
     "done in {duration}": "done in {duration}",
     "trigger {trigger}": "trigger {trigger}",
     "version {version}": "version {version}",
+    "Start step": "Start step",
+    "More steps": "More steps",
     "{count} steps": "{count} steps",
     "{in} in, {out} out.": "{in} in, {out} out.",
     "{ms} ms": "{ms} ms",
