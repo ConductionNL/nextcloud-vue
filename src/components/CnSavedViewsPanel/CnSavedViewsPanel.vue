@@ -356,13 +356,13 @@ export default {
 		},
 
 		/**
-		 * Whether a view is in the app menu.
+		 * Whether a view is in the app menu, by its id or its uuid.
 		 *
 		 * @param {object} view The view.
 		 * @return {boolean}
 		 */
 		isInMenu(view) {
-			return this.canPin && this.menuIds.includes(this.idOf(view))
+			return this.canPin && (this.menuIds.includes(this.idOf(view)) || (Boolean(view.uuid) && this.menuIds.includes(String(view.uuid))))
 		},
 
 		/**
