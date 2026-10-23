@@ -2760,3 +2760,37 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	font-size: 1.4em;
 }
+
+/* ---- A map's control bar ------------------------------------------------- */
+/* The board draws a map's buttons as one column in the top right, 12px in and
+   6px apart: 36px white squares with the control edge and radius around an
+   18px icon (DqZakenKaart). CnMapWidget puts the zoom buttons in this bar in
+   the board look. The selectors outweigh Leaflet's `.leaflet-touch .leaflet-bar
+   a:first-child` and the widget's scoped 30px rule.
+   @spec openspec/changes/board-map-controls/specs/board-map-controls/spec.md#requirement-the-board-maps-buttons-are-36px-edged-squares */
+.cn-look-board .cn-map-widget .leaflet-bar.cn-map-widget__controls:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 12px 12px 0 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+}
+
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 36px;
+	height: 36px;
+	line-height: normal;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):hover,
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):focus-visible {
+	background: var(--color-background-hover);
+}
