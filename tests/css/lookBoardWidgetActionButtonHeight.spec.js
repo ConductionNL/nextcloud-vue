@@ -46,3 +46,12 @@ describe('look-board.css: widget action buttons', () => {
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')
 	})
 })
+
+describe('look-board.css: a conversation thread header button', () => {
+	/** @spec openspec/changes/board-thread-header-button-height/specs/board-thread-header-button-height/spec.md#requirement-a-thread-headers-labelled-button-is-40px */
+	it('draws a labelled thread header button at the control height (DqZaakContact)', () => {
+		const body = ruleFor('.cn-look-board .cn-conversation-thread__header-actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *))')
+		expect(body).not.toBeNull()
+		expect(body).toContain('--button-size: var(--cn-board-control-height);')
+	})
+})
