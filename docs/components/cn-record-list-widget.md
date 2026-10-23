@@ -206,6 +206,8 @@ In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dage
 
 `aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
 
+`presentation: "checklist"` draws the rows as a checklist in `columns` (1 to 4, default 3): a row for which `done` (a condition over the row, `{ "field": "status", "op": "eq", "value": "completed" }`) holds is ticked, any other row is an empty circle, and a screen reader hears "Done" or "Not done yet" after each. `progress: true` adds a bar of the done share above it. With `headerNote: "{count:status=completed} of {total} steps done"` the card header counts them (DqTenant Inrichten "5 van 7 stappen klaar").
+
 ## Props
 
 | Prop | Type | Default | Description |
