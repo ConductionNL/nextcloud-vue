@@ -870,6 +870,9 @@ export default {
 			if (this.dueResult && this.dueResult.tone === 'danger') {
 				return 'cn-cell-renderer__date--error'
 			}
+			if (this.dueResult && this.dueResult.tone === 'muted') {
+				return 'cn-cell-renderer__date--muted'
+			}
 			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
 		},
 
@@ -2153,6 +2156,10 @@ export default {
 
 .cn-cell-renderer__date--error {
 	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__date--muted {
+	color: var(--color-text-maxcontrast);
 }
 
 /* The text variant, not the fill: from Nextcloud 32 `--color-success` is a
