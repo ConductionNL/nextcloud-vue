@@ -31,6 +31,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 
 // Components
 export {
+	CnActionAuthMatrix,
 	CnActionButtons,
 	CnActionDialog,
 	CnActionsBar,
@@ -294,6 +295,7 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnRowMarkList,
 	CnSavedViewEditDialog,
 	CnSavedViewMenuSettings,
 	CnSavedViewPresentationDialog,
@@ -310,6 +312,7 @@ export {
 	CnSearchIndexStatus,
 	CnSearchPage,
 	CnSearchSelect,
+	CnSecretAddressCard,
 	CnSectionsWidget,
 	CnSelectionScope,
 	CnSettingsCard,
@@ -321,6 +324,7 @@ export {
 	CnSetupWizard,
 	CnShippedConfigurationSection,
 	CnSignatureCapture,
+	CnSlotGrid,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,

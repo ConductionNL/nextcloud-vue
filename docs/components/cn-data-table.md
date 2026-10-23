@@ -119,6 +119,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 |------|-------|-------------|
 | `#column-{key}` | `{ row, value }` | Override the cell renderer for a specific column key |
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
+| `#row-detail` | `{ row }` | A full-width row under each data row, for what belongs to that row (CnObjectListWidget puts the row's child records here). Not draggable and not a drop target. |
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
 

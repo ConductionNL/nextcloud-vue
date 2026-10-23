@@ -92,7 +92,12 @@ Three types hold no value of their own; they are never checked or saved.
 
 - `heading` draws its `label` as a subheading between fields.
 - `status` draws a read-only note. Its text is `text`, or its `textMap` entry for the value read at its key (`'*'` for any other value; with neither, the value itself). `{name}` takes the value of that field or of that key in the values read, `{value}` the field's own. Its tone is `tone` or its `toneMap` entry (`info` by default; `warning` and `error` are announced as alerts). A note whose text is empty is not drawn, so `textMap: { '': '' }` hides it while nothing is wrong.
-- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section.
+- `action` draws a button with its `label`. It posts the fields named in `send` to `url` with `method` (default `POST`) and shows the answer's sentence at `resultPath` (default `message`, else `successText`, or `failureText` when `okPath` reads false, with `{name}` filled from the answer, else "Done."), as an error when `okPath` reads false. A failed request shows the server's own sentence. With `fill: { key, bytes }` it puts a random hexadecimal value of that many bytes (default 32) in that field instead, to be saved with the section. With `href` it is a link to a page (`target: '_blank'` opens a new tab) and posts nothing. With `confirm` it asks first (the question's text, `confirmLabel` for the button) and posts only after a yes; `params` are sent with it, such as `{ confirm: 'true' }`.
+- A `secret` with `clearable` offers "Remove the stored value" while a value is stored. Switched on, the input is disabled and the save sends `clearKey: true` (for a server that takes a flag, such as `clearToken`), or the key with an empty value when there is no `clearKey`.
+- A `pairs` field with `valueSource: { register, schema, labelField }` chooses each value from those OpenRegister objects and saves their ids.
+- A `week-hours` field edits opening hours per day as `{ <day>: { opens, closes } | null }`. A save refuses a day that closes before it opens or misses a time.
+- An action with `reload: true` reads the section again after it ran, so a status note shows what it changed. An action's `url` is only posted to, never read.
+- A status `text` or `textMap` entry can format a date: `{signedAt|date}` shows the day, month and year in the user's language.
 
 ```js
 fields: [
@@ -126,12 +131,15 @@ fields: [
 | `setKey` | The key that says a secret is stored. |
 | `saveAs` | `'json'`: a lines, multi-choice or pairs field saves JSON text; `'csv'`: a multi-choice field saves comma text. |
 | `multiple` | A select that takes several values, saved as a list. |
-| `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel`, `valueAbove`, `valueMessage` | A pairs field's inputs, add button and value check. |
+| `keyLabel`, `valueLabel`, `valueType`, `keyMaxLength`, `addLabel`, `valueAbove`, `valueMessage`, `valueSource` | A pairs field's inputs, add button, value check, and the objects its values are chosen from. |
 | `path` | `setting.key`: edit one key inside a JSON-valued setting. |
 | `scope` | The value fills `{key}` in the urls and reloads the section; never saved. |
 | `integer` | A number must be whole. |
 | `text`, `textMap`, `tone`, `toneMap` | A status note's text and tone. |
-| `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill` | An action, see above. |
+| `method`, `send`, `resultPath`, `okPath`, `successText`, `failureText`, `fill`, `href`, `target`, `confirm`, `confirmLabel`, `params` | An action, see above. |
+| `clearable`, `clearKey`, `clearLabel` | A secret whose stored value can be removed. |
+| `days`, `defaultOpens`, `defaultCloses` | A week-hours field's days and the hours a day opens with. |
+| `reload` | An action that reads the section again after it ran. |
 | `readOnly` | Shown, not editable. |
 | `wide` | Spans every column. |
 | `advanced` | Drawn behind one disclosure after the other fields ("Advanced", `advancedLabel`), closed at first and opened when one of its fields is refused. Saved with the rest. |

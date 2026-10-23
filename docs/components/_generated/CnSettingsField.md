@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**light**: this component touches OpenRegister lightly. 1 direct reference, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name                                                           | Payload | Description                                  |
 | -------------------------------------------------------------- | ------- | -------------------------------------------- |
+| `clear`                                                        | —       |                                              |
 | `update:modelValue`                                            | —       |                                              |
 | `uploaded`                                                     | —       | An image was uploaded. Payload: its new url. |
 | `action`                                                       | —       | The user pressed an `action` field's button. |

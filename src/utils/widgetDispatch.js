@@ -49,10 +49,14 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * on a card surface both need the titled wrapper, and neither has an Add.
  * `object-translations` is a bare per-language editor that takes the titled
  * wrapper and has no Add.
+ * `row-mark-list` draws bare rows with their marks and one Save; the card and
+ * its title come from the host, and it has no Add.
+ * `slot-grid` draws a bare table with its own add buttons per cell; the card
+ * and its title come from the host, and the catalog Add does not apply.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid'])
 
 /**
  * The stored content/config blob for a widget definition.

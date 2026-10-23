@@ -72,14 +72,19 @@
 
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
-		     Config: widgetProps { register, schema, labelField }. -->
+		     Config: widgetProps { register, schema, labelField, matchField?,
+		     refField?, labelTemplate?, labelPath? }. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
-				v-if="hasValue"
+				v-if="hasValue || fkRefValue !== null"
 				:value="value"
 				:register="(widgetProps && widgetProps.register) || ''"
 				:schema="(widgetProps && widgetProps.schema) || ''"
-				:labelField="(widgetProps && widgetProps.labelField) || 'name'" />
+				:labelField="(widgetProps && widgetProps.labelField) || 'name'"
+				:matchField="(widgetProps && widgetProps.matchField) || ''"
+				:refValue="fkRefValue"
+				:labelTemplate="(widgetProps && widgetProps.labelTemplate) || ''"
+				:labelPath="(widgetProps && widgetProps.labelPath) || ''" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -1131,6 +1136,23 @@ export default {
 		/** True when the cell has a renderable value (not null/undefined/empty string). */
 		hasValue() {
 			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * The row's own reference for an `fkResolve` cell (`widgetProps.refField`),
+		 * or null when the row has none.
+		 *
+		 * @return {string|number|Array|null}
+		 * @spec openspec/changes/fk-resolve-lookup/specs/fk-resolve-lookup/spec.md#requirement-a-reference-cell-can-look-its-record-up-by-a-property
+		 */
+		fkRefValue() {
+			const field = this.widgetProps && this.widgetProps.refField
+			if (!field || !this.row) {
+				return null
+			}
+			const ref = readPath(this.row, field)
+			const empty = ref === null || ref === undefined || ref === '' || (Array.isArray(ref) && ref.length === 0)
+			return empty || (typeof ref === 'object' && !Array.isArray(ref)) ? null : ref
 		},
 
 		/**
