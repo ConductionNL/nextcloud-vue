@@ -85,6 +85,7 @@ empty history.
 | `publicLabel` | "Visible to the requester" | Label of the public badge, filter option and composer switch. |
 | `exportName` | `history` | CSV file name prefix; the object id is appended. |
 | `composer` | `true` | `false` hides the note composer. `"only"` draws the composer alone, to stack as a card of its own under the list (board DqZaakHistorie "Notitie toevoegen"); `"separate"` draws the list without a composer but keeps "Add note", which focuses that card. A note saved in the card reloads the list of the same object. |
+| `visibilityLabel` | `true` | `false` draws the visibility filter without its "Visibility" label (it stays the accessible name), so the select reads "Internal and public" on its own (board DqZaakHistorie). |
 | `auditTrailLink` | unset | `true` ("Full audit trail in the sidebar") or a label: a link beside the event count that opens the object sidebar on its audit trail tab. Drawn only when the page has an object sidebar. |
 | `auditTrailTab` | `auditTrail` | The sidebar tab the audit trail link opens, for a page that declares its audit trail tab under its own id. |
 | `textBlocks` | `true` | `false` skips the standard notes. |

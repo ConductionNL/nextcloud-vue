@@ -71,7 +71,9 @@
 					:options="visibilityOptions"
 					:clearable="true"
 					label="label"
-					:inputLabel="t('nextcloud-vue', 'Visibility')"
+					:inputLabel="visibilityLabelShown ? t('nextcloud-vue', 'Visibility') : undefined"
+					:labelOutside="!visibilityLabelShown"
+					:ariaLabelCombobox="t('nextcloud-vue', 'Visibility')"
 					:placeholder="t('nextcloud-vue', 'Internal and public')"
 					data-testid="cn-timeline-visibility-filter"
 					@update:modelValue="load" />
@@ -341,6 +343,18 @@ export default {
 		 */
 		composerEnabled() {
 			return this.content.composer !== false && this.content.composer !== 'separate'
+		},
+
+		/**
+		 * Whether the visibility filter shows its "Visibility" label. With
+		 * `visibilityLabel: false` it keeps only its accessible name and the
+		 * select reads "Internal and public" on its own (board DqZaakHistorie).
+		 *
+		 * @spec openspec/changes/timeline-visibility-filter-unlabelled/specs/timeline/spec.md#requirement-the-visibility-filter-can-go-without-a-visible-label
+		 * @return {boolean}
+		 */
+		visibilityLabelShown() {
+			return this.content.visibilityLabel !== false
 		},
 
 		/** @return {boolean} The widget is the note form alone (`composer: "only"`), a card of its own beside the list. */
