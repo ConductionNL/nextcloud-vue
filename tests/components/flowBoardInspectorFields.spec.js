@@ -54,7 +54,7 @@ describe('the board inspector edits the selected step', () => {
 	it('shows the settings the step sets and the required ones, as fields', async () => {
 		const w = await mountBoard()
 		expect(w.vm.stepFields.map((field) => [field.key, field.widget])).toEqual([['tableRef', 'select'], ['inputMapping', 'textarea'], ['resultKey', 'text']])
-		expect(w.vm.stepFields[0].option).toEqual({ value: 'welstand', label: 'Welstandsgebieden Zuiddrecht' })
+		expect(w.vm.stepFields[0].option).toEqual({ id: 'welstand', label: 'Welstandsgebieden Zuiddrecht' })
 	})
 
 	it('writes a chosen option to the step', async () => {
@@ -80,6 +80,19 @@ describe('the board inspector edits the selected step', () => {
 		expect(w.vm.stepTypePill).toBe('Beslistabel from OpenRegister')
 		const rows = w.findAll('.cn-flow-board__outcome').map((row) => [row.find('dt').text(), row.find('dd').text()])
 		expect(rows).toEqual([['Ja', 'Deelzaak welstandsadvies'], ['Nee', 'Besluit publiceren']])
+	})
+
+	it('loads the choices a field names by url, and keeps a stored value it does not list', async () => {
+		const { default: axios } = require('@nextcloud/axios')
+		axios.get.mockImplementation((url) => Promise.resolve({ data: { results: url.includes('decision-table') ? [{ id: 'u-1', name: 'Welstandsgebieden Zuiddrecht' }] : [] } }))
+		const w = await mountBoard()
+		w.vm.store.nodeCatalog = [{ ...CATALOG[0], configForm: [{ key: 'tableRef', label: 'Beslistabel', type: 'select', optionsFrom: '/apps/openregister/api/objects/decision-tables/decision-table' }] }, ...CATALOG.slice(1)]
+		w.vm.store.flow.nodes[0].config.tableRef = 'u-1'
+		await w.vm.loadStepOptions()
+		expect(w.vm.stepFields[0].widget).toBe('select')
+		expect(w.vm.stepFields[0].option).toEqual({ id: 'u-1', label: 'Welstandsgebieden Zuiddrecht' })
+		w.vm.store.flow.nodes[0].config.tableRef = 'old-key'
+		expect(w.vm.stepFields[0].option).toEqual({ id: 'old-key', label: 'old-key' })
 	})
 
 	it('locks the fields on a locked flow', async () => {

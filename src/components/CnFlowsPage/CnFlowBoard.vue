@@ -224,7 +224,7 @@
 								:clearable="false"
 								:disabled="store.graphLocked"
 								label="label"
-								@update:modelValue="setStepField(field, $event ? $event.value : '')" />
+								@update:modelValue="setStepField(field, $event ? $event.id : '')" />
 							<NcTextArea v-else-if="field.widget === 'textarea'"
 								:modelValue="fieldDraft(field)"
 								:label="field.label"
@@ -317,6 +317,7 @@ import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlo
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
+import { normaliseSelectOptions } from '../../utils/selectOptions.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -400,7 +401,7 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {} }
+		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {} }
 	},
 
 	computed: {
@@ -693,11 +694,14 @@ export default {
 				.filter((field) => field && field.key && (isSet(config[field.key]) || field.required === true))
 				.map((field) => {
 					const value = config[field.key]
-					const options = Array.isArray(field.options)
-						? field.options.map((o) => (o && typeof o === 'object' ? { value: o.value, label: String(o.label ?? o.value) } : { value: o, label: String(o) }))
-						: []
+					const options = field.optionsFrom
+						? [...(this.loadedOptions[field.optionsFrom] || [])]
+						: normaliseSelectOptions(field.options)
+					if (isSet(value) && typeof value !== 'object' && options.length > 0 && !options.some((o) => o.id === value)) {
+						options.push({ id: value, label: String(value) })
+					}
 					let widget = 'text'
-					if (options.length > 0) {
+					if (options.length > 0 || (field.type === 'select' && field.optionsFrom)) {
 						widget = 'select'
 					} else if (field.type === 'boolean' || field.type === 'switch' || typeof value === 'boolean') {
 						widget = 'switch'
@@ -710,7 +714,7 @@ export default {
 						widget,
 						value,
 						options,
-						option: options.find((o) => o.value === value) || null,
+						option: options.find((o) => o.id === value) || null,
 						isObject: value !== null && typeof value === 'object',
 					}
 				})
@@ -788,6 +792,7 @@ export default {
 		'store.selectedNodeId': {
 			handler() {
 				this.drafts = {}
+				this.loadStepOptions()
 			},
 		},
 
@@ -821,6 +826,37 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Load the choices of the selected step's select fields that name a
+		 * url (`optionsFrom`), once per url.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadStepOptions() {
+			const node = this.store.selectedNode
+			const entry = node ? this.store.catalogEntry(node.type) : null
+			const urls = ((entry && entry.configForm) || [])
+				.filter((field) => field && field.type === 'select' && field.optionsFrom)
+				.map((field) => String(field.optionsFrom))
+				.filter((url) => !this.loadedOptions[url])
+			if (urls.length === 0) {
+				return
+			}
+			const { default: axios } = await import('@nextcloud/axios')
+			const { generateUrl } = await import('@nextcloud/router')
+			await Promise.all(urls.map(async (url) => {
+				try {
+					const response = await axios.get(url.startsWith('/') && !url.startsWith('/apps') && !url.startsWith('/index.php') ? generateUrl(url) : url)
+					const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
+					this.loadedOptions = { ...this.loadedOptions, [url]: normaliseSelectOptions(rows) }
+				} catch (error) {
+					// The field then shows the stored value; Edit step still reaches everything.
+					// eslint-disable-next-line no-console -- diagnostic for a failure this degrades from
+					console.error(`cn-flow: could not load options from ${url}`, error)
+				}
+			}))
+		},
+
 		/**
 		 * What a text field shows: the typing in progress, else the setting.
 		 *
