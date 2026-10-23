@@ -74,3 +74,14 @@ describe('CnConversationWidget reply option', () => {
 		expect(action.props).toEqual({ caseId: 'case-1', text: 'We sent it.', logContactMoment: true })
 	})
 })
+
+describe('CnConversationThread reply row (board DqZaakContact)', () => {
+	it('draws the option and the buttons in one row, Send with its icon', () => {
+		const w = mount(CnConversationThread, { props: { messages: [], replyOption: OPTION } })
+		const foot = w.find('.cn-conversation-thread__reply-foot')
+		expect(foot.exists()).toBe(true)
+		expect(foot.find('[data-testid="cn-conversation-reply-option"]').exists()).toBe(true)
+		expect(foot.find('[data-testid="cn-conversation-send"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-conversation-send"] .send-icon').exists()).toBe(true)
+	})
+})

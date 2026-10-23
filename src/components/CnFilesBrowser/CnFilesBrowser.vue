@@ -417,7 +417,7 @@
 									@click="runHostAction(rowButton, node)">
 									{{ hostLabel(rowButton) }}
 								</NcButton>
-								<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
+								<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
 									<NcActionButton
 										v-for="action in actionsFor(node)"
 										:key="action.id"
@@ -544,7 +544,7 @@
 							<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
 						</td>
 						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
+							<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
 								<NcActionLink
 									v-if="item.href"
 									:href="item.href"

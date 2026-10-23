@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { boardDateLocale, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay } from './boardDate.js'
+import { translate as t } from '@nextcloud/l10n'
+import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay, isoWeek } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { formatMoney } from './formatMetric.js'
 import { readPath } from './readPath.js'
@@ -63,7 +64,7 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `days`, `lower` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -94,6 +95,10 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	if (format === 'weekday') {
 		return formatBoardWeekday(value, now, { today: arg === 'today' })
 	}
+	if (format === 'week') {
+		const date = parseDateValue(value)
+		return date === null ? '' : t('nextcloud-vue', 'Week {week}', { week: isoWeek(date) })
+	}
 	if (format === 'longdate') {
 		return formatLongDate(value, now, arg === 'year')
 	}
@@ -116,6 +121,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'relativetime') {
 		return formatRelativeDate(value, { now, withTime: true })
+	}
+	if (format === 'ago') {
+		return formatAgo(value, now)
 	}
 	if (format === 'lower') {
 		return String(value).toLocaleLowerCase()
@@ -143,7 +151,8 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * currency (a code, or the row field that holds it; without either, or when
  * the row field is empty, the app's reporting currency), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
- * ("vandaag, 09.42"), and `{path|days}` is the
+ * ("vandaag, 09.42"), `{path|ago}` says how long ago it was ("10 min
+ * geleden", "vanochtend", "vrijdag"), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"),
  * `{path|count}` is how many entries a list holds (nothing for an empty one),
  * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"

@@ -15,6 +15,12 @@
 			:data-testid="`cn-settings-field-status-${field.key}`">
 			{{ field.text }}
 		</NcNoteCard>
+		<div v-else-if="kind === 'note'" class="cn-settings-field__note">
+			<span class="cn-settings-field__note-label">{{ label }}</span>
+			<p class="cn-settings-field__note-text" :data-testid="`cn-settings-field-note-${field.key}`">
+				{{ field.text }}
+			</p>
+		</div>
 		<div v-else-if="kind === 'action'" class="cn-settings-field__action">
 			<div class="cn-settings-field__action-row">
 				<NcButton v-if="field.href"
@@ -817,6 +823,23 @@ export default {
 
 .cn-settings-field__image-label {
 	font-weight: 600;
+}
+
+/* A note: the field's label, then a line of muted text where a control would
+   stand (DqInstellingenAlgemeen "Toegestane websites (CORS)"). */
+.cn-settings-field__note {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-settings-field__note-label {
+	font-weight: 600;
+}
+
+.cn-settings-field__note-text {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-settings-field__image-row {

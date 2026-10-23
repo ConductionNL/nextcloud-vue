@@ -1021,7 +1021,7 @@
 												<CnIcon :name="pill.icon" :size="14" />
 											</template>
 										</CnStatusBadge>
-										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+										<span v-if="item.due" class="cn-index-page__map-due"><ClockOutline v-if="isBoardLook" :size="14" aria-hidden="true" />{{ item.due }}</span>
 									</span>
 								</div>
 							</li>
@@ -1405,6 +1405,7 @@ import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextc
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
@@ -1479,7 +1480,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewAccess, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
@@ -1487,6 +1488,7 @@ import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeL
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1804,6 +1806,19 @@ function namedFilterToQuery(values) {
  * @slot row-actions — Custom row actions. Scope: `{ row }`
  * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
+
+/**
+ * Whether a page's named source orders its rows itself: on the page
+ * (`sortsRows`) or on the server (`sortParam`).
+ *
+ * @param {object} vm The index page.
+ * @return {boolean}
+ * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+ */
+function namedSourceSorts(vm) {
+	return Boolean(vm.isNamedSource && vm.namedSource
+		&& (vm.namedSource.sortsRows === true || typeof vm.namedSource.sortParam === 'function'))
+}
 export default {
 	name: 'CnIndexPage',
 
@@ -1824,6 +1839,7 @@ export default {
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
+		ClockOutline,
 		Close,
 		Cog,
 		DatabaseSearch,
@@ -2166,6 +2182,20 @@ export default {
 		},
 
 		/**
+		 * Board look: a count line per view (manifest `config.countTextByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a template as
+		 * `countText`: the board view says "bordweergave per status" where the
+		 * table says "gesorteerd op termijn" (DqWerkbord, DqZaken). A view it
+		 * does not name keeps `countText`; a scope's own `countText` comes first.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 */
+		countTextByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -2488,6 +2518,19 @@ export default {
 		},
 
 		/**
+		 * Whether an applied saved view names the page and its side panel
+		 * (manifest `config.savedViewTitle`): a view opened from the menu or
+		 * the panel heads the list with its own name (DqFilterInMenu "Termijn
+		 * deze week"). Off, the page keeps its title.
+		 *
+		 * @spec openspec/changes/saved-view-names-the-page/specs/saved-view-names-the-page/spec.md#requirement-an-applied-saved-view-can-name-the-page
+		 */
+		savedViewTitle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
 		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
 		 * the Filter button and the view switch, in whatever width that row has
@@ -2575,7 +2618,9 @@ export default {
 		 * Sourced from `pages[].config.filterLabels`.
 		 *
 		 * A range filter's entry may set `relative: true`, naming a range
-		 * from today in words ("within 7 days").
+		 * from today in words ("within 7 days"). An entry with
+		 * `hidden: true` is a working-list rule every view carries: the line
+		 * that says what a saved view shows leaves it out.
 		 *
 		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
 		 */
@@ -4375,6 +4420,10 @@ export default {
 		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
+		// The order a named source shows its rows in: sorted on the page
+		// (`sortsRows`) or asked of the server (`sortParam`), starting from
+		// the page's `sortKey` / `sortOrder`.
+		const namedSort = ref({ key: props.sortKey || '', order: props.sortOrder === 'desc' ? 'desc' : 'asc' })
 
 		const {
 			isNamedSource,
@@ -4383,7 +4432,7 @@ export default {
 			namedLoading,
 			namedQuickFilters,
 			namedReload,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm, sort: namedSort })
 
 		return {
 			isBoard: isBoardLook,
@@ -4398,6 +4447,7 @@ export default {
 			namedActiveFilters,
 			namedPaging,
 			namedSearchTerm,
+			namedSort,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -4417,8 +4467,6 @@ export default {
 
 	data() {
 		return {
-			/** The order a named source that `sortsRows` shows its rows in. */
-			namedSort: { key: '', order: 'asc' },
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4895,14 +4943,17 @@ export default {
 		 * The endpoint source's facets as pickers: per declared facet its
 		 * label, the All choice, the counted values ("E-mail (11)") and the
 		 * value chosen now. A chosen value the narrowed answer no longer
-		 * counts stays offered, so the picker still shows it.
+		 * counts stays offered, so the picker still shows it. A facet that
+		 * declares `picker: false` draws no picker: its field is filtered in
+		 * the side panel instead (DqPostvak's channel).
 		 *
 		 * @return {Array<{field: string, label: string, allLabel: string, value: string, options: Array<{value: string, label: string}>}>}
 		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 * @spec openspec/changes/source-facet-picker-off/specs/source-facet-picker-off/spec.md#requirement-a-source-facet-can-leave-its-picker-out
 		 */
 		sourceFacetControls() {
 			const source = this.isNamedSource ? this.namedSource : null
-			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations : []
+			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations.filter((facet) => facet.picker !== false) : []
 			if (declared.length === 0) {
 				return []
 			}
@@ -5778,9 +5829,15 @@ export default {
 		 * pane (or with `folderSidebar.heading: true`), its name and, under
 		 * it, its parent folder and its count. The count reads
 		 * `folderSidebar.countText` (`{count}`, through the app's translate),
-		 * else "{count} members" on a groups pane.
+		 * else "{count} members" on a groups pane. `folderSidebar.headingParts`
+		 * (`[{ field, text, format? }]`) adds a part per field the selected
+		 * group's record carries (`parentsFrom`): `text` with `{value}`, through
+		 * the app's translate; `format: "user"` names a user id by its display
+		 * name ("team lead Lars de Koning", DqAfdelingen). An empty field adds
+		 * nothing.
 		 *
 		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 * @spec openspec/changes/folder-heading-parts/specs/index-page/spec.md#requirement-a-group-heading-can-name-what-its-record-carries
 		 */
 		scopeHeading() {
 			const cfg = this.folderSidebar
@@ -5804,6 +5861,18 @@ export default {
 				} else if (cfg.source === 'groups') {
 					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
 				}
+			}
+			const record = scope.record && typeof scope.record === 'object' ? scope.record : {}
+			for (const part of (Array.isArray(cfg.headingParts) ? cfg.headingParts : [])) {
+				const raw = part && part.field ? this.getByPath(record, part.field) : null
+				if (raw === null || raw === undefined || raw === '') {
+					continue
+				}
+				const value = part.format === 'user' ? userDisplayName(raw) : String(raw)
+				if (value === '') {
+					continue
+				}
+				parts.push(part.text ? this.cnTranslate(part.text).replace('{value}', value) : value)
 			}
 			return { name, subtitle: parts.join(' · ') }
 		},
@@ -6108,7 +6177,9 @@ export default {
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
 		 */
 		defaultFilterViews() {
-			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string'
+				? { ...entry, name: this.cnTranslate(entry.name), ...(typeof entry.description === 'string' && entry.description !== '' ? { description: this.cnTranslate(entry.description) } : {}) }
+				: entry))
 			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
@@ -7197,11 +7268,16 @@ export default {
 		},
 
 		/**
-		 * The page title with `{term}` filled in.
+		 * The page title with `{term}` filled in, or the applied saved view's
+		 * name when `savedViewTitle` is on.
 		 *
 		 * @return {string}
 		 */
 		shownTitle() {
+			const view = this.savedViewTitle ? this.appliedSavedView : null
+			if (view && typeof view.name === 'string' && view.name !== '') {
+				return this.cnTranslate(view.name)
+			}
 			const title = this.presented('title')
 			// A title with the term is translated here, before the term goes in,
 			// so its catalogue entry is found ("Zoeken: {term}").
@@ -7411,14 +7487,14 @@ export default {
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() {
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				return this.namedSort.key || null
 			}
 			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
 		},
 
 		effectiveSortOrder() {
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				return this.namedSort.order || 'asc'
 			}
 			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
@@ -8567,6 +8643,24 @@ export default {
 			return base ? `${base} · ${onMap}` : onMap
 		},
 
+		/**
+		 * The count line template: a scope's own, else the open view's
+		 * (`countTextByView`), else the page's `countText`.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 * @return {string}
+		 */
+		presentedCountText() {
+			if (this.activeScopePresentation.countText === undefined) {
+				const byView = this.countTextByView
+				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
+				if (typeof own === 'string' && own !== '') {
+					return own
+				}
+			}
+			return this.presented('countText')
+		},
+
 		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
@@ -8576,7 +8670,7 @@ export default {
 				// The default count line is the library's own string, so it
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
-				const countText = this.presented('countText')
+				const countText = this.presentedCountText
 				// The note after the breadcrumb already says how many there are.
 				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
 					return this.description
@@ -10623,7 +10717,7 @@ export default {
 			if (this.sortSource.value) {
 				this.sortSource = { ...this.sortSource, value: '', page: 1 }
 			}
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				this.namedSort = { key: (payload && payload.key) || '', order: (payload && payload.order) || 'asc' }
 			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
@@ -11135,8 +11229,9 @@ export default {
 		/**
 		 * What a saved view filters on, in the Active line's words, for the
 		 * line under its name in the side panel: its search term, then each
-		 * filter ("Search term: Lindelaan, Status: Open"). '' when it filters
-		 * on nothing.
+		 * filter ("Search term: Lindelaan, Status: Open"). A filter the page's
+		 * `filterLabels` marks `hidden` (a working-list rule every view
+		 * carries) is left out. '' when it filters on nothing else.
 		 *
 		 * @param {object} view The saved view.
 		 * @return {string}
@@ -11149,8 +11244,11 @@ export default {
 			if (term !== '') {
 				parts.push(t('nextcloud-vue', 'Search term: {term}', { term }))
 			}
+			const hidden = (key) => Boolean(this.filterLabels && this.filterLabels[key] && this.filterLabels[key].hidden === true)
 			for (const chip of this.filterChipsOf(filters)) {
-				parts.push(chip.label)
+				if (!hidden(chip.key)) {
+					parts.push(chip.label)
+				}
 			}
 			return parts.join(', ')
 		},
@@ -11809,7 +11907,7 @@ export default {
 				const byId = new Map(groups.map((group) => [group.id, group]))
 				this.folderGroupList = declared
 					.filter((entry) => byId.has(String(entry.id)))
-					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null, record: entry.record || null }))
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
@@ -11848,7 +11946,7 @@ export default {
 				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
 				return records.map((record) => {
 					const parent = record[parentField] ? String(record[parentField]) : null
-					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent), record }
 				})
 			} catch {
 				return null
@@ -13338,16 +13436,19 @@ export default {
 		},
 
 		/**
-		 * "Save as my view" on a read-only shared view
-		 * (CnSavedViewsControl `@copy-request`): a personal copy with the same
-		 * name and query. The original stays untouched.
+		 * "Save a copy" of a view (CnSavedViewsControl `@copy-request`): a
+		 * personal copy with the same query. A copy of a view shared with the
+		 * reader or shipped with the app keeps its name; a copy of the reader's
+		 * own view is named "{name} (copy)". The original stays untouched.
 		 *
-		 * @param {object} view The shared View API object.
+		 * @param {object} view The View API object.
 		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 * @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-an-own-view-can-be-copied
 		 */
 		async onCopyViewRequest(view) {
+			const own = viewAccess(view, this.currentSavedViewsUserId) === 'owner'
 			const payload = {
-				name: view.name,
+				name: own ? t('nextcloud-vue', '{name} (copy)', { name: view.name }) : view.name,
 				description: view.description || '',
 				isPublic: false,
 				isDefault: false,

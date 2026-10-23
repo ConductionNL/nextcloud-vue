@@ -1405,7 +1405,7 @@ import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
-import { resolveRecordSource } from '../../composables/indexSources.js'
+import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -1436,7 +1436,7 @@ import {
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { firstFilled } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
@@ -1632,6 +1632,27 @@ function readGrantedPurposes() {
  * </CnDetailPage>
  * ```
  */
+/**
+ * A header pill's label with the record's fields filled in ("Version
+ * {version} published" reads "Version 4 published"). A field the record does
+ * not have is left out rather than shown as a token.
+ *
+ * @param {string} label The translated label.
+ * @param {object|null} object The record.
+ * @return {string} The label to show.
+ * @spec openspec/changes/detail-pill-label-tokens/specs/detail-page/spec.md#requirement-a-header-pill-label-can-name-the-records-fields
+ */
+function pillLabelFilled(label, object) {
+	if (typeof label !== 'string' || !label.includes('{')) {
+		return label
+	}
+	const filled = fillTemplate(label, object)
+	if (filled !== '') {
+		return filled
+	}
+	return label.replace(/\{[^{}]*\}/g, '').replace(/\s+/g, ' ').trim()
+}
+
 export default {
 	name: 'CnDetailPage',
 
@@ -3084,6 +3105,21 @@ export default {
 		},
 
 		/**
+		 * The lists `headerMeta` counts (manifest `config.headerMetaCounts`), as
+		 * on a list page: `{ <name>: { register, schema, filter? } | { entitySource } }`,
+		 * each read as one total and filled in for `{count:<name>}` ("een van
+		 * {count:organisations} organisaties op deze omgeving", DqTenant). While
+		 * a count loads, or when it fails, the line is left out.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @type {Record<string, object>|null}
+		 */
+		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Read the record's newest create or update entry from its audit
 		 * trail and offer it to `headerMeta` as `{_lastChange.userName}`,
 		 * `{_lastChange.user|user}` and `{_lastChange.created|date}`
@@ -3320,6 +3356,8 @@ export default {
 
 	data() {
 		return {
+			/** The `headerMetaCounts` totals, by name; a failed one is null. */
+			headerMetaCountValues: {},
 			/** The newest create or update entry of the record's audit trail (`headerMetaLastChange`). */
 			lastChange: null,
 			/** The rows a list on this page shows and the one selected (side-card-follows-row). */
@@ -3497,7 +3535,28 @@ export default {
 		 */
 		headerMetaText() {
 			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
-			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', record, { schema: this.currentSchema, translate: this.effectiveTranslate })
+			let missing = false
+			const template = (this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
+				const value = this.headerMetaCountValues[name]
+				if (typeof value !== 'number') {
+					missing = true
+					return ''
+				}
+				return String(value)
+			})
+			return missing ? '' : resolveHeaderMeta(template, record, { schema: this.currentSchema, translate: this.effectiveTranslate })
+		},
+
+		/**
+		 * What the header line's counts depend on, as one key.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @return {string}
+		 */
+		headerMetaCountKey() {
+			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
+			const valid = Object.entries(sources).filter(([, from]) => from && ((from.register && from.schema) || from.entitySource))
+			return valid.length > 0 ? JSON.stringify([valid, this.objectId]) : ''
 		},
 
 		/**
@@ -4061,7 +4120,7 @@ export default {
 					if (typeof resolved === 'string' && resolved !== '') {
 						return { ...pill, ...look, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
 					}
-					return { ...pill, ...look, key, label: this.effectiveTranslate(pill.label) }
+					return { ...pill, ...look, key, label: pillLabelFilled(this.effectiveTranslate(pill.label), this.resolvedObject) }
 				})
 				.filter(Boolean)
 		},
@@ -5552,6 +5611,13 @@ export default {
 	},
 
 	watch: {
+		headerMetaCountKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaCounts()
+			},
+		},
+
 		lastChangeKey: {
 			immediate: true,
 			handler() {
@@ -6235,6 +6301,44 @@ export default {
 			if (seq === this.pillRefSeq) {
 				this.pillRefLabels = labels
 				this.pillRefLooks = looks
+			}
+		},
+
+		/**
+		 * Read the totals `headerMetaCounts` names: a register list through
+		 * one list request, a named source by loading it and counting its
+		 * rows. A failed count is null and leaves the line out.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @return {Promise<void>}
+		 */
+		async loadHeaderMetaCounts() {
+			const key = this.headerMetaCountKey
+			if (key === '') {
+				this.headerMetaCountValues = {}
+				return
+			}
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const values = {}
+			await Promise.all(JSON.parse(key)[0].map(async ([name, from]) => {
+				try {
+					if (from.entitySource) {
+						const source = resolveIndexSource(from.entitySource)
+						if (!source) {
+							values[name] = null
+							return
+						}
+						await source.load()
+						values[name] = source.rows().length
+						return
+					}
+					values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx)
+				} catch {
+					values[name] = null
+				}
+			}))
+			if (key === this.headerMetaCountKey) {
+				this.headerMetaCountValues = values
 			}
 		},
 

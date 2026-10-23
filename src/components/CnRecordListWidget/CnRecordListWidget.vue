@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -113,6 +113,41 @@
 				</tr>
 			</tbody>
 		</table>
+		<!-- checklist: an optional bar of the done share, then the rows in
+		     columns, a done row ticked and an open one an empty circle
+		     (DqTenant Inrichten). -->
+		<div
+			v-else-if="presentation === 'checklist'"
+			class="cn-record-list__checklist-wrap">
+			<div
+				v-if="content.progress"
+				class="cn-record-list__checklist-bar"
+				role="progressbar"
+				:aria-valuenow="checklistDone"
+				aria-valuemin="0"
+				:aria-valuemax="items.length"
+				:aria-label="headerNote || undefined"
+				data-testid="cn-record-list-checklist-bar">
+				<span class="cn-record-list__checklist-fill" :style="{ width: `${checklistPercent}%` }" />
+			</div>
+			<ul
+				class="cn-record-list__checklist"
+				:style="{ '--cn-record-list-columns': checklistColumns }"
+				data-testid="cn-record-list-checklist">
+				<li
+					v-for="item in items"
+					:key="item.key"
+					class="cn-record-list__check"
+					:class="{ 'cn-record-list__check--done': isChecked(item.row) }"
+					data-testid="cn-record-list-check">
+					<span class="cn-record-list__check-mark" aria-hidden="true">
+						<Check v-if="isChecked(item.row)" :size="14" />
+					</span>
+					<span class="cn-record-list__check-title">{{ item.title }}</span>
+					<span class="hidden-visually">{{ isChecked(item.row) ? doneLabel : openLabel }}</span>
+				</li>
+			</ul>
+		</div>
 		<!-- notes: a field per row for what happened, recorded on the row's
 		     own notes endpoint (DqDagAfsluiten "Nog open van vandaag"). -->
 		<CnRecordNoteRows
@@ -491,7 +526,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes', 'checklist']
 
 /**
  * Compare two table cell texts: as numbers when both read as one, else as text.
@@ -598,6 +633,8 @@ export default {
 		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
 		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
 		 * of the flags a row has ("Start", "End") at its end.
+		 * `tiles: true` (rows only) draws each row as a framed tile in a grid
+		 * of 260px at the least.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -611,6 +648,10 @@ export default {
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
+		 * `presentation: "checklist"` draws the rows in `columns` (default 3),
+		 * a row for which `done` (a condition over the row) holds ticked, and
+		 * `progress: true` adds a bar of the done share (DqTenant Inrichten);
+		 * `headerNote` can say "{count:status=completed} of {total} steps done".
 		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
 		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
 		 * row) asks a figure over each row's related objects, as a table's
@@ -645,7 +686,7 @@ export default {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
 		const appConfigRaw = inject('cnAppConfig', ref({}))
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, refusal, refetch } = useEndpointSource(
 			() => {
 				const app = props.content?.requiresApp
 				return typeof app === 'string' && app !== '' && !isAppInstalled(app) ? null : (props.content?.endpointSource || null)
@@ -687,7 +728,7 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
 	},
 
 	data() {
@@ -1107,6 +1148,47 @@ export default {
 			return resolved
 		},
 
+		/**
+		 * The checklist's columns (`content.columns`, 1 to 4, default 3).
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistColumns() {
+			const value = Number(this.content?.columns)
+			return Number.isFinite(value) && value >= 1 ? Math.min(4, Math.floor(value)) : 3
+		},
+
+		/**
+		 * How many checklist rows are done.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistDone() {
+			return this.items.filter((item) => this.isChecked(item.row)).length
+		},
+
+		/**
+		 * The done share of the checklist, in whole percent.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistPercent() {
+			return this.items.length > 0 ? Math.round((this.checklistDone / this.items.length) * 100) : 0
+		},
+
+		/** @return {string} What a done checklist row says to a screen reader. */
+		doneLabel() {
+			return t('nextcloud-vue', 'Done')
+		},
+
+		/** @return {string} What an open checklist row says to a screen reader. */
+		openLabel() {
+			return t('nextcloud-vue', 'Not done yet')
+		},
+
 		/** @return {string} The header note with `{total}` filled. */
 		headerNote() {
 			const note = this.content?.headerNote
@@ -1281,8 +1363,17 @@ export default {
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
-		/** @return {string} The error line. */
+		/**
+		 * The error line: an endpoint's refusal (401/403) in its own words,
+		 * through the app's catalogue, else `errorText`, else the default.
+		 *
+		 * @return {string} The error line.
+		 * @spec openspec/changes/record-list-endpoint-refusal/specs/record-list/spec.md#requirement-a-refused-endpoint-read-says-why
+		 */
 		errorLabel() {
+			if (this.endpointActive && this.epRefusal) {
+				return this.translate(this.epRefusal)
+			}
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
 
@@ -1796,6 +1887,19 @@ export default {
 			}
 			const figures = this.aggregateValues[row.id || row['@self']?.id]
 			return figures ? { ...row, ...figures } : row
+		},
+
+		/**
+		 * Whether a checklist row is done: `content.done` (a condition over
+		 * the row) holds for it.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		isChecked(row) {
+			const done = this.content?.done
+			return Boolean(done && typeof done === 'object' && row && evaluateVisibleWhenLocal(done, row))
 		},
 
 		/**
@@ -2458,6 +2562,64 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__checklist-bar {
+	height: 8px;
+	margin-block-end: 16px;
+	border-radius: 4px;
+	background: var(--color-background-dark);
+	overflow: hidden;
+}
+
+.cn-record-list__checklist-fill {
+	display: block;
+	height: 100%;
+	border-radius: 4px;
+	background: var(--color-primary-element);
+}
+
+.cn-record-list__checklist {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-record-list-columns, 3), minmax(0, 1fr));
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-record-list__check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 28px;
+}
+
+.cn-record-list__check--done {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__check-mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: 50%;
+}
+
+.cn-record-list__check--done .cn-record-list__check-mark {
+	border-color: transparent;
+	background: var(--color-success-hover, var(--color-background-dark));
+	color: var(--color-success-text, var(--color-success));
+}
+
+@media (max-width: 640px) {
+	.cn-record-list__checklist {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 .cn-record-list__set-field-done {
 	display: inline-flex;
 	align-items: center;
@@ -2826,6 +2988,34 @@ export default {
 .cn-record-list__chevron {
 	color: var(--color-text-maxcontrast);
 	flex: none;
+}
+
+/* tiles (`tiles: true`, DqZaaktypeOverzicht "Statussen"): rows as framed
+   tiles in a grid, the title at 14px regular. The selectors outrank the board
+   look's list row rules. */
+.cn-record-list.cn-record-list--tiles .cn-record-list__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item {
+	border-top: 0;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__row {
+	box-sizing: border-box;
+	height: 100%;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--cn-board-hairline, var(--color-border));
+	border-radius: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__title {
+	font-size: 14px;
+	font-weight: 400;
 }
 
 /* cards (board ShBank): a grid of framed cards, 240px at the least. */

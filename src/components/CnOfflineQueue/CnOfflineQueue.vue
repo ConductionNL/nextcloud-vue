@@ -479,6 +479,9 @@ export default {
 		 * @return {string} The label.
 		 */
 		operationLabel(operation) {
+			if (typeof operation.label === 'string' && operation.label !== '') {
+				return operation.label
+			}
 			const target = (operation.targetId || t('nextcloud-vue', 'a new record'))
 
 			return `${operation.operationType} · ${operation.schema} · ${target}`

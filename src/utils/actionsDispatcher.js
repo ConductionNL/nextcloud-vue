@@ -467,7 +467,7 @@ async function executeApiCall(action, context) {
 		return { ok: false, error: new Error('api-call blocked') }
 	}
 	const verb = String(action.method || 'POST').toUpperCase()
-	const method = verb === 'PUT' ? 'put' : (verb === 'GET' ? 'get' : 'post')
+	const method = { PUT: 'put', PATCH: 'patch', GET: 'get' }[verb] || 'post'
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -736,7 +736,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "GET" (the resolved params as the query string).
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)

@@ -110,10 +110,6 @@
 				data-testid="cn-conversation-input"
 				@keydown.ctrl.enter.prevent="onSend"
 				@keydown.meta.enter.prevent="onSend" />
-			<label v-if="optionShown" class="cn-conversation-thread__reply-option" data-testid="cn-conversation-reply-option">
-				<input v-model="optionOn" type="checkbox" :disabled="sending">
-				<span>{{ replyOption.label }}</span>
-			</label>
 			<p
 				v-if="errorMessage"
 				:id="errorId"
@@ -122,17 +118,27 @@
 				data-testid="cn-conversation-error">
 				{{ errorMessage }}
 			</p>
-			<div class="cn-conversation-thread__reply-actions">
-				<!-- @slot reply-actions Extra buttons before Send, for example "Save draft". -->
-				<!-- @binding {string} draft The text in the reply box. -->
-				<slot name="reply-actions" :draft="draft" />
-				<NcButton
-					variant="primary"
-					type="submit"
-					:disabled="!canSend"
-					data-testid="cn-conversation-send">
-					{{ sendLabel }}
-				</NcButton>
+			<!-- The option at the start and the buttons at the end of one row. -->
+			<div class="cn-conversation-thread__reply-foot">
+				<label v-if="optionShown" class="cn-conversation-thread__reply-option" data-testid="cn-conversation-reply-option">
+					<input v-model="optionOn" type="checkbox" :disabled="sending">
+					<span>{{ replyOption.label }}</span>
+				</label>
+				<div class="cn-conversation-thread__reply-actions">
+					<!-- @slot reply-actions Extra buttons before Send, for example "Save draft". -->
+					<!-- @binding {string} draft The text in the reply box. -->
+					<slot name="reply-actions" :draft="draft" />
+					<NcButton
+						variant="primary"
+						type="submit"
+						:disabled="!canSend"
+						data-testid="cn-conversation-send">
+						<template #icon>
+							<Send :size="16" />
+						</template>
+						{{ sendLabel }}
+					</NcButton>
+				</div>
 			</div>
 		</form>
 	</section>
@@ -142,6 +148,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import Send from 'vue-material-design-icons/Send.vue'
 import CnQuickFilterBar from '../CnQuickFilterBar/CnQuickFilterBar.vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -178,6 +185,7 @@ export default {
 	components: {
 		CnQuickFilterBar,
 		NcButton,
+		Send,
 	},
 
 	inject: {
@@ -757,7 +765,16 @@ export default {
 	margin: 0;
 }
 
+.cn-conversation-thread__reply-foot {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2.5 * var(--default-grid-baseline));
+	justify-content: space-between;
+}
+
 .cn-conversation-thread__reply-actions {
+	margin-inline-start: auto;
 	display: flex;
 	flex-wrap: wrap;
 	gap: calc(2.5 * var(--default-grid-baseline));

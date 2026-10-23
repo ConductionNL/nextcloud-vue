@@ -10,8 +10,13 @@
 		:breadcrumb="(breadcrumb || []).map((crumb) => ({ ...crumb, label: cnTranslate(crumb.label) }))"
 		:palette="palette"
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
+		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
+		:nodeLook="nodeLook"
 		:notice="notice ? cnTranslate(notice) : ''"
+		:saveAsVersion="saveAsVersion"
+		:metaParts="metaParts"
+		:metaNote="metaNote ? cnTranslate(metaNote) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
 		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
@@ -127,6 +132,27 @@ export default {
 		},
 
 		/**
+		 * Board look: the palette's groups as the page curates them,
+		 * `[{ app?, label?, pill?, tone?, entries: [{ type, label?, short? }] }]`;
+		 * every other step stays behind "More steps". Labels are translated
+		 * with the app's catalogue. Manifest key `config.paletteGroups`.
+		 */
+		paletteGroups: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: `card` draws each step as a card with its name and the
+		 * pill of the app that does it; `type` (default) keeps the type line
+		 * over the name. Manifest key `config.nodeLook`.
+		 */
+		nodeLook: {
+			type: String,
+			default: 'type',
+		},
+
+		/**
 		 * Board look: `down` lays the steps out top to bottom and opens them
 		 * at their own size instead of zoomed to fit; `right` (default) lays
 		 * them left to right. Manifest key `config.flowDirection`.
@@ -152,6 +178,34 @@ export default {
 		 * the flow's name.
 		 */
 		notice: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: edit a published flow in place; Save publishes the edits
+		 * as the next version and runs already started keep theirs. Manifest
+		 * key `config.saveAsVersion`.
+		 */
+		saveAsVersion: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: which of `trigger`, `steps` and `version` the path names
+		 * after the flow, in that order. Manifest key `config.metaParts`.
+		 */
+		metaParts: {
+			type: Array,
+			default: () => ['trigger', 'steps', 'version'],
+		},
+
+		/**
+		 * Board look: a closing note after the path's meta ("changes apply to
+		 * new cases"), translated. Manifest key `config.metaNote`.
+		 */
+		metaNote: {
 			type: String,
 			default: '',
 		},
@@ -214,6 +268,19 @@ export default {
 		 */
 		flowId() {
 			return this.id || this.$route?.params?.id || ''
+		},
+
+		/**
+		 * @return {Array<object>} The curated palette groups with their labels translated.
+		 */
+		translatedPaletteGroups() {
+			const tr = (text) => (text ? this.cnTranslate(text) : text)
+			return (this.paletteGroups || []).map((group) => ({
+				...group,
+				label: tr(group?.label),
+				pill: tr(group?.pill),
+				entries: (group?.entries || []).map((step) => ({ ...step, label: tr(step?.label), short: tr(step?.short) })),
+			}))
 		},
 
 		/**

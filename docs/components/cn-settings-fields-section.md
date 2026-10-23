@@ -107,6 +107,10 @@ fields: [
 ]
 ```
 
+## Opened from a row
+
+`openedFrom` (the row's label, already translated) shows the card only while the page's hash names its `id`, as `CnSettingsSection` does, with "Opened from the row {row}" under the title (DqInstellingen Kadaster).
+
 ## Fields
 
 | Key | Description |

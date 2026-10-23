@@ -2,7 +2,7 @@
 <!-- SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl> -->
 <template>
 	<fieldset class="cn-choice-cards" :aria-busy="loading ? 'true' : 'false'">
-		<legend v-if="label" class="cn-choice-cards__legend">
+		<legend v-if="label" class="cn-choice-cards__legend" :class="{ 'hidden-visually': hideLabel }">
 			{{ label }}
 		</legend>
 
@@ -16,7 +16,10 @@
 
 		<!-- Rows: one full-width option per row, the input on the left and the
 		     title over a muted description, no card chrome. -->
-		<div v-else-if="layout === 'rows'" class="cn-choice-cards__rows" data-testid="cn-choice-cards-rows">
+		<div v-else-if="layout === 'rows'"
+			class="cn-choice-cards__rows"
+			:style="rowsStyle"
+			data-testid="cn-choice-cards-rows">
 			<div
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
@@ -197,6 +200,15 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Keep the legend for assistive tech only, where the dialog's title
+		 * already says what is chosen (DqZaakSamenwerken).
+		 */
+		hideLabel: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
 			type: Boolean,
@@ -236,7 +248,11 @@ export default {
 			validator: (value) => ['cards', 'rows'].includes(value),
 		},
 
-		/** Columns of the card grid; 0 lets the grid fit as many as the width allows. */
+		/**
+		 * Columns of the card grid; 0 lets the grid fit as many as the width
+		 * allows. In `rows`, more than 1 sets the rows side by side
+		 * (DqZaakSamenwerken: Share | Hand over); 0 or 1 stacks them.
+		 */
 		columns: {
 			type: Number,
 			default: 0,
@@ -297,6 +313,19 @@ export default {
 			return (this.modelValue === null || this.modelValue === undefined || this.modelValue === '')
 				? []
 				: [this.modelValue]
+		},
+
+		/**
+		 * Inline override for the rows' columns: side by side as a grid when
+		 * `columns` is above 1, else the stylesheet's single column (`{}`).
+		 *
+		 * @return {object} A grid override, or `{}`.
+		 */
+		rowsStyle() {
+			if (this.columns > 1) {
+				return { display: 'grid', gridTemplateColumns: `repeat(${this.columns}, minmax(0, 1fr))` }
+			}
+			return {}
 		},
 
 		/**

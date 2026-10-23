@@ -471,9 +471,11 @@ export default {
 		 * Horizontal reference lines on the value axis of a line, area or bar
 		 * chart, such as a norm: `[{ value, label?, color? }]`. Drawn dashed;
 		 * the label goes through the host's translate. The colour defaults to
-		 * the theme's error colour.
+		 * the theme's error colour. `valuePath` reads the value from the
+		 * endpoint answer instead, `{value}` in the label writes it, and a
+		 * line without a value is not drawn.
 		 *
-		 * @type {Array<{value: number, label?: string, color?: string}>}
+		 * @type {Array<{value?: number, valuePath?: string, label?: string, color?: string}>}
 		 */
 		referenceLines: {
 			type: Array,
@@ -1631,6 +1633,10 @@ export default {
 			}
 			const options = this.categoryFormat === 'month' ? { month: 'short' } : { month: 'short', year: 'numeric' }
 			return categories.map((category) => {
+				// A year bucket ("2026") names no month, so it stays as written.
+				if (/^\d{4}$/.test(String(category))) {
+					return category
+				}
 				const date = typeof category === 'string' || typeof category === 'number' ? parseBucketKey(category) : null
 				return date ? date.toLocaleDateString(userLocale(), options) : category
 			})
@@ -1643,21 +1649,31 @@ export default {
 		 * @return {Array<object>} The annotations, possibly empty.
 		 */
 		referenceAnnotations() {
+			// A line with `valuePath` reads its value from the endpoint answer
+			// (DqDoorlooptijd's norm); one without a usable value is not drawn.
+			const valueOf = (line) => {
+				if (typeof line.valuePath === 'string' && line.valuePath !== '') {
+					const raw = this.epData ? getByPath(this.epData, line.valuePath) : null
+					return raw === null || raw === undefined || raw === '' ? NaN : Number(raw)
+				}
+				return Number(line.value)
+			}
 			const lines = (Array.isArray(this.referenceLines) ? this.referenceLines : [])
-				.filter((line) => line && Number.isFinite(Number(line.value)))
+				.filter((line) => line && Number.isFinite(valueOf(line)))
 			if (lines.length === 0) {
 				return []
 			}
 			const fallback = themeColor('--color-error', '#e04224')
 			return lines.map((line) => {
 				const color = line.color || fallback
+				const value = valueOf(line)
 				return {
-					y: Number(line.value),
-					x: Number(line.value),
+					y: value,
+					x: value,
 					borderColor: color,
 					strokeDashArray: 6,
 					label: line.label
-						? { text: this.hostTranslate(line.label), borderColor: color, style: { color: '#fff', background: color } }
+						? { text: this.hostTranslate(line.label).replace(/\{value\}/g, String(value)), borderColor: color, style: { color: '#fff', background: color } }
 						: { text: '' },
 				}
 			})

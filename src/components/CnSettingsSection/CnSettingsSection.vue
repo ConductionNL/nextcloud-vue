@@ -1,7 +1,8 @@
 <template>
 	<NcSettingsSection
+		v-if="open"
 		:name="name"
-		:description="description"
+		:description="shownDescription"
 		:docUrl="docUrl"
 		data-testid="cn-settings-section"
 		:class="{ 'cn-settings-section--wide': wide, 'cn-settings-section--title-actions': actionsInTitle && Boolean($slots.actions) }"
@@ -234,9 +235,43 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The row this card is opened from, already translated: the card shows
+		 * only while the page's hash names its `id` (the row's settings link,
+		 * `#<id>`), and says "Opened from the row {row}" under its title in
+		 * place of its description (DqInstellingen "Kadaster (BRK) en WOZ").
+		 * Empty: the card is always shown.
+		 *
+		 * @spec openspec/changes/settings-section-opened-from-row/specs/settings-section-opened-from-row/spec.md#requirement-a-settings-card-can-be-opened-from-a-row
+		 */
+		openedFrom: {
+			type: String,
+			default: '',
+		},
+	},
+
+	data() {
+		return { hash: typeof window !== 'undefined' ? window.location.hash : '' }
 	},
 
 	computed: {
+		/** @return {boolean} Whether the card is drawn: always, unless it opens from a row that was not followed. */
+		open() {
+			if (this.openedFrom === '') {
+				return true
+			}
+			const id = this.$attrs.id
+			return typeof id === 'string' && id !== '' && this.hash === `#${id}`
+		},
+
+		/** @return {string} The line under the title. */
+		shownDescription() {
+			return this.openedFrom === ''
+				? this.description
+				: t('nextcloud-vue', 'Opened from the row {row}', { row: this.openedFrom })
+		},
+
 		/** @return {string} The footer link's safe href, or '' for no link. */
 		footerHref() {
 			const link = this.footerLink
@@ -245,6 +280,23 @@ export default {
 			}
 			const href = safeHref(link.href)
 			return href === '#' ? '' : href
+		},
+	},
+
+	mounted() {
+		if (this.openedFrom !== '') {
+			window.addEventListener('hashchange', this.onHashChange)
+		}
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('hashchange', this.onHashChange)
+	},
+
+	methods: {
+		/** Follow the page's hash, which names the card a row opened. */
+		onHashChange() {
+			this.hash = window.location.hash
 		},
 	},
 }

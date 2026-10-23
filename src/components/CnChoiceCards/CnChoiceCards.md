@@ -127,3 +127,5 @@ chosen one marked, nothing pickable. `disabled` greys the options out instead.
 ```
 
 `columns` fixes the card grid's column count; `:columns="1"` stacks the cards in one column.
+
+`hide-label` keeps the legend for assistive technology only, where the dialog's title already says what is chosen (DqZaakSamenwerken).

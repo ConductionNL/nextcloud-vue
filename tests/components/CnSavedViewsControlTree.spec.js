@@ -80,11 +80,11 @@ describe('the control renders the tree the helper built', () => {
 
 	it('offers no delete on a seeded view, which a user may copy and not remove', async () => {
 		// A view the product promises is not a view one person can take off
-		// everybody's install.
+		// everybody's install. The owner of a view may copy it too.
 		const wrapper = mountControl([view('geleverd', { seeded: true }), view('eigen')])
 
 		expect(wrapper.findAll('[data-testid="cn-saved-views-delete"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['eigen'])
-		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['geleverd'])
+		expect(wrapper.findAll('[data-testid="cn-saved-views-copy"]').map((entry) => entry.attributes('data-view-id'))).toEqual(['geleverd', 'eigen'])
 	})
 })
 

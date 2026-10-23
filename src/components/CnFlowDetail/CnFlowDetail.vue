@@ -21,7 +21,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-detail">
+	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView }">
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
@@ -230,8 +230,17 @@
 						runStateOf(node.id) ? `cn-flow-detail__node--run-${runStateOf(node.id)}` : null,
 					]"
 					@dblclick.stop="store.editingNodeId = node.id">
-					<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
-					<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+					<template v-if="node.data.badge">
+						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+						<CnStatusBadge class="cn-flow-detail__node-badge"
+							:label="node.data.badge.label"
+							:variant="node.data.badge.variant || 'default'"
+							size="small" />
+					</template>
+					<template v-else>
+						<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
+						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+					</template>
 					<span
 						v-if="node.data.formDrift && node.data.formDrift.length"
 						class="cn-flow-detail__node-warning"
@@ -357,6 +366,7 @@ import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFl
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 import { taskFormDrift } from '../../utils/taskFormDrift.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * Which glyph stands for which router, in menu order.
@@ -403,6 +413,7 @@ export default {
 		CnFlowStepPickerModal,
 		CnContextMenu,
 		CnGraphCanvas,
+		CnStatusBadge,
 		ContentSave,
 		DockRight,
 		Minus,
@@ -466,6 +477,16 @@ export default {
 		fitMaxZoom: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * Draw each step as a card: its name, then the pill this function
+		 * returns for the step (`{ label, variant }`, or null for none), in
+		 * place of the type line. The board's card look passes it (DqFlow).
+		 */
+		nodeBadge: {
+			type: Function,
+			default: null,
 		},
 
 		/**
@@ -890,6 +911,7 @@ export default {
 				data: {
 					stepType: node.type,
 					label: this.nodeLabel(node),
+					badge: this.nodeBadge ? this.nodeBadge(node) : null,
 					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
 
 					// A PORT THAT CANNOT BE CONNECTED IS NOT DRAWN.
@@ -2484,6 +2506,54 @@ export default {
 
 .cn-flow-detail__node-warning {
 	color: var(--color-error-text);
+}
+
+/* ---- The card look (board DqFlow) ------------------------------------ */
+
+/* A step is a 200px card: its name, then the pill of the app that does it. */
+.cn-flow-detail--card-nodes :deep(.cn-flow-node) {
+	inline-size: 200px;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 10px;
+}
+
+.cn-flow-detail--card-nodes :deep(.cn-flow-node--selected) {
+	padding: 9px 11px;
+	border: 2px solid var(--color-primary-element);
+}
+
+.cn-flow-detail.cn-flow-detail--card-nodes .cn-flow-detail__node {
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.cn-flow-detail--card-nodes .cn-flow-detail__node-label {
+	max-inline-size: 100%;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* The role accent gives way to the card's own shadow while editing; a run keeps
+   its outcome colours. */
+.cn-flow-detail.cn-flow-detail--quiet-lines :deep(.cn-flow-node:has(.cn-flow-detail__node)) {
+	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.08);
+}
+
+/* Ports show on the card that is pointed at, focused or selected; a port that
+   breaks the flow stays visible. */
+.cn-flow-detail--card-nodes :deep(.cn-flow-node:not(:hover, :focus-within, .cn-flow-node--selected) .cn-flow-node__handle:not(.cn-flow-node__handle--orphan)) {
+	opacity: 0;
+}
+
+/* Plain grey connectors while editing; the steps run top to bottom. */
+.cn-flow-detail--quiet-lines :deep(.vue-flow__edge:not(.selected) .vue-flow__edge-path) {
+	stroke: var(--color-text-maxcontrast);
+	stroke-width: 2;
+	marker-end: none;
 }
 
 .cn-flow-detail__empty {

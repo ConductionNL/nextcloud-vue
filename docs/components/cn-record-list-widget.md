@@ -55,13 +55,15 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
 - `cards`: a framed card per row in a grid of cards at least 240px wide, as board ShBank draws the bank accounts. The card shows the `icon` (only when you set one) and the `title`, with the `pill` and `badges` beside them, then the `meta` line, then `trailing` as a large figure. A card with `rowRoute` is a link. On a board-look dashboard the cards keep a 24px inset inside a titled card; give the placement `borderless: true` and `showTitle: false` to stand them on the page ground, as ShBank does.
 
-Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09.42"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
+Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09.42"). `{path|ago}` says how long ago it was: "10 min geleden", "1 uur geleden", then "vanochtend", "vanmiddag" or "vanavond", "gisteren", the weekday ("vrijdag") and after a week the short date. `{path|week}` is the ISO week ("Week 41"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
 ### A colour dot and flags
 
 `dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
+
+`tiles: true` (with `presentation: "rows"`) draws each row as a framed tile, 8px 10px inside a hairline edge with radius 8, in a grid of 260px at the least and 8px apart, the title at 14px regular. Board DqZaaktypeOverzicht draws a case type's statuses this way: two columns of tiles, each with its colour dot and flags.
 
 ### One action per row
 
@@ -205,6 +207,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
 
 `aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
+
+`presentation: "checklist"` draws the rows as a checklist in `columns` (1 to 4, default 3): a row for which `done` (a condition over the row, `{ "field": "status", "op": "eq", "value": "completed" }`) holds is ticked, any other row is an empty circle, and a screen reader hears "Done" or "Not done yet" after each. `progress: true` adds a bar of the done share above it. With `headerNote: "{count:status=completed} of {total} steps done"` the card header counts them (DqTenant Inrichten "5 van 7 stappen klaar").
 
 ## Props
 

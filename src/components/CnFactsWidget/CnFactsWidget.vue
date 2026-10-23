@@ -184,9 +184,18 @@
 			data-testid="cn-facts-notice">
 			{{ notice.text }}
 		</NcNoteCard>
+		<button
+			v-if="link && link.sidebarTab && record"
+			type="button"
+			class="cn-facts-widget__link cn-facts-widget__link--button"
+			data-testid="cn-facts-link"
+			@click="openSidebarTab(link.sidebarTab)">
+			<CnIcon v-if="link.icon" :name="link.icon" :size="18" />
+			{{ link.label }}
+		</button>
 		<component
 			:is="link.to ? 'router-link' : 'a'"
-			v-if="link && record"
+			v-else-if="link && record"
 			:to="link.to || undefined"
 			:href="link.href || undefined"
 			:target="link.target || undefined"
@@ -233,6 +242,7 @@ import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
@@ -398,6 +408,8 @@ export default {
 		cnAppConfig: { default: null },
 		/** Pre-bound action dispatcher of CnPageRenderer, for `action` / `headerAction`. */
 		cnDispatchAction: { default: null },
+		/** The page's object sidebar channel; a `link.sidebarTab` opens one of its tabs. */
+		objectSidebarState: { default: null },
 	},
 
 	props: {
@@ -406,6 +418,7 @@ export default {
 		 *
 		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
+		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
@@ -413,6 +426,7 @@ export default {
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
@@ -423,7 +437,7 @@ export default {
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
-		 * - `link` — `{ label, route? | href? }` at the foot.
+		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
 		 * - `emptyText` — shown when no entry has a value.
@@ -464,6 +478,8 @@ export default {
 			copied: '',
 			/** Labels of the referenced objects read so far, by `refKey`. */
 			labels: {},
+			/** The `countFrom` totals read so far, by `countKey`. */
+			counts: {},
 			/** The outcome of each `actions[]` condition that needs a request, by action id. */
 			remoteVisibility: {},
 			/** Sequence of the source reads, so an older answer never replaces a newer one. */
@@ -497,6 +513,21 @@ export default {
 				object: this.objectData || injected.object || null,
 				workspace: unwrap(this.cnWorkspaceContext) || {},
 			}
+		},
+
+		/**
+		 * The entries' `countFrom` lists (`{ register, schema, filter? }`), each
+		 * once, keyed by what they count on this record.
+		 *
+		 * @return {string} A stable key of the lists to count.
+		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
+		 */
+		countJobsKey() {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const keys = fields
+				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
+				.map((field) => this.countKey(field.countFrom))
+			return JSON.stringify([...new Set(keys)])
 		},
 
 		/**
@@ -649,13 +680,17 @@ export default {
 		 *
 		 * @return {Array<object>}
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-facts-can-draw-the-rows-the-source-answers
+		 * @spec openspec/changes/facts-from-object/specs/facts-widget/spec.md#requirement-an-entry-can-read-the-page-object-on-a-sourced-card
 		 */
 		blocks() {
 			const sourceRecord = this.record
-			if (!sourceRecord) {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			// A source that finds nothing still leaves the entries that read the
+			// page's own object (`from: "object"`).
+			const ownEntries = Boolean(this.objectData) && fields.some((field) => field && field.from === 'object')
+			if (!sourceRecord && !ownEntries) {
 				return []
 			}
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
 			const hideEmpty = this.content?.hideEmpty !== false
 			const out = []
 			fields.forEach((field, index) => {
@@ -664,6 +699,9 @@ export default {
 				}
 				// `from: "object"` reads the page's own object while the card shows a `source`.
 				const record = field.from === 'object' && this.objectData ? this.objectData : sourceRecord
+				if (!record) {
+					return
+				}
 				if (field.when && !evaluateVisibleWhenLocal(field.when, record)) {
 					return
 				}
@@ -729,14 +767,21 @@ export default {
 		},
 
 		/**
-		 * The foot link, resolved, or null.
+		 * The foot link, resolved, or null. A `sidebarTab` link needs the
+		 * page's object sidebar and is null without one.
 		 *
-		 * @return {{label: string, to?: object, href?: string}|null}
+		 * @return {{label: string, to?: object, href?: string, sidebarTab?: string}|null}
+		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
 		 */
 		link() {
 			const link = this.content?.link
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
+			}
+			if (typeof link.sidebarTab === 'string' && link.sidebarTab !== '') {
+				return this.objectSidebarState
+					? { label: this.tr(link.label), sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
+					: null
 			}
 			if (link.route) {
 				const to = this.resolveRoute(link.route, this.record)
@@ -826,6 +871,13 @@ export default {
 	},
 
 	watch: {
+		countJobsKey: {
+			immediate: true,
+			handler() {
+				this.loadCounts()
+			},
+		},
+
 		sourceKey: {
 			immediate: true,
 			handler() {
@@ -870,6 +922,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open the page's object sidebar on one of its tabs.
+		 *
+		 * @param {string} tab The sidebar tab id.
+		 * @return {void}
+		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
+		 */
+		openSidebarTab(tab) {
+			this.objectSidebarState.open = true
+			this.objectSidebarState.requestedTab = tab
+		},
+
 		/**
 		 * The page asked every widget to read again (a dialog that changed what
 		 * the source answers, the page's Refresh): read the source again.
@@ -1007,10 +1071,54 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/facts-entry-empty-value/specs/facts-widget/spec.md#requirement-a-facts-entry-can-name-its-empty-value
 		 */
+		/**
+		 * The key of one `countFrom` list on this record: register, schema and
+		 * the filter with its tokens resolved.
+		 *
+		 * @param {{register: string, schema: string, filter?: object}} countFrom The list.
+		 * @return {string} The key.
+		 */
+		countKey(countFrom) {
+			return JSON.stringify([countFrom.register, countFrom.schema, resolveDeepTokens(countFrom.filter || {}, this.tokenCtx)])
+		},
+
+		/**
+		 * Count every `countFrom` list with the list endpoint's total. A count
+		 * that cannot be read stays unset, so its row is left out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
+		 */
+		async loadCounts() {
+			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const seen = new Set()
+			for (const field of fields) {
+				const countFrom = field && field.countFrom
+				if (!countFrom || typeof countFrom !== 'object' || !countFrom.register || !countFrom.schema) {
+					continue
+				}
+				const key = this.countKey(countFrom)
+				if (seen.has(key)) {
+					continue
+				}
+				seen.add(key)
+				try {
+					const total = await fetchListTotal(countFrom.register, countFrom.schema, countFrom.filter || {}, this.tokenCtx)
+					this.counts = { ...this.counts, [key]: total }
+				} catch {
+					this.counts = { ...this.counts, [key]: null }
+				}
+			}
+		},
+
 		entryValue(record, field, kind) {
 			const value = this.bareEntryValue(record, field, kind)
-			return value !== '' && typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
+			if (value === '') {
+				return typeof field.emptyValue === 'string' && field.emptyValue !== '' ? this.tr(field.emptyValue) : ''
+			}
+			return typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
 		},
 
 		/**
@@ -1023,6 +1131,10 @@ export default {
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
 		 */
 		bareEntryValue(record, field, kind) {
+			if (field.countFrom && typeof field.countFrom === 'object') {
+				const total = this.counts[this.countKey(field.countFrom)]
+				return Number.isFinite(total) ? String(total) : ''
+			}
 			if (kind === 'progress') {
 				return this.progressOf(record, field).value
 			}
@@ -1955,6 +2067,19 @@ export default {
 	font-weight: 600;
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+.cn-facts-widget__link--button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font-family: inherit;
+	cursor: pointer;
 }
 
 /* `columns: 2` (board DqContact): two columns, the label above the value, a

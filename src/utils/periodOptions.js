@@ -144,3 +144,35 @@ export function periodText(option, today = new Date(), locale = undefined) {
 	}
 	return typeof option.label === 'string' ? option.label : value
 }
+
+/**
+ * A dashboard date range read as a period, for a description line
+ * (`{dateRange}`): a calendar month preset as the month and year of the
+ * range's start, a calendar quarter as its three months, a calendar year as
+ * the year, any other preset as its label. A range without a preset label
+ * reads as empty, so the caller can write its dates instead.
+ *
+ * @param {{from?: string|null, to?: string|null, preset?: string}|null} range The active range.
+ * @param {{period?: string, label?: string}|null} preset The range's preset, its label already translated.
+ * @param {string} [locale] The locale for month names.
+ * @return {string} The period, '' when there is nothing to name.
+ * @spec openspec/changes/description-period-from-date-range/specs/description-period-from-date-range/spec.md#requirement-a-dashboard-description-reads-the-active-date-range-as-a-period
+ */
+export function rangePeriodText(range, preset, locale = undefined) {
+	if (!range || typeof range !== 'object') {
+		return ''
+	}
+	const from = typeof range.from === 'string' && range.from !== '' ? new Date(range.from) : null
+	const start = from && !Number.isNaN(from.getTime()) ? from : null
+	const period = preset && preset.period
+	if (start && period === 'month') {
+		return monthText(start, true, locale)
+	}
+	if (start && period === 'quarter') {
+		return monthsText(start, new Date(start.getFullYear(), start.getMonth() + 2, 1), locale)
+	}
+	if (start && period === 'year') {
+		return String(start.getFullYear())
+	}
+	return preset && typeof preset.label === 'string' ? preset.label : ''
+}

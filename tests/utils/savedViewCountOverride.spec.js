@@ -17,7 +17,7 @@ describe('the count line in a saved view', () => {
 	it('lets a view override countSubtitle', () => {
 		const overrides = savedViewOverrides({ overrides: { countSubtitle: null, countText: '' } })
 		expect(overrides).toEqual({ countSubtitle: null, countText: '' })
-		expect(applySavedViewOverrides({ countSubtitle: '{total} cases', countText: '{shown} of {total}' }, overrides)).toEqual({ countSubtitle: null, countText: '' })
+		expect(applySavedViewOverrides({ countSubtitle: '{total} cases', countText: '{shown} of {total}' }, overrides)).toEqual({ countSubtitle: null, countText: '', countTextByView: null })
 	})
 
 	it('passes the manifest schema in a default view', () => {

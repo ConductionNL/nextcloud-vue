@@ -288,6 +288,10 @@ function idOf(object) {
  * with no bound record, `record: { register, schema, filter, sort }` picks
  * the open record: the first match, under the reader's rights.
  *
+ * `startAt: "firstOpen"` opens a run that was started earlier at the page of
+ * its first unanswered question (the last page when all are answered), once
+ * per record; without it the run opens at the first page.
+ *
  * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
  * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
  * `typeMap` maps the app's type values onto them, `choiceValues` the stored
@@ -373,6 +377,8 @@ export default {
 			dirty: {},
 			photos: {},
 			page: 0,
+			// The source the page was last positioned for; `startAt` applies once per source.
+			positionedFor: '',
 			missing: [],
 			// Questions on this page that still need their photo.
 			missingPhoto: [],
@@ -858,7 +864,13 @@ export default {
 				this.answerIds = answerIds
 				this.storedPhotos = storedPhotos
 				this.dirty = {}
-				this.page = Math.min(this.page, Math.max(0, Math.ceil(questions.length / this.pageSize) - 1))
+				const lastPage = Math.max(0, Math.ceil(questions.length / this.pageSize) - 1)
+				if (this.positionedFor !== key && this.content?.startAt === 'firstOpen') {
+					const open = questions.findIndex((question) => !this.isAnswered(question))
+					this.page = open === -1 ? lastPage : Math.floor(open / this.pageSize)
+				}
+				this.positionedFor = key
+				this.page = Math.min(this.page, lastPage)
 			} catch {
 				this.error = t('nextcloud-vue', 'The checklist could not be loaded.')
 			} finally {

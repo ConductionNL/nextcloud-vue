@@ -28,6 +28,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 | `description` | String | `''` | Brief section description shown under the title |
 | `detailedDescription` | String | `''` | Longer description rendered in a separate block below the title |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |
+| `openedFrom` | String | `''` | The row this card is opened from, already translated: the card shows only while the page's hash names its `id`, and says "Opened from the row {row}" under its title in place of its description (DqInstellingen). Empty: the card is always shown. |
 | `loading` | Boolean | `false` | Loading state — shows a loading indicator instead of content |
 | `loadingMessage` | String | `'Loading...'` | Message shown during loading |
 | `error` | Boolean | `false` | Error state — shows an error card with optional retry button |
