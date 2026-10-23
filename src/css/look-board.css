@@ -664,6 +664,13 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* The contact thread's labelled header action (DqZaakContact "Contact
+   vastleggen") stands at the same 40px.
+   @spec openspec/changes/board-thread-header-button-height/specs/board-thread-header-button-height/spec.md#requirement-a-thread-headers-labelled-button-is-40px */
+.cn-look-board .cn-conversation-thread__header-actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- A workspace filter's table export ---------------------------------- */
 /* "CSV exporteren" beside "Rapport laden" is the neutral secondary at the
    40px control height, 14px in (DqTermijnen).
