@@ -1402,6 +1402,13 @@
 	font-size: 14px;
 }
 
+/* ---- The mail tab's template row (CnMailTab) ---------------------------- */
+/* The template field and its buttons stand 14px 16px apart (DqZaakEmail).
+   @spec openspec/changes/mail-tab-blank-draft-beside-compose/specs/mail-tab/spec.md#requirement-the-empty-draft-can-stay-in-the-row-beside-the-compose-action */
+.cn-look-board .cn-mail-tab__template-row:not(.cn-look-nextcloud *) {
+	gap: 14px 16px;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
