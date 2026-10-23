@@ -42,7 +42,7 @@ Compose in Mail actions.
 | `hint` | A line under the row. |
 | `templates` | An `endpointSource`-shaped read of the templates: `url` takes the `@objectId` and `@object.<field>` tokens, `responsePath` plucks the list (a `{ results }` body is read too). `labelField` (default `name`) is shown in the select, `idField` (default `id`) goes into the draft URL. Without it the row offers the empty draft only. A failed read leaves the empty draft usable. |
 | `noTemplatesText` | The select's placeholder when there are no templates (default "No templates yet"). |
-| `draft` | `{ url, blankTemplateId? }`: the POST that creates the draft. `{templateId}` in the URL is the chosen template's id, or `blankTemplateId` (default `blank`) for an empty draft. Without it there is no row. |
+| `draft` | `{ url, blankTemplateId?, blankButton? }`: the POST that creates the draft. `{templateId}` in the URL is the chosen template's id, or `blankTemplateId` (default `blank`) for an empty draft. Without it there is no row. `blankButton: true` keeps the row's Empty draft button beside a `compose` header action (DqZaakEmail). |
 | `closedWhen` | A local visibleWhen condition on the record. While it holds, both draft buttons are disabled. |
 | `linkedMail` | Show the linked mail under the row (default `true`). Set `false` when the page places the `email` integration as its own card. |
 | `headerActions` | Buttons beside the heading, in this order: `"link"` (Link mail) and `"compose"` (Compose mail). None by default. See below. |

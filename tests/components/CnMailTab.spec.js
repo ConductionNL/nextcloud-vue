@@ -183,6 +183,14 @@ describe('CnMailTab', () => {
 			wrapper.unmount()
 		})
 
+		it('keeps the row\'s empty draft beside "Compose mail" with draft.blankButton', async () => {
+			const wrapper = mountWithActions({ heading: 'Email', draft: { ...CONTENT.draft, blankButton: true }, headerActions: ['compose', 'link'] })
+			await flushPromises()
+			expect(wrapper.find('[data-testid="cn-mail-tab-header-compose"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Empty draft')
+			wrapper.unmount()
+		})
+
 		it('opens the empty draft from "Compose mail"', async () => {
 			mockPost.mockResolvedValue({ data: {} })
 			const wrapper = mountWithActions({ draft: CONTENT.draft, headerActions: ['compose'] })
