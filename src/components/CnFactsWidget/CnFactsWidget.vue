@@ -184,9 +184,18 @@
 			data-testid="cn-facts-notice">
 			{{ notice.text }}
 		</NcNoteCard>
+		<button
+			v-if="link && link.sidebarTab && record"
+			type="button"
+			class="cn-facts-widget__link cn-facts-widget__link--button"
+			data-testid="cn-facts-link"
+			@click="openSidebarTab(link.sidebarTab)">
+			<CnIcon v-if="link.icon" :name="link.icon" :size="18" />
+			{{ link.label }}
+		</button>
 		<component
 			:is="link.to ? 'router-link' : 'a'"
-			v-if="link && record"
+			v-else-if="link && record"
 			:to="link.to || undefined"
 			:href="link.href || undefined"
 			:target="link.target || undefined"
@@ -398,6 +407,8 @@ export default {
 		cnAppConfig: { default: null },
 		/** Pre-bound action dispatcher of CnPageRenderer, for `action` / `headerAction`. */
 		cnDispatchAction: { default: null },
+		/** The page's object sidebar channel; a `link.sidebarTab` opens one of its tabs. */
+		objectSidebarState: { default: null },
 	},
 
 	props: {
@@ -423,7 +434,7 @@ export default {
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
-		 * - `link` — `{ label, route? | href? }` at the foot.
+		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
 		 * - `emptyText` — shown when no entry has a value.
@@ -729,14 +740,21 @@ export default {
 		},
 
 		/**
-		 * The foot link, resolved, or null.
+		 * The foot link, resolved, or null. A `sidebarTab` link needs the
+		 * page's object sidebar and is null without one.
 		 *
-		 * @return {{label: string, to?: object, href?: string}|null}
+		 * @return {{label: string, to?: object, href?: string, sidebarTab?: string}|null}
+		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
 		 */
 		link() {
 			const link = this.content?.link
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
+			}
+			if (typeof link.sidebarTab === 'string' && link.sidebarTab !== '') {
+				return this.objectSidebarState
+					? { label: this.tr(link.label), sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
+					: null
 			}
 			if (link.route) {
 				const to = this.resolveRoute(link.route, this.record)
@@ -870,6 +888,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open the page's object sidebar on one of its tabs.
+		 *
+		 * @param {string} tab The sidebar tab id.
+		 * @return {void}
+		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
+		 */
+		openSidebarTab(tab) {
+			this.objectSidebarState.open = true
+			this.objectSidebarState.requestedTab = tab
+		},
+
 		/**
 		 * The page asked every widget to read again (a dialog that changed what
 		 * the source answers, the page's Refresh): read the source again.
@@ -1955,6 +1985,19 @@ export default {
 	font-weight: 600;
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+.cn-facts-widget__link--button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font-family: inherit;
+	cursor: pointer;
 }
 
 /* `columns: 2` (board DqContact): two columns, the label above the value, a
