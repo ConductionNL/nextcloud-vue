@@ -814,7 +814,8 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
-				if (!prop || out.widget !== undefined || out.formatter !== undefined) {
+				// The `label` widget writes the enum's label, so it still takes the enum.
+				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
 				}
 				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
