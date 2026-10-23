@@ -17,6 +17,7 @@
  */
 
 import { variantForColor } from './headerFieldChips.js'
+import { isObjectRowsSpec, objectRowsOf } from './objectRows.js'
 import { readPath } from './readPath.js'
 import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
@@ -335,6 +336,7 @@ export function pillLook(look) {
  * @param {object|null} object The record.
  * @return {number|null} The count, or null when the tab declares none.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+ * @spec openspec/changes/record-list-object-rows/specs/record-list/spec.md#requirement-a-tab-can-count-the-rows-its-record-holds
  */
 export function resolveTabCount(tab, object) {
 	if (!tab || typeof tab !== 'object') {
@@ -342,6 +344,10 @@ export function resolveTabCount(tab, object) {
 	}
 	if (typeof tab.count === 'number' && Number.isFinite(tab.count)) {
 		return tab.count
+	}
+	// `countObjectRows`: the rows the record holds where it points, as a record list's `objectRows`.
+	if (isObjectRowsSpec(tab.countObjectRows)) {
+		return objectRowsOf(object, tab.countObjectRows).length
 	}
 	if (typeof tab.countField !== 'string' || tab.countField === '') {
 		const counts = object && typeof object === 'object' && object['@self'] && object['@self'].unreadCounts

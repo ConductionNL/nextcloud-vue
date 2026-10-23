@@ -1056,7 +1056,7 @@ export default {
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
 		 */
 		unreadLabelOf(tab, widgetId) {
-			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField))) {
+			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField || tab.countObjectRows))) {
 				return ''
 			}
 			const key = this.unreadKeyOf(tab, widgetId)

@@ -36,6 +36,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 |-----|---------|
 | `register`, `schema` | The list to read. Without both the widget sends nothing. |
 | `endpointSource` | Read the rows from an app endpoint instead: `{ url, method?, params?, responsePath? }`, the shape the object table and the stat tile take. The payload at `responsePath` is the array of rows; a payload that is not an array is an empty list. `register`, `schema`, `filter` and `sort` are then not used. |
+| `objectRows` | List rows the page record holds instead: `{ path, where?, valuePath? }`. The list at `path`, narrowed to the entry matching `where`, its `valuePath` taken; a JSON string is decoded. No request is sent: the record is the one the page read as the reader, so its read rules already apply (dossiq Onderzoek: `{ "path": "sensitiveProperties", "where": { "name": "onderzoeksstappen" }, "valuePath": "value" }`). A tab counts the same rows with `countObjectRows`. |
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
