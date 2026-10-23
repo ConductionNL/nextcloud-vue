@@ -483,7 +483,7 @@
 				@description User clicked a declarative bulk action. Payload carries the action id AND the selection, because a bulk action without its selection is not a bulk action.
 			-->
 			<NcButton
-				v-for="entry in bulkActions"
+				v-for="entry in inlineBulkActions"
 				:key="entry.id"
 				variant="secondary"
 				:disabled="entry.disabled === true"
@@ -492,6 +492,27 @@
 				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
 				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 			</NcButton>
+			<!-- Bulk actions declared with `menu: true` gather under More. -->
+			<NcActions
+				v-if="menuBulkActions.length > 0"
+				:menuName="t('nextcloud-vue', 'More')"
+				variant="secondary"
+				:forceMenu="true"
+				data-testid="cn-bulk-more">
+				<NcActionButton
+					v-for="entry in menuBulkActions"
+					:key="entry.id"
+					:closeAfterClick="true"
+					:disabled="entry.disabled === true"
+					:data-testid="`cn-bulk-action-${entry.id}`"
+					:lang="bulkLang(entry)"
+					@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+					<template v-if="entry.icon" #icon>
+						<CnIcon :name="entry.icon" :size="20" />
+					</template>
+					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+				</NcActionButton>
+			</NcActions>
 			<!--
 				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
 				@binding {number} count Length of the current selection.
@@ -549,7 +570,7 @@
 			{{ t('nextcloud-vue', 'Delete selected') }}
 		</NcButton>
 		<NcButton
-			v-for="entry in bulkActions"
+			v-for="entry in inlineBulkActions"
 			:key="entry.id"
 			variant="secondary"
 			:disabled="entry.disabled === true || selectedIds.length === 0"
@@ -561,6 +582,27 @@
 			</template>
 			{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 		</NcButton>
+		<NcActions
+			v-if="menuBulkActions.length > 0"
+			:menuName="t('nextcloud-vue', 'More')"
+			variant="secondary"
+			:forceMenu="true"
+			:disabled="selectedIds.length === 0"
+			data-testid="cn-bulk-band-more">
+			<NcActionButton
+				v-for="entry in menuBulkActions"
+				:key="entry.id"
+				:closeAfterClick="true"
+				:disabled="entry.disabled === true"
+				:data-testid="`cn-bulk-action-${entry.id}`"
+				:lang="bulkLang(entry)"
+				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+				<template v-if="entry.icon" #icon>
+					<CnIcon :name="entry.icon" :size="20" />
+				</template>
+				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+			</NcActionButton>
+		</NcActions>
 		<slot
 			name="selection-actions"
 			:count="selectedIds.length"
@@ -1106,8 +1148,10 @@ export default {
 		 * render side by side in one row.
 		 *
 		 * Clicking emits `bulk-action` with the id AND the current selection.
+		 * An entry with `menu: true` is listed under a More menu after the
+		 * buttons instead of as a button of its own.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean, menu?: boolean }>}
 		 */
 		bulkActions: {
 			type: Array,
@@ -1197,6 +1241,26 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/**
+		 * The bulk actions drawn as buttons: every one without `menu: true`.
+		 *
+		 * @spec openspec/changes/bulk-actions-more-menu/specs/bulk-actions-more-menu/spec.md#requirement-a-bulk-action-can-sit-under-more
+		 * @return {Array<object>}
+		 */
+		inlineBulkActions() {
+			return (this.bulkActions || []).filter((entry) => entry && entry.menu !== true)
+		},
+
+		/**
+		 * The bulk actions gathered under the selection's More menu (`menu: true`).
+		 *
+		 * @spec openspec/changes/bulk-actions-more-menu/specs/bulk-actions-more-menu/spec.md#requirement-a-bulk-action-can-sit-under-more
+		 * @return {Array<object>}
+		 */
+		menuBulkActions() {
+			return (this.bulkActions || []).filter((entry) => entry && entry.menu === true)
+		},
+
 		bulkBandHasActions() {
 			return this.showMassCopy || this.showMassDelete
 				|| (Array.isArray(this.bulkActions) && this.bulkActions.length > 0)
