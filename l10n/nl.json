@@ -2606,7 +2606,11 @@
     "More steps": "Meer stappen",
     "More views": "Meer weergaven",
     "{type} from {app}": "{type} van {app}",
-    "Start step": "Start"
+    "Start step": "Start",
+    "Also who read it": "Ook wie het las",
+    "{shown} of {total} events, changes only": "{shown} van {total} gebeurtenissen, alleen wijzigingen",
+    "Opened the record": "Heeft het geopend",
+    "Viewed": "Ingezien"
   },
   "plurals": {
     "{count} member": [

@@ -2356,7 +2356,11 @@
     "More steps": "More steps",
     "More views": "More views",
     "{type} from {app}": "{type} from {app}",
-    "Start step": "Start step"
+    "Start step": "Start step",
+    "Also who read it": "Also who read it",
+    "{shown} of {total} events, changes only": "{shown} of {total} events, changes only",
+    "Opened the record": "Opened the record",
+    "Viewed": "Viewed"
   },
   "plurals": {
     "{count} member": [
