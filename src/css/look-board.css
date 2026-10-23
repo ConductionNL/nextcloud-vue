@@ -860,9 +860,57 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	max-width: calc(100vw - 32px);
 }
 
+/* A saved view's manage menu (DqFilterBeheren, DqFilterInMenu "Beheer
+   <view>"): 264px wide, rows of at least 40px, 6px 10px in, 8px rounded,
+   the icon 12px before a 14px label at 600 with its explanation under it in
+   12px muted text at 400; the separator in the soft line, and Delete in the
+   error red. Its rows carry the panel's `cn-saved-views-` test ids.
+   @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-a-saved-views-manage-menu-is-the-boards-menu */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
+	box-sizing: border-box;
+	width: 264px;
+	max-width: calc(100vw - 32px);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
+	--font-weight-element: 600;
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-border-radius: 8px;
+	gap: 12px;
+	min-height: 40px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	font-weight: 600;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__longtext-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__description {
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 16px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
+	border-bottom-color: var(--color-background-hover);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
+	color: var(--color-error-text);
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
+	/* Resolved here, outside any entry: a theme may recolour the primary text
+	   on the open entry (thematiq's active label), and the count read there
+	   turned dark red on its red pill. */
+	--cn-nav-count-attention-text: var(--color-primary-element-text);
 	width: 264px;
 	background: var(--color-main-background);
 	border-inline-end: 1px solid var(--color-border);
@@ -988,14 +1036,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* The open entry sits on the tonal primary. NcAppNavigationItem paints an
    active entry with a 16% (22% hovered) primary mix at `!important`, so the
    board value needs `!important` too; the selector is the more specific one.
-   The link carries the same ground. */
+   The link is transparent so the entry's ground shows, also when a theme
+   repaints the entry (thematiq's soft accent wash). */
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active,
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active:hover {
 	background-color: var(--color-primary-element-light) !important;
 }
 
 .cn-look-board .app-navigation[data-testid="cn-nav"] .app-navigation-entry.active .app-navigation-entry-link {
-	background: var(--color-primary-element-light);
+	background: transparent;
 	color: var(--color-primary-element-light-text);
 	font-weight: 600;
 }
@@ -1043,7 +1092,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    a light ground (#8A0000 under thematiq), not the text on an error pill. */
 .cn-look-board .cn-app-nav__count--attention {
 	background: var(--color-error);
-	color: var(--color-primary-element-text);
+	color: var(--cn-nav-count-attention-text);
 }
 
 /* The footer: Help, then Advanced, whatever the declared order. */
@@ -1473,7 +1522,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input:not(.v-select *) + .input-field__label,
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input + .textarea__label,
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select .input-field__input + .input-field__label.input-field__label {
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select .input-field__input + .input-field__label.input-field__label,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .nc-select.v-select.select .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label {
 	inset-block-start: auto;
 	inset-block-end: calc(100% + 6px);
 	inset-inline: 0 auto;
@@ -1494,7 +1544,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    raised label sat on what stood above (DqInstellingen, DqDashboard
    "Register", "Kadaster"). The select makes the room; its label is raised by
    the rule above, the doubled class outranking NcSelect's own label rule.
-   @spec openspec/changes/board-settings-select-label/specs/settings-board-look/spec.md */
+   A select that holds a value has a heavier rule of NcSelect's own (its
+   label shrinks and sits on the border), which pinned the label's top as
+   well and squashed it to a sliver over the control (DqInstellingen
+   "Kadaster (BRK): bron", DqBeheerinstellingen "Zaakschema"); the second
+   selector above outranks that one.
+   @spec openspec/changes/board-settings-select-label/specs/settings-board-look/spec.md
+   @spec openspec/changes/board-filled-select-label/specs/board-filled-select-label/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select:has(.input-field__label) {
 	margin-block-start: 22px;
 }
@@ -2772,6 +2828,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-color: var(--color-border-maxcontrast);
 }
 
+/* A chosen option stays white under its primary edge, as every Dq dialog board
+   draws it (design-system #371); the Nextcloud look keeps the tint.
+   @spec openspec/changes/board-choice-row-chosen-white/specs/board-choice-row-chosen-white/spec.md#requirement-a-chosen-board-option-is-white */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:not(.cn-look-nextcloud *) {
+	background: var(--color-main-background);
+}
+
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
 	width: 18px;
 	height: 18px;
@@ -2809,4 +2874,38 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    any class a widget sizes its own heading with. */
 html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	font-size: 1.4em;
+}
+
+/* ---- A map's control bar ------------------------------------------------- */
+/* The board draws a map's buttons as one column in the top right, 12px in and
+   6px apart: 36px white squares with the control edge and radius around an
+   18px icon (DqZakenKaart). CnMapWidget puts the zoom buttons in this bar in
+   the board look. The selectors outweigh Leaflet's `.leaflet-touch .leaflet-bar
+   a:first-child` and the widget's scoped 30px rule.
+   @spec openspec/changes/board-map-controls/specs/board-map-controls/spec.md#requirement-the-board-maps-buttons-are-36px-edged-squares */
+.cn-look-board .cn-map-widget .leaflet-bar.cn-map-widget__controls:not(.cn-look-nextcloud *) {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 12px 12px 0 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+}
+
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 36px;
+	height: 36px;
+	line-height: normal;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):hover,
+.cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):focus-visible {
+	background: var(--color-background-hover);
 }

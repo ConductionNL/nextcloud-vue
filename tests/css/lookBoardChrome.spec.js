@@ -170,14 +170,28 @@ describe('look-board.css: the navigation', () => {
 
 	it('writes the attention count in white, not in the error text colour', () => {
 		const attention = rulesFor('.cn-app-nav__count--attention')
-		expect(attention).toContain('color: var(--color-primary-element-text)')
+		expect(attention).toContain('color: var(--cn-nav-count-attention-text)')
 		expect(attention).not.toContain('--color-error-text')
+	})
+
+	it('resolves the count\'s white on the navigation, so an open entry that recolours the primary text keeps it white', () => {
+		// thematiq's navigation-active-entry scope sets --color-primary-element-text
+		// to the active label colour on the open entry; read there, the count
+		// turned dark red on its red pill.
+		const nav = rulesFor('.app-navigation[data-testid="cn-nav"] {')
+		expect(nav).toContain('--cn-nav-count-attention-text: var(--color-primary-element-text)')
+		expect(rulesFor('.cn-app-nav__count--attention')).not.toContain('color: var(--color-primary-element-text)')
 	})
 
 	it('puts the tonal primary on the open entry at !important, over NcAppNavigationItem\'s 16% mix, hovered too', () => {
 		expect(rulesFor('.app-navigation-entry.active {')).toContain('background-color: var(--color-primary-element-light) !important')
 		expect(rulesFor('.app-navigation-entry.active:hover {')).toContain('background-color: var(--color-primary-element-light) !important')
-		expect(rulesFor('.app-navigation-entry.active .app-navigation-entry-link')).toContain('background: var(--color-primary-element-light)')
+	})
+
+	it('lets the open entry\'s wash show through its link, so a theme that repaints the entry (an accent wash) is seen', () => {
+		const link = rulesFor('.app-navigation-entry.active .app-navigation-entry-link')
+		expect(link).toContain('background: transparent')
+		expect(link).not.toContain('background: var(--color-primary-element-light)')
 	})
 
 	it('puts a caption\'s edit pencil on the caption line at its end, a 28px round button', () => {

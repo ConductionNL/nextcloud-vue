@@ -770,6 +770,15 @@
 	white-space: nowrap;
 }
 
+/* A column that opts into wrapping (`cellClass: "cn-cell--wrap"`) wraps over
+   lines, as DqTaken draws its task titles and subjects.
+   @spec openspec/changes/board-index-wrap-cell/specs/data-table/spec.md#requirement-a-board-index-column-can-wrap-its-value */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-cell--wrap > .cn-cell-renderer {
+	overflow: visible;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 /* A narrow header cuts its label, not its filter funnel. */
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
 	max-width: calc(100% - 26px);
@@ -932,18 +941,23 @@
 	text-align: end;
 }
 
-.cn-look-board .cn-row-actions--board {
+.cn-look-board .cn-row-actions--board,
+.cn-look-board .cn-files-browser__row-menu {
 	--default-clickable-area: 34px;
 }
 
 /* The row menu: a 34px square, three dots, a grey border on the main
-   background (DqZaken, PqTickets). A theme that styles every secondary button
+   background (DqZaken, PqTickets, and a file list's rows on DqDocumentenBeheer;
+   a review row with its own visible button keeps the bare menu). A theme that styles every secondary button
    with `!important` (the nldesign theme: a primary border, 8px 16px padding,
    `min-width: max-content`) would otherwise turn it into a 64px wide button
    with a blue border, so the board values are `!important` too. */
 .cn-look-board .cn-row-actions--board .button-vue,
 .cn-look-board .cn-row-actions--board .button-vue:hover,
-.cn-look-board .cn-row-actions--board .button-vue:focus {
+.cn-look-board .cn-row-actions--board .button-vue:focus,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus {
 	box-sizing: border-box !important;
 	width: 34px !important;
 	min-width: 34px !important;
@@ -955,15 +969,18 @@
 	color: var(--cn-board-text-soft) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue {
+.cn-look-board .cn-row-actions--board .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue {
 	background: var(--color-main-background) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:hover {
+.cn-look-board .cn-row-actions--board .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover {
 	background: var(--color-background-hover) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:focus-visible {
+.cn-look-board .cn-row-actions--board .button-vue:focus-visible,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: 2px;
 }
@@ -1266,6 +1283,21 @@
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note {
+	margin: 0;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
+	color: var(--cn-status-purple-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--teal {
+	color: var(--cn-status-teal-text);
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot {
@@ -1672,6 +1704,14 @@
 	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
 }
 
+/* A row the manifest marks overdue (`config.rowClass` with `class:
+   "cn-row--overdue"`) carries a 4px red edge on its leading side, as DqTaken
+   draws the tasks past or at their deadline.
+   @spec openspec/changes/board-overdue-row-edge/specs/data-table/spec.md#requirement-a-board-table-row-marked-overdue-has-a-red-leading-edge */
+.cn-look-board .cn-data-table tr.cn-row--overdue > td:first-child:not(.cn-look-nextcloud *) {
+	box-shadow: inset 4px 0 0 var(--color-error);
+}
+
 /* ---- A kanban column's show-more button ---------------------------------- */
 /* The board draws "Toon 12 meer" in the soft ink, its dashed edge in the 3:1
    control colour, 6px in at the sides (DqWerkbord); the view draws the main
@@ -1700,6 +1740,18 @@
 .cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments .cn-segmented-control__option {
 	min-height: 34px;
 	gap: 6px;
+}
+
+/* ---- The map list row's date (DqZakenKaart) ---------------------------- */
+/* A 14px clock 4px before "1 nov", 13px semibold in the soft text colour.
+   @spec openspec/changes/board-map-list-due-clock/specs/board-map-list-due-clock/spec.md#requirement-a-board-map-list-rows-date-carries-a-clock */
+.cn-look-board .cn-index-page__map-due:not(.cn-look-nextcloud *) {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
 }
 
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
@@ -1816,4 +1868,16 @@
 .cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab--active {
 	border-bottom: 1px solid var(--color-main-background);
 	font-weight: 700;
+}
+
+/* The applied view's row, and the row whose menu is open, on the primary
+   tint with the name in the deep primary ink (DqFilterBeheren "Wacht op
+   inwoner" with its menu open).
+   @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-the-row-whose-menu-is-open-is-marked */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) {
+	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
+	color: var(--color-primary-element-light-text);
 }

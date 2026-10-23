@@ -128,3 +128,90 @@ describe('CnRetentionWidget', () => {
 		expect(denied.attributes('title')).toBe('Recomputing needs the archivist role')
 	})
 })
+
+describe('CnRetentionWidget before the record closes', () => {
+	const OPEN = { id: 'z-82', caseType: 'ct-woo', '@self': { id: 'z-82', register: 'dossiq', schema: 'case' } }
+	const RESULT_TYPES = [
+		{ id: 'r1', archivalAction: 'vernietigen', archivalPeriod: 'P5Y', selectionListClass: '11.1.2, Woo-verzoeken' },
+		{ id: 'r2', archivalAction: 'vernietigen', archivalPeriod: 'P5Y', selectionListClass: '11.1.2, Woo-verzoeken' },
+	]
+	const EXPECTED = {
+		source: { register: 'dossiq', schema: 'resultType', filter: { caseType: '@object.caseType' } },
+		fields: { appraisal: 'archivalAction', period: 'archivalPeriod', selectionListRow: 'selectionListClass' },
+		appraisalLabels: { vernietigen: 'Destroy', bewaren: 'Keep' },
+		periodText: '{period} after the decision',
+		decidedBy: 'The case type, when it closes',
+	}
+
+	/**
+	 * Answer the record read and the result type read.
+	 *
+	 * @param {object[]} types The result types.
+	 * @return {void}
+	 */
+	function answer(types) {
+		axios.get.mockImplementation(async (url) => (url.includes('/resultType')
+			? { data: { results: types } }
+			: { data: OPEN }))
+	}
+
+	/**
+	 * The pending facts as label: value.
+	 *
+	 * @param {object} w The widget.
+	 * @return {object} The facts.
+	 */
+	function pending(w) {
+		return Object.fromEntries(w.findAll('[data-testid="cn-retention-pending"] .cn-retention__fact').map((f) => [f.find('dt').text(), f.find('dd').text()]))
+	}
+
+	beforeEach(() => {
+		axios.get.mockReset()
+	})
+
+	it('shows the outcome the record type expects, read from its result types', async () => {
+		answer(RESULT_TYPES)
+		const w = await mountWidget({ expected: EXPECTED })
+		expect(axios.get).toHaveBeenCalledWith('/nc/apps/openregister/api/objects/dossiq/resultType', { params: { caseType: 'ct-woo', _limit: 100 } })
+		expect(pending(w)).toEqual({
+			Appraisal: 'Destroy',
+			'Retention period': '5 years after the decision',
+			'Selection list row': '11.1.2, Woo-verzoeken',
+			'Disposal date': 'Decided when it closes',
+			'Decided by': 'The case type, when it closes',
+			'Written on': 'Not yet',
+		})
+	})
+
+	it('says the outcome depends on the result when the result types disagree', async () => {
+		answer([RESULT_TYPES[0], { id: 'r3', archivalAction: 'bewaren', archivalPeriod: 'P20Y' }])
+		const w = await mountWidget({ expected: EXPECTED })
+		expect(pending(w).Appraisal).toBe('Depends on the result')
+		expect(pending(w)['Retention period']).toBe('Depends on the result')
+	})
+
+	it('keeps the plain pending facts when the expected outcome cannot be read', async () => {
+		axios.get.mockImplementation(async (url) => {
+			if (url.includes('/resultType')) {
+				throw new Error('down')
+			}
+			return { data: OPEN }
+		})
+		const w = await mountWidget({ expected: EXPECTED })
+		expect(pending(w).Appraisal).toBe('Decided when it closes')
+	})
+
+	it('draws the procedure hold and the e-Depot transfer as sections when asked', async () => {
+		answer(RESULT_TYPES)
+		const w = await mountWidget({ expected: EXPECTED, legalHold: true, transfer: { keepValues: ['bewaren'] } })
+		expect(w.find('[data-testid="cn-retention-hold"]').text()).toContain('No legal hold')
+		expect(w.find('[data-testid="cn-retention-transfer"]').text()).toContain('Not applicable')
+
+		axios.get.mockImplementation(async (url) => (url.includes('/resultType')
+			? { data: { results: [{ id: 'r9', archivalAction: 'bewaren', archivalPeriod: 'P20Y' }] } }
+			: { data: { ...OPEN, '@self': { ...OPEN['@self'], _retention: { legalHold: { active: true, holds: [{ id: 'h1', reason: 'Bezwaar loopt', placedBy: 'anouk', placedDate: '2026-10-06' }] } } } } }))
+		const held = await mountWidget({ expected: EXPECTED, legalHold: true, transfer: { keepValues: ['bewaren'] } })
+		expect(held.find('[data-testid="cn-retention-hold"]').text()).toContain('Bezwaar loopt')
+		expect(held.find('[data-testid="cn-retention-transfer"]').text()).toContain('Goes to the e-Depot')
+	})
+})

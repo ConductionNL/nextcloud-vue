@@ -7,10 +7,12 @@ import {
 	DYNAMIC_KEY_PREFIX,
 	extendsFormDeclarations,
 	isDynamicKey,
+	mergeValueArray,
 	prefillDeclarations,
 	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
+	storedAnswersFor,
 	valueRecordsFor,
 } from '../../src/utils/dynamicProperties.js'
 import { fieldsFromSchema } from '../../src/utils/schema.js'
@@ -156,6 +158,41 @@ describe('propertiesFromDefinitions', () => {
 		expect(fields.map((f) => f.label)).toEqual(['Plafond', 'Doelgroep', 'Startdatum'])
 		expect(fields[0].required).toBe(true)
 		expect(fields[1].required).toBe(false)
+	})
+})
+
+describe('propertiesFromDefinitions: list fields', () => {
+	const config = { ...CASE_CONFIG, map: { title: 'name', type: 'propertyType', items: 'items' } }
+	const instruments = {
+		id: 'def-i',
+		name: 'instrumenten',
+		propertyType: 'array',
+		items: {
+			type: 'object',
+			properties: {
+				kind: { type: 'string', title: 'Soort' },
+				budget: { type: 'number', title: 'Budget' },
+			},
+		},
+	}
+	const parties = { id: 'def-p', name: 'samenwerkendePartijen', propertyType: 'array', items: { type: 'string' } }
+
+	it('carries the shape of one entry onto a list field', () => {
+		const { properties } = propertiesFromDefinitions([instruments, parties], config)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-i`].items).toEqual(instruments.items)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-p`].items).toEqual({ type: 'string' })
+	})
+
+	it('edits a list of records row by row, and a list of words as tags', () => {
+		const { properties } = propertiesFromDefinitions([instruments, parties], config)
+		const fields = fieldsFromSchema({ properties, required: [] })
+		expect(fields.map((f) => f.widget)).toEqual(['sub-objects', 'tags'])
+		expect(Object.keys(fields[0].items.properties)).toEqual(['kind', 'budget'])
+	})
+
+	it('ignores an entry shape on a field that is not a list', () => {
+		const { properties } = propertiesFromDefinitions([{ id: 'def-s', name: 'x', propertyType: 'string', items: { type: 'string' } }], config)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-s`].items).toBeUndefined()
 	})
 })
 
@@ -349,5 +386,102 @@ describe('propertiesFromDefinitions: hideOnCreate', () => {
 	it('reads the flag from the field config.map.hideOnCreate names', () => {
 		const create = build(records, { map: { hideOnCreate: 'autoFilled' } }, { create: true })
 		expect(Object.values(create.properties).map((p) => p.title)).toEqual(['Shown', 'Filled by the app'])
+	})
+})
+
+/** dossiq's case declaration: the answers live on the case itself, in `properties`. */
+const ARRAY_CONFIG = {
+	definitions: { schema: 'propertyDefinition', filter: { caseType: '$value' } },
+	values: {
+		mode: 'array',
+		arrayKey: 'properties',
+		definitionRef: 'propertyDefinition',
+		nameKey: 'name',
+		valueKey: 'value',
+	},
+}
+
+describe('storedAnswersFor', () => {
+	const properties = {
+		'x-prop:def-n': { type: 'number' },
+		'x-prop:def-b': { type: 'boolean' },
+		'x-prop:def-l': { type: 'array', items: { type: 'object', properties: { kind: { type: 'string' } } } },
+		'x-prop:def-s': { type: 'string', format: 'date' },
+		'x-prop:def-e': { type: 'string' },
+	}
+	const record = {
+		properties: [
+			{ propertyDefinition: 'def-n', name: 'Plafond', value: '50000' },
+			{ propertyDefinition: 'def-b', name: 'Spoed', value: 'false' },
+			{ propertyDefinition: 'def-l', name: 'Instrumenten', value: '[{"kind":"jobcoach"}]' },
+			{ propertyDefinition: 'def-s', name: 'Ontvangen op', value: '2026-10-01' },
+			{ propertyDefinition: 'def-e', name: 'Leeg', value: '' },
+			{ propertyDefinition: 'def-gone', name: 'Weg', value: 'x' },
+		],
+	}
+
+	it('reads each stored answer for its field type, keyed like the form', () => {
+		expect(storedAnswersFor(record, ARRAY_CONFIG, properties)).toEqual({
+			'x-prop:def-n': 50000,
+			'x-prop:def-b': false,
+			'x-prop:def-l': [{ kind: 'jobcoach' }],
+			'x-prop:def-s': '2026-10-01',
+		})
+	})
+
+	it('keeps a stored text that does not parse for its type as it is', () => {
+		const odd = { properties: [{ propertyDefinition: 'def-n', value: 'veel' }, { propertyDefinition: 'def-l', value: 'not json' }] }
+		expect(storedAnswersFor(odd, ARRAY_CONFIG, properties)).toEqual({ 'x-prop:def-n': 'veel', 'x-prop:def-l': 'not json' })
+	})
+
+	it('reads nothing for a declaration that stores child records, or a record without answers', () => {
+		expect(storedAnswersFor(record, CASE_CONFIG, properties)).toEqual({})
+		expect(storedAnswersFor({}, ARRAY_CONFIG, properties)).toEqual({})
+		expect(storedAnswersFor(null, ARRAY_CONFIG, properties)).toEqual({})
+	})
+})
+
+describe('mergeValueArray', () => {
+	const definitions = [{ id: 'def-1', name: 'Plafond' }, { id: 'def-2', name: 'Doelgroep' }]
+	const stored = [
+		{ propertyDefinition: 'def-1', name: 'Plafond (oude naam)', value: '50000' },
+		{ propertyDefinition: 'def-old', name: 'Niet meer gevraagd', value: 'blijft' },
+	]
+
+	it('keeps an unchanged answer as stored, replaces a changed one, adds a new one, keeps what the form did not ask', () => {
+		const merged = mergeValueArray(stored, [
+			{ definitionId: 'def-1', value: 50000 },
+			{ definitionId: 'def-2', value: 'Sport' },
+		], ARRAY_CONFIG, definitions)
+		expect(merged).toEqual([
+			stored[0],
+			stored[1],
+			{ propertyDefinition: 'def-2', name: 'Doelgroep', value: 'Sport' },
+		])
+	})
+
+	it('replaces a changed answer in place and drops a cleared one', () => {
+		const merged = mergeValueArray(stored, [
+			{ definitionId: 'def-1', value: 60000 },
+		], ARRAY_CONFIG, definitions)
+		expect(merged).toEqual([
+			{ propertyDefinition: 'def-1', name: 'Plafond', value: '60000' },
+			stored[1],
+		])
+		expect(mergeValueArray(stored, [{ definitionId: 'def-1', value: '' }], ARRAY_CONFIG, definitions))
+			.toEqual([stored[1]])
+	})
+
+	it('treats a list answer equal to its stored JSON as unchanged', () => {
+		const list = [{ propertyDefinition: 'def-1', value: '[ {"kind": "jobcoach"} ]' }]
+		expect(mergeValueArray(list, [{ definitionId: 'def-1', value: [{ kind: 'jobcoach' }] }], ARRAY_CONFIG, definitions))
+			.toEqual(list)
+	})
+
+	it('builds the array from nothing on a new record, writing no entry for an empty answer', () => {
+		expect(mergeValueArray(undefined, [
+			{ definitionId: 'def-1', value: 1 },
+			{ definitionId: 'def-2', value: [] },
+		], ARRAY_CONFIG, definitions)).toEqual([{ propertyDefinition: 'def-1', name: 'Plafond', value: '1' }])
 	})
 })

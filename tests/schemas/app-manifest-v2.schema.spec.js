@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.150.0', () => {
+	it('the manifest schema version reads 2.151.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1424,7 +1424,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
 		// 2.150.0 adds a board's declared states (board.states, columnFields[].states, board-declared-states).
-		expect(schema.version).toBe('2.150.0')
+		// 2.151.0 adds the api-call PATCH method (r24-api-call-patch), a card layout note (cardLayout.note, card-layout-note), a page filter without a control (control: none, page-filter-without-control) and a default view's description and secondary flag (default-views-secondary).
+		expect(schema.version).toBe('2.151.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1550,10 +1551,27 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
 	})
 
+	/**
+	 * @spec openspec/changes/card-layout-note/specs/card-layout-note/spec.md#requirement-a-record-card-can-draw-a-toned-note-under-its-meta-line
+	 */
+	it('accepts a card layout note with a purple or teal tone, and refuses another tone (2.151.0)', () => {
+		const page = (note) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', cardLayout: { title: 'title', note } } }] })
+		expect(validateManifestV2(page({ field: 'coveredFor', formatter: 'coveredFor', tone: 'purple' })).valid).toBe(true)
+		expect(validateManifestV2(page({ field: 'coveredFor' })).valid).toBe(true)
+		expect(validateManifestV2(page({ field: 'coveredFor', tone: 'red' })).valid).toBe(false)
+		expect(validateManifestV2(page({ formatter: 'coveredFor' })).valid).toBe(false)
+	})
+
 	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.149.0)', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'pm', route: '/pm', type: 'dashboard', title: 'PM', config: { pageFilters: [filter] } }] })
 		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: '12m', label: 'Last 12 months', months: 12 }] })).valid).toBe(true)
 		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: 'x', label: 'None', months: 0 }] })).valid).toBe(false)
+	})
+
+	it('accepts a page filter without a control, and refuses an unknown control (2.151.0)', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'pt', route: '/pt', type: 'dashboard', title: 'PT', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'period', control: 'none', default: '12m', options: [{ value: '12m', label: 'Last 12 months', months: 12 }] })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', control: 'hidden', options: [{ value: '12m', label: 'Last 12 months' }] })).valid).toBe(false)
 	})
 
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {
@@ -2706,5 +2724,17 @@ describe('app-manifest-v2 — card pill resolve (pill-color-field)', () => {
 
 	it('refuses an unknown resolve key on a card pill', () => {
 		expect(validateManifestV2(page({ cardLayout: { headPill: { field: 'caseType', resolve: { colour: 'red' } } } })).valid).toBe(false)
+	})
+})
+
+describe('default views carry a line and a secondary mark (default-views-secondary)', () => {
+	const page = (view) => ({ ...MINIMAL_V2, menu: [], pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', defaultSavedViews: [view] } }] })
+
+	it('accepts description and secondary on a default view', () => {
+		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, description: 'Handler is me', secondary: true })).valid).toBe(true)
+	})
+
+	it('refuses a secondary mark that is not a boolean', () => {
+		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, secondary: 'yes' })).valid).toBe(false)
 	})
 })

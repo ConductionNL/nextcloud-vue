@@ -24,6 +24,7 @@ const { emit } = require('@nextcloud/event-bus')
 const CnMacrosWidget = require('../../src/components/CnMacrosWidget/CnMacrosWidget.vue').default
 const { declaredMacros, pickMacros } = require('../../src/utils/declaredMacros.js')
 const { DASHBOARD_CATALOG_WIDGET_KEYS } = require('../../src/utils/libraryWidgetKeys.js')
+const { isContentOnlyWidgetDef } = require('../../src/utils/widgetDispatch.js')
 
 const SCHEMA = {
 	configuration: {
@@ -173,5 +174,9 @@ describe('CnMacrosWidget', () => {
 
 	it('is a library widget key', () => {
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('macros')
+	})
+
+	it('is content only, so a detail card surface (a tab stack, the side column) draws its titled card', () => {
+		expect(isContentOnlyWidgetDef({ type: 'macros' })).toBe(true)
 	})
 })

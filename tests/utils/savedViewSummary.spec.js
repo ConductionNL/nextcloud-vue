@@ -50,6 +50,34 @@ describe('summarizeViewFilters', () => {
 	})
 })
 
+describe('summarizeViewFilters with the page\'s filterLabels', () => {
+	const filterLabels = {
+		statusHiddenInLists: { hidden: true },
+		isDraft: { hidden: true },
+		isFinalStatus: { label: 'Status', values: { false: 'ongoing' } },
+	}
+
+	it('leaves out the filters the page marks hidden, as working-list rules nobody chose', () => {
+		const line = summarizeViewFilters(
+			{ filters: { caseType: ['woo-uuid'], statusHiddenInLists: false, isDraft: false } },
+			{ properties: PROPERTIES, valueLabels: { caseType: { 'woo-uuid': 'Woo-verzoek' } }, filterLabels, translate },
+		)
+		expect(line).toBe('Zaaktype Woo-verzoek')
+	})
+
+	it('names a filter and its value as the Active line does, before the schema', () => {
+		const line = summarizeViewFilters(
+			{ filters: { isFinalStatus: false } },
+			{ properties: { isFinalStatus: { type: 'boolean', title: 'Is final status' } }, filterLabels },
+		)
+		expect(line).toBe('Status ongoing')
+	})
+
+	it('is empty for a view that only holds hidden filters', () => {
+		expect(summarizeViewFilters({ filters: { isDraft: false } }, { filterLabels })).toBe('')
+	})
+})
+
 describe('viewFilterReferences', () => {
 	it('lists the ids per reference filter, for a label lookup', () => {
 		const fields = [

@@ -576,6 +576,7 @@
     "No widgets configured": "Geen widgets geconfigureerd",
     "Not configured": "Niet geconfigureerd",
     "Not set": "Niet ingesteld",
+    "Not done yet": "Nog niet klaar",
     "Not run": "Niet uitgevoerd",
     "Load": "Laden",
     "Load again": "Opnieuw laden",
@@ -2575,7 +2576,34 @@
     "Filter by type": "Filteren op soort",
     "activities": "activiteiten",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "Fit all markers": "Alle pins in beeld",
+    "Show my location": "Naar mijn locatie",
+    "Toggle fullscreen": "Volledig scherm",
+    "{name}, in the menu": "{name}, in het menu",
+    "{name} (copy)": "{name} (kopie)",
+    "just now": "zojuist",
+    "this morning": "vanochtend",
+    "this afternoon": "vanmiddag",
+    "this evening": "vanavond",
+    "{subject}, checklist": "{subject}, checklist",
+    "Kept for a procedure": "Bewaren voor een procedure",
+    "Placed on {date} by {by}": "Geplaatst op {date} door {by}",
+    "No legal hold": "Geen juridische bewaarplicht",
+    "If an objection or appeal runs, destruction is suspended": "Loopt er een bezwaar of beroep, dan wordt vernietigen opgeschort",
+    "None": "Geen",
+    "Transfer to the e-Depot": "Overdracht naar het e-Depot",
+    "Goes to the e-Depot": "Gaat naar het e-Depot",
+    "After the retention period the record is transferred": "Na de bewaartermijn wordt het dossier overgedragen",
+    "Only records appraised to keep go to the e-Depot": "Alleen dossiers met waardering bewaren gaan naar het e-Depot",
+    "Transfer": "Overdracht",
+    "No transfer": "Geen overdracht",
+    "Depends on the result": "Hangt af van het resultaat",
+    "Opened from the row {row}": "Geopend vanuit de rij {row}",
+    "Week {week}": "Week {week}",
+    "More default views": "Meer standaardweergaven",
+    "Fewer default views": "Minder standaardweergaven",
+    "More steps": "Meer stappen"
   },
   "plurals": {
     "{count} member": [
@@ -2757,6 +2785,18 @@
     "{name} and %n other are also looking at this record now": [
       "{name} en %n ander kijken nu ook naar deze zaak",
       "{name} en %n anderen kijken nu ook naar deze zaak"
+    ],
+    "{count} min ago": [
+      "{count} min geleden",
+      "{count} min geleden"
+    ],
+    "{count} hour ago": [
+      "{count} uur geleden",
+      "{count} uur geleden"
+    ],
+    "%n week": [
+      "%n week",
+      "%n weken"
     ]
   }
 }

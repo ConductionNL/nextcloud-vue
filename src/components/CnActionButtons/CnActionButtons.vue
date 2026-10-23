@@ -222,7 +222,7 @@ import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { mergeValueArray, usesArrayValues, valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
@@ -1345,9 +1345,10 @@ export default {
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
-				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
-				if (entries.length) {
-					payload[config.values.arrayKey] = entries
+				const arrayKey = config.values.arrayKey
+				const entries = mergeValueArray(payload[arrayKey], mine, config, dynamic.definitions || [])
+				if (entries.length || Array.isArray(payload[arrayKey])) {
+					payload[arrayKey] = entries
 				}
 			}
 		},

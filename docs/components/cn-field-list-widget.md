@@ -106,7 +106,7 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `rowActions[].when` | Besides `{ field: value }`, a field may take operators `{ eq?, neq?, set? }`, where an operand `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`. |
 | `columns[].code` | Draw the cell as code (a hash, an id). |
 | `add.trigger` | `"button"`: the add form shows only after a "+ label" button; it closes after a successful add. |
-| `add.placement` | `"header"` (button above the rows, right-aligned) or `"footer"` (default). |
+| `add.placement` | `"header"` (button above the rows, right-aligned), `"title"` (the button in the card's title row, reported on the `header` event; the form opens above the rows; DqZaaktype "Variant toevoegen") or `"footer"` (default). |
 
 ## Props
 

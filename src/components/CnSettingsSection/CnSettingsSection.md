@@ -86,6 +86,7 @@ export default {
 |------|------|---------|-------------|
 | `detailedDescription` | String | `''` | Extended description shown in a block below the title (more space than the NcSettingsSection `description`) |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the section title |
+| `openedFrom` | String | `''` | The row this card is opened from, already translated: the card shows only while the page's hash names its `id`, and says "Opened from the row {row}" under its title in place of its description. Empty: the card is always shown. |
 | `errorMessage` | String | `'An error occurred'` | Message shown when `error` is `true` |
 | `onRetry` | Function | `null` | Callback for the retry button in the error state; button is hidden when `null` |
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |

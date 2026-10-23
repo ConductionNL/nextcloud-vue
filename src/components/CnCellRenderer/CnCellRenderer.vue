@@ -427,11 +427,13 @@ import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateV
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { indicatorApplies } from '../../utils/rowIndicators.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { isWithheld, withheldReason } from '../../utils/withheldValue.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -553,7 +555,7 @@ export default {
 		 * batch (`widgetProps { labels, route? }`, set by CnIndexPage for a
 		 * column with `labelField`).
 		 * The built-in id `"avatar"` renders a person as an avatar with the
-		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
+		 * name beside it (`widgetProps { userField?, user?, nameField?, size?, groupField?, groupLabel? }`; a row nobody holds names its first `groupField` group, in `groupLabel` ("{group}, unclaimed");
 		 * a free name gets its initials), and the built-in id `"date"` renders
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
@@ -793,10 +795,13 @@ export default {
 
 		/**
 		 * `avatar` widget: the name shown beside the picture. Read from the
-		 * row field `widgetProps.nameField` when set, else the cell value.
+		 * row field `widgetProps.nameField` when set; a cell holding a user id
+		 * (`widgetProps.user`) shows that user's display name once it is
+		 * known; else the cell value.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 * @spec openspec/changes/avatar-cell-user-display-name/specs/data-table/spec.md#requirement-an-avatar-cell-holding-a-user-id-shows-the-users-display-name
 		 */
 		avatarName() {
 			const props = this.widgetProps || {}
@@ -805,6 +810,16 @@ export default {
 				if (typeof name === 'string' && name !== '') {
 					return name
 				}
+			}
+			if (props.user === true && this.avatarUserId !== '') {
+				const displayName = userDisplayName(this.avatarUserId)
+				if (displayName !== '') {
+					return displayName
+				}
+			}
+			if (this.avatarGroupId !== '') {
+				const label = typeof props.groupLabel === 'string' && props.groupLabel !== '' ? this.cnTranslate(props.groupLabel) : '{group}'
+				return label.replace(/\{group\}/g, this.avatarGroupName)
 			}
 			if (!this.hasValue || typeof this.value === 'object') {
 				return ''
@@ -820,7 +835,36 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			return this.initialsOf(this.avatarName)
+			return this.initialsOf(this.avatarGroupId !== '' ? this.avatarGroupName : this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: the group the row waits on when nobody holds it,
+		 * the first id in the row field `widgetProps.groupField`, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/avatar-cell-group-fallback/specs/data-table/spec.md#requirement-an-empty-avatar-cell-can-name-the-rows-group
+		 */
+		avatarGroupId() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'avatar' || typeof props.groupField !== 'string' || props.groupField === '' || this.avatarUserId !== '') {
+				return ''
+			}
+			if (this.hasValue && typeof this.value !== 'object') {
+				return ''
+			}
+			const groups = objectFieldValue(this.row, props.groupField)
+			const first = Array.isArray(groups) ? groups.find((gid) => typeof gid === 'string' && gid !== '') : groups
+			return typeof first === 'string' ? first : ''
+		},
+
+		/**
+		 * `avatar` widget: the display name of `avatarGroupId`, the id until it is known.
+		 *
+		 * @return {string}
+		 */
+		avatarGroupName() {
+			return groupDisplayName(this.avatarGroupId) || this.avatarGroupId
 		},
 
 		/**
@@ -869,6 +913,9 @@ export default {
 			}
 			if (this.dueResult && this.dueResult.tone === 'danger') {
 				return 'cn-cell-renderer__date--error'
+			}
+			if (this.dueResult && this.dueResult.tone === 'muted') {
+				return 'cn-cell-renderer__date--muted'
 			}
 			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
 		},
@@ -1670,6 +1717,22 @@ export default {
 		},
 	},
 
+	watch: {
+		avatarGroupId: {
+			immediate: true,
+			/**
+			 * Look the group's display name up (cached, once per id per page).
+			 *
+			 * @param {string} gid The group id.
+			 */
+			handler(gid) {
+				if (gid !== '') {
+					loadGroupDisplayName(gid)
+				}
+			},
+		},
+	},
+
 	mounted() {
 		// Warn once per column-property-name when `widget:"link"` resolves
 		// to neither a `route` nor an `href` — silent fallback hides
@@ -2153,6 +2216,10 @@ export default {
 
 .cn-cell-renderer__date--error {
 	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__date--muted {
+	color: var(--color-text-maxcontrast);
 }
 
 /* The text variant, not the fill: from Nextcloud 32 `--color-success` is a

@@ -226,6 +226,22 @@ describe('CnChecklistRunWidget with the questions and answers inside the open re
 		w.unmount()
 	})
 
+	it('opens at the page of the first open question with startAt firstOpen, and at the first page without it', async () => {
+		const resumed = mountRecord({ ...RECORD_CONTENT, startAt: 'firstOpen' })
+		await flush()
+		expect(resumed.find('[data-testid="cn-checklist-run-position"]').text()).toBe('Question 2 of 3 · Fire safety version 3')
+		expect(legends(resumed)[0]).toContain('Which door type?')
+		resumed.unmount()
+		const paged = mountRecord({ ...RECORD_CONTENT, startAt: 'firstOpen', pageSize: 2 })
+		await flush()
+		expect(paged.find('[data-testid="cn-checklist-run-position"]').text()).toBe('Question 1 of 3 · Fire safety version 3')
+		paged.unmount()
+		const plain = mountRecord()
+		await flush()
+		expect(plain.find('[data-testid="cn-checklist-run-position"]').text()).toBe('Question 1 of 3 · Fire safety version 3')
+		plain.unmount()
+	})
+
 	it('writes the changed answers into the record\'s array with one update, by type', async () => {
 		const w = mountRecord({ ...RECORD_CONTENT, pageSize: 3 })
 		await flush()

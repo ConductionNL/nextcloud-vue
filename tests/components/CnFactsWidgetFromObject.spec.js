@@ -6,6 +6,7 @@
  * client of a ticket) can read one entry from the page's own object with
  * `from: "object"` (board PqTicket "Klant": the client's name and the ticket's
  * channel on one card). Without the flag an entry reads the source, as before.
+ * A source that finds nothing leaves the from-object entries standing.
  *
  * @spec openspec/changes/facts-from-object/specs/facts-widget/spec.md#requirement-an-entry-can-read-the-page-object-on-a-sourced-card
  */
@@ -45,5 +46,27 @@ describe('CnFactsWidget: from object', () => {
 		expect(w.find('.cn-facts-widget__lead-title').text()).toBe('Sanne de Vries')
 		expect(w.find('[data-testid="cn-fact-channel"] dd').text()).toBe('Telefoon')
 		expect(w.find('[data-testid="cn-fact-client-channel"] dd').text()).toBe('Mijn Zuiddrecht')
+	})
+
+	it('keeps the from-object entries when the source finds nothing', async () => {
+		// DqTenant's Status card: the organisation's status and slug stay when it has no subscription record.
+		mockGet.mockResolvedValue({ data: { results: [], total: 0 } })
+		const w = mount(CnFactsWidget, {
+			props: {
+				objectData: { id: 'o-1', slug: 'default-organisation' },
+				content: {
+					source: { register: 'dossiq', schema: 'tenantSubscription', filter: { tenantRef: '@objectId' } },
+					fields: [
+						{ path: 'slug', label: 'Reference', from: 'object' },
+						{ path: 'packageName', label: 'Package' },
+					],
+				},
+				objectId: 'o-1',
+			},
+			global: { provide: { cnTranslate: (key) => key }, stubs: { NcLoadingIcon: true } },
+		})
+		await flushPromises()
+		expect(w.find('[data-testid="cn-fact-slug"] dd').text()).toBe('default-organisation')
+		expect(w.find('[data-testid="cn-fact-packageName"]').exists()).toBe(false)
 	})
 })

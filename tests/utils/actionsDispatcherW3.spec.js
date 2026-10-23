@@ -32,7 +32,7 @@ jest.mock('@nextcloud/dialogs', () => ({
 }))
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { post: jest.fn(), put: jest.fn(), get: jest.fn() },
+	default: { post: jest.fn(), put: jest.fn(), patch: jest.fn(), get: jest.fn() },
 }))
 jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
@@ -156,6 +156,26 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 			// @me resolves via @nextcloud/auth (falls back to '' in jsdom) — the
 			// point is the token grammar ran, not the exact user id.
 			expect(body).toHaveProperty('when')
+		})
+
+		it('honours method: PATCH and sends only the payload', async () => {
+			axios.patch.mockResolvedValue({ data: { id: 'c1' } })
+			const result = await dispatchAction(
+				{
+					type: 'api-call',
+					method: 'PATCH',
+					url: '/apps/openregister/api/objects/dossiq/toestemming/@objectId',
+					payload: { withdrawn: true },
+				},
+				{ tokenCtx: { objectId: 'c1' } },
+			)
+			await flush()
+
+			expect(axios.patch).toHaveBeenCalledTimes(1)
+			expect(axios.patch.mock.calls[0][0]).toBe('/nc/apps/openregister/api/objects/dossiq/toestemming/c1')
+			expect(axios.patch.mock.calls[0][1]).toEqual({ withdrawn: true })
+			expect(axios.post).not.toHaveBeenCalled()
+			expect(result.ok).toBe(true)
 		})
 
 		it('shows an error toast and returns { ok: false } on failure, and does NOT refresh', async () => {
