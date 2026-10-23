@@ -1878,6 +1878,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 10px;
 }
 
+/* Its warning tone sits on the theme's warning tint, as the board notice
+   does (the component's own ground reads a variable Nextcloud does not have). */
+.cn-look-board .cn-record-list__notice--warning:not(.cn-look-nextcloud *) {
+	background: var(--nl-color-orange-light, #fff4de);
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */
