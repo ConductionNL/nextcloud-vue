@@ -2576,7 +2576,10 @@
     "Filter by type": "Filteren op soort",
     "activities": "activiteiten",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "Fit all markers": "Alle pins in beeld",
+    "Show my location": "Naar mijn locatie",
+    "Toggle fullscreen": "Volledig scherm"
   },
   "plurals": {
     "{count} member": [

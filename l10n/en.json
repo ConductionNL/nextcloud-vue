@@ -2325,7 +2325,10 @@
     "The action failed.": "The action failed.",
     "The warnings could not be loaded.": "The warnings could not be loaded.",
     "Filter by type": "Filter by type",
-    "activities": "activities"
+    "activities": "activities",
+    "Fit all markers": "Fit all markers",
+    "Show my location": "Show my location",
+    "Toggle fullscreen": "Toggle fullscreen"
   },
   "plurals": {
     "{count} member": [
