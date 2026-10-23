@@ -5,24 +5,12 @@
  * CnSlotGrid — self-registers the `slot-grid` widget type (the objects of one
  * schema laid out by a row value and a column value, added per cell) into the
  * shared dashboardWidgetRegistry.
+ * Importing this module also registers the widget type (dashboardRegistration.js).
  */
 
 import CnSlotGrid from './CnSlotGrid.vue'
-import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
-registerDashboardWidget('slot-grid', {
-	renderer: CnSlotGrid,
-	form: null,
-	defaultContent: {
-		source: { register: '', schema: '' },
-		rowFields: [],
-		columnField: '',
-		columns: [],
-	},
-	displayName: 'Slot grid',
-	icon: 'TableLarge',
-	surfaces: ['dashboard', 'detail-page'],
-})
+import './dashboardRegistration.js'
 
 export { CnSlotGrid }
 export default CnSlotGrid

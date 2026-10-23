@@ -831,6 +831,7 @@ export default {
 				const response = await axios[method](generateUrl(save.url), body)
 				this.apply(response.data)
 				this.saved = true
+				/** @event saved The marks were saved. Payload: the endpoint's answer. */
 				this.$emit('saved', response.data)
 			} catch (error) {
 				const message = error && error.response ? serverErrorMessage(error) : ''

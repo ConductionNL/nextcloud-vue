@@ -9,7 +9,7 @@
 		:name="titleText"
 		size="normal"
 		data-testid="cn-secret-address-dialog"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<CnSecretAddressCard v-bind="cardProps" />
 	</CnDialog>
 	<div v-else class="cn-secret-address" data-testid="cn-secret-address">
@@ -227,6 +227,12 @@ export default {
 	},
 
 	methods: {
+		/** Pass the dialog's closing on. */
+		onClose() {
+			/** @event close The dialog was closed. */
+			this.$emit('close')
+		},
+
 		t,
 
 		tr(text) {

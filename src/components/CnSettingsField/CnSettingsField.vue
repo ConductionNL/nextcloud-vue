@@ -225,7 +225,7 @@
 				:modelValue="field.clearing === true"
 				:disabled="field.readOnly"
 				:data-testid="`cn-settings-field-clear-${field.key}`"
-				@update:modelValue="$emit('clear', $event === true)">
+				@update:modelValue="onClear">
 				{{ field.clearLabel || t('nextcloud-vue', 'Remove the stored value') }}
 			</NcCheckboxRadioSwitch>
 		</div>
@@ -544,6 +544,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The "remove the stored value" switch of a secret changed.
+		 *
+		 * @param {boolean} on Whether the stored value is to be removed.
+		 * @return {void}
+		 */
+		onClear(on) {
+			/** @event clear The stored secret is to be removed (true) or kept (false). */
+			this.$emit('clear', on === true)
+		},
+
 		t,
 
 		/** Ask the host to run an `action` field's action. */
