@@ -2575,7 +2575,24 @@
     "Filter by type": "Filteren op soort",
     "activities": "activiteiten",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "Kept for a procedure": "Bewaren voor een procedure",
+    "Placed on {date} by {by}": "Geplaatst op {date} door {by}",
+    "No legal hold": "Geen juridische bewaarplicht",
+    "If an objection or appeal runs, destruction is suspended": "Loopt er een bezwaar of beroep, dan wordt vernietigen opgeschort",
+    "None": "Geen",
+    "Transfer to the e-Depot": "Overdracht naar het e-Depot",
+    "Goes to the e-Depot": "Gaat naar het e-Depot",
+    "After the retention period the record is transferred": "Na de bewaartermijn wordt het dossier overgedragen",
+    "Only records appraised to keep go to the e-Depot": "Alleen dossiers met waardering bewaren gaan naar het e-Depot",
+    "Transfer": "Overdracht",
+    "No transfer": "Geen overdracht",
+    "Depends on the result": "Hangt af van het resultaat",
+    "%n week": [
+      "%n week",
+      "%n weken",
+      "%n weeks"
+    ]
   },
   "plurals": {
     "{count} member": [
