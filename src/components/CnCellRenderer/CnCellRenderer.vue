@@ -126,8 +126,8 @@
 			<a
 				v-else-if="linkHref"
 				:href="linkHref"
-				target="_blank"
-				rel="noopener"
+				:target="linkTarget"
+				:rel="linkTarget ? 'noopener' : null"
 				class="cn-cell-renderer__link">
 				{{ labelledValue }}
 			</a>
@@ -580,7 +580,8 @@ export default {
 		 * Extra props spread onto the resolved cell-widget component. The
 		 * built-in `"link"` reads its target from here: `route` (a manifest
 		 * page id), `params` (route param to row field), `href` (URL with
-		 * `{field}` placeholders), and `routeField` + `routeMap` to pick the
+		 * `{field}` placeholders; a new tab unless `target: "_self"` or a `#`
+		 * anchor), and `routeField` + `routeMap` to pick the
 		 * page per row from a sibling field (`{ person: 'ContactDetail' }`),
 		 * with `route` as the fallback for a value the map does not hold.
 		 */
@@ -1595,6 +1596,23 @@ export default {
 			// rendering, so fall through to plain text.
 			const safe = safeHref(resolved)
 			return safe === '#' ? null : safe
+		},
+
+		/**
+		 * Where a `widgetProps.href` link opens: a new tab, unless
+		 * `widgetProps.target` is `_self` or the href is an anchor on this
+		 * page (`#…`), so a row can open a card on the same page
+		 * (DqInstellingen: a connection row opens its settings card).
+		 *
+		 * @return {string|null} `_blank`, or null for the same tab.
+		 * @spec openspec/changes/cell-link-same-tab/specs/cell-link-same-tab/spec.md
+		 */
+		linkTarget() {
+			const target = this.widgetProps && this.widgetProps.target
+			if (target === '_self' || (typeof this.linkHref === 'string' && this.linkHref.startsWith('#'))) {
+				return null
+			}
+			return '_blank'
 		},
 
 		/**
