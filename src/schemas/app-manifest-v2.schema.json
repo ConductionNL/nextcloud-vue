@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.149.0",
+	"version": "2.150.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1402,7 +1402,7 @@
 		"boardDeclaredStates": {
 			"type": "array",
 			"minItems": 1,
-			"description": "board-declared-states (2.149.0): the columns the board draws for a field, in order, instead of the field's enum or lifecycle states. Each entry is a value or `{ key, label?, color?, hidden?, closed? }`: `hidden` draws no column (its cards go to Elsewhere), `closed` starts the column folded, `label` is an i18n key. On `board` it applies to the `statusField`; on a `columnFields` entry to that field. Ignored on a `source` or `kind: values` column.",
+			"description": "board-declared-states (2.150.0): the columns the board draws for a field, in order, instead of the field's enum or lifecycle states. Each entry is a value or `{ key, label?, color?, hidden?, closed? }`: `hidden` draws no column (its cards go to Elsewhere), `closed` starts the column folded, `label` is an i18n key. On `board` it applies to the `statusField`; on a `columnFields` entry to that field. Ignored on a `source` or `kind: values` column.",
 			"items": {
 				"oneOf": [
 					{ "type": "string", "minLength": 1 },
