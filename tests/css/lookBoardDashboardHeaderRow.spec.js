@@ -26,7 +26,7 @@ function rules() {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		out.push({ selectors: m[1].split(',').map((s) => s.trim()), body: m[2] })
+		out.push({ selectors: m[1].split(/,(?![^(]*\))/).map((s) => s.trim()), body: m[2] })
 	}
 	return out
 }

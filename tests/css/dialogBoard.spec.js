@@ -41,7 +41,7 @@ describe('dialog.css', () => {
 	it('scopes every rule under the board container', () => {
 		const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/^[^{}@]+(?=\{)/gm).map((s) => s.trim())
 		for (const selector of selectors) {
-			for (const part of selector.split(',').map((p) => p.trim())) {
+			for (const part of selector.split(/,(?![^(]*\))/).map((p) => p.trim())) {
 				if (part.startsWith(BOARD_BODY)) {
 					continue
 				}

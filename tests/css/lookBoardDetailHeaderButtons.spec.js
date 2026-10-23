@@ -22,7 +22,7 @@ function rulesEndingWith(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).some((s) => s.endsWith(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).some((s) => s.endsWith(needle))) {
 			out.push(m[2])
 		}
 	}
