@@ -932,18 +932,23 @@
 	text-align: end;
 }
 
-.cn-look-board .cn-row-actions--board {
+.cn-look-board .cn-row-actions--board,
+.cn-look-board .cn-files-browser__row-menu {
 	--default-clickable-area: 34px;
 }
 
 /* The row menu: a 34px square, three dots, a grey border on the main
-   background (DqZaken, PqTickets). A theme that styles every secondary button
+   background (DqZaken, PqTickets, and a file list's rows on DqDocumentenBeheer;
+   a review row with its own visible button keeps the bare menu). A theme that styles every secondary button
    with `!important` (the nldesign theme: a primary border, 8px 16px padding,
    `min-width: max-content`) would otherwise turn it into a 64px wide button
    with a blue border, so the board values are `!important` too. */
 .cn-look-board .cn-row-actions--board .button-vue,
 .cn-look-board .cn-row-actions--board .button-vue:hover,
-.cn-look-board .cn-row-actions--board .button-vue:focus {
+.cn-look-board .cn-row-actions--board .button-vue:focus,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus {
 	box-sizing: border-box !important;
 	width: 34px !important;
 	min-width: 34px !important;
@@ -955,15 +960,18 @@
 	color: var(--cn-board-text-soft) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue {
+.cn-look-board .cn-row-actions--board .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue {
 	background: var(--color-main-background) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:hover {
+.cn-look-board .cn-row-actions--board .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover {
 	background: var(--color-background-hover) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:focus-visible {
+.cn-look-board .cn-row-actions--board .button-vue:focus-visible,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: 2px;
 }
