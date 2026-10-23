@@ -4616,10 +4616,42 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
-			return item.customTitle
+			const title = item.customTitle
 				|| def?.customTitle
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
+			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
+		},
+
+		/**
+		 * Whether the widget's title carries `{count}`, the total its widget
+		 * reports; such a card shows the total in its title, not as a chip.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		titleHoldsCount(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const raw = item.customTitle || def?.customTitle || def?.title || ''
+			return typeof raw === 'string' && raw.includes('{count}')
+		},
+
+		/**
+		 * The title with `{count}` filled from the reported total, or the token
+		 * dropped (with the space before it) while no total has arrived.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @param {string} title The title, translated.
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		fillTitleCount(item, title) {
+			const reported = this.widgetHeaders[item.widgetId]
+			if (reported && Number.isFinite(reported.count)) {
+				return title.replace(/\{count\}/g, String(reported.count))
+			}
+			return title.replace(/\s*\{count\}/g, '').trim()
 		},
 
 		/**
@@ -4840,6 +4872,9 @@ export default {
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
 		 */
 		widgetHeaderCount(item) {
+			if (this.titleHoldsCount(item)) {
+				return null
+			}
 			const reported = this.widgetHeaders[item.widgetId]
 			return reported && Number.isFinite(reported.count) ? reported.count : null
 		},

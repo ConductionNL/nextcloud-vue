@@ -179,9 +179,11 @@ export default {
 		 * (`{ key?, label }`) adds what the groups leave of the whole as a last,
 		 * neutral segment. `heading` and `headingMeta` are templates over
 		 * `{counted}`, `{total}`, `{remaining}` and the endpoint's own fields,
-		 * drawn above the bar.
+		 * drawn above the bar. `headerCount: true` reports the sum of the
+		 * segments to the card (`header` event, `count`), for a chip after the
+		 * title or a `{count}` in it.
 		 *
-		 * @type {{inset?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
+		 * @type {{inset?: boolean, headerCount?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
 		 */
 		content: {
 			type: Object,
@@ -205,6 +207,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header'],
 
 	setup(props) {
 		const objectCtxRaw = inject('cnObjectContext', null)
@@ -408,6 +412,20 @@ export default {
 		},
 
 		/**
+		 * The total reported to the card under `headerCount: true`, or null
+		 * while loading, after an error or without `headerCount`.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		headerTotal() {
+			if (this.content.headerCount !== true || this.isLoading || this.loadError) {
+				return null
+			}
+			return this.total
+		},
+
+		/**
 		 * The sum of all counts.
 		 *
 		 * @return {number}
@@ -463,6 +481,19 @@ export default {
 		/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget */
 		sourceKey() {
 			this.fetchGroups()
+		},
+
+		/** @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports */
+		headerTotal: {
+			immediate: true,
+			handler(total) {
+				if (total !== null) {
+					/**
+					 * @event header With `headerCount: true`, once the counts have loaded: `{ link: null, note: '', count }`, the sum of the segments.
+					 */
+					this.$emit('header', { link: null, note: '', count: total })
+				}
+			},
 		},
 	},
 
