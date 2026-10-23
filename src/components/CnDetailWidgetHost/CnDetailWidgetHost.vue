@@ -334,6 +334,32 @@
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
 		</CnWidgetWrapper>
 
+		<!-- A chart on a card surface: the titled card every body widget
+		     carries (ADR-062), with the whole prop bag, so record tokens in its
+		     `cellSource` or `dataSource` still resolve. In a tab panel it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsChart"
+			:title="widget.title || ''"
+			:subtitle="widgetSubtitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__card-fit"
+			data-testid="cn-detail-widget-chart-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
 		<!-- An app's own widget (consumer registry) on a card surface, the
 		     side column or a tab stack, whose registry entry asks for the
 		     titled card (`chrome: "card"`). Opt-in: many app widgets draw their
@@ -955,6 +981,15 @@ export default {
 		/** @return {boolean} true for object-list / table / files. */
 		isContentOnly() {
 			return isContentOnlyWidgetDef(this.widget)
+		},
+
+		/**
+		 * Whether a chart gets the titled card: on a card surface, with a title.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsChart() {
+			return !this.isBare && Boolean(this.widget) && this.widget.type === 'chart' && Boolean(this.widget.title)
 		},
 
 		/**
