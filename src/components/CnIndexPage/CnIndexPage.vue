@@ -1435,6 +1435,7 @@ import {
 	buildValueStages,
 	columnFieldsOf,
 	columnKeyOfRow,
+	declaredStatesOf,
 	fetchReferenceObjects,
 	flattenItemRefs,
 	fullTargetOf,
@@ -5433,7 +5434,15 @@ export default {
 				return { states: this.boardStages.states }
 			}
 			const field = this.boardColumnField
-			return this.effectiveSchema?.properties?.[field] || null
+			const property = this.effectiveSchema?.properties?.[field] || null
+			const declared = declaredStatesOf(this.board, this.boardActiveColumnField, field)
+			if (declared !== null) {
+				return {
+					...(property || {}),
+					states: declared.map((state) => ({ ...state, label: this.cnTranslate(state.label) })),
+				}
+			}
+			return property
 		},
 
 		/**
