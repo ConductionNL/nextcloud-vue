@@ -171,4 +171,58 @@ describe('CnSavedViewMenuSettings', () => {
 		expect(wrapper.findComponent(CnOrderedListField).props('addHint')).toMatch(/default views/)
 		expect(wrapper.find('[data-testid="cn-ordered-list-hint"]').exists()).toBe(true)
 	})
+
+	it('leaves the page\'s hidden filters out of the line and names the rest as the Active line does', async () => {
+		const manifest = {
+			pages: [{
+				id: 'Cases',
+				type: 'index',
+				title: 'All cases',
+				config: {
+					register: 'dossiq',
+					schema: 'case',
+					allowSavedViews: true,
+					filterLabels: { statusHiddenInLists: { hidden: true }, isDraft: { hidden: true } },
+				},
+			}],
+		}
+		mockGet.mockImplementation(async () => ({ data: { results: [{ id: 9, name: 'Woo requests', query: { scope: 'dossiq/case', filters: { caseType: ['woo-uuid'], statusHiddenInLists: false, isDraft: false } } }] } }))
+		global.fetch = jest.fn(async (url) => ({
+			ok: true,
+			json: async () => (String(url).includes('/schemas/') ? SCHEMA : { results: [{ id: 'woo-uuid', title: 'Woo request' }] }),
+		}))
+		const wrapper = mount(CnSavedViewMenuSettings, {
+			global: {
+				provide: { cnSavedViewMenu: { entries: [{ id: '9', page: 'Cases', name: 'Woo requests' }], set: jest.fn() }, cnManifest: manifest, cnTranslate: (key) => key },
+				stubs: { NcSelect: NcSelectStub },
+			},
+		})
+		await flushPromises()
+		await flushPromises()
+		const line = wrapper.find('.cn-ordered-list-field__row').text()
+		expect(line).toContain('Case type Woo request')
+		expect(line).not.toContain('statusHiddenInLists')
+		expect(line).not.toContain('isDraft')
+	})
+
+	it('asks for a page\'s schema again when it could not be read, so a failed read is not a session of raw keys', async () => {
+		const manifest = {
+			pages: [{ id: 'Retry', type: 'index', title: 'Retry', config: { register: 'retryreg', schema: 'case', allowSavedViews: true } }],
+		}
+		mockGet.mockImplementation(async () => ({ data: { results: [{ id: 11, name: 'Woo', query: { scope: 'retryreg/case', filters: { status: 'open' } } }] } }))
+		const mountIt = () => mount(CnSavedViewMenuSettings, {
+			global: {
+				provide: { cnSavedViewMenu: { entries: [{ id: '11', page: 'Retry', name: 'Woo' }], set: jest.fn() }, cnManifest: manifest, cnTranslate: (key) => key },
+				stubs: { NcSelect: NcSelectStub },
+			},
+		})
+		global.fetch = jest.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+		mountIt()
+		await flushPromises()
+		global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => (String(url).includes('/schemas/') ? SCHEMA : { results: [] }) }))
+		const second = mountIt()
+		await flushPromises()
+		await flushPromises()
+		expect(second.find('.cn-ordered-list-field__row').text()).toContain('Status Open')
+	})
 })
