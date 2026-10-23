@@ -1548,6 +1548,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
 	})
 
+	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.147.0)', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'pm', route: '/pm', type: 'dashboard', title: 'PM', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: '12m', label: 'Last 12 months', months: 12 }] })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: 'x', label: 'None', months: 0 }] })).valid).toBe(false)
+	})
+
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {
 		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'report', route: '/report', type: 'dashboard', title: 'Report', config: { pageFilters: [filter] } }] })
 		expect(validateManifestV2(withFilter({ key: 'quarter', type: 'quarter', count: 8 })).valid).toBe(true)
