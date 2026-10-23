@@ -170,8 +170,17 @@ describe('look-board.css: the navigation', () => {
 
 	it('writes the attention count in white, not in the error text colour', () => {
 		const attention = rulesFor('.cn-app-nav__count--attention')
-		expect(attention).toContain('color: var(--color-primary-element-text)')
+		expect(attention).toContain('color: var(--cn-nav-count-attention-text)')
 		expect(attention).not.toContain('--color-error-text')
+	})
+
+	it('resolves the count\'s white on the navigation, so an open entry that recolours the primary text keeps it white', () => {
+		// thematiq's navigation-active-entry scope sets --color-primary-element-text
+		// to the active label colour on the open entry; read there, the count
+		// turned dark red on its red pill.
+		const nav = rulesFor('.app-navigation[data-testid="cn-nav"] {')
+		expect(nav).toContain('--cn-nav-count-attention-text: var(--color-primary-element-text)')
+		expect(rulesFor('.cn-app-nav__count--attention')).not.toContain('color: var(--color-primary-element-text)')
 	})
 
 	it('puts the tonal primary on the open entry at !important, over NcAppNavigationItem\'s 16% mix, hovered too', () => {
