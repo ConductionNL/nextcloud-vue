@@ -50,6 +50,9 @@
 							:closeAfterClick="true"
 							data-testid="cn-tabs-widget-menu-tab"
 							@click="openMenuTab(entry)">
+							<template v-if="entry.icon" #icon>
+								<CnIcon :name="entry.icon" :size="20" />
+							</template>
 							{{ menuTabLabel(entry) }}
 						</NcActionButton>
 						<NcActionSeparator v-if="showActions" />
