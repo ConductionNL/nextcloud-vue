@@ -1466,6 +1466,7 @@ import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
+import { getDotted } from '../../utils/propertySourceFill.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
@@ -11528,7 +11529,9 @@ export default {
 		/**
 		 * The row's own name, for the row menu button's accessible name
 		 * ("Actions for <title>"): the `nameFormatter`, else the
-		 * `massActionNameField`, else the row's title or name.
+		 * `massActionNameField`, else the row's title or name, the record's
+		 * resolved display name, the title column's value, or the schema's
+		 * title property. The first plain text wins.
 		 *
 		 * @param {object} row The row.
 		 * @return {string} The name, or ''.
@@ -11539,8 +11542,18 @@ export default {
 				return ''
 			}
 			const named = typeof this.nameFormatter === 'function' ? this.nameFormatter(row) : row[this.massActionNameField]
-			const value = named ?? row.title ?? row.name ?? ''
-			return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+			const titleKey = this.renderedColumns?.[0]?.key
+			const nameField = this.effectiveSchema?.configuration?.objectNameField
+			const candidates = [
+				named,
+				row.title,
+				row.name,
+				row['@self']?.name,
+				titleKey ? getDotted(row, titleKey) : undefined,
+				nameField ? getDotted(row, nameField) : undefined,
+			]
+			const value = candidates.find((candidate) => (typeof candidate === 'string' && candidate.trim() !== '') || typeof candidate === 'number')
+			return value === undefined ? '' : String(value)
 		},
 
 		/**
