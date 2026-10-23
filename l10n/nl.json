@@ -2575,7 +2575,8 @@
     "Filter by type": "Filteren op soort",
     "activities": "activiteiten",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "More views": "Meer weergaven"
   },
   "plurals": {
     "{count} member": [

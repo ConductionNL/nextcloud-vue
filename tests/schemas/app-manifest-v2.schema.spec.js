@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.150.0', () => {
+	it('the manifest schema version reads 2.152.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1424,7 +1424,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.148.0 adds the @myTeam filter token, the reader's own team (saved-view-tokens-my-team).
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
 		// 2.150.0 adds a board's declared states (board.states, columnFields[].states, board-declared-states).
-		expect(schema.version).toBe('2.150.0')
+		// 2.152.0 lets viewSwitch name list and sets the switch's order, the views it leaves out under More views (view-switch-order-and-more).
+		expect(schema.version).toBe('2.152.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1548,6 +1549,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		})
 		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
+	})
+
+	/**
+	 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+	 */
+	it('accepts list in viewSwitch and refuses an unknown view (2.152.0)', () => {
+		const page = (viewSwitch) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', viewSwitch } }] })
+		expect(validateManifestV2(page(['list', 'cards', 'board', 'map'])).valid).toBe(true)
+		expect(validateManifestV2(page(['gallery'])).valid).toBe(false)
 	})
 
 	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.149.0)', () => {
