@@ -730,6 +730,7 @@ export default {
 				selectedViewId: f.selectedViewId || '',
 				maxDepth: typeof f.maxDepth === 'number' ? f.maxDepth : 3,
 				menuIds: Array.isArray(f.menuIds) ? f.menuIds : null,
+				summaries: f.summaries && typeof f.summaries === 'object' ? f.summaries : null,
 			}
 		},
 

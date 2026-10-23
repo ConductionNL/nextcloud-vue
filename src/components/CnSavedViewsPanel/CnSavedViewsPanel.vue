@@ -232,6 +232,17 @@ export default {
 			type: Array,
 			default: null,
 		},
+
+		/**
+		 * What each view filters on, by view id, in words: the line under a
+		 * view that has no description of its own.
+		 *
+		 * @type {object|null}
+		 */
+		summaries: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -319,7 +330,8 @@ export default {
 		},
 
 		/**
-		 * The second line of a row: the view's description, else who shared it.
+		 * The second line of a row: the view's description, else who shared it,
+		 * else what it filters on (`summaries`).
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @param {string} sectionKey The section the row is in.
@@ -333,7 +345,8 @@ export default {
 			if (sectionKey === 'shared' && row.view.owner) {
 				return this.t('nextcloud-vue', 'By {owner}', { owner: row.view.ownerDisplayName || row.view.owner })
 			}
-			return ''
+			const summary = this.summaries && this.summaries[this.idOf(row.view)]
+			return typeof summary === 'string' ? summary : ''
 		},
 
 		manageLabel(view) {

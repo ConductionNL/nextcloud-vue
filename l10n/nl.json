@@ -2504,7 +2504,8 @@
     "Test result": "Testresultaat",
     "To {recipients}": "Aan {recipients}",
     "not set": "niet ingevuld",
-    "set": "ingevuld"
+    "set": "ingevuld",
+    "Search term: {term}": "Zoekterm: {term}"
   },
   "plurals": {
     "{count} member": [
