@@ -179,7 +179,7 @@ function ocsConfig(url) {
 /** A time of day, `HH:MM`. */
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
-const VALUELESS_TYPES = ['heading', 'status', 'action']
+const VALUELESS_TYPES = ['heading', 'status', 'action', 'note']
 
 /** Types whose value is a list of choices (a `select` with `multiple` too). */
 const LIST_TYPES = ['checkboxes']
@@ -351,7 +351,7 @@ function initialsOf(name) {
 
 /**
  * CnSettingsFieldsSection - a settings section declared as fields: it reads
- * the app's settings, draws the fields in one to three columns, and saves
+ * the app's settings, draws the fields in one to four columns, and saves
  * them with ONE Save button for the section.
  *
  * It reads `GET url` (default `/apps/<appId>/api/settings`) and writes the
@@ -439,7 +439,8 @@ export default {
 		 * path?, scope? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
 		 * `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `image`, `heading`,
-		 * `status` or `action`. A `checkboxes` field (or a `select` with
+		 * `status`, `action` or `note`. A `note` is a labelled line of plain text
+		 * (`text`) that holds no value: a setting kept elsewhere, said where. A `checkboxes` field (or a `select` with
 		 * `multiple`) saves its choices as a list, or with `saveAs` `json` or
 		 * `csv` as JSON or comma text. A `pairs` field edits key-to-value rows
 		 * and saves them as one object (JSON text with `saveAs: 'json'`); its
@@ -479,11 +480,11 @@ export default {
 			required: true,
 		},
 
-		/** Columns of the field grid: 1, 2 or 3. A narrow card stacks them. */
+		/** Columns of the field grid: 1 to 4. A narrow card stacks them. */
 		columns: {
 			type: Number,
 			default: 1,
-			validator: (value) => [1, 2, 3].includes(value),
+			validator: (value) => [1, 2, 3, 4].includes(value),
 		},
 
 		/** The app id, for the default url `/apps/<appId>/api/settings`. */
@@ -615,9 +616,9 @@ export default {
 	},
 
 	computed: {
-		/** @return {number} The column count, 1 to 3. */
+		/** @return {number} The column count, 1 to 4. */
 		columnCount() {
-			return [1, 2, 3].includes(this.columns) ? this.columns : 1
+			return [1, 2, 3, 4].includes(this.columns) ? this.columns : 1
 		},
 
 		/** @return {object} The props of the card around the form. */
@@ -1456,17 +1457,27 @@ export default {
 	gap: 16px 20px;
 }
 
-/* Two or three columns where the card is wide enough; stacked otherwise. */
+/* Two to four columns where the card is wide enough; stacked otherwise
+   (DqInstellingenAlgemeen "Huisstijl" draws four).
+   @spec openspec/changes/settings-fields-four-columns-and-note/specs/settings-fields-four-columns-and-note/spec.md */
 @container (min-width: 520px) {
 	.cn-settings-fields__grid--2,
-	.cn-settings-fields__grid--3 {
+	.cn-settings-fields__grid--3,
+	.cn-settings-fields__grid--4 {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
 @container (min-width: 780px) {
-	.cn-settings-fields__grid--3 {
+	.cn-settings-fields__grid--3,
+	.cn-settings-fields__grid--4 {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@container (min-width: 960px) {
+	.cn-settings-fields__grid--4 {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 }
 
