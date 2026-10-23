@@ -218,6 +218,32 @@ and no lifecycle cannot be refused at validation time, because the stages live
 in the register schema and the manifest does not contain it. `CnBoardView` says
 so on screen instead of drawing empty columns.
 
+### Declared columns
+
+An enum often holds more values than a board should draw. `states` on `board`
+(for the `statusField`) or on a `columnFields` entry (for that field) names the
+columns in order, instead of every enum or lifecycle value (since manifest
+schema 2.149.0):
+
+```json
+"board": {
+  "statusField": "status",
+  "states": [
+    "new",
+    "in_progress",
+    "awaiting_customer",
+    { "key": "completed", "label": "Finished" },
+    { "key": "converted", "closed": true },
+    { "key": "resolved", "hidden": true }
+  ]
+}
+```
+
+An entry is a value or `{ key, label?, color?, hidden?, closed? }`. `hidden`
+draws no column, so its cards land in "Elsewhere"; `closed` starts the column
+folded; `label` is an i18n key. A column field with a `source` or `kind: values`
+ignores `states`.
+
 ### Columns from a referenced field
 
 A case's `status` is often not an enum. It is a reference to a statusType row,

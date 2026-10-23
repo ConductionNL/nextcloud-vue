@@ -670,6 +670,13 @@
 	--button-size: var(--cn-board-control-height);
 }
 
+/* The contact thread's labelled header action (DqZaakContact "Contact
+   vastleggen") stands at the same 40px.
+   @spec openspec/changes/board-thread-header-button-height/specs/board-thread-header-button-height/spec.md#requirement-a-thread-headers-labelled-button-is-40px */
+.cn-look-board .cn-conversation-thread__header-actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* ---- A workspace filter's table export ---------------------------------- */
 /* "CSV exporteren" beside "Rapport laden" is the neutral secondary at the
    40px control height, 14px in (DqTermijnen).
@@ -2350,6 +2357,48 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast) !important;
 }
 
+/* A text card sits at the card inset with its text 8px under the title
+   (DqDagAfsluiten "Hoe dit werkt"), its blocks at the widget's size and a
+   1.5 line height. CnTextWidget pads itself 16px inline and the theme sets
+   every p at 15px, hence the !important.
+   @spec openspec/changes/board-dashboard-text-card/specs/board-dashboard-text-card/spec.md#requirement-a-board-dashboard-text-card-sits-at-the-card-inset-under-its-title */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-text-widget {
+	margin-top: -2px;
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > * {
+	font-size: inherit !important;
+	line-height: 1.5 !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > :first-child {
+	margin-top: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-text-widget__content > :last-child {
+	margin-bottom: 0;
+}
+
+/* A stat grid card draws plain figures at the card inset (DqDagAfsluiten
+   "Uw dag"): 14px under the title, 16px apart, each a 13px label over a 24px
+   figure, 2px apart, without the stat tile's padding or edge. The cell's
+   variables are set on the cell, over a board tile's own.
+   @spec openspec/changes/board-stat-grid-flat/specs/board-stat-grid-flat/spec.md#requirement-a-board-stat-grid-draws-flat-figures-at-the-card-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-stat-grid {
+	gap: 16px;
+	margin: 4px 0 0;
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stat-grid .cn-kpi-card.cn-kpi-card--stacked {
+	--cn-kpi-stacked-padding: 0;
+	--cn-kpi-stacked-gap: 2px;
+	--cn-kpi-stacked-title-size: 13px;
+	--cn-kpi-stacked-value-size: 24px;
+	border-width: 0;
+}
+
 /* An activity item pads itself 4px, so the body takes 4px less. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body {
 	padding: 0 calc(var(--cn-board-dashboard-card-inset) - 4px) 16px;
@@ -2646,9 +2695,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* Any labelled button in the card's body is 40px, a text-only one 16px in at
    both sides (DqBeheerinstellingen "Opslaan", "Verbinding testen";
    PtBeheerinstellingen "Adres opslaan"), not only the card's own save row.
-   The title row's actions keep 34px (DqVthInstellingen "Regel toevoegen").
+   The title row's actions and an image field's button keep 34px
+   (DqVthInstellingen "Regel toevoegen", DqInstellingenAlgemeen "Ander logo").
    @spec openspec/changes/board-settings-section-buttons/specs/board-settings-section-buttons/spec.md#requirement-a-labelled-button-on-a-board-settings-card-is-40px */
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *) {
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *):not(.cn-settings-field__image-row *) {
 	--button-size: var(--cn-field-height, 40px);
 }
 

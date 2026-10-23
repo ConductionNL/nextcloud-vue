@@ -23,6 +23,6 @@ It reads a `source` or an `endpoint`. `{ kind: "flow-task" }` reads OpenRegister
 | `endpoint` | String | `''` | An events URL of its own; `{id}` is filled with the record id. Also read from `content.endpoint`. |
 | `objectId` | String \| Number | `''` | The page's record id. |
 | `apiBase` | String | `'/apps/openregister/api'` | The OpenRegister API base. |
-| `content` | Object | `{}` | The widget content: `source`, `endpoint`, `emptyText` (through the app's translate), `headerActions` (`link`, `create`). |
+| `content` | Object | `{}` | The widget content: `source`, `endpoint`, `emptyText` (through the app's translate), `headerActions` (`link`, `create`), `createVariant` (`secondary` draws "Afspraak maken" as the outlined header action instead of primary), `createIcon` (its icon, a plus without it), `menuActions` (`link`, `create`: those flows as items of the card's Actions menu instead of the title row). |
 | `emptyLabel` | String | `''` | The empty line; defaults to `content.emptyText`, then "No appointments yet". |
 | `failedLabel` | String | `''` | The failure line; defaults to "The appointments could not be loaded". |

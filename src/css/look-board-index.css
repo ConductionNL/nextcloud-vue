@@ -208,6 +208,16 @@
 	cursor: pointer;
 }
 
+/* Inside a record card the chip row is 36px, 12px in (DqZaakContact's channel
+   chips, as DqZaakHistorie's). */
+.cn-look-board .cn-conversation-thread .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 18px;
+	height: 36px;
+	min-height: 36px;
+	padding: 0 12px;
+	border-radius: 18px;
+}
+
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab:hover {
 	background: var(--color-background-hover);
@@ -805,8 +815,13 @@
 	padding: 0;
 }
 
-/* The title column: a 15px weight 600 link, the secondary line under it. */
-.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title {
+/* The title column: a 15px weight 600 link, the secondary line under it. A
+   framed widget table in a card or a settings section shows its first column
+   as plain text (DqInstellingen, DqTermijnen, DqDoorlooptijd); a borderless
+   one, the dashboard's compact case list, keeps the link (DqDashboard). The
+   `:where()` keeps the rule's weight.
+   @spec openspec/changes/board-widget-table-plain-title/specs/board-widget-table-plain-title/spec.md */
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title:not(.cn-widget-object-table :where(.cn-table-container:not(.cn-table-container--borderless)) *) {
 	color: var(--color-main-text);
 	font-size: 15px;
 	font-weight: 600;
@@ -1768,4 +1783,37 @@
    @spec openspec/changes/board-saved-view-menu-round/specs/board-saved-view-menu-round/spec.md#requirement-a-saved-view-rows-menu-trigger-is-round */
 .cn-look-board .cn-saved-views-panel__row .action-item__menutoggle:not(.cn-look-nextcloud *) {
 	border-radius: 17px;
+}
+
+/* The board view's selects take the board control border (DqWerkbord). The
+   theme forces a select's border colour from its form token, so the token
+   gets the colour too. */
+.cn-look-board .cn-index-page__board-select:not(.cn-look-nextcloud *) {
+	--nldesign-component-form-select-border-color: var(--cn-board-control-border);
+	border-color: var(--cn-board-control-border);
+}
+
+/* ---- Page tabs (CnIndexPage `pageTabs`, DqContracten) ------------------ */
+/* The sibling-page tabs are links; the board draws them as folder tabs in
+   the main ink at 14px, the open one at 700 on a white bottom edge, with no
+   line under the strip. The theme paints every link, so the ink also goes
+   to its link tokens and the underline needs !important.
+   @spec openspec/changes/board-index-page-tabs/specs/board-index-page-tabs/spec.md#requirement-board-index-page-tabs-are-folder-tabs-in-the-main-ink */
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	color: var(--color-main-text);
+	font-size: 14px;
+	line-height: normal;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab--active {
+	border-bottom: 1px solid var(--color-main-background);
+	font-weight: 700;
 }

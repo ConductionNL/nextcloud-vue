@@ -14,3 +14,7 @@ and COMPDIFF r24 recorded those buttons as `h 34>40`.
 The 40px rule now leaves `.cn-settings-section__actions` alone, so the title
 row keeps NcButton's 34px. A live probe on :8080 confirmed that these buttons
 sit in `.cn-settings-section__actions`.
+
+An image field's button keeps 34px too. DqInstellingenAlgemeen draws
+"Ander logo" beside the logo at 34px. A probe on :8080 found it in
+`.cn-settings-field__image-row`, which the 40px rule now also leaves alone.
