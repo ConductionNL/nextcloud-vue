@@ -16,158 +16,168 @@
   empty history.
 -->
 <template>
-	<div class="cn-timeline-manage" data-testid="cn-timeline-manage">
-		<div class="cn-timeline-manage__header">
-			<div class="cn-timeline-manage__heading">
-				<h3 class="cn-timeline-manage__title">
-					{{ titleText }}
-				</h3>
-				<p class="cn-timeline-manage__subtitle">
-					{{ subtitleText }}
+	<div class="cn-timeline-manage"
+		:class="{ 'cn-timeline-manage--composer-only': composerOnly }"
+		data-testid="cn-timeline-manage">
+		<template v-if="!composerOnly">
+			<div class="cn-timeline-manage__header">
+				<div class="cn-timeline-manage__heading">
+					<h3 class="cn-timeline-manage__title">
+						{{ titleText }}
+					</h3>
+					<p class="cn-timeline-manage__subtitle">
+						{{ subtitleText }}
+					</p>
+				</div>
+				<div class="cn-timeline-manage__header-actions">
+					<NcButton v-if="canManage && (composerEnabled || composerSeparate)"
+						data-testid="cn-timeline-add-note"
+						@click="focusComposer">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Add note') }}
+					</NcButton>
+					<NcButton data-testid="cn-timeline-export" @click="exportEntries">
+						<template #icon>
+							<Download :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Export') }}
+					</NcButton>
+				</div>
+			</div>
+
+			<div class="cn-timeline-manage__chips"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Kind')"
+				data-testid="cn-timeline-kind-filter">
+				<button v-for="chip in kindChips"
+					:key="chip.key"
+					type="button"
+					class="cn-timeline-manage__chip"
+					:class="{ 'cn-timeline-manage__chip--active': chip.active }"
+					:aria-pressed="chip.active ? 'true' : 'false'"
+					:data-testid="'cn-timeline-chip-' + chip.key"
+					@click="chooseKind(chip.id)">
+					{{ chip.label }}
+					<span class="cn-timeline-manage__chip-count">{{ chip.count }}</span>
+				</button>
+			</div>
+
+			<div class="cn-timeline-manage__controls">
+				<NcSelect v-if="canManage"
+					v-model="visibilityFilter"
+					class="cn-timeline-manage__filter"
+					:options="visibilityOptions"
+					:clearable="true"
+					label="label"
+					:inputLabel="t('nextcloud-vue', 'Visibility')"
+					:placeholder="t('nextcloud-vue', 'Internal and public')"
+					data-testid="cn-timeline-visibility-filter"
+					@update:modelValue="load" />
+			</div>
+
+			<NcLoadingIcon v-if="loading" :size="32" />
+
+			<NcNoteCard v-else-if="error" type="error" data-testid="cn-timeline-error">
+				{{ error }}
+			</NcNoteCard>
+
+			<NcEmptyContent v-else-if="entries.length === 0"
+				:name="t('nextcloud-vue', 'Nothing recorded yet')"
+				:description="t('nextcloud-vue', 'Notes, calls and messages appear here in the order they happened.')"
+				data-testid="cn-timeline-empty" />
+
+			<ul v-else class="cn-timeline-manage__list" data-testid="cn-timeline-list">
+				<li v-for="entry in entries"
+					:key="entry.id"
+					class="cn-timeline-manage__entry"
+					:class="{ 'cn-timeline-manage__entry--pinned': entry.pinned }"
+					:data-kind="entry.kind || 'note'"
+					data-testid="cn-timeline-entry">
+					<div class="cn-timeline-manage__head">
+						<span class="cn-timeline-manage__kind">{{ kindLabel(entry) }}</span>
+						<span class="cn-timeline-manage__author">{{ entry.author }}</span>
+						<span class="cn-timeline-manage__moment">{{ moment(entry.created) }}</span>
+						<span v-if="entry.visibility === 'public'"
+							class="cn-timeline-manage__badge"
+							data-testid="cn-timeline-public">
+							{{ publicLabel }}
+						</span>
+						<span v-if="entry.followUp === 'open'"
+							class="cn-timeline-manage__badge cn-timeline-manage__badge--open"
+							data-testid="cn-timeline-followup-open">
+							{{ t('nextcloud-vue', 'Needs an answer') }}
+						</span>
+					</div>
+
+					<p class="cn-timeline-manage__message">
+						{{ entry.message }}
+					</p>
+
+					<p v-if="entry.siblings && entry.siblings.length"
+						class="cn-timeline-manage__siblings"
+						data-testid="cn-timeline-siblings">
+						{{ n('nextcloud-vue', 'Also written on %n other record', 'Also written on %n other records', entry.siblings.length) }}
+					</p>
+
+					<div v-if="canManage" class="cn-timeline-manage__actions">
+						<NcButton variant="tertiary"
+							:data-testid="'cn-timeline-pin-' + entry.id"
+							@click="togglePin(entry)">
+							{{ entry.pinned ? t('nextcloud-vue', 'Unpin') : t('nextcloud-vue', 'Pin') }}
+						</NcButton>
+						<NcButton v-for="action in actionsFor(entry)"
+							:key="action.id"
+							variant="tertiary"
+							:data-testid="'cn-timeline-action-' + action.id + '-' + entry.id"
+							@click="openAction(action, entry)">
+							{{ translate(action.label) }}
+						</NcButton>
+						<NcButton v-if="entry.followUp === 'open'"
+							variant="tertiary"
+							:data-testid="'cn-timeline-followup-' + entry.id"
+							@click="closeFollowUp(entry)">
+							{{ t('nextcloud-vue', 'Mark as answered') }}
+						</NcButton>
+					</div>
+				</li>
+			</ul>
+
+			<div v-if="(!loading && !error && allEntries.length > 0) || auditTrailLinkLabel"
+				class="cn-timeline-manage__footer">
+				<p v-if="!loading && !error && allEntries.length > 0"
+					class="cn-timeline-manage__count"
+					data-testid="cn-timeline-count">
+					{{ t('nextcloud-vue', '{shown} of {total} events', { shown: entries.length, total: allEntries.length }) }}
 				</p>
-			</div>
-			<div class="cn-timeline-manage__header-actions">
-				<NcButton v-if="canManage && composerEnabled"
-					data-testid="cn-timeline-add-note"
-					@click="focusComposer">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Add note') }}
-				</NcButton>
-				<NcButton data-testid="cn-timeline-export" @click="exportEntries">
-					<template #icon>
-						<Download :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Export') }}
+				<NcButton v-if="auditTrailLinkLabel"
+					variant="tertiary-no-background"
+					class="cn-timeline-manage__audit-link"
+					data-testid="cn-timeline-audit-link"
+					@click="openAuditTrail">
+					{{ auditTrailLinkLabel }}
 				</NcButton>
 			</div>
-		</div>
+		</template>
 
-		<div class="cn-timeline-manage__chips"
-			role="group"
-			:aria-label="t('nextcloud-vue', 'Kind')"
-			data-testid="cn-timeline-kind-filter">
-			<button v-for="chip in kindChips"
-				:key="chip.key"
-				type="button"
-				class="cn-timeline-manage__chip"
-				:class="{ 'cn-timeline-manage__chip--active': chip.active }"
-				:aria-pressed="chip.active ? 'true' : 'false'"
-				:data-testid="'cn-timeline-chip-' + chip.key"
-				@click="chooseKind(chip.id)">
-				{{ chip.label }}
-				<span class="cn-timeline-manage__chip-count">{{ chip.count }}</span>
-			</button>
-		</div>
-
-		<div class="cn-timeline-manage__controls">
-			<NcSelect v-if="canManage"
-				v-model="visibilityFilter"
-				class="cn-timeline-manage__filter"
-				:options="visibilityOptions"
-				:clearable="true"
-				label="label"
-				:inputLabel="t('nextcloud-vue', 'Visibility')"
-				:placeholder="t('nextcloud-vue', 'Internal and public')"
-				data-testid="cn-timeline-visibility-filter"
-				@update:modelValue="load" />
-		</div>
-
-		<NcLoadingIcon v-if="loading" :size="32" />
-
-		<NcNoteCard v-else-if="error" type="error" data-testid="cn-timeline-error">
+		<NcNoteCard v-if="composerOnly && error" type="error" data-testid="cn-timeline-error">
 			{{ error }}
 		</NcNoteCard>
-
-		<NcEmptyContent v-else-if="entries.length === 0"
-			:name="t('nextcloud-vue', 'Nothing recorded yet')"
-			:description="t('nextcloud-vue', 'Notes, calls and messages appear here in the order they happened.')"
-			data-testid="cn-timeline-empty" />
-
-		<ul v-else class="cn-timeline-manage__list" data-testid="cn-timeline-list">
-			<li v-for="entry in entries"
-				:key="entry.id"
-				class="cn-timeline-manage__entry"
-				:class="{ 'cn-timeline-manage__entry--pinned': entry.pinned }"
-				:data-kind="entry.kind || 'note'"
-				data-testid="cn-timeline-entry">
-				<div class="cn-timeline-manage__head">
-					<span class="cn-timeline-manage__kind">{{ kindLabel(entry) }}</span>
-					<span class="cn-timeline-manage__author">{{ entry.author }}</span>
-					<span class="cn-timeline-manage__moment">{{ moment(entry.created) }}</span>
-					<span v-if="entry.visibility === 'public'"
-						class="cn-timeline-manage__badge"
-						data-testid="cn-timeline-public">
-						{{ publicLabel }}
-					</span>
-					<span v-if="entry.followUp === 'open'"
-						class="cn-timeline-manage__badge cn-timeline-manage__badge--open"
-						data-testid="cn-timeline-followup-open">
-						{{ t('nextcloud-vue', 'Needs an answer') }}
-					</span>
-				</div>
-
-				<p class="cn-timeline-manage__message">
-					{{ entry.message }}
-				</p>
-
-				<p v-if="entry.siblings && entry.siblings.length"
-					class="cn-timeline-manage__siblings"
-					data-testid="cn-timeline-siblings">
-					{{ n('nextcloud-vue', 'Also written on %n other record', 'Also written on %n other records', entry.siblings.length) }}
-				</p>
-
-				<div v-if="canManage" class="cn-timeline-manage__actions">
-					<NcButton variant="tertiary"
-						:data-testid="'cn-timeline-pin-' + entry.id"
-						@click="togglePin(entry)">
-						{{ entry.pinned ? t('nextcloud-vue', 'Unpin') : t('nextcloud-vue', 'Pin') }}
-					</NcButton>
-					<NcButton v-for="action in actionsFor(entry)"
-						:key="action.id"
-						variant="tertiary"
-						:data-testid="'cn-timeline-action-' + action.id + '-' + entry.id"
-						@click="openAction(action, entry)">
-						{{ translate(action.label) }}
-					</NcButton>
-					<NcButton v-if="entry.followUp === 'open'"
-						variant="tertiary"
-						:data-testid="'cn-timeline-followup-' + entry.id"
-						@click="closeFollowUp(entry)">
-						{{ t('nextcloud-vue', 'Mark as answered') }}
-					</NcButton>
-				</div>
-			</li>
-		</ul>
-
-		<div v-if="(!loading && !error && allEntries.length > 0) || auditTrailLinkLabel"
-			class="cn-timeline-manage__footer">
-			<p v-if="!loading && !error && allEntries.length > 0"
-				class="cn-timeline-manage__count"
-				data-testid="cn-timeline-count">
-				{{ t('nextcloud-vue', '{shown} of {total} events', { shown: entries.length, total: allEntries.length }) }}
-			</p>
-			<NcButton v-if="auditTrailLinkLabel"
-				variant="tertiary-no-background"
-				class="cn-timeline-manage__audit-link"
-				data-testid="cn-timeline-audit-link"
-				@click="openAuditTrail">
-				{{ auditTrailLinkLabel }}
-			</NcButton>
-		</div>
 
 		<form v-if="canManage && composerEnabled"
 			ref="composer"
 			class="cn-timeline-manage__composer"
 			data-testid="cn-timeline-composer"
 			@submit.prevent="submit">
-			<h3 class="cn-timeline-manage__composer-title">
-				{{ t('nextcloud-vue', 'Add note') }}
-			</h3>
-			<p class="cn-timeline-manage__composer-hint">
-				{{ t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible') }}
-			</p>
+			<template v-if="!composerOnly">
+				<h3 class="cn-timeline-manage__composer-title">
+					{{ t('nextcloud-vue', 'Add note') }}
+				</h3>
+				<p class="cn-timeline-manage__composer-hint">
+					{{ t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible') }}
+				</p>
+			</template>
 			<NcSelect v-if="textBlocks.length"
 				v-model="chosenBlock"
 				class="cn-timeline-manage__filter"
@@ -188,16 +198,18 @@
 				:placeholder="t('nextcloud-vue', 'Write a note on this record')"
 				data-testid="cn-timeline-draft" />
 
-			<NcCheckboxRadioSwitch v-model="draftIsPublic" data-testid="cn-timeline-draft-public">
-				{{ publicLabel }}
-			</NcCheckboxRadioSwitch>
+			<div class="cn-timeline-manage__composer-foot">
+				<NcCheckboxRadioSwitch v-model="draftIsPublic" data-testid="cn-timeline-draft-public">
+					{{ publicLabel }}
+				</NcCheckboxRadioSwitch>
 
-			<NcButton variant="primary"
-				type="submit"
-				:disabled="saving || !draft.trim()"
-				data-testid="cn-timeline-save">
-				{{ t('nextcloud-vue', 'Add it to the timeline') }}
-			</NcButton>
+				<NcButton variant="primary"
+					type="submit"
+					:disabled="saving || !draft.trim()"
+					data-testid="cn-timeline-save">
+					{{ t('nextcloud-vue', 'Add it to the timeline') }}
+				</NcButton>
+			</div>
 		</form>
 
 		<component :is="activeModal.component"
@@ -209,6 +221,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Download from 'vue-material-design-icons/Download.vue'
@@ -216,6 +229,12 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import { prefixUrl } from '../../utils/headers.js'
 
 let instanceCount = 0
+
+/** Event-bus channel: a note was added to an object's timeline (`{ objectId, source }`). */
+const TIMELINE_CHANGED = 'cn:timeline:changed'
+
+/** Event-bus channel: the list's "Add note" asks the separate form card to take focus (`{ objectId }`). */
+const TIMELINE_COMPOSE = 'cn:timeline:compose'
 
 /**
  * Read a dotted path off a value.
@@ -254,6 +273,10 @@ export default {
 		/**
 		 * The widget content: `{ title?, subtitle?, publicLabel?, exportName?,
 		 * composer?, textBlocks?, entryActions?, auditTrailLink? }`.
+		 * `composer`: `true` (default) draws the note form under the list,
+		 * `false` none, `"separate"` none but keeps the "Add note" button,
+		 * which brings a `"only"` instance (the form alone, a card of its own
+		 * in a stack) into view; a note saved there reloads the list.
 		 * `auditTrailLink` (`true` or a label) draws a footer link that opens
 		 * the object sidebar on its audit trail tab, `auditTrailTab` when the
 		 * page declares that tab under its own id.
@@ -309,8 +332,25 @@ export default {
 			return typeof link === 'string' ? this.translate(link) : t('nextcloud-vue', 'Full audit trail in the sidebar')
 		},
 
+		/**
+		 * Whether this instance draws the note form: inline (`composer` true or
+		 * unset) or as the whole widget (`"only"`).
+		 *
+		 * @spec openspec/changes/timeline-composer-card/specs/timeline/spec.md#requirement-the-note-form-can-be-its-own-card
+		 * @return {boolean}
+		 */
 		composerEnabled() {
-			return this.content.composer !== false
+			return this.content.composer !== false && this.content.composer !== 'separate'
+		},
+
+		/** @return {boolean} The widget is the note form alone (`composer: "only"`), a card of its own beside the list. */
+		composerOnly() {
+			return this.content.composer === 'only'
+		},
+
+		/** @return {boolean} The list draws no form; its "Add note" brings the separate form card into view (`composer: "separate"`). */
+		composerSeparate() {
+			return this.content.composer === 'separate'
 		},
 
 		draftId() {
@@ -382,6 +422,27 @@ export default {
 
 	watch: {
 		objectId: 'load',
+	},
+
+	created() {
+		this.onTimelineChanged = (payload) => {
+			if (!payload || payload.objectId !== this.objectId || payload.source === this.uid || this.composerOnly) {
+				return
+			}
+			this.load()
+		}
+		this.onComposeRequested = (payload) => {
+			if (this.composerOnly && payload && payload.objectId === this.objectId) {
+				this.focusComposer()
+			}
+		}
+		subscribe(TIMELINE_CHANGED, this.onTimelineChanged)
+		subscribe(TIMELINE_COMPOSE, this.onComposeRequested)
+	},
+
+	beforeUnmount() {
+		unsubscribe(TIMELINE_CHANGED, this.onTimelineChanged)
+		unsubscribe(TIMELINE_COMPOSE, this.onComposeRequested)
 	},
 
 	mounted() {
@@ -456,6 +517,7 @@ export default {
 				this.draft = ''
 				this.chosenBlock = null
 				this.draftIsPublic = false
+				emit(TIMELINE_CHANGED, { objectId: this.objectId, source: this.uid })
 				await this.load()
 			} catch {
 				this.error = t('nextcloud-vue', 'That note could not be saved.')
@@ -555,8 +617,12 @@ export default {
 			this.objectSidebarState.requestedTab = this.content.auditTrailTab || 'auditTrail'
 		},
 
-		/** Bring the composer into view and focus its text. */
+		/** Bring the composer into view and focus its text; a separate form card is asked to do so. */
 		focusComposer() {
+			if (this.composerSeparate) {
+				emit(TIMELINE_COMPOSE, { objectId: this.objectId })
+				return
+			}
 			const form = this.$refs.composer
 			if (!form) {
 				return
@@ -786,6 +852,21 @@ export default {
 	margin-block-start: 24px;
 	padding-block-start: 16px;
 	border-block-start: 1px solid var(--color-border);
+}
+
+.cn-timeline-manage--composer-only .cn-timeline-manage__composer {
+	margin-block-start: 0;
+	padding-block-start: 0;
+	border-block-start: none;
+}
+
+/* The checkbox at the start, the button at the end, as one row. */
+.cn-timeline-manage__composer-foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
 }
 
 .cn-timeline-manage__composer-title {

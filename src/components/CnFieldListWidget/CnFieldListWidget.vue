@@ -15,7 +15,7 @@
 			</NcButton>
 		</div>
 		<form
-			v-if="canAdd && addTrigger && addPlacement === 'header' && adding"
+			v-if="canAdd && addTrigger && addAtTop && adding"
 			class="cn-field-list-widget__add"
 			data-testid="cn-field-list-add"
 			@submit.prevent="add">
@@ -227,7 +227,7 @@
 			{{ hint }}
 		</p>
 
-		<div v-if="canAdd && addTrigger && addPlacement !== 'header' && !adding" class="cn-field-list-widget__toolbar">
+		<div v-if="canAdd && addTrigger && addPlacement === 'footer' && !adding" class="cn-field-list-widget__toolbar">
 			<NcButton
 				variant="secondary"
 				:disabled="busy !== ''"
@@ -237,7 +237,7 @@
 			</NcButton>
 		</div>
 		<form
-			v-if="canAdd && !(addTrigger && addPlacement === 'header') && (!addTrigger || adding)"
+			v-if="canAdd && !(addTrigger && addAtTop) && (!addTrigger || adding)"
 			class="cn-field-list-widget__add"
 			data-testid="cn-field-list-add"
 			@submit.prevent="add">
@@ -371,7 +371,7 @@ export default {
 		 * - `when` (row actions, `detail`) — `{ field: value }`, every field equal; or per field `{ eq?, neq?, set? }`, where a value `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`.
 		 * - `rowSource` — `{ url, path?, key }`: live per-row state merged by key.
 		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
-		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'footer'` — the add form opens from a button.
+		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'title' | 'footer'` — the add form opens from a button; `title` reports the button for the card's title row on the `header` event.
 		 * - `readOnly`, `hint`, `emptyText`.
 		 * - `row.href` — the path of a link for the row title; only http(s) and root-relative links, an absolute one opens in a new tab.
 		 * - `lead` — a line above the rows, translated, with `{path}` filled from the object.
@@ -412,7 +412,7 @@ export default {
 		},
 	},
 
-	emits: ['saved'],
+	emits: ['saved', 'header'],
 
 	data() {
 		return {
@@ -567,9 +567,33 @@ export default {
 			return Boolean(this.content.add && this.content.add.trigger === 'button')
 		},
 
-		/** Where the add button sits: `header` (above the rows) or `footer` (default). */
+		/**
+		 * Where the add button sits: `header` (above the rows), `title` (the
+		 * card's title row, reported on the `header` event) or `footer` (default).
+		 */
 		addPlacement() {
-			return this.content.add && this.content.add.placement === 'header' ? 'header' : 'footer'
+			const placement = this.content.add && this.content.add.placement
+			return placement === 'header' || placement === 'title' ? placement : 'footer'
+		},
+
+		/** Whether the add form opens above the rows. */
+		addAtTop() {
+			return this.addPlacement === 'header' || this.addPlacement === 'title'
+		},
+
+		/**
+		 * The card title row's actions: the add button with `add.placement: "title"`.
+		 *
+		 * @return {Array<{label: string, icon: string, run: () => void}>} The actions.
+		 */
+		titleActions() {
+			if (!(this.canAdd && this.addTrigger && this.addPlacement === 'title')) {
+				return []
+			}
+			const run = () => {
+				this.adding = !this.adding
+			}
+			return [{ label: this.addLabel, icon: 'Plus', run }]
 		},
 
 		addLabel() {
@@ -615,6 +639,16 @@ export default {
 	},
 
 	watch: {
+		titleActions: {
+			immediate: true,
+			handler(actions) {
+				/**
+				 * @event header The card's title-row actions, `{ actions }`, for the host to draw.
+				 */
+				this.$emit('header', { actions })
+			},
+		},
+
 		objectData() {
 			this.saved = null
 			this.loadLive()

@@ -54,7 +54,7 @@ describe('flow palette groups', () => {
 
 	it('puts the host app first', async () => {
 		const w = await mountBoard({ app: 'dossiq' })
-		expect(w.vm.paletteGroups.map((group) => group.app)).toEqual(['dossiq', 'integriq', 'openregister'])
+		expect(w.vm.paletteSections.map((group) => group.app)).toEqual(['dossiq', 'integriq', 'openregister'])
 	})
 
 	it('reads the names once', async () => {

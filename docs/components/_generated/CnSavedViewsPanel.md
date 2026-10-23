@@ -24,7 +24,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name             | Payload | Description                                                               |
 | ---------------- | ------- | ------------------------------------------------------------------------- |
 | `apply`          | —       | Apply the view. Payload: the View API object.                             |
-| `copy-request`   | —       | Save a copy of a shared or default view. Payload: the view.               |
+| `copy-request`   | —       | Save a copy of a view. Payload: the view.                                 |
 | `delete-request` | —       | Delete an own view, after confirmation. Payload: the view.                |
 | `edit-request`   | —       | Edit an own view. Payload: the view.                                      |
 | `menu-toggle`    | —       | Add the view to the app menu, or remove it. Payload: the view.            |

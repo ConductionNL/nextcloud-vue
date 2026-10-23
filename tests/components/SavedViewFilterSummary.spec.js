@@ -41,6 +41,15 @@ describe('a saved view summarised from its filters', () => {
 		expect(CnIndexPage.methods.viewFilterSummary.call(mountPage().vm, VIEWS[2])).toBe('')
 	})
 
+	it('leaves out the filters the page marks hidden in its filterLabels', () => {
+		const page = mountPage()
+		const summary = CnIndexPage.methods.viewFilterSummary.call(
+			{ ...page.vm, filterChipsOf: page.vm.filterChipsOf, filterLabels: { isDraft: { hidden: true } } },
+			{ id: 4, name: 'Open', query: { filters: { status: 'open', isDraft: false } } },
+		)
+		expect(summary).toBe('Status: Open')
+	})
+
 	it('shows the summary under a view without a description, the description otherwise', () => {
 		const w = mount(CnSavedViewsPanel, {
 			props: { views: VIEWS, currentUserId: 'alice', summaries: { 1: 'Search term: Lindelaan, Status: Open', 2: 'Status: Open' } },

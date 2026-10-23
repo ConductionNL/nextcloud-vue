@@ -95,6 +95,10 @@ export function applyQueryPreset(config, preset) {
 			out[key] = preset[key]
 		}
 	}
+	// A preset's own count line stands in every view, over the page's per-view lines.
+	if (preset.countText !== undefined) {
+		out.countTextByView = null
+	}
 	// The query pairs that chose the preset scope the list: the page shows
 	// them as no removable filter chip.
 	if (preset.match && typeof preset.match === 'object') {

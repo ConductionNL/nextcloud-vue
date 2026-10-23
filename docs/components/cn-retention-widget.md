@@ -32,6 +32,10 @@ The record is read fresh from `/apps/openregister/api/objects/{register}/{schema
 | `archivedValues` | The values of `statusField` that mean archived (default `["archived"]`) |
 | `archivistGroups` | Groups that may recompute (default `["archivaris"]`); admins always may |
 | `recompute` | `false` hides the recompute control |
+| `expected` | Before the record closes, the outcome its type expects: `source: { register, schema, filter }` lists the candidate rules (a case type's result types; filter tokens such as `@object.caseType`), `fields: { appraisal, period, selectionListRow }` names their fields, `appraisalLabels` names the appraisal values, `periodText` places the period (`"{period} after the decision"`), `decidedBy` says who decides. Agreeing rules fill the facts; disagreeing ones read "Depends on the result"; an unreadable list keeps the plain facts. |
+| `pendingNote` | The note under the facts of a record not closed yet |
+| `legalHold` | `true` adds a section with the record's active legal holds (`@self._retention.legalHold.holds`), or says none applies |
+| `transfer` | `{ keepValues }` adds a section saying whether the record goes to the e-Depot, from the stored or expected appraisal (default keep values `bewaren`, `blijvend_bewaren`, `retain`, `keep`) |
 
 ## Props
 

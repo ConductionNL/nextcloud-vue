@@ -83,6 +83,7 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
+import { normalizeLook } from '../../composables/useLook.js'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
@@ -169,6 +170,9 @@ const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.
 const ICON_LOCATE = 'M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
 const ICON_FULLSCREEN = 'M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'
 const ICON_FULLSCREEN_EXIT = 'M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z'
+const ICON_ZOOM_IN = 'M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z'
+const ICON_ZOOM_OUT = 'M19,13H5V11H19V13Z'
+const ICON_CROSSHAIRS = 'M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
 
 /**
  * Wrap an MDI path in a 24x24 SVG sized for a Leaflet control button.
@@ -227,6 +231,7 @@ export default {
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -493,6 +498,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the widget is drawn in the board look, which puts the zoom
+		 * buttons in the control bar and the bar in the top right.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
 		 * Effective configuration. On a dashboard the placement `content` blob
 		 * carries the widget's config, so each key falls back to `content.<key>`
 		 * when present and otherwise uses the matching flat prop. This lets
@@ -749,13 +764,13 @@ export default {
 						zoomSnap: 0.25,
 						maxBounds: paddedImageBounds(image.width, image.height),
 						maxBoundsViscosity: 1,
-						zoomControl: true,
+						zoomControl: !this.isBoardLook,
 						attributionControl: true,
 					}
 				: {
 						center: this.cfg.center,
 						zoom: this.cfg.zoom,
-						zoomControl: this.zoomControl,
+						zoomControl: this.zoomControl && !this.isBoardLook,
 						attributionControl: true,
 					}
 			this.map = L.map(this.$refs.mapEl, mapOptions)
@@ -1213,14 +1228,16 @@ export default {
 			})
 
 			if (Object.keys(baseLayers).length > 1 && L.control && typeof L.control.layers === 'function') {
-				this.layersControl = L.control.layers(baseLayers, {}, { position: 'topright' })
+				// The board look keeps the top right for its control column.
+				this.layersControl = L.control.layers(baseLayers, {}, { position: this.isBoardLook ? 'topleft' : 'topright' })
 				this.layersControl.addTo(this.map)
 			}
 		},
 
 		/**
 		 * Mount the custom control bar (fit-all / locate / fullscreen). Leaflet's own
-		 * zoom + attribution controls are enabled separately in `initMap`.
+		 * zoom + attribution controls are enabled separately in `initMap`; in the
+		 * board look the zoom buttons lead this bar instead, in the top right.
 		 */
 		addControls() {
 			const L = this.L
@@ -1231,8 +1248,13 @@ export default {
 			}
 
 			const buttons = []
+			const board = this.isBoardLook
+			if (board && (this.imageLayer || this.zoomControl)) {
+				buttons.push({ key: 'zoom-in', title: t('nextcloud-vue', 'Zoom in'), icon: ICON_ZOOM_IN, onClick: () => this.map.zoomIn() })
+				buttons.push({ key: 'zoom-out', title: t('nextcloud-vue', 'Zoom out'), icon: ICON_ZOOM_OUT, onClick: () => this.map.zoomOut() })
+			}
 			if (this.fitControl) {
-				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: ICON_FIT, onClick: () => this.fitToMarkers() })
+				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: board ? ICON_CROSSHAIRS : ICON_FIT, onClick: () => this.fitToMarkers() })
 			}
 			if (this.locateControl) {
 				buttons.push({ key: 'locate', title: t('nextcloud-vue', 'Show my location'), icon: ICON_LOCATE, onClick: () => this.locateMe() })
@@ -1271,7 +1293,7 @@ export default {
 				},
 			})
 
-			this.controlBar = new ControlBar({ position: 'topleft' })
+			this.controlBar = new ControlBar({ position: board ? 'topright' : 'topleft' })
 			this.controlBar.addTo(this.map)
 		},
 

@@ -138,6 +138,10 @@ export default {
 		CnStatusBadge,
 	},
 
+	inject: {
+		cnFormatters: { default: null },
+	},
+
 	props: {
 		/** The object data */
 		object: {
@@ -156,7 +160,8 @@ export default {
 		 * schema-configuration default.
 		 *
 		 * `subtitleTemplate` fills `{field}` tokens from the row (empty parts and
-		 * their separators drop). `leading` (one cell) and `trailing` (a cell or
+		 * their separators drop); `{field|formatter}` reads the field through
+		 * the host's formatter of that name (`cnFormatters`). `leading` (one cell) and `trailing` (a cell or
 		 * a list) draw cells as a table column does, `{ key, widget?,
 		 * widgetProps?, formatter? }`: `{ key: "createdAt", widget: "age" }`
 		 * reads "6 dagen", `{ key: "deadline", widget: "date", widgetProps: {
@@ -213,10 +218,7 @@ export default {
 
 		subtitle() {
 			if (typeof this.config.subtitleTemplate === 'string' && this.config.subtitleTemplate !== '') {
-				const text = joinTemplateParts(this.config.subtitleTemplate, (key) => {
-					const value = readPath(this.object, key)
-					return value === null || value === undefined ? '' : String(value)
-				})
+				const text = joinTemplateParts(this.config.subtitleTemplate, (token) => this.subtitlePart(token))
 				return text.trim() || null
 			}
 			const field = this.config.subtitleField || this.schemaConfig.objectDescriptionField
@@ -292,6 +294,25 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * One `subtitleTemplate` token as text: `field`, or `field|formatter`
+		 * read through the host formatter of that name ('' when empty).
+		 *
+		 * @param {string} token The token between the braces.
+		 * @return {string}
+		 * @spec openspec/changes/object-row-subtitle-formatters/specs/object-row/spec.md#requirement-a-list-rows-subtitle-token-can-read-through-a-formatter
+		 */
+		subtitlePart(token) {
+			const [key, name] = token.split('|').map((part) => part.trim())
+			const value = readPath(this.object, key)
+			const format = name && this.cnFormatters ? this.cnFormatters[name] : null
+			if (typeof format === 'function') {
+				const shown = format(value, this.object)
+				return shown === null || shown === undefined ? '' : String(shown)
+			}
+			return value === null || value === undefined ? '' : String(value)
+		},
+
 		/**
 		 * A cell's value: the dot-path `key` read off the row.
 		 *

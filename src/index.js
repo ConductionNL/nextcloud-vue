@@ -628,7 +628,7 @@ export { dispatchObjectsChanged } from './utils/objectSignals.js'
 export { lensUnavailableText, readLensReports } from './utils/lensAvailability.js'
 export { isWithheld, withheldReason } from './utils/withheldValue.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
-export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
+export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, mergeValueArray, PREFILL_KEY, splitDynamicFormData, storedAnswersFor, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'

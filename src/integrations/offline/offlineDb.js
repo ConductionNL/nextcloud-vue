@@ -264,6 +264,8 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
  * @param {string} [operation.endpoint]       Path under the Nextcloud root a
  *                                            `submit` row is POSTed to.
  * @param {object} [operation.payload]        The object body (create/update).
+ * @param {string} [operation.label]          What the change is about in words
+ *                                            ("Molenweg 4, checklist"), for the queue list.
  *
  * @return {Promise<string>} The queued operation id.
  */
@@ -281,6 +283,7 @@ export async function enqueueMutation(operation) {
 		// object API (see checklistSubmission.js); every other row has none.
 		endpoint: operation.endpoint ?? null,
 		payload: operation.payload ?? {},
+		label: typeof operation.label === 'string' ? operation.label : '',
 		queuedAt: operation.queuedAt || new Date().toISOString(),
 		attemptCount: 0,
 		status: 'pending',

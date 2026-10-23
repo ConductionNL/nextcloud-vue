@@ -3,7 +3,7 @@ export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './cnFetch.j
 export { genericError, networkError, parseAxiosError, parseResponseError } from './errors.js'
 export { findRepeatingWrite, journeyItemTargets } from './journeyRepeatingWrite.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './schema.js'
-export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './dynamicProperties.js'
+export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, mergeValueArray, PREFILL_KEY, splitDynamicFormData, storedAnswersFor, usesArrayValues, valueArrayFor, valueRecordsFor } from './dynamicProperties.js'
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './schemaApi.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './widgetVisibility.js'
 export { loadMyTeam, peekMyTeam, registerMyTeamSource } from './myTeam.js'

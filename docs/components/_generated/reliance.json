@@ -1348,7 +1348,7 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 121,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3830,8 +3830,8 @@
 			"page": "cn-resource-select"
 		},
 		"CnRetentionWidget": {
-			"direct": 4,
-			"transitive": 0,
+			"direct": 5,
+			"transitive": 1,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-retention-widget"

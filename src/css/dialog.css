@@ -336,8 +336,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* The doubled class outranks NcInputField's raised-label rule (focused or
-   filled), which would pin the label's top as well and squash it. */
+   filled), which would pin the label's top as well and squash it. A select
+   that holds a value has a heavier rule of NcSelect's own, so it gets the
+   heavier selector (DqPersoonlijkeInstellingen "Meldingsdomein").
+   @spec openspec/changes/board-filled-select-label/specs/board-filled-select-label/spec.md */
 .cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
+.cn-dialog-board .dialog__content .nc-select.v-select.select .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label,
 .cn-dialog-board .dialog__content .textarea__input + .textarea__label.textarea__label {
 	inset-block-start: auto;
 	inset-block-end: calc(100% + 4px);

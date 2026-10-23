@@ -1086,8 +1086,9 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
-import { generatedPageFilterOptions, periodText } from '../../utils/periodOptions.js'
+import { generatedPageFilterOptions, periodText, rangePeriodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -1857,6 +1858,9 @@ export default {
 		 * before it, valued `YYYY-Qn` and seeded with the current one;
 		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
 		 * (the default) renders no controls and leaves the context untouched.
+		 * `control: 'none'` seeds its value like any page filter but draws no
+		 * control: a fixed period the widgets read and the description names
+		 * (`{filter.<key>}`).
 		 *
 		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
@@ -2427,7 +2431,13 @@ export default {
 			}
 			// `{filter.<key>}`: the page filter's active choice, read as a period
 			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
-			return this.effectiveTranslate(this.description).replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
+			// `{dateRange}`: the dashboard's active date range, read as a period
+			// (DqDashboard "Hoe het team ervoor staat · oktober 2026"); `{today|<format>}`:
+			// today through a row template format (DqTermijnen "Week 41 · alle teams").
+			return this.effectiveTranslate(this.description)
+				.replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
+				.replace(/\{dateRange\}/g, () => this.dateRangePeriodText())
+				.replace(/\{today\|([\w:]+)\}/g, (token, format) => fillTemplate(`{today|${format}}`, { today: new Date().toISOString() }))
 		},
 
 		/**
@@ -2634,7 +2644,9 @@ export default {
 		 */
 		rowPageFilters() {
 			const inDescription = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
-			return (this.pageFilters || []).filter((pf) => pf && pf.key && !inDescription.includes(pf))
+			// `control: "none"` holds a value for the widgets and the
+			// description and draws no control (DqDoorlooptijd's fixed period).
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'none' && !inDescription.includes(pf))
 		},
 
 		/**
@@ -2650,7 +2662,7 @@ export default {
 			if (!this.showHeader) {
 				return []
 			}
-			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.placement === 'description')
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.control !== 'none' && pf.placement === 'description')
 		},
 
 		/**
@@ -3256,6 +3268,29 @@ export default {
 				return ''
 			}
 			return periodText({ ...option, label: option.label ? this.effectiveTranslate(option.label) : String(option.value) }, new Date(), userLocale())
+		},
+
+		/**
+		 * The dashboard's active date range read as a period, for
+		 * `{dateRange}` in the description: a calendar preset as its month,
+		 * quarter or year, another preset as its translated label, a custom
+		 * range as its dates.
+		 *
+		 * @return {string} The period, '' without an active range.
+		 * @spec openspec/changes/description-period-from-date-range/specs/description-period-from-date-range/spec.md#requirement-a-dashboard-description-reads-the-active-date-range-as-a-period
+		 */
+		dateRangePeriodText() {
+			const rng = this.currentRange || this.dashboardDateRange
+			if (!this.dateRangeEnabled || !rng) {
+				return ''
+			}
+			const preset = rng.preset && rng.preset !== 'custom'
+				? this.effectivePresets.find((p) => p && p.id === rng.preset)
+				: null
+			const label = preset ? translatePresetLabel(preset.label, this.effectiveTranslate) : ''
+			return rangePeriodText(rng, preset ? { ...preset, label } : null, userLocale())
+				|| this.formatRangeLabel(rng.from || null, rng.to || null)
+				|| ''
 		},
 
 		formatRangeLabel(from, to) {
@@ -4589,10 +4624,42 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
-			return item.customTitle
+			const title = item.customTitle
 				|| def?.customTitle
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
+			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
+		},
+
+		/**
+		 * Whether the widget's title carries `{count}`, the total its widget
+		 * reports; such a card shows the total in its title, not as a chip.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		titleHoldsCount(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const raw = item.customTitle || def?.customTitle || def?.title || ''
+			return typeof raw === 'string' && raw.includes('{count}')
+		},
+
+		/**
+		 * The title with `{count}` filled from the reported total, or the token
+		 * dropped (with the space before it) while no total has arrived.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @param {string} title The title, translated.
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		fillTitleCount(item, title) {
+			const reported = this.widgetHeaders[item.widgetId]
+			if (reported && Number.isFinite(reported.count)) {
+				return title.replace(/\{count\}/g, String(reported.count))
+			}
+			return title.replace(/\s*\{count\}/g, '').trim()
 		},
 
 		/**
@@ -4813,6 +4880,9 @@ export default {
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
 		 */
 		widgetHeaderCount(item) {
+			if (this.titleHoldsCount(item)) {
+				return null
+			}
 			const reported = this.widgetHeaders[item.widgetId]
 			return reported && Number.isFinite(reported.count) ? reported.count : null
 		},

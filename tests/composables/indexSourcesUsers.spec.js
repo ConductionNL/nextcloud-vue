@@ -109,8 +109,8 @@ describe('CnIndexPage folderSidebar source groups', () => {
 		const w = mountPage({ source: 'groups', filterField: 'group', groups: [{ id: 'fysiek' }, { id: 'vergunningen', parent: 'fysiek' }] })
 		await flushPromises()
 		expect(w.vm.folderSidebarFolders).toEqual([
-			{ id: 'fysiek', name: 'Fysiek domein', count: 96, parentId: null },
-			{ id: 'vergunningen', name: 'Vergunningen', count: 18, parentId: 'fysiek' },
+			{ id: 'fysiek', name: 'Fysiek domein', count: 96, parentId: null, record: null },
+			{ id: 'vergunningen', name: 'Vergunningen', count: 18, parentId: 'fysiek', record: null },
 		])
 	})
 })

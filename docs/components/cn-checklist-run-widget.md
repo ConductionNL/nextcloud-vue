@@ -41,6 +41,7 @@ the wording are all configuration; nothing in the widget knows what is being ins
 | `saveAction` | A manifest action that saves an answer instead, for an app that stores answers its own way. It is dispatched per changed answer with `{ questionId, value, note }` as its last argument. Photos are not offered then. |
 | `finishAction` | A manifest action dispatched after the last page is saved. The widget also emits `finished`. |
 | `pageSize` | Questions per page (default 1). |
+| `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. Without it the run opens at the first page. |
 | `allowNote` | Show a note field per question (default `true`). `noteLabel` names it. |
 | `allowPhotos` | Offer photos for the first question of the page (default `true`, needs `answers.photosField`). A photo is uploaded through the answer object's own file upload and added to `photosField`; photos already there are kept. |
 | `caption` | Text after the position ("Question 7 of 24 · …"), with `{field}` filled from the record. |
