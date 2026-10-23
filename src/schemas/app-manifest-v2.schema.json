@@ -4936,11 +4936,11 @@
 									},
 									"description": {
 										"type": "string",
-										"description": "default-views-secondary (2.152.0): the line under the view in the side panel, what it shows. Translatable."
+										"description": "default-views-secondary (2.151.0): the line under the view in the side panel, what it shows. Translatable."
 									},
 									"secondary": {
 										"type": "boolean",
-										"description": "default-views-secondary (2.152.0): true lists the view behind \"More default views\" in the side panel, folded until opened or applied."
+										"description": "default-views-secondary (2.151.0): true lists the view behind \"More default views\" in the side panel, folded until opened or applied."
 									},
 									"icon": {
 										"type": "string",
