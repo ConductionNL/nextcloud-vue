@@ -69,7 +69,10 @@
 						<CnActionButtons
 							v-if="item.actions.length > 0"
 							class="cn-grouped-cards__item-actions"
+							:class="{ 'cn-row-actions--board': itemActionsMenu }"
 							:actions="item.actions"
+							:overflowOnly="itemActionsMenu"
+							:overflowAriaLabel="itemActionsMenu ? itemMenuLabel(item) : ''"
 							data-testid="cn-grouped-cards-item-actions" />
 					</li>
 				</ul>
@@ -315,6 +318,16 @@ export default {
 		 * @return {Array<object>} The actions.
 		 * @spec openspec/changes/grouped-cards-actions/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-widget-can-carry-a-row-of-actions-above-its-groups
 		 */
+		/**
+		 * Whether each card's actions sit in one "···" menu (`content.itemActionsMenu`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/grouped-cards-item-menu/specs/grouped-cards-item-menu/spec.md#requirement-a-cards-actions-can-sit-in-one-menu
+		 */
+		itemActionsMenu() {
+			return this.content?.itemActionsMenu === true
+		},
+
 		topActions() {
 			const actions = this.content?.actions
 			return Array.isArray(actions) ? actions.filter((action) => action && typeof action === 'object') : []
@@ -549,6 +562,17 @@ export default {
 		 * @return {Array<object>}
 		 * @spec openspec/changes/grouped-cards-item-actions/specs/grouped-cards-item-actions/spec.md#requirement-every-card-can-carry-actions
 		 */
+		/**
+		 * The name of a card's actions menu: "Actions for {row}", the card's title filled in.
+		 *
+		 * @param {object} item The drawn card.
+		 * @return {string}
+		 * @spec openspec/changes/grouped-cards-item-menu/specs/grouped-cards-item-menu/spec.md#requirement-a-cards-actions-can-sit-in-one-menu
+		 */
+		itemMenuLabel(item) {
+			return t('nextcloud-vue', 'Actions for {row}', { row: item.title || '' })
+		},
+
 		itemActionsFor(actions, rawItem, rawGroup, key) {
 			if (!Array.isArray(actions)) {
 				return []
