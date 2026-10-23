@@ -1769,3 +1769,28 @@
 .cn-look-board .cn-saved-views-panel__row .action-item__menutoggle:not(.cn-look-nextcloud *) {
 	border-radius: 17px;
 }
+
+/* ---- Page tabs (CnIndexPage `pageTabs`, DqContracten) ------------------ */
+/* The sibling-page tabs are links; the board draws them as folder tabs in
+   the main ink at 14px, the open one at 700 on a white bottom edge, with no
+   line under the strip. The theme paints every link, so the ink also goes
+   to its link tokens and the underline needs !important.
+   @spec openspec/changes/board-index-page-tabs/specs/board-index-page-tabs/spec.md#requirement-board-index-page-tabs-are-folder-tabs-in-the-main-ink */
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	color: var(--color-main-text);
+	font-size: 14px;
+	line-height: normal;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab--active {
+	border-bottom: 1px solid var(--color-main-background);
+	font-weight: 700;
+}
