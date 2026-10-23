@@ -1764,6 +1764,7 @@
     "done in {duration}": "klaar in {duration}",
     "trigger {trigger}": "trigger {trigger}",
     "version {version}": "versie {version}",
+    "More steps": "Meer stappen",
     "{count} steps": "{count} stappen",
     "{in} in, {out} out.": "{in} erin, {out} eruit.",
     "{ms} ms": "{ms} ms",
