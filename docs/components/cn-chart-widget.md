@@ -367,6 +367,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `matrixLabelWidth` | Number | `null` | `matrix`: the row-label column's width in px; a long label wraps (DqProcesanalyse "Dagen per fase": 240). Null sizes the column to its longest label, at least 120px |
 | `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
 | `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). `valuePath` reads the value from the endpoint answer instead, `{value}` in the label writes it, and a line without a value is not drawn. |
 | `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |

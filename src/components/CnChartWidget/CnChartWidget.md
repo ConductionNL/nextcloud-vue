@@ -18,7 +18,7 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`, `endpointSource`, `barMax`, `footnote`, `highlight`, `cellSource`, `emptyCellLabel`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`, `endpointSource`, `barMax`, `matrixLabelWidth`, `footnote`, `highlight`, `cellSource`, `emptyCellLabel`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
 
 Area chart — time series data:
 
@@ -107,6 +107,7 @@ Fallback slot — shown when ApexCharts is not available:
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars); an explicit `options.plotOptions.bar.horizontal` still wins |
 | `legendPosition` | String | `''` | Legend placement override (`top`/`bottom`/`left`/`right`); empty keeps the automatic placement |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `matrixLabelWidth` | Number | `null` | `matrix`: the row-label column's width in px; a long label wraps (DqProcesanalyse "Dagen per fase": 240). Null sizes the column to its longest label, at least 120px |
 | `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
 | `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). `valuePath` reads the value from the endpoint answer instead, `{value}` in the label writes it, and a line without a value is not drawn. |
 | `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language. Categories that are not dates are left as is. |

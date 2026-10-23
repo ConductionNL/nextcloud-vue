@@ -94,7 +94,7 @@
 				role="table"
 				class="cn-chart-widget__matrix"
 				:aria-label="matrixLabel"
-				:style="{ gridTemplateColumns: `minmax(120px, max-content) repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
+				:style="{ gridTemplateColumns: `${matrixLabelColumn} repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
 				<div role="row" class="cn-chart-widget__matrix-row">
 					<span role="columnheader" class="cn-chart-widget__matrix-corner" />
 					<span
@@ -451,6 +451,18 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
 		 */
 		barMax: {
+			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A `matrix`'s row-label column width in px. Null, the default, sizes
+		 * the column to its longest label (at least 120px); a width wraps a
+		 * long label instead (DqProcesanalyse "Dagen per fase": 240).
+		 *
+		 * @spec openspec/changes/chart-matrix-label-width/specs/chart-matrix-label-width/spec.md#requirement-a-matrix-can-give-its-row-labels-a-fixed-width
+		 */
+		matrixLabelWidth: {
 			type: Number,
 			default: null,
 		},
@@ -1504,6 +1516,12 @@ export default {
 			}
 			const fallbackFilter = src.fallbackFilter ? resolve(src.fallbackFilter) : null
 			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
+		},
+
+		/** @return {string} The matrix row-label column's grid track. */
+		matrixLabelColumn() {
+			const width = Number(this.matrixLabelWidth)
+			return Number.isFinite(width) && width > 0 ? `${width}px` : 'minmax(120px, max-content)'
 		},
 
 		/**
