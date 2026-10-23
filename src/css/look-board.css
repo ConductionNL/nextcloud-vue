@@ -389,7 +389,8 @@
 
 /* ---- A select outside a dialog ----------------------------------------- */
 /* The board's select is its control: a 1px grey edge that meets 3:1, radius
-   8, 40px high, 36px in a filter row (a page's, the timeline's). NcSelect draws its field as an
+   8, 40px high, 36px in a filter row (a page's, a dashboard's description
+   row, the timeline's). NcSelect draws its field as an
    NcInputField, 30px inside a 34px toggle, edged by a 35%-transparent ring
    (DqProcesanalyse "Periode", DqDoorlooptijd, DqTermijnen "Jaar"). The field
    is the clickable area less NcSelect's 2px border on either side, so the
@@ -408,6 +409,7 @@
 }
 
 .cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *),
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *),
 .cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *) {
 	--cn-board-select-height: 36px;
 }
