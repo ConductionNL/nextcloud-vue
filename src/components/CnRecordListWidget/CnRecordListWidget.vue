@@ -64,6 +64,9 @@
 							{{ col.label }}
 						</template>
 					</th>
+					<th v-if="rowActions.length > 0" scope="col" class="cn-record-list__cell--actions">
+						{{ rowActionsHeader }}
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -78,12 +81,34 @@
 							:label="cell.text"
 							:variant="cell.tone"
 							size="small" />
-						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to">
+						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to" class="cn-record-list__cell-text">
 							{{ cell.text }}
 						</router-link>
-						<template v-else>
-							{{ cell.text }}
-						</template>
+						<span v-else class="cn-record-list__cell-text">{{ cell.text }}</span>
+						<span v-if="cell.sub" class="cn-record-list__cell-sub">{{ cell.sub }}</span>
+					</td>
+					<td v-if="rowActions.length > 0" class="cn-record-list__cell--actions">
+						<NcActions
+							v-if="item.rowActions.length > 0"
+							:aria-label="rowActionsLabel"
+							data-testid="cn-record-list-row-actions">
+							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
+								<NcActionLink
+									v-if="entry.href"
+									:href="entry.href"
+									:target="entry.external ? '_blank' : undefined"
+									:data-testid="`cn-record-list-row-action-${entry.index}`">
+									{{ entry.action.label }}
+								</NcActionLink>
+								<NcActionButton
+									v-else
+									:closeAfterClick="true"
+									:data-testid="`cn-record-list-row-action-${entry.index}`"
+									@click="runRowActionEntry(entry.action, item.row)">
+									{{ entry.action.label }}
+								</NcActionButton>
+							</template>
+						</NcActions>
 					</td>
 				</tr>
 			</tbody>
@@ -904,6 +929,8 @@ export default {
 			const indentPath = this.content?.indentPath
 			const rows = this.items.map((item) => ({
 				key: item.key,
+				row: item.row,
+				rowActions: this.rowActions.length > 0 ? this.rowActionsOf(item.row) : [],
 				to: item.attrs.to || null,
 				depth: indentPath ? Math.max(0, Math.floor(Number(readPath(item.row, indentPath)) || 0)) : 0,
 				cells: this.tableColumns.map((col) => {
@@ -913,6 +940,7 @@ export default {
 					return {
 						key: col.key,
 						text,
+						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
 						tone: this.cellToneOf(col, item.row, text),
@@ -1108,6 +1136,17 @@ export default {
 					doneLabel: action.doneLabel ? this.translate(action.doneLabel) : '',
 					ariaLabel: action.ariaLabel ? this.translate(action.ariaLabel) : '',
 				}))
+		},
+
+		/**
+		 * The heading of the `table` presentation's actions column.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
+		 */
+		rowActionsHeader() {
+			const own = this.content?.rowActionsHeader
+			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
 		},
 
 		/** @return {string} The accessible name of a row's actions menu. */
@@ -2537,6 +2576,19 @@ export default {
 .cn-record-list__table td {
 	padding: 8px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-record-list__cell-sub {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-list__table .cn-record-list__cell--actions {
+	width: 1%;
+	padding-inline-start: 12px;
+	text-align: end;
+	white-space: nowrap;
 }
 
 .cn-record-list__sort {
