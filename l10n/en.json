@@ -2324,7 +2324,11 @@
     "The action failed.": "The action failed.",
     "The warnings could not be loaded.": "The warnings could not be loaded.",
     "Filter by type": "Filter by type",
-    "activities": "activities"
+    "activities": "activities",
+    "just now": "just now",
+    "this morning": "this morning",
+    "this afternoon": "this afternoon",
+    "this evening": "this evening"
   },
   "plurals": {
     "{count} member": [
@@ -2489,6 +2493,14 @@
     "{name} and %n other are also looking at this record now": [
       "{name} and %n other are also looking at this record now",
       "{name} and %n others are also looking at this record now"
+    ],
+    "{count} min ago": [
+      "{count} min ago",
+      "{count} min ago"
+    ],
+    "{count} hour ago": [
+      "{count} hour ago",
+      "{count} hours ago"
     ]
   }
 }
