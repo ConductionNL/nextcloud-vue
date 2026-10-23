@@ -1538,7 +1538,7 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
 		 */
 		matrix() {
-			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => String(c))
+			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => this.hostTranslate(String(c)))
 			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((entry) => entry && typeof entry === 'object') : []
 			const max = Math.max(0, ...series.flatMap((entry) => (Array.isArray(entry.data) ? entry.data.map((v) => Number(v) || 0) : [])))
 			const levelOf = (value) => {
@@ -1556,7 +1556,7 @@ export default {
 			return {
 				columns,
 				rows: series.map((entry, rowIndex) => ({
-					label: String(entry.name ?? ''),
+					label: this.hostTranslate(String(entry.name ?? '')),
 					cells: columns.map((column, index) => {
 						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
 						const isCurrent = current !== null && current.row === rowIndex && current.column === index

@@ -75,6 +75,18 @@ describe('CnChartWidget matrix from cell records', () => {
 		expect(cells.filter((c) => c.attributes('aria-current') === 'true').map((c) => c.text())).toEqual(['Order'])
 	})
 
+	it('reads the row and column labels through the host translate, as the cells are', async () => {
+		const dutch = { 'Behaviour 1': 'Gedrag 1', 'Behaviour 2': 'Gedrag 2', Minor: 'Gering', Severe: 'Ernstig' }
+		const w = mount(CnChartWidget, {
+			props: { type: 'matrix', cellSource: SOURCE, highlight: { row: '@object.behaviour', column: '@object.consequence' } },
+			global: { provide: { cnWorkspaceContext: {}, cnObjectContext: { objectId: 'h1', object: { matrixVersion: 'v2', behaviour: '2', consequence: 'B' } }, cnTranslate: (key) => dutch[key] || key } },
+		})
+		await flush()
+		expect(w.findAll('[role="rowheader"]').map((c) => c.text())).toEqual(['Gedrag 1', 'Gedrag 2'])
+		expect(w.findAll('[role="columnheader"]').map((c) => c.text())).toEqual(['', 'Gering', 'Ernstig'])
+		expect(w.findAll('[data-testid="cn-chart-widget-matrix-cell"]').filter((c) => c.attributes('aria-current') === 'true').map((c) => c.text())).toEqual(['Order'])
+	})
+
 	it('waits while a filter token is unresolved and fetches once the record names it', async () => {
 		const ctx = ref({ objectId: 'h1', object: { behaviour: '1', consequence: 'A' } })
 		const w = mountMatrix(ctx)
