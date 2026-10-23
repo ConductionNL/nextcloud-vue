@@ -355,6 +355,19 @@
 		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
+		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
+		<router-link
+			v-if="footerLink && footerLink.to"
+			class="cn-record-list__footer-link"
+			:to="footerLink.to"
+			data-testid="cn-record-list-footer-link">
+			{{ footerLink.label }}
+		</router-link>
+		<a
+			v-else-if="footerLink"
+			class="cn-record-list__footer-link"
+			:href="footerLink.href"
+			data-testid="cn-record-list-footer-link">{{ footerLink.label }}</a>
 		<!-- `footerAction`: one action under the list, also under the empty
 		     text ("Beroep registreren"). With `disabledWhen` it greys out and
 		     says why (`disabledReason`: "Kan zodra de beslissing is
@@ -521,6 +534,8 @@ export default {
 		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
 		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
 		 * of the flags a row has ("Start", "End") at its end.
+		 * `footerLink` (the shape of `headerLink`) ends the card with a text
+		 * link under the rows.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -968,23 +983,32 @@ export default {
 
 		/** @return {object|null} The header link with `{total}` filled and tokens resolved. */
 		headerLink() {
-			const link = this.content?.headerLink
-			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+			return this.resolveLink(this.content?.headerLink)
+		},
+
+		/**
+		 * The text link under the rows (`footerLink`), resolved as the header
+		 * link is, as a router location or an href; null without rows.
+		 *
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 * @spec openspec/changes/record-list-footer-link/specs/record-list-footer-link/spec.md#requirement-a-record-list-can-end-with-a-text-link
+		 */
+		footerLink() {
+			const link = this.resolveLink(this.content?.footerLink)
+			if (!link || this.error || this.rows.length === 0) {
 				return null
 			}
-			const resolved = { label: this.withTotal(link.label) }
 			if (link.route) {
-				resolved.route = link.route
-				if (link.params && typeof link.params === 'object') {
-					resolved.params = resolveFilterTokens(link.params, this.tokenCtx)
+				const to = { name: link.route }
+				if (link.params) {
+					to.params = link.params
 				}
-				if (link.query && typeof link.query === 'object') {
-					resolved.query = resolveFilterTokens(link.query, this.tokenCtx)
+				if (link.query) {
+					to.query = link.query
 				}
-			} else if (typeof link.href === 'string') {
-				resolved.href = link.href
+				return { label: link.label, to }
 			}
-			return resolved
+			return link.href ? { label: link.label, href: link.href } : null
 		},
 
 		/** @return {string} The header note with `{total}` filled. */
@@ -1423,6 +1447,32 @@ export default {
 		 * @param {string} label The label.
 		 * @return {string} The text.
 		 */
+		/**
+		 * A `{ label, route, params?, query? }` or `{ label, href }` link with
+		 * `{total}` filled and tokens resolved, or null.
+		 *
+		 * @param {object|undefined} link The declared link.
+		 * @return {object|null} The resolved link.
+		 */
+		resolveLink(link) {
+			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+				return null
+			}
+			const resolved = { label: this.withTotal(link.label) }
+			if (link.route) {
+				resolved.route = link.route
+				if (link.params && typeof link.params === 'object') {
+					resolved.params = resolveFilterTokens(link.params, this.tokenCtx)
+				}
+				if (link.query && typeof link.query === 'object') {
+					resolved.query = resolveFilterTokens(link.query, this.tokenCtx)
+				}
+			} else if (typeof link.href === 'string') {
+				resolved.href = link.href
+			}
+			return resolved
+		},
+
 		withTotal(label) {
 			return fillCountLabel(this.translate(label), this.total, this.rows)
 		},
@@ -2614,6 +2664,14 @@ export default {
 	flex: 0 0 120px;
 	gap: 6px;
 	justify-content: flex-end;
+}
+
+.cn-record-list__footer-link {
+	align-self: flex-start;
+	padding-top: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
 }
 
 .cn-record-list__due--column {

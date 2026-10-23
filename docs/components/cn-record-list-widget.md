@@ -113,6 +113,8 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 
 ### An action under the list
 
+`footerLink` (the shape of `headerLink`: `{ label, route, params?, query? }` or `{ label, href }`, `{total}` filled) ends the card with a text link under the rows, not drawn while the list is empty (DqDagAfsluiten "Naar Mijn werk", DqDashboard "Alles bekijken").
+
 `footerAction` ends the card with one secondary button, also under the empty text, as board DqBezwaar draws "Beroep registreren" in its Beroep card. It is a manifest action plus a `label` and an optional `icon`, run through the page's dispatcher with the page's record as `@object`. `disabledWhen` is a visibleWhen condition (a `field` on the page's record, the workspace, an endpoint or a source; `total` reads the list's total): while it holds the button is disabled and `disabledReason` shows under it, tied to the button with `aria-describedby`. Label and reason go through the app's translate.
 
 ```json
