@@ -427,6 +427,7 @@ import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateV
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { indicatorApplies } from '../../utils/rowIndicators.js'
@@ -554,7 +555,7 @@ export default {
 		 * batch (`widgetProps { labels, route? }`, set by CnIndexPage for a
 		 * column with `labelField`).
 		 * The built-in id `"avatar"` renders a person as an avatar with the
-		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
+		 * name beside it (`widgetProps { userField?, user?, nameField?, size?, groupField?, groupLabel? }`; a row nobody holds names its first `groupField` group, in `groupLabel` ("{group}, unclaimed");
 		 * a free name gets its initials), and the built-in id `"date"` renders
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
@@ -816,6 +817,10 @@ export default {
 					return displayName
 				}
 			}
+			if (this.avatarGroupId !== '') {
+				const label = typeof props.groupLabel === 'string' && props.groupLabel !== '' ? this.cnTranslate(props.groupLabel) : '{group}'
+				return label.replace(/\{group\}/g, this.avatarGroupName)
+			}
 			if (!this.hasValue || typeof this.value === 'object') {
 				return ''
 			}
@@ -830,7 +835,36 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			return this.initialsOf(this.avatarName)
+			return this.initialsOf(this.avatarGroupId !== '' ? this.avatarGroupName : this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: the group the row waits on when nobody holds it,
+		 * the first id in the row field `widgetProps.groupField`, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/avatar-cell-group-fallback/specs/data-table/spec.md#requirement-an-empty-avatar-cell-can-name-the-rows-group
+		 */
+		avatarGroupId() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'avatar' || typeof props.groupField !== 'string' || props.groupField === '' || this.avatarUserId !== '') {
+				return ''
+			}
+			if (this.hasValue && typeof this.value !== 'object') {
+				return ''
+			}
+			const groups = objectFieldValue(this.row, props.groupField)
+			const first = Array.isArray(groups) ? groups.find((gid) => typeof gid === 'string' && gid !== '') : groups
+			return typeof first === 'string' ? first : ''
+		},
+
+		/**
+		 * `avatar` widget: the display name of `avatarGroupId`, the id until it is known.
+		 *
+		 * @return {string}
+		 */
+		avatarGroupName() {
+			return groupDisplayName(this.avatarGroupId) || this.avatarGroupId
 		},
 
 		/**
@@ -1677,6 +1711,22 @@ export default {
 				classes.push('cn-cell-renderer--number')
 			}
 			return classes
+		},
+	},
+
+	watch: {
+		avatarGroupId: {
+			immediate: true,
+			/**
+			 * Look the group's display name up (cached, once per id per page).
+			 *
+			 * @param {string} gid The group id.
+			 */
+			handler(gid) {
+				if (gid !== '') {
+					loadGroupDisplayName(gid)
+				}
+			},
 		},
 	},
 
