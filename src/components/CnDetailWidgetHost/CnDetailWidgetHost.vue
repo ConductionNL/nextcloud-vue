@@ -1580,11 +1580,17 @@ export default {
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
-		/** @return {string} Label for the catalog Add action. */
+		/**
+		 * Label for the catalog Add action: the createAction's label, else the
+		 * list's own `addLabel`, as the list's Add reads it.
+		 *
+		 * @return {string}
+		 */
 		addLabel() {
 			const action = listCreateAction(this.content)
-			if (action && typeof action.label === 'string' && action.label !== '') {
-				return typeof this.cnTranslate === 'function' ? this.cnTranslate(action.label) : action.label
+			const label = action && typeof action.label === 'string' && action.label !== '' ? action.label : (typeof this.content.addLabel === 'string' ? this.content.addLabel : '')
+			if (label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
 			}
 			return t('nextcloud-vue', 'Add')
 		},
