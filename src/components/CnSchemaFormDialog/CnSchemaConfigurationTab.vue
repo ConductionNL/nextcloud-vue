@@ -136,7 +136,7 @@
 			{{ t('nextcloud-vue', 'Append a date-time suffix when a slug is already taken') }}
 		</NcCheckboxRadioSwitch>
 		<NcNoteCard v-if="schema.configuration.objectSlugField" type="info">
-			<p>{{ t('nextcloud-vue', 'A slug is unique within the register and schema and does not change once it is set. After switching the slug field, rewrite existing slugs with occ openregister:backfill-slugs <register> <schema> --reslug. Links built on the old slugs stop working.') }}</p>
+			<p>{{ t('nextcloud-vue', 'A slug is unique within the register and schema and does not change once it is set, also not after the slug field is switched. Objects without a slug get one from the new field on their next save or with occ openregister:backfill-slugs <register> <schema>.') }}</p>
 		</NcNoteCard>
 		<NcCheckboxRadioSwitch
 			v-model="schema.configuration.allowFiles"
