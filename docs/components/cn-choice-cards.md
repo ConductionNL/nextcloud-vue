@@ -41,11 +41,12 @@ Options are tolerant about shape, so a list can be handed straight from a server
 | `modelValue` | String \| Number \| Boolean \| Array \| Object | `null` | The selection. An array when `multiple`. |
 | `multiple` | Boolean | `false` | Allow several cards. Inputs become checkboxes and the model becomes an array. |
 | `label` | String | `''` | Group label, rendered as the fieldset legend. |
+| `hideLabel` | Boolean | `false` | Keep `label` as the legend for assistive tech only, where the dialog's title already names the choice. |
 | `disabled` | Boolean | `false` | Disable every card, for example while a dependent choice has no parent value yet. |
 | `readonly` | Boolean | `false` | Show the choice without letting it change: every option at full contrast, the selected one marked, nothing pickable. `disabled` greys the options out instead. |
 | `loading` | Boolean | `false` | Show a spinner instead of the grid while the options are being fetched. |
 | `emptyText` | String | `'Nothing to choose from here.'` | Shown when there are no options. |
-| `columns` | Number | `0` | Columns of the card grid. `1` stacks the cards in one column; `0` fits as many as the width allows. |
+| `columns` | Number | `0` | Columns of the card grid. `1` stacks the cards in one column; `0` fits as many as the width allows. In `rows`, more than `1` sets the rows side by side in that many equal columns. |
 | `descriptionLines` | Number | `4` | Lines of description before clamping. |
 | `layout` | String | `'cards'` | `cards`: the grid of cards. `rows`: one option per row, full width, the input on the left and the title over a muted description; the selected row has a primary border on a light primary ground. With `multiple` and one option it is a single checkbox card ("Also publish the decision"). Stats and tags are not drawn in rows. |
 
