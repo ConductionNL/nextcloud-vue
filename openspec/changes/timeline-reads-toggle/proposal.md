@@ -17,9 +17,8 @@ only". A trail read that fails or is refused leaves the reads out.
 
 ## Access
 
-The reads come from OpenRegister's object audit trail, which answers to
-whoever may read the object (ObjectHistoryForReaders). This change shows
-nothing that endpoint does not already answer. Restricting WHO may see reads
-to certain roles is an OpenRegister rule, not a UI switch: see the design note
-in the report (an OR setting naming the groups that see `read` events,
-enforced in ObjectHistoryForReaders). The switch here is not an access control.
+OpenRegister gives `read` entries only to administrators and the groups the
+setting `audit.readEventsVisibleTo` names, and says so in the history's
+`readEventsVisible` (openregister `feat/audit-read-events-visible-to`). The
+switch is offered only when that answer is true, so the offer follows the
+server's rule; it is not an access control of its own.

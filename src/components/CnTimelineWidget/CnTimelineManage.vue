@@ -153,7 +153,7 @@
 					data-testid="cn-timeline-count">
 					{{ countLine }}
 				</p>
-				<NcCheckboxRadioSwitch v-if="readsToggleLabel"
+				<NcCheckboxRadioSwitch v-if="readsToggleLabel && readsAllowed"
 					v-model="includeReads"
 					data-testid="cn-timeline-include-reads"
 					@update:modelValue="load">
@@ -318,6 +318,8 @@ export default {
 			activeModal: null,
 			/** Whether the list also shows who read the record (`readsToggle`). */
 			includeReads: false,
+			/** Whether OpenRegister gives this reader read entries (`readEventsVisible`); null until asked. */
+			readsAllowed: null,
 		}
 	},
 
@@ -381,7 +383,7 @@ export default {
 		 */
 		countLine() {
 			const values = { shown: this.entries.length, total: this.allEntries.length }
-			return this.readsToggleLabel && !this.includeReads
+			return this.readsToggleLabel && this.readsAllowed && !this.includeReads
 				? t('nextcloud-vue', '{shown} of {total} events, changes only', values)
 				: t('nextcloud-vue', '{shown} of {total} events', values)
 		},
@@ -601,7 +603,10 @@ export default {
 				const response = await axios.get(this.timelineUrl, { params })
 				this.canManage = response.data?.canManage === true
 				const entries = response.data?.results || []
-				this.allEntries = this.readsToggleLabel && this.includeReads ? this.withReads(entries, await this.readEntries()) : entries
+				if (this.readsToggleLabel && this.readsAllowed === null) {
+					await this.readEntries()
+				}
+				this.allEntries = this.readsToggleLabel && this.readsAllowed && this.includeReads ? this.withReads(entries, await this.readEntries()) : entries
 				this.entries = this.applyKindFilter(this.allEntries)
 			} catch {
 				this.allEntries = []
@@ -614,8 +619,10 @@ export default {
 
 		/**
 		 * Who read the record, from its audit trail (`action=read`), as timeline
-		 * rows. OpenRegister answers the trail to whoever may read the object;
-		 * a read it refuses or that fails leaves the reads out.
+		 * rows. OpenRegister gives read entries only to the groups named for
+		 * them and says so in `readEventsVisible`, which decides whether the
+		 * switch is offered at all; a read it refuses or that fails leaves the
+		 * reads out and offers no switch.
 		 *
 		 * @spec openspec/changes/timeline-reads-toggle/specs/timeline/spec.md#requirement-the-history-can-show-who-read-the-record
 		 * @return {Promise<Array<object>>} The read rows.
@@ -624,6 +631,10 @@ export default {
 			try {
 				const url = prefixUrl(`${this.base}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails`)
 				const response = await axios.get(url, { params: { action: 'read', limit: 50 } })
+				this.readsAllowed = response.data?.readEventsVisible === true
+				if (!this.readsAllowed) {
+					return []
+				}
 				const list = response.data?.results || []
 				return list
 					.filter((entry) => String(entry.action || '').toLowerCase() === 'read')
@@ -636,6 +647,7 @@ export default {
 						message: t('nextcloud-vue', 'Opened the record'),
 					}))
 			} catch {
+				this.readsAllowed = false
 				return []
 			}
 		},

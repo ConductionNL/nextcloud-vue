@@ -3,4 +3,4 @@
 - [x] `readsToggle` footer switch, off by default, reads merged from the audit trail
 - [x] "changes only" count while off, "Read" chip while on
 - [x] Unit tests, docs
-- [ ] OpenRegister: who may see `read` events (separate change, needs a decision)
+- [x] The switch follows OpenRegister's `readEventsVisible` (openregister feat/audit-read-events-visible-to)
