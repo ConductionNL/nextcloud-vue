@@ -6,7 +6,7 @@
 	<section class="cn-saved-views-panel" data-testid="cn-saved-views-panel" :aria-label="t('nextcloud-vue', 'Saved views')">
 		<div class="cn-saved-views-panel__head">
 			<NcButton
-				variant="secondary"
+				:variant="isBoardLook ? 'primary' : 'secondary'"
 				:wide="true"
 				data-testid="cn-saved-views-save"
 				@click="onSaveRequest">
@@ -177,6 +177,7 @@ import PinOffOutline from 'vue-material-design-icons/PinOffOutline.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { savedViewsList } from '../../mixins/savedViewsList.js'
 import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
 
@@ -221,6 +222,11 @@ export default {
 
 	mixins: [savedViewsList],
 
+	inject: {
+		/** The look CnAppRoot (or the page) draws in. */
+		cnLook: { default: 'nextcloud' },
+	},
+
 	props: {
 		/**
 		 * The ids of the views this user put in the app menu, or `null` when
@@ -254,6 +260,11 @@ export default {
 	],
 
 	computed: {
+		/** @return {boolean} Whether the panel is drawn as the boards draw it. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/** @return {boolean} Whether Add to menu is offered. */
 		canPin() {
 			return Array.isArray(this.menuIds)
