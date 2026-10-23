@@ -102,6 +102,7 @@ const DEFAULT_MAP = {
 	required: 'isRequired',
 	default: 'defaultValue',
 	hideOnCreate: 'hideOnCreate',
+	items: 'items',
 }
 
 /**
@@ -364,6 +365,15 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 		}
 		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
 			prop.default = defaultValue
+		}
+		const items = mapped(record, map, 'items')
+		if (prop.type === 'array' && items && typeof items === 'object' && !Array.isArray(items)) {
+			prop.items = JSON.parse(JSON.stringify(items))
+			// A list of records is edited row by row, one input per declared
+			// field, rather than as a row of free tags.
+			if (items.type === 'object' && items.properties && typeof items.properties === 'object') {
+				prop['x-widget'] = 'sub-objects'
+			}
 		}
 		prop.order = orderFrom + index
 
