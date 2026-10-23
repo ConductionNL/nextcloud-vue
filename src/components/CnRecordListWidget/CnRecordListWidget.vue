@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -633,6 +633,8 @@ export default {
 		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
 		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
 		 * of the flags a row has ("Start", "End") at its end.
+		 * `tiles: true` (rows only) draws each row as a framed tile in a grid
+		 * of 260px at the least.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -2977,6 +2979,34 @@ export default {
 .cn-record-list__chevron {
 	color: var(--color-text-maxcontrast);
 	flex: none;
+}
+
+/* tiles (`tiles: true`, DqZaaktypeOverzicht "Statussen"): rows as framed
+   tiles in a grid, the title at 14px regular. The selectors outrank the board
+   look's list row rules. */
+.cn-record-list.cn-record-list--tiles .cn-record-list__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item {
+	border-top: 0;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__row {
+	box-sizing: border-box;
+	height: 100%;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--cn-board-hairline, var(--color-border));
+	border-radius: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__title {
+	font-size: 14px;
+	font-weight: 400;
 }
 
 /* cards (board ShBank): a grid of framed cards, 240px at the least. */
