@@ -50,6 +50,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	overflow: hidden;
 }
 
+/* The index page's delete-view confirm is 520px, as DqFilterVerwijderen
+   draws it; set on the container, it outranks the confirm role's 560px that
+   the dialog sets inline on the mask.
+   @spec openspec/changes/board-delete-view-confirm-header/specs/board-delete-view-confirm-header/spec.md#requirement-the-board-delete-view-confirm-is-520px-wide */
+.modal-mask.cn-dialog-board.cn-index-page__delete-view-confirm .modal-container {
+	--cn-dialog-width: 520px;
+}
+
 /* The board's header and body carry their own 24px inset. NcDialog pads its
    container 4px at the top and 12px at the start, which put the title and
    the fields 36px in; its rule outranked the one above through the scoped

@@ -22,3 +22,15 @@ its subtitle. In the Nextcloud look both SHALL be empty.
 - GIVEN DqFilterVerwijderen in the board look, deleting the view "Wacht op inwoner"
 - WHEN the confirm opens
 - THEN "Saved view" stands above "Delete view?" and "Wacht op inwoner" under it
+
+### Requirement: The board delete-view confirm is 520px wide
+
+CnIndexPage's delete-saved-view confirm SHALL carry the class `cn-index-page__delete-view-confirm`, and in the board
+look its dialog SHALL be 520px wide (`--cn-dialog-width` on the container, over the confirm role's 560px). Other confirm
+dialogs and the Nextcloud look SHALL be unchanged.
+
+#### Scenario: The delete-view confirm's width
+
+- GIVEN DqFilterVerwijderen in the board look
+- WHEN the delete-view confirm opens
+- THEN the dialog is 520px wide

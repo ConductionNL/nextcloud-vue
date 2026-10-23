@@ -611,6 +611,7 @@
 		<CnConfirmDialog
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
+			class="cn-index-page__delete-view-confirm"
 			variant="error"
 			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
 			:eyebrow="deleteViewEyebrow"
