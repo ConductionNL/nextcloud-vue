@@ -45,6 +45,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
 | `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. The entry is empty when every placeholder is. |
 | `suffix` | Text added after a value that is not empty (`" kg"`). |
+| `emptyValue` | Text shown (translated) when the entry has no value; the entry is then drawn whatever `hideEmpty` says (`"No"` for an override that was never set). |
 | `decimals` | With `number` or `currency`: the fraction digits. `number` shows the value in the reader's language. |
 | `limitPath` / `limit` | On a `meter`: the path of the limit, or a constant limit. |
 
