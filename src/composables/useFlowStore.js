@@ -105,6 +105,11 @@ export const useFlowStore = defineStore('cnFlow', {
 		// (top to bottom). Set by the editor that hosts the canvas.
 		layoutDirection: 'right',
 
+		// Whether the page edits a published flow in place and Save publishes
+		// the result as the next version (board DqFlow: "changes apply to new
+		// cases"). Set by the editor that hosts the canvas.
+		savesAsVersion: false,
+
 		// Snapshots of `flow`, oldest first, for Ctrl+Z.
 		//
 		// A canvas is direct manipulation: a mis-drag or a mis-aimed Delete
@@ -422,7 +427,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {boolean} Whether graph edits are locked.
 		 */
 		graphLocked: (state) => state.viewingVersion !== null
-			|| ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
+			|| state.flow.lifecycleStatus === 'deprecated'
+			|| (state.flow.lifecycleStatus === 'published' && !state.savesAsVersion),
 
 		/**
 		 * Whether the surfaces are showing a RUN rather than the flow.
@@ -1776,6 +1782,48 @@ export const useFlowStore = defineStore('cnFlow', {
 				return null
 			}
 
+			if (this.savesAsVersion && this.flow.id) {
+				return await this.saveAsNextVersion()
+			}
+
+			return await this.writeHead()
+		},
+
+		/**
+		 * Save the edits as the flow's next published version: draft the
+		 * published version when that is what is open, put the edited graph on
+		 * the draft, then publish it. Runs already started keep the version
+		 * they started on.
+		 *
+		 * @spec openspec/changes/flow-board-save-as-version/specs/flow-board/spec.md#requirement-a-flow-page-can-save-edits-as-the-next-version
+		 * @return {Promise<object|null>} The saved flow, or null when a step
+		 *                                was refused.
+		 */
+		async saveAsNextVersion() {
+			const { id, uuid, version, semver, semverSource, lifecycleStatus, created, updated, ...edits } = JSON.parse(JSON.stringify(this.flow))
+			if (lifecycleStatus === 'published') {
+				const draft = await this.transition('draft')
+				if (draft === null) {
+					return null
+				}
+				this.flow = { ...this.flow, ...edits }
+			}
+
+			const saved = await this.writeHead()
+			if (saved === null) {
+				return null
+			}
+
+			await this.publish()
+			return saved
+		},
+
+		/**
+		 * PUT the open flow (POST a new one) as it stands.
+		 *
+		 * @return {Promise<object|null>} The saved flow, or null.
+		 */
+		async writeHead() {
 			this.saving = true
 			this.error = null
 			try {

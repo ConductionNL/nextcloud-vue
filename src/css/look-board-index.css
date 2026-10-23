@@ -208,6 +208,16 @@
 	cursor: pointer;
 }
 
+/* Inside a record card the chip row is 36px, 12px in (DqZaakContact's channel
+   chips, as DqZaakHistorie's). */
+.cn-look-board .cn-conversation-thread .cn-quick-filter-bar .cn-quick-filter-bar__tab {
+	--nldesign-component-button-border-radius: 18px;
+	height: 36px;
+	min-height: 36px;
+	padding: 0 12px;
+	border-radius: 18px;
+}
+
 .cn-look-board .cn-saved-views__chips .cn-saved-views__chip:hover,
 .cn-look-board .cn-quick-filter-bar .cn-quick-filter-bar__tab:hover {
 	background: var(--color-background-hover);
@@ -564,6 +574,22 @@
 	border-radius: 8px;
 }
 
+/* The band's text sits at the font's normal line height, and its lead keeps
+   6px before the buttons (DqZaken "Met de geselecteerde zaken"). */
+.cn-look-board .cn-actions-bar__band:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-lead:not(.cn-look-nextcloud *) {
+	margin-inline-end: 6px;
+}
+
+/* The boards draw the band as its lead and its buttons only: the hint line
+   under them is left out (DqZaken). */
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint:not(.cn-look-nextcloud *) {
+	display: none;
+}
+
 .cn-look-board .cn-actions-bar__band .cn-actions-bar__band-hint {
 	flex: 0 0 100%;
 	font-size: 13px;
@@ -583,6 +609,14 @@
 	overflow: hidden;
 }
 
+/* In an admin settings section the section is the card: its table draws no
+   second edge inside it, and the header band runs to the section's inset
+   (DqInstellingen "Koppelingen", DqVthInstellingen "Legesregels"). */
+.cn-look-board .settings-section .cn-table-container.cn-table-container--board:not(.cn-look-nextcloud *) {
+	border: 0;
+	border-radius: 0;
+}
+
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
 	/* The body is a row: the card takes the width left beside a sidebar (the
 	   board's table card spans the content), and keeps the height of its rows. */
@@ -593,6 +627,36 @@
 	background: var(--color-main-background);
 	box-shadow: none;
 	overflow: hidden;
+}
+
+/* The list and map views are one card as the table is, with the count line
+   and the pager inside it under the hairline (DqTeamwachtrij, DqZakenKaart).
+   The list keeps the height of its rows rather than scrolling inside the
+   column; the map keeps filling it, its own card unframed inside. */
+.cn-look-board .cn-index-page__main.cn-index-page__main--list,
+.cn-look-board .cn-index-page__main.cn-index-page__main--map {
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.cn-look-board .cn-index-page__main.cn-index-page__main--list {
+	flex: 1 1 auto;
+	align-self: flex-start;
+}
+
+.cn-look-board .cn-index-page__main--map > .cn-index-page__map-card {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+/* The numbered list scrolls inside the card's height rather than running
+   past its bottom, over the footer. */
+.cn-look-board .cn-index-page__main--map > .cn-index-page__map-card > .cn-index-page__map-side {
+	max-height: 100%;
 }
 
 .cn-look-board .cn-index-page__main--table > .cn-table-container.cn-table-container--board {
@@ -706,6 +770,15 @@
 	white-space: nowrap;
 }
 
+/* A column that opts into wrapping (`cellClass: "cn-cell--wrap"`) wraps over
+   lines, as DqTaken draws its task titles and subjects.
+   @spec openspec/changes/board-index-wrap-cell/specs/data-table/spec.md#requirement-a-board-index-column-can-wrap-its-value */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td.cn-cell--wrap > .cn-cell-renderer {
+	overflow: visible;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 /* A narrow header cuts its label, not its filter funnel. */
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
 	max-width: calc(100% - 26px);
@@ -751,8 +824,13 @@
 	padding: 0;
 }
 
-/* The title column: a 15px weight 600 link, the secondary line under it. */
-.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title {
+/* The title column: a 15px weight 600 link, the secondary line under it. A
+   framed widget table in a card or a settings section shows its first column
+   as plain text (DqInstellingen, DqTermijnen, DqDoorlooptijd); a borderless
+   one, the dashboard's compact case list, keeps the link (DqDashboard). The
+   `:where()` keeps the rule's weight.
+   @spec openspec/changes/board-widget-table-plain-title/specs/board-widget-table-plain-title/spec.md */
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title:not(.cn-widget-object-table :where(.cn-table-container:not(.cn-table-container--borderless)) *) {
 	color: var(--color-main-text);
 	font-size: 15px;
 	font-weight: 600;
@@ -863,18 +941,23 @@
 	text-align: end;
 }
 
-.cn-look-board .cn-row-actions--board {
+.cn-look-board .cn-row-actions--board,
+.cn-look-board .cn-files-browser__row-menu {
 	--default-clickable-area: 34px;
 }
 
 /* The row menu: a 34px square, three dots, a grey border on the main
-   background (DqZaken, PqTickets). A theme that styles every secondary button
+   background (DqZaken, PqTickets, and a file list's rows on DqDocumentenBeheer;
+   a review row with its own visible button keeps the bare menu). A theme that styles every secondary button
    with `!important` (the nldesign theme: a primary border, 8px 16px padding,
    `min-width: max-content`) would otherwise turn it into a 64px wide button
    with a blue border, so the board values are `!important` too. */
 .cn-look-board .cn-row-actions--board .button-vue,
 .cn-look-board .cn-row-actions--board .button-vue:hover,
-.cn-look-board .cn-row-actions--board .button-vue:focus {
+.cn-look-board .cn-row-actions--board .button-vue:focus,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus {
 	box-sizing: border-box !important;
 	width: 34px !important;
 	min-width: 34px !important;
@@ -886,15 +969,18 @@
 	color: var(--cn-board-text-soft) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue {
+.cn-look-board .cn-row-actions--board .button-vue,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue {
 	background: var(--color-main-background) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:hover {
+.cn-look-board .cn-row-actions--board .button-vue:hover,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:hover {
 	background: var(--color-background-hover) !important;
 }
 
-.cn-look-board .cn-row-actions--board .button-vue:focus-visible {
+.cn-look-board .cn-row-actions--board .button-vue:focus-visible,
+.cn-look-board .cn-files-browser__col-actions:not(:has(.cn-files-browser__row-button)) .cn-files-browser__row-menu .button-vue:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: 2px;
 }
@@ -950,11 +1036,11 @@
 	padding: 0 12px;
 }
 
-/* The inert Next of a single page: a faint outline, muted text. */
+/* The inert Next of a single page keeps the page links' look; only the
+   cursor says it does nothing (aria-disabled tells assistive tech). */
 .cn-look-board .cn-pagination--board .cn-pagination__board-link--disabled {
 	display: inline-flex;
 	align-items: center;
-	color: var(--color-text-maxcontrast);
 	cursor: default;
 }
 
@@ -976,7 +1062,7 @@
 /* Under the card grid the footer is a row of its own, not a card's edge: no
    hairline, 4px 0 (DqAanMijToegewezen, BqAgents, BqStore).
    @spec openspec/changes/board-pagination-under-card-grid/specs/board-pagination-under-card-grid/spec.md#requirement-the-page-footer-under-a-card-grid-is-a-plain-row */
-.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table) > .cn-pagination--board {
+.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table):not(.cn-index-page__main--list):not(.cn-index-page__main--map) > .cn-pagination--board {
 	margin-top: 8px;
 	padding: 4px 0;
 	border-top: 0;
@@ -1199,6 +1285,21 @@
 	font-size: 14px;
 }
 
+.cn-look-board .cn-object-card--board .cn-object-card__record-note {
+	margin: 0;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
+	color: var(--cn-status-purple-text);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-note--teal {
+	color: var(--cn-status-teal-text);
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot {
 	display: flex;
 	align-items: center;
@@ -1207,6 +1308,13 @@
 	margin-top: auto;
 	padding-top: 10px;
 	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	font-size: 14px;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-date {
@@ -1509,6 +1617,34 @@
 	display: none;
 }
 
+/* The panel's fields are 40px tall (DqZakenSorteren "Sorteren op", the
+   search field); NcInputField, also NcSelect's search box, draws 30px. The
+   wrapper holds the input and its 2px focus ring, as on a board form. A
+   multiple select's search box sits beside its chips and keeps its height.
+   @spec openspec/changes/board-field-heights/specs/board-field-heights/spec.md#requirement-side-panel-fields-and-page-filters-are-as-tall-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel {
+	--cn-field-height: 40px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__main-wrapper:not(.vs--multiple *) {
+	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
+}
+
+.cn-look-board .cn-index-sidebar-panel .input-field__input:not(.vs--multiple *) {
+	height: var(--cn-field-height);
+	min-height: var(--cn-field-height);
+}
+
+/* The title sits 20px in from the panel's edge and 20px from its top
+   (DqZakenSorteren, DqFilterBeheren). With the icon hidden NcAppSidebar pads
+   it 0 at the start and 8px on top, which put it against the panel's edge.
+   The doubled classes outrank NcAppSidebar's compact-with-figure chain.
+   @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc {
+	padding-block-start: 15px;
+	padding-inline-start: 20px;
+}
+
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
 	justify-content: flex-start;
 	gap: 4px;
@@ -1568,6 +1704,14 @@
 	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
 }
 
+/* A row the manifest marks overdue (`config.rowClass` with `class:
+   "cn-row--overdue"`) carries a 4px red edge on its leading side, as DqTaken
+   draws the tasks past or at their deadline.
+   @spec openspec/changes/board-overdue-row-edge/specs/data-table/spec.md#requirement-a-board-table-row-marked-overdue-has-a-red-leading-edge */
+.cn-look-board .cn-data-table tr.cn-row--overdue > td:first-child:not(.cn-look-nextcloud *) {
+	box-shadow: inset 4px 0 0 var(--color-error);
+}
+
 /* ---- A kanban column's show-more button ---------------------------------- */
 /* The board draws "Toon 12 meer" in the soft ink, its dashed edge in the 3:1
    control colour, 6px in at the sides (DqWerkbord); the view draws the main
@@ -1577,4 +1721,163 @@
 	padding: 0 6px;
 	border-color: var(--cn-board-control-border);
 	color: var(--cn-board-text-soft);
+}
+
+/* Board DqZakenSorteren: "Richting" over two stretched segments, an arrow
+   before each label, 3px track padding and 34px segments. */
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-label {
+	margin: 12px 0 6px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 20px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments {
+	padding: 3px;
+	gap: 2px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__sort-direction-segments .cn-segmented-control__option {
+	min-height: 34px;
+	gap: 6px;
+}
+
+/* ---- The map list row's date (DqZakenKaart) ---------------------------- */
+/* A 14px clock 4px before "1 nov", 13px semibold in the soft text colour.
+   @spec openspec/changes/board-map-list-due-clock/specs/board-map-list-due-clock/spec.md#requirement-a-board-map-list-rows-date-carries-a-clock */
+.cn-look-board .cn-index-page__map-due:not(.cn-look-nextcloud *) {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+/* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
+/* The board draws "3 zaken zonder adres" as a 15px title at its normal line
+   height with "Toon ze in de tabel" under it as a link flush with the title,
+   14px weight 600. The link stays NcButton's tertiary button, so the board
+   look takes away its box: no padding, border or minimum height.
+   @spec openspec/changes/board-map-missing-card/specs/board-map-missing-card/spec.md#requirement-the-board-map-views-missing-address-card-is-drawn-as-the-board-draws-it */
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > strong {
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue {
+	--button-padding: 0;
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	border-width: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__wrapper,
+.cn-look-board .cn-index-page__map-missing:not(.cn-look-nextcloud *) > .button-vue .button-vue__text {
+	margin: 0;
+	padding: 0;
+}
+
+/* ---- The saved-views panel -------------------------------------------- */
+/* As DqFilterBeheren and DqFilterInMenu draw it: "Save view" the filled 40px
+   primary across the panel; a row padded 2px 4px 2px 10px with 8px between
+   its parts and radius 8, its name 6px from top and bottom at 14px/600; the
+   row's manage menu a 34px round button.
+   @spec openspec/changes/board-saved-views-panel-rows/specs/board-saved-views-panel-rows/spec.md */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__head .button-vue {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row {
+	gap: 8px;
+	padding: 2px 4px 2px 10px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name {
+	min-height: 0;
+	padding: 6px 0;
+	gap: 2px;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* A view's count: a grey pill at the end of its row (DqFilterBeheren). */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__count {
+	flex: none;
+	min-width: 26px;
+	padding: 2px 8px;
+	border-radius: 11px;
+	background: var(--color-border);
+	color: var(--cn-board-text-soft);
+	font-size: 12px;
+	font-weight: 600;
+	text-align: center;
+	box-sizing: border-box;
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {
+	--button-size: 34px;
+	border-radius: 50%;
+}
+
+/* ---- A saved view row's menu ------------------------------------------- */
+/* The menu trigger on a saved view row ("Beheer Termijn deze week") is a
+   round 34px button (DqFilterBeheren, DqFilterInMenu); NcActions drew the
+   8px element radius.
+   @spec openspec/changes/board-saved-view-menu-round/specs/board-saved-view-menu-round/spec.md#requirement-a-saved-view-rows-menu-trigger-is-round */
+.cn-look-board .cn-saved-views-panel__row .action-item__menutoggle:not(.cn-look-nextcloud *) {
+	border-radius: 17px;
+}
+
+/* The board view's selects take the board control border (DqWerkbord). The
+   theme forces a select's border colour from its form token, so the token
+   gets the colour too. */
+.cn-look-board .cn-index-page__board-select:not(.cn-look-nextcloud *) {
+	--nldesign-component-form-select-border-color: var(--cn-board-control-border);
+	border-color: var(--cn-board-control-border);
+}
+
+/* ---- Page tabs (CnIndexPage `pageTabs`, DqContracten) ------------------ */
+/* The sibling-page tabs are links; the board draws them as folder tabs in
+   the main ink at 14px, the open one at 700 on a white bottom edge, with no
+   line under the strip. The theme paints every link, so the ink also goes
+   to its link tokens and the underline needs !important.
+   @spec openspec/changes/board-index-page-tabs/specs/board-index-page-tabs/spec.md#requirement-board-index-page-tabs-are-folder-tabs-in-the-main-ink */
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	color: var(--color-main-text);
+	font-size: 14px;
+	line-height: normal;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-index-page__page-tabs:not(.cn-look-nextcloud *) .cn-index-page__page-tab--active {
+	border-bottom: 1px solid var(--color-main-background);
+	font-weight: 700;
+}
+
+/* The applied view's row, and the row whose menu is open, on the primary
+   tint with the name in the deep primary ink (DqFilterBeheren "Wacht op
+   inwoner" with its menu open).
+   @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-the-row-whose-menu-is-open-is-marked */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) {
+	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
+	color: var(--color-primary-element-light-text);
 }

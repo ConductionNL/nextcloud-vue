@@ -30,13 +30,15 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`, `fit`). |
+| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`, `fit`, `children`). |
+| `presetRows` | `Array` | `null` | Rows handed in instead of fetched. The list reads nothing itself and emits `rows-stale` where it would read again. A `children` list feeds its nested lists this way. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `row-click` | `(object, event)` | The clicked object row and the native click event. With `rowRoute`, a ctrl/cmd/shift click opens the row in a new tab. A middle click emits `row-aux-click` instead. |
+| `rows-stale` | none | With `presetRows`: the rows are out of date after a write or a refused reorder; the owner hands in new ones. |
 | `row-aux-click` | `(object, event)` | The middle-clicked object row and the native auxclick event. With `rowRoute`, the row opens in a new tab. |
 | `view-all` | `{ total: number }` | The "View all (N)" footer was clicked. The footer is a real link to `viewAllRoute`, so it can be opened in a new tab. |
 | `files-dropped` | `File[]` | Files were dropped on a widget declaring `dropZone`. |
@@ -161,6 +163,40 @@ A declared `object-op` patch row action writes only its `values` too, through th
 
 `reorder: { "field": "order" }` lists the rows in the order a field of their own records holds, as the statuses of a case type. The reader drags a row to another place, or uses its Move up and Move down actions. The rows are renumbered from 1 (from the page's first place on a later page), and only that field is written, as a PATCH, and only on the rows whose number changed, so every other key of a row keeps its value. The new place is read out ("Intake moved to place 2 of 6"). When the server refuses (a case type must keep a final status), its message is read out and the list is read again. A new row starts last (`order` = list length + 1). A grouped list does not reorder.
 
+### Child rows: `children`
+
+`children` shows each row's child records under it, as the lessons of each module of a course. It takes the same keys as the list itself (`schema`, `register`, `columns`, `reorder`, `rowActions`, `editable`, `deletable`, `addLabel`, `extend`, `sort`, `limit`), and its `filter` names the link to the row with an `@row.<field>` token:
+
+```json
+{
+  "register": "learniq",
+  "schema": "course",
+  "filter": { "parentCourseId": "@objectId" },
+  "reorder": { "field": "order" },
+  "children": {
+    "schema": "lesson",
+    "filter": { "courseId": "@row.id" },
+    "columns": [{ "key": "name", "label": "Lesson" }],
+    "reorder": { "field": "order" },
+    "addLabel": "Add lesson"
+  }
+}
+```
+
+The children of every row come from one query, `courseId[]=<first row>&courseId[]=<second row>…` (read page by page, `limit` rows a page, 500 by default), so a list of twenty modules makes two requests, not twenty-one. Each row's children render as a nested list in a full-width row under it (CnDataTable's `#row-detail` slot), and that nested list does what a list does: reorder within its row, its own row actions, Add (the new child is on its row, with the link locked, and goes last), edit and delete. After a write in a nested list the parent reads the children again. `children.register` defaults to the list's own register. A grouped list shows no children. Give the child `columns` a `label` each: a column without one makes every nested list read the schema for its heading.
+
+### A row action on its row: `@row.<field>`
+
+A row action's `target` may name the row it is on with `@row.<field>` (`@row.id` reads `@self.id` when the row has no top-level `id`). The value is URI-encoded into the target before the action is dispatched:
+
+```json
+{ "type": "navigate", "label": "Compose", "target": "/courses/@objectId/lessons/@row.id/compose" }
+```
+
+### A list value in a filter
+
+A filter value that is a list matches any of its values: `{ "learnerId": ["a", "b"] }` is sent as `learnerId[]=a&learnerId[]=b`, which OpenRegister reads as `IN`. An empty list is left out.
+
 ### Create affordance
 
 The widget renders a **"+ Add"** footer button (and the detail-page card's
@@ -226,11 +262,35 @@ its placeholders. Nothing is drawn over an empty list.
 
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 
+`content.tableBleed: true` runs the table edge to edge in its card. In the board look the table goes under the detail card's 22px side padding and its outer cells take that padding, so the column text lines up with the card title (DqZaakContact "Contactmomenten op deze zaak"). Without it the table stays inside the card's padding (DqTenant "Mandaten"). `content.headerSubtitle` is the muted line under the card title with the list's counts: `{total}` (the list's total) and `{count:<field>=<value>}` (the loaded rows whose field reads that value), through the host translate (DqZaakContact "4 vastgelegd").
+
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
+
+## Sorting and filtering from the column heads
+
+`content.sortable` (`true`, or the column keys) makes the column heads sort.
+`content.filterable: true` gives them the index table's filter button. A
+header sort or filter goes out with the list's own fetch, using the same
+parameters as the index page (`title[like]=…`, `_order[field]`), and the list
+starts again from page one. Without these keys the heads stay plain labels
+(DqZaakContact "Datum", "Kanaal", "Richting", "Samenvatting").
 
 ## Write feedback
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
+
+## Rows that point at more than one schema
+
+A relationship points at a contact or at an organisation. Three keys handle a list whose rows do that:
+
+| Key | Meaning |
+|-----|---------|
+| `rowRouteField` + `rowRouteMap` | The row opens the page its field names: `{ "toType": ... }` with `{ "client": "ClientDetail", "contact": "ContactDetail" }`. Falls back to `rowRoute`. |
+| `rowRouteIdField` | The row field whose value is the id the page opens (`toContact`), instead of the row's own id. |
+| `groupOrder` | With `groupBy`: the group keys listed first, in this order (`["Organisatie", "Professioneel", "Familie"]`); other groups follow as the rows came. |
+| `createEndpoint` | `{ url, bodyKey?, extra? }`: a new row is posted to this app endpoint instead of OpenRegister. With `bodyKey` the form values (plus the filter values) go under that key, beside `extra`: `{ "objectType": "contact", "object": { ... } }`. |
+
+A column with `widget: "fkResolve"` takes `widgetProps.schemaFrom` (`{ field, map }`) to resolve the reference in the schema the row names.
 
 ## Row selection for a following card (`rowSelection`)
 

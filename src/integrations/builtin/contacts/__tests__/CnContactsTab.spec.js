@@ -43,6 +43,39 @@ describe('CnContactsTab', () => {
 		wrapper.unmount()
 	})
 
+	it('in the board look offers Link contact first and New contact second, both outlined, as DqZaakBetrokkenen draws them', async () => {
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+			global: { provide: { cnLook: 'board' } },
+		})
+		await flushPromises()
+		const buttons = wrapper.findAll('.cn-contacts-tab__header .stub.NcButton')
+		expect(buttons.map((button) => button.text())).toEqual(['Link contact', 'New contact'])
+		expect(buttons.map((button) => button.attributes('variant'))).toEqual(['secondary', 'secondary'])
+		wrapper.unmount()
+	})
+
+	it('in the Nextcloud look keeps Add new contact first and Link contact as the primary action', async () => {
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+		const buttons = wrapper.findAll('.cn-contacts-tab__header .stub.NcButton')
+		expect(buttons.map((button) => button.text())).toEqual(['Add new contact', 'Link contact'])
+		expect(buttons.map((button) => button.attributes('variant'))).toEqual(['secondary', 'primary'])
+		wrapper.unmount()
+	})
+
+	it('takes a label the host passes in either look', async () => {
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1', addNewLabel: 'Nieuwe persoon' },
+			global: { provide: { cnLook: 'board' } },
+		})
+		await flushPromises()
+		expect(wrapper.findAll('.cn-contacts-tab__header .stub.NcButton').map((button) => button.text())).toContain('Nieuwe persoon')
+		wrapper.unmount()
+	})
+
 	it('shows the picker dialog when the link button toggles showLinkDialog', async () => {
 		const wrapper = mount(CnContactsTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },

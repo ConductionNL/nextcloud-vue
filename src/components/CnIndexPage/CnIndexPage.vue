@@ -183,8 +183,10 @@
 			:activeFilterChips="activeFilterChips"
 			:showBuildiqButton="!buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
-			:bulkHint="bulkHint ? cnTranslate(bulkHint) : bulkHint"
-			:bulkBandAlways="bulkBandAlways"
+			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
+			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
+			:bulkLead="viewBulkBandLead"
+			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
@@ -194,8 +196,8 @@
 			:inlineActionCount="inlineActionCount"
 			:showMassImport="showMassImport"
 			:showMassExport="showMassExport"
-			:showMassCopy="showMassCopy"
-			:showMassDelete="showMassDelete"
+			:showMassCopy="showMassCopy && !viewBulkBand"
+			:showMassDelete="showMassDelete && !viewBulkBand"
 			:viewMode="currentViewMode"
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
@@ -213,7 +215,7 @@
 			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
 			:searchValue="effectiveSearchValue"
-			:searchPlaceholder="presented('searchPlaceholder') ? cnTranslate(presented('searchPlaceholder')) : presented('searchPlaceholder')"
+			:searchPlaceholder="shownSearchPlaceholder"
 			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
@@ -221,11 +223,11 @@
 			:addTo="addLinkTo"
 			:showAdd="effectiveShowAdd && !headerButtonTakes('add')"
 			:showCount="showCount && !isBoardLook"
-			:showActionsMenu="!headerButtonsShown"
+			:showActionsMenu="actionsMenuShown"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
-			:bulkActions="mergedBulkActions"
+			:bulkActions="viewBulkActions"
 			:documentationUrl="documentationUrl"
 			:documentationLabel="documentationLabel || undefined"
 			@add="onAddClick"
@@ -361,6 +363,7 @@
 					:currentUserId="currentSavedViewsUserId"
 					:counts="savedViewCounts"
 					:selectedViewId="appliedSavedViewId"
+					:save="toolbarSavesView"
 					:chips="savedViewChips"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true" />
@@ -580,6 +583,8 @@
 			v-if="viewPendingEdit"
 			ref="editViewDialog"
 			:view="viewPendingEdit"
+			:savedSummary="criteriaSummaryOf(savedViewState(viewPendingEdit))"
+			:currentSummary="list ? criteriaSummaryOf(currentViewState()) : ''"
 			@confirm="onEditViewConfirm"
 			@close="viewPendingEdit = null" />
 
@@ -591,14 +596,28 @@
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
 
+		<!-- Confirmation of an api-call header action that asks for one. -->
+		<CnConfirmDialog
+			v-if="headerApiCallPending"
+			ref="headerApiCallConfirmDialog"
+			:dialogTitle="cnTranslate(headerApiCallPending.confirmTitle || headerApiCallPending.label || '')"
+			:message="headerApiCallPending.confirmMessage ? cnTranslate(headerApiCallPending.confirmMessage) : t('nextcloud-vue', 'Are you sure you want to continue?')"
+			:confirmLabel="cnTranslate(headerApiCallPending.label || '')"
+			data-testid="cn-index-header-api-call-confirm"
+			@confirm="onHeaderApiCallConfirm"
+			@close="headerApiCallPending = null" />
+
 		<!-- Delete-saved-view confirm (saved-views-ui) -->
 		<CnConfirmDialog
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
 			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
+			:eyebrow="deleteViewEyebrow"
+			:subtitle="deleteViewSubtitle"
 			:message="deleteViewMessage"
 			:confirmLabel="t('nextcloud-vue', 'Delete view')"
+			confirmIcon="DeleteOutline"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -742,6 +761,7 @@
 				class="cn-index-page__main"
 				:class="{
 					'cn-index-page__main--map': currentViewMode === 'map',
+					'cn-index-page__main--list': currentViewMode === 'list',
 					'cn-index-page__main--table': currentViewMode === 'table',
 					'cn-index-page__main--split': splitLayout === 'split',
 				}"
@@ -859,6 +879,7 @@
 					:selectable="selectable"
 					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
+					:rowClickRoute="rowLinkRoute"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1000,7 +1021,7 @@
 												<CnIcon :name="pill.icon" :size="14" />
 											</template>
 										</CnStatusBadge>
-										<span v-if="item.due" class="cn-index-page__map-due">{{ item.due }}</span>
+										<span v-if="item.due" class="cn-index-page__map-due"><ClockOutline v-if="isBoardLook" :size="14" aria-hidden="true" />{{ item.due }}</span>
 									</span>
 								</div>
 							</li>
@@ -1266,7 +1287,7 @@
 				<!-- A notice under the list (`notice`): DqPrivacy's "Een
 				     AVG-verzoek is een zaak met ..." band. -->
 				<NcNoteCard
-					v-if="notice && notice.text"
+					v-if="notice && notice.text && !noticeOnPage"
 					class="cn-index-page__notice"
 					:type="noticeType"
 					data-testid="cn-index-page-notice">
@@ -1319,6 +1340,16 @@
 			</div>
 		</div>
 
+		<!-- The notice under the list card, on the page ground
+		     (`notice.placement: 'page'`, DqContracten). -->
+		<NcNoteCard
+			v-if="notice && notice.text && noticeOnPage"
+			class="cn-index-page__notice cn-index-page__notice--page"
+			:type="noticeType"
+			data-testid="cn-index-page-notice">
+			{{ cnTranslate(notice.text) }}
+		</NcNoteCard>
+
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
 		     AND sidebar.show !== false.
 
@@ -1336,7 +1367,8 @@
 			v-if="shouldRenderInlineSidebar"
 			:open="sidebarOpen"
 			:schema="effectiveSchema"
-			:title="title"
+			:title="shownTitle"
+			:subtitle="sidebarSubtitle"
 			:icon="resolvedIcon"
 			:searchValue="effectiveSearchValue"
 			:visibleColumns="effectiveVisibleColumns"
@@ -1369,10 +1401,11 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
@@ -1400,12 +1433,13 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { followItemActionLink, headerActionAsLink, resolveItemActionLink, routeHref } from '../../utils/actionLink.js'
-import { buildOnSuccessRoute, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, dispatchAction as dispatchSharedAction, isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import {
 	buildReferenceStages,
 	buildValueStages,
 	columnFieldsOf,
 	columnKeyOfRow,
+	declaredStatesOf,
 	fetchReferenceObjects,
 	flattenItemRefs,
 	fullTargetOf,
@@ -1419,7 +1453,10 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1429,11 +1466,13 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { loadMyTeam, peekMyTeam } from '../../utils/myTeam.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
-import { resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { getDotted } from '../../utils/propertySourceFill.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
@@ -1441,13 +1480,15 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewAccess, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
-import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
+import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
+import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1503,6 +1544,16 @@ const CALENDAR_PAGE_SIZE = 200
  * @type {string}
  */
 const RANGE_SEPARATOR = '..'
+
+/**
+ * Whether a filter map names the `@myTeam` token anywhere.
+ *
+ * @param {object} filters A view's filters.
+ * @return {boolean}
+ */
+function usesMyTeam(filters) {
+	return JSON.stringify(filters || {}).includes(`"${MY_TEAM_TOKEN}"`)
+}
 
 /** Key of the synthetic follow column (`showFollowColumn`). */
 const FOLLOW_COLUMN_KEY = '__follow'
@@ -1573,6 +1624,27 @@ function declaredFilterFields(props) {
 function namedFiltersFromRoute(instance, props) {
 	const route = instance && instance.proxy && instance.proxy.$route
 	return namedFiltersFromQuery((route && route.query) || {}, props)
+}
+
+/**
+ * The named-source filters the page opens with: the ones the address carries,
+ * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
+ * `@myGroups`), unless the address names a saved view.
+ *
+ * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values | { from, to } }` map.
+ * @spec openspec/changes/named-source-default-filters/specs/index-page/spec.md#requirement-a-named-source-page-can-open-with-removable-default-filters
+ */
+function namedFiltersWithDefaults(instance, props) {
+	const fromRoute = namedFiltersFromRoute(instance, props)
+	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
+	const defaults = props.defaultFilters
+	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+		return fromRoute
+	}
+	return resolveFilterTokens(defaults)
 }
 
 /**
@@ -1734,6 +1806,19 @@ function namedFilterToQuery(values) {
  * @slot row-actions — Custom row actions. Scope: `{ row }`
  * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
+
+/**
+ * Whether a page's named source orders its rows itself: on the page
+ * (`sortsRows`) or on the server (`sortParam`).
+ *
+ * @param {object} vm The index page.
+ * @return {boolean}
+ * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+ */
+function namedSourceSorts(vm) {
+	return Boolean(vm.isNamedSource && vm.namedSource
+		&& (vm.namedSource.sortsRows === true || typeof vm.namedSource.sortParam === 'function'))
+}
 export default {
 	name: 'CnIndexPage',
 
@@ -1754,6 +1839,7 @@ export default {
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
+		ClockOutline,
 		Close,
 		Cog,
 		DatabaseSearch,
@@ -1819,6 +1905,9 @@ export default {
 	 */
 	provide() {
 		return {
+			// Widgets beside the list sit directly under the page's h1 in the
+			// board look; the Nextcloud look keeps its h3 widget titles.
+			[HEADING_LEVEL]: () => (this.isBoardLook ? 2 : 3),
 			cnIndexList: Object.defineProperties({}, {
 				appliedView: { enumerable: true, get: () => this.appliedSavedView },
 				total: {
@@ -1986,8 +2075,12 @@ export default {
 		 * the list, such as who decides what. The text goes through the host
 		 * translate.
 		 *
-		 * @type {{text: string, variant?: string}|null}
+		 * `placement: 'page'` draws it under the list card, on the page
+		 * ground, instead of inside the list under its rows.
+		 *
+		 * @type {{text: string, variant?: string, placement?: string}|null}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-show-a-notice-under-its-list
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
 		 */
 		notice: {
 			type: Object,
@@ -2089,6 +2182,20 @@ export default {
 		},
 
 		/**
+		 * Board look: a count line per view (manifest `config.countTextByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a template as
+		 * `countText`: the board view says "bordweergave per status" where the
+		 * table says "gesorteerd op termijn" (DqWerkbord, DqZaken). A view it
+		 * does not name keeps `countText`; a scope's own `countText` comes first.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 */
+		countTextByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -2160,6 +2267,32 @@ export default {
 		},
 
 		/**
+		 * Board look: another shape of the bulk band per view mode, keyed by
+		 * the view (`board`, `cards`, ...). `{ lead?: { one, other }, actions?:
+		 * Array<id|{ id, label? }>, cancel?: boolean, hint?: boolean }`: the
+		 * lead counts the selection (`{count}`, through the app's translate),
+		 * `actions` picks and relabels bulk actions, `cancel` adds a Cancel
+		 * button that clears the selection, `hint: true` keeps `bulkHint`. In
+		 * such a view the band shows only with a selection and without the
+		 * built-in copy and delete (DqWerkbord: "1 zaak geselecteerd · Status
+		 * wijzigen · Annuleren"). Manifest key `config.bulkBandViews`.
+		 */
+		bulkBandViews: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Board look: the plural the bulk band names ("With the selected
+		 * cases"), through the app's translate and lower-cased. Wins over the
+		 * schema's plural. Manifest key `config.bulkNoun`.
+		 */
+		bulkNoun: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Buttons beside the page title, as the board's "Export" and "New
 		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
 		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
@@ -2188,6 +2321,20 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the toolbar draws the Actions menu (manifest
+		 * `config.showActionsMenu`): `true` keeps it beside header buttons
+		 * (DqAfdelingen: Downloaden beside the title, Acties above the
+		 * search), `false` leaves it out. Null derives it: drawn unless the
+		 * header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 */
+		showActionsMenu: {
+			type: Boolean,
+			default: null,
 		},
 
 		/**
@@ -2361,6 +2508,29 @@ export default {
 		},
 
 		/**
+		 * Whether the toolbar draws Save view (manifest `config.savedViewSave`).
+		 * `false` leaves it out for a page whose board draws none (DqTaken,
+		 * DqOrganisaties); the views stay in the side panel.
+		 */
+		savedViewSave: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether an applied saved view names the page and its side panel
+		 * (manifest `config.savedViewTitle`): a view opened from the menu or
+		 * the panel heads the list with its own name (DqFilterInMenu "Termijn
+		 * deze week"). Off, the page keeps its title.
+		 *
+		 * @spec openspec/changes/saved-view-names-the-page/specs/saved-view-names-the-page/spec.md#requirement-an-applied-saved-view-can-name-the-page
+		 */
+		savedViewTitle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Where the quick-filter chips sit (manifest `config.quickFilterPlacement`).
 		 * `''` (the default) as before. `'toolbar'` keeps them on one row with
 		 * the Filter button and the view switch, in whatever width that row has
@@ -2439,6 +2609,24 @@ export default {
 		quickFilterMaxVisible: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * How the Active line names a filter: per filter key an optional
+		 * `label` for the field and `values` naming each value, both through
+		 * the app's translate. Wins over the schema and sidebar names.
+		 * Sourced from `pages[].config.filterLabels`.
+		 *
+		 * A range filter's entry may set `relative: true`, naming a range
+		 * from today in words ("within 7 days"). An entry with
+		 * `hidden: true` is a working-list rule every view carries: the line
+		 * that says what a saved view shows leaves it out.
+		 *
+		 * @example { isFinalStatus: { label: 'Status', values: { false: 'Ongoing', true: 'Finished' } } }
+		 */
+		filterLabels: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Manual column definitions (used instead of schema when provided) */
@@ -3439,6 +3627,20 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A search placeholder per view (manifest `config.searchPlaceholderByView`),
+		 * `{ table?, cards?, board?, map? }`, through the app's translate: the
+		 * board view asks "Zoek op zaak of verzoeker", the map "Filter op zaak of
+		 * aanvrager" (DqWerkbord, DqZakenKaart). A view it does not name keeps
+		 * `searchPlaceholder`.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 */
+		searchPlaceholderByView: {
+			type: Object,
+			default: null,
+		},
+
 		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
 		cardsLabel: {
 			type: String,
@@ -3649,6 +3851,21 @@ export default {
 		 * @type {object|null}
 		 */
 		fixedFilters: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Filters the list opens with (manifest `config.defaultFilters`), as
+		 * `{ field: value | [values] }`: applied when the address names no
+		 * filter and no saved view, shown on the Active line and removed with
+		 * their chip or "Clear all" like any other filter. An address that
+		 * names a filter wins (DqContracten "Status: actief en verlopend").
+		 *
+		 * @spec openspec/changes/index-default-filters/specs/index-page/spec.md#requirement-an-index-page-can-open-with-removable-default-filters
+		 * @type {object|null}
+		 */
+		defaultFilters: {
 			type: Object,
 			default: null,
 		},
@@ -4200,9 +4417,13 @@ export default {
 		// `limit` (20 by default), moved by the pager.
 		const namedPageSize = Number(props.sourceConfig && props.sourceConfig.limit) > 0 ? Number(props.sourceConfig.limit) : 20
 		const namedPaging = ref({ page: 1, limit: namedPageSize })
-		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
+		// The order a named source shows its rows in: sorted on the page
+		// (`sortsRows`) or asked of the server (`sortParam`), starting from
+		// the page's `sortKey` / `sortOrder`.
+		const namedSort = ref({ key: props.sortKey || '', order: props.sortOrder === 'desc' ? 'desc' : 'asc' })
 
 		const {
 			isNamedSource,
@@ -4210,7 +4431,8 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
+			namedReload,
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm, sort: namedSort })
 
 		return {
 			isBoard: isBoardLook,
@@ -4221,9 +4443,11 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedReload,
 			namedActiveFilters,
 			namedPaging,
 			namedSearchTerm,
+			namedSort,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -4368,6 +4592,8 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			/** An `api-call` header action waiting on its confirmation, or null. */
+			headerApiCallPending: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
 			/** The own view being renamed or re-filtered (CnSavedViewEditDialog), or null. */
@@ -4517,6 +4743,19 @@ export default {
 		},
 
 		/**
+		 * Where a table row links to, so the row is a real link (Tab, screen
+		 * reader, new tab): the `viewTo` target, when a row click opens it.
+		 *
+		 * @return {((row: object) => (object|null))|null} The row link target, or null.
+		 */
+		rowLinkRoute() {
+			if (!this.rowClickOpens || typeof this.viewTo !== 'function') {
+				return null
+			}
+			return (row) => this.viewTo(row) || null
+		},
+
+		/**
 		 * Merged page-level header actions: drops reserved ids and
 		 * resolves declarative `handler` keywords (`navigate` / `emit`
 		 * / `none` / registry name) to either a function or
@@ -4554,17 +4793,23 @@ export default {
 		},
 
 		/**
-		 * The header actions without reserved ids, each through
+		 * The header actions without reserved ids, and without an `adminOnly`
+		 * one for a viewer who is not an administrator, each through
 		 * `resolveHeaderHandler` (a manifest `href` entry becomes a link with
 		 * `_dispatchSuppress`, so the page neither runs nor emits it).
 		 *
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-a-header-action-can-be-offered-to-administrators-only
 		 * @return {Array<object>}
 		 */
 		mergedHeaderActions() {
 			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
 			const merged = []
 			for (const entry of this.headerActions || []) {
+				// Only what is drawn: the endpoint behind the action checks access itself.
+				if (entry && entry.adminOnly === true && !this.viewerIsAdmin()) {
+					continue
+				}
 				if (entry && reserved.has(entry.id)) {
 					// eslint-disable-next-line no-console
 					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
@@ -4698,14 +4943,17 @@ export default {
 		 * The endpoint source's facets as pickers: per declared facet its
 		 * label, the All choice, the counted values ("E-mail (11)") and the
 		 * value chosen now. A chosen value the narrowed answer no longer
-		 * counts stays offered, so the picker still shows it.
+		 * counts stays offered, so the picker still shows it. A facet that
+		 * declares `picker: false` draws no picker: its field is filtered in
+		 * the side panel instead (DqPostvak's channel).
 		 *
 		 * @return {Array<{field: string, label: string, allLabel: string, value: string, options: Array<{value: string, label: string}>}>}
 		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 * @spec openspec/changes/source-facet-picker-off/specs/source-facet-picker-off/spec.md#requirement-a-source-facet-can-leave-its-picker-out
 		 */
 		sourceFacetControls() {
 			const source = this.isNamedSource ? this.namedSource : null
-			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations : []
+			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations.filter((facet) => facet.picker !== false) : []
 			if (declared.length === 0) {
 				return []
 			}
@@ -4744,7 +4992,14 @@ export default {
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
-				return this.namedRows
+				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
+				const key = sortsRows && this.namedSort ? this.namedSort.key : ''
+				if (!key) {
+					return this.namedRows
+				}
+				const direction = this.namedSort.order === 'desc' ? -1 : 1
+				const text = (row) => String(row && row[key] !== undefined && row[key] !== null ? row[key] : '')
+				return [...(this.namedRows || [])].sort((a, b) => direction * text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: 'base' }))
 			}
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
@@ -5262,7 +5517,15 @@ export default {
 				return { states: this.boardStages.states }
 			}
 			const field = this.boardColumnField
-			return this.effectiveSchema?.properties?.[field] || null
+			const property = this.effectiveSchema?.properties?.[field] || null
+			const declared = declaredStatesOf(this.board, this.boardActiveColumnField, field)
+			if (declared !== null) {
+				return {
+					...(property || {}),
+					states: declared.map((state) => ({ ...state, label: this.cnTranslate(state.label) })),
+				}
+			}
+			return property
 		},
 
 		/**
@@ -5566,9 +5829,15 @@ export default {
 		 * pane (or with `folderSidebar.heading: true`), its name and, under
 		 * it, its parent folder and its count. The count reads
 		 * `folderSidebar.countText` (`{count}`, through the app's translate),
-		 * else "{count} members" on a groups pane.
+		 * else "{count} members" on a groups pane. `folderSidebar.headingParts`
+		 * (`[{ field, text, format? }]`) adds a part per field the selected
+		 * group's record carries (`parentsFrom`): `text` with `{value}`, through
+		 * the app's translate; `format: "user"` names a user id by its display
+		 * name ("team lead Lars de Koning", DqAfdelingen). An empty field adds
+		 * nothing.
 		 *
 		 * @return {{name: string, subtitle: string}|null} The heading, or null on All.
+		 * @spec openspec/changes/folder-heading-parts/specs/index-page/spec.md#requirement-a-group-heading-can-name-what-its-record-carries
 		 */
 		scopeHeading() {
 			const cfg = this.folderSidebar
@@ -5592,6 +5861,18 @@ export default {
 				} else if (cfg.source === 'groups') {
 					parts.push(n('nextcloud-vue', '{count} member', '{count} members', scope.count, { count: scope.count }))
 				}
+			}
+			const record = scope.record && typeof scope.record === 'object' ? scope.record : {}
+			for (const part of (Array.isArray(cfg.headingParts) ? cfg.headingParts : [])) {
+				const raw = part && part.field ? this.getByPath(record, part.field) : null
+				if (raw === null || raw === undefined || raw === '') {
+					continue
+				}
+				const value = part.format === 'user' ? userDisplayName(raw) : String(raw)
+				if (value === '') {
+					continue
+				}
+				parts.push(part.text ? this.cnTranslate(part.text).replace('{value}', value) : value)
 			}
 			return { name, subtitle: parts.join(' · ') }
 		},
@@ -5861,6 +6142,7 @@ export default {
 				counts: this.savedViewCounts,
 				selectedViewId: this.appliedSavedViewId,
 				menuIds: this.savedViewMenuIds,
+				summaries: Object.fromEntries(this.viewsForControl.map((view) => [viewIdOf(view), this.viewFilterSummary(view)])),
 			}
 		},
 
@@ -5895,7 +6177,9 @@ export default {
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
 		 */
 		defaultFilterViews() {
-			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string' ? { ...entry, name: this.cnTranslate(entry.name) } : entry))
+			const defaults = (Array.isArray(this.defaultSavedViews) ? this.defaultSavedViews : []).map((entry) => (entry && typeof entry.name === 'string'
+				? { ...entry, name: this.cnTranslate(entry.name), ...(typeof entry.description === 'string' && entry.description !== '' ? { description: this.cnTranslate(entry.description) } : {}) }
+				: entry))
 			return defaultFilterViews(defaults, this.savedViewsPage)
 		},
 
@@ -5973,14 +6257,15 @@ export default {
 		 */
 		/**
 		 * What the `quickFiltersFrom` tabs depend on, as one key: a change
-		 * asks again. Empty without the prop, or with `quickFilters` set.
+		 * asks again. Empty without the prop, or with `quickFilters` holding tabs.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/index-quick-filters-from/specs/index-page/spec.md#requirement-quick-filters-can-come-from-a-field-s-values
 		 */
 		quickFiltersFromKey() {
 			const from = this.quickFiltersFrom
-			if (this.quickFilters || !from || typeof from.field !== 'string' || from.field === '') {
+			const declared = Array.isArray(this.quickFilters) && this.quickFilters.length > 0
+			if (declared || !from || typeof from.field !== 'string' || from.field === '') {
 				return ''
 			}
 			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
@@ -6959,6 +7244,20 @@ export default {
 		},
 
 		/**
+		 * The search field's placeholder: the open view's own
+		 * (`searchPlaceholderByView`), else the page's or its preset's.
+		 *
+		 * @spec openspec/changes/search-placeholder-per-view/specs/index-page/spec.md#requirement-the-search-placeholder-can-differ-per-view
+		 * @return {string}
+		 */
+		shownSearchPlaceholder() {
+			const byView = this.searchPlaceholderByView
+			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : ''
+			const text = typeof own === 'string' && own !== '' ? own : this.presented('searchPlaceholder')
+			return text ? this.cnTranslate(text) : text
+		},
+
+		/**
 		 * The term a named source searched for, for `{term}` in the title and
 		 * the count line ("Zoeken: Lindelaan"), or ''.
 		 *
@@ -6969,11 +7268,16 @@ export default {
 		},
 
 		/**
-		 * The page title with `{term}` filled in.
+		 * The page title with `{term}` filled in, or the applied saved view's
+		 * name when `savedViewTitle` is on.
 		 *
 		 * @return {string}
 		 */
 		shownTitle() {
+			const view = this.savedViewTitle ? this.appliedSavedView : null
+			if (view && typeof view.name === 'string' && view.name !== '') {
+				return this.cnTranslate(view.name)
+			}
 			const title = this.presented('title')
 			// A title with the term is translated here, before the term goes in,
 			// so its catalogue entry is found ("Zoeken: {term}").
@@ -7017,6 +7321,10 @@ export default {
 		tableHeaderFilters() {
 			if (!this.headerFilters) {
 				return false
+			}
+			// A named source that narrows its own rows asks for the buttons.
+			if (this.isNamedSource && this.namedSource && this.namedSource.headerFilters === true) {
+				return true
 			}
 			if (this.effectiveSchema || this.isSelfFetchMode) {
 				return true
@@ -7137,6 +7445,28 @@ export default {
 		},
 
 		/**
+		 * The line above the delete-saved-view confirm's title: "Saved view"
+		 * in the board look, as on the view's edit and share dialogs.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-delete-view-confirm-header/specs/board-delete-view-confirm-header/spec.md#requirement-the-board-delete-view-confirm-names-the-saved-view
+		 */
+		deleteViewEyebrow() {
+			return this.isBoardLook ? t('nextcloud-vue', 'Saved view') : ''
+		},
+
+		/**
+		 * The line under the delete-saved-view confirm's title: the view's
+		 * name, in the board look.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-delete-view-confirm-header/specs/board-delete-view-confirm-header/spec.md#requirement-the-board-delete-view-confirm-names-the-saved-view
+		 */
+		deleteViewSubtitle() {
+			return this.isBoardLook && this.viewPendingDelete ? String(this.viewPendingDelete.name || '') : ''
+		},
+
+		/**
 		 * Confirmation message for the delete-saved-view dialog.
 		 *
 		 * @return {string}
@@ -7157,10 +7487,16 @@ export default {
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() {
+			if (namedSourceSorts(this)) {
+				return this.namedSort.key || null
+			}
 			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
 		},
 
 		effectiveSortOrder() {
+			if (namedSourceSorts(this)) {
+				return this.namedSort.order || 'asc'
+			}
 			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
 		},
 
@@ -7591,6 +7927,16 @@ export default {
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
 		 */
 		/**
+		 * Whether the notice sits under the list card rather than inside it.
+		 *
+		 * @spec openspec/changes/index-notice-below-card/specs/index-page/spec.md#requirement-an-index-page-notice-can-sit-under-the-list-card
+		 * @return {boolean}
+		 */
+		noticeOnPage() {
+			return Boolean(this.notice && this.notice.placement === 'page')
+		},
+
+		/**
 		 * The notice band's NcNoteCard type: its `variant`, else info.
 		 *
 		 * @return {string}
@@ -7665,14 +8011,19 @@ export default {
 		},
 
 		/**
-		 * The quick-filter tabs to render: the `quickFilters` prop when set,
-		 * else a named source's own tabs (`useNamedSource` resolved the same
-		 * precedence for the LOAD side, so strip and fetch cannot disagree).
+		 * The quick-filter tabs to render: the `quickFilters` prop when it
+		 * holds tabs, else the tabs `quickFiltersFrom` made (an empty
+		 * `quickFilters` gives way to them, so a saved view can swap a page's
+		 * lenses for its own, DqTeamwachtrij), else a named source's own tabs
+		 * (`useNamedSource` resolved the same precedence for the LOAD side, so
+		 * strip and fetch cannot disagree).
 		 *
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			const own = withPersonalLenses(this.presented('quickFilters') || this.generatedQuickFilters, this.personalLenses)
+			const declared = this.presented('quickFilters')
+			const tabs = Array.isArray(declared) && declared.length > 0 ? declared : (this.generatedQuickFilters || declared)
+			const own = withPersonalLenses(tabs, this.personalLenses)
 			if (own && own.length > 0) {
 				return own.map((tab) => this.withConfigLabels(tab))
 			}
@@ -7754,6 +8105,13 @@ export default {
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
 				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
+				// A button that runs an `adminOnly` header action is drawn for an
+				// administrator only, as the action is in the Actions menu.
+				.filter((button) => {
+					const target = button.action === 'export' ? button.run : button.action
+					const entry = (this.headerActions || []).find((action) => action && action.id === target)
+					return !(entry && entry.adminOnly === true && !this.viewerIsAdmin())
+				})
 				.map((button, index) => {
 					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
 					let icon = typeof button.icon === 'string' ? button.icon : ''
@@ -7900,29 +8258,46 @@ export default {
 
 		/**
 		 * The active filters as chips for the board toolbar's second row, one
-		 * per filter: "Team: Woo". A filter with no value is not active.
+		 * per filter: "Team: Woo". A filter with no value is not active. A
+		 * range, as one `{from, to}` value or as `key[gte]`/`key[lte]` keys, is
+		 * one chip; `keys` lists the filter keys it stands for. Several values
+		 * of one filter read as a list in the locale ("A en B").
 		 *
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
-		 * @return {Array<{key: string, label: string}>}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
 		 */
 		activeFilterChips() {
 			if (!this.isBoardLook) {
 				return []
 			}
-			const props = this.effectiveSchema?.properties || {}
-			const chips = [...this.quickFilterActiveChips]
-			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
-				const values = (Array.isArray(raw) ? raw : [raw])
-					.filter((value) => value !== null && value !== undefined && value !== '')
-					.filter((value) => !this.isFixedFilter(key, value))
-					.map((value) => this.activeFilterValueLabel(key, value))
-				if (values.length === 0) {
-					continue
-				}
-				const field = this.cnTranslate((props[key] && props[key].title) || key)
-				chips.push({ key, label: `${field}: ${values.join(', ')}` })
+			// An applied saved view names itself; its own filters are not chips
+			// (DqFilterBeheren draws "Wacht op inwoner" with no chip for it).
+			const view = this.appliedSavedView
+			const viewFilters = view && view.query && view.query.filters && typeof view.query.filters === 'object' ? view.query.filters : {}
+			const ownToView = (key, value) => Object.hasOwn(viewFilters, key)
+				&& (Array.isArray(viewFilters[key]) ? viewFilters[key].map(String) : [String(viewFilters[key])]).includes(String(value))
+			return [
+				...this.searchTermChips,
+				...this.quickFilterActiveChips,
+				...this.filterChipsOf(this.effectiveActiveFilters, (key, value) => this.isFixedFilter(key, value) || ownToView(key, value)),
+			]
+		},
+
+		/**
+		 * The Active line's chip for the search term, on a named source that
+		 * asks for one (`searchChip`, the search source): "Search term: Lindelaan".
+		 *
+		 * @spec openspec/changes/search-source-term-in-box/specs/index-page/spec.md#requirement-the-search-page-keeps-its-term-in-the-search-box
+		 * @return {Array<{key: string, label: string, searchTerm: true}>}
+		 */
+		searchTermChips() {
+			const term = String(this.namedSearchTerm || '').trim()
+			if (!this.namedSourceSearches || this.namedSource.searchChip !== true || term === '') {
+				return []
 			}
-			return chips
+			return [{ key: 'search-term', label: t('nextcloud-vue', 'Search term: {term}', { term }), searchTerm: true }]
 		},
 
 		/**
@@ -8007,15 +8382,75 @@ export default {
 		},
 
 		/**
+		 * The bulk band shape `bulkBandViews` gives the current view, or null.
+		 *
+		 * @return {?{lead?: {one?: string, other?: string}, actions?: Array<string|{id: string, label?: string}>, cancel?: boolean, hint?: boolean}}
+		 */
+		viewBulkBand() {
+			const views = this.bulkBandViews
+			const shape = views && typeof views === 'object' ? views[this.currentViewMode] : null
+			return shape && typeof shape === 'object' ? shape : null
+		},
+
+		/**
+		 * The bulk actions the band offers: the view's pick and labels, else all.
+		 *
+		 * @return {Array<object>}
+		 */
+		viewBulkActions() {
+			const shape = this.viewBulkBand
+			if (!shape || !Array.isArray(shape.actions)) {
+				return this.mergedBulkActions
+			}
+			return shape.actions
+				.map((pick) => {
+					const id = typeof pick === 'string' ? pick : (pick && pick.id)
+					const action = this.mergedBulkActions.find((entry) => entry && entry.id === id)
+					if (!action) {
+						return null
+					}
+					return pick && typeof pick === 'object' && typeof pick.label === 'string' && pick.label !== '' ? { ...action, label: pick.label } : action
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The view's lead line counting the selection ("1 zaak geselecteerd"),
+		 * or '' for the band's own lead.
+		 *
+		 * @return {string}
+		 */
+		viewBulkBandLead() {
+			const lead = this.viewBulkBand ? this.viewBulkBand.lead : null
+			if (!lead || typeof lead !== 'object') {
+				return ''
+			}
+			const count = this.internalSelectedIds.length
+			const template = count === 1 ? lead.one : (lead.other || lead.one)
+			return typeof template === 'string' && template !== '' ? this.cnTranslate(template).replace(/\{count\}/g, String(count)) : ''
+		},
+
+		/**
+		 * Whether the bulk band shows before a selection: `bulkBandAlways`, in
+		 * a view that selects rows (table, cards, list, board). The map and
+		 * the date views select nothing (DqZakenKaart).
+		 *
+		 * @return {boolean}
+		 */
+		bulkBandIdleShown() {
+			return this.bulkBandAlways && ['table', 'cards', 'list', 'board'].includes(this.currentViewMode)
+		},
+
+		/**
 		 * The plural the board bulk band names: "With the selected cases".
-		 * The schema's `titlePlural` (or `plural`), else the lower-cased
-		 * schema title with an `s`, else nothing (the band says "items").
+		 * The page's `bulkNoun`, else the schema's `titlePlural` (or
+		 * `plural`), else nothing (the band says "items").
 		 *
 		 * @return {string}
 		 */
 		boardBulkNoun() {
 			const schema = this.effectiveSchema || {}
-			const plural = schema.titlePlural || schema.pluralTitle || schema.plural
+			const plural = this.bulkNoun || schema.titlePlural || schema.pluralTitle || schema.plural
 			if (typeof plural === 'string' && plural !== '') {
 				return this.cnTranslate(plural).toLowerCase()
 			}
@@ -8049,6 +8484,27 @@ export default {
 		},
 
 		/**
+		 * Whether the toolbar draws Save view: not when the page switches it
+		 * off (`savedViewSave: false`) or its header carries one.
+		 *
+		 * @return {boolean}
+		 */
+		toolbarSavesView() {
+			return this.savedViewSave !== false && !this.headerSavesView
+		},
+
+		/**
+		 * Whether the page header carries a save-view button, so the toolbar
+		 * leaves its own Save view out.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/saved-views-hide-toolbar-save/specs/saved-views/spec.md
+		 */
+		headerSavesView() {
+			return this.headerButtonsShown && (this.resolvedHeaderButtons || []).some((button) => button && button.action === 'save-view')
+		},
+
+		/**
 		 * Whether the header buttons render: there are some, the title shows
 		 * (they sit beside it) and no `#header` slot replaces the header.
 		 *
@@ -8057,6 +8513,17 @@ export default {
 		 */
 		headerButtonsShown() {
 			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
+		},
+
+		/**
+		 * Whether the toolbar draws the Actions menu: `showActionsMenu` when
+		 * set, else unless the header carries buttons.
+		 *
+		 * @spec openspec/changes/index-actions-menu-with-header-buttons/specs/index-actions-menu-with-header-buttons/spec.md#requirement-an-index-page-decides-its-toolbar-actions-menu
+		 * @return {boolean}
+		 */
+		actionsMenuShown() {
+			return typeof this.showActionsMenu === 'boolean' ? this.showActionsMenu : !this.headerButtonsShown
 		},
 
 		/**
@@ -8074,13 +8541,16 @@ export default {
 
 		/**
 		 * Whether the actions bar shows the Export menu: `showExportMenu`,
-		 * unless a header button took the export over.
+		 * unless a header button, or an Actions menu listing `export`, took
+		 * the export over (DqAanMijToegewezen).
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @return {boolean}
 		 */
 		barShowsExportMenu() {
-			return this.showExportMenu && !this.headerButtonTakes('export')
+			const menuExports = this.headerButtonsShown && this.resolvedHeaderButtons
+				.some((button) => button.action === 'actions-menu' && Array.isArray(button.items) && button.items.includes('export'))
+			return this.showExportMenu && !this.headerButtonTakes('export') && !menuExports
 		},
 
 		/**
@@ -8173,6 +8643,24 @@ export default {
 			return base ? `${base} · ${onMap}` : onMap
 		},
 
+		/**
+		 * The count line template: a scope's own, else the open view's
+		 * (`countTextByView`), else the page's `countText`.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 * @return {string}
+		 */
+		presentedCountText() {
+			if (this.activeScopePresentation.countText === undefined) {
+				const byView = this.countTextByView
+				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
+				if (typeof own === 'string' && own !== '') {
+					return own
+				}
+			}
+			return this.presented('countText')
+		},
+
 		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
@@ -8182,7 +8670,7 @@ export default {
 				// The default count line is the library's own string, so it
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
-				const countText = this.presented('countText')
+				const countText = this.presentedCountText
 				// The note after the breadcrumb already says how many there are.
 				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
 					return this.description
@@ -8281,6 +8769,25 @@ export default {
 			return this.filterMenu && this.filterableFields.length > 0 && !this.boardFilterMenu
 		},
 
+		/**
+		 * The side panel's line under its title: the page's `sidebar.subtitle`
+		 * (a string, or `{ singular, plural }`) with `{total}` and `{shown}`
+		 * filled ("48 zaken, 8 op deze pagina", DqFilterBeheren), or '' to keep
+		 * the schema's description.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-sidebar-count-subtitle/specs/index-sidebar-count-subtitle/spec.md
+		 */
+		sidebarSubtitle() {
+			const declared = this.sidebar && this.sidebar.subtitle
+			const total = this.effectivePagination && this.effectivePagination.total
+			if (!declared || typeof total !== 'number' || total < 0) {
+				return ''
+			}
+			const shown = Array.isArray(this.effectiveObjects) ? this.effectiveObjects.length : null
+			return countLine(declared, total, { shown, translate: this.cnTranslate, appId: this.cnAppId })
+		},
+
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
@@ -8312,7 +8819,8 @@ export default {
 			return {
 				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
-				title: this.title,
+				title: this.shownTitle,
+				subtitle: this.sidebarSubtitle,
 				icon: this.resolvedIcon,
 				searchValue: this.effectiveSearchValue,
 				visibleColumns: this.effectiveVisibleColumns,
@@ -8377,6 +8885,24 @@ export default {
 	},
 
 	watch: {
+		// A group filter's chip names the group: ask for each id's display
+		// name (cached, once per id per page).
+		effectiveActiveFilters: {
+			immediate: true,
+			handler(filters) {
+				for (const [key, raw] of Object.entries(filters || {})) {
+					if (!this.isGroupFilter(key)) {
+						continue
+					}
+					for (const value of (Array.isArray(raw) ? raw : [raw])) {
+						if (typeof value === 'string' && value !== '' && value.charAt(0) !== '@') {
+							loadGroupDisplayName(value)
+						}
+					}
+				}
+			},
+		},
+
 		// A lens that asks the source for other rows reads the source again.
 		lensSourceParams(now, before) {
 			if (JSON.stringify(now) === JSON.stringify(before) || !this.isSelfFetchMode) {
@@ -8893,6 +9419,10 @@ export default {
 			const fixed = this.fixedFilters
 			if (!fixed || !Object.hasOwn(fixed, key)) {
 				return false
+			}
+			// A range (`{ from, to }`) is compared whole: String() would make every object equal.
+			if (value !== null && typeof value === 'object') {
+				return JSON.stringify(fixed[key]) === JSON.stringify(value)
 			}
 			return String(fixed[key]) === String(value)
 		},
@@ -9678,8 +10208,8 @@ export default {
 		 * actions, as before. `items` names them, in order: `header-actions`
 		 * (all of them), the id of one header action, or a built-in of the
 		 * actions bar's own menu, which the bar drops while header buttons show:
-		 * `import`, `export`, `refresh`, `copy-selected`, `delete-selected`
-		 * (disabled until a row is selected) and `documentation` (a link to
+		 * `import`, `export`, `refresh`, `copy-selected`, `export-selected`,
+		 * `delete-selected` (the three disabled until a row is selected) and `documentation` (a link to
 		 * `documentationUrl`, left out when the page has none). An unknown name
 		 * is left out. `{ heading }` and `separator` group the entries: an
 		 * entry of `kind` `heading` or `separator`, drawn only when an entry
@@ -9719,6 +10249,23 @@ export default {
 					title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to copy') : '',
 					run: () => { this.showMassCopyDialog = true },
 				}),
+
+				// Offered only where the list's own export is: `allowExport`, an
+				// exportable schema, and a register and schema to export from.
+				'export-selected': () => {
+					if (!this.showExportMenu) {
+						return null
+					}
+					return {
+						key: 'export-selected',
+						label: t('nextcloud-vue', 'Export selection as JSON'),
+						icon: 'Export',
+						iconComponent: Export,
+						disabled: noSelection,
+						title: noSelection ? t('nextcloud-vue', 'Select 1 or more items to export') : '',
+						run: () => this.onExportSelected(),
+					}
+				},
 
 				'delete-selected': () => ({
 					key: 'delete-selected',
@@ -9916,15 +10463,25 @@ export default {
 
 		/**
 		 * Click dispatch from CnActionsBar's `@header-action`. Looks
-		 * up the resolved entry by id, invokes its handler if any,
-		 * and (unless the entry is `'none'`-suppressed) emits
+		 * up the resolved entry by id. An `api-call` entry runs here, after
+		 * its confirmation when it sets `confirm`; any other invokes its
+		 * handler if any and (unless the entry is `'none'`-suppressed) emits
 		 * `@header-action({ action: id, id })` upward.
 		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
 		 * @param {{action: string, id: string}} payload Bar payload.
+		 * @return {Promise<void>|undefined} The call, for an api-call entry that runs now.
 		 */
 		onHeaderAction(payload) {
 			const id = payload && (payload.id ?? payload.action)
 			const entry = this.mergedHeaderActions.find((e) => e.id === id)
+			if (entry && entry.type === 'api-call') {
+				if (entry.confirm === true) {
+					this.headerApiCallPending = entry
+					return undefined
+				}
+				return this.runHeaderApiCall(entry)
+			}
 			if (entry && typeof entry.handler === 'function') {
 				entry.handler()
 			} else {
@@ -9937,6 +10494,50 @@ export default {
 				return
 			}
 			this.$emit('header-action', { action: id, id })
+		},
+
+		/**
+		 * Run an `api-call` header action through the shared dispatcher, the
+		 * one detail and dashboard pages use: it calls the endpoint and shows
+		 * the action's success or error message, run through the app's
+		 * translate. A call that went through reloads the list, unless the
+		 * action sets `refresh: false`.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @param {object} entry The header action.
+		 * @return {Promise<{ok: boolean}>} The dispatcher's outcome.
+		 */
+		async runHeaderApiCall(entry) {
+			const outcome = (await dispatchSharedAction(entry, {
+				router: this.$router || null,
+				translate: (text) => this.cnTranslate(text),
+				tokenCtx: {},
+			})) || { ok: false }
+			if (outcome.ok === true && entry.refresh !== false) {
+				this.onRefreshEvent()
+			}
+			return outcome
+		},
+
+		/**
+		 * The confirmation of an `api-call` header action was given: run it and
+		 * report the outcome to the dialog.
+		 *
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-an-index-page-runs-an-api-call-header-action
+		 * @return {Promise<void>}
+		 */
+		async onHeaderApiCallConfirm() {
+			const entry = this.headerApiCallPending
+			if (!entry) {
+				return
+			}
+			const outcome = await this.runHeaderApiCall(entry)
+			const dialog = this.$refs.headerApiCallConfirmDialog
+			if (dialog && typeof dialog.setResult === 'function') {
+				dialog.setResult(outcome.ok === true
+					? { success: true }
+					: { error: (outcome.error && outcome.error.message) || t('nextcloud-vue', 'Action failed.') })
+			}
 		},
 
 		/**
@@ -10116,6 +10717,9 @@ export default {
 			if (this.sortSource.value) {
 				this.sortSource = { ...this.sortSource, value: '', page: 1 }
 			}
+			if (namedSourceSorts(this)) {
+				this.namedSort = { key: (payload && payload.key) || '', order: (payload && payload.order) || 'asc' }
+			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -10131,6 +10735,33 @@ export default {
 		 *
 		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string, sortKeys: Array<{key: string, order: string}>}}
 		 */
+		/**
+		 * A view's state as the edit dialog shows it under a criteria choice:
+		 * its filters, search term and sort in sentences, read against the
+		 * page schema's titles.
+		 *
+		 * @param {object} state A view state (`extractViewState` or `currentViewState`).
+		 * @return {string} The sentences.
+		 * @spec openspec/changes/saved-view-edit-board-form/specs/saved-views/spec.md
+		 */
+		criteriaSummaryOf(state) {
+			const schema = this.effectiveSchema
+			return viewCriteriaSummary(state, {
+				properties: (schema && schema.properties) || {},
+				translate: (text) => this.cnTranslate(text),
+			})
+		},
+
+		/**
+		 * A saved view's state, as `extractViewState` reads it.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {object} Its state.
+		 */
+		savedViewState(view) {
+			return extractViewState(view)
+		},
+
 		currentViewState() {
 			return {
 				filters: this.list.activeFilters.value,
@@ -10294,6 +10925,9 @@ export default {
 			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
 				this.namedActiveFilters = {}
 				this.persistNamedFiltersToRoute({})
+			}
+			if (this.searchTermChips.length > 0) {
+				this.namedSearchTerm = ''
 			}
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
@@ -10486,13 +11120,187 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			if (chip && chip.searchTerm === true) {
+				this.onSearchEvent('')
+				return
+			}
 			if (chip && typeof chip.quickFilterIndex === 'number') {
 				this.deselectQuickFilterChip(chip.quickFilterIndex)
+				return
+			}
+			if (chip && Array.isArray(chip.keys) && chip.keys.length > 0) {
+				for (const key of chip.keys) {
+					this.onFilterEvent({ key, values: [] })
+				}
 				return
 			}
 			if (chip && typeof chip.key === 'string') {
 				this.onFilterEvent({ key: chip.key, values: [] })
 			}
+		},
+
+		/**
+		 * The field an Active chip names: the page's `filterLabels` label, the
+		 * schema property's title, the sidebar field's title, else the key.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {string} The translated field name.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
+		 */
+		activeFilterFieldLabel(key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && typeof named.label === 'string' && named.label !== '') {
+				return this.cnTranslate(named.label)
+			}
+			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && typeof prop.title === 'string' && prop.title !== '') {
+				return this.cnTranslate(prop.title)
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			if (field && typeof field.title === 'string' && field.title !== '') {
+				return this.cnTranslate(field.title)
+			}
+			return this.cnTranslate(key)
+		},
+
+		/**
+		 * Filters as chips in the Active line's words, one per filter: "Team:
+		 * Woo". A filter with no value gives none. A range, as one `{from, to}`
+		 * value or as `key[gte]`/`key[lte]` keys, is one chip; `keys` lists the
+		 * filter keys it stands for. Several values of one filter read as a list
+		 * in the locale ("A en B").
+		 *
+		 * @param {object} filters The filters, by key.
+		 * @param {Function} [isFixed] `(key, value) => boolean`: a value that gets no chip.
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
+		 */
+		filterChipsOf(filters, isFixed = () => false) {
+			const chips = []
+			const ranges = new Map()
+			for (const [key, raw] of Object.entries(filters || {})) {
+				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+				if (bound) {
+					const value = Array.isArray(raw) ? raw[0] : raw
+					if (value === null || value === undefined || value === '' || isFixed(key, value)) {
+						continue
+					}
+					if (!ranges.has(bound[1])) {
+						ranges.set(bound[1], { from: null, to: null, keys: [] })
+						chips.push({ key: bound[1], rangeOf: bound[1] })
+					}
+					const range = ranges.get(bound[1])
+					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
+					range.keys.push(key)
+					continue
+				}
+				const ends = rangeEnds(raw)
+				if (ends) {
+					if (isFixed(key, raw)) {
+						continue
+					}
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
+					continue
+				}
+				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+					const text = this.activeFilterOperatorText(key, raw)
+					if (text !== '' && !isFixed(key, raw)) {
+						chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${text}` })
+					}
+					continue
+				}
+				const values = (Array.isArray(raw) ? raw : [raw])
+					.filter((value) => value !== null && value !== undefined && value !== '')
+					.filter((value) => !isFixed(key, value))
+					.map((value) => this.activeFilterValueLabel(key, value))
+				if (values.length === 0) {
+					continue
+				}
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
+			}
+			return chips.map((chip) => {
+				if (!chip.rangeOf) {
+					return chip
+				}
+				const range = ranges.get(chip.rangeOf)
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
+			})
+		},
+
+		/**
+		 * What a saved view filters on, in the Active line's words, for the
+		 * line under its name in the side panel: its search term, then each
+		 * filter ("Search term: Lindelaan, Status: Open"). A filter the page's
+		 * `filterLabels` marks `hidden` (a working-list rule every view
+		 * carries) is left out. '' when it filters on nothing else.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {string}
+		 */
+		viewFilterSummary(view) {
+			const query = (view && view.query) || {}
+			const filters = query.filters || (view && (view.filters || view.filter)) || {}
+			const parts = []
+			const term = typeof query.search === 'string' ? query.search.trim() : ''
+			if (term !== '') {
+				parts.push(t('nextcloud-vue', 'Search term: {term}', { term }))
+			}
+			const hidden = (key) => Boolean(this.filterLabels && this.filterLabels[key] && this.filterLabels[key].hidden === true)
+			for (const chip of this.filterChipsOf(filters)) {
+				if (!hidden(chip.key)) {
+					parts.push(chip.label)
+				}
+			}
+			return parts.join(', ')
+		},
+
+		/**
+		 * The text of a filter whose value is an operator object that is not a
+		 * range: a test for no value reads "not set" or "set", any other
+		 * operator its operands, named as a value would be.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {object} value The operator object (`{ isnull: true }`, `{ in: [...] }`).
+		 * @return {string} The text, or '' when it names nothing.
+		 */
+		activeFilterOperatorText(key, value) {
+			if (Object.hasOwn(value, 'isnull')) {
+				const empty = value.isnull === true || value.isnull === 'true'
+				return empty ? t('nextcloud-vue', 'not set') : t('nextcloud-vue', 'set')
+			}
+			const operands = Object.values(value)
+				.flatMap((operand) => (Array.isArray(operand) ? operand : [operand]))
+				.filter((operand) => operand !== null && operand !== undefined && operand !== '' && typeof operand !== 'object')
+				.map((operand) => this.activeFilterValueLabel(key, operand))
+			return listText(operands, getCanonicalLocale() || undefined)
+		},
+
+		/**
+		 * The text of a range chip: in words for a range from today when the
+		 * page's `filterLabels` entry sets `relative`, else its date ends in
+		 * the person's locale.
+		 *
+		 * @param {unknown} from The lower end, or null.
+		 * @param {unknown} to The upper end, or null.
+		 * @param {string} key The filter key the range is on.
+		 * @return {string} The text.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+		 */
+		activeFilterRangeText(from, to, key) {
+			const named = this.filterLabels && this.filterLabels[key]
+			if (named && named.relative === true) {
+				const words = relativeRangeText(from, to, {
+					translate: (text) => t('nextcloud-vue', text),
+					translatePlural: (one, many, count) => n('nextcloud-vue', one, many, count),
+				})
+				if (words !== null) {
+					return words
+				}
+			}
+			return rangeChipText(from, to, {
+				translate: (text, vars) => t('nextcloud-vue', text, vars),
+				locale: getCanonicalLocale() || undefined,
+			})
 		},
 
 		/**
@@ -10523,17 +11331,39 @@ export default {
 		},
 
 		/**
-		 * The text an Active chip shows for one filter value: the referenced
-		 * object's label, the facet bucket's label, the schema's `oneOf` title,
-		 * else the value itself.
+		 * The text an Active chip shows for one filter value: the page's
+		 * `filterLabels` value, the referenced object's label, the facet
+		 * bucket's label, the schema's `oneOf` title, a group's display name,
+		 * the sidebar field's `enumLabels`, else the value itself.
 		 *
 		 * @param {string} key The filter key.
 		 * @param {unknown} value One value of that filter.
 		 * @return {string} The label.
 		 * @spec openspec/changes/screens-active-filter-line-parity/specs/active-filter-line-board-look/spec.md#requirement-an-active-chip-names-the-value-not-its-id
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
+		/**
+		 * Whether a filter holds Nextcloud group ids: its column draws the
+		 * group cell, or its schema property marks a group.
+		 *
+		 * @param {string} key The filter key.
+		 * @return {boolean}
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
+		 */
+		isGroupFilter(key) {
+			const column = (Array.isArray(this.columns) ? this.columns : []).find((c) => c && typeof c === 'object' && c.key === key)
+			if (column && column.widget === 'group') {
+				return true
+			}
+			return isGroupProp(this.effectiveSchema?.properties?.[key])
+		},
+
 		activeFilterValueLabel(key, value) {
 			const id = String(value)
+			const named = this.filterLabels && this.filterLabels[key] && this.filterLabels[key].values
+			if (named && typeof named[id] === 'string' && named[id] !== '') {
+				return this.cnTranslate(named[id])
+			}
 			const refs = this.refLabels[key]
 			if (refs && typeof refs[id] === 'string' && refs[id] !== '') {
 				return refs[id]
@@ -10546,10 +11376,28 @@ export default {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
+			if (prop && prop.referenceType === 'nextcloud-group') {
+				const name = groupDisplayName(id)
+				if (name === null) {
+					loadGroupDisplayName(id)
+				}
+				return name || id
+			}
 			const options = prop && Array.isArray(prop.oneOf) ? prop.oneOf : []
 			const option = options.find((o) => o && String(o.const) === id && typeof o.title === 'string')
 			if (option) {
 				return this.cnTranslate(option.title)
+			}
+			if (this.isGroupFilter(key)) {
+				const name = groupDisplayName(id)
+				if (name) {
+					return name
+				}
+			}
+			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
+			const enumLabel = field && field.enumLabels && field.enumLabels[id]
+			if (typeof enumLabel === 'string' && enumLabel !== '') {
+				return this.cnTranslate(enumLabel)
 			}
 			return id
 		},
@@ -10883,7 +11731,9 @@ export default {
 		/**
 		 * The row's own name, for the row menu button's accessible name
 		 * ("Actions for <title>"): the `nameFormatter`, else the
-		 * `massActionNameField`, else the row's title or name.
+		 * `massActionNameField`, else the row's title or name, the record's
+		 * resolved display name, the title column's value, or the schema's
+		 * title property. The first plain text wins.
 		 *
 		 * @param {object} row The row.
 		 * @return {string} The name, or ''.
@@ -10894,8 +11744,18 @@ export default {
 				return ''
 			}
 			const named = typeof this.nameFormatter === 'function' ? this.nameFormatter(row) : row[this.massActionNameField]
-			const value = named ?? row.title ?? row.name ?? ''
-			return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+			const titleKey = this.renderedColumns?.[0]?.key
+			const nameField = this.effectiveSchema?.configuration?.objectNameField
+			const candidates = [
+				named,
+				row.title,
+				row.name,
+				row['@self']?.name,
+				titleKey ? getDotted(row, titleKey) : undefined,
+				nameField ? getDotted(row, nameField) : undefined,
+			]
+			const value = candidates.find((candidate) => (typeof candidate === 'string' && candidate.trim() !== '') || typeof candidate === 'number')
+			return value === undefined ? '' : String(value)
 		},
 
 		/**
@@ -11047,7 +11907,7 @@ export default {
 				const byId = new Map(groups.map((group) => [group.id, group]))
 				this.folderGroupList = declared
 					.filter((entry) => byId.has(String(entry.id)))
-					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null }))
+					.map((entry) => ({ ...byId.get(String(entry.id)), parentId: entry.parent ? String(entry.parent) : null, record: entry.record || null }))
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load the Nextcloud groups', e)
@@ -11086,7 +11946,7 @@ export default {
 				const groupOfRecord = new Map(records.map((record) => [String(record.id ?? record['@self']?.id ?? ''), String(record[groupField])]))
 				return records.map((record) => {
 					const parent = record[parentField] ? String(record[parentField]) : null
-					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent) }
+					return { id: String(record[groupField]), parent: parent === null ? null : (groupOfRecord.get(parent) ?? parent), record }
 				})
 			} catch {
 				return null
@@ -11407,6 +12267,14 @@ export default {
 		/** @return {Promise<void>} */
 		async onRefreshEvent() {
 			this.$emit('refresh')
+			if (this.isNamedSource) {
+				this.internalRefreshing = true
+				try {
+					await this.namedReload()
+				} finally {
+					this.internalRefreshing = false
+				}
+			}
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
 				this.internalRefreshing = true
 				try {
@@ -12087,6 +12955,21 @@ export default {
 			window.location.assign(url)
 		},
 
+		/**
+		 * Download OpenRegister's JSON export of the selected rows: the page's
+		 * register and schema, with the selected ids as `_ids`.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-actions-menu-selection-export/specs/index-header/spec.md#requirement-the-actions-menu-exports-the-selection
+		 */
+		onExportSelected() {
+			const ids = this.internalSelectedIds.map((id) => String(id))
+			if (ids.length === 0 || !this.showExportMenu) {
+				return
+			}
+			window.location.assign(buildExportUrl(this.register, this.exportSchemaSlug, { _ids: ids }, 'json'))
+		},
+
 		// ── Saved views (saved-views-ui) ─────────────────────────────────────
 
 		/**
@@ -12127,10 +13010,15 @@ export default {
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
 			const state = extractViewState(view)
-			if (view && view.seeded === true) {
-				const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
-				state.filters = resolveFilterTokens(state.filters, ctx)
+			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
+			// and an optional one that answers nothing (no team) is dropped. A
+			// `@myTeam` still being read applies the view once it is known.
+			if (usesMyTeam(state.filters) && peekMyTeam() === null) {
+				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
+				return
 			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
 			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
 			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
@@ -12416,7 +13304,9 @@ export default {
 			if (typeof id !== 'string' || id === '' || id === this.appliedSavedViewId) {
 				return
 			}
-			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id)
+			// OpenRegister answers a view with a numeric `id` and its `uuid`; a
+			// menu entry or a shared link may name either.
+			const view = this.viewsForControl.find((v) => String(v.id) === id || String(v.slug) === id || (v.uuid !== undefined && String(v.uuid) === id))
 			if (view) {
 				this.onApplySavedView(view, { keepSavedViewKey: true })
 			}
@@ -12546,16 +13436,19 @@ export default {
 		},
 
 		/**
-		 * "Save as my view" on a read-only shared view
-		 * (CnSavedViewsControl `@copy-request`): a personal copy with the same
-		 * name and query. The original stays untouched.
+		 * "Save a copy" of a view (CnSavedViewsControl `@copy-request`): a
+		 * personal copy with the same query. A copy of a view shared with the
+		 * reader or shipped with the app keeps its name; a copy of the reader's
+		 * own view is named "{name} (copy)". The original stays untouched.
 		 *
-		 * @param {object} view The shared View API object.
+		 * @param {object} view The View API object.
 		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 * @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-an-own-view-can-be-copied
 		 */
 		async onCopyViewRequest(view) {
+			const own = viewAccess(view, this.currentSavedViewsUserId) === 'owner'
 			const payload = {
-				name: view.name,
+				name: own ? t('nextcloud-vue', '{name} (copy)', { name: view.name }) : view.name,
 				description: view.description || '',
 				isPublic: false,
 				isDefault: false,

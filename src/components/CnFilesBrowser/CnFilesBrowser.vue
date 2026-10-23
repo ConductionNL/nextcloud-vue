@@ -74,7 +74,7 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
-			<NcActions v-if="canChange"
+			<NcActions v-if="canChange && newMenu"
 				:menuName="newLabel"
 				:forceMenu="true"
 				:forceName="true"
@@ -129,6 +129,19 @@
 					<CnIcon :name="action.icon" :size="20" />
 				</template>
 				{{ hostLabel(action) }}
+			</NcButton>
+			<!-- New folder as its own button, when the host names it
+			     (`folderButton`): a bar without the New menu still creates
+			     folders. -->
+			<NcButton v-if="folderButton && canChange"
+				variant="secondary"
+				:disabled="folder === null"
+				data-testid="cn-files-browser-new-folder-button"
+				@click="askNewFolder">
+				<template #icon>
+					<FolderPlusOutline :size="20" />
+				</template>
+				{{ newFolderLabel }}
 			</NcButton>
 			<!-- @slot header-actions Buttons in the bar, before the upload button. -->
 			<slot name="header-actions" />
@@ -404,7 +417,7 @@
 									@click="runHostAction(rowButton, node)">
 									{{ hostLabel(rowButton) }}
 								</NcButton>
-								<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
+								<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
 									<NcActionButton
 										v-for="action in actionsFor(node)"
 										:key="action.id"
@@ -531,7 +544,7 @@
 							<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
 						</td>
 						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
+							<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
 								<NcActionLink
 									v-if="item.href"
 									:href="item.href"
@@ -750,6 +763,7 @@ import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import FolderPlusOutline from 'vue-material-design-icons/FolderPlusOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -796,6 +810,7 @@ export default {
 		Download,
 		FileOutline,
 		FolderOutline,
+		FolderPlusOutline,
 		NcActionButton,
 		NcActionCheckbox,
 		NcActionLink,
@@ -1021,6 +1036,30 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Whether the bar has the New menu (upload, new folder, the Files
+		 * app's entries and `newActions`). `false` leaves it out, so the bar
+		 * holds the host's `headerActions` buttons and, with `uploadButton`,
+		 * the upload button (DqZaakDocumenten).
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-chooses-whether-the-bar-has-a-new-menu
+		 */
+		newMenu: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show New folder as a button in the bar, before the host's buttons.
+		 * With `newMenu: false` it keeps folder creation in reach.
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-can-put-new-folder-in-the-bar-as-a-button
+		 */
+		folderButton: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Label of the upload button `uploadButton` shows. */
 		uploadButtonLabel: {
 			type: String,
@@ -1077,9 +1116,11 @@ export default {
 
 		/**
 		 * A second line under each file's name (DqDocumentenBeheer "Inwoner ·
-		 * 4 okt"): a field template read from the file's row data, plus
-		 * `name`, `modified` (the change date) and `owner` (the owner's display
-		 * name), e.g. `"{uploadedBy} · {modified|date}"`. A line with an empty
+		 * 4 okt", DqZaakDocumenten "PDF · 1,2 MB · 14 januari 2026"): a field
+		 * template read from the file's row data, plus `name`, `modified` (the
+		 * change date), `owner` (the owner's display name), `size` (formatted)
+		 * and `type` ("PDF", "Word", "Email", else the extension), e.g.
+		 * `"{type} · {size} · {modified|date}"`. A line with an empty
 		 * value is left out. Translated with the host's catalogue first.
 		 */
 		nameSecondary: {
@@ -2044,8 +2085,48 @@ export default {
 			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
 			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
 			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
-			const object = { ...entry, name: node.basename, modified: node.mtime, ...(owner ? { owner } : {}) }
+			const object = {
+				...entry,
+				name: node.basename,
+				modified: node.mtime,
+				size: this.formatSize(node.size),
+				type: this.typeLabelOf(node),
+				...(owner ? { owner } : {}),
+			}
 			return fillTemplate(this.cnTranslate(this.nameSecondary), object)
+		},
+
+		/**
+		 * A file's type as a reader names it: the application for common
+		 * office types ("PDF", "Word", "Excel"), "Email" for a mail, "Image"
+		 * for a picture, else the extension in capitals.
+		 *
+		 * @param {object} node The file.
+		 * @return {string} The label, or ''.
+		 * @spec openspec/changes/files-browser-second-line-size-type/specs/files-browser-second-line-size-type/spec.md#requirement-a-files-second-line-can-name-its-type-and-size
+		 */
+		typeLabelOf(node) {
+			const mime = String(node?.mime || '')
+			if (mime === 'application/pdf') {
+				return 'PDF'
+			}
+			if (/msword|wordprocessingml/.test(mime)) {
+				return 'Word'
+			}
+			if (/ms-excel|spreadsheetml/.test(mime)) {
+				return 'Excel'
+			}
+			if (/ms-powerpoint|presentationml/.test(mime)) {
+				return 'PowerPoint'
+			}
+			if (mime === 'message/rfc822' || mime === 'application/vnd.ms-outlook') {
+				return t('nextcloud-vue', 'Email')
+			}
+			if (mime.startsWith('image/')) {
+				return t('nextcloud-vue', 'Image')
+			}
+			const match = /\.([a-z0-9]+)$/i.exec(String(node?.basename || ''))
+			return match ? match[1].toUpperCase() : ''
 		},
 
 		/**

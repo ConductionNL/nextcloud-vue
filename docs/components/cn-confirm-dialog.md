@@ -61,6 +61,7 @@ warning:
 | `message` | `string` | `'Are you sure you want to continue?'` | Confirmation question shown in the confirm phase. |
 | `variant` | `'primary'\|'error'\|'warning'\|'success'` | `'primary'` | Primary-button variant; `error` marks the confirm as destructive. |
 | `confirmLabel` | `string` | `'Confirm'` | Primary button label. |
+| `confirmIcon` | `string` | `''` | A CnIcon name drawn on the primary button (`DeleteOutline` for a delete). |
 | `cancelLabel` | `string` | `'Cancel'` | Cancel button label (confirm phase). |
 | `closeLabel` | `string` | `'Close'` | Close button label (result phase). |
 | `successText` | `string` | `'Done.'` | Success message in the result phase. |

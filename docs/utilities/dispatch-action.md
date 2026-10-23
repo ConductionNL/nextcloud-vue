@@ -30,7 +30,7 @@ function dispatchAction(
         formats?: (string | { id, label })[],  // type='export' — offered formats (optional)
         description?: string,       // type='export' — pre-translated dialog description
         url?: string,               // type='api-call' — app endpoint (token-interpolated, @objectId or {objectId})
-        method?: 'POST' | 'PUT',    // type='api-call' — default POST
+        method?: 'POST' | 'PUT' | 'PATCH' | 'GET', // type='api-call' — default POST; PATCH changes only the payload's fields
         payload?: object,           // type='api-call' — JSON body, DEEP @-token resolution (preferred over params)
         params?: object,            // type='api-call' — legacy JSON body, shallow (1-level) @-token grammar
         download?: boolean,         // type='api-call' — request a blob response + trigger a file download (default false)
@@ -234,7 +234,7 @@ item broadcasts). No context is required.
 
 ### `api-call` (Wave 3, #91)
 
-POST/PUT a configured app endpoint, toast the outcome via
+POST/PUT/PATCH a configured app endpoint, toast the outcome via
 `@nextcloud/dialogs` (`showSuccess` / `showError`), then — unless
 `refresh: false` (or, for a `download` call, unless `refresh: true`) —
 bump `cn:page:refresh`. The `url` interpolates `@objectId` /

@@ -54,7 +54,7 @@ describe('the saved-views panel', () => {
 
 	it('offers each access only its own entries; only the owner edits and deletes', () => {
 		const w = mountPanel([own, writable, readOnly])
-		expect(entriesOf(w, '1')).toEqual(['edit', 'update', 'share', 'delete'])
+		expect(entriesOf(w, '1')).toEqual(['edit', 'update', 'share', 'copy', 'delete'])
 		expect(entriesOf(w, '2')).toEqual(['update', 'copy'])
 		expect(entriesOf(w, '3')).toEqual(['copy'])
 	})
@@ -80,7 +80,7 @@ describe('the saved-views panel', () => {
 
 	it('lists defaults first under Default views, offering a copy and the menu only', () => {
 		const w = mountPanel([own, ...defaultFilterViews(DEFAULTS)], { menuIds: [] })
-		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toBe('Default views')
+		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toMatch(/^Default views\b/)
 		expect(ids(w, 'cn-saved-views-item')[0].text()).toContain('Te laat, van mij')
 		expect(entriesOf(w, 'default:overdue-mine')).toEqual(['copy', 'menu'])
 	})
@@ -141,7 +141,7 @@ describe('saved views in the app menu', () => {
 		const out = withSavedViewMenu(menu, [entry])
 		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'Rel', 'Contacts', 'saved-views-caption', 'saved-view-7'])
 		expect(out[4]).toMatchObject({ type: 'caption', label: 'My views' })
-		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
+		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterVariant', order: expect.any(Number) })
 		expect(out[3].order < out[4].order && out[4].order < out[5].order).toBe(true)
 		expect(withSavedViewMenu(menu, [])).toBe(menu)
 	})

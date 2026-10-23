@@ -15,7 +15,7 @@
  */
 
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { ageInDays, formatBoardDate, formatRelativeDate } from './boardDate.js'
+import { ageInDays, boardDateLocale, formatBoardDate, formatRelativeDate } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { indicatorApplies } from './rowIndicators.js'
 
@@ -35,7 +35,11 @@ import { indicatorApplies } from './rowIndicators.js'
  * `activeWhen` (`{ field, equals | in | lt | gt }`, the row-indicator grammar)
  * the date is only due while that holds on the row: otherwise it reads as the
  * short date in the `plain` tone, never overdue or soon (a won lead's close
- * date is history, not a deadline).
+ * date is history, not a deadline); with `inactiveLabel` ("Done on {date}") it
+ * reads that text in the `muted` tone instead. `todayTone: "danger"` draws
+ * today as overdue. With `nearWithin` (days), tomorrow reads "Tomorrow" (or
+ * `tomorrowLabel`) and a later day within that many days its weekday and date
+ * ("Friday 9 Oct").
  *
  * @param {unknown} value A Date, a timestamp or an ISO string.
  * @param {object} [config] The `due` config.
@@ -44,6 +48,7 @@ import { indicatorApplies } from './rowIndicators.js'
  * @param {object} [row] The row the date belongs to, for `activeWhen`.
  * @return {{text: string, tone: string}|null} The text and tone, or null when there is nothing to show.
  * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-due-date-is-due-only-while-a-row-condition-holds
+ * @spec openspec/changes/due-text-today-near-done/specs/due-text/spec.md
  */
 export function resolveDue(value, config, translate = (text) => text, now = new Date(), row = null) {
 	const cfg = config && typeof config === 'object' ? config : {}
@@ -53,6 +58,9 @@ export function resolveDue(value, config, translate = (text) => text, now = new 
 		return empty === '' ? null : { text: empty, tone: 'empty' }
 	}
 	if (cfg.activeWhen && typeof cfg.activeWhen === 'object' && !indicatorApplies(cfg.activeWhen, row || {}, now)) {
+		if (typeof cfg.inactiveLabel === 'string' && cfg.inactiveLabel !== '') {
+			return { text: translate(cfg.inactiveLabel).replace(/\{date\}/g, formatBoardDate(date, now)), tone: 'muted' }
+		}
 		return { text: formatBoardDate(date, now), tone: 'plain' }
 	}
 	const days = ageInDays(date, now)
@@ -65,9 +73,52 @@ export function resolveDue(value, config, translate = (text) => text, now = new 
 	}
 	if (days === 0) {
 		const label = typeof cfg.todayLabel === 'string' && cfg.todayLabel !== '' ? translate(cfg.todayLabel) : t('nextcloud-vue', 'Due today')
-		return withSoon({ text: label, tone: 'today' }, 0, cfg)
+		return withSoon({ text: label, tone: cfg.todayTone === 'danger' ? 'danger' : 'today' }, 0, cfg)
 	}
-	return withSoon({ text: upcomingText(-days, cfg, translate) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }, -days, cfg)
+	return withSoon({ text: upcomingText(-days, cfg, translate) ?? nearText(date, -days, cfg, translate, now) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }, -days, cfg)
+}
+
+/**
+ * A day to come within `nearWithin` days by name: "Tomorrow" (or
+ * `tomorrowLabel`), else its weekday and date ("Friday 9 Oct"). Null
+ * without `nearWithin` or past it.
+ *
+ * @param {Date} date The due date.
+ * @param {number} left Whole days left, at least 1.
+ * @param {object} cfg The `due` config.
+ * @param {(text: string) => string} translate The host's translate.
+ * @param {Date} now The reference moment.
+ * @return {string|null} The text, or null.
+ * @spec openspec/changes/due-text-today-near-done/specs/due-text/spec.md
+ */
+function nearText(date, left, cfg, translate, now) {
+	const within = Number(cfg.nearWithin)
+	if (!Number.isFinite(within) || left > within) {
+		return null
+	}
+	if (left === 1) {
+		return typeof cfg.tomorrowLabel === 'string' && cfg.tomorrowLabel !== ''
+			? translate(cfg.tomorrowLabel)
+			: capitalise(formatRelativeDate(date, { now }))
+	}
+	const parts = { weekday: 'long', day: 'numeric', month: 'short' }
+	let text
+	try {
+		text = new Intl.DateTimeFormat(boardDateLocale(), parts).format(date)
+	} catch {
+		text = new Intl.DateTimeFormat(undefined, parts).format(date)
+	}
+	return capitalise(text.replace(/,/g, ''))
+}
+
+/**
+ * The text with its first letter in upper case.
+ *
+ * @param {string} text The text.
+ * @return {string} The text, capitalised.
+ */
+function capitalise(text) {
+	return text.charAt(0).toLocaleUpperCase() + text.slice(1)
 }
 
 /**

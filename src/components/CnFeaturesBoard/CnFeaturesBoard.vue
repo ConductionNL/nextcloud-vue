@@ -22,19 +22,6 @@
 						</template>
 						{{ t('nextcloud-vue', 'Documentation') }}
 					</NcButton>
-					<CnBuildiqEditButton />
-					<NcButton
-						v-if="suggestUrl && suggestButton"
-						variant="primary"
-						:href="suggestUrl"
-						target="_blank"
-						rel="noopener noreferrer"
-						data-testid="cn-features-board-suggest">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ t('nextcloud-vue', 'Suggest feature') }}
-					</NcButton>
 					<NcActions
 						v-if="!tabs && actionsMenu"
 						:menuName="t('nextcloud-vue', 'Actions')"
@@ -54,6 +41,19 @@
 							{{ t('nextcloud-vue', 'Support this app') }}
 						</NcActionButton>
 					</NcActions>
+					<CnBuildiqEditButton />
+					<NcButton
+						v-if="suggestUrl && suggestButton"
+						variant="primary"
+						:href="suggestUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						data-testid="cn-features-board-suggest">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Suggest feature') }}
+					</NcButton>
 				</div>
 			</div>
 			<p v-if="resolvedSubtitle" class="cn-features-board__subtitle" data-testid="cn-features-board-subtitle">
@@ -389,6 +389,8 @@ export default {
 		filterLabel: { type: String, default: '' },
 		/** Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`). */
 		statusLabels: { type: Object, default: () => ({}) },
+		/** Overrides of the status tones, by key, as CnStatusBadge variants (DqFunctionaliteiten: `{ planned: 'default' }`). */
+		statusVariants: { type: Object, default: () => ({}) },
 		/** How many issues the Next card lists; 0 hides the card. */
 		next: { type: Number, default: 3 },
 		/** Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card. */
@@ -599,7 +601,7 @@ export default {
 		 * @return {string} The CnStatusBadge variant.
 		 */
 		variantOf(status) {
-			return FEATURE_STATUS_VARIANTS[status] || 'default'
+			return this.statusVariants[status] || FEATURE_STATUS_VARIANTS[status] || 'default'
 		},
 
 		/**
@@ -825,9 +827,11 @@ export default {
 	color: var(--color-border-dark);
 }
 
+/* The board draws the segmented filter as a track across the content row,
+   its options at the start. */
 .cn-features-board__filter--segmented {
-	display: inline-flex;
-	align-self: flex-start;
+	align-self: stretch;
+	justify-content: flex-start;
 	gap: 2px;
 	padding: 3px;
 	border-radius: 8px;

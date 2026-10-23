@@ -55,7 +55,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
 - `cards`: a framed card per row in a grid of cards at least 240px wide, as board ShBank draws the bank accounts. The card shows the `icon` (only when you set one) and the `title`, with the `pill` and `badges` beside them, then the `meta` line, then `trailing` as a large figure. A card with `rowRoute` is a link. On a board-look dashboard the cards keep a 24px inset inside a titled card; give the placement `borderless: true` and `showTitle: false` to stand them on the page ground, as ShBank does.
 
-Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09.42"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
+Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09.42"). `{path|ago}` says how long ago it was: "10 min geleden", "1 uur geleden", then "vanochtend", "vanmiddag" or "vanavond", "gisteren", the weekday ("vrijdag") and after a week the short date. `{path|week}` is the ISO week ("Week 41"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
@@ -63,12 +63,15 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
 
+`tiles: true` (with `presentation: "rows"`) draws each row as a framed tile, 8px 10px inside a hairline edge with radius 8, in a grid of 260px at the least and 8px apart, the title at 14px regular. Board DqZaaktypeOverzicht draws a case type's statuses this way: two columns of tiles, each with its colour dot and flags.
+
 ### One action per row
 
 `rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+- `endpoint` (with `method`, default POST) makes it a button that calls that app URL for the row, as a `rowActions` endpoint entry does: `@objectId` and the row's `{field}` tokens filled in, the list read again afterwards, a refusal shown in the server's words (else `errorText`). A row whose `labels` entry is an empty string has no action, so DqZaakBesluiten shows "Herinneren" on an open advice request only.
 
 ### Several actions per row, and links onwards
 
@@ -89,6 +92,16 @@ path such as `/apps/forms/s/{token}` opens in place. Any other address hides the
   { "label": "Open the form", "href": "{externalUrl}", "visibleWhen": { "field": "instrumentKind", "value": "external" } }
 ]
 ```
+
+A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, doneLabel?, errorText? }`) is not in the
+menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
+(`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
+whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
+template filled from the row ("Assign to {displayName}").
+
+`footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
+(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+capacity"). It shows with no rows too, and not when the value is empty or zero.
 
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
@@ -116,6 +129,19 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 }
 ```
 
+With `groupBy`, `footerAction.group` names a group value: the action then ends that group's heading instead of standing under the list, and the heading is drawn even when no row is in that group (after the other groups, or under the empty text). `footerAction.variant: "tonal"` draws the action as a tonal pill (primary-light, 34px, fully rounded, 13px semibold) instead of a secondary button. Board DqZaakGerelateerd puts "Vervolg plannen" at the end of "Gepland vervolg" this way.
+
+```json
+"footerAction": {
+  "label": "Plan follow-up",
+  "icon": "CalendarClock",
+  "type": "open-modal",
+  "target": "PlanFollowUpDialog",
+  "group": "planned",
+  "variant": "tonal"
+}
+```
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
@@ -124,6 +150,7 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 |-----|---------|
 | `headerLink` | `{ label, route, params?, query? }` or `{ label, href }`. `{total}` in the label is the list's total; `params` and `query` resolve tokens. |
 | `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. `{count:<field>=<value>}` counts the loaded rows whose field reads that value: `"{count:status=done} van {total} stappen klaar"`. It reads the rows the list loaded, so set `limit` to cover the list. |
+| `headerSubtitle` | The muted line under the card title, with the same counts as `headerNote`: `"{total} in totaal"`, `"{count:status=completed} van {total} stappen klaar"` (DqContact "Laatste contactmomenten", DqTenant "Inrichten"). |
 | `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
@@ -139,6 +166,15 @@ In a tab panel there is no card header, so neither is drawn.
 | `alertAbove` | A number above it reads bold in the danger colour. |
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
 | `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
+
+A column's `sub` is a template drawn as a muted second line under the cell's text (board OrArchivering: the list's title, with "1.204 records" under it). It draws nothing when it fills empty.
+
+`rowActions` works in the table too: the table ends with a column headed `rowActionsHeader` (default "Actions") holding each row's menu, with the same entries, `visibleWhen` and `endpoint` calls as the `rows` presentation. A row with no action left has an empty cell.
+
+```json
+"columns": [{ "label": "List", "value": "{title}", "sub": "{summary}" }, { "label": "Status", "value": "{statusLabel}" }],
+"rowActions": [{ "label": "Approve", "endpoint": "/apps/openregister/api/archival/destruction-lists/{uuid}/approve", "visibleWhen": { "field": "status", "value": "in_review" } }]
+```
 
 `tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
 
@@ -169,6 +205,10 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
+
+`aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
+
+`presentation: "checklist"` draws the rows as a checklist in `columns` (1 to 4, default 3): a row for which `done` (a condition over the row, `{ "field": "status", "op": "eq", "value": "completed" }`) holds is ticked, any other row is an empty circle, and a screen reader hears "Done" or "Not done yet" after each. `progress: true` adds a bar of the done share above it. With `headerNote: "{count:status=completed} of {total} steps done"` the card header counts them (DqTenant Inrichten "5 van 7 stappen klaar").
 
 ## Props
 

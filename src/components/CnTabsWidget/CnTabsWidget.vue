@@ -50,6 +50,9 @@
 							:closeAfterClick="true"
 							data-testid="cn-tabs-widget-menu-tab"
 							@click="openMenuTab(entry)">
+							<template v-if="entry.icon" #icon>
+								<CnIcon :name="entry.icon" :size="20" />
+							</template>
 							{{ menuTabLabel(entry) }}
 						</NcActionButton>
 						<NcActionSeparator v-if="showActions" />
@@ -394,6 +397,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's action dispatcher (CnPageRenderer), for a panel widget's `headerActions`. */
 		cnDispatchAction: { default: null },
+		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
+		cnRecordEdit: { default: null },
 		/**
 		 * CnDetailPage's report of the open body tab, so its side column can
 		 * follow the tab (a side entry's `tabs`). Null on any other page.
@@ -1224,6 +1229,7 @@ export default {
 				object: this.objectData || {},
 				objectId: this.objectId,
 				translate,
+				recordEdit: this.cnRecordEdit,
 				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
 					? this.cnDispatchAction(action)
 					: dispatchAction(action, { router: this.$router || null })),

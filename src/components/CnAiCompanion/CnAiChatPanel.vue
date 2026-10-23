@@ -373,6 +373,7 @@ import {
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
 import { getAssistantMark } from '../../utils/assistantMark.js'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 /**
  * Shown when an agent has no `icon` set, which is most of them. Matches the
@@ -418,7 +419,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {

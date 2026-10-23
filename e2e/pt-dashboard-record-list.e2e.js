@@ -52,7 +52,9 @@ test('record-list rows on a dashboard card use the board row look', async ({ pag
 	})
 
 	expect(info.listPadLeft).toBeGreaterThanOrEqual(16)
-	expect(info.rowPadTop).toBe(14)
+	// 12px, as the Dq dashboards pad a dashboard row (fix/r23-board-dashboard-list-density:
+	// where the boards differ, the dossiq boards win).
+	expect(info.rowPadTop).toBe(12)
 	expect(info.underlined).toBe(0)
 	expect(info.dividerWidth).toBe(1)
 	// The pill and the date sit at the right edge of the row (inside its 8px hover inset).

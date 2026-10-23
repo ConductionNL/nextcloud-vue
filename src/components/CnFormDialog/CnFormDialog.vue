@@ -1035,10 +1035,13 @@ import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
 	extendsFormDeclarations,
+	mergeValueArray,
 	prefillDeclarations,
 	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
+	storedAnswersFor,
+	usesArrayValues,
 } from '../../utils/dynamicProperties.js'
 import { conditionHolds, shouldShow } from '../../utils/fieldCondition.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
@@ -4591,7 +4594,58 @@ export default {
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
 			this.dynamicLoading = false
+			this.seedStoredAnswers(active, properties)
 			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Fill the data-driven fields of a record being edited with the
+		 * answers it already stores, so the edit form shows them instead of
+		 * empty fields. Runs before the defaults, so a stored answer wins over
+		 * a definition default; a field that already holds a value keeps it.
+		 *
+		 * @param {Array<{key: string, config: object}>} declarations The declarations whose fields just loaded.
+		 * @param {object} properties The dynamic properties they produced.
+		 * @return {void}
+		 */
+		seedStoredAnswers(declarations, properties) {
+			if (!this.item) {
+				return
+			}
+			for (const { config } of declarations) {
+				for (const [key, value] of Object.entries(storedAnswersFor(this.item, config, properties))) {
+					if (this.formData[key] === undefined || this.formData[key] === null || this.formData[key] === '') {
+						this.formData[key] = value
+					}
+				}
+			}
+		},
+
+		/**
+		 * Put the answers of each declaration that stores them on the object
+		 * itself into the payload, merged over the array it already holds, so
+		 * any host that saves the payload saves the answers and an edit keeps
+		 * the stored answers it did not change.
+		 *
+		 * @param {object} base The object's own fields, mutated in place.
+		 * @param {Array<object>} answers The answers, with their `declarationKey`.
+		 * @return {void}
+		 */
+		foldStoredAnswers(base, answers) {
+			const declarations = this.extendsDeclarations
+			for (const { key, config } of declarations) {
+				if (!usesArrayValues(config)) {
+					continue
+				}
+				const mine = declarations.length === 1
+					? answers
+					: answers.filter((a) => a.declarationKey === key)
+				if (mine.length === 0) {
+					continue
+				}
+				const arrayKey = config.values.arrayKey
+				base[arrayKey] = mergeValueArray(base[arrayKey], mine, config, this.dynamicDefinitions)
+			}
 		},
 
 		/**
@@ -5215,7 +5269,10 @@ export default {
 					} else if (v.pattern !== undefined && v.pattern !== null && touched) {
 						try {
 							if (!new RegExp(v.pattern).test(value)) {
-								newErrors[field.key] = 'Invalid format.'
+								// `validation.patternMessage` names what is wrong, in the app's words.
+								newErrors[field.key] = typeof v.patternMessage === 'string' && v.patternMessage !== ''
+									? this.cnTranslate(v.patternMessage)
+									: 'Invalid format.'
 							}
 						} catch {
 							// Ignore invalid regex patterns
@@ -5327,6 +5384,7 @@ export default {
 				...answer,
 				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
 			}))
+			this.foldStoredAnswers(base, answers)
 			/**
 			 * @event confirm Emitted when the user confirms the form.
 			 * Payload: form data object. Includes `id` when editing. A second

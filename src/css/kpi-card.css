@@ -107,15 +107,18 @@
 	/* Label — the unit or qualifier beside the number, and every piece of
 	   secondary KPI text (captions, breakdowns, empty and loading lines). */
 	--cn-kpi-label-size: 13px;
-	--cn-kpi-label-color: var(--color-text-maxcontrast);
+	/* `--cn-kpi-label-color` is left undeclared: declared here it would resolve
+	   the theme grey at :root and ignore a theme that sets it on body. Every
+	   read falls back to var(--color-text-maxcontrast); set it to override. */
 
 	/* Section heading above a group of KPIs. */
 	--cn-kpi-section-title-size: 14px;
 
 	/* The tile's semantic colour. The variant modifiers below re-point THIS,
 	   and the icon and the value both read it — so a card can never say
-	   "success" with its icon and "primary" with its number. */
-	--cn-kpi-accent: var(--color-primary-element);
+	   "success" with its icon and "primary" with its number. Undeclared here
+	   for the same reason as the label colour; every read falls back to
+	   var(--color-primary-element). */
 }
 
 /* The canonical card: icon beside the number, left-aligned, no fill of its own.
@@ -533,6 +536,21 @@ a.cn-kpi-card--board * {
 .cn-kpi-card--board .cn-kpi-card__title--badge-end {
 	justify-content: space-between;
 	gap: 8px;
+}
+
+/* The tile with its icon in a circle at the end (DqDashboard, DqMijnTeam) is
+   the board's larger tile: padded 20px 22px, 8px between its lines, its 28px
+   figure at the font's normal line height, 153px with a two-line caption where
+   it drew 140. A theme sets the figure at line height 1 through an id
+   selector (`#app-content-vue .cn-stat-widget__value`), hence `!important`.
+   @spec openspec/changes/board-kpi-badge-tile-size/specs/stat-tile-board-look/spec.md */
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) {
+	--cn-kpi-stacked-padding: 20px 22px;
+	--cn-kpi-stacked-gap: 8px;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) .cn-kpi-card__value {
+	line-height: normal !important;
 }
 
 .cn-kpi-card__badge {

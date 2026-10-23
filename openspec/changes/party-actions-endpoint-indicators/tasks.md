@@ -1,0 +1,4 @@
+- [x] 1. CnPartyActionsWidget: endpoint indicators with tone label, meta, acknowledgement; link filters; label templates.
+- [x] 2. `src/utils/contactHref.js`.
+- [x] 3. `tests/components/CnPartyActionsWidgetEndpoint.spec.js`.
+- [x] 4. `docs/components/cn-party-actions-widget.md`.

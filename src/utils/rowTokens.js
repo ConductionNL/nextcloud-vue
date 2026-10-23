@@ -2,11 +2,13 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * rowTokens: fill the tokens that read the row a row action runs on.
+ * rowTokens: fill the tokens that read a row: the row a row action runs on,
+ * and the row a child list belongs to (`@row.<field>` in its filter and links).
  *
  * @module utils/rowTokens
  */
 
+import { objectFieldValue } from './objectName.js'
 import { readPath } from './readPath.js'
 
 /** The action keys whose values may carry row tokens. */
@@ -17,6 +19,7 @@ const URL_KEYS = Object.freeze(['target', 'url'])
 
 const ROW_TOKEN = /@row\.([A-Za-z_][\w.@]*)|\{(?!objectId\})([A-Za-z_@][\w.@]*)\}/g
 const HAS_ROW_TOKEN = /@row\.[A-Za-z_]|\{(?!objectId\})[A-Za-z_@][\w.@]*\}/
+const WHOLE_TOKEN = /^@row\.([A-Za-z0-9_.@-]+)$/
 
 /**
  * Read a row field as text; a missing or non-scalar value reads as ''.
@@ -101,6 +104,52 @@ export function actionForRow(action, row) {
 			}
 			out[key] = fillRowTokens(action[key], row, { encode: URL_KEYS.includes(key) })
 		}
+	}
+	return out
+}
+
+/**
+ * The row field a whole-value `@row.<field>` token names, or ''.
+ *
+ * @param {unknown} value A filter value.
+ * @return {string} The field path.
+ */
+export function rowTokenField(value) {
+	if (typeof value !== 'string') {
+		return ''
+	}
+	const match = WHOLE_TOKEN.exec(value)
+	return match ? match[1] : ''
+}
+
+/**
+ * A field of a row. `id` reads the top-level id, else `@self.id`.
+ *
+ * @param {object} row The row.
+ * @param {string} field The field path.
+ * @return {unknown} The value.
+ */
+function rowValue(row, field) {
+	if (field === 'id') {
+		const id = row && (row.id ?? (row['@self'] && row['@self'].id))
+		return id === undefined || id === null ? undefined : id
+	}
+	return objectFieldValue(row, field)
+}
+
+/**
+ * Resolve `@row.<field>` tokens in a filter against a row. A whole-value
+ * token keeps the value's type; other values pass through unchanged.
+ *
+ * @param {object} filter The filter.
+ * @param {object} row The row.
+ * @return {object} The resolved filter.
+ */
+export function resolveRowFilter(filter, row) {
+	const out = {}
+	for (const [key, value] of Object.entries(filter || {})) {
+		const field = rowTokenField(value)
+		out[key] = field === '' ? value : rowValue(row, field)
 	}
 	return out
 }

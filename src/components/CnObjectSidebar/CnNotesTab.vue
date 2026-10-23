@@ -7,46 +7,61 @@
 	<div class="cn-sidebar-tab">
 		<!-- Add / Edit note -->
 		<div class="cn-sidebar-tab__action">
-			<!-- Replying: the composer says to whom, and a reply to a reply goes to the top of its thread. -->
-			<p
-				v-if="replyTo"
-				class="cn-sidebar-tab__replying"
-				role="status"
-				data-testid="cn-notes-replying">
-				{{ replyingLabel }}
-				<NcButton variant="tertiary" @click="cancelReply">
-					{{ cancelLabel }}
-				</NcButton>
-			</p>
-			<!-- @slot composer-before An app's own control above the composer, e.g. a template picker. Scope: `{ setText, text }`; `setText(text)` fills the composer, `text` is what it holds now. -->
-			<slot name="composer-before" :setText="setComposerText" :text="newNoteText" />
-			<CnNoteComposer
-				class="cn-sidebar-tab__composer"
-				:modelValue="newNoteText"
-				:placeholder="addNotePlaceholder"
-				:register="register"
-				:schema="schema"
-				:objectId="objectId"
-				:apiBase="apiBase"
-				@update:modelValue="newNoteText = $event"
-				@submit="submitComposer" />
-			<div class="cn-sidebar-tab__action--row">
+			<!-- `composer: 'button'`: the add form waits behind "Add note". -->
+			<div v-if="composerBehindButton" class="cn-sidebar-tab__composer-toggle">
 				<NcButton
-					v-if="editingNoteId"
-					variant="tertiary"
-					@click="cancelEdit">
-					{{ cancelLabel }}
-				</NcButton>
-				<NcButton
-					variant="primary"
-					:disabled="!newNoteText.trim() || saving"
-					@click="editingNoteId ? saveEdit() : addNote()">
+					variant="secondary"
+					:aria-expanded="composerShown ? 'true' : 'false'"
+					data-testid="cn-notes-open-composer"
+					@click="composerOpen = !composerOpen">
 					<template #icon>
-						<Send :size="20" />
+						<NotePlusOutline :size="20" />
 					</template>
-					{{ editingNoteId ? saveLabel : addNoteLabel }}
+					{{ addNoteLabel }}
 				</NcButton>
 			</div>
+			<template v-if="composerShown">
+				<!-- Replying: the composer says to whom, and a reply to a reply goes to the top of its thread. -->
+				<p
+					v-if="replyTo"
+					class="cn-sidebar-tab__replying"
+					role="status"
+					data-testid="cn-notes-replying">
+					{{ replyingLabel }}
+					<NcButton variant="tertiary" @click="cancelReply">
+						{{ cancelLabel }}
+					</NcButton>
+				</p>
+				<!-- @slot composer-before An app's own control above the composer, e.g. a template picker. Scope: `{ setText, text }`; `setText(text)` fills the composer, `text` is what it holds now. -->
+				<slot name="composer-before" :setText="setComposerText" :text="newNoteText" />
+				<CnNoteComposer
+					class="cn-sidebar-tab__composer"
+					:modelValue="newNoteText"
+					:placeholder="addNotePlaceholder"
+					:register="register"
+					:schema="schema"
+					:objectId="objectId"
+					:apiBase="apiBase"
+					@update:modelValue="newNoteText = $event"
+					@submit="submitComposer" />
+				<div class="cn-sidebar-tab__action--row">
+					<NcButton
+						v-if="editingNoteId"
+						variant="tertiary"
+						@click="cancelEdit">
+						{{ cancelLabel }}
+					</NcButton>
+					<NcButton
+						variant="primary"
+						:disabled="!newNoteText.trim() || saving"
+						@click="editingNoteId ? saveEdit() : addNote()">
+						<template #icon>
+							<Send :size="20" />
+						</template>
+						{{ editingNoteId ? saveLabel : addNoteLabel }}
+					</NcButton>
+				</div>
+			</template>
 		</div>
 
 		<!-- Notes list -->
@@ -161,6 +176,7 @@ import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
+import NotePlusOutline from 'vue-material-design-icons/NotePlusOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Reply from 'vue-material-design-icons/Reply.vue'
 import Send from 'vue-material-design-icons/Send.vue'
@@ -178,7 +194,7 @@ import { userLocale } from '../../utils/userLocale.js'
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon, Reply },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, NotePlusOutline, Send, Pencil, Delete, HistoryIcon, Reply },
 
 	inject: {
 		/** The host app's translate, for labels a manifest wrote (`noteActions`). */
@@ -253,6 +269,20 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Where the add form lives: `inline` (default) keeps it open above the
+		 * notes; `button` puts it behind an "Add note" button (DqZaakEmail
+		 * "Notities") and closes it again once the note is saved. A reply or
+		 * an edit opens it either way.
+		 *
+		 * @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button
+		 */
+		composer: {
+			type: String,
+			default: 'inline',
+			validator: (v) => ['inline', 'button'].includes(v),
+		},
 	},
 
 	emits: [
@@ -294,10 +324,22 @@ export default {
 			mentionNames: {},
 			/** The note a reply is being written to, or null. */
 			replyTo: null,
+			/** Whether the add form is open while `composer` is `button`. */
+			composerOpen: false,
 		}
 	},
 
 	computed: {
+		/** @return {boolean} Whether the add form waits behind the "Add note" button. */
+		composerBehindButton() {
+			return this.composer === 'button'
+		},
+
+		/** @return {boolean} Whether the add form shows. */
+		composerShown() {
+			return !this.composerBehindButton || this.composerOpen || Boolean(this.replyTo) || Boolean(this.editingNoteId)
+		},
+
 		/** @return {{apiBase: string, register: string, schema: string, objectId: string}} Where this record's files live, for pasted images. */
 		record() {
 			return { apiBase: this.apiBase, register: this.register, schema: this.schema, objectId: this.objectId }
@@ -568,6 +610,7 @@ export default {
 				this.emitMentionEvent(savedText, noteId)
 				this.newNoteText = ''
 				this.replyTo = null
+				this.composerOpen = false
 				await this.fetchNotes()
 			} catch (err) {
 				// eslint-disable-next-line no-console
@@ -708,6 +751,8 @@ export default {
 .cn-sidebar-tab { padding: 12px; }
 
 .cn-sidebar-tab__action { margin-bottom: 16px; }
+
+.cn-sidebar-tab__composer-toggle { display: flex; justify-content: flex-end; }
 
 .cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
 

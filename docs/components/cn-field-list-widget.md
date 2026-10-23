@@ -56,6 +56,14 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `remove` | `{ label? }`: a remove button per row. Omitted: no remove. |
 | `readOnly` | No add form, no remove, no request row actions (dialog row actions stay). |
 | `hint`, `emptyText` | Muted texts. |
+| `row.href` | Path of a link for the row title. Only http(s) and root-relative links are drawn; an absolute one opens in a new tab. A row with no safe link shows its title as text. |
+| `row.href` as `{ path, scheme }` | `scheme` `mailto` or `tel`: the title links to `mailto:<value>` or `tel:<digits>`. |
+| `edit` | `true` or `{ label?, saveLabel? }`: an Edit button per row (named `Edit: <title>`) opens the add form prefilled; saving replaces that entry in the same one PATCH. Not in `readOnly`. |
+| `add.fields[].type: "checkbox"` | A switch; its value is `true` or `false`. |
+| `add.requireOneOf` | Keys of which at least one must be filled (a handle or a profile URL); `add.requireOneOfMessage` is the sentence under the first. |
+| `add.exclusive` | Flags (`["primary"]`) only one entry may hold: an entry added or edited with the flag `true` clears it on every other entry. |
+| `lead` | A bold line above the rows, translated, with `{path}` placeholders filled from the object (`"Question about the dossier \"{subjectReference.title}\""`). |
+| `afterSave` | `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens (a contacts write-back). When it fails, the save stands and `failureText` shows as a warning. |
 
 `when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
 
@@ -98,7 +106,7 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `rowActions[].when` | Besides `{ field: value }`, a field may take operators `{ eq?, neq?, set? }`, where an operand `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`. |
 | `columns[].code` | Draw the cell as code (a hash, an id). |
 | `add.trigger` | `"button"`: the add form shows only after a "+ label" button; it closes after a successful add. |
-| `add.placement` | `"header"` (button above the rows, right-aligned) or `"footer"` (default). |
+| `add.placement` | `"header"` (button above the rows, right-aligned), `"title"` (the button in the card's title row, reported on the `header` event; the form opens above the rows; DqZaaktype "Variant toevoegen") or `"footer"` (default). |
 
 ## Props
 

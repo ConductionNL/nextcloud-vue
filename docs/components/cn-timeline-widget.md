@@ -82,9 +82,11 @@ empty history.
 |-----|---------|-------------|
 | `manage` | `false` | `true` renders the manage view. |
 | `title`, `subtitle` | "History", "What happened, who did it and when, newest first" | Headings (translated through the app). |
-| `publicLabel` | "Visible to the applicant" | Label of the public badge, filter option and composer switch. |
+| `publicLabel` | "Visible to the requester" | Label of the public badge, filter option and composer switch. |
 | `exportName` | `history` | CSV file name prefix; the object id is appended. |
-| `composer` | `true` | `false` hides the note composer. |
+| `composer` | `true` | `false` hides the note composer. `"only"` draws the composer alone, to stack as a card of its own under the list (board DqZaakHistorie "Notitie toevoegen"); `"separate"` draws the list without a composer but keeps "Add note", which focuses that card. A note saved in the card reloads the list of the same object. |
+| `auditTrailLink` | unset | `true` ("Full audit trail in the sidebar") or a label: a link beside the event count that opens the object sidebar on its audit trail tab. Drawn only when the page has an object sidebar. |
+| `auditTrailTab` | `auditTrail` | The sidebar tab the audit trail link opens, for a page that declares its audit trail tab under its own id. |
 | `textBlocks` | `true` | `false` skips the standard notes. |
 | `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@row.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
 
@@ -114,3 +116,26 @@ the object.
 
 - [CnAuditTrailCard](./cn-audit-trail-card.md) for the change log alone.
 - [CnTimelineStages](./cn-timeline-stages.md) for a status progression.
+
+## Items from an app endpoint, with type chips
+
+An app that merges its own sources answers them from one endpoint. `endpointSource` reads it a page at a time, and `typeChips` narrow it on the server:
+
+```json
+{ "type": "timeline", "content": {
+  "order": "desc",
+  "endpointSource": {
+    "url": "/apps/pipelinq/api/timeline",
+    "params": { "entityType": "client", "entityId": "@objectId" },
+    "itemsPath": "items", "pagesPath": "pages",
+    "dateField": "date", "labelField": "title", "detailField": "description",
+    "typeField": "type", "userField": "user",
+    "typeLabels": { "interaction": "Contact moment", "task": "Task" },
+    "typesParam": "types[]", "limit": 20
+  },
+  "typeChips": [{ "value": "interaction", "label": "Contact moments" }, { "value": "task", "label": "Tasks" }]
+} }
+```
+
+`endpointSource.icons` (`{ path?, map?, typeMap?, default? }`) gives each event an icon instead of the dot: the value at `path` through `map` (a contact moment's channel: `{ "phone": "Phone", "email": "Email" }`), else its type through `typeMap`, else `default`. `emptyText` replaces "Nothing has happened yet." when there is nothing to show. Each item becomes an event: the label (an item without one reads "(no title)"), the detail cut at 120 characters, and a meta line of its type label and author. `pageParam` (default `_page`) and `limitParam` (default `_limit`) name the paging parameters; "Load more" reads the next page while the answer's `pages` is higher. A chip sends its value in `typesParam` and reads from page 1; All sends none. A failed read says that the activities could not load.
+

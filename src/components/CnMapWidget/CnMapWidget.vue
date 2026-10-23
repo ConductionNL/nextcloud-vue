@@ -83,6 +83,7 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
+import { normalizeLook } from '../../composables/useLook.js'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
@@ -169,6 +170,9 @@ const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.
 const ICON_LOCATE = 'M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
 const ICON_FULLSCREEN = 'M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'
 const ICON_FULLSCREEN_EXIT = 'M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z'
+const ICON_ZOOM_IN = 'M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z'
+const ICON_ZOOM_OUT = 'M19,13H5V11H19V13Z'
+const ICON_CROSSHAIRS = 'M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
 
 /**
  * Wrap an MDI path in a 24x24 SVG sized for a Leaflet control button.
@@ -227,6 +231,7 @@ export default {
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -325,6 +330,17 @@ export default {
 		 * @type {boolean}
 		 */
 		fitControl: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show Leaflet's zoom in and zoom out buttons. Off for a small preview
+		 * map that only shows where something is.
+		 *
+		 * @type {boolean}
+		 */
+		zoomControl: {
 			type: Boolean,
 			default: true,
 		},
@@ -448,7 +464,7 @@ export default {
 	 * @event click
 	 * @description Fired when the user clicks the map background (no marker hit). Payload: `{ latlng, originalEvent }`.
 	 */
-	emits: ['map-ready', 'marker-click', 'bounds-change', 'click'],
+	emits: ['map-ready', 'marker-click', 'bounds-change', 'click', 'header'],
 
 	data() {
 		return {
@@ -481,6 +497,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the widget is drawn in the board look, which puts the zoom
+		 * buttons in the control bar and the bar in the top right.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * Effective configuration. On a dashboard the placement `content` blob
 		 * carries the widget's config, so each key falls back to `content.<key>`
@@ -542,6 +568,26 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
 		 */
+		/**
+		 * The line under the card title that says how many places the map
+		 * shows (`content.headerSubtitle`: `{ one, other }` or one string, with
+		 * `{total}`), once the marker source answered with markers ("1 locatie").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-widget-header-count/specs/map-widget-header-count/spec.md#requirement-a-map-card-can-say-how-many-places-it-shows
+		 */
+		headerSubtitleText() {
+			const spec = this.content?.headerSubtitle
+			if (!spec || !this.markersLoaded || this.markersFailed || this.markerCount === 0) {
+				return ''
+			}
+			const text = typeof spec === 'string' ? spec : (this.markerCount === 1 ? spec.one : spec.other)
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return this.cnTranslate(text).replace(/\{total\}/g, String(this.markerCount))
+		},
+
 		markerStatusText() {
 			const markers = this.cfg.markers
 			if (!markers || !markers.dataSource || !this.markersLoaded) {
@@ -611,6 +657,21 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Report the count line to the card around the map.
+		 *
+		 * @param {string} subtitle The line, or ''.
+		 */
+		headerSubtitleText(subtitle) {
+			if (this.content?.headerSubtitle) {
+				/**
+				 * @event header The card header's line under the title.
+				 * @type {{subtitle: string}}
+				 */
+				this.$emit('header', { subtitle })
+			}
+		},
+
 		// Keyed, never `deep: true` — see `layersKey`.
 		layersKey() {
 			if (this.map) {
@@ -703,13 +764,13 @@ export default {
 						zoomSnap: 0.25,
 						maxBounds: paddedImageBounds(image.width, image.height),
 						maxBoundsViscosity: 1,
-						zoomControl: true,
+						zoomControl: !this.isBoardLook,
 						attributionControl: true,
 					}
 				: {
 						center: this.cfg.center,
 						zoom: this.cfg.zoom,
-						zoomControl: true,
+						zoomControl: this.zoomControl && !this.isBoardLook,
 						attributionControl: true,
 					}
 			this.map = L.map(this.$refs.mapEl, mapOptions)
@@ -1167,14 +1228,16 @@ export default {
 			})
 
 			if (Object.keys(baseLayers).length > 1 && L.control && typeof L.control.layers === 'function') {
-				this.layersControl = L.control.layers(baseLayers, {}, { position: 'topright' })
+				// The board look keeps the top right for its control column.
+				this.layersControl = L.control.layers(baseLayers, {}, { position: this.isBoardLook ? 'topleft' : 'topright' })
 				this.layersControl.addTo(this.map)
 			}
 		},
 
 		/**
 		 * Mount the custom control bar (fit-all / locate / fullscreen). Leaflet's own
-		 * zoom + attribution controls are enabled separately in `initMap`.
+		 * zoom + attribution controls are enabled separately in `initMap`; in the
+		 * board look the zoom buttons lead this bar instead, in the top right.
 		 */
 		addControls() {
 			const L = this.L
@@ -1185,8 +1248,13 @@ export default {
 			}
 
 			const buttons = []
+			const board = this.isBoardLook
+			if (board && (this.imageLayer || this.zoomControl)) {
+				buttons.push({ key: 'zoom-in', title: t('nextcloud-vue', 'Zoom in'), icon: ICON_ZOOM_IN, onClick: () => this.map.zoomIn() })
+				buttons.push({ key: 'zoom-out', title: t('nextcloud-vue', 'Zoom out'), icon: ICON_ZOOM_OUT, onClick: () => this.map.zoomOut() })
+			}
 			if (this.fitControl) {
-				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: ICON_FIT, onClick: () => this.fitToMarkers() })
+				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: board ? ICON_CROSSHAIRS : ICON_FIT, onClick: () => this.fitToMarkers() })
 			}
 			if (this.locateControl) {
 				buttons.push({ key: 'locate', title: t('nextcloud-vue', 'Show my location'), icon: ICON_LOCATE, onClick: () => this.locateMe() })
@@ -1225,7 +1293,7 @@ export default {
 				},
 			})
 
-			this.controlBar = new ControlBar({ position: 'topleft' })
+			this.controlBar = new ControlBar({ position: board ? 'topright' : 'topleft' })
 			this.controlBar.addTo(this.map)
 		},
 

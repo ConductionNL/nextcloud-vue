@@ -17,13 +17,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `counts`         | `{[viewId: string]: number}&#124;null` |          | `null`  | How many records each view matches, keyed by view id (or slug). `null` shows no counts.                                 |
 | `selectedViewId` | `string`                               |          | `''`    | The id (or slug) of the applied view.                                                                                   |
 | `menuIds`        | `Array<string>&#124;null`              |          | `null`  | The ids of the views this user put in the app menu, or `null` when the page cannot pin (no app shell to hold the menu). |
+| `summaries`      | `union`                                |          | `null`  | What each view filters on, by view id, in words: the line under a view that has no description of its own.              |
 
 ### Events
 
 | Name             | Payload | Description                                                               |
 | ---------------- | ------- | ------------------------------------------------------------------------- |
 | `apply`          | —       | Apply the view. Payload: the View API object.                             |
-| `copy-request`   | —       | Save a copy of a shared or default view. Payload: the view.               |
+| `copy-request`   | —       | Save a copy of a view. Payload: the view.                                 |
 | `delete-request` | —       | Delete an own view, after confirmation. Payload: the view.                |
 | `edit-request`   | —       | Edit an own view. Payload: the view.                                      |
 | `menu-toggle`    | —       | Add the view to the app menu, or remove it. Payload: the view.            |

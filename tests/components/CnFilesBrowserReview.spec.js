@@ -161,6 +161,30 @@ describe('CnFilesBrowser review surfaces', () => {
 		wrapper.unmount()
 	})
 
+	/**
+	 * @spec openspec/changes/files-browser-second-line-size-type/specs/files-browser-second-line-size-type/spec.md#requirement-a-files-second-line-can-name-its-type-and-size
+	 */
+	it('offers the file\'s type and size to the second line (DqZaakDocumenten "PDF · 1,2 MB")', async () => {
+		const wrapper = mountBrowser({ nameSecondary: '{type} · {size}' })
+		await flushPromises()
+		const lines = wrapper.findAll('[data-testid="cn-files-browser-name-secondary"]')
+		expect(lines.length).toBe(4)
+		expect(lines[0].text()).toMatch(/^PDF · 1(\.0)? B$/)
+		wrapper.unmount()
+	})
+
+	it('names common types by their application and falls back to the extension', () => {
+		const wrapper = mountBrowser()
+		const label = (mime, basename) => wrapper.vm.typeLabelOf({ mime, basename })
+		expect(label('application/pdf', 'a.pdf')).toBe('PDF')
+		expect(label('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx')).toBe('Word')
+		expect(label('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'a.xlsx')).toBe('Excel')
+		expect(label('message/rfc822', 'a.eml')).toBe('Email')
+		expect(label('application/x-thing', 'a.odg')).toBe('ODG')
+		expect(label('', 'noext')).toBe('')
+		wrapper.unmount()
+	})
+
 	it('is forwarded by the files tab', () => {
 		for (const prop of ['headerActions', 'rowButton', 'reviewSummary', 'footnote', 'nameSecondary']) {
 			expect(CnFilesTab.props[prop]).toBeDefined()

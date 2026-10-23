@@ -17,7 +17,7 @@
 					:modelValue="picked ? picked.id : null"
 					:inputId="assigneeId"
 					:inputLabel="assigneeLabel"
-					:labelOutside="true"
+					:labelOutside="false"
 					:options="shownOptions"
 					:loading="searching"
 					:filterable="false"
@@ -48,7 +48,7 @@
 				<NcCheckboxRadioSwitch :modelValue="flags[toggle.field] === true" @update:modelValue="flags[toggle.field] = $event">
 					<span class="cn-assign-dialog__toggle-title">{{ fill(toggle.label) }}</span>
 				</NcCheckboxRadioSwitch>
-				<span v-if="toggle.note" class="cn-assign-dialog__hint cn-assign-dialog__toggle-note">{{ fill(toggle.note) }}</span>
+				<span v-if="toggle.note" class="cn-assign-dialog__hint cn-assign-dialog__toggle-note">{{ fill(toggle.note) || text(toggle.noteFallback) }}</span>
 			</div>
 
 			<p v-if="refusal"
@@ -143,9 +143,10 @@ export function withTypedAssignee(found, typed, label) {
  * - `note`: `{ label?, hint?, required?, field?, rows? }`, required by default and
  *   sent as `field` (default `note`); `false` drops it. `rows` is the text
  *   area's height in lines (default 3, as board DqOverdragen draws it).
- * - `toggles`: `[{ field, label, note? }]`: switches that start off and are
- *   sent as booleans; `label` and `note` are templates filled from the record
- *   ("{initiatorDisplayName} then gets a message").
+ * - `toggles`: `[{ field, label, note?, noteFallback? }]`: switches that start
+ *   off and are sent as booleans; `label` and `note` are templates filled from
+ *   the record ("{initiatorDisplayName} then gets a message"); `noteFallback`
+ *   is shown when the record lacks a value the note names.
  * - `confirm`: `{ label?, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` sends the choice itself (`body` templates filled from the
  *   record); `action` dispatches a manifest action with the choice as its
@@ -492,6 +493,15 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+}
+
+/* The assignee label sits above its field, as the note's does. */
+.cn-assign-dialog__field :deep(.select__label) {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
 }
 
 .cn-assign-dialog__hint {

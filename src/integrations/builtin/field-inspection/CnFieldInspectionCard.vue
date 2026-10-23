@@ -534,6 +534,7 @@ export default {
 					schema: submission.schema,
 					endpoint: submission.endpoint,
 					payload: submission.payload,
+					label: t('nextcloud-vue', '{subject}, checklist', { subject: this.itemTitle(this.activeItem) }),
 				})
 				this.pendingCount = await countPending(this.deviceId)
 				this.stuckCount = await countStuck(this.deviceId)

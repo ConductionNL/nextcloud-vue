@@ -15,9 +15,23 @@
 			:data-testid="`cn-settings-field-status-${field.key}`">
 			{{ field.text }}
 		</NcNoteCard>
+		<div v-else-if="kind === 'note'" class="cn-settings-field__note">
+			<span class="cn-settings-field__note-label">{{ label }}</span>
+			<p class="cn-settings-field__note-text" :data-testid="`cn-settings-field-note-${field.key}`">
+				{{ field.text }}
+			</p>
+		</div>
 		<div v-else-if="kind === 'action'" class="cn-settings-field__action">
 			<div class="cn-settings-field__action-row">
-				<NcButton
+				<NcButton v-if="field.href"
+					:href="actionHref"
+					:target="field.target || undefined"
+					:rel="field.target === '_blank' ? 'noopener noreferrer' : undefined"
+					:aria-describedby="describedBy"
+					:data-testid="`cn-settings-field-action-${field.key}`">
+					{{ label }}
+				</NcButton>
+				<NcButton v-else
 					:disabled="field.readOnly || field.actionBusy"
 					:aria-describedby="describedBy"
 					:data-testid="`cn-settings-field-action-${field.key}`"
@@ -93,7 +107,14 @@
 					:modelValue="row.key"
 					:maxlength="field.keyMaxLength"
 					@update:modelValue="setPair(index, 'key', $event)" />
-				<NcTextField
+				<NcSelect v-if="field.valueSource"
+					:modelValue="sourceOption(row.value)"
+					:options="sourceOptions"
+					:inputLabel="pairValueLabel"
+					:loading="sourceLoading"
+					label="label"
+					@update:modelValue="setPair(index, 'value', $event ? $event.value : '')" />
+				<NcTextField v-else
 					:label="pairValueLabel"
 					:type="field.valueType === 'number' ? 'number' : 'text'"
 					:modelValue="row.value === null || row.value === undefined ? '' : String(row.value)"
@@ -108,6 +129,11 @@
 					</template>
 				</NcButton>
 			</div>
+			<p v-if="sourceTruncated"
+				class="cn-settings-field__hint"
+				:data-testid="`cn-settings-field-pairs-truncated-${field.key}`">
+				{{ t('nextcloud-vue', 'Only the first {count} choices are listed.', { count: sourceOptions.length }) }}
+			</p>
 			<NcButton
 				:data-testid="`cn-settings-field-pair-add-${field.key}`"
 				@click="addPair">
@@ -187,18 +213,61 @@
 			:error="!!error"
 			:aria-describedby="describedBy"
 			@update:modelValue="emitValue($event)" />
-		<NcTextField
-			v-else-if="kind === 'secret'"
-			:id="inputId"
-			:label="label"
-			type="password"
-			autocomplete="new-password"
-			:modelValue="stringValue"
-			:placeholder="field.secretSet ? secretSetPlaceholder : (field.placeholder || '')"
-			:readonly="field.readOnly"
-			:error="!!error"
-			:aria-describedby="describedBy"
-			@update:modelValue="emitValue($event)" />
+		<div v-else-if="kind === 'secret'" class="cn-settings-field__secret">
+			<NcTextField
+				:id="inputId"
+				:label="label"
+				type="password"
+				autocomplete="new-password"
+				:modelValue="stringValue"
+				:placeholder="field.secretSet ? secretSetPlaceholder : (field.placeholder || '')"
+				:readonly="field.readOnly"
+				:disabled="field.clearing === true"
+				:error="!!error"
+				:aria-describedby="describedBy"
+				@update:modelValue="emitValue($event)" />
+			<NcCheckboxRadioSwitch v-if="field.clearable && field.secretSet"
+				type="switch"
+				:modelValue="field.clearing === true"
+				:disabled="field.readOnly"
+				:data-testid="`cn-settings-field-clear-${field.key}`"
+				@update:modelValue="onClear">
+				{{ field.clearLabel || t('nextcloud-vue', 'Remove the stored value') }}
+			</NcCheckboxRadioSwitch>
+		</div>
+		<fieldset v-else-if="kind === 'week-hours'"
+			class="cn-settings-field__week"
+			:disabled="field.readOnly"
+			:aria-describedby="describedBy">
+			<legend class="cn-settings-field__radio-legend" :class="{ 'hidden-visually': field.hideLabel === true }">
+				{{ label }}
+			</legend>
+			<div v-for="day in weekDays"
+				:key="day.key"
+				class="cn-settings-field__day"
+				:data-testid="`cn-settings-field-day-${day.key}`">
+				<NcCheckboxRadioSwitch
+					type="switch"
+					:modelValue="!!weekValue[day.key]"
+					:aria-label="t('nextcloud-vue', 'Open on {day}', { day: day.label })"
+					@update:modelValue="setDayOpen(day.key, $event)">
+					{{ day.label }}
+				</NcCheckboxRadioSwitch>
+				<template v-if="weekValue[day.key]">
+					<NcTextField
+						type="time"
+						:label="t('nextcloud-vue', 'Opens on {day}', { day: day.label })"
+						:modelValue="weekValue[day.key].opens || ''"
+						@update:modelValue="setDayTime(day.key, 'opens', $event)" />
+					<NcTextField
+						type="time"
+						:label="t('nextcloud-vue', 'Closes on {day}', { day: day.label })"
+						:modelValue="weekValue[day.key].closes || ''"
+						@update:modelValue="setDayTime(day.key, 'closes', $event)" />
+				</template>
+				<span v-else class="cn-settings-field__hint">{{ t('nextcloud-vue', 'Closed') }}</span>
+			</div>
+		</fieldset>
 		<NcTextField
 			v-else-if="kind === 'number'"
 			:id="inputId"
@@ -236,7 +305,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { getDayNames, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -248,6 +317,12 @@ let fieldUid = 0
 
 /** Field types and the names CnSettingsPage's manifest uses for them. */
 const KIND_ALIASES = { enum: 'select', string: 'text', datetime: 'datetime-local', 'date-time': 'datetime-local' }
+
+/** The days of a week, Monday first: the keys a week-hours value uses. */
+const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+/** The same keys in the order of getDayNames(), which starts on Sunday. */
+const WEEK_DAYS_FROM_SUNDAY = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 /** The kinds drawn as a text field with their own input type. */
 const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
@@ -321,7 +396,7 @@ export default {
 		},
 	},
 
-	emits: ['update:modelValue', 'uploaded', 'action'],
+	emits: ['update:modelValue', 'uploaded', 'action', 'clear'],
 
 	data() {
 		fieldUid += 1
@@ -329,6 +404,9 @@ export default {
 			uid: fieldUid,
 			fetchedOptions: null,
 			optionsLoading: false,
+			sourceOptions: [],
+			sourceLoading: false,
+			sourceTruncated: false,
 			uploading: false,
 			uploadError: '',
 		}
@@ -377,6 +455,23 @@ export default {
 		/** @return {string} The value as text for a text control. */
 		stringValue() {
 			return this.modelValue === null || this.modelValue === undefined ? '' : String(this.modelValue)
+		},
+
+		/** @return {Array<{key: string, label: string}>} The days of a week-hours field, Monday first by default. */
+		weekDays() {
+			const names = getDayNames()
+			const days = Array.isArray(this.field.days) && this.field.days.length > 0 ? this.field.days : WEEK_DAYS
+			return days.map((key) => ({ key, label: names[WEEK_DAYS_FROM_SUNDAY.indexOf(key)] || key }))
+		},
+
+		/** @return {object} A week-hours field's value: day to `{ opens, closes }` or null. */
+		weekValue() {
+			return this.modelValue && typeof this.modelValue === 'object' && !Array.isArray(this.modelValue) ? this.modelValue : {}
+		},
+
+		/** @return {string} An action link's address, with the web root for an app path. */
+		actionHref() {
+			return prefixUrl(String(this.field.href || ''))
 		},
 
 		/** @return {string} The placeholder of a secret that is stored. */
@@ -444,9 +539,28 @@ export default {
 
 			immediate: true,
 		},
+
+		'field.valueSource': {
+			handler() {
+				this.loadSourceOptions()
+			},
+
+			immediate: true,
+		},
 	},
 
 	methods: {
+		/**
+		 * The "remove the stored value" switch of a secret changed.
+		 *
+		 * @param {boolean} on Whether the stored value is to be removed.
+		 * @return {void}
+		 */
+		onClear(on) {
+			/** @event clear The stored secret is to be removed (true) or kept (false). */
+			this.$emit('clear', on === true)
+		},
+
 		t,
 
 		/** Ask the host to run an `action` field's action. */
@@ -578,6 +692,75 @@ export default {
 		},
 
 		/**
+		 * Open or close one day of a week-hours field; an opened day takes
+		 * `defaultOpens`/`defaultCloses` (08:00 to 17:00).
+		 *
+		 * @param {string} day The day key.
+		 * @param {boolean} open Whether it is open.
+		 * @return {void}
+		 */
+		setDayOpen(day, open) {
+			const hours = open ? { opens: this.field.defaultOpens || '08:00', closes: this.field.defaultCloses || '17:00' } : null
+			this.emitValue({ ...this.weekValue, [day]: hours })
+		},
+
+		/**
+		 * Change one time of an open day.
+		 *
+		 * @param {string} day The day key.
+		 * @param {string} part `opens` or `closes`.
+		 * @param {string} time The time, `HH:MM`.
+		 * @return {void}
+		 */
+		setDayTime(day, part, time) {
+			this.emitValue({ ...this.weekValue, [day]: { ...(this.weekValue[day] || {}), [part]: time } })
+		},
+
+		/**
+		 * The option a pairs value selects; an id no object answers keeps its id as label.
+		 *
+		 * @param {unknown} value The stored id.
+		 * @return {object|null}
+		 */
+		sourceOption(value) {
+			if (value === null || value === undefined || value === '') {
+				return null
+			}
+			return this.sourceOptions.find((option) => String(option.value) === String(value)) || { label: String(value), value }
+		},
+
+		/**
+		 * Read the objects a pairs field's values are chosen from:
+		 * `valueSource { register, schema, labelField?, valueField?, limit? }`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSourceOptions() {
+			const source = this.kind === 'pairs' ? this.field.valueSource : null
+			if (!source || !source.register || !source.schema) {
+				return
+			}
+			const limit = Number(source.limit) > 0 ? Number(source.limit) : 1000
+			this.sourceLoading = true
+			try {
+				const url = `/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}?_limit=${limit}`
+				const { data } = await axios.get(prefixUrl(url))
+				const list = Array.isArray(data?.results) ? data.results : []
+				this.sourceOptions = list.filter((item) => item && typeof item === 'object').map((item) => {
+					const value = source.valueField ? readPath(item, source.valueField) : (item.id ?? item.uuid ?? item['@self']?.id)
+					const label = source.labelField ? readPath(item, source.labelField) : (item.name ?? item.title)
+					return { label: String(label || value || ''), value }
+				})
+				this.sourceTruncated = Number(data?.total) > list.length
+			} catch {
+				this.sourceOptions = []
+				this.sourceTruncated = false
+			} finally {
+				this.sourceLoading = false
+			}
+		},
+
+		/**
 		 * Read a sourced select's options: a list (or the list at
 		 * `optionsPath`, or under `results`) mapped through `optionLabel` and
 		 * `optionValue` (dotted paths; default `label`/`title`/`name` and `value`/`id`).
@@ -642,6 +825,23 @@ export default {
 	font-weight: 600;
 }
 
+/* A note: the field's label, then a line of muted text where a control would
+   stand (DqInstellingenAlgemeen "Toegestane websites (CORS)"). */
+.cn-settings-field__note {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-settings-field__note-label {
+	font-weight: 600;
+}
+
+.cn-settings-field__note-text {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-settings-field__image-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -688,6 +888,26 @@ export default {
 	margin: 0;
 	padding: 0;
 	border: 0;
+}
+
+.cn-settings-field__week {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.cn-settings-field__day {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.cn-settings-field__day > :first-child {
+	flex: 0 0 160px;
 }
 
 .cn-settings-field__pairs {

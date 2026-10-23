@@ -28,6 +28,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 | `description` | String | `''` | Brief section description shown under the title |
 | `detailedDescription` | String | `''` | Longer description rendered in a separate block below the title |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |
+| `openedFrom` | String | `''` | The row this card is opened from, already translated: the card shows only while the page's hash names its `id`, and says "Opened from the row {row}" under its title in place of its description (DqInstellingen). Empty: the card is always shown. |
 | `loading` | Boolean | `false` | Loading state — shows a loading indicator instead of content |
 | `loadingMessage` | String | `'Loading...'` | Message shown during loading |
 | `error` | Boolean | `false` | Error state — shows an error card with optional retry button |
@@ -36,6 +37,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |
 | `empty` | Boolean | `false` | Empty state — shows an empty message instead of content |
 | `emptyMessage` | String | `'No data available'` | Message shown when the section has no data |
+| `footerLink` | Object | `null` | `{ label, href }`: a link at the end of the card to where its list is managed ("Leges beheren in shillinq"), drawn only with both and a safe href. The label is already translated. |
 
 ## Slots
 

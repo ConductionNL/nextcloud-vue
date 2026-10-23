@@ -23,7 +23,7 @@ Every Conduction app runs its human tasks on OpenRegister's one task store (ADR-
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`, `variant`, `viewAllRoute`, `viewAllLabel`, `objectUuid`, `includeDone`, `create`, `completeAny`, `cancel`, `expandRows`, `completeUrl`, `claimCapabilityUrl`). |
+| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`, `variant`, `viewAllRoute`, `viewAllLabel`, `objectUuid`, `includeDone`, `create`, `completeAny`, `cancel`, `expandRows`, `completeUrl`, `claimCapabilityUrl`, `dueFormat`, `stateLabels`, `stateColors`, `viewAllPlacement`). |
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `objectId` | `string \| number` | `''` | The page's record id, for `objectUuid: "@objectId"` in the content. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
@@ -57,6 +57,7 @@ On a record page (`objectUuid: "@objectId"`) the widget can let a handler finish
 - **`expandRows: true`** in the table makes a row's title a toggle (`aria-expanded`) that opens that task in the same card under the table; the card's title links to `rowRoute`.
 - **`completeUrl`** sends Complete to an app route instead of the engine's (`/apps/dossiq/api/case-tasks/{id}/complete`, which checks the case type's form and effects first). [CnTaskFormDialog](./cn-task-form-dialog.md) takes the same route.
 - **`claimCapabilityUrl`** gates Claim on what the engine can do: the URL answers `{ "claim": true }` or `false`, and a failed read leaves Claim off. Where claim is off, an offered task says to assign it instead.
+- **The table as a board draws it** (DqZaakTaken): `dueFormat: "date"` shows the deadline as a short date, an overdue one still saying so to a screen reader; `stateLabels` and `stateColors` (`{ "active": "purple" }`) word and colour the status by its raw state; `viewAllPlacement: "footer"` draws the view-all link under the table instead of in the card header.
 - **A task that carries a form** opens CnTaskFormDialog from Complete in the table and the lists, and fills its form inline in the cards.
 
 A finished task toasts "Task {title} finished", a claim "Task {title} is yours"; a refusal shows the server's own sentence.

@@ -67,7 +67,7 @@
 					</div>
 				</dl>
 				<NcNoteCard type="info">
-					{{ t('nextcloud-vue', 'This record has not been closed yet. Its archival future is recorded when it closes.') }}
+					{{ text(content.pendingNote) || t('nextcloud-vue', 'This record has not been closed yet. Its archival future is recorded when it closes.') }}
 				</NcNoteCard>
 			</div>
 			<dl v-else class="cn-retention__facts" data-testid="cn-retention-facts">
@@ -79,14 +79,52 @@
 				</div>
 			</dl>
 
+			<section v-if="content.legalHold" class="cn-retention__section" data-testid="cn-retention-hold">
+				<component :is="innerHeadingTag" class="cn-inner-heading">
+					{{ t('nextcloud-vue', 'Kept for a procedure') }}
+				</component>
+				<ul class="cn-retention__rows">
+					<li v-for="hold in holds" :key="hold.id" class="cn-retention__row">
+						<span class="cn-retention__row-text">
+							<span class="cn-retention__row-title">{{ hold.reason || t('nextcloud-vue', 'Legal hold') }}</span>
+							<span class="cn-retention__muted">{{ t('nextcloud-vue', 'Placed on {date} by {by}', { date: hold.placedDate, by: hold.placedBy }) }}</span>
+						</span>
+						<CnStatusBadge :label="t('nextcloud-vue', 'Active')" variant="warning" />
+					</li>
+					<li v-if="holds.length === 0" class="cn-retention__row">
+						<span class="cn-retention__row-text">
+							<span class="cn-retention__row-title">{{ t('nextcloud-vue', 'No legal hold') }}</span>
+							<span class="cn-retention__muted">{{ t('nextcloud-vue', 'If an objection or appeal runs, destruction is suspended') }}</span>
+						</span>
+						<CnStatusBadge :label="t('nextcloud-vue', 'None')" />
+					</li>
+				</ul>
+			</section>
+
+			<section v-if="content.transfer" class="cn-retention__section" data-testid="cn-retention-transfer">
+				<component :is="innerHeadingTag" class="cn-inner-heading">
+					{{ t('nextcloud-vue', 'Transfer to the e-Depot') }}
+				</component>
+				<ul class="cn-retention__rows">
+					<li class="cn-retention__row">
+						<span class="cn-retention__row-text">
+							<span class="cn-retention__row-title">{{ transfers ? t('nextcloud-vue', 'Goes to the e-Depot') : t('nextcloud-vue', 'Not applicable') }}</span>
+							<span class="cn-retention__muted">{{ transfers ? t('nextcloud-vue', 'After the retention period the record is transferred') : t('nextcloud-vue', 'Only records appraised to keep go to the e-Depot') }}</span>
+						</span>
+						<CnStatusBadge :label="transfers ? t('nextcloud-vue', 'Transfer') : t('nextcloud-vue', 'No transfer')" :variant="transfers ? 'info' : 'default'" />
+					</li>
+				</ul>
+			</section>
+
 			<div v-if="outcome" class="cn-retention__outcome" data-testid="cn-retention-outcome">
-				<h4>{{ t('nextcloud-vue', 'Outcome') }}</h4>
+				<component :is="innerHeadingTag" class="cn-inner-heading">
+					{{ t('nextcloud-vue', 'Outcome') }}
+				</component>
 				<p>{{ t('nextcloud-vue', 'Handed over as {kind} on {at} by {by}.', { kind: String(outcome.kind ?? ''), at: String(outcome.at ?? ''), by: String(outcome.by ?? '') }) }}</p>
 				<p v-if="outcome.transferListUuid">
 					{{ t('nextcloud-vue', 'Transfer list') }}: {{ outcome.transferListUuid }}
 				</p>
 			</div>
-
 		</template>
 	</div>
 </template>
@@ -94,12 +132,16 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRetentionRecomputeDialog from './CnRetentionRecomputeDialog.vue'
+import innerHeading from '../../mixins/innerHeading.js'
+import { parseDuration } from '../../utils/isoDuration.js'
 import { readPath } from '../../utils/readPath.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnRetentionWidget — the `retention` detail widget: what happens to a
@@ -120,6 +162,20 @@ import { readPath } from '../../utils/readPath.js'
  *   `@self.archived` is said out loud.
  * - `archivistGroups`: groups that may recompute (default `["archivaris"]`;
  *   admins always may); `recompute: false` hides the control.
+ * - `expected`: before the record closes, the outcome its type expects.
+ *   `source: { register, schema, filter }` lists the candidate rules (a case
+ *   type's result types, `filter` tokens such as `@object.caseType`
+ *   resolved against the record); `fields: { appraisal, period,
+ *   selectionListRow }` names their fields; `appraisalLabels` names the
+ *   appraisal values; `periodText` writes the period (`{period} after the
+ *   decision`); `decidedBy` says who decides. When the candidates agree the
+ *   facts show that outcome, otherwise "Depends on the result". A failed
+ *   read keeps the plain facts.
+ * - `pendingNote`: the note under the facts of a record not closed yet.
+ * - `legalHold: true`: a section with the record's active legal holds
+ *   (`@self._retention.legalHold.holds`), or that none applies.
+ * - `transfer: { keepValues }`: a section saying whether the record goes to
+ *   the e-Depot, from the stored or expected appraisal.
  *
  * The record is read fresh from OpenRegister by `register`, `schema` and
  * `objectId` (props, else the bound record's `@self`).
@@ -127,7 +183,9 @@ import { readPath } from '../../utils/readPath.js'
 export default {
 	name: 'CnRetentionWidget',
 
-	components: { CnRetentionRecomputeDialog, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Refresh },
+	components: { CnRetentionRecomputeDialog, CnStatusBadge, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Refresh },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -186,6 +244,8 @@ export default {
 			/** Whether the recompute dialog is open. */
 			recomputeOpen: false,
 			busy: false,
+			/** The candidate rules `content.expected` reads, null until read or when unreadable. */
+			expectedRows: null,
 		}
 	},
 
@@ -271,15 +331,85 @@ export default {
 			].filter((fact) => fact.value !== undefined && fact.value !== null && fact.value !== '').map((fact) => ({ ...fact, value: String(fact.value) }))
 		},
 
-		/** @return {Array<{key: string, label: string, value: string}>} The facts of a record not closed yet. */
+		/**
+		 * The outcome the record's type expects before it closes: the agreed
+		 * appraisal, period and selection list row of the candidate rules, or
+		 * `mixed` when they disagree; null when nothing was read.
+		 *
+		 * @spec openspec/changes/retention-expected-outcome/specs/retention-widget/spec.md#requirement-an-open-record-shows-the-outcome-its-type-expects
+		 * @return {{appraisal: string, period: string, selectionListRow: string, mixed: boolean}|null}
+		 */
+		expectedOutcome() {
+			const rows = this.expectedRows
+			if (!Array.isArray(rows) || rows.length === 0) {
+				return null
+			}
+			const fields = { appraisal: 'appraisal', period: 'period', selectionListRow: 'selectionListRow', ...(this.content.expected?.fields || {}) }
+			const pick = (row, key) => String(readPath(row, fields[key]) ?? '')
+			const outcomes = rows.map((row) => ({ appraisal: pick(row, 'appraisal'), period: pick(row, 'period'), selectionListRow: pick(row, 'selectionListRow') }))
+			const first = outcomes[0]
+			const agree = outcomes.every((o) => o.appraisal === first.appraisal && o.period === first.period)
+			if (first.appraisal === '' && first.period === '') {
+				return null
+			}
+			return agree
+				? { ...first, selectionListRow: outcomes.every((o) => o.selectionListRow === first.selectionListRow) ? first.selectionListRow : '', mixed: false }
+				: { appraisal: '', period: '', selectionListRow: '', mixed: true }
+		},
+
+		/**
+		 * The facts of a record not closed yet: the expected outcome where the
+		 * type gives one, "decided when it closes" otherwise.
+		 *
+		 * @spec openspec/changes/retention-expected-outcome/specs/retention-widget/spec.md#requirement-an-open-record-shows-the-outcome-its-type-expects
+		 * @return {Array<{key: string, label: string, value: string}>}
+		 */
 		pendingFacts() {
 			const atClosure = t('nextcloud-vue', 'Decided when it closes')
-			return [
-				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: atClosure },
-				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: atClosure },
-				{ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure },
-				{ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: t('nextcloud-vue', 'Not yet') },
+			const expected = this.expectedOutcome
+			if (!expected) {
+				return [
+					{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: atClosure },
+					{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: atClosure },
+					{ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure },
+					{ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: t('nextcloud-vue', 'Not yet') },
+				]
+			}
+			const depends = t('nextcloud-vue', 'Depends on the result')
+			const config = this.content.expected || {}
+			const facts = [
+				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: expected.mixed ? depends : this.appraisalLabel(expected.appraisal) },
+				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: expected.mixed ? depends : this.periodLabel(expected.period) },
 			]
+			if (expected.selectionListRow) {
+				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: expected.selectionListRow })
+			}
+			facts.push({ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure })
+			if (config.decidedBy) {
+				facts.push({ key: 'rule', label: t('nextcloud-vue', 'Decided by'), value: this.text(config.decidedBy) })
+			}
+			facts.push({ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: t('nextcloud-vue', 'Not yet') })
+			return facts.filter((fact) => fact.value !== '')
+		},
+
+		/** @return {Array<{id: string, reason: string, placedBy: string, placedDate: string}>} The active legal holds. */
+		holds() {
+			const hold = (this.retention && this.retention.legalHold) || {}
+			const list = Array.isArray(hold.holds) ? hold.holds : []
+			return list.map((h, index) => ({ id: String(h.id ?? index), reason: String(h.reason ?? ''), placedBy: String(h.placedBy ?? ''), placedDate: String(h.placedDate ?? '') }))
+		},
+
+		/**
+		 * Whether the record goes to the e-Depot: its stored appraisal, else
+		 * the expected one, is one of `transfer.keepValues`.
+		 *
+		 * @return {boolean}
+		 */
+		transfers() {
+			const keep = Array.isArray(this.content.transfer?.keepValues) ? this.content.transfer.keepValues.map(String) : ['bewaren', 'blijvend_bewaren', 'retain', 'keep']
+			const stored = this.retention && this.retention.appraisal
+			const appraisal = stored || (this.expectedOutcome && !this.expectedOutcome.mixed ? this.expectedOutcome.appraisal : '')
+			return keep.includes(String(appraisal || ''))
 		},
 
 		/** @return {string} The signed-in user's id. */
@@ -323,6 +453,38 @@ export default {
 		},
 
 		/**
+		 * An appraisal value in words, through `expected.appraisalLabels`.
+		 *
+		 * @param {string} value The stored value.
+		 * @return {string}
+		 */
+		appraisalLabel(value) {
+			const labels = this.content.expected?.appraisalLabels || {}
+			return labels[value] ? this.text(labels[value]) : value
+		},
+
+		/**
+		 * An ISO period in words ("5 years"), placed in `expected.periodText`.
+		 *
+		 * @param {string} value The ISO 8601 duration.
+		 * @return {string}
+		 */
+		periodLabel(value) {
+			const parsed = parseDuration(value)
+			const words = parsed
+				? {
+						years: () => n('nextcloud-vue', '%n year', '%n years', parsed.amount),
+						months: () => n('nextcloud-vue', '%n month', '%n months', parsed.amount),
+						weeks: () => n('nextcloud-vue', '%n week', '%n weeks', parsed.amount),
+						days: () => n('nextcloud-vue', '%n day', '%n days', parsed.amount),
+					}[parsed.unit]
+				: null
+			const period = words ? words() : value
+			const template = this.content.expected?.periodText
+			return template ? this.text(template).replace('{period}', period) : period
+		},
+
+		/**
 		 * Read the record fresh from OpenRegister; a failure is an error, never an empty block.
 		 *
 		 * @spec openspec/changes/retention-widget/specs/retention-widget/spec.md#requirement-a-record-shows-its-stored-retention
@@ -337,11 +499,37 @@ export default {
 				}
 				const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(this.registerRef)}/${encodeURIComponent(this.schemaRef)}/${encodeURIComponent(this.id)}`))
 				this.record = data && typeof data === 'object' ? data : null
+				await this.loadExpected()
 			} catch (failure) {
 				const body = failure && failure.response && failure.response.data
 				this.error = String((body && (body.message || body.error)) || (failure && failure.message) || failure)
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Read the candidate rules `content.expected` names, for a record that
+		 * is not nominated yet. A failure leaves the plain pending facts.
+		 *
+		 * @spec openspec/changes/retention-expected-outcome/specs/retention-widget/spec.md#requirement-an-open-record-shows-the-outcome-its-type-expects
+		 * @return {Promise<void>}
+		 */
+		async loadExpected() {
+			const source = this.content.expected && this.content.expected.source
+			this.expectedRows = null
+			if (!source || !source.register || !source.schema || this.nomination) {
+				return
+			}
+			const filter = resolveFilterTokens(source.filter || {}, { objectId: this.id, object: this.record })
+			if (hasUnresolvedTokens(filter)) {
+				return
+			}
+			try {
+				const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}`), { params: { ...filter, _limit: 100 } })
+				this.expectedRows = Array.isArray(data?.results) ? data.results : []
+			} catch {
+				this.expectedRows = null
 			}
 		},
 
@@ -422,6 +610,38 @@ export default {
 
 .cn-retention__fact dd {
 	margin: 0;
+	font-weight: 600;
+}
+
+.cn-retention__section {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-retention__rows {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-retention__row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-retention__row-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-retention__row-title {
 	font-weight: 600;
 }
 

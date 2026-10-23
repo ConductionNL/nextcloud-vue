@@ -92,6 +92,43 @@ export function columnFieldsOf(board) {
 			moveTargetsHandler: typeof entry.moveTargetsHandler === 'string' ? entry.moveTargetsHandler : '',
 			valueLabels: entry.valueLabels && typeof entry.valueLabels === 'object' ? entry.valueLabels : null,
 			emptyLabel: typeof entry.emptyLabel === 'string' ? entry.emptyLabel : '',
+			states: Array.isArray(entry.states) ? entry.states : null,
+		}))
+}
+
+/**
+ * The columns a page declares for a column field (`states`), normalised to
+ * the `{ key, label, hidden, closed, color? }` entries `stagesOf()` reads.
+ * The active column field's own `states` win; on the board's `statusField`
+ * `board.states` applies. A referenced or values column has no declared
+ * states: its columns are rows or values.
+ *
+ * @param {object} board The board configuration (manifest `config.board`).
+ * @param {object|null} active The active column field from `columnFieldsOf`, or null.
+ * @param {string} field The field the columns come from.
+ * @return {Array<{key: string, label: string, hidden: boolean, closed: boolean, color?: string}>|null} The states, or null when none are declared.
+ * @spec openspec/changes/board-declared-states/specs/board-view/spec.md#requirement-a-board-can-declare-the-states-its-columns-come-from
+ */
+export function declaredStatesOf(board, active, field) {
+	if (active && active.kind !== 'schema') {
+		return null
+	}
+	let declared = active && Array.isArray(active.states) ? active.states : null
+	if (declared === null && field !== '' && field === board?.statusField && Array.isArray(board?.states)) {
+		declared = board.states
+	}
+	if (declared === null || declared.length === 0) {
+		return null
+	}
+	return declared
+		.map((entry) => (typeof entry === 'string' ? { key: entry } : entry))
+		.filter((entry) => entry && typeof entry === 'object' && String(entry.key ?? '') !== '')
+		.map((entry) => ({
+			key: String(entry.key),
+			label: typeof entry.label === 'string' && entry.label !== '' ? entry.label : String(entry.key),
+			hidden: entry.hidden === true,
+			closed: entry.closed === true,
+			...(typeof entry.color === 'string' && entry.color !== '' ? { color: entry.color } : {}),
 		}))
 }
 

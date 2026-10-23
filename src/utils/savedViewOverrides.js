@@ -38,6 +38,7 @@ export const SAVED_VIEW_CONFIG_KEYS = Object.freeze([
 	'quickFiltersFrom',
 	'quickFilterPlacement',
 	'quickFilterMaxVisible',
+	'bulkBandAlways',
 	'sidePanel',
 	'afterList',
 	'columns',
@@ -49,6 +50,7 @@ export const SAVED_VIEW_CONFIG_KEYS = Object.freeze([
 	'viewMode',
 	'viewSwitch',
 	'countText',
+	'countSubtitle',
 	'footerNote',
 	'emptyText',
 	'folderSidebar',
@@ -159,6 +161,10 @@ export function applySavedViewOverrides(config, overrides) {
 		if (overrides[key] !== undefined) {
 			out[key] = overrides[key]
 		}
+	}
+	// A view's own count line stands in every view, over the page's per-view lines.
+	if (overrides.countText !== undefined) {
+		out.countTextByView = null
 	}
 	if (isPlainObject(overrides.lockedFilters)) {
 		out.filter = { ...(isPlainObject(out.filter) ? out.filter : {}), ...overrides.lockedFilters }

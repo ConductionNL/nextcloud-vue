@@ -29,9 +29,9 @@
 				:key="group.id"
 				class="cn-readiness-checklist__group"
 				:data-testid="`cn-readiness-checklist-group-${group.id}`">
-				<h4 v-if="group.title" class="cn-readiness-checklist__group-title">
+				<component :is="innerHeadingTag" v-if="group.title" class="cn-readiness-checklist__group-title cn-inner-heading">
 					{{ group.title }}
-				</h4>
+				</component>
 				<ul class="cn-readiness-checklist__list">
 					<li v-for="item in group.items"
 						:key="item.id"
@@ -67,6 +67,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import { readPath } from '../../utils/readPath.js'
 
 /**
@@ -102,6 +103,8 @@ export default {
 	name: 'CnReadinessChecklist',
 
 	components: { NcLoadingIcon, NcNoteCard },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/** The host app's translate, for texts the page declares. */

@@ -94,6 +94,7 @@ export function useNamedSource(props, options = {}) {
 			namedRows: computed(() => []),
 			namedLoading: computed(() => false),
 			namedQuickFilters: null,
+			namedReload: () => {},
 		}
 	}
 
@@ -111,6 +112,7 @@ export function useNamedSource(props, options = {}) {
 			namedRows: computed(() => []),
 			namedLoading: computed(() => false),
 			namedQuickFilters: null,
+			namedReload: () => {},
 		}
 	}
 
@@ -131,6 +133,9 @@ export function useNamedSource(props, options = {}) {
 	// A source that pages (`pages: true`) gets the page as `limit` and
 	// `offset`, from the pager the page draws for it.
 	const paging = source.pages === true ? (options.paging || null) : null
+	// A source that sorts on the server (`sortParam`) gets the header's order
+	// as request parameters.
+	const sort = typeof source.sortParam === 'function' ? (options.sort || null) : null
 
 	// Seed the default tab before the watcher below registers: the mount load
 	// already carries this tab's filter, so the seed must not fire a second
@@ -194,6 +199,7 @@ export function useNamedSource(props, options = {}) {
 				),
 				...(searchTerm && searchTerm.value ? { [source.searchParam]: searchTerm.value } : {}),
 				...(paging ? { limit: paging.value.limit, offset: (paging.value.page - 1) * paging.value.limit } : {}),
+				...((sort && sort.value && sort.value.key) ? (source.sortParam(sort.value.key, sort.value.order) || {}) : {}),
 			},
 			tokenCtx(),
 		)
@@ -242,8 +248,19 @@ export function useNamedSource(props, options = {}) {
 		watch(activeFilters, reloadFromFirstPage, { deep: true })
 	}
 
+	// A source can start the search box with a term of its own (the search
+	// source's `?q=`); seeded before the watcher, so the mount load carries it.
+	if (searchTerm && searchTerm.value === '' && typeof source.initialSearch === 'function') {
+		searchTerm.value = String(source.initialSearch() || '')
+	}
+
 	if (searchTerm) {
 		watch(searchTerm, reloadFromFirstPage)
+	}
+
+	// A new order is a new query: back to page 1.
+	if (sort) {
+		watch(sort, reloadFromFirstPage, { deep: true })
 	}
 
 	// A new page, or a new page size, is a new request. A new tab or filter
@@ -266,5 +283,7 @@ export function useNamedSource(props, options = {}) {
 		// any (the strip then also drives self-authored filters), else the
 		// source's own. Null when neither exists.
 		namedQuickFilters: tabs,
+		// Read the active tab again (the header's Refresh).
+		namedReload: loadActive,
 	}
 }

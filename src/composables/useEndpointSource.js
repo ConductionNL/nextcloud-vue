@@ -310,11 +310,18 @@ export async function fetchEndpointSource(config, ctx, opts) {
  * @return {string} The message, 'error' when nothing says more.
  */
 export function endpointErrorMessage(err) {
+	return endpointServerMessage(err) || (err && err.message) || 'error'
+}
+
+/**
+ * The server's own `message` in a failed endpoint read's answer.
+ *
+ * @param {unknown} err The rejected request's error.
+ * @return {string} The message, '' when the server sent none.
+ */
+export function endpointServerMessage(err) {
 	const serverMessage = err?.response?.data?.message
-	if (typeof serverMessage === 'string' && serverMessage.trim() !== '') {
-		return serverMessage
-	}
-	return (err && err.message) || 'error'
+	return typeof serverMessage === 'string' && serverMessage.trim() !== '' ? serverMessage : ''
 }
 
 /**
@@ -354,7 +361,7 @@ function read(v) {
  * Reactive endpoint data binding.
  *
  * Resolves the `endpointSource` block into reactive
- * `{ data, body, loading, error, refused, truncated, refetch }`. `body` is the
+ * `{ data, body, loading, error, refused, refusal, truncated, refetch }`. `body` is the
  * whole response before `responsePath`, so a widget can read a label the
  * endpoint sends beside its rows. `error` carries the
  * server's `message` when it sent one, `refused` is true when the read was
@@ -381,7 +388,7 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, awaitingRequest: import('vue').Ref<boolean>, request: () => Promise<void>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
+ * @return {{data: import('vue').Ref<unknown>, body: import('vue').Ref<unknown>, awaitingRequest: import('vue').Ref<boolean>, request: () => Promise<void>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refused: import('vue').Ref<boolean>, refusal: import('vue').Ref<string>, truncated: import('vue').Ref<boolean>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
@@ -389,6 +396,8 @@ export function useEndpointSource(source, options) {
 	const loading = ref(false)
 	const error = ref('')
 	const refused = ref(false)
+	// The server's sentence for a refusal, '' when it sent none or the read was not refused.
+	const refusal = ref('')
 	const truncated = ref(false)
 	const body = ref(null)
 	// `loadOn: 'request'`: nothing is read until request() is called, and a
@@ -439,6 +448,7 @@ export function useEndpointSource(source, options) {
 		const cfg = read(source)
 		const seq = ++fetchSeq
 		refused.value = false
+		refusal.value = ''
 		truncated.value = false
 		if (!cfg || !cfg.url) {
 			body.value = null
@@ -477,6 +487,7 @@ export function useEndpointSource(source, options) {
 			}
 			error.value = endpointErrorMessage(e)
 			refused.value = isEndpointRefusal(e)
+			refusal.value = refused.value ? endpointServerMessage(e) : ''
 			data.value = null
 			body.value = null
 		} finally {
@@ -530,6 +541,7 @@ export function useEndpointSource(source, options) {
 			body.value = null
 			error.value = ''
 			refused.value = false
+			refusal.value = ''
 			truncated.value = false
 			loading.value = false
 			awaitingRequest.value = true
@@ -576,5 +588,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch }
+	return { data, body, loading, error, refused, refusal, truncated, blocked, awaitingRequest, request, refetch }
 }

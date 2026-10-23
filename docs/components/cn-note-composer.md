@@ -18,6 +18,7 @@ The shared input for writing a note, used by `CnNotesTab` (the sidebar Notes tab
 |------|------|---------|-------------|
 | `modelValue` | String | `''` | The note text (v-model). |
 | `placeholder` | String | "Write a note…" | Placeholder shown while the box is empty. |
+| `label` | String | "Note" | Accessible name of the note box; not shown. |
 | `register` | String | `''` | Register slug of the record the note belongs to, for image upload. |
 | `schema` | String | `''` | Schema slug of the record. |
 | `objectId` | String | `''` | Id of the record. |

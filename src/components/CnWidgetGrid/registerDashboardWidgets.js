@@ -82,12 +82,13 @@ import '../CnFlowRunsWidget/index.js'
 import '../CnTasksWidget/index.js'
 import '../CnSectionsWidget/index.js'
 import '../CnFactsWidget/index.js'
+import '../CnHandoffAction/index.js'
 import '../CnLinkedWidget/index.js'
 import '../CnDeviceFramesWidget/index.js'
 import '../CnGroupedCardsWidget/index.js'
 import '../CnChecklistRunWidget/index.js'
 import '../CnChecklistWidget/index.js'
-import '../CnMailTab/index.js'
+import '../CnMailTab/dashboardRegistration.js'
 import '../CnWorkingCalendarWidget/index.js'
 import '../CnPartyActionsWidget/index.js'
 import '../CnFieldListWidget/index.js'
@@ -96,6 +97,8 @@ import '../CnSwitchRowsWidget/index.js'
 import '../CnRadioCardsWidget/index.js'
 import '../CnChipsFieldWidget/index.js'
 import '../CnToggleTableWidget/index.js'
+import '../CnRowMarkList/index.js'
+import '../CnSlotGrid/index.js'
 import '../CnChoicePickerWidget/index.js'
 import '../CnRecordListWidget/index.js'
 import '../CnStatGridWidget/index.js'
@@ -311,6 +314,7 @@ registerDashboardWidget('retention', {
 	icon: 'ArchiveOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+	chrome: 'card',
 })
 
 registerDashboardWidget('schema-rules', {

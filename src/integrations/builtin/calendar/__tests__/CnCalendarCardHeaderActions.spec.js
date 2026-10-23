@@ -17,7 +17,8 @@ const CnCalendarCard = require('../CnCalendarCard.vue').default
 
 const STUBS = {
 	NcLoadingIcon: { template: '<div class="cn-loading" />' },
-	NcButton: { template: '<button v-bind="$attrs"><slot /></button>' },
+	NcButton: { template: '<button v-bind="$attrs"><slot /><slot name="icon" /></button>' },
+	CnIcon: { props: ['name'], template: '<i :data-name="name" />' },
 	CnCalendarEventCreate: { name: 'CnCalendarEventCreate', template: '<div class="create-modal" />' },
 	CnCalendarEventPicker: { name: 'CnCalendarEventPicker', template: '<div class="picker-modal" />' },
 }
@@ -94,5 +95,15 @@ describe('CnCalendarCard header actions', () => {
 		wrapper.findComponent({ name: 'CnCalendarEventPicker' }).vm.$emit('link', { calendarUri: 'x', eventUid: 'y' })
 		await flush()
 		expect(wrapper.find('[role="alert"]').text()).toContain('Not your calendar')
+	})
+
+	it('draws the create button secondary when asked', async () => {
+		const primary = mountCard({ headerActions: ['create'] })
+		await flush()
+		expect(primary.find('[data-testid="cn-calendar-card-create"]').attributes('variant')).toBe('primary')
+		const quiet = mountCard({ headerActions: ['create'], createVariant: 'secondary', createIcon: 'CalendarPlusOutline' })
+		await flush()
+		expect(quiet.find('[data-testid="cn-calendar-card-create"]').attributes('variant')).toBe('secondary')
+		expect(quiet.find('[data-testid="cn-calendar-card-create-icon"]').attributes('data-name')).toBe('CalendarPlusOutline')
 	})
 })

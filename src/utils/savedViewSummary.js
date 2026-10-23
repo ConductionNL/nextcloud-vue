@@ -10,36 +10,55 @@ import { MISSING_VALUE } from './facets.js'
  * names, in the order the view stores them; the line is in sentence case, so
  * every field title after the first starts in lower case.
  *
- * A value's display name comes from, in order: `valueLabels` (the names the
- * caller looked up, such as the title of a referenced record or a facet
- * bucket's label), the property's `oneOf` titles, its `x-enum-labels`, yes or
- * no for a boolean, and else the value itself. A range shows as "from" and
- * "up to"; a search term as `"term"`.
+ * A filter is named as the page's Active line names it: the page's
+ * `filterLabels` entry first (its `label` for the field, its `values` per
+ * value), then the schema. A filter whose `filterLabels` entry says
+ * `hidden: true` is left out: a working-list rule such as "not a draft" that
+ * every view carries is not what tells one view from another.
+ *
+ * A value's display name comes from, in order: the page's `filterLabels`
+ * values, `valueLabels` (the names the caller looked up, such as the title of
+ * a referenced record or a facet bucket's label), the property's `oneOf`
+ * titles, its `x-enum-labels`, yes or no for a boolean, and else the value
+ * itself. A range shows as "from" and "up to"; a search term as `"term"`.
  *
  * @param {{filters?: object, search?: string}} state The view's state (see `extractViewState`).
  * @param {object} [options] Options.
  * @param {object} [options.properties] The page schema's `properties`.
  * @param {{[key: string]: {[value: string]: string}}} [options.valueLabels] Display names per filter key and value.
+ * @param {{[key: string]: {label?: string, values?: object, hidden?: boolean}}} [options.filterLabels] The page's `config.filterLabels`.
  * @param {(text: string) => string} [options.translate] The app's translate, for titles and labels the schema declares.
  * @return {string} The line, or '' for a view without filters or search.
+ * @spec openspec/changes/saved-view-summary-reads-like-the-chips/specs/saved-view-menu-settings/spec.md
  * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-menu-entry-says-what-its-view-shows-and-how-many
  */
 export function summarizeViewFilters(state, options = {}) {
 	const properties = (options.properties && typeof options.properties === 'object') ? options.properties : {}
 	const valueLabels = (options.valueLabels && typeof options.valueLabels === 'object') ? options.valueLabels : {}
+	const filterLabels = (options.filterLabels && typeof options.filterLabels === 'object') ? options.filterLabels : {}
 	const tr = typeof options.translate === 'function' ? options.translate : (text) => text
 	const filters = (state && state.filters && typeof state.filters === 'object') ? state.filters : {}
 	const parts = []
 	for (const [key, raw] of Object.entries(filters)) {
+		const named = (filterLabels[key] && typeof filterLabels[key] === 'object') ? filterLabels[key] : {}
+		if (named.hidden === true) {
+			continue
+		}
 		const prop = properties[key] || {}
+		const namedValues = (named.values && typeof named.values === 'object') ? named.values : {}
 		const values = (Array.isArray(raw) ? raw : [raw])
 			.filter((value) => value !== undefined && value !== '')
-			.map((value) => valueText(value, prop, valueLabels[key] || {}, tr))
+			.map((value) => (typeof namedValues[String(value)] === 'string' && namedValues[String(value)] !== ''
+				? tr(namedValues[String(value)])
+				: valueText(value, prop, valueLabels[key] || {}, tr)))
 			.filter((text) => text !== '')
 		if (values.length === 0) {
 			continue
 		}
-		const field = tr(typeof prop.title === 'string' && prop.title !== '' ? prop.title : key)
+		const title = typeof named.label === 'string' && named.label !== ''
+			? named.label
+			: (typeof prop.title === 'string' && prop.title !== '' ? prop.title : key)
+		const field = tr(title)
 		parts.push(`${field} ${values.join(` ${t('nextcloud-vue', 'or')} `)}`)
 	}
 	if (state && typeof state.search === 'string' && state.search.trim() !== '') {
@@ -131,4 +150,36 @@ function lowerFirst(text) {
 		return text
 	}
 	return text.charAt(0).toLowerCase() + text.slice(1)
+}
+
+/**
+ * What a view holds, as sentences: its filters and search term
+ * (`summarizeViewFilters`), then its sort, "Sorted by deadline, descending."
+ * The saved-view edit dialog shows it under each criteria choice
+ * (DqFilterBewerken).
+ *
+ * @param {{filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: string, sortOrder?: string}} state The view's state.
+ * @param {object} [options] As for `summarizeViewFilters`.
+ * @return {string} The sentences, or '' for a view with no filters, search or sort.
+ * @spec openspec/changes/saved-view-edit-board-form/specs/saved-views/spec.md
+ */
+export function viewCriteriaSummary(state, options = {}) {
+	const properties = (options.properties && typeof options.properties === 'object') ? options.properties : {}
+	const tr = typeof options.translate === 'function' ? options.translate : (text) => text
+	const sentences = []
+	const filters = summarizeViewFilters(state, options)
+	if (filters !== '') {
+		sentences.push(`${filters}.`)
+	}
+	const keys = state && Array.isArray(state.sortKeys) && state.sortKeys.length > 0
+		? state.sortKeys
+		: (state && state.sortKey ? [{ key: state.sortKey, order: state.sortOrder }] : [])
+	const first = keys.find((entry) => entry && typeof entry.key === 'string' && entry.key !== '')
+	if (first) {
+		const prop = properties[first.key] || {}
+		const field = lowerFirst(tr(typeof prop.title === 'string' && prop.title !== '' ? prop.title : first.key))
+		const direction = first.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')
+		sentences.push(t('nextcloud-vue', 'Sorted by {field}, {direction}.', { field, direction }))
+	}
+	return sentences.join(' ')
 }

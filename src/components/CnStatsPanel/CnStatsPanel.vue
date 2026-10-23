@@ -18,9 +18,9 @@
 				:key="section.id"
 				class="cn-stats-panel__section">
 				<!-- Section title -->
-				<h4 v-if="section.title" class="cn-stats-panel__section-title">
+				<component :is="innerHeadingTag" v-if="section.title" class="cn-stats-panel__section-title cn-inner-heading">
 					{{ section.title }}
-				</h4>
+				</component>
 
 				<!-- Section-level loading -->
 				<div v-if="section.loading" class="cn-stats-panel__loading">
@@ -145,6 +145,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnKpiGrid } from '../CnKpiGrid/index.js'
 import { CnProgressBar } from '../CnProgressBar/index.js'
@@ -224,6 +225,8 @@ export default {
 		CnIcon,
 		CnProgressBar,
 	},
+
+	mixins: [innerHeading],
 
 	props: {
 		/**

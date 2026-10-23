@@ -25,6 +25,7 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 | `fitMaxZoom` | `Number` | `0` | The most the first frame may zoom in. `0` allows `maxZoom`; `1` keeps a graph that fits at its own size. |
 | `toolbarActions` | `Boolean` | `true` | Show Save, Run and Check in the toolbar. Off when the host draws them, as the board-look editor does in its header. |
 | `addStep` | `Boolean` | `true` | Show "Add a step" in the toolbar. Off when the host draws a palette beside the canvas. |
+| `nodeBadge` | `Function` | `null` | Draw each step as a card: its name, then the pill this function returns for the step (`{ label, variant }`, or null for none), in place of the type line. The board's card look passes it (DqFlow). |
 
 ## Events
 

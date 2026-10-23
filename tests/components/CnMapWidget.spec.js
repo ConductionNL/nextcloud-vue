@@ -60,6 +60,8 @@ jest.mock('leaflet', () => {
 				getZoom: jest.fn(() => 7),
 				fitBounds: jest.fn(),
 				locate: jest.fn(),
+				zoomIn: jest.fn(),
+				zoomOut: jest.fn(),
 				removeControl: jest.fn(function(control) {
 					this._controls = (this._controls || []).filter((c) => c !== control)
 				}),
@@ -687,6 +689,18 @@ describe('CnMapWidget — controls', () => {
 		wrapper.unmount()
 	})
 
+	it('draws Leaflet\'s zoom buttons unless zoomControl is off (a preview map, DqZaakLocatie)', async () => {
+		const L = require('leaflet').default
+		const on = mountWidget({})
+		await flush()
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(true)
+		on.unmount()
+		const off = mountWidget({ zoomControl: false })
+		await flush()
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(false)
+		off.unmount()
+	})
+
 	it('fitToMarkers() re-measures before it re-fits the marker bounds', async () => {
 		const wrapper = mountWidget({
 			markers: { features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [5, 52] }, properties: {} }] },
@@ -733,6 +747,94 @@ describe('CnMapWidget — controls', () => {
 		wrapper.vm.toggleFullscreen()
 		await nextTick()
 		expect(wrapper.classes()).not.toContain('cn-map-widget--fullscreen')
+		wrapper.unmount()
+	})
+})
+
+/**
+ * @spec openspec/changes/board-map-controls/specs/board-map-controls/spec.md#requirement-the-board-map-draws-its-buttons-as-one-column-in-the-top-right
+ */
+describe('CnMapWidget — board look controls (DqZakenKaart)', () => {
+	const controlBarOf = (L) => (L.__lastMap.current._controls || []).find((c) => c._container && c._container.className.includes('cn-map-widget__controls'))
+	const mountBoard = (propsData) => mount(CnMapWidget, {
+		propsData: { center: [52, 5], ...propsData },
+		provide: { cnLook: 'board' },
+	})
+
+	it('draws zoom in, zoom out, fit, locate and full screen as one bar in the top right', async () => {
+		const wrapper = mountBoard({})
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		const control = controlBarOf(L)
+		expect(control.options.position).toBe('topright')
+		const keys = [...control._container.querySelectorAll('.cn-map-widget__control')].map((a) => a.className.match(/cn-map-widget__control--(\S+)/)[1])
+		expect(keys).toEqual(['zoom-in', 'zoom-out', 'fit', 'locate', 'fullscreen'])
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('names the buttons through the library catalogue and gives each an icon', async () => {
+		const wrapper = mountBoard({})
+		await flush()
+		await nextTick()
+		const bar = controlBarOf(require('leaflet').default)._container
+		const names = [...bar.querySelectorAll('.cn-map-widget__control')].map((a) => a.getAttribute('aria-label'))
+		expect(names).toEqual(['Zoom in', 'Zoom out', 'Fit all markers', 'Show my location', 'Toggle fullscreen'])
+		for (const a of bar.querySelectorAll('.cn-map-widget__control')) {
+			expect(a.querySelector('svg')).toBeTruthy()
+		}
+		// The board draws fit as crosshairs, not the fit-to-screen arrows.
+		expect(bar.querySelector('.cn-map-widget__control--fit path').getAttribute('d')).toMatch(/^M3\.05,13H1V11H3\.05/)
+		wrapper.unmount()
+	})
+
+	it('zooms the map from its own buttons', async () => {
+		const wrapper = mountBoard({})
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		const map = L.__lastMap.current
+		const handlers = L.DomEvent.on.mock.calls.filter(([, evt, fn]) => evt === 'click' && fn !== L.DomEvent.stop)
+		const zoomIn = controlBarOf(L)._container.querySelector('.cn-map-widget__control--zoom-in')
+		const zoomOut = controlBarOf(L)._container.querySelector('.cn-map-widget__control--zoom-out')
+		handlers.find(([el]) => el === zoomIn)[2]()
+		handlers.find(([el]) => el === zoomOut)[2]()
+		expect(map.zoomIn).toHaveBeenCalled()
+		expect(map.zoomOut).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('leaves the zoom buttons out with zoomControl off', async () => {
+		const wrapper = mountBoard({ zoomControl: false })
+		await flush()
+		await nextTick()
+		const bar = controlBarOf(require('leaflet').default)._container
+		expect(bar.querySelector('.cn-map-widget__control--zoom-in')).toBeFalsy()
+		expect(bar.querySelector('.cn-map-widget__control--fit')).toBeTruthy()
+		wrapper.unmount()
+	})
+
+	it('puts a base map switcher in the top left', async () => {
+		const wrapper = mountBoard({
+			basemaps: [{ name: 'A', url: 'https://a/{z}/{x}/{y}.png' }, { name: 'B', url: 'https://b/{z}/{x}/{y}.png' }],
+		})
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		expect(L.control.layers.mock.calls.at(-1)[2]).toEqual({ position: 'topleft' })
+		wrapper.unmount()
+	})
+
+	it('keeps Leaflet\'s zoom and the bar in the top left in the Nextcloud look', async () => {
+		const wrapper = mountWidget({})
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(true)
+		const control = controlBarOf(L)
+		expect(control.options.position).toBe('topleft')
+		expect(control._container.querySelector('.cn-map-widget__control--zoom-in')).toBeFalsy()
 		wrapper.unmount()
 	})
 })

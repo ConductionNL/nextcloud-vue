@@ -68,6 +68,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { provide, ref, watch } from 'vue'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnSectionBoundary from './CnSectionBoundary.js'
 
 export default {
@@ -93,9 +96,13 @@ export default {
 		 * `card: true` draws the section in the same card as the grid's
 		 * widgets, for a component that has no card of its own.
 		 * `component` is the registry name of a host-app component
-		 * (resolved from `cnRegistry` then `cnCustomComponents`).
+		 * (resolved from `cnRegistry` then `cnCustomComponents`). Instead of
+		 * `component`, `type` names a library widget type (`handoff`, `facts`,
+		 * `field-list`, ...) that renders with `content` and the page's record.
+		 * `visibleWhen` (a condition on the record) leaves a section out while it
+		 * does not hold.
 		 *
-		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number, card?: boolean}>}
+		 * @type {Array<{id?: string, component?: string, type?: string, content?: object, title?: string, props?: object, placement?: string, colSpan?: number, card?: boolean}>}
 		 */
 		sections: {
 			type: Array,
@@ -181,7 +188,9 @@ export default {
 		 * @return {Array}
 		 */
 		filteredSections() {
-			const list = Array.isArray(this.sections) ? this.sections : []
+			const object = (this.context && this.context.object) || {}
+			const list = (Array.isArray(this.sections) ? this.sections : [])
+				.filter((s) => !s || !s.visibleWhen || evaluateVisibleWhenLocal(s.visibleWhen, object))
 			if (this.placement === null || this.placement === undefined) {
 				return list
 			}
@@ -198,7 +207,8 @@ export default {
 		 */
 		resolvedSections() {
 			return this.filteredSections.map((section, index) => {
-				const name = section && section.component
+				const widgetType = section && !section.component && typeof section.type === 'string' ? section.type : ''
+				const name = widgetType || (section && section.component)
 				const id = (section && section.id) || name || `section-${index}`
 				return {
 					id,
@@ -207,8 +217,8 @@ export default {
 					card: !!(section && section.card),
 					colSpan: section && section.colSpan,
 					placement: section && section.placement,
-					component: this.resolveSectionComponent(name),
-					props: this.resolveSectionProps(section),
+					component: widgetType ? this.resolveWidgetRenderer(widgetType) : this.resolveSectionComponent(name),
+					props: widgetType ? this.widgetProps(section) : this.resolveSectionProps(section),
 				}
 			})
 		},
@@ -254,6 +264,33 @@ export default {
 			}
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			return legacy || null
+		},
+
+		/**
+		 * The renderer of a library widget type, or null when none is registered.
+		 *
+		 * @param {string} type The widget type (an alias resolves to its canonical type).
+		 * @return {object|null} The renderer component.
+		 */
+		resolveWidgetRenderer(type) {
+			const entry = getWidgetTypeEntry(canonicalWidgetType(type))
+			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * The props a library widget renderer takes: its `content` and the
+		 * page's record.
+		 *
+		 * @param {object} section The section descriptor.
+		 * @return {{content: object, objectId: (string|number|null), objectData: (object|null)}} The props.
+		 */
+		widgetProps(section) {
+			const ctx = this.context || {}
+			return {
+				content: (section && section.content && typeof section.content === 'object') ? section.content : {},
+				objectId: ctx.objectId ?? null,
+				objectData: ctx.object || null,
+			}
 		},
 
 		/**

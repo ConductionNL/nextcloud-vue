@@ -183,6 +183,7 @@ export default {
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
 | `band` | Array | `[]` | A row of widgets across the whole page, above the body and the side column (manifest `config.band`). Each entry is a widget id from `widgets`, a widget definition, or `{ widgetId, span, chrome }`: `span` is the entry's share of the row in twelfths (default 12), and `chrome` is `card` or `bare` (a banner defaults to bare). Each entry follows its `visibleWhen`. |
+| `recordLastChange` | Boolean | `false` | Read who changed the record last (as `headerMetaLastChange` does) for the widgets on the page: a facts card reads it as `_lastChange.userName` / `_lastChange.created` (DqContact "Historie"). |
 | `pageFilters` | Array | `[]` | Page-level filters (manifest `config.pageFilters`), as on a dashboard: each writes its choice into the page's workspace context, which the widgets read through `@page.<key>` / `@workspace.<key>`. Drawn in the band, above its widgets (PtPortal "Periode"). |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts expanded |
 | `objectType` | String | `''` | Registered object type slug for the sidebar |
@@ -422,6 +423,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the primary action: an action object or the id of a header action. Falls back to `primaryAction`. |
 | `stageField` | String | `'status'` | Dot-path to the record's stage. |
 | `quickActions` | Array | `[]` | At most three always visible header buttons. |
+| `followRow` | Object \| null | `null` | Board follow row: `presence: true` says who else has the record open, before the Follow control; `count: false` draws no follower count. |
 | `quickActionsFrom` | String | `''` | A field path, read like a `visibleWhen` field (e.g. `@context.caseType.quickActions`), whose list of `headerActions` ids picks this record's quick actions in that order. Undeclared ids and actions written out in the data are dropped; an empty or missing list keeps `quickActions`. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }` for the overflow menu. |
 | `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. `stagesFrom` (a field path such as `@context.caseType.nextStep`) reads the stages from the record when it holds them. |
@@ -525,4 +527,4 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 
 ### The board look
 
-`look` (String, default `''`): `nextcloud` or `board`; empty takes the app's look. `headerMeta` (String): the meta line on row 2 of the board header, a field template such as `via {channel}` (manifest `config.headerMeta`). `tabsLabel` (String): the accessible name of the tab list (manifest `config.tabsLabel`). `identifierField` (String): the field named in the last line of the History side card (manifest `config.identifierField`). `titleField` (String): the record field the header names the record by, such as an invoice number (manifest `config.titleField`); an empty value falls back to the display name. See `docs/components/cn-detail-page.md`.
+`look` (String, default `''`): `nextcloud` or `board`; empty takes the app's look. `headerMeta` (String): the meta line on row 2 of the board header, a field template such as `via {channel}` (manifest `config.headerMeta`). `headerMetaCounts` (Object): lists the meta line counts as `{count:<name>}`, a register list `{ register, schema, filter? }` or a named source `{ entitySource }` (manifest `config.headerMetaCounts`). `headerMetaLastChange` (Boolean): read the record's newest create or update audit entry into the meta line as `{_lastChange.userName}` and `{_lastChange.created|date}` (manifest `config.headerMetaLastChange`). `tabsLabel` (String): the accessible name of the tab list (manifest `config.tabsLabel`). `identifierField` (String): the field named in the last line of the History side card (manifest `config.identifierField`). `titleField` (String): the record field the header names the record by, such as an invoice number (manifest `config.titleField`); an empty value falls back to the display name. See `docs/components/cn-detail-page.md`.

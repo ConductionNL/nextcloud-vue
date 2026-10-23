@@ -71,6 +71,7 @@
 					:hint="field.hint"
 					@update:modelValue="setValue(field, $event)"
 					@uploaded="onUploaded(field, $event)"
+					@clear="setClearing(field, $event)"
 					@action="runAction(field)" />
 			</div>
 
@@ -137,7 +138,8 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { showConfirmation } from '@nextcloud/dialogs'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -174,7 +176,10 @@ function ocsConfig(url) {
 }
 
 /** Types that hold no value of their own: never read into the form's dirty state, checked or saved. */
-const VALUELESS_TYPES = ['heading', 'status', 'action']
+/** A time of day, `HH:MM`. */
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
+
+const VALUELESS_TYPES = ['heading', 'status', 'action', 'note']
 
 /** Types whose value is a list of choices (a `select` with `multiple` too). */
 const LIST_TYPES = ['checkboxes']
@@ -211,9 +216,16 @@ function isEmpty(value) {
  * @return {string}
  */
 function interpolate(text, lookup) {
-	return String(text || '').replace(/\{([A-Za-z0-9_.-]+)\}/g, (whole, name) => {
+	return String(text || '').replace(/\{([A-Za-z0-9_.-]+)(\|date)?\}/g, (whole, name, format) => {
 		const value = lookup(name)
-		return isEmpty(value) || typeof value === 'object' ? whole : String(value)
+		if (isEmpty(value) || typeof value === 'object') {
+			return whole
+		}
+		if (format === '|date') {
+			const date = new Date(String(value))
+			return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString(getCanonicalLocale() || undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+		}
+		return String(value)
 	})
 }
 
@@ -339,7 +351,7 @@ function initialsOf(name) {
 
 /**
  * CnSettingsFieldsSection - a settings section declared as fields: it reads
- * the app's settings, draws the fields in one to three columns, and saves
+ * the app's settings, draws the fields in one to four columns, and saves
  * them with ONE Save button for the section.
  *
  * It reads `GET url` (default `/apps/<appId>/api/settings`) and writes the
@@ -427,7 +439,8 @@ export default {
 		 * path?, scope? }]`.
 		 * `type` is `text` (default), `textarea`, `number`, `switch`, `select`,
 		 * `radio`, `checkboxes`, `pairs`, `lines`, `secret`, `image`, `heading`,
-		 * `status` or `action`. A `checkboxes` field (or a `select` with
+		 * `status`, `action` or `note`. A `note` is a labelled line of plain text
+		 * (`text`) that holds no value: a setting kept elsewhere, said where. A `checkboxes` field (or a `select` with
 		 * `multiple`) saves its choices as a list, or with `saveAs` `json` or
 		 * `csv` as JSON or comma text. A `pairs` field edits key-to-value rows
 		 * and saves them as one object (JSON text with `saveAs: 'json'`); its
@@ -467,11 +480,22 @@ export default {
 			required: true,
 		},
 
-		/** Columns of the field grid: 1, 2 or 3. A narrow card stacks them. */
+		/**
+		 * The row this card is opened from (CnSettingsSection `openedFrom`): the
+		 * card shows only while the page's hash names its `id`.
+		 *
+		 * @spec openspec/changes/settings-section-opened-from-row/specs/settings-section-opened-from-row/spec.md#requirement-a-settings-card-can-be-opened-from-a-row
+		 */
+		openedFrom: {
+			type: String,
+			default: '',
+		},
+
+		/** Columns of the field grid: 1 to 4. A narrow card stacks them. */
 		columns: {
 			type: Number,
 			default: 1,
-			validator: (value) => [1, 2, 3].includes(value),
+			validator: (value) => [1, 2, 3, 4].includes(value),
 		},
 
 		/** The app id, for the default url `/apps/<appId>/api/settings`. */
@@ -584,6 +608,8 @@ export default {
 			form: {},
 			baseline: {},
 			storedSecrets: {},
+			// Secret key to true while the admin asked to remove its stored value.
+			clearSecrets: {},
 			// Field key to the message of a read target that failed.
 			unreadable: {},
 			errors: {},
@@ -601,9 +627,9 @@ export default {
 	},
 
 	computed: {
-		/** @return {number} The column count, 1 to 3. */
+		/** @return {number} The column count, 1 to 4. */
 		columnCount() {
-			return [1, 2, 3].includes(this.columns) ? this.columns : 1
+			return [1, 2, 3, 4].includes(this.columns) ? this.columns : 1
 		},
 
 		/** @return {object} The props of the card around the form. */
@@ -618,6 +644,7 @@ export default {
 				error: this.loadError !== '',
 				errorMessage: this.loadError,
 				onRetry: this.load,
+				openedFrom: this.openedFrom,
 			}
 		},
 
@@ -661,6 +688,7 @@ export default {
 					placeholder: this.tr(field.placeholder || ''),
 					options: Array.isArray(field.options) ? field.options.map((option) => this.translateOption(option)) : field.options,
 					secretSet: field.type === 'secret' ? !!this.storedSecrets[field.key] : undefined,
+					clearing: field.type === 'secret' ? !!this.clearSecrets[field.key] : undefined,
 					initials: field.type === 'image' ? initialsOf(field.initialsFrom ? this.form[field.initialsFrom] : field.initials) : undefined,
 					readOnly: field.readOnly || !!this.unreadable[field.key],
 					...(field.type === 'status' ? this.statusOf(field) : {}),
@@ -725,7 +753,7 @@ export default {
 		 * @spec openspec/changes/settings-fields-section/specs/settings-fields-section/spec.md#requirement-one-save-per-section-with-a-dirty-state
 		 */
 		dirty() {
-			return this.resolvedFields.some((field) => field.type !== 'image' && !field.scope && !VALUELESS_TYPES.includes(field.type) && !this.same(this.form[field.key], this.baseline[field.key]))
+			return Object.values(this.clearSecrets).some(Boolean) || this.resolvedFields.some((field) => field.type !== 'image' && !field.scope && !VALUELESS_TYPES.includes(field.type) && !this.same(this.form[field.key], this.baseline[field.key]))
 		},
 
 		/** @return {string} The Save button's label. */
@@ -937,8 +965,11 @@ export default {
 			if (!field.url) {
 				return
 			}
+			if (field.confirm && !(await this.confirmAction(field))) {
+				return
+			}
 			setState({ busy: true, result: null })
-			const data = {}
+			const data = { ...(field.params && typeof field.params === 'object' ? field.params : {}) }
 			for (const key of Array.isArray(field.send) ? field.send : []) {
 				const sent = this.fields.find((candidate) => candidate && candidate.key === key)
 				if (!(sent?.type === 'secret' && isEmpty(this.form[key]))) {
@@ -956,6 +987,9 @@ export default {
 					? said
 					: (interpolate(this.tr(fallback || ''), (name) => literalFirst(answer, name)) || t('nextcloud-vue', 'Done.'))
 				setState({ busy: false, result: { type: ok ? 'success' : 'error', text } })
+				if (ok && field.reload) {
+					await this.load(true)
+				}
 			} catch (error) {
 				setState({ busy: false, result: { type: 'error', text: refusalMessage(error) } })
 			}
@@ -976,8 +1010,9 @@ export default {
 			try {
 				// One GET per distinct read target; the section's own target must
 				// answer, a field's own target may fail on its own.
+				// An action's url is where it posts, never a value to read.
 				const targets = [...new Set(this.fields
-					.filter((field) => field && field.key)
+					.filter((field) => field && field.key && field.type !== 'action' && field.type !== 'heading')
 					.map((field) => this.readUrlOf(field))
 					.filter(Boolean))]
 				const answers = {}
@@ -1054,6 +1089,9 @@ export default {
 			}
 			if (field.type === 'pairs') {
 				return Object.entries(storedObject(value).object).map(([key, entry]) => ({ key, value: entry }))
+			}
+			if (field.type === 'week-hours') {
+				return JSON.parse(JSON.stringify(storedObject(value).object))
 			}
 			return value === undefined ? '' : value
 		},
@@ -1150,6 +1188,13 @@ export default {
 				if (empty) {
 					continue
 				}
+				if (field.type === 'week-hours') {
+					const late = Object.values(value).some((hours) => hours && !(TIME.test(hours.opens || '') && TIME.test(hours.closes || '') && hours.opens < hours.closes))
+					if (late) {
+						errors[field.key] = t('nextcloud-vue', '{field}: a day closes before it opens, or a time is missing.', { field: field.label })
+					}
+					continue
+				}
 				if (field.type === 'pairs') {
 					const rows = value.filter((row) => String(row?.key ?? '').trim() !== '')
 					const keys = rows.map((row) => String(row.key).trim())
@@ -1218,10 +1263,11 @@ export default {
 			const groups = new Map()
 			for (const field of this.resolvedFields) {
 				const value = this.form[field.key]
-				if (field.type === 'image' || field.scope || VALUELESS_TYPES.includes(field.type) || this.unreadable[field.key] || (!this.saveAll && this.same(value, this.baseline[field.key]))) {
+				const clearing = field.type === 'secret' && this.clearSecrets[field.key] === true
+				if (field.type === 'image' || field.scope || VALUELESS_TYPES.includes(field.type) || this.unreadable[field.key] || (!clearing && !this.saveAll && this.same(value, this.baseline[field.key]))) {
 					continue
 				}
-				if (field.type === 'secret' && (value === '' || value === null || value === undefined)) {
+				if (field.type === 'secret' && !clearing && (value === '' || value === null || value === undefined)) {
 					continue
 				}
 				const url = this.resolveUrl(field.saveUrl || field.url) || this.writeTarget
@@ -1236,6 +1282,10 @@ export default {
 				const parts = pathParts(field)
 				if (parts) {
 					group.data[parts.root] = this.jsonSettingWith(parts.root)
+					continue
+				}
+				if (clearing) {
+					group.data[field.clearKey || field.saveKey || field.key] = field.clearKey ? true : ''
 					continue
 				}
 				group.data[field.saveKey || field.key] = this.savedValue(field, value)
@@ -1336,9 +1386,11 @@ export default {
 			const form = { ...this.form }
 			const baseline = { ...this.baseline }
 			const stored = { ...this.storedSecrets }
+			const clearing = { ...this.clearSecrets }
 			for (const field of fields) {
 				if (field.type === 'secret') {
-					stored[field.key] = true
+					stored[field.key] = clearing[field.key] !== true
+					delete clearing[field.key]
 					form[field.key] = ''
 				}
 				baseline[field.key] = form[field.key]
@@ -1346,6 +1398,45 @@ export default {
 			this.form = form
 			this.baseline = baseline
 			this.storedSecrets = stored
+			this.clearSecrets = clearing
+		},
+
+		/**
+		 * Mark a stored secret for removal on the next save, or keep it.
+		 *
+		 * @param {object} field The secret field.
+		 * @param {boolean} on Whether to remove the stored value.
+		 * @return {void}
+		 */
+		setClearing(field, on) {
+			const next = { ...this.clearSecrets }
+			if (on) {
+				next[field.key] = true
+				this.form = { ...this.form, [field.key]: '' }
+			} else {
+				delete next[field.key]
+			}
+			this.clearSecrets = next
+			this.notice = null
+		},
+
+		/**
+		 * Ask before an action with `confirm`; closing the question is a no.
+		 *
+		 * @param {object} field The action field.
+		 * @return {Promise<boolean>} Whether to go on.
+		 */
+		async confirmAction(field) {
+			try {
+				return (await showConfirmation({
+					name: field.label,
+					text: this.tr(field.confirm),
+					labelConfirm: this.tr(field.confirmLabel || '') || field.label,
+					labelReject: t('nextcloud-vue', 'Cancel'),
+				})) === true
+			} catch {
+				return false
+			}
 		},
 
 		/**
@@ -1378,17 +1469,27 @@ export default {
 	gap: 16px 20px;
 }
 
-/* Two or three columns where the card is wide enough; stacked otherwise. */
+/* Two to four columns where the card is wide enough; stacked otherwise
+   (DqInstellingenAlgemeen "Huisstijl" draws four).
+   @spec openspec/changes/settings-fields-four-columns-and-note/specs/settings-fields-four-columns-and-note/spec.md */
 @container (min-width: 520px) {
 	.cn-settings-fields__grid--2,
-	.cn-settings-fields__grid--3 {
+	.cn-settings-fields__grid--3,
+	.cn-settings-fields__grid--4 {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
 @container (min-width: 780px) {
-	.cn-settings-fields__grid--3 {
+	.cn-settings-fields__grid--3,
+	.cn-settings-fields__grid--4 {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@container (min-width: 960px) {
+	.cn-settings-fields__grid--4 {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 }
 

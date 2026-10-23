@@ -39,14 +39,16 @@ The object is the current detail-page object, or one other object named by `sour
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
 | `parts` | On a `line`: paths (or `{ path, label?, format? }`) joined by `separator` (default " · "). Empty parts are dropped; a labelled part reads "label value". |
-| `route` | On a `title`: `{ name, params?, query? }` so the title links. Takes `@source.<field>` tokens. |
+| `route` | On a `title` or a `row`: `{ name, params?, query? }` so the title or the row's value links ("Erft van" to the parent case type, DqZaaktypeVelden). Takes `@source.<field>` tokens; a param that does not fill leaves it plain. |
 | `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`); a boolean is looked up as `"true"` / `"false"`. An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
 | `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. The entry is empty when every placeholder is. |
 | `suffix` | Text added after a value that is not empty (`" kg"`). |
+| `emptyValue` | Text shown (translated) when the entry has no value; the entry is then drawn whatever `hideEmpty` says (`"No"` for an override that was never set). |
 | `decimals` | With `number` or `currency`: the fraction digits. `number` shows the value in the reader's language. |
 | `limitPath` / `limit` | On a `meter`: the path of the limit, or a constant limit. |
+| `countFrom` | `{ register, schema, filter? }`: the row shows how many records that list holds, counted with the list endpoint's total; `@objectId` and `@object.<field>` in the filter name this record (DqZaaktype "Lopende zaken 43"). The row is left out while the count cannot be read; a zero shows. |
 
 Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, label muted), as the boards draw it.
 
@@ -64,6 +66,7 @@ The person and organisation boards (screens-relation-pages) draw their side card
 | `as: "lead"` | an entry | An icon tile (`icon`) or the initials of the value at `initialsPath`, beside a bold `title` and a muted `subtitle`. `title` and `subtitle` take a path, a part, or an array of parts joined as a line. `tone` (`success`, `info`) tints the tile. A lead with an empty title is left out. |
 | `as: "text"` | an entry | A line in the normal ink (address lines), with `parts` as a `line` takes them. |
 | `{ "text": "..." }` | a part | A constant part ("Handelsregister"). A `line` or `text` entry without `path` or `parts` shows its own `text` ("Het tonen van het BSN wordt gelogd."). |
+| `_lastChange.*` | a path | On a detail page with `recordLastChange`, the record's newest create or update audit entry: `_lastChange.userName`, `_lastChange.created` ("door Pieter Jansen" as `{ "path": "_lastChange.userName", "label": "by" }`, left out when unread). |
 | `action` | `content` | An action object (the header action shape) drawn as a tinted button under the facts. `@objectId` / `@object.<field>` resolve before it is dispatched. |
 | `headerAction` | `content` | The same, drawn as a small button in the card header ("+ Toevoegen"). The widget reports it through the `header` event; the detail page puts it in the card header, also on a side card. |
 | `headerPill` | `content` | A status pill in the card header, `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"). Reported through the `header` event; the detail page draws it beside the title. Nothing shows while the value is empty. |
@@ -215,6 +218,8 @@ page's own object instead, so one card can show the client's name and the ticket
   }
 }
 ```
+
+When the `source` finds nothing, the `from: "object"` entries still show and the others are left out, so a card does not lose the page object's own facts (DqTenant's Status card for an organisation without a subscription record).
 
 ## Two columns, label above value (`columns: 2`)
 

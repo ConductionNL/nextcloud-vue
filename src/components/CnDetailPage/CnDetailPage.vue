@@ -488,7 +488,8 @@
 				</CnActionsMenu>
 			</div>
 			<!-- Row 2 of the board look's header (screens-detail-page-parity): the
-			     pills, the breadcrumb, a middle dot and the meta line, on the
+			     pills, the breadcrumb, a middle dot, the meta line and the Follow
+			     control, on the
 			     ground under the title. The breadcrumb does not render above the
 			     header in this look, so this is its only place. -->
 			<div
@@ -542,6 +543,14 @@
 				v-if="isBoard && showFollowToggle"
 				class="cn-detail-page__header-row3"
 				data-testid="cn-detail-page-header-row3">
+				<span
+					v-if="presenceSentence"
+					class="cn-detail-page__presence"
+					data-testid="cn-detail-page-presence">
+					<CnPresenceAvatars :present="presentOthers" :max="3" :size="24" />
+					<span>{{ presenceSentence }}</span>
+					<span aria-hidden="true">·</span>
+				</span>
 				<span class="cn-detail-page__interactions" data-testid="cn-detail-page-interactions">
 					<CnFollowToggle v-bind="followToggleProps" />
 				</span>
@@ -628,7 +637,7 @@
 			v-if="showsNextStepCard"
 			class="cn-detail-page__next-step"
 			:title="nextStepCard.title"
-			titleTag="h3"
+			:titleTag="isBoard ? 'h2' : 'h3'"
 			:items="nextStepCard.items"
 			:after="nextStepCard.after"
 			data-testid="cn-detail-page-next-step">
@@ -930,12 +939,12 @@
 						     Built-in widgets (data / related / integration / catalog)
 						     render their own titled card header, so a grid <h3> here would
 						     duplicate the title above the widget. -->
-						<h3
+						<component :is="isBoard ? 'h2' : 'h3'"
 							v-if="showGridTitle(item)"
 							:id="`widget-title-${item.id}`"
 							class="cn-detail-page__widget-title">
 							{{ gridTitle(item) }}
-						</h3>
+						</component>
 						<!--
 							@slot `widget-${item.widgetId}`
 							@description Per-widget slot whose name is `widget-<widgetId>`. Use
@@ -1040,9 +1049,9 @@
 					content: an `<h3>` showing `statsTitle`.
 				-->
 				<slot name="stats-header">
-					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
+					<component :is="isBoard ? 'h2' : 'h3'" v-if="statsTitle" class="cn-detail-page__section-title">
 						{{ resolvedStatsTitle }}
-					</h3>
+					</component>
 				</slot>
 				<table class="cn-detail-page__stats-table">
 					<thead v-if="statsColumns.length > 0">
@@ -1358,7 +1367,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1390,12 +1399,13 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
+import CnPresenceAvatars from '../CnPresenceAvatars/CnPresenceAvatars.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
-import { resolveRecordSource } from '../../composables/indexSources.js'
+import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -1426,16 +1436,18 @@ import {
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { firstFilled } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
@@ -1620,6 +1632,27 @@ function readGrantedPurposes() {
  * </CnDetailPage>
  * ```
  */
+/**
+ * A header pill's label with the record's fields filled in ("Version
+ * {version} published" reads "Version 4 published"). A field the record does
+ * not have is left out rather than shown as a token.
+ *
+ * @param {string} label The translated label.
+ * @param {object|null} object The record.
+ * @return {string} The label to show.
+ * @spec openspec/changes/detail-pill-label-tokens/specs/detail-page/spec.md#requirement-a-header-pill-label-can-name-the-records-fields
+ */
+function pillLabelFilled(label, object) {
+	if (typeof label !== 'string' || !label.includes('{')) {
+		return label
+	}
+	const filled = fillTemplate(label, object)
+	if (filled !== '') {
+		return filled
+	}
+	return label.replace(/\{[^{}]*\}/g, '').replace(/\s+/g, ' ').trim()
+}
+
 export default {
 	name: 'CnDetailPage',
 
@@ -1658,6 +1691,7 @@ export default {
 		CnSummaryAggregates,
 		CnDetailHeaderChips,
 		CnFollowToggle,
+		CnPresenceAvatars,
 		DockRight,
 		EyeOffOutline,
 		CnRelatedCollections,
@@ -1727,7 +1761,26 @@ export default {
 		const visibilityRows = computed(() => (this.visibilityRowsPending ? null : this.visibilityRows))
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
+		const canEditRecord = computed(() => this.canEditRecord)
+		const lastChange = computed(() => this.lastChange)
 		return {
+			// The page's own record edit form, for a widget header button whose
+			// action is `edit-record` (DqZaaktype "Termijnen" Bewerken).
+			cnRecordEdit: {
+				get available() {
+					return canEditRecord.value
+				},
+
+				open: () => this.openEditForm(),
+			},
+
+			// The record's newest create or update entry, for a widget that names
+			// who changed it last (`recordLastChange`); null until read.
+			cnRecordLastChange: lastChange,
+
+			// Widget titles sit one level under the record title: h1 in the
+			// board look, h2 in the Nextcloud look.
+			[HEADING_LEVEL]: () => (this.isBoard ? 2 : 3),
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,
@@ -2212,6 +2265,20 @@ export default {
 		 */
 		favourite: {
 			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * The board look's follow row (manifest `config.followRow`):
+		 * `presence: true` says who else has the record open now, with their
+		 * initials, before the Follow control (DqZaak "Anouk Bakker kijkt nu
+		 * ook naar deze zaak"); `count: false` draws no follower count.
+		 *
+		 * @type {{presence?: boolean, count?: boolean}|null}
+		 * @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking
+		 */
+		followRow: {
+			type: Object,
 			default: null,
 		},
 
@@ -3038,6 +3105,50 @@ export default {
 		},
 
 		/**
+		 * The lists `headerMeta` counts (manifest `config.headerMetaCounts`), as
+		 * on a list page: `{ <name>: { register, schema, filter? } | { entitySource } }`,
+		 * each read as one total and filled in for `{count:<name>}` ("een van
+		 * {count:organisations} organisaties op deze omgeving", DqTenant). While
+		 * a count loads, or when it fails, the line is left out.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @type {Record<string, object>|null}
+		 */
+		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Read the record's newest create or update entry from its audit
+		 * trail and offer it to `headerMeta` as `{_lastChange.userName}`,
+		 * `{_lastChange.user|user}` and `{_lastChange.created|date}`
+		 * ("laatst gewijzigd 2 okt door Lars de Koning", DqZaaktype). A record
+		 * does not say who changed it last; its trail does. A trail that
+		 * cannot be read leaves the tokens empty.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 */
+		headerMetaLastChange: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Read the record's newest create or update entry (as
+		 * `headerMetaLastChange` does) for the widgets on the page: a facts
+		 * card reads it as `_lastChange.userName` / `_lastChange.created`
+		 * ("Laatst gewijzigd op 3 oktober door Pieter Jansen", DqContact
+		 * "Historie"). `headerMetaLastChange` provides it as well.
+		 *
+		 * @spec openspec/changes/record-last-change-in-widgets/specs/record-last-change-in-widgets/spec.md#requirement-a-widget-can-read-who-changed-the-record-last
+		 */
+		recordLastChange: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The accessible name of the tab list under the board look (manifest
 		 * `config.tabsLabel`). Empty gives "<type> parts", for example "Case
 		 * parts", from the page title.
@@ -3122,7 +3233,7 @@ export default {
 		// A getter, not a one-shot read: a page whose widgets arrive after mount
 		// would otherwise never subscribe, and `layoutItemCanDraw` would drop the
 		// presence row for good instead of until somebody arrives.
-		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence')
+		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence') || props.followRow?.presence === true
 		const { others: presentOthers } = useObjectPresence(
 			() => props.register || '',
 			() => props.schema || '',
@@ -3245,6 +3356,10 @@ export default {
 
 	data() {
 		return {
+			/** The `headerMetaCounts` totals, by name; a failed one is null. */
+			headerMetaCountValues: {},
+			/** The newest create or update entry of the record's audit trail (`headerMetaLastChange`). */
+			lastChange: null,
 			/** The rows a list on this page shows and the one selected (side-card-follows-row). */
 			widgetSelection: markRaw(createWidgetSelection()),
 			/** The id of the side column's slot for a body widget's own cards. */
@@ -3419,7 +3534,42 @@ export default {
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
 		 */
 		headerMetaText() {
-			return resolveHeaderMeta(this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '', this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
+			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
+			let missing = false
+			const template = (this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
+				const value = this.headerMetaCountValues[name]
+				if (typeof value !== 'number') {
+					missing = true
+					return ''
+				}
+				return String(value)
+			})
+			return missing ? '' : resolveHeaderMeta(template, record, { schema: this.currentSchema, translate: this.effectiveTranslate })
+		},
+
+		/**
+		 * What the header line's counts depend on, as one key.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @return {string}
+		 */
+		headerMetaCountKey() {
+			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
+			const valid = Object.entries(sources).filter(([, from]) => from && ((from.register && from.schema) || from.entitySource))
+			return valid.length > 0 ? JSON.stringify([valid, this.objectId]) : ''
+		},
+
+		/**
+		 * What the last-change read depends on.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 * @return {string} The key, '' when nothing is to be read.
+		 */
+		lastChangeKey() {
+			if (!(this.headerMetaLastChange || this.recordLastChange) || !this.register || !this.schema || !this.objectId) {
+				return ''
+			}
+			return `${this.register}/${this.schema}/${this.objectId}`
 		},
 
 		/**
@@ -3970,7 +4120,7 @@ export default {
 					if (typeof resolved === 'string' && resolved !== '') {
 						return { ...pill, ...look, key, label: this.effectiveTranslate(resolved), colorKey: resolved }
 					}
-					return { ...pill, ...look, key, label: this.effectiveTranslate(pill.label) }
+					return { ...pill, ...look, key, label: pillLabelFilled(this.effectiveTranslate(pill.label), this.resolvedObject) }
 				})
 				.filter(Boolean)
 		},
@@ -4923,6 +5073,27 @@ export default {
 		},
 
 		/**
+		 * Who else has the record open now, in words, for the follow row:
+		 * one name, or the first name and how many more. Empty without
+		 * `followRow.presence` or while nobody else is there.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking
+		 */
+		presenceSentence() {
+			const others = this.followRow?.presence === true && Array.isArray(this.presentOthers) ? this.presentOthers : []
+			if (others.length === 0) {
+				return ''
+			}
+			const first = String(others[0]?.user || '')
+			const name = userDisplayName(first) || first
+			if (others.length === 1) {
+				return t('nextcloud-vue', '{name} is also looking at this record now', { name })
+			}
+			return n('nextcloud-vue', '{name} and %n other are also looking at this record now', '{name} and %n others are also looking at this record now', others.length - 1, { name })
+		},
+
+		/**
 		 * The props of the Follow control, wherever the header draws it.
 		 *
 		 * @return {object} The CnFollowToggle props.
@@ -4936,7 +5107,7 @@ export default {
 				objectId: String(this.objectId),
 				watching: self.watching === true,
 				notify: typeof self.watchNotify === 'boolean' ? self.watchNotify : null,
-				watcherCount: typeof self.watcherCount === 'number' ? self.watcherCount : null,
+				watcherCount: typeof self.watcherCount === 'number' && this.followRow?.count !== false ? self.watcherCount : null,
 				canManage: !!(self.can && self.can.manage === true),
 				notifies: this.followNotifies,
 			}
@@ -5440,6 +5611,20 @@ export default {
 	},
 
 	watch: {
+		headerMetaCountKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaCounts()
+			},
+		},
+
+		lastChangeKey: {
+			immediate: true,
+			handler() {
+				this.loadLastChange()
+			},
+		},
+
 		// The records a condition names are read again for another record.
 		visibilityRefsKey: {
 			immediate: true,
@@ -5693,6 +5878,38 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the record's newest create or update audit entry into
+		 * `lastChange`; a failed read leaves it null.
+		 *
+		 * @spec openspec/changes/header-meta-last-change/specs/detail-page/spec.md#requirement-the-header-meta-line-can-name-who-changed-the-record-last
+		 * @return {Promise<void>}
+		 */
+		async loadLastChange() {
+			const key = this.lastChangeKey
+			this.lastChange = null
+			if (key === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}/{id}/audit-trails',
+					{ register: this.register, schema: this.schema, id: this.objectId },
+				)
+				const res = await axios.get(url, { params: { _limit: 1, sort: 'created', order: 'DESC', action: 'create,update' } })
+				const rows = (res && res.data && Array.isArray(res.data.results)) ? res.data.results : []
+				if (key === this.lastChangeKey) {
+					this.lastChange = rows[0] || null
+				}
+			} catch {
+				// No trail to read: the meta line drops the tokens.
+			}
+		},
+
 		/**
 		 * A key of the declared trail: the last crumb that sets it wins.
 		 *
@@ -6084,6 +6301,44 @@ export default {
 			if (seq === this.pillRefSeq) {
 				this.pillRefLabels = labels
 				this.pillRefLooks = looks
+			}
+		},
+
+		/**
+		 * Read the totals `headerMetaCounts` names: a register list through
+		 * one list request, a named source by loading it and counting its
+		 * rows. A failed count is null and leaves the line out.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @return {Promise<void>}
+		 */
+		async loadHeaderMetaCounts() {
+			const key = this.headerMetaCountKey
+			if (key === '') {
+				this.headerMetaCountValues = {}
+				return
+			}
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const values = {}
+			await Promise.all(JSON.parse(key)[0].map(async ([name, from]) => {
+				try {
+					if (from.entitySource) {
+						const source = resolveIndexSource(from.entitySource)
+						if (!source) {
+							values[name] = null
+							return
+						}
+						await source.load()
+						values[name] = source.rows().length
+						return
+					}
+					values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx)
+				} catch {
+					values[name] = null
+				}
+			}))
+			if (key === this.headerMetaCountKey) {
+				this.headerMetaCountValues = values
 			}
 		},
 
@@ -7495,7 +7750,8 @@ export default {
 		/**
 		 * Refresh the provided `cnObjectContext` ref so detail-page abstract
 		 * widgets can resolve `@objectId` / `@object.<field>` filter tokens
-		 * against the current object. No-op when setup() didn't expose the ref
+		 * against the current object, and hand back an object they saved
+		 * (`setObject`). No-op when setup() didn't expose the ref
 		 * (standalone / read-only mounts).
 		 */
 		syncObjectContext() {
@@ -7508,6 +7764,7 @@ export default {
 				object: this.currentObject || null,
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				setObject: (object) => this.setCurrentObject(object),
 			}
 		},
 

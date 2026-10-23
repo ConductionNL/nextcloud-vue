@@ -1,0 +1,6 @@
+- [x] Spec tests/components/CnNotificationMatrixBoardGrid.spec.js (fails first)
+- [x] Board look: headers without controls, centred checkbox cells, plain group rows
+- [x] Board look: per-channel bundling, time and test send in a disclosure below the grid
+- [x] Board look: source line visually hidden and described-by; visible for a locked cell
+- [x] Board CSS for the grid (13px/600 muted headers, hairline rules, 20px checkboxes)
+- [x] Nextcloud look unchanged: existing CnNotificationMatrix specs pass

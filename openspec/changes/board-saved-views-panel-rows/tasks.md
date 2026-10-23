@@ -1,0 +1,3 @@
+- [x] CnSavedViewsPanel primary save button in the board look
+- [x] look-board-index.css panel rules
+- [x] Spec tests/components/SavedViewsPanelBoard.spec.js

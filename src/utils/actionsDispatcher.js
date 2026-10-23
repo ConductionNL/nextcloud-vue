@@ -67,7 +67,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
  * Whether a `navigate` target leaves the app: it is `http(s)://`,
- * protocol-relative (`//`), or a `mailto:` / `tel:` link. Anything else is an
+ * protocol-relative (`//`), or a `mailto:` / `tel:` / `geo:` link. Anything else is an
  * in-app path for the router.
  *
  * vue-router happily accepts an absolute URL as a PATH — `router.push` on
@@ -86,7 +86,7 @@ export function isExternalActionTarget(target) {
 	if (typeof target !== 'string') {
 		return false
 	}
-	return /^\/\//.test(target) || /^(https?|mailto|tel):/i.test(target)
+	return /^\/\//.test(target) || /^(https?|mailto|tel|geo):/i.test(target)
 }
 
 /**
@@ -467,7 +467,7 @@ async function executeApiCall(action, context) {
 		return { ok: false, error: new Error('api-call blocked') }
 	}
 	const verb = String(action.method || 'POST').toUpperCase()
-	const method = verb === 'PUT' ? 'put' : (verb === 'GET' ? 'get' : 'post')
+	const method = { PUT: 'put', PATCH: 'patch', GET: 'get' }[verb] || 'post'
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -736,7 +736,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "GET" (the resolved params as the query string).
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
@@ -776,7 +776,9 @@ export async function postRunNode(action, context, config = {}) {
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
- * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
+ * @param {object} [context.handlers] Map of handler name → function, called with the action's spread args. A
+ *   "handler" name it lacks resolves against `context.registry` (as on an index page), called with
+ *   `{ actionId, item, args }`: `item` is `context.row`, else the last arg.
  * @param {(key: string, props?: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
  * @param {(action: object) => void} [context.openExport] Opens the shared
@@ -831,13 +833,21 @@ export function dispatchAction(action, context = {}) {
 			const handlerName = action.handler
 			const handlers = context.handlers || {}
 
-			if (!handlerName || typeof handlers[handlerName] !== 'function') {
-			// eslint-disable-next-line no-console
-				console.warn(`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`)
-				return
+			if (handlerName && typeof handlers[handlerName] === 'function') {
+				handlers[handlerName](...(action.args ?? []))
+				break
 			}
-			handlers[handlerName](...(action.args ?? []))
-			break
+			// The manifest's handlers are JSON; a function the app registered
+			// answers the name as it does on an index page, with the row as item.
+			const registered = resolveRegisteredHandler(handlerName, context.registry)
+			if (registered) {
+				const args = action.args ?? []
+				const item = context.row ?? (args.length > 0 ? args[args.length - 1] : null)
+				return registered({ actionId: action.id, item, args })
+			}
+			// eslint-disable-next-line no-console
+			console.warn(`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`)
+			return
 		}
 
 		case 'open-modal': {

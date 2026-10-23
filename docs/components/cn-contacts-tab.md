@@ -31,7 +31,7 @@ Since the people-on-objects change a linked person is a Nextcloud user or a vCar
 | `schema` | `String` | `''` | The schema slug or numeric id. |
 | `apiBase` | `String` | `/apps/openregister/api` | Base path for the OR REST API. |
 | `linkExistingLabel` | `String` | `Link contact` | Header button label. |
-| `addNewLabel` | `String` | `Add new contact` | Header button label. |
+| `addNewLabel` | `String` | look's own | Label of the create button; empty takes the look's own: "New contact" in the board look, "Add new contact" in the Nextcloud look. In the board look the buttons read Link contact then New contact, both outlined; in the Nextcloud look Add new contact comes first and Link contact is the primary. |
 
 ## Events
 

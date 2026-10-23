@@ -43,11 +43,13 @@
 </template>
 
 <script>
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
+
 export default {
 	name: 'CnAiRecentSessions',
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {

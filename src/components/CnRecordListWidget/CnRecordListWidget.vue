@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -64,6 +64,9 @@
 							{{ col.label }}
 						</template>
 					</th>
+					<th v-if="rowActions.length > 0" scope="col" class="cn-record-list__cell--actions">
+						{{ rowActionsHeader }}
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -78,16 +81,73 @@
 							:label="cell.text"
 							:variant="cell.tone"
 							size="small" />
-						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to">
+						<router-link v-else-if="cellIndex === 0 && item.to" :to="item.to" class="cn-record-list__cell-text">
 							{{ cell.text }}
 						</router-link>
-						<template v-else>
-							{{ cell.text }}
-						</template>
+						<span v-else class="cn-record-list__cell-text">{{ cell.text }}</span>
+						<span v-if="cell.sub" class="cn-record-list__cell-sub">{{ cell.sub }}</span>
+					</td>
+					<td v-if="rowActions.length > 0" class="cn-record-list__cell--actions">
+						<NcActions
+							v-if="item.rowActions.length > 0"
+							:aria-label="rowActionsLabel"
+							data-testid="cn-record-list-row-actions">
+							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
+								<NcActionLink
+									v-if="entry.href"
+									:href="entry.href"
+									:target="entry.external ? '_blank' : undefined"
+									:data-testid="`cn-record-list-row-action-${entry.index}`">
+									{{ entry.action.label }}
+								</NcActionLink>
+								<NcActionButton
+									v-else
+									:closeAfterClick="true"
+									:data-testid="`cn-record-list-row-action-${entry.index}`"
+									@click="runRowActionEntry(entry.action, item.row)">
+									{{ entry.action.label }}
+								</NcActionButton>
+							</template>
+						</NcActions>
 					</td>
 				</tr>
 			</tbody>
 		</table>
+		<!-- checklist: an optional bar of the done share, then the rows in
+		     columns, a done row ticked and an open one an empty circle
+		     (DqTenant Inrichten). -->
+		<div
+			v-else-if="presentation === 'checklist'"
+			class="cn-record-list__checklist-wrap">
+			<div
+				v-if="content.progress"
+				class="cn-record-list__checklist-bar"
+				role="progressbar"
+				:aria-valuenow="checklistDone"
+				aria-valuemin="0"
+				:aria-valuemax="items.length"
+				:aria-label="headerNote || undefined"
+				data-testid="cn-record-list-checklist-bar">
+				<span class="cn-record-list__checklist-fill" :style="{ width: `${checklistPercent}%` }" />
+			</div>
+			<ul
+				class="cn-record-list__checklist"
+				:style="{ '--cn-record-list-columns': checklistColumns }"
+				data-testid="cn-record-list-checklist">
+				<li
+					v-for="item in items"
+					:key="item.key"
+					class="cn-record-list__check"
+					:class="{ 'cn-record-list__check--done': isChecked(item.row) }"
+					data-testid="cn-record-list-check">
+					<span class="cn-record-list__check-mark" aria-hidden="true">
+						<Check v-if="isChecked(item.row)" :size="14" />
+					</span>
+					<span class="cn-record-list__check-title">{{ item.title }}</span>
+					<span class="hidden-visually">{{ isChecked(item.row) ? doneLabel : openLabel }}</span>
+				</li>
+			</ul>
+		</div>
 		<!-- notes: a field per row for what happened, recorded on the row's
 		     own notes endpoint (DqDagAfsluiten "Nog open van vandaag"). -->
 		<CnRecordNoteRows
@@ -99,14 +159,38 @@
 		<!-- `groupBy`: a heading per group, each group its own list, named by
 		     its heading. Without it this is one list, as before. -->
 		<template v-for="group in itemGroups" v-else :key="group.key">
+			<div
+				v-if="group.label && footerGroup !== '' && group.value === footerGroup"
+				class="cn-record-list__group-head"
+				data-testid="cn-record-list-group-head">
+				<h3
+					:id="group.headingId"
+					class="cn-record-list__group-heading"
+					data-testid="cn-record-list-group-heading">
+					{{ group.label }}
+				</h3>
+				<NcButton
+					variant="secondary"
+					:class="{ 'cn-record-list__action--tonal': footerTonal }"
+					:disabled="footerDisabled"
+					:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+					data-testid="cn-record-list-footer-action"
+					@click="runFooterAction">
+					<template v-if="footerAction.icon" #icon>
+						<CnIcon :name="footerAction.icon" :size="16" />
+					</template>
+					{{ footerAction.label }}
+				</NcButton>
+			</div>
 			<h3
-				v-if="group.label"
+				v-else-if="group.label"
 				:id="group.headingId"
 				class="cn-record-list__group-heading"
 				data-testid="cn-record-list-group-heading">
 				{{ group.label }}
 			</h3>
 			<ul
+				v-if="group.items.length > 0"
 				class="cn-record-list__list"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
@@ -230,6 +314,26 @@
 							class="cn-record-list__chevron"
 							:size="18"
 							aria-hidden="true" />
+						<template v-if="item.tag === 'div'">
+							<template v-for="(action, actionIndex) in setFieldActions">
+								<span
+									v-if="setFieldDone(action, item.row)"
+									:key="`set-field-done-${actionIndex}`"
+									class="cn-record-list__set-field-done"
+									data-testid="cn-record-list-set-field-done">
+									<Check :size="14" aria-hidden="true" />{{ action.doneLabel }}
+								</span>
+								<NcButton
+									v-else
+									:key="`set-field-${actionIndex}`"
+									:disabled="settingField"
+									:ariaLabel="fillRow(action.ariaLabel, item.row) || undefined"
+									data-testid="cn-record-list-set-field"
+									@click="runSetField(action, item.row)">
+									{{ action.label }}
+								</NcButton>
+							</template>
+						</template>
 						<NcActions
 							v-if="item.tag === 'div' && item.rowActions.length > 0"
 							:aria-label="rowActionsLabel"
@@ -332,7 +436,7 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && rows.length > 0" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
@@ -340,11 +444,39 @@
 		     says why (`disabledReason`: "Kan zodra de beslissing is
 		     verzonden"). -->
 		<div
-			v-if="footerAction && !error"
+			v-if="footerGroupHead && rows.length === 0 && !error && !loading"
+			class="cn-record-list__group-head"
+			data-testid="cn-record-list-group-head">
+			<h3 class="cn-record-list__group-heading" data-testid="cn-record-list-group-heading">
+				{{ footerGroupHead }}
+			</h3>
+			<NcButton
+				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:disabled="footerDisabled"
+				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
+				data-testid="cn-record-list-footer-action"
+				@click="runFooterAction">
+				<template v-if="footerAction.icon" #icon>
+					<CnIcon :name="footerAction.icon" :size="16" />
+				</template>
+				{{ footerAction.label }}
+			</NcButton>
+		</div>
+		<p
+			v-if="footerGroup !== '' && footerDisabled && footerAction && footerAction.reason && !error"
+			:id="footerReasonId"
+			class="cn-record-list__footer-reason"
+			data-testid="cn-record-list-footer-reason">
+			{{ footerAction.reason }}
+		</p>
+		<div
+			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
 			data-testid="cn-record-list-footer">
 			<NcButton
 				variant="secondary"
+				:class="{ 'cn-record-list__action--tonal': footerTonal }"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -368,6 +500,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -378,6 +511,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
@@ -385,13 +519,14 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Gives each list's footer reason its own element id. */
 let footerSeq = 0
-const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes']
+const PRESENTATIONS = ['rows', 'feed', 'inline', 'cards', 'notice', 'table', 'notes', 'checklist']
 
 /**
  * Compare two table cell texts: as numbers when both read as one, else as text.
@@ -460,7 +595,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -478,7 +613,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
-		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?, aggregates?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -498,6 +633,8 @@ export default {
 		 * `dot` (a field, or `{ field, colorMap? }`) draws a colour dot before
 		 * the title; `flags` (`[{ field, label, value? }]`) draws the labels
 		 * of the flags a row has ("Start", "End") at its end.
+		 * `tiles: true` (rows only) draws each row as a framed tile in a grid
+		 * of 260px at the least.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
@@ -511,6 +648,17 @@ export default {
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
+		 * `presentation: "checklist"` draws the rows in `columns` (default 3),
+		 * a row for which `done` (a condition over the row) holds ticked, and
+		 * `progress: true` adds a bar of the done share (DqTenant Inrichten);
+		 * `headerNote` can say "{count:status=completed} of {total} steps done".
+		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
+		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
+		 * row) asks a figure over each row's related objects, as a table's
+		 * `aggregate` column does, and offers it to the row's templates as
+		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
+		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
+		 * lopende zaken").
 		 *
 		 * @type {object}
 		 */
@@ -538,7 +686,7 @@ export default {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
 		const appConfigRaw = inject('cnAppConfig', ref({}))
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, refusal, refetch } = useEndpointSource(
 			() => {
 				const app = props.content?.requiresApp
 				return typeof app === 'string' && app !== '' && !isAppInstalled(app) ? null : (props.content?.endpointSource || null)
@@ -556,7 +704,31 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		// A footnote that reads another part of the same answer shares its
+		// request through the endpoint cache.
+		const footnoteSource = useEndpointSource(
+			() => {
+				const note = props.content?.footnote
+				const source = props.content?.endpointSource
+				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: note.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
 	},
 
 	data() {
@@ -564,6 +736,8 @@ export default {
 			/** The reader's sort of a `table`: the column key and `ascending` or `descending`. */
 			tableSort: { key: '', dir: '' },
 			rows: [],
+			/** The `aggregates` figures per row id: `{ [rowId]: { [key]: value } }`. */
+			aggregateValues: {},
 			total: 0,
 			loading: false,
 			error: false,
@@ -577,6 +751,7 @@ export default {
 			conditionalEmptyText: '',
 			/** The refusal of the last row action, as the server said it. */
 			actionError: '',
+			settingField: false,
 			/** Labels of the records a `links` line names, by id. */
 			linkLabels: {},
 		}
@@ -602,6 +777,41 @@ export default {
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
 				action,
 			}
+		},
+
+		/**
+		 * The group value `footerAction.group` puts the action in, with
+		 * `groupBy`; '' when the action stands under the list.
+		 *
+		 * @spec openspec/changes/record-list-group-action/specs/record-list/spec.md#requirement-a-record-lists-action-can-end-a-group-heading-as-a-tonal-pill
+		 * @return {string}
+		 */
+		footerGroup() {
+			const group = this.content?.footerAction?.group
+			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
+				return ''
+			}
+			return String(group)
+		},
+
+		/**
+		 * The heading of the action's group, for the list without rows.
+		 *
+		 * @return {string}
+		 */
+		footerGroupHead() {
+			if (this.footerGroup === '') {
+				return ''
+			}
+			const c = this.content
+			const labels = c.valueLabels && typeof c.valueLabels[c.groupBy] === 'object' ? c.valueLabels[c.groupBy] : {}
+			const named = labels[this.footerGroup] || this.footerGroup
+			return this.translate(named)
+		},
+
+		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
+		footerTonal() {
+			return this.content?.footerAction?.variant === 'tonal'
 		},
 
 		/**
@@ -742,7 +952,7 @@ export default {
 			const c = this.content || {}
 			const barScale = this.barScale
 			return this.rows.slice(0, this.limit).map((raw, index) => {
-				const row = scalarRow(raw)
+				const row = this.withAggregates(scalarRow(raw))
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
@@ -785,7 +995,7 @@ export default {
 		 * or not at all. Without `groupBy` all rows are one unheaded group.
 		 *
 		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
-		 * @return {Array<{key: string, label: string, headingId: string, items: Array<object>}>} The groups.
+		 * @return {Array<{key: string, value: string, label: string, headingId: string, items: Array<object>}>} The groups.
 		 */
 		itemGroups() {
 			if (!this.isGrouped) {
@@ -812,10 +1022,15 @@ export default {
 			if (buckets.has('')) {
 				values.push('')
 			}
+			if (this.footerGroup !== '' && !buckets.has(this.footerGroup)) {
+				buckets.set(this.footerGroup, [])
+				values.splice(buckets.has('') ? values.length - 1 : values.length, 0, this.footerGroup)
+			}
 			return values.map((value, index) => {
 				const named = value === '' ? c.groupEmptyLabel : (labels[value] || value)
 				return {
 					key: `group-${value}`,
+					value,
 					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
 					headingId: `${this.groupIdBase}-${index}`,
 					items: buckets.get(value),
@@ -847,6 +1062,8 @@ export default {
 			const indentPath = this.content?.indentPath
 			const rows = this.items.map((item) => ({
 				key: item.key,
+				row: item.row,
+				rowActions: this.rowActions.length > 0 ? this.rowActionsOf(item.row) : [],
 				to: item.attrs.to || null,
 				depth: indentPath ? Math.max(0, Math.floor(Number(readPath(item.row, indentPath)) || 0)) : 0,
 				cells: this.tableColumns.map((col) => {
@@ -856,6 +1073,7 @@ export default {
 					return {
 						key: col.key,
 						text,
+						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
 						tone: this.cellToneOf(col, item.row, text),
@@ -874,7 +1092,24 @@ export default {
 		/** @return {string} The note under the list (`footnote`), translated. */
 		footnote() {
 			const note = this.content?.footnote
+			if (note && typeof note === 'object') {
+				const value = this.footnoteValue
+				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
+					return ''
+				}
+				return this.translate(note.text).replace(/\{value\}/g, String(value))
+			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * Whether the footnote reads the answer: it then shows with no rows too.
+		 *
+		 * @return {boolean}
+		 */
+		footnoteFromAnswer() {
+			const note = this.content?.footnote
+			return Boolean(note && typeof note === 'object')
 		},
 
 		/**
@@ -911,6 +1146,47 @@ export default {
 				resolved.href = link.href
 			}
 			return resolved
+		},
+
+		/**
+		 * The checklist's columns (`content.columns`, 1 to 4, default 3).
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistColumns() {
+			const value = Number(this.content?.columns)
+			return Number.isFinite(value) && value >= 1 ? Math.min(4, Math.floor(value)) : 3
+		},
+
+		/**
+		 * How many checklist rows are done.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistDone() {
+			return this.items.filter((item) => this.isChecked(item.row)).length
+		},
+
+		/**
+		 * The done share of the checklist, in whole percent.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		checklistPercent() {
+			return this.items.length > 0 ? Math.round((this.checklistDone / this.items.length) * 100) : 0
+		},
+
+		/** @return {string} What a done checklist row says to a screen reader. */
+		doneLabel() {
+			return t('nextcloud-vue', 'Done')
+		},
+
+		/** @return {string} What an open checklist row says to a screen reader. */
+		openLabel() {
+			return t('nextcloud-vue', 'Not done yet')
 		},
 
 		/** @return {string} The header note with `{total}` filled. */
@@ -1020,6 +1296,33 @@ export default {
 				.map((action) => ({ ...action, label: this.translate(action.label) }))
 		},
 
+		/**
+		 * The `set-field` row actions, drawn as a button on each row.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @return {Array<object>}
+		 */
+		setFieldActions() {
+			return this.rowActions
+				.filter((action) => action.type === 'set-field' && typeof action.field === 'string' && action.field !== '')
+				.map((action) => ({
+					...action,
+					doneLabel: action.doneLabel ? this.translate(action.doneLabel) : '',
+					ariaLabel: action.ariaLabel ? this.translate(action.ariaLabel) : '',
+				}))
+		},
+
+		/**
+		 * The heading of the `table` presentation's actions column.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
+		 */
+		rowActionsHeader() {
+			const own = this.content?.rowActionsHeader
+			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
+		},
+
 		/** @return {string} The accessible name of a row's actions menu. */
 		rowActionsLabel() {
 			const own = this.content?.rowActionsLabel
@@ -1060,8 +1363,17 @@ export default {
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
 
-		/** @return {string} The error line. */
+		/**
+		 * The error line: an endpoint's refusal (401/403) in its own words,
+		 * through the app's catalogue, else `errorText`, else the default.
+		 *
+		 * @return {string} The error line.
+		 * @spec openspec/changes/record-list-endpoint-refusal/specs/record-list/spec.md#requirement-a-refused-endpoint-read-says-why
+		 */
 		errorLabel() {
+			if (this.endpointActive && this.epRefusal) {
+				return this.translate(this.epRefusal)
+			}
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
 
@@ -1078,6 +1390,7 @@ export default {
 
 		rows() {
 			this.evaluateEmptyTexts()
+			this.loadAggregates()
 		},
 
 		footerDisabledKey: {
@@ -1227,7 +1540,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -1333,12 +1646,7 @@ export default {
 		 * @return {string} The text.
 		 */
 		withTotal(label) {
-			return this.translate(label)
-				.replace(/\{total\}/g, String(this.total))
-				.replace(/\{count:([^=}]+)=([^}]*)\}/g, (match, field, value) => {
-					const wanted = value.trim()
-					return String(this.rows.filter((row) => String(readPath(row, field.trim())) === wanted).length)
-				})
+			return fillCountLabel(this.translate(label), this.total, this.rows)
 		},
 
 		/**
@@ -1445,15 +1753,21 @@ export default {
 		 * Run a `rowAction` that is not a plain link through the page's
 		 * dispatcher: a `handler` gets the row as its last argument, an
 		 * `open-modal` gets it as the `row` prop, an `object-op` acts on it.
+		 * With `endpoint` it calls that app URL for the row, as a `rowActions`
+		 * endpoint entry does.
 		 *
 		 * @param {object} row The row.
 		 * @return {unknown} What the dispatcher returns.
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 * @spec openspec/changes/record-list-row-action-endpoint/specs/record-list/spec.md#requirement-a-rows-one-action-can-call-an-app-endpoint-for-that-row
 		 */
 		runRowAction(row) {
 			const action = this.content?.rowAction
 			if (!action || typeof action !== 'object') {
 				return undefined
+			}
+			if (typeof action.endpoint === 'string' && action.endpoint !== '') {
+				return this.runRowActionEntry(action, row)
 			}
 			const type = action.type || 'handler'
 			let wrapped = action
@@ -1499,6 +1813,93 @@ export default {
 				return null
 			}
 			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
+		},
+
+		/**
+		 * Ask every `content.aggregates` figure (`{ key: { register, schema,
+		 * op: "count" | "max", field?, where } }`, `@self.<path>` in `where`
+		 * read off the row) for each row shown, as a table's `aggregate`
+		 * column does. A failed figure is left out; a stale batch is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		async loadAggregates() {
+			const declared = this.content?.aggregates
+			const entries = declared && typeof declared === 'object' ? Object.entries(declared).filter(([, agg]) => isRowAggregate(agg)) : []
+			const id = (this.aggregateRequestId = (this.aggregateRequestId || 0) + 1)
+			if (entries.length === 0) {
+				this.aggregateValues = {}
+				return
+			}
+			const next = {}
+			const jobs = []
+			for (const raw of this.rows.slice(0, this.limit)) {
+				const row = scalarRow(raw)
+				const rowId = row && typeof row === 'object' ? (row.id || row['@self']?.id) : null
+				if (!rowId) {
+					continue
+				}
+				next[rowId] = {}
+				for (const [key, agg] of entries) {
+					jobs.push(fetchRowAggregate(agg, row)
+						.then((value) => {
+							next[rowId][key] = this.aggregateText(agg, value)
+						})
+						.catch(() => {}))
+				}
+			}
+			await Promise.all(jobs)
+			if (id === this.aggregateRequestId) {
+				this.aggregateValues = next
+			}
+		},
+
+		/**
+		 * A count read through the aggregate's `text` forms (`{ zero?, one?,
+		 * other }`, `{count}` filled in, translated), else the figure itself.
+		 *
+		 * @param {object} agg The aggregate declaration.
+		 * @param {unknown} value The figure.
+		 * @return {unknown} The text, or the figure.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		aggregateText(agg, value) {
+			const forms = agg && agg.text
+			const count = Number(value)
+			if (!forms || typeof forms !== 'object' || !Number.isFinite(count)) {
+				return value
+			}
+			const form = (count === 0 && forms.zero) || (count === 1 && forms.one) || forms.other || forms.one
+			return typeof form === 'string' ? this.translate(form).replace(/\{count\}/g, String(count)) : value
+		},
+
+		/**
+		 * The row with its `aggregates` figures under their keys.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The row, its figures added when it has any.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		withAggregates(row) {
+			if (!row || typeof row !== 'object') {
+				return row
+			}
+			const figures = this.aggregateValues[row.id || row['@self']?.id]
+			return figures ? { ...row, ...figures } : row
+		},
+
+		/**
+		 * Whether a checklist row is done: `content.done` (a condition over
+		 * the row) holds for it.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-checklist/specs/record-list/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-checklist
+		 */
+		isChecked(row) {
+			const done = this.content?.done
+			return Boolean(done && typeof done === 'object' && row && evaluateVisibleWhenLocal(done, row))
 		},
 
 		/**
@@ -1631,6 +2032,9 @@ export default {
 		rowActionsOf(row) {
 			const shown = []
 			this.rowActions.forEach((action, index) => {
+				if (action.type === 'set-field') {
+					return
+				}
 				if (action.visibleWhen && !evaluateVisibleWhenLocal(action.visibleWhen, row || {})) {
 					return
 				}
@@ -1703,6 +2107,82 @@ export default {
 					// The link still opens; only its text stays the fallback.
 				}
 			}))
+		},
+
+		/**
+		 * Fill `{field}` placeholders from a row. A text that is one placeholder
+		 * keeps the value's type.
+		 *
+		 * @param {string} text The template.
+		 * @param {object} row The row.
+		 * @return {unknown} The filled value.
+		 */
+		fillRow(text, row) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const whole = text.match(/^\{([\w.@]+)\}$/)
+			if (whole) {
+				return readPath(row, whole[1]) ?? ''
+			}
+			return text.replace(/\{([\w.@]+)\}/g, (_m, field) => String(readPath(row, field) ?? ''))
+		},
+
+		/**
+		 * Whether the page's record already holds the value a `set-field`
+		 * action would write for this row.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 */
+		setFieldDone(action, row) {
+			const object = this.tokenCtx.object || {}
+			const current = readPath(object, action.field)
+			const value = this.fillRow(action.value, row)
+			return Boolean(action.doneLabel) && value !== '' && current !== undefined && current !== null && String(current) === String(value)
+		},
+
+		/**
+		 * Write one field of the page's record from a row with one PATCH, hand
+		 * the saved record to the page, and read the list again.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @param {object} action The `set-field` action.
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 */
+		async runSetField(action, row) {
+			const context = this.tokenCtx
+			if (this.settingField || !context.register || !context.schema || !context.objectId) {
+				return
+			}
+			this.actionError = ''
+			this.settingField = true
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(context.register)}/${encodeURIComponent(context.schema)}/${encodeURIComponent(context.objectId)}`)
+				const { data } = await axios.patch(url, { [action.field]: this.fillRow(action.value, row) })
+				const setObject = unwrap(this.cnObjectContext)?.setObject
+				if (typeof setObject === 'function' && data && typeof data === 'object') {
+					setObject(data)
+				}
+				if (typeof this.epRefetch === 'function' && this.endpointActive) {
+					await this.epRefetch(true)
+					if (typeof this.footnoteRefetch === 'function' && this.footnoteFromAnswer) {
+						await this.footnoteRefetch(false)
+					}
+				} else {
+					await this.fetchRows()
+				}
+			} catch (error) {
+				const said = error?.response?.data?.error ?? error?.response?.data?.message
+				this.actionError = typeof said === 'string' && said !== ''
+					? said
+					: (action.errorText ? this.translate(action.errorText) : t('nextcloud-vue', 'This did not work. Try again.'))
+			} finally {
+				this.settingField = false
+			}
 		},
 
 		/**
@@ -1881,13 +2361,18 @@ export default {
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
 			const header = { link: this.headerLink, note: this.headerNote }
+			// `headerSubtitle`: the counts as the muted line under the card title.
+			const subtitle = this.content?.headerSubtitle
+			if (typeof subtitle === 'string' && subtitle !== '' && !this.error) {
+				header.subtitle = this.withTotal(subtitle)
+			}
 			// `headerCount: true`: the card draws the total as a chip after its title.
 			if (this.content?.headerCount === true && !this.error) {
 				header.count = this.total
 			}
 			/**
 			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
+			 * @type {{link: (object|null), note: string, count: (number|undefined), subtitle: (string|undefined)}} The header link (resolved, with `{total}` filled), the note, with `headerCount` the total, and with `headerSubtitle` the line under the title.
 			 */
 			this.$emit('header', header)
 		},
@@ -2077,6 +2562,72 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__checklist-bar {
+	height: 8px;
+	margin-block-end: 16px;
+	border-radius: 4px;
+	background: var(--color-background-dark);
+	overflow: hidden;
+}
+
+.cn-record-list__checklist-fill {
+	display: block;
+	height: 100%;
+	border-radius: 4px;
+	background: var(--color-primary-element);
+}
+
+.cn-record-list__checklist {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-record-list-columns, 3), minmax(0, 1fr));
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-record-list__check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 28px;
+}
+
+.cn-record-list__check--done {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__check-mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: 50%;
+}
+
+.cn-record-list__check--done .cn-record-list__check-mark {
+	border-color: transparent;
+	background: var(--color-success-hover, var(--color-background-dark));
+	color: var(--color-success-text, var(--color-success));
+}
+
+@media (max-width: 640px) {
+	.cn-record-list__checklist {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-record-list__set-field-done {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-success-text, var(--color-success));
+	font-weight: bold;
+}
+
 .cn-record-list__list {
 	list-style: none;
 	margin: 0;
@@ -2088,6 +2639,34 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.4;
+}
+
+.cn-record-list__group-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.cn-record-list__group-head .cn-record-list__group-heading {
+	margin: 0;
+}
+
+.cn-record-list__action--tonal.button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-record-list__action--tonal.button-vue:hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
 }
 
 .cn-record-list__footer {
@@ -2287,6 +2866,19 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+.cn-record-list__cell-sub {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-list__table .cn-record-list__cell--actions {
+	width: 1%;
+	padding-inline-start: 12px;
+	text-align: end;
+	white-space: nowrap;
+}
+
 .cn-record-list__sort {
 	display: inline-flex;
 	gap: 4px;
@@ -2396,6 +2988,34 @@ export default {
 .cn-record-list__chevron {
 	color: var(--color-text-maxcontrast);
 	flex: none;
+}
+
+/* tiles (`tiles: true`, DqZaaktypeOverzicht "Statussen"): rows as framed
+   tiles in a grid, the title at 14px regular. The selectors outrank the board
+   look's list row rules. */
+.cn-record-list.cn-record-list--tiles .cn-record-list__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item {
+	border-top: 0;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__row {
+	box-sizing: border-box;
+	height: 100%;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--cn-board-hairline, var(--color-border));
+	border-radius: 8px;
+}
+
+.cn-record-list.cn-record-list--tiles .cn-record-list__list .cn-record-list__item .cn-record-list__title {
+	font-size: 14px;
+	font-weight: 400;
 }
 
 /* cards (board ShBank): a grid of framed cards, 240px at the least. */

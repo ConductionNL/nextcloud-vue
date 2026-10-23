@@ -72,14 +72,20 @@
 
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
-		     Config: widgetProps { register, schema, labelField }. -->
+		     Config: widgetProps { register, schema, labelField, matchField?,
+		     refField?, labelTemplate?, labelPath? }, or schemaFrom { field,
+		     map } to read the schema off the row. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
-				v-if="hasValue"
+				v-if="hasValue || fkRefValue !== null"
 				:value="value"
 				:register="(widgetProps && widgetProps.register) || ''"
-				:schema="(widgetProps && widgetProps.schema) || ''"
-				:labelField="(widgetProps && widgetProps.labelField) || 'name'" />
+				:schema="fkSchema"
+				:labelField="(widgetProps && widgetProps.labelField) || 'name'"
+				:matchField="(widgetProps && widgetProps.matchField) || ''"
+				:refValue="fkRefValue"
+				:labelTemplate="(widgetProps && widgetProps.labelTemplate) || ''"
+				:labelPath="(widgetProps && widgetProps.labelPath) || ''" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -239,7 +245,12 @@
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
 				:title="isRelativeDate ? absoluteDateLabel : rawTitle">{{ dateLabel }}</time>
-			<span v-else class="cn-cell-renderer__dash">—</span>
+			<span v-else-if="!dateStateText" class="cn-cell-renderer__dash">—</span>
+			<!-- `widgetProps.pastText` / `otherText`: a state beside the date ("Ended", "Active"). -->
+			<span v-if="dateStateText"
+				class="cn-cell-renderer__date-state"
+				:class="{ 'cn-cell-renderer__date-state--past': dateIsPast }"
+				data-testid="cn-cell-date-state">{{ dateStateText }}</span>
 		</template>
 
 		<!-- Built-in "number" widget: the value with its unit
@@ -412,15 +423,17 @@ import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
-import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { formatMoney } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { indicatorApplies } from '../../utils/rowIndicators.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { isWithheld, withheldReason } from '../../utils/withheldValue.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -542,7 +555,7 @@ export default {
 		 * batch (`widgetProps { labels, route? }`, set by CnIndexPage for a
 		 * column with `labelField`).
 		 * The built-in id `"avatar"` renders a person as an avatar with the
-		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
+		 * name beside it (`widgetProps { userField?, user?, nameField?, size?, groupField?, groupLabel? }`; a row nobody holds names its first `groupField` group, in `groupLabel` ("{group}, unclaimed");
 		 * a free name gets its initials), and the built-in id `"date"` renders
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
@@ -650,6 +663,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The schema an `fkResolve` cell reads: `widgetProps.schema`, or the one
+		 * `widgetProps.schemaFrom` (`{ field, map }`) names for this row, for a
+		 * reference that points at objects of more than one schema.
+		 *
+		 * @return {string}
+		 */
+		fkSchema() {
+			const props = this.widgetProps || {}
+			const from = props.schemaFrom
+			if (from && typeof from === 'object' && from.field && this.row) {
+				const mapped = (from.map || {})[String(this.row[from.field])]
+				if (mapped) {
+					return mapped
+				}
+			}
+			return props.schema || ''
+		},
+
 		/**
 		 * The `actions` widget's buttons for this row: the page's resolved
 		 * `widgetProps.items` (a list, or a function of the row returning
@@ -763,10 +795,13 @@ export default {
 
 		/**
 		 * `avatar` widget: the name shown beside the picture. Read from the
-		 * row field `widgetProps.nameField` when set, else the cell value.
+		 * row field `widgetProps.nameField` when set; a cell holding a user id
+		 * (`widgetProps.user`) shows that user's display name once it is
+		 * known; else the cell value.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 * @spec openspec/changes/avatar-cell-user-display-name/specs/data-table/spec.md#requirement-an-avatar-cell-holding-a-user-id-shows-the-users-display-name
 		 */
 		avatarName() {
 			const props = this.widgetProps || {}
@@ -775,6 +810,16 @@ export default {
 				if (typeof name === 'string' && name !== '') {
 					return name
 				}
+			}
+			if (props.user === true && this.avatarUserId !== '') {
+				const displayName = userDisplayName(this.avatarUserId)
+				if (displayName !== '') {
+					return displayName
+				}
+			}
+			if (this.avatarGroupId !== '') {
+				const label = typeof props.groupLabel === 'string' && props.groupLabel !== '' ? this.cnTranslate(props.groupLabel) : '{group}'
+				return label.replace(/\{group\}/g, this.avatarGroupName)
 			}
 			if (!this.hasValue || typeof this.value === 'object') {
 				return ''
@@ -790,7 +835,36 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			return this.initialsOf(this.avatarName)
+			return this.initialsOf(this.avatarGroupId !== '' ? this.avatarGroupName : this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: the group the row waits on when nobody holds it,
+		 * the first id in the row field `widgetProps.groupField`, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/avatar-cell-group-fallback/specs/data-table/spec.md#requirement-an-empty-avatar-cell-can-name-the-rows-group
+		 */
+		avatarGroupId() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'avatar' || typeof props.groupField !== 'string' || props.groupField === '' || this.avatarUserId !== '') {
+				return ''
+			}
+			if (this.hasValue && typeof this.value !== 'object') {
+				return ''
+			}
+			const groups = objectFieldValue(this.row, props.groupField)
+			const first = Array.isArray(groups) ? groups.find((gid) => typeof gid === 'string' && gid !== '') : groups
+			return typeof first === 'string' ? first : ''
+		},
+
+		/**
+		 * `avatar` widget: the display name of `avatarGroupId`, the id until it is known.
+		 *
+		 * @return {string}
+		 */
+		avatarGroupName() {
+			return groupDisplayName(this.avatarGroupId) || this.avatarGroupId
 		},
 
 		/**
@@ -840,7 +914,34 @@ export default {
 			if (this.dueResult && this.dueResult.tone === 'danger') {
 				return 'cn-cell-renderer__date--error'
 			}
+			if (this.dueResult && this.dueResult.tone === 'muted') {
+				return 'cn-cell-renderer__date--muted'
+			}
 			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
+		},
+
+		/**
+		 * `date` widget: whether the date lies before today.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateIsPast() {
+			const days = daysUntil(this.value)
+			return days !== null && days < 0
+		},
+
+		/**
+		 * `date` widget: `widgetProps.pastText` for a past date, else
+		 * `widgetProps.otherText` (also for an empty one), translated; '' without either.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateStateText() {
+			const props = this.widgetProps || {}
+			const text = this.dateIsPast ? props.pastText : props.otherText
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
 		},
 
 		/**
@@ -1131,6 +1232,23 @@ export default {
 		/** True when the cell has a renderable value (not null/undefined/empty string). */
 		hasValue() {
 			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * The row's own reference for an `fkResolve` cell (`widgetProps.refField`),
+		 * or null when the row has none.
+		 *
+		 * @return {string|number|Array|null}
+		 * @spec openspec/changes/fk-resolve-lookup/specs/fk-resolve-lookup/spec.md#requirement-a-reference-cell-can-look-its-record-up-by-a-property
+		 */
+		fkRefValue() {
+			const field = this.widgetProps && this.widgetProps.refField
+			if (!field || !this.row) {
+				return null
+			}
+			const ref = readPath(this.row, field)
+			const empty = ref === null || ref === undefined || ref === '' || (Array.isArray(ref) && ref.length === 0)
+			return empty || (typeof ref === 'object' && !Array.isArray(ref)) ? null : ref
 		},
 
 		/**
@@ -1599,6 +1717,22 @@ export default {
 		},
 	},
 
+	watch: {
+		avatarGroupId: {
+			immediate: true,
+			/**
+			 * Look the group's display name up (cached, once per id per page).
+			 *
+			 * @param {string} gid The group id.
+			 */
+			handler(gid) {
+				if (gid !== '') {
+					loadGroupDisplayName(gid)
+				}
+			},
+		},
+	},
+
 	mounted() {
 		// Warn once per column-property-name when `widget:"link"` resolves
 		// to neither a `route` nor an `href` — silent fallback hides
@@ -1809,6 +1943,15 @@ export default {
 
 .cn-cell-renderer--date {
 	white-space: nowrap;
+}
+
+.cn-cell-renderer__date-state {
+	margin-inline-start: 8px;
+	color: var(--color-success-text, var(--color-main-text));
+}
+
+.cn-cell-renderer__date-state--past {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-cell-renderer__dash {
@@ -2073,6 +2216,10 @@ export default {
 
 .cn-cell-renderer__date--error {
 	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-cell-renderer__date--muted {
+	color: var(--color-text-maxcontrast);
 }
 
 /* The text variant, not the fill: from Nextcloud 32 `--color-success` is a
