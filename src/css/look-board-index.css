@@ -1702,6 +1702,20 @@
 	gap: 6px;
 }
 
+/* ---- A list row's leading cell (DqTeamwachtrij) ------------------------ */
+/* "6 dagen" in front of a team queue row: 14px at weight 700 on the normal
+   line height, an age widget included (board cells elsewhere keep it at 600).
+   @spec openspec/changes/board-list-lead-cell/specs/board-list-lead-cell/spec.md#requirement-a-board-list-rows-leading-cell-is-14px-bold */
+.cn-look-board .cn-object-row__lead:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.cn-look-board .cn-object-row__lead .cn-cell-renderer__age:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
 /* The board draws "3 zaken zonder adres" as a 15px title at its normal line
    height with "Toon ze in de tabel" under it as a link flush with the title,
