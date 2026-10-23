@@ -59,6 +59,7 @@ With static values:
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The configuration blob described above. |
 | `translate` | `function` | `null` | Translate function for labels and the empty text. Falls back to the injected `cnTranslate`. |
+| `objectId` | `string` | `null` | The record on the page, for the `@objectId` token of `endpointSource`. |
 
 ## Colours
 

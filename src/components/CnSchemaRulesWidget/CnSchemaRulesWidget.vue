@@ -4,9 +4,9 @@
 -->
 <template>
 	<div class="cn-schema-rules" data-testid="cn-schema-rules">
-		<h4 v-if="title !== null">
+		<component :is="innerHeadingTag" v-if="title !== null" class="cn-inner-heading">
 			{{ title ? text(title) : t('nextcloud-vue', 'Rules on this schema') }}
-		</h4>
+		</component>
 		<p class="cn-schema-rules__hint">
 			{{ description ? text(description) : t('nextcloud-vue', 'Everything the platform checks when an object is saved, in the order it checks it.') }}
 		</p>
@@ -90,6 +90,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import { evaluateRule, fetchRuleVocabulary, fetchSchemaRules, kindsByName, traceOf } from './schemaRules.js'
 
 /**
@@ -108,6 +109,8 @@ export default {
 	name: 'CnSchemaRulesWidget',
 
 	components: { NcButton, NcLoadingIcon, NcTextField },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/** The host app's translate, for the texts the page declares. */

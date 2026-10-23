@@ -1,0 +1,2 @@
+- [x] look-board.css: the 40px rule skips .cn-tabs__nav-end
+- [x] Spec tests/css/lookBoardTabStripActions.spec.js; lookBoardMenuTriggerHeight.spec.js follows the selector

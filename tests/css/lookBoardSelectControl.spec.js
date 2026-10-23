@@ -20,17 +20,18 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css')
  * The body of the rule that lists exactly this selector.
  *
  * @param {string} selector The selector.
- * @return {string} The body, or ''.
+ * @return {string} The bodies of every rule naming it, joined, or ''.
  */
 function bodyOf(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
+	const out = []
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
-			return m[2]
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
+			out.push(m[2])
 		}
 	}
-	return ''
+	return out.join('\n')
 }
 
 const SELECT = '.cn-look-board .v-select.select:not(.cn-look-nextcloud *):not(.cn-dialog-board *)'
@@ -50,6 +51,13 @@ describe('look-board.css: a select is the board control', () => {
 	it('makes a page filter\'s select 36px', () => {
 		expect(bodyOf('.cn-look-board .cn-dashboard-page__page-filter:not(.cn-look-nextcloud *)')).toContain('--cn-board-select-height: 36px;')
 	})
+	// COMPDIFF r24: the period and case-type selects in a dashboard's
+	// description row (DqProcesanalyse "Periode", DqDoorlooptijd "Filteren op
+	// zaaktype") are 36px on the boards; live drew them 40px.
+	it('makes a select in a dashboard\'s description row 36px', () => {
+		expect(bodyOf('.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *)')).toContain('--cn-board-select-height: 36px;')
+	})
+
 	it('makes the timeline\'s filter select 36px (DqZaakHistorie)', () => {
 		expect(bodyOf('.cn-look-board .cn-timeline-manage__controls:not(.cn-look-nextcloud *)')).toContain('--cn-board-select-height: 36px;')
 	})

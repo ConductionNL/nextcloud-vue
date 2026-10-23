@@ -34,7 +34,7 @@ A status a type derives is not a move anyone can pick. When it has not fired, no
 | `dwell` | `{ days, breached }` | Working days in this status, with a chip when that is longer than the status allows. |
 | field rules | the record's `@self.fieldRules` | What the status requires, locks and hides, one line per kind. |
 
-`paths` overrides where each part sits in the answer. `fieldRules: false` leaves the field rules out. `labels.derivationHeading` (with `{status}`) and `labels.fieldRulesHeading` replace the two headings.
+`paths` overrides where each part sits in the answer. `fieldRules: false` leaves the field rules out. `withheld: false` leaves the withheld moves out, for a card that says only where the record stands (the case Status card). In the board look the widget draws no box: the explanation is its bold line and the time in the status sits muted under it. `labels.derivationHeading` (with `{status}`) and `labels.fieldRulesHeading` replace the two headings.
 
 ## Behaviour
 

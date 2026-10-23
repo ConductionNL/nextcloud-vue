@@ -235,6 +235,7 @@ describe('isExternalActionTarget', () => {
 		['//example.test', true],
 		['mailto:a@b.test', true],
 		['tel:+31', true],
+		['geo:0,0?q=Dorpsstraat%201', true],
 		['/dogs', false],
 		['dogs/1', false],
 		['', false],

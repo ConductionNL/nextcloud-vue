@@ -69,7 +69,9 @@ function makeEvent(spec, now) {
 		dateOnly: moment.dateOnly,
 		label: spec.label || '',
 		detail: spec.detail || '',
+		meta: spec.meta || '',
 		source: spec.source,
+		icon: spec.icon || '',
 		upcoming: moment.at.getTime() > now.getTime(),
 	}
 }
@@ -195,6 +197,56 @@ export function timelineEntryEvents(entries, noteLabel, now = new Date()) {
 			detail: [e && e.author, e && e.message].filter(Boolean).join(': '),
 			source: 'timeline',
 		}, now))
+		.filter(Boolean)
+}
+
+/**
+ * The icon of an endpoint item (`icons`: `{ path?, map?, typeMap?, default? }`):
+ * the value at `path` through `map` (a contact moment's channel), else the
+ * type through `typeMap`, else `default`.
+ *
+ * @param {object} item The item.
+ * @param {string} type The item's type.
+ * @param {object} [icons] The icon config.
+ * @return {string} An MDI icon name, '' for none.
+ */
+function endpointIcon(item, type, icons) {
+	if (!icons || typeof icons !== 'object') {
+		return ''
+	}
+	const value = icons.path ? textAt(item, icons.path) : ''
+	const byValue = icons.map && value ? icons.map[value] : ''
+	const byType = icons.typeMap && type ? icons.typeMap[type] : ''
+	return byValue || byType || icons.default || ''
+}
+
+/**
+ * Events from an app endpoint's items (`endpointSource`): the label, a detail
+ * cut at 120 characters, and a meta line of the type label and the author.
+ *
+ * @param {Array<object>} items The items.
+ * @param {object} config The `endpointSource` keys: `dateField`, `labelField`, `detailField`, `typeField`, `userField`.
+ * @param {(type: string) => string} typeLabel The label of a type.
+ * @param {string} untitled The label of an item without one.
+ * @param {Date} [now] The reference moment.
+ * @return {Array<object>} One event per dated item.
+ */
+export function endpointEvents(items, config, typeLabel, untitled, now = new Date()) {
+	return (Array.isArray(items) ? items : [])
+		.filter((item) => item && typeof item === 'object')
+		.map((item, i) => {
+			const detail = textAt(item, config.detailField || 'description')
+			const type = textAt(item, config.typeField || 'type')
+			return makeEvent({
+				id: `endpoint:${type}:${item.id ?? i}`,
+				raw: readPath(item, config.dateField || 'date'),
+				label: textAt(item, config.labelField || 'title') || untitled,
+				detail: detail.length > 120 ? detail.substring(0, 120) + '...' : detail,
+				meta: [type ? typeLabel(type) : '', textAt(item, config.userField || 'user')].filter(Boolean).join(' · '),
+				source: 'endpoint',
+				icon: endpointIcon(item, type, config.icons),
+			}, now)
+		})
 		.filter(Boolean)
 }
 

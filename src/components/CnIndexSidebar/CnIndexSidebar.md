@@ -194,6 +194,7 @@ With admin-only filter control:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `icon` | String | `''` | MDI icon name or emoji shown in the sidebar header. Falls back to `schema.icon` |
+| `subtitle` | String | `''` | The line under the title, in place of the schema's description: the page's count ("48 zaken, 8 op deze pagina", DqFilterBeheren). |
 | `visibleColumns` | Array | `null` | Currently visible column keys; `null` means all visible |
 | `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab |
 | `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table |

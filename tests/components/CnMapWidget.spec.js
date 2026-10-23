@@ -687,6 +687,18 @@ describe('CnMapWidget — controls', () => {
 		wrapper.unmount()
 	})
 
+	it('draws Leaflet\'s zoom buttons unless zoomControl is off (a preview map, DqZaakLocatie)', async () => {
+		const L = require('leaflet').default
+		const on = mountWidget({})
+		await flush()
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(true)
+		on.unmount()
+		const off = mountWidget({ zoomControl: false })
+		await flush()
+		expect(L.map.mock.calls.at(-1)[1].zoomControl).toBe(false)
+		off.unmount()
+	})
+
 	it('fitToMarkers() re-measures before it re-fits the marker bounds', async () => {
 		const wrapper = mountWidget({
 			markers: { features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [5, 52] }, properties: {} }] },

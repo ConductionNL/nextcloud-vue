@@ -90,6 +90,16 @@ path such as `/apps/forms/s/{token}` opens in place. Any other address hides the
 ]
 ```
 
+A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, doneLabel?, errorText? }`) is not in the
+menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
+(`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
+whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
+template filled from the row ("Assign to {displayName}").
+
+`footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
+(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+capacity"). It shows with no rows too, and not when the value is empty or zero.
+
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
 (`{ register, schema, template }`) reads their labels, ten at most, and `fallback` stands in until then.
@@ -124,6 +134,7 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 |-----|---------|
 | `headerLink` | `{ label, route, params?, query? }` or `{ label, href }`. `{total}` in the label is the list's total; `params` and `query` resolve tokens. |
 | `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. `{count:<field>=<value>}` counts the loaded rows whose field reads that value: `"{count:status=done} van {total} stappen klaar"`. It reads the rows the list loaded, so set `limit` to cover the list. |
+| `headerSubtitle` | The muted line under the card title, with the same counts as `headerNote`: `"{total} in totaal"`, `"{count:status=completed} van {total} stappen klaar"` (DqContact "Laatste contactmomenten", DqTenant "Inrichten"). |
 | `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
@@ -169,6 +180,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
+
+`aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
 
 ## Props
 

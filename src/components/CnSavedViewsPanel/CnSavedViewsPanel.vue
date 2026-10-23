@@ -6,7 +6,7 @@
 	<section class="cn-saved-views-panel" data-testid="cn-saved-views-panel" :aria-label="t('nextcloud-vue', 'Saved views')">
 		<div class="cn-saved-views-panel__head">
 			<NcButton
-				variant="secondary"
+				:variant="isBoardLook ? 'primary' : 'secondary'"
 				:wide="true"
 				data-testid="cn-saved-views-save"
 				@click="onSaveRequest">
@@ -54,12 +54,19 @@
 				{{ t('nextcloud-vue', 'No views with this label') }}
 			</p>
 
-			<template v-for="section in sections" :key="section.key">
+			<template v-for="section in panelSections" :key="section.key">
 				<h4
 					v-if="section.label"
 					class="cn-saved-views-panel__section"
 					:data-testid="`cn-saved-views-section-${section.key}`">
 					{{ section.label }}
+					<span
+						v-if="section.key === 'seeded'"
+						class="cn-saved-views-panel__read-only"
+						data-testid="cn-saved-views-read-only">
+						<LockOutline :size="14" />
+						{{ t('nextcloud-vue', 'Read only') }}
+					</span>
 				</h4>
 				<p v-if="sectionHint(section.key)" class="cn-saved-views-panel__note">
 					{{ sectionHint(section.key) }}
@@ -81,9 +88,13 @@
 							:aria-pressed="isSelected(row.view)"
 							:aria-label="rowLabel(row)"
 							@click="emitFor('apply', row.view)">
-							<span class="cn-saved-views-panel__name-text">{{ rowName(row) }}</span>
+							<span class="cn-saved-views-panel__name-text">{{ rowText(row) }}</span>
 							<span v-if="subline(row, section.key)" class="cn-saved-views-panel__subline">{{ subline(row, section.key) }}</span>
 						</button>
+						<span
+							v-if="isBoardLook && countOf(row.view) !== null"
+							class="cn-saved-views-panel__count"
+							data-testid="cn-saved-views-count">{{ countOf(row.view) }}</span>
 						<NcActions
 							:aria-label="manageLabel(row.view)"
 							:forceMenu="true"
@@ -172,11 +183,13 @@
 import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import PinOffOutline from 'vue-material-design-icons/PinOffOutline.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { savedViewsList } from '../../mixins/savedViewsList.js'
 import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
 
@@ -212,6 +225,7 @@ export default {
 		NcButton,
 		ContentCopy,
 		ContentSaveOutline,
+		LockOutline,
 		PencilOutline,
 		PinOffOutline,
 		PinOutline,
@@ -220,6 +234,11 @@ export default {
 	},
 
 	mixins: [savedViewsList],
+
+	inject: {
+		/** The look CnAppRoot (or the page) draws in. */
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/**
@@ -230,6 +249,17 @@ export default {
 		 */
 		menuIds: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * What each view filters on, by view id, in words: the line under a
+		 * view that has no description of its own.
+		 *
+		 * @type {object|null}
+		 */
+		summaries: {
+			type: Object,
 			default: null,
 		},
 	},
@@ -254,6 +284,26 @@ export default {
 	],
 
 	computed: {
+		/** @return {boolean} Whether the panel is drawn as the boards draw it. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The sections in the order the panel draws them: in the board look
+		 * the reader's own views first and the read-only defaults last, as
+		 * DqFilterBeheren draws it; the Nextcloud look keeps the defaults first.
+		 *
+		 * @return {Array<{key: string, label: string, rows: Array<object>}>}
+		 */
+		panelSections() {
+			if (!this.isBoardLook) {
+				return this.sections
+			}
+			const rank = { mine: 0, shared: 1, seeded: 2 }
+			return [...this.sections].sort((a, b) => (rank[a.key] ?? 0) - (rank[b.key] ?? 0))
+		},
+
 		/** @return {boolean} Whether Add to menu is offered. */
 		canPin() {
 			return Array.isArray(this.menuIds)
@@ -303,6 +353,17 @@ export default {
 		},
 
 		/**
+		 * The name a row shows: in the board look without its count, which
+		 * stands in its own pill at the end of the row.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {string}
+		 */
+		rowText(row) {
+			return this.isBoardLook ? `${' '.repeat(row.depth * 2)}${row.view.name}` : this.rowName(row)
+		},
+
+		/**
 		 * The line under a section caption.
 		 *
 		 * @param {string} key The section key.
@@ -313,13 +374,14 @@ export default {
 				return this.t('nextcloud-vue', 'From colleagues. You can use them and save a copy.')
 			}
 			if (key === 'seeded') {
-				return this.t('nextcloud-vue', 'Read only. Shipped with the app; a new version updates them.')
+				return this.t('nextcloud-vue', 'Shipped with the app; a new version updates them.')
 			}
 			return ''
 		},
 
 		/**
-		 * The second line of a row: the view's description, else who shared it.
+		 * The second line of a row: the view's description, else who shared it,
+		 * else what it filters on (`summaries`).
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @param {string} sectionKey The section the row is in.
@@ -333,7 +395,8 @@ export default {
 			if (sectionKey === 'shared' && row.view.owner) {
 				return this.t('nextcloud-vue', 'By {owner}', { owner: row.view.ownerDisplayName || row.view.owner })
 			}
-			return ''
+			const summary = this.summaries && this.summaries[this.idOf(row.view)]
+			return typeof summary === 'string' ? summary : ''
 		},
 
 		manageLabel(view) {
@@ -375,6 +438,20 @@ export default {
 	margin: 8px 0 0;
 	font-size: var(--font-size-small, 13px);
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-views-panel__read-only {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-inline-start: 8px;
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+	vertical-align: middle;
 }
 
 .cn-saved-views-panel__note {

@@ -75,6 +75,7 @@
 						v-if="loading"
 						:size="20"
 						:name="t('nextcloud-vue', 'Loading …')" />
+					<CnIcon v-else-if="confirmIcon" :name="confirmIcon" :size="20" />
 				</template>
 				{{ confirmLabel }}
 			</NcButton>
@@ -87,6 +88,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnConfirmValueField from '../components/CnConfirmValueField/CnConfirmValueField.vue'
 import CnDialog from '../components/CnDialog/CnDialog.vue'
+import { CnIcon } from '../components/CnIcon/index.js'
 import { confirmValueMixin } from '../mixins/confirmValue.js'
 import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 
@@ -125,6 +127,7 @@ export default {
 
 	components: {
 		CnDialog,
+		CnIcon,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -155,6 +158,15 @@ export default {
 			type: String,
 			default: 'primary',
 			validator: (v) => ['primary', 'error', 'warning', 'success'].includes(v),
+		},
+
+		/**
+		 * A CnIcon name drawn on the primary button, e.g. `DeleteOutline` for a
+		 * delete (board DqFilterVerwijderen). Empty draws none.
+		 */
+		confirmIcon: {
+			type: String,
+			default: '',
 		},
 
 		/** Label of the primary button that fires the `confirm` event. */

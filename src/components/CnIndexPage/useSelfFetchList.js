@@ -273,7 +273,13 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// Same deep-link restore for facet filters and search, so opening a
 	// shared/bookmarked URL reproduces the same view (CnIndexPage persists
 	// both back to the route on change).
-	const initialActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
+	const queryActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
+	// `defaultFilters` start the list when the address names no filter and no
+	// saved view; they are ordinary active filters from then on.
+	const namesSavedView = Boolean(initialRoute && initialRoute.query && initialRoute.query.savedView)
+	const initialActiveFilters = (Object.keys(queryActiveFilters).length === 0 && !namesSavedView && props.defaultFilters)
+		? resolveFilterMap(props.defaultFilters, (initialRoute && initialRoute.params) || {}, tokenCtx())
+		: queryActiveFilters
 	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
 
 	// Set right after useListView returns; the fixed-filters getter reads it lazily.

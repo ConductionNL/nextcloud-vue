@@ -7,11 +7,13 @@
 		:run="runUuid"
 		:detailRoute="detailRoute"
 		:listLabel="listLabel ? cnTranslate(listLabel) : ''"
+		:breadcrumb="(breadcrumb || []).map((crumb) => ({ ...crumb, label: cnTranslate(crumb.label) }))"
 		:palette="palette"
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
 		:flowDirection="flowDirection"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
+		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
 		@save="onSave"
 		@run="onRun" />
@@ -146,7 +148,8 @@ export default {
 
 		/**
 		 * Board look: an info notice under the path. Manifest key
-		 * `config.notice`, translated with the app's catalogue.
+		 * `config.notice`, translated with the app's catalogue; `{name}` is
+		 * the flow's name.
 		 */
 		notice: {
 			type: String,
@@ -164,12 +167,32 @@ export default {
 		},
 
 		/**
+		 * Board look: the tone of `pill` (a CnStatusBadge variant, "teal" on
+		 * DqFlow). Manifest key `config.pillVariant`.
+		 */
+		pillVariant: {
+			type: String,
+			default: 'default',
+		},
+
+		/**
 		 * Board look: the list's name at the start of the path ("Settings /
 		 * Flows"). Empty reads "Flows". Manifest key `config.listLabel`.
 		 */
 		listLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the levels before the flow, each its own link
+		 * (`[{ label, href? }]`, "Settings" / "Flows"); a crumb without an
+		 * href links to the flow list. Labels are translated with the app's
+		 * catalogue. Manifest key `config.breadcrumb`; wins over `listLabel`.
+		 */
+		breadcrumb: {
+			type: Array,
+			default: () => [],
 		},
 	},
 

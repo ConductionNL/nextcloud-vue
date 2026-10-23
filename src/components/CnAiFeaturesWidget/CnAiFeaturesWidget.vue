@@ -24,7 +24,9 @@
 			<section v-if="prompts && prompts.length > 0"
 				class="cn-ai-features__questions"
 				data-testid="cn-ai-questions">
-				<h4>{{ t('nextcloud-vue', 'Questions') }}</h4>
+				<component :is="innerHeadingTag" class="cn-inner-heading">
+					{{ t('nextcloud-vue', 'Questions') }}
+				</component>
 				<ul class="cn-ai-features__prompts">
 					<li v-for="prompt in prompts" :key="prompt.id || prompt.label">
 						<NcButton :disabled="asking"
@@ -59,7 +61,9 @@
 					:key="feature.slug"
 					class="cn-ai-features__feature"
 					:data-testid="`cn-ai-feature-${feature.slug}`">
-					<h4>{{ feature.slug }}</h4>
+					<component :is="innerHeadingTag" class="cn-inner-heading">
+						{{ feature.slug }}
+					</component>
 					<p class="cn-ai-features__hint" :data-testid="`cn-ai-feature-where-${feature.slug}`">
 						{{ whereItRuns(feature) }}
 					</p>
@@ -130,6 +134,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import CnAiSuggestionDecision from './CnAiSuggestionDecision.vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import {
 	AiFeatureRefusal,
 	askAbout,
@@ -146,6 +151,8 @@ import { createSuggestionTracker } from '../../utils/aiSuggestionTracker.js'
 export default {
 	name: 'CnAiFeaturesWidget',
 	components: { CnAiSuggestionDecision, NcButton, NcLoadingIcon, NcNoteCard, NcSelect },
+
+	mixins: [innerHeading],
 
 	props: {
 		/** The record id (injected by CnObjectSidebar). */

@@ -91,6 +91,7 @@ export default {
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |
 | `empty` | Boolean | `false` | Show the empty state instead of the default slot content |
 | `emptyMessage` | String | `'No data available'` | Message shown in the empty state |
+| `footerLink` | Object | `null` | `{ label, href }`: a link at the end of the card to where its list is managed ("Leges beheren in shillinq"), drawn only with both and a safe href. The label is already translated. |
 
 
 `wide` is documented in the prop table of the component reference (board look, screens-chrome-parity).

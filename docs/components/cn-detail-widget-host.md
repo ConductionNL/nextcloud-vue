@@ -24,6 +24,15 @@ In card chrome outside a body grid cell (the side column, a tab stack), a widget
 
 A widget in that card, or a built-in card widget, fills the card's title row by emitting `header` with `{ note?, pill?, action?, actions?, link? }`: a note ("3 open"), a status pill and its actions, each `{ label, icon?, run }`, drawn after the title in order (`action` first). This is how the first card of a tab stack draws "Taak toevoegen" and "Alles tonen" beside its title (DqZaak).
 
+## An app's own widget takes its props from the manifest
+
+A widget whose type is an app registry entry takes `props` from its definition. A value is a literal, or a token: `@objectId`, `@object.<field>`, `@config.<key>` or `@content.<path>` (a key of the widget's own `content`). Only the props the component declares are passed. A token that does not resolve is left out, so the component's default holds. A widget that asks for `@objectId` mounts once the page has a record id. So an app maps the page onto its component in the manifest, not in a wrapper:
+
+```json
+{ "id": "client-relationships", "type": "ContactRelationshipsWidget", "title": "Relationships",
+  "props": { "entityId": "@objectId", "entityType": "client", "entityName": "@object.name" } }
+```
+
 ## How `content` reaches a catalog widget
 
 A catalog widget gets its whole `content` as the `content` prop and, beside the object context, only the content keys it declares as props, as on a dashboard. A key it does not declare can never land on its root component. A widget with `inheritAttrs: false` keeps every key.

@@ -25,7 +25,7 @@ function bodiesOf(selector) {
 	const out = []
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			out.push(m[2])
 		}
 	}
@@ -33,7 +33,7 @@ function bodiesOf(selector) {
 }
 
 describe('look-board-index.css: page footer under a card grid', () => {
-	const grid = '.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table) > .cn-pagination--board'
+	const grid = '.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table):not(.cn-index-page__main--list):not(.cn-index-page__main--map) > .cn-pagination--board'
 
 	it('is a plain row: 4px 0, no hairline', () => {
 		const body = bodiesOf(grid)

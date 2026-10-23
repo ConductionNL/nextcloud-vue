@@ -230,6 +230,26 @@
 							class="cn-record-list__chevron"
 							:size="18"
 							aria-hidden="true" />
+						<template v-if="item.tag === 'div'">
+							<template v-for="(action, actionIndex) in setFieldActions">
+								<span
+									v-if="setFieldDone(action, item.row)"
+									:key="`set-field-done-${actionIndex}`"
+									class="cn-record-list__set-field-done"
+									data-testid="cn-record-list-set-field-done">
+									<Check :size="14" aria-hidden="true" />{{ action.doneLabel }}
+								</span>
+								<NcButton
+									v-else
+									:key="`set-field-${actionIndex}`"
+									:disabled="settingField"
+									:ariaLabel="fillRow(action.ariaLabel, item.row) || undefined"
+									data-testid="cn-record-list-set-field"
+									@click="runSetField(action, item.row)">
+									{{ action.label }}
+								</NcButton>
+							</template>
+						</template>
 						<NcActions
 							v-if="item.tag === 'div' && item.rowActions.length > 0"
 							:aria-label="rowActionsLabel"
@@ -332,7 +352,7 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && rows.length > 0" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerAction`: one action under the list, also under the empty
@@ -368,6 +388,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -378,6 +399,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
@@ -385,6 +407,7 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -460,7 +483,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -478,7 +501,7 @@ export default {
 	props: {
 		/**
 		 * The list config: `{ register, schema, filter?, sort?, limit?, offset?, extend?,
-		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?,
+		 * presentation?, variant?, lead?, leading?, title?, meta?, text?, label?, pill?, trailing?, icon?, aggregates?,
 		 * rowRoute?, rowIdField?, headerLink?, headerNote?, emptyText?, errorText?,
 		 * valueLabels?, endpointSource?, bar? }`. `bar` (`{ valueField, maxField?,
 		 * overVariant? }`) draws a thin track under each row: filled to
@@ -511,6 +534,13 @@ export default {
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
+		 * `aggregates` (`{ key: { register, schema, op: "count" | "max",
+		 * field?, where, text? } }`, `@self.<path>` in `where` read off the
+		 * row) asks a figure over each row's related objects, as a table's
+		 * `aggregate` column does, and offers it to the row's templates as
+		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
+		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
+		 * lopende zaken").
 		 *
 		 * @type {object}
 		 */
@@ -556,7 +586,31 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		// A footnote that reads another part of the same answer shares its
+		// request through the endpoint cache.
+		const footnoteSource = useEndpointSource(
+			() => {
+				const note = props.content?.footnote
+				const source = props.content?.endpointSource
+				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: note.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
 	},
 
 	data() {
@@ -564,6 +618,8 @@ export default {
 			/** The reader's sort of a `table`: the column key and `ascending` or `descending`. */
 			tableSort: { key: '', dir: '' },
 			rows: [],
+			/** The `aggregates` figures per row id: `{ [rowId]: { [key]: value } }`. */
+			aggregateValues: {},
 			total: 0,
 			loading: false,
 			error: false,
@@ -577,6 +633,7 @@ export default {
 			conditionalEmptyText: '',
 			/** The refusal of the last row action, as the server said it. */
 			actionError: '',
+			settingField: false,
 			/** Labels of the records a `links` line names, by id. */
 			linkLabels: {},
 		}
@@ -742,7 +799,7 @@ export default {
 			const c = this.content || {}
 			const barScale = this.barScale
 			return this.rows.slice(0, this.limit).map((raw, index) => {
-				const row = scalarRow(raw)
+				const row = this.withAggregates(scalarRow(raw))
 				const link = this.rowLink(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
@@ -874,7 +931,24 @@ export default {
 		/** @return {string} The note under the list (`footnote`), translated. */
 		footnote() {
 			const note = this.content?.footnote
+			if (note && typeof note === 'object') {
+				const value = this.footnoteValue
+				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
+					return ''
+				}
+				return this.translate(note.text).replace(/\{value\}/g, String(value))
+			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * Whether the footnote reads the answer: it then shows with no rows too.
+		 *
+		 * @return {boolean}
+		 */
+		footnoteFromAnswer() {
+			const note = this.content?.footnote
+			return Boolean(note && typeof note === 'object')
 		},
 
 		/**
@@ -1020,6 +1094,22 @@ export default {
 				.map((action) => ({ ...action, label: this.translate(action.label) }))
 		},
 
+		/**
+		 * The `set-field` row actions, drawn as a button on each row.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @return {Array<object>}
+		 */
+		setFieldActions() {
+			return this.rowActions
+				.filter((action) => action.type === 'set-field' && typeof action.field === 'string' && action.field !== '')
+				.map((action) => ({
+					...action,
+					doneLabel: action.doneLabel ? this.translate(action.doneLabel) : '',
+					ariaLabel: action.ariaLabel ? this.translate(action.ariaLabel) : '',
+				}))
+		},
+
 		/** @return {string} The accessible name of a row's actions menu. */
 		rowActionsLabel() {
 			const own = this.content?.rowActionsLabel
@@ -1078,6 +1168,7 @@ export default {
 
 		rows() {
 			this.evaluateEmptyTexts()
+			this.loadAggregates()
 		},
 
 		footerDisabledKey: {
@@ -1333,12 +1424,7 @@ export default {
 		 * @return {string} The text.
 		 */
 		withTotal(label) {
-			return this.translate(label)
-				.replace(/\{total\}/g, String(this.total))
-				.replace(/\{count:([^=}]+)=([^}]*)\}/g, (match, field, value) => {
-					const wanted = value.trim()
-					return String(this.rows.filter((row) => String(readPath(row, field.trim())) === wanted).length)
-				})
+			return fillCountLabel(this.translate(label), this.total, this.rows)
 		},
 
 		/**
@@ -1502,6 +1588,80 @@ export default {
 		},
 
 		/**
+		 * Ask every `content.aggregates` figure (`{ key: { register, schema,
+		 * op: "count" | "max", field?, where } }`, `@self.<path>` in `where`
+		 * read off the row) for each row shown, as a table's `aggregate`
+		 * column does. A failed figure is left out; a stale batch is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		async loadAggregates() {
+			const declared = this.content?.aggregates
+			const entries = declared && typeof declared === 'object' ? Object.entries(declared).filter(([, agg]) => isRowAggregate(agg)) : []
+			const id = (this.aggregateRequestId = (this.aggregateRequestId || 0) + 1)
+			if (entries.length === 0) {
+				this.aggregateValues = {}
+				return
+			}
+			const next = {}
+			const jobs = []
+			for (const raw of this.rows.slice(0, this.limit)) {
+				const row = scalarRow(raw)
+				const rowId = row && typeof row === 'object' ? (row.id || row['@self']?.id) : null
+				if (!rowId) {
+					continue
+				}
+				next[rowId] = {}
+				for (const [key, agg] of entries) {
+					jobs.push(fetchRowAggregate(agg, row)
+						.then((value) => {
+							next[rowId][key] = this.aggregateText(agg, value)
+						})
+						.catch(() => {}))
+				}
+			}
+			await Promise.all(jobs)
+			if (id === this.aggregateRequestId) {
+				this.aggregateValues = next
+			}
+		},
+
+		/**
+		 * A count read through the aggregate's `text` forms (`{ zero?, one?,
+		 * other }`, `{count}` filled in, translated), else the figure itself.
+		 *
+		 * @param {object} agg The aggregate declaration.
+		 * @param {unknown} value The figure.
+		 * @return {unknown} The text, or the figure.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		aggregateText(agg, value) {
+			const forms = agg && agg.text
+			const count = Number(value)
+			if (!forms || typeof forms !== 'object' || !Number.isFinite(count)) {
+				return value
+			}
+			const form = (count === 0 && forms.zero) || (count === 1 && forms.one) || forms.other || forms.one
+			return typeof form === 'string' ? this.translate(form).replace(/\{count\}/g, String(count)) : value
+		},
+
+		/**
+		 * The row with its `aggregates` figures under their keys.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The row, its figures added when it has any.
+		 * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+		 */
+		withAggregates(row) {
+			if (!row || typeof row !== 'object') {
+				return row
+			}
+			const figures = this.aggregateValues[row.id || row['@self']?.id]
+			return figures ? { ...row, ...figures } : row
+		},
+
+		/**
 		 * A `count` badge: how many entries a row's field holds (a list counts
 		 * its items, a number is itself), as `one` or `other` with `{count}`.
 		 * Nothing at 0.
@@ -1631,6 +1791,9 @@ export default {
 		rowActionsOf(row) {
 			const shown = []
 			this.rowActions.forEach((action, index) => {
+				if (action.type === 'set-field') {
+					return
+				}
 				if (action.visibleWhen && !evaluateVisibleWhenLocal(action.visibleWhen, row || {})) {
 					return
 				}
@@ -1703,6 +1866,82 @@ export default {
 					// The link still opens; only its text stays the fallback.
 				}
 			}))
+		},
+
+		/**
+		 * Fill `{field}` placeholders from a row. A text that is one placeholder
+		 * keeps the value's type.
+		 *
+		 * @param {string} text The template.
+		 * @param {object} row The row.
+		 * @return {unknown} The filled value.
+		 */
+		fillRow(text, row) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const whole = text.match(/^\{([\w.@]+)\}$/)
+			if (whole) {
+				return readPath(row, whole[1]) ?? ''
+			}
+			return text.replace(/\{([\w.@]+)\}/g, (_m, field) => String(readPath(row, field) ?? ''))
+		},
+
+		/**
+		 * Whether the page's record already holds the value a `set-field`
+		 * action would write for this row.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 */
+		setFieldDone(action, row) {
+			const object = this.tokenCtx.object || {}
+			const current = readPath(object, action.field)
+			const value = this.fillRow(action.value, row)
+			return Boolean(action.doneLabel) && value !== '' && current !== undefined && current !== null && String(current) === String(value)
+		},
+
+		/**
+		 * Write one field of the page's record from a row with one PATCH, hand
+		 * the saved record to the page, and read the list again.
+		 *
+		 * @spec openspec/changes/record-list-set-field/specs/record-list/spec.md#requirement-a-row-can-set-a-field-of-the-page-record
+		 * @param {object} action The `set-field` action.
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 */
+		async runSetField(action, row) {
+			const context = this.tokenCtx
+			if (this.settingField || !context.register || !context.schema || !context.objectId) {
+				return
+			}
+			this.actionError = ''
+			this.settingField = true
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(context.register)}/${encodeURIComponent(context.schema)}/${encodeURIComponent(context.objectId)}`)
+				const { data } = await axios.patch(url, { [action.field]: this.fillRow(action.value, row) })
+				const setObject = unwrap(this.cnObjectContext)?.setObject
+				if (typeof setObject === 'function' && data && typeof data === 'object') {
+					setObject(data)
+				}
+				if (typeof this.epRefetch === 'function' && this.endpointActive) {
+					await this.epRefetch(true)
+					if (typeof this.footnoteRefetch === 'function' && this.footnoteFromAnswer) {
+						await this.footnoteRefetch(false)
+					}
+				} else {
+					await this.fetchRows()
+				}
+			} catch (error) {
+				const said = error?.response?.data?.error ?? error?.response?.data?.message
+				this.actionError = typeof said === 'string' && said !== ''
+					? said
+					: (action.errorText ? this.translate(action.errorText) : t('nextcloud-vue', 'This did not work. Try again.'))
+			} finally {
+				this.settingField = false
+			}
 		},
 
 		/**
@@ -1881,13 +2120,18 @@ export default {
 		/** Tell the card around this list what its header shows. */
 		emitHeader() {
 			const header = { link: this.headerLink, note: this.headerNote }
+			// `headerSubtitle`: the counts as the muted line under the card title.
+			const subtitle = this.content?.headerSubtitle
+			if (typeof subtitle === 'string' && subtitle !== '' && !this.error) {
+				header.subtitle = this.withTotal(subtitle)
+			}
 			// `headerCount: true`: the card draws the total as a chip after its title.
 			if (this.content?.headerCount === true && !this.error) {
 				header.count = this.total
 			}
 			/**
 			 * @event header Emitted after every read with the card header's parts.
-			 * @type {{link: (object|null), note: string, count: (number|undefined)}} The header link (resolved, with `{total}` filled), the note, and with `headerCount` the total.
+			 * @type {{link: (object|null), note: string, count: (number|undefined), subtitle: (string|undefined)}} The header link (resolved, with `{total}` filled), the note, with `headerCount` the total, and with `headerSubtitle` the line under the title.
 			 */
 			this.$emit('header', header)
 		},
@@ -2077,6 +2321,14 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__set-field-done {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-success-text, var(--color-success));
+	font-weight: bold;
+}
+
 .cn-record-list__list {
 	list-style: none;
 	margin: 0;

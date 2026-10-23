@@ -34,6 +34,8 @@ oldest first by their time.
 | `replyAction` | An action descriptor run on Send instead of posting to `endpoint`; the app decides what sending means. It is dispatched with `args: [{ text, objectId }]` and `props.text` added, tokens resolved; afterwards the list is read again. |
 | `channelChips` | `true` draws channel chips above the thread (board DqZaakContact): All, then every `channelMap` label in map order, then any other channel a message uses, each with its count. Choosing one shows only that channel's messages. |
 | `headerAction` | A button beside the title, `{ label, icon?, ...action }` (DqZaakContact's "Contact vastleggen"). The label goes through the app's translate; the action is dispatched like `replyAction`, with `args: [{ objectId }]`, and the source is read again after it. |
+| `replyHint` | A line beside the reply label saying where the answer goes, through the app's translate ("Goes to the message box in the portal"). |
+| `replyOption` | A switch under the reply box, `{ label, key, value? }` (on unless `value` is false). Its state travels with the reply as `{ [key]: boolean }`: in `replyAction`'s `args[0]` and `props`, or in the endpoint's body. DqZaakContact: `{ "label": "Log as a contact moment on this case", "key": "logContactMoment" }`. |
 | `subtitle` | A line under the title, through the app's translate ("Oldest first, with the channel of each message"). |
 | `usAuthorField` / `themAuthorField` | Who wrote a message, per side; each falls back to `senderField`. A field written `@object.<path>` reads the bound record, such as the case's requester on an incoming message. |
 | `usAuthorFormat` / `themAuthorFormat` | `user`: the author is a user id, shown by its display name (the handler who logged an outgoing message). |
@@ -58,6 +60,37 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
   }
 }
 ```
+
+## Several lists, templates, reply options, status and message actions
+
+```json
+{
+  "type": "conversation",
+  "content": {
+    "fields": [{ "field": "portalReplies", "side": "them" }, { "field": "portalAnswers", "side": "us" }],
+    "textField": "message",
+    "timeField": "createdAt",
+    "endpoint": "/apps/pipelinq/api/tickets/@objectId/answer",
+    "templates": { "url": "/apps/pipelinq/api/saved-replies", "params": { "channel": "portal", "ticket": "@objectId" }, "inputLabel": "Saved reply", "textField": "body" },
+    "replyOptions": [{ "key": "waitForCustomer", "label": "Also set the ticket to waiting for the customer", "default": true }],
+    "statusField": "deliveryStatus",
+    "statusMap": { "failed": "Failed" },
+    "messageActions": [{ "id": "resend", "label": "Send again", "endpoint": "/apps/pipelinq/api/messages/{id}/resend", "when": { "field": "deliveryStatus", "in": ["failed"] } }]
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `fields` | Several lists of the record, each on its `side`, merged by time. Instead of `field` or `source`. |
+| (page refresh) | A `cn:page:refresh` (a dialog that sent a message) reads `source` again. |
+| `usLabel` | Author shown on an `us` message that names none ("Employee"). |
+| `templates` | A CnTemplateSelect above the reply box over `url` with `params` (tokens resolved). Picking fills the box with the option's `values[textField]` (default `text`). |
+| `replyOptions` | Checkboxes under the reply box. Their values go into the endpoint's body, and as `options` into a `replyAction`'s argument. |
+| `statusField` / `statusMap` | The message's status, shown after its channel; `statusMap` turns a stored value into a label. |
+| `messageActions` | Buttons on the messages that match `when` (`{ field, in }`, `{ field, equals }`, `{ field, empty: true }`, or a list that must all hold). `errors` (`{ path, map, default, ok? }`) names the answer's refusal by its status; `ok` (default `sent`, `ok`) lists the statuses that are no refusal. The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
+| `messageActions[].onStatus` | `{ "<status>": <action> }`: when the answer's status (at `errors.path`) is listed, that action runs (dispatched like `headerAction`, `@objectId` and `@object.<field>` resolved) instead of the refusal showing, such as opening the composer with a template when the WhatsApp session closed. |
+| `statusBadge` | `{ source: { register, schema, filter?, limit? }, sortField?, path?, map? }`: a badge in the header with the status of the most recent row of that list (by `sortField`), mapped and translated, such as the latest conversation thread's Open, Assigned or Closed. No row, no badge. |
 
 ## Reference (auto-generated)
 

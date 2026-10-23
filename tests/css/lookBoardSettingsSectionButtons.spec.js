@@ -39,7 +39,7 @@ const ICONLESS = ':not(:has(> .button-vue__wrapper > .button-vue__icon:not(:empt
 
 describe('look-board.css: buttons on a settings card', () => {
 	it('draws a labelled button 40px tall', () => {
-		expect(ruleFor(`${S} .button-vue.button-vue${LABELLED}`)).toContain('--button-size: var(--cn-field-height, 40px);')
+		expect(ruleFor(`${S} .button-vue.button-vue${LABELLED}:not(.cn-settings-section__actions *)`)).toContain('--button-size: var(--cn-field-height, 40px);')
 	})
 
 	it('pads a text-only button 16px at both sides', () => {

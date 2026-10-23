@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -33,13 +38,15 @@
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnViewPresentationPicker from '../CnViewPresentationPicker/CnViewPresentationPicker.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { isPresentationComplete, presentationErrorPath } from '../../utils/presentationCandidates.js'
 
 /**
@@ -54,7 +61,9 @@ import { isPresentationComplete, presentationErrorPath } from '../../utils/prese
 export default {
 	name: 'CnSavedViewPresentationDialog',
 
-	components: { CnViewPresentationPicker, NcButton, NcDialog, NcLoadingIcon, NcNoteCard },
+	components: { CnDialog, CnViewPresentationPicker, NcButton, NcLoadingIcon, NcNoteCard },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The view being edited (its `presentation` seeds the picker). */

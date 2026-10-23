@@ -49,7 +49,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 |------|------|---------|-------------|
 | `title` | String | `'Widget'` | Widget title shown in the header |
 | `eyebrow` | String | `''` | A short muted line above the title ("Saldo per week" above "Prognose 13 weken"), through the host translate. On a dashboard it comes from the widget definition's `eyebrow` |
-| `subtitle` | String | `''` | A muted line under the title ("Dit kwartaal, beslist binnen de termijn"), through the host translate. On a dashboard it comes from the widget definition's `subtitle` |
+| `subtitle` | String | `''` | A muted line under the title ("Dit kwartaal, beslist binnen de termijn"), through the host translate. On a dashboard it comes from the widget definition's `subtitle` ; on a detail page the widget's `subtitle` may also be `[{ "when": <visibleWhen>, "text": "..." }]`, the first entry whose condition holds for the record and its `@context` rows (DqZaakDocumenten: only on a case type with `documentReview.enabled`) |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
 | `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
@@ -231,7 +231,7 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `headerLink` | `Object \| null` | `null` | One text link in the header's actions group, before the overflow menu: `{ label, tab?, route?, params?, query?, href? }`. A `tab` opens that tab of the same page (a `#<tab>` anchor the tab strip follows), a `route` is a named router link (needs a router), an `href` a plain anchor. The label goes through the host translate function. In a manifest: `headerLink` on the widget definition or its layout entry. |
+| `headerLink` | `Object \| null` | `null` | One text link in the header's actions group, before the overflow menu: `{ label, tab?, route?, params?, query?, href? }`. A `tab` opens that tab of the same page (a `#<tab>` anchor the tab strip follows), a `route` is a named router link (needs a router), an `href` a plain anchor. The label goes through the host translate function. With `placement: "title"` the link sits under the title instead, at the title's edge (DqDashboard "Alles bekijken"). In a manifest: `headerLink` on the widget definition or its layout entry. |
 
 ```json
 { "id": "week", "type": "custom", "title": "Deadlines this week", "headerLink": { "label": "All deadlines", "route": "Cases", "query": { "due": "7d" } } }
@@ -268,5 +268,10 @@ A widget definition on a detail page can declare buttons for its card's title ro
 | `variant` | `secondary` (default, outlined) or `primary`. |
 | `visibleWhen` | A condition on the record. One the page cannot decide (it names an `endpoint` or a `source`) hides the button. |
 | `action` | Any action the page's dispatcher takes (`navigate`, `open-modal`, `api-call`, a registered handler). `@objectId` and `@object.<field>` are resolved first. Required. |
+
+Two actions belong to the detail page itself rather than to the dispatcher:
+
+- `{ "type": "edit-record" }` opens the page's own record edit form, the one its Edit button opens (DqZaaktype "Termijnen" Bewerken). The button is left out where the page offers no Edit.
+- `{ "type": "open-tab", "tab": "<tab id>" }` opens that tab of the page, through the same `#<tab>` anchor a `headerLink` with `tab` uses (DqZaaktypeOverzicht "Statussen" Bewerken opens the Statuses tab).
 
 On a dashboard (CnDashboardPage) the same `headerActions` on a widget definition are drawn in that widget's card; the page resolves them and hands them to the card's `headerActions` prop. CnDetailWidgetHost resolves them and provides them to the card it puts the widget in. The outermost CnWidgetWrapper or CnDetailCard below it draws them, before its `actions` slot; a card inside that one does not draw them again. A title-less card gets a header for them. In a tab panel (bare), CnTabsWidget draws them in the panel's heading, or on a row of their own when the panel has no heading.

@@ -533,7 +533,7 @@
 		role="region"
 		:aria-label="t('nextcloud-vue', 'Actions for the selection')"
 		data-testid="cn-bulk-band">
-		<strong class="cn-actions-bar__band-lead">{{ bulkBandLead }}</strong>
+		<strong class="cn-actions-bar__band-lead">{{ bulkLead || bulkBandLead }}</strong>
 		<NcButton
 			v-if="showMassCopy"
 			variant="secondary"
@@ -565,6 +565,13 @@
 			name="selection-actions"
 			:count="selectedIds.length"
 			:selectedIds="selectedIds" />
+		<NcButton
+			v-if="bulkCancel"
+			variant="secondary"
+			data-testid="cn-bulk-band-cancel"
+			@click="$emit('clear-selection')">
+			{{ t('nextcloud-vue', 'Cancel') }}
+		</NcButton>
 		<span v-if="bulkHint" class="cn-actions-bar__band-hint" data-testid="cn-bulk-band-hint">{{ bulkHint }}</span>
 	</div>
 </template>
@@ -747,6 +754,18 @@ export default {
 		 * draw it. Only when the band has an action to offer.
 		 */
 		bulkBandAlways: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Board look: the band's lead instead of "With the selected …" ("1 zaak geselecteerd"). */
+		bulkLead: {
+			type: String,
+			default: '',
+		},
+
+		/** Board look: a Cancel button at the end of the band that clears the selection. */
+		bulkCancel: {
 			type: Boolean,
 			default: false,
 		},
