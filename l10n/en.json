@@ -2354,7 +2354,9 @@
     "More default views": "More default views",
     "Fewer default views": "Fewer default views",
     "More steps": "More steps",
-    "More views": "More views"
+    "More views": "More views",
+    "{type} from {app}": "{type} from {app}",
+    "Start step": "Start step"
   },
   "plurals": {
     "{count} member": [
