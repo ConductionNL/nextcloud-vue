@@ -323,9 +323,13 @@ export default {
 
 /* A navigation entry, not a link in running text: no underline, also not
    on hover. `!important` because a theme's `a { text-decoration }` carries
-   it (thematiq), and a bare `a` with `!important` beats any class. */
+   it (thematiq), and a bare `a` with `!important` beats any class. The same
+   theme paints every link `var(--nldesign-color-on-surface, <link colour>)
+   !important`, so the entry hands it the main text colour through that
+   token; only the open entry is marked, by its tint and bar. */
 .cn-user-settings-dialog__nav-link,
 .cn-user-settings-dialog__nav-link:visited {
+	--nldesign-color-on-surface: var(--color-main-text);
 	position: relative;
 	display: flex;
 	align-items: center;
