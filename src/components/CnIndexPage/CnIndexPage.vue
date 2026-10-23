@@ -4892,14 +4892,17 @@ export default {
 		 * The endpoint source's facets as pickers: per declared facet its
 		 * label, the All choice, the counted values ("E-mail (11)") and the
 		 * value chosen now. A chosen value the narrowed answer no longer
-		 * counts stays offered, so the picker still shows it.
+		 * counts stays offered, so the picker still shows it. A facet that
+		 * declares `picker: false` draws no picker: its field is filtered in
+		 * the side panel instead (DqPostvak's channel).
 		 *
 		 * @return {Array<{field: string, label: string, allLabel: string, value: string, options: Array<{value: string, label: string}>}>}
 		 * @spec openspec/changes/index-endpoint-source-states/specs/index-page/spec.md
+		 * @spec openspec/changes/source-facet-picker-off/specs/source-facet-picker-off/spec.md#requirement-a-source-facet-can-leave-its-picker-out
 		 */
 		sourceFacetControls() {
 			const source = this.isNamedSource ? this.namedSource : null
-			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations : []
+			const declared = source && Array.isArray(source.facetDeclarations) ? source.facetDeclarations.filter((facet) => facet.picker !== false) : []
 			if (declared.length === 0) {
 				return []
 			}
