@@ -15,3 +15,6 @@ Opt-in, both appointment cards:
 - CnCalendarCard (the calendar leaf card): `createVariant` and `createIcon` props, the same meaning.
 
 Without them the create button stays primary with a plus.
+
+A flow the board leaves out of the title row stays reachable: CnEventsCard's `content.menuActions` reports it for the
+card's Actions menu, and the detail widget host draws a renderer's reported `menuActions` there.

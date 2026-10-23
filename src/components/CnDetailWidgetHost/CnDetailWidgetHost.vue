@@ -254,7 +254,7 @@
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
-			:showActions="actionsShown || catalogAddEnabled"
+			:showActions="actionsShown || catalogAddEnabled || rendererHeader.menuActions.length > 0"
 			:showRefresh="false"
 			:showRequestFeature="false"
 			:headerLink="cardHeaderLink"
@@ -268,12 +268,24 @@
 			<template v-if="hasRendererHeaderItems" #actions>
 				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
-			<template v-if="catalogAddEnabled" #action-items>
-				<NcActionButton @click="invokeCatalogAdd">
+			<template v-if="catalogAddEnabled || rendererHeader.menuActions.length > 0" #action-items>
+				<NcActionButton v-if="catalogAddEnabled" @click="invokeCatalogAdd">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ addLabel }}
+				</NcActionButton>
+				<!-- `menuActions` a renderer reports: items in the card's Actions menu. -->
+				<NcActionButton
+					v-for="(action, index) in rendererHeader.menuActions"
+					:key="`menu-${index}-${action.label}`"
+					:closeAfterClick="true"
+					data-testid="cn-detail-widget-menu-action"
+					@click="action.run()">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
 				</NcActionButton>
 			</template>
 			<component
@@ -764,7 +776,7 @@ export default {
 			 * `header` event (screens-relation-pages): a link and a note,
 			 * with the list's total already filled in.
 			 */
-			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null },
+			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null, menuActions: [] },
 		}
 	},
 
@@ -1610,7 +1622,9 @@ export default {
 				: null
 			// `subtitle`: a muted line under the card title (a task table's "1 open, 3 done").
 			const subtitle = header && typeof header.subtitle === 'string' ? header.subtitle : ''
-			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty }
+			// `menuActions`: items for the card's Actions menu instead of the title row.
+			const menuActions = (header && Array.isArray(header.menuActions) ? header.menuActions : []).filter(usable)
+			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty, menuActions }
 		},
 
 		/**
