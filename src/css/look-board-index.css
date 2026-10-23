@@ -1782,3 +1782,11 @@
 .cn-look-board .cn-saved-views-panel__row .action-item__menutoggle:not(.cn-look-nextcloud *) {
 	border-radius: 17px;
 }
+
+/* The board view's selects take the board control border (DqWerkbord). The
+   theme forces a select's border colour from its form token, so the token
+   gets the colour too. */
+.cn-look-board .cn-index-page__board-select:not(.cn-look-nextcloud *) {
+	--nldesign-component-form-select-border-color: var(--cn-board-control-border);
+	border-color: var(--cn-board-control-border);
+}
