@@ -2353,7 +2353,8 @@
       "%n week",
       "%n weeks"
     ],
-    "Opened from the row {row}": "Opened from the row {row}"
+    "Opened from the row {row}": "Opened from the row {row}",
+    "Week {week}": "Week {week}"
   },
   "plurals": {
     "{count} member": [

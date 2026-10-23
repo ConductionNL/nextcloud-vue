@@ -2604,7 +2604,8 @@
       "%n weken",
       "%n weeks"
     ],
-    "Opened from the row {row}": "Geopend vanuit de rij {row}"
+    "Opened from the row {row}": "Geopend vanuit de rij {row}",
+    "Week {week}": "Week {week}"
   },
   "plurals": {
     "{count} member": [

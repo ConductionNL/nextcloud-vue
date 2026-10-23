@@ -245,6 +245,22 @@ export function formatAgo(value, now = new Date()) {
 }
 
 /**
+ * The ISO 8601 week number of a date: weeks start on Monday and week 1 holds
+ * the year's first Thursday.
+ *
+ * @param {Date} date The date.
+ * @return {number} The week, 1 to 53.
+ * @spec openspec/changes/description-today-week/specs/description-today-week/spec.md#requirement-a-template-can-name-a-dates-week-and-a-dashboard-description-can-read-today
+ */
+export function isoWeek(date) {
+	const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+	const weekday = day.getUTCDay() || 7
+	day.setUTCDate(day.getUTCDate() + 4 - weekday)
+	const yearStart = Date.UTC(day.getUTCFullYear(), 0, 1)
+	return Math.ceil(((day.getTime() - yearStart) / MS_PER_DAY + 1) / 7)
+}
+
+/**
  * How long something has waited: "4 uur" under 24 hours (at least 1), else
  * "1 dag" / "3 dagen" in whole calendar days. Plural forms come from the
  * library's own catalogue (`nextcloud-vue`). A date in the future reads as

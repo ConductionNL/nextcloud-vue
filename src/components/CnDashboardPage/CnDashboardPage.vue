@@ -1086,6 +1086,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { generatedPageFilterOptions, periodText, rangePeriodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
@@ -2431,10 +2432,12 @@ export default {
 			// `{filter.<key>}`: the page filter's active choice, read as a period
 			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
 			// `{dateRange}`: the dashboard's active date range, read as a period
-			// (DqDashboard "Hoe het team ervoor staat · oktober 2026").
+			// (DqDashboard "Hoe het team ervoor staat · oktober 2026"); `{today|<format>}`:
+			// today through a row template format (DqTermijnen "Week 41 · alle teams").
 			return this.effectiveTranslate(this.description)
 				.replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
 				.replace(/\{dateRange\}/g, () => this.dateRangePeriodText())
+				.replace(/\{today\|([\w:]+)\}/g, (token, format) => fillTemplate(`{today|${format}}`, { today: new Date().toISOString() }))
 		},
 
 		/**
