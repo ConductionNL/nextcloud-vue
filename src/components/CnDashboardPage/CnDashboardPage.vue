@@ -1086,6 +1086,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { generatedPageFilterOptions, periodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -1380,6 +1381,9 @@ export default {
 			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
 			// The page id, for widgets that key per-person state by dashboard (notepad).
 			cnDashboardPageId: () => this.resolvedPageId,
+			// Widget titles sit one level under the page title: h1 in the board
+			// look, h2 in the Nextcloud look and as the hidden title.
+			[HEADING_LEVEL]: () => (this.showHeader && this.title && this.isBoardLook ? 2 : 3),
 		}
 	},
 

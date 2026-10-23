@@ -1451,6 +1451,7 @@ import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1883,6 +1884,9 @@ export default {
 	 */
 	provide() {
 		return {
+			// Widgets beside the list sit directly under the page's h1 in the
+			// board look; the Nextcloud look keeps its h3 widget titles.
+			[HEADING_LEVEL]: () => (this.isBoardLook ? 2 : 3),
 			cnIndexList: Object.defineProperties({}, {
 				appliedView: { enumerable: true, get: () => this.appliedSavedView },
 				total: {
