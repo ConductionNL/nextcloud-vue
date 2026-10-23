@@ -11,6 +11,9 @@ fell to the library's own fallback.
 `--cn-board-notice-bg` reads the theme's warning tint `--nl-color-orange-light` (the ground a warning pill takes),
 falling back to #fff4de. The ink keeps `--color-warning-text`.
 
+A record list's warning notice (DqZaaktypeOverzicht "Controle") had the same dead variable in its ground and fell to
+rgba(255, 196, 0, 0.12); under the board look it takes the same tint.
+
 ## Reach
 
-Board-look notices. No props, no schema change.
+Board-look notices and record-list warning notices. No props, no schema change.
