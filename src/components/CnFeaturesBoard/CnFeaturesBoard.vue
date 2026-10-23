@@ -719,9 +719,12 @@ export default {
 	gap: 10px;
 }
 
-/* The board's meta line: 14px muted, also under a theme that inks every <p>. */
+/* The board's meta line: 14px muted, also under a theme that sets every <p>
+   through the paragraph tokens with !important. */
 .cn-features-board__subtitle {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
