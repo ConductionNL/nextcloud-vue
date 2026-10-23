@@ -1881,7 +1881,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* Its warning tone sits on the theme's warning tint, as the board notice
    does (the component's own ground reads a variable Nextcloud does not have). */
 .cn-look-board .cn-record-list__notice--warning:not(.cn-look-nextcloud *) {
-	background: var(--nl-color-orange-light, #fff4de);
+	background: var(--cn-board-notice-bg);
 }
 
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */

@@ -36,6 +36,6 @@ function rulesFor(selector) {
 describe('look-board.css: a record list warning notice', () => {
 	it('sits on the warning tint', () => {
 		expect(rulesFor('.cn-look-board .cn-record-list__notice--warning:not(.cn-look-nextcloud *)'))
-			.toMatch(/background:\s*var\(--nl-color-orange-light, #fff4de\)/)
+			.toMatch(/background:\s*var\(--cn-board-notice-bg\)/)
 	})
 })
