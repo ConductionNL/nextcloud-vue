@@ -76,7 +76,7 @@
 			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
 			</div>
-			<div v-if="recordFootPill || recordDate" class="cn-object-card__record-foot" data-testid="cn-object-card-foot">
+			<div v-if="recordFootPill || recordFootCell || recordDate" class="cn-object-card__record-foot" data-testid="cn-object-card-foot">
 				<CnStatusBadge
 					v-if="recordFootPill"
 					class="cn-object-card__record-pill"
@@ -87,6 +87,17 @@
 						<CnIcon :name="recordFootPill.icon" :size="14" />
 					</template>
 				</CnStatusBadge>
+				<span v-if="recordFootCell" class="cn-object-card__record-foot-cell" data-testid="cn-object-card-foot-cell">
+					<CnCellRenderer
+						v-if="recordFootCell.column && recordFootCell.column.widget"
+						:value="recordFootCell.value"
+						:widget="recordFootCell.column.widget"
+						:widgetProps="recordFootCell.column.widgetProps || undefined"
+						:formatter="recordFootCell.column.formatter || null"
+						:formatterOptions="recordFootCell.column.formatterOptions || null"
+						:row="object" />
+					<template v-else>{{ recordFootCell.text }}</template>
+				</span>
 				<span
 					v-if="recordDate"
 					class="cn-object-card__record-date"
@@ -543,6 +554,17 @@ export default {
 			return fields
 				.map((part) => this.metaPart(part))
 				.filter((part) => part !== null && part.text !== '')
+		},
+
+		/**
+		 * The footer's `footerCell` part, read as a meta part is (through the
+		 * page column it names), or null while it is empty.
+		 *
+		 * @return {?{field: string, value: unknown, text: string, column: ?object}}
+		 */
+		recordFootCell() {
+			const part = this.recordLayout ? this.metaPart(this.recordLayout.footerCell) : null
+			return part && part.text !== '' ? part : null
 		},
 
 		/**

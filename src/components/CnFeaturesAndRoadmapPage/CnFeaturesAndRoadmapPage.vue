@@ -211,7 +211,7 @@ export default {
 		},
 
 		/**
-		 * Board look options (`layout`, `tabs`, `filter`, `statusLabels`,
+		 * Board look options (`layout`, `tabs`, `filter`, `statusLabels`, `statusVariants`,
 		 * `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`,
 		 * `suggestButton`). Manifest `config.board`; see CnFeaturesBoard.
 		 *

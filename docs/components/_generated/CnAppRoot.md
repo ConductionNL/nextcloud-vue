@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 11 direct references, 136 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 11 direct references, 138 files reached through imports.
 
 Through: `CnActionButtons`, `CnActionDialog`, `CnActionsMenu`, `CnAiFeaturesWidget`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnCommandPalette`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnCredentials`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnNotificationPreferences`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnObjectPermissionsTab`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnSavedViewMenuSettings`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 

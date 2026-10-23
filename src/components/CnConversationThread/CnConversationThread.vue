@@ -63,6 +63,7 @@
 						<span class="hidden-visually">{{ row.directionLabel }}</span>
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
 						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
+						<span v-if="row.status" class="cn-conversation-thread__status" data-testid="cn-conversation-status">{{ row.status }}</span>
 						<span v-if="showDirection"
 							class="cn-conversation-thread__direction"
 							data-testid="cn-conversation-direction"
@@ -71,6 +72,17 @@
 					</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
 					<span v-if="row.note" class="cn-conversation-thread__note" data-testid="cn-conversation-note">{{ row.note }}</span>
+					<span v-if="row.actions.length > 0" class="cn-conversation-thread__message-actions">
+						<NcButton
+							v-for="action in row.actions"
+							:key="action.id"
+							variant="secondary"
+							:disabled="action.disabled === true"
+							:data-testid="`cn-conversation-action-${action.id}`"
+							@click="$emit('message-action', { action: action.id, message: row.key })">
+							{{ action.label }}
+						</NcButton>
+					</span>
 				</div>
 			</li>
 		</ol>
@@ -80,7 +92,13 @@
 			class="cn-conversation-thread__reply"
 			data-testid="cn-conversation-reply"
 			@submit.prevent="onSend">
-			<label :for="inputId" class="cn-conversation-thread__reply-label">{{ replyLabel }}</label>
+			<!-- @slot reply-tools Tools above the reply box, for example a template picker. -->
+			<!-- @binding {Function} setDraft Puts a text in the reply box. -->
+			<slot name="reply-tools" :setDraft="setDraft" />
+			<div class="cn-conversation-thread__reply-head">
+				<label :for="inputId" class="cn-conversation-thread__reply-label">{{ replyLabel }}</label>
+				<span v-if="replyHint" class="cn-conversation-thread__reply-hint" data-testid="cn-conversation-reply-hint">{{ replyHint }}</span>
+			</div>
 			<textarea
 				:id="inputId"
 				v-model="draft"
@@ -92,6 +110,10 @@
 				data-testid="cn-conversation-input"
 				@keydown.ctrl.enter.prevent="onSend"
 				@keydown.meta.enter.prevent="onSend" />
+			<label v-if="optionShown" class="cn-conversation-thread__reply-option" data-testid="cn-conversation-reply-option">
+				<input v-model="optionOn" type="checkbox" :disabled="sending">
+				<span>{{ replyOption.label }}</span>
+			</label>
 			<p
 				v-if="errorMessage"
 				:id="errorId"
@@ -158,9 +180,18 @@ export default {
 		NcButton,
 	},
 
+	inject: {
+		/** The host app's translate, for the All chip in the host's word. */
+		cnTranslate: { default: null },
+	},
+
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, note? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`.
+		 * `status` is shown after the channel ("Failed"); `actions` are
+		 * `{ id, label, disabled? }` buttons under the text, each emitting
+		 * `message-action`.
+		 * `note` is a muted line under the text.
 		 * `side` is `us` or `them` (default `them`). `time` is an ISO
 		 * date, or any text to show as is. `channel` is shown after the
 		 * author ("E-mail", "Phone note"); `note` is a muted line under the text.
@@ -192,6 +223,24 @@ export default {
 		titleTag: {
 			type: String,
 			default: 'h3',
+		},
+
+		/** A line beside the reply label saying where the answer goes, such as "Goes to the message box in the portal". */
+		replyHint: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A switch under the reply box whose state is sent with the reply:
+		 * `{ label, key, value? }`, `value` the starting state (on by default).
+		 * The reply's `send` event carries `{ [key]: state }` after the text.
+		 *
+		 * @type {{label: string, key: string, value?: boolean}|null}
+		 */
+		replyOption: {
+			type: Object,
+			default: null,
 		},
 
 		/** Whether the reply box renders. Turn it off for a closed or read-only record. */
@@ -277,12 +326,16 @@ export default {
 		'sent',
 		/** The endpoint refused the reply. Payload: the error. */
 		'error',
+		/** A message action was pressed. Payload: `{ action, message }`, the action id and the message key. */
+		'message-action',
 	],
 
 	data() {
 		conversationThreadUid += 1
 		return {
 			draft: '',
+			/** The state of the reply option's switch. */
+			optionOn: this.replyOption?.value !== false,
 			/** The channel the chips narrow the thread to; '' is All. */
 			activeChannel: '',
 			sending: false,
@@ -318,6 +371,8 @@ export default {
 						timeLabel: time.label,
 						datetime: time.datetime,
 						channel: typeof message.channel === 'string' ? message.channel : '',
+						status: typeof message.status === 'string' ? message.status : '',
+						actions: Array.isArray(message.actions) ? message.actions.filter((action) => action && action.id && action.label) : [],
 						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
 						directionWord: side === 'us' ? t('nextcloud-vue', 'Outgoing') : t('nextcloud-vue', 'Incoming'),
 						note: typeof message.note === 'string' ? message.note : '',
@@ -347,9 +402,42 @@ export default {
 				return []
 			}
 			return [
-				{ label: t('nextcloud-vue', 'All'), count: this.rows.length },
+				{ label: this.allLabel, count: this.rows.length },
 				...this.channelLabels.map((label) => ({ label, count: this.rows.filter((row) => row.channel === label).length })),
 			]
+		},
+
+		/**
+		 * Whether the reply option renders: it has a label and a key.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
+		 */
+		optionShown() {
+			const option = this.replyOption
+			return Boolean(option && typeof option.label === 'string' && option.label !== '' && typeof option.key === 'string' && option.key !== '')
+		},
+
+		/**
+		 * What travels with the reply besides its text.
+		 *
+		 * @return {object} `{ [key]: state }`, or {} without an option.
+		 * @spec openspec/changes/conversation-reply-option/specs/conversation-source/spec.md#requirement-a-reply-can-carry-a-hint-and-an-option
+		 */
+		replyExtras() {
+			return this.optionShown ? { [this.replyOption.key]: this.optionOn === true } : {}
+		},
+
+		/**
+		 * The All chip: the host's word first, as its own filter chips read
+		 * ("Alles"), then the library's.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/conversation-all-chip-host-word/specs/conversation-source/spec.md#requirement-the-all-chip-reads-the-hosts-word
+		 */
+		allLabel() {
+			const host = typeof this.cnTranslate === 'function' ? this.cnTranslate('All') : 'All'
+			return typeof host === 'string' && host !== '' && host !== 'All' ? host : t('nextcloud-vue', 'All')
 		},
 
 		/** @return {number} The pressed chip: 0 for All. */
@@ -393,6 +481,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Put a text in the reply box (a template a host tool picked).
+		 *
+		 * @param {string} text The text.
+		 * @return {void}
+		 */
+		setDraft(text) {
+			this.draft = typeof text === 'string' ? text : ''
+		},
+
 		/**
 		 * Narrow the thread to the chip's channel; the All chip (0) clears it.
 		 *
@@ -456,14 +554,14 @@ export default {
 			}
 			const text = this.draft.trim()
 			this.errorMessage = ''
-			this.$emit('send', text)
+			this.$emit('send', text, this.replyExtras)
 			if (!this.endpoint) {
 				this.draft = ''
 				return
 			}
 			this.sending = true
 			try {
-				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, message: text })
+				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, ...this.replyExtras, message: text })
 				this.draft = ''
 				this.$emit('sent', response?.data)
 			} catch (error) {
@@ -482,6 +580,18 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: calc(3.5 * var(--default-grid-baseline));
+}
+
+.cn-conversation-thread__status {
+	color: var(--color-text-maxcontrast);
+	font-weight: 700;
+}
+
+.cn-conversation-thread__message-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin-top: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__header {
@@ -612,8 +722,27 @@ export default {
 	gap: calc(2 * var(--default-grid-baseline));
 }
 
+.cn-conversation-thread__reply-head {
+	align-items: baseline;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	justify-content: space-between;
+}
+
 .cn-conversation-thread__reply-label {
 	font-weight: 600;
+}
+
+.cn-conversation-thread__reply-hint {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-conversation-thread__reply-option {
+	align-items: center;
+	display: flex;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-conversation-thread__input {

@@ -1,0 +1,3 @@
+- [x] 1. `CnObjectSidebar`: `tabWidgetComponent` (integration tabs) and `libraryWidgetRenderer` (library widget types), with bindings.
+- [x] 2. `tests/components/CnObjectSidebarTabWidgets.spec.js`.
+- [x] 3. `docs/components/cn-object-sidebar.md`.

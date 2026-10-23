@@ -131,6 +131,7 @@ the badge. "Learn more" goes to `docsUrl` when it is a web address, else to `doc
 | `filter` | `chips` | `chips`: pills with a count. `segmented`: a segmented control without counts. |
 | `filterLabel` | `''` | The status filter's accessible name, through the app's translate (DqFunctionaliteiten "Toon"). Empty reads "Status". |
 | `statusLabels` | `{}` | Label overrides by key: `all`, `available`, `beta`, `in_progress`, `planned`. |
+| `statusVariants` | `{}` | Tone overrides by status key, as CnStatusBadge variants; a status not named keeps its tone (available green, beta amber, in progress blue, planned purple). DqFunctionaliteiten: `{ "planned": "default" }`. |
 | `next` | `3` | How many issues the Coming next card lists; `0` hides it. |
 | `issueLabels` | `{}` | Forge label to issue status (`in_progress`, `planned`) for the badges in the Coming next card. |
 | `subtitle` | `''` | Line under the title; `{count}` is the number of features, `{appVersion}` the app version. |

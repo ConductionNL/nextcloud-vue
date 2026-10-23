@@ -270,7 +270,7 @@
 						}"
 						:tabindex="isEditable(field) ? 0 : -1"
 						:role="isEditable(field) ? 'button' : undefined"
-						:aria-label="isEditable(field) ? 'Click to edit ' + field.label : undefined"
+						:aria-label="isEditable(field) ? t('nextcloud-vue', 'Edit {title}', { title: field.label }) : undefined"
 						@click="isEditable(field) && startEdit(field)"
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->

@@ -80,7 +80,7 @@ describe('the saved-views panel', () => {
 
 	it('lists defaults first under Default views, offering a copy and the menu only', () => {
 		const w = mountPanel([own, ...defaultFilterViews(DEFAULTS)], { menuIds: [] })
-		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toBe('Default views')
+		expect(w.get('[data-testid="cn-saved-views-section-seeded"]').text()).toMatch(/^Default views\b/)
 		expect(ids(w, 'cn-saved-views-item')[0].text()).toContain('Te laat, van mij')
 		expect(entriesOf(w, 'default:overdue-mine')).toEqual(['copy', 'menu'])
 	})

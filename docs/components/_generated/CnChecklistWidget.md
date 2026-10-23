@@ -8,7 +8,13 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type     | Required | Default | Description                                                                                                                                                                                                                                                        |
-| ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `content`    | `object` |          | `\{\}`  | The widget configuration: `path` (where the items sit on the record, default `checklist`), `idField` / `labelField` / `descriptionField` / `checkedField` (default `id`, `label`, `description`, `checked`), `emptyText` (shown when the record carries no items). |
-| `objectData` | `object` |          | `null`  | The record in view, as the detail page hands it to a widget.                                                                                                                                                                                                       |
+| Name         | Type     | Required | Default | Description                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------ | -------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`    | `object` |          | `\{\}`  | The widget configuration: `path` (where the items sit on the record, default `checklist`), `idField` / `labelField` / `descriptionField` / `checkedField` (default `id`, `label`, `description`, `checked`), `emptyText` (shown when the record carries no items), `summaryInHeader` (`true`: "2 of 4 done" is the line under the card title instead of a line above the items). |
+| `objectData` | `object` |          | `null`  | The record in view, as the detail page hands it to a widget.                                                                                                                                                                                                                                                                                                                     |
+
+### Events
+
+| Name     | Payload | Description                             |
+| -------- | ------- | --------------------------------------- |
+| `header` | —       | The card header's line under the title. |

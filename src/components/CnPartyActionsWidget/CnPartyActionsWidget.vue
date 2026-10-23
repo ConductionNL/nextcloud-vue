@@ -20,13 +20,43 @@
 					v-else
 					:size="18"
 					aria-hidden="true" />
-				<span>{{ indicator.label }}</span>
+				<span class="cn-party-actions-widget__indicator-text">
+					<span>{{ indicator.label }}</span>
+					<span v-if="indicator.toneLabel" class="cn-party-actions-widget__tone" data-testid="cn-party-indicator-tone">{{ indicator.toneLabel }}</span>
+					<span v-if="indicator.meta" class="cn-party-actions-widget__meta" data-testid="cn-party-indicator-meta">{{ indicator.meta }}</span>
+					<span v-if="indicator.seen" class="cn-party-actions-widget__meta" data-testid="cn-party-indicator-seen">{{ indicator.seen }}</span>
+				</span>
+				<NcButton
+					v-if="indicator.ack"
+					variant="primary"
+					:disabled="acking === indicator.key"
+					data-testid="cn-party-indicator-ack"
+					@click="acknowledge(indicator)">
+					{{ indicator.ack }}
+				</NcButton>
 			</li>
 		</ul>
+		<p v-else-if="loadError"
+			class="cn-party-actions-widget__error"
+			role="alert"
+			data-testid="cn-party-indicator-load-error">
+			{{ loadError }}
+		</p>
 		<span v-else-if="emptyText" class="cn-party-actions-widget__empty" data-testid="cn-party-actions-empty">
 			<CheckCircleOutline :size="18" aria-hidden="true" />
 			{{ emptyText }}
 		</span>
+		<p v-if="ackError"
+			class="cn-party-actions-widget__error"
+			role="alert"
+			data-testid="cn-party-indicator-error">
+			{{ ackError }}
+		</p>
+		<CnActionButtons
+			v-if="indicatorActions.length > 0"
+			class="cn-party-actions-widget__add"
+			:actions="indicatorActions"
+			data-testid="cn-party-actions-indicator-actions" />
 		<CnActionButtons
 			v-if="emptyActions.length > 0"
 			class="cn-party-actions-widget__add"
@@ -42,6 +72,8 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { NcButton } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
@@ -49,10 +81,12 @@ import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { contactHref } from '../../utils/contactHref.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { OBJECT_CREATED_EVENT } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 
 const TONES = Object.freeze(['warning', 'error', 'info', 'success', 'neutral'])
@@ -96,6 +130,15 @@ const TONE_ICONS = Object.freeze({
  * Indicators that are objects of their own (a warning recorded on a person)
  * come from `indicatorSource`: one list request, `@objectId` in its filter,
  * the label and tone read at `labelPath` / `tonePath` (through `toneMap`).
+ * With `url` instead of `register`/`schema` they come from an app endpoint
+ * (rows at `itemsPath`), each with `toneLabels`, a `meta` line (parts, each
+ * the first of its templates that fills) and an `ack` (`{ whenPath,
+ * donePath, endpoint, label, seen, errorText }`): an "I have seen this"
+ * button where an acknowledgement is due, else the "seen" line.
+ *
+ * An action `target` of `@object.<field>|tel`, `|mailto` or `|geo` becomes
+ * that link, and the action is left out when the value makes none. A label
+ * with `{field}` is filled from the record.
  *
  * An indicator shows when its local `visibleWhen` holds against the page
  * object (no condition: always); its label goes through the app's translate
@@ -110,7 +153,7 @@ const TONE_ICONS = Object.freeze({
 export default {
 	name: 'CnPartyActionsWidget',
 
-	components: { CheckCircleOutline, CnActionButtons, CnIcon },
+	components: { CheckCircleOutline, CnActionButtons, CnIcon, NcButton },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -120,7 +163,7 @@ export default {
 		/**
 		 * The widget configuration: `indicators` (`{ label, tone?, icon?, visibleWhen? }`,
 		 * tone `warning` | `error` | `info` | `success` | `neutral`), `emptyText`,
-		 * `emptyActions` and `actions` (action descriptors), and `indicatorSource`
+		 * `emptyActions`, `indicatorActions` and `actions` (action descriptors), and `indicatorSource`
 		 * for indicators kept as objects of their own (see `loadListed`).
 		 *
 		 * @type {{indicators?: Array<object>, emptyText?: string, emptyActions?: Array<object>, actions?: Array<object>}}
@@ -147,6 +190,12 @@ export default {
 		return {
 			/** The indicators read from `indicatorSource`. */
 			listed: [],
+			/** The indicator being acknowledged. */
+			acking: '',
+			/** Why the last acknowledgement failed. */
+			ackError: '',
+			/** Why `indicatorSource` could not be read: shown instead of the empty sentence. */
+			loadError: '',
 		}
 	},
 
@@ -178,6 +227,11 @@ export default {
 						tone,
 						icon: typeof indicator.icon === 'string' ? indicator.icon : '',
 						toneIcon: markRaw(TONE_ICONS[tone]),
+						toneLabel: indicator.toneLabel || '',
+						meta: indicator.meta || '',
+						seen: indicator.seen || '',
+						ack: indicator.ack || '',
+						row: indicator.row || null,
 					}
 				})
 				// A label whose token has no value fills to '' and is left out.
@@ -192,6 +246,11 @@ export default {
 		/** @return {Array<object>} The actions beside the empty sentence. */
 		emptyActions() {
 			return this.shownIndicators.length === 0 ? this.actionList(this.content?.emptyActions) : []
+		},
+
+		/** @return {Array<object>} The actions beside the indicators (`indicatorActions`), drawn while any shows. */
+		indicatorActions() {
+			return this.shownIndicators.length > 0 ? this.actionList(this.content?.indicatorActions) : []
 		},
 
 		/** @return {Array<object>} The quick actions at the end of the band. */
@@ -209,6 +268,16 @@ export default {
 		},
 	},
 
+	mounted() {
+		window.addEventListener(OBJECT_CREATED_EVENT, this.loadListed)
+		subscribe('cn:page:refresh', this.loadListed)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener(OBJECT_CREATED_EVENT, this.loadListed)
+		unsubscribe('cn:page:refresh', this.loadListed)
+	},
+
 	methods: {
 		/**
 		 * Read the indicators kept as objects of their own
@@ -223,6 +292,10 @@ export default {
 		 */
 		async loadListed() {
 			const source = this.content?.indicatorSource
+			if (source && typeof source === 'object' && typeof source.url === 'string' && source.url !== '') {
+				this.listed = await this.loadFromEndpoint(source)
+				return
+			}
 			if (!source || typeof source !== 'object' || !source.register || !source.schema || !source.labelPath) {
 				this.listed = []
 				return
@@ -252,6 +325,82 @@ export default {
 		},
 
 		/**
+		 * Read indicators from an app endpoint (`indicatorSource.url`, `@objectId`
+		 * filled; the rows at `itemsPath`), each with its tone label, a meta line
+		 * of `meta` parts (each part the first of its templates that fills) and,
+		 * with `ack`, an acknowledgement button or the "seen" line.
+		 *
+		 * @spec openspec/changes/party-actions-endpoint-indicators/specs/party-actions-widget/spec.md#requirement-indicators-can-come-from-an-endpoint-and-be-acknowledged
+		 * @param {object} source The `indicatorSource`.
+		 * @return {Promise<Array<object>>} The indicators.
+		 */
+		async loadFromEndpoint(source) {
+			if (this.partyId === null || this.partyId === '') {
+				return []
+			}
+			let rows
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = source.url.replace(/@objectId/g, encodeURIComponent(String(this.partyId)))
+				const { data } = await axios.get(generateUrl(url))
+				rows = source.itemsPath ? readPath(data, source.itemsPath) : data
+			} catch {
+				this.loadError = this.tr(source.errorText || 'The warnings could not be loaded.')
+				return []
+			}
+			this.loadError = ''
+			const toneMap = source.toneMap && typeof source.toneMap === 'object' ? source.toneMap : {}
+			const toneLabels = source.toneLabels && typeof source.toneLabels === 'object' ? source.toneLabels : {}
+			const ack = source.ack && typeof source.ack === 'object' ? source.ack : null
+			return (Array.isArray(rows) ? rows : []).filter((row) => row && typeof row === 'object').map((row, index) => {
+				const raw = source.tonePath ? readPath(row, source.tonePath) : undefined
+				const label = readPath(row, source.labelPath || 'label')
+				const meta = (Array.isArray(source.meta) ? source.meta : [])
+					.map((part) => firstFilled(part, row, (key) => this.tr(key)))
+					.filter((text) => text !== '')
+					.join(' · ')
+				const needsAck = ack && readPath(row, ack.whenPath) === true && !readPath(row, ack.donePath)
+				const seen = ack && ack.seen && readPath(row, ack.donePath) ? fillTemplate(this.tr(ack.seen), row) : ''
+				return {
+					id: `source-${row.id ?? index}`,
+					label: typeof label === 'string' ? label : '',
+					tone: Object.hasOwn(toneMap, String(raw)) ? toneMap[String(raw)] : raw,
+					toneLabel: Object.hasOwn(toneLabels, String(raw)) ? this.tr(toneLabels[String(raw)]) : '',
+					meta,
+					seen,
+					ack: needsAck ? this.tr(ack.label || 'I have seen this') : '',
+					row,
+				}
+			})
+		},
+
+		/**
+		 * Acknowledge an indicator, then read them again.
+		 *
+		 * @spec openspec/changes/party-actions-endpoint-indicators/specs/party-actions-widget/spec.md#requirement-indicators-can-come-from-an-endpoint-and-be-acknowledged
+		 * @param {object} indicator The shown indicator.
+		 * @return {Promise<void>}
+		 */
+		async acknowledge(indicator) {
+			const ack = this.content?.indicatorSource?.ack
+			if (!ack || !indicator.row || this.acking) {
+				return
+			}
+			this.acking = indicator.key
+			this.ackError = ''
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const path = String(ack.endpoint).replace(/\{([\w.]+)\}/g, (_m, field) => encodeURIComponent(String(readPath(indicator.row, field) ?? '')))
+				await axios.post(generateUrl(path))
+				await this.loadListed()
+			} catch {
+				this.ackError = this.tr(ack.errorText || 'This did not work. Try again.')
+			} finally {
+				this.acking = ''
+			}
+		},
+
+		/**
 		 * Translate through the app's translate.
 		 *
 		 * @param {string} key The source string.
@@ -268,9 +417,21 @@ export default {
 		 * @return {Array<object>}
 		 */
 		actionList(list) {
+			const object = this.objectData || {}
 			return (Array.isArray(list) ? list : [])
 				.filter((action) => action && typeof action === 'object' && action.id && action.label)
-				.map((action) => ({ variant: 'secondary', ...action, inline: true }))
+				.map((action) => {
+					const linked = { variant: 'secondary', ...action, inline: true }
+					const filter = typeof action.target === 'string' ? action.target.match(/^@object\.([\w.]+)\|(tel|mailto|geo)$/) : null
+					if (filter) {
+						linked.target = contactHref(filter[2], readPath(object, filter[1]))
+					}
+					if (action.label.includes('{')) {
+						linked.label = fillTemplate(this.tr(action.label), object)
+					}
+					return linked
+				})
+				.filter((action) => action.target !== null && action.label !== '')
 		},
 	},
 }
@@ -286,6 +447,23 @@ export default {
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius, 12px);
 	background: var(--color-main-background);
+}
+
+.cn-party-actions-widget__indicator-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-party-actions-widget__tone,
+.cn-party-actions-widget__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-party-actions-widget__error {
+	color: var(--color-error-text, var(--color-error));
+	margin: 0;
 }
 
 .cn-party-actions-widget__indicators {

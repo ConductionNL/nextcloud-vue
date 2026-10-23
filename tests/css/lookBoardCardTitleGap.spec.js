@@ -31,7 +31,7 @@ function bodyOf(css, selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			return m[2]
 		}
 	}
@@ -57,8 +57,8 @@ describe('look-board: a card body starts the board\'s gap below its title', () =
 	})
 
 	it.each([
-		['a detail body card', '.cn-look-board .cn-detail-page .cn-widget-wrapper__content', `calc(12px - ${LEADING}) 22px 20px`],
-		['a CnDetailCard', '.cn-look-board .cn-detail-card .cn-detail-card__content', `calc(12px - ${LEADING}) 22px 20px`],
+		['a detail body card', '.cn-look-board .cn-detail-page .cn-widget-wrapper__content', `calc(12px - ${LEADING}) var(--cn-board-card-inline-padding) 20px`],
+		['a CnDetailCard', '.cn-look-board .cn-detail-card .cn-detail-card__content', `calc(12px - ${LEADING}) var(--cn-board-card-inline-padding) 20px`],
 		['a detail side card', '.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content', `calc(10px - ${LEADING}) 22px 20px`],
 	])('pads %s by the board gap less the leading', (_name, selector, padding) => {
 		expect(bodyOf(detail, selector)).toContain(`padding: ${padding};`)

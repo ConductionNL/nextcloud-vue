@@ -76,6 +76,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object — drives auto-generated filters (from `properties`) and the column list |
 | `title` | String | `''` | Sidebar header title; defaults to `schema.title` when empty |
+| `subtitle` | String | `''` | The line under the title, in place of `schema.description`: CnIndexPage hands it the page's `sidebar.subtitle` with `{total}` and `{shown}` filled ("48 zaken, 8 op deze pagina", DqFilterBeheren) |
 | `icon` | String | `''` | MDI icon name or emoji shown in the header; defaults to `schema.icon` |
 | `open` | Boolean | `true` | Controls sidebar open/closed state (use with `v-model:open`) |
 | `searchValue` | String | `''` | Current search term (controlled); bind to your store's search state |

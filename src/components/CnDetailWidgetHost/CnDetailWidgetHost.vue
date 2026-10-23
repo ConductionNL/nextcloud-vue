@@ -158,7 +158,7 @@
 		     case) is absent. Mounting it would hand the leaf an empty host, and a
 		     leaf falls back to the page's own object from there. -->
 		<span
-			v-else-if="isIntegration && widgetPropsPending"
+			v-else-if="(isIntegration && widgetPropsPending) || consumerWidgetWaiting"
 			hidden
 			data-testid="cn-detail-widget-props-pending" />
 
@@ -407,10 +407,12 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
+import { getByPath } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { pickConditionalText } from '../../utils/conditionalText.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -429,7 +431,7 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
-import { resolveWidgetHeaderActions, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
+import { resolveWidgetHeaderActions, WIDGET_BODY_ACTIONS, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { HOST_WIDGET_ID } from '../../utils/widgetSelection.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -516,6 +518,10 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's action dispatcher (CnPageRenderer), for `headerActions`. */
 		cnDispatchAction: { default: null },
+		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
+		cnRecordEdit: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a subtitle that depends on them. */
+		cnDetailVisibilityRows: { default: null },
 		/**
 		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
 		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
@@ -543,6 +549,9 @@ export default {
 			// The widget's manifest `headerActions`, for the card that titles
 			// it. In bare mode the surface (a tab panel) draws them instead.
 			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
+			// The widget's manifest `bodyActions`, for a leaf that draws its
+			// own button row in the body (the contacts tab).
+			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
 			// The hosted widget's id, read at call time, so a list can publish its
 			// rows under it for a card that follows them (side-card-follows-row).
 			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
@@ -852,7 +861,15 @@ export default {
 		 */
 		widgetSubtitle() {
 			const subtitle = (this.widget && this.widget.subtitle) || this.content.subtitle || ''
-			return typeof subtitle === 'string' ? subtitle : ''
+			if (!Array.isArray(subtitle)) {
+				return typeof subtitle === 'string' ? subtitle : ''
+			}
+			// `[{ when, text }]`: the line depends on the record and the records the
+			// page reads beside it (`@context.<name>`), as a `visibleWhen` does.
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const object = this.object || null
+			const data = object && (!this.cnDetailVisibilityRows || rows) ? { ...object, '@context': rows || {} } : null
+			return pickConditionalText(subtitle, data)
 		},
 
 		/**
@@ -1075,14 +1092,35 @@ export default {
 		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
 		 */
 		declaredHeaderActions() {
-			return resolveWidgetHeaderActions(this.widget, {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext)
+		},
+
+		/**
+		 * The widget's manifest `bodyActions` as buttons, for a leaf that draws
+		 * them in its own button row ("Partij toevoegen" beside the contacts
+		 * tab's Link and New buttons).
+		 *
+		 * @return {Array<object>} The buttons.
+		 */
+		declaredBodyActions() {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext, 'bodyActions')
+		},
+
+		/**
+		 * What a header or body action resolves and dispatches with.
+		 *
+		 * @return {object} `{ object, objectId, translate, dispatch }`.
+		 */
+		actionContext() {
+			return {
 				object: this.object || {},
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
+				recordEdit: this.cnRecordEdit,
 				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
 					? this.cnDispatchAction(action)
 					: dispatchAction(action, { router: this.$router || null })),
-			})
+			}
 		},
 
 		leafCardTitle() {
@@ -1328,7 +1366,59 @@ export default {
 			if (title) {
 				base.title = title
 			}
-			return { ...base, ...this.declaredContent }
+			return { ...base, ...this.declaredContent, ...this.consumerWidgetProps }
+		},
+
+		/**
+		 * Whether the widget is the app's own (a consumer registry entry).
+		 *
+		 * @return {boolean}
+		 */
+		isConsumerWidget() {
+			const type = this.widget && this.widget.type
+			return Boolean(type && this.cnRegistry && this.cnRegistry[type])
+		},
+
+		/**
+		 * The props an app widget takes from its manifest `props`: literals,
+		 * and `@objectId` / `@object.<field>` / `@config.<key>` /
+		 * `@content.<path>` tokens. A token that does not resolve is left out,
+		 * so the component's own default holds; only declared props pass.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {object} The prop bag, `{}` for any other widget.
+		 */
+		consumerWidgetProps() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return {}
+			}
+			const bag = {}
+			for (const [key, written] of Object.entries(declared)) {
+				const value = typeof written === 'string' && written.startsWith('@content.')
+					? getByPath(this.content || {}, written.slice('@content.'.length))
+					: this.resolvedWidgetProps[key]
+				if (value === undefined || value === null || (typeof value === 'string' && value.charAt(0) === '@')) {
+					continue
+				}
+				bag[key] = value
+			}
+			return pickDeclaredProps(this.renderer, bag, this.widget.type)
+		},
+
+		/**
+		 * Whether an app widget that asks for `@objectId` has none yet.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {boolean} true while the widget must not mount.
+		 */
+		consumerWidgetWaiting() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object') {
+				return false
+			}
+			const asksForId = Object.values(declared).includes('@objectId')
+			return asksForId && (this.objectId === null || this.objectId === undefined || this.objectId === '')
 		},
 
 		/**

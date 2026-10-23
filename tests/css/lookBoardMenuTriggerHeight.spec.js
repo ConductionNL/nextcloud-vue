@@ -35,7 +35,7 @@ function ruleFor(selector) {
 
 describe('look-board.css: labelled menu buttons', () => {
 	it('draws a labelled menu button 40px tall', () => {
-		const body = ruleFor('.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *))')
+		const body = ruleFor('.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *))')
 		expect(body).not.toBeNull()
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')
 		expect(body).toContain('min-height: var(--cn-board-control-height);')

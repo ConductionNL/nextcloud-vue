@@ -18,7 +18,6 @@
 				<h2 class="cn-flow-board__title" data-testid="flow-board-title">
 					{{ titleText }}
 				</h2>
-				<CnStatusBadge v-if="pillText" :label="pillText" variant="default" />
 			</div>
 			<div v-if="!store.inRunView" class="cn-flow-board__actions">
 				<NcCheckboxRadioSwitch v-if="store.flow.id"
@@ -85,8 +84,14 @@
 		</CnDialog>
 
 		<p class="cn-flow-board__path" data-testid="flow-board-path">
-			<a :href="listHref" class="cn-flow-board__crumb" @click="onCrumbClick($event, detailRoute)">{{ listText }}</a>
-			<span aria-hidden="true"> / </span>
+			<CnStatusBadge v-if="pillText"
+				class="cn-flow-board__pill"
+				:label="pillText"
+				:variant="pill ? pillVariant : 'default'" />
+			<template v-for="(crumb, index) in trailCrumbs" :key="index">
+				<a :href="crumb.href" class="cn-flow-board__crumb" @click="onCrumbClick($event, crumb.path)">{{ crumb.label }}</a>
+				<span aria-hidden="true"> / </span>
+			</template>
 			<template v-if="store.inRunView">
 				<a :href="flowHref" class="cn-flow-board__crumb" @click="onCrumbClick($event, flowPath)">{{ flowName }}</a>
 				<span aria-hidden="true"> / </span>
@@ -97,7 +102,7 @@
 		</p>
 
 		<NcNoteCard v-if="notice && !store.inRunView" type="info" class="cn-flow-board__notice">
-			{{ notice }}
+			{{ noticeText }}
 		</NcNoteCard>
 
 		<div class="cn-flow-board__body">
@@ -297,8 +302,16 @@ export default {
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
-		/** The pill beside the title ("Case type flow"). */
+		/**
+		 * The levels before the flow in the path, each its own link:
+		 * `[{ label, href? }]` ("Settings" / "Flows"). A crumb without an
+		 * `href` links to the flow list. Empty draws the one `listLabel` link.
+		 */
+		breadcrumb: { type: Array, default: () => [] },
+		/** The pill at the start of the path row ("Case type flow"). */
 		pill: { type: String, default: '' },
+		/** The tone of `pill` ("teal" on DqFlow); a lifecycle pill stays neutral. */
+		pillVariant: { type: String, default: 'default' },
 		/**
 		 * The records a test run can take as its subject: `{ register, schema,
 		 * labelField?, label? }`. Draws a header button ("Testen met een zaak",
@@ -357,6 +370,33 @@ export default {
 				return this.t('nextcloud-vue', 'Retired')
 			}
 			return ''
+		},
+
+		/**
+		 * The path's links before the flow: the declared trail, else the one
+		 * list link.
+		 *
+		 * @spec openspec/changes/flow-board-trail/specs/flow-board/spec.md#requirement-the-flow-board-path-names-every-level-and-carries-the-pill
+		 * @return {Array<{label: string, href: string, path: string}>} The crumbs.
+		 */
+		trailCrumbs() {
+			const declared = (this.breadcrumb || []).filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+			if (declared.length === 0) {
+				return [{ label: this.listText, href: this.listHref, path: this.detailRoute }]
+			}
+			return declared.map((crumb) => (crumb.href
+				? { label: crumb.label, href: crumb.href, path: '' }
+				: { label: crumb.label, href: this.listHref, path: this.detailRoute }))
+		},
+
+		/**
+		 * The notice with `{name}` filled with the flow's name.
+		 *
+		 * @spec openspec/changes/flow-board-trail/specs/flow-board/spec.md#requirement-the-flow-board-notice-can-name-the-flow
+		 * @return {string} The notice text.
+		 */
+		noticeText() {
+			return String(this.notice || '').split('{name}').join(this.store.flow.name || '')
 		},
 
 		/** @return {string} The list label. */
@@ -652,15 +692,16 @@ export default {
 		},
 
 		/**
-		 * Follow a path link on the app's router; a modified click keeps the
-		 * browser's own behaviour.
+		 * Follow a path link on the app's router; a modified click, or a crumb
+		 * that names an href rather than a path, keeps the browser's own
+		 * behaviour.
 		 *
 		 * @param {MouseEvent} event The click.
 		 * @param {string} path The target path.
 		 * @return {void}
 		 */
 		onCrumbClick(event, path) {
-			if (!this.$router || event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1) {
+			if (!path || !this.$router || event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1) {
 				return
 			}
 			event.preventDefault()
@@ -767,6 +808,10 @@ export default {
 .cn-flow-board__path {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__pill {
+	margin-inline-end: 10px;
 }
 
 .cn-flow-board__crumb {

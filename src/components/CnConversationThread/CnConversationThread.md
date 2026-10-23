@@ -79,6 +79,23 @@ message's `channel` is shown after its author:
   ]" />
 ```
 
+The `reply-tools` slot puts tools above the reply box; its `setDraft(text)` fills the box. A message's `status` shows
+after its channel, and its `actions` are buttons that emit `message-action`:
+
+```vue
+<CnConversationThread
+  title="Messages"
+  :messages="[
+    { id: 'm-2', time: '2026-10-04T10:52:00', side: 'us', status: 'Failed', text: 'Are you there?',
+      actions: [{ id: 'resend', label: 'Send again' }] },
+  ]"
+  @message-action="({ action, message }) => resend(message)">
+  <template #reply-tools="{ setDraft }">
+    <NcButton @click="setDraft('Thank you for your message.')">Use the thank-you text</NcButton>
+  </template>
+</CnConversationThread>
+```
+
 As a board card: `subtitle` puts a line under the title, `show-direction` says "Incoming" or "Outgoing" before the time,
 and a message's `note` is a muted line under its text:
 
@@ -90,4 +107,16 @@ and a message's `note` is a muted line under its text:
   :messages="[
     { id: 1, author: 'Sanne de Vries', time: '2026-10-03T14:10:00', side: 'them', channel: 'Phone', text: 'How do I ask for the documents?', note: 'Summarised by Pieter Jansen' },
   ]" />
+```
+
+A reply can say where it goes and carry a choice: `reply-hint` is a line beside the reply label, and `reply-option`
+draws a switch under the box whose state is sent with the reply (`send` carries `{ logContactMoment: true }` after the
+text):
+
+```vue
+<CnConversationThread
+  title="Contact"
+  reply-hint="Goes to the message box in the portal"
+  :reply-option="{ label: 'Log as a contact moment on this case', key: 'logContactMoment' }"
+  :messages="[]" />
 ```

@@ -33,7 +33,7 @@ const CnNotesCardAdapter = {
 		// Notes of something that is not an object (`{ kind: 'flow-task', id }`), or a URL of their own.
 		source: { type: Object, default: null },
 		endpoint: { type: String, default: '' },
-		// `button` puts the card's add form behind an "Add note" button in its header.
+		// `button` puts the add form behind an "Add note" button (card header, or above the notes tab).
 		composer: { type: String, default: 'inline' },
 		// Accepted-and-ignored: forwarded by the surface components.
 		surface: { type: String, default: 'detail-page' },
@@ -52,6 +52,7 @@ const CnNotesCardAdapter = {
 				apiBase: this.apiBase,
 				mentionUrl: this.mentionUrl,
 				noteActions: this.noteActions,
+				composer: this.composer,
 			})
 		}
 		return h(CnNotesCard, {

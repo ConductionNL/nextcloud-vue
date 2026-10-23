@@ -1,0 +1,4 @@
+- [x] 1. CnObjectListWidget: route by field, id field, createEndpoint.
+- [x] 2. CnCellRenderer fkResolve: schemaFrom.
+- [x] 3. tests/components/CnObjectListWidgetByField.spec.js.
+- [x] 4. Docs.

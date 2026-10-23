@@ -113,10 +113,20 @@
 						<td
 							class="cn-tasks-widget__cell-due"
 							:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true && task.isTerminal !== true }">
-							{{ dueLabel(task) }}
+							<template v-if="content.dueFormat === 'date'">
+								{{ dueDate(task) }}
+								<span v-if="task.overdue === true && task.isTerminal !== true" class="hidden-visually">{{ tr('Overdue') }}</span>
+							</template>
+							<template v-else>
+								{{ dueLabel(task) }}
+							</template>
 						</td>
 						<td>
-							<CnStatusBadge :label="stateLabel(task)" :variant="task.isTerminal === true ? 'default' : 'info'" />
+							<CnStatusBadge
+								:label="stateLabel(task)"
+								:variant="stateVariant(task)"
+								:colorMap="stateColors"
+								:colorKey="String(task.state || '')" />
 						</td>
 						<td class="cn-tasks-widget__cell-actions">
 							<NcButton
@@ -158,6 +168,13 @@
 					</tr>
 				</tbody>
 			</table>
+			<router-link
+				v-if="footerViewAll && $router"
+				class="cn-tasks-widget__view-all"
+				:to="footerViewAll.to"
+				data-testid="cn-tasks-widget-footer-link">
+				{{ footerViewAll.label }}
+			</router-link>
 			<!-- The opened row's task to work on in place (`expandRows`). -->
 			<CnTaskWorkCard
 				v-if="expandedTask"
@@ -367,11 +384,13 @@ import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
 import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -499,14 +518,24 @@ export default {
 		 * - `completeUrl` — the route Complete posts to instead of the engine's
 		 *   own (`{id}` is the task uuid), for an app that checks something of
 		 *   its own before the engine completes the task.
+		 * - `stateVariants` — the status pill's tone by engine state
+		 *   (`{ active: 'purple', enabled: 'warning' }`); a state it does not
+		 *   name keeps info while open and default once finished.
 		 * - `claimCapabilityUrl` — a URL answering `{ claim: true|false }`;
 		 *   Claim is offered only when it answers true. Without it Claim is
 		 *   offered on every pooled task.
+		 * - Table only: `dueFormat: "date"` shows the deadline as a short date
+		 *   (an overdue one still says so to a screen reader and in its
+		 *   weight); `stateLabels` (`{ <state>: label }`) and `stateColors`
+		 *   (`{ <state>: tone }`, a badge variant or board hue) word and colour
+		 *   the status; `viewAllPlacement: "footer"` draws the view-all link
+		 *   under the table instead of in the card header.
 		 *
 		 * A task that carries a form is completed through CnTaskFormDialog, or
 		 * with its form inline in the focus and opened-row cards.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -664,6 +693,39 @@ export default {
 		},
 
 		/**
+		 * Whether the table draws its "View all" link under the table rather
+		 * than in the card header (`viewAllPlacement: "footer"`, DqZaakTaken).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		linkInFooter() {
+			return this.isTable && this.content.viewAllPlacement === 'footer'
+		},
+
+		/**
+		 * The table's footer link, with `viewAllPlacement: "footer"`.
+		 *
+		 * @return {{to: object, label: string}|null}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		footerViewAll() {
+			return this.linkInFooter ? this.focusViewAll : null
+		},
+
+		/**
+		 * The colours `content.stateColors` gives a state, by its raw value
+		 * (`{ active: "purple" }`), or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		stateColors() {
+			const map = this.content.stateColors
+			return map && typeof map === 'object' ? map : null
+		},
+
+		/**
 		 * The focus card's "View all" link: `viewAllRoute` with `@objectId`
 		 * in its query read from the page's record.
 		 *
@@ -742,7 +804,7 @@ export default {
 		header() {
 			// The focus card draws its "View all" under the list itself, so it
 			// shows inside a tab panel too, where no card header is drawn.
-			const header = { link: this.isFocus ? null : this.recordLink(this.headerLink), note: '' }
+			const header = { link: this.isFocus || this.linkInFooter ? null : this.recordLink(this.headerLink), note: '' }
 			if (!this.isTable) {
 				return header
 			}
@@ -1021,6 +1083,19 @@ export default {
 		},
 
 		/**
+		 * The due date as a short date ("18 Oct"), '' without one; for the
+		 * table with `dueFormat: "date"`.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		dueDate(task) {
+			const at = new Date(task?.dueAt ?? '')
+			return Number.isNaN(at.getTime()) ? '' : at.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
+		},
+
+		/**
 		 * Whether the row offers claim: pooled (no assignee) and still open.
 		 *
 		 * @param {object} task The task row.
@@ -1088,14 +1163,37 @@ export default {
 		},
 
 		/**
-		 * A table row's status in words.
+		 * A table row's status in words: `content.stateLabels` first, through
+		 * the app's translate, then the library's.
 		 *
 		 * @param {object} task The task row.
 		 * @return {string} The label.
 		 */
 		stateLabel(task) {
+			const own = this.content.stateLabels && typeof this.content.stateLabels === 'object' ? this.content.stateLabels[task.state] : null
+			if (typeof own === 'string' && own !== '') {
+				return this.tr(own)
+			}
 			const state = STATE_LABELS[task.state]
 			return state ? this.tr(state) : String(task.state || '')
+		},
+
+		/**
+		 * The tone of a task's status pill: `stateVariants[state]` when that
+		 * names a badge variant, else info for an open task and default for a
+		 * finished one.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The badge variant.
+		 * @spec openspec/changes/tasks-state-variants/specs/tasks-state-variants/spec.md#requirement-a-task-status-pill-can-take-its-tone-from-its-state
+		 */
+		stateVariant(task) {
+			const map = this.content && this.content.stateVariants
+			const named = map && typeof map === 'object' ? map[task.state] : undefined
+			if (isBadgeVariant(named)) {
+				return named
+			}
+			return task.isTerminal === true ? 'default' : 'info'
 		},
 
 		/**

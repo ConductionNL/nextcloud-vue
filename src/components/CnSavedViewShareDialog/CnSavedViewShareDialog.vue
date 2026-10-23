@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="boardEyebrow"
+		:subtitle="boardSubtitle"
 		:name="resolvedTitle"
 		size="small"
 		:noClose="loading"
@@ -12,7 +17,7 @@
 			<NcNoteCard v-if="error" type="error">
 				{{ error }}
 			</NcNoteCard>
-			<p class="cn-share-view__intro">
+			<p v-if="!isBoardLook" class="cn-share-view__intro">
 				{{ t('nextcloud-vue', 'Whoever gets the view sees it under Shared with me. It is yours and stays yours.') }}
 			</p>
 			<CnSavedViewShareFields v-model="sharedWith" />
@@ -32,13 +37,15 @@
 				{{ t('nextcloud-vue', 'Save sharing') }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { normalizeSharedWith } from '../../utils/savedViewHelpers.js'
 
 /**
@@ -50,7 +57,9 @@ import { normalizeSharedWith } from '../../utils/savedViewHelpers.js'
 export default {
 	name: 'CnSavedViewShareDialog',
 
-	components: { CnSavedViewShareFields, NcButton, NcDialog, NcLoadingIcon, NcNoteCard },
+	components: { CnDialog, CnSavedViewShareFields, NcButton, NcLoadingIcon, NcNoteCard },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** The view being shared (its `sharedWith` seeds the fields). */
@@ -77,6 +86,26 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The line above the title: the given eyebrow, else "Saved view" in
+		 * the board look (DqFilterBewerken, DqFilterDelen).
+		 *
+		 * @return {string} The eyebrow.
+		 */
+		boardEyebrow() {
+			return this.eyebrow || (this.isBoardLook ? t('nextcloud-vue', 'Saved view') : '')
+		},
+
+		/**
+		 * The sentence under the title in the board look; the Nextcloud look
+		 * keeps it as the first line of the body.
+		 *
+		 * @return {string} The subtitle.
+		 */
+		boardSubtitle() {
+			return this.subtitle || (this.isBoardLook ? t('nextcloud-vue', 'Whoever gets the view sees it under Shared with me. It is yours and stays yours.') : '')
+		},
+
 		/** @return {string} The title: `dialogTitle`, else "Share view: {name}". */
 		resolvedTitle() {
 			return this.dialogTitle || t('nextcloud-vue', 'Share view: {name}', { name: (this.view && this.view.name) || '' })

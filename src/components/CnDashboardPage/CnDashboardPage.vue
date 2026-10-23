@@ -1086,6 +1086,8 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
+import { generatedPageFilterOptions, periodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -1338,6 +1340,14 @@ export default {
 		 */
 		cnRegistry: { default: () => ({}) },
 		/**
+		 * The page's action dispatcher, provided by CnPageRenderer: a card's
+		 * header action runs through it, so `open-modal` reaches the app's
+		 * registry dialogs, as on a detail page. Null outside the renderer.
+		 *
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
+		 */
+		cnDispatchAction: { default: null },
+		/**
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
 		 * manifest-authored page title/description are run through it.
@@ -1371,6 +1381,9 @@ export default {
 			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
 			// The page id, for widgets that key per-person state by dashboard (notepad).
 			cnDashboardPageId: () => this.resolvedPageId,
+			// Widget titles sit one level under the page title: h1 in the board
+			// look, h2 in the Nextcloud look and as the hidden title.
+			[HEADING_LEVEL]: () => (this.showHeader && this.title && this.isBoardLook ? 2 : 3),
 		}
 	},
 
@@ -2409,7 +2422,12 @@ export default {
 		 * @return {string}
 		 */
 		resolvedDescription() {
-			return this.description ? this.effectiveTranslate(this.description) : this.description
+			if (!this.description) {
+				return this.description
+			}
+			// `{filter.<key>}`: the page filter's active choice, read as a period
+			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
+			return this.effectiveTranslate(this.description).replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
 		},
 
 		/**
@@ -3218,6 +3236,28 @@ export default {
 		 * @param {string|null} to ISO-8601 upper bound (or null).
 		 * @return {string|null} Formatted label, or null when both bounds are empty.
 		 */
+		/**
+		 * A page filter's active choice read as a period, for `{filter.<key>}`
+		 * in the description: the declared (or generated) option the workspace
+		 * holds, its label through the host translate.
+		 *
+		 * @param {string} key The page filter's key.
+		 * @return {string} The period, '' when the filter or its choice is missing.
+		 * @spec openspec/changes/description-period-from-filter/specs/description-period-from-filter/spec.md#requirement-a-dashboard-description-reads-the-active-period-of-a-page-filter
+		 */
+		pageFilterPeriodText(key) {
+			const pf = (this.pageFilters || []).find((filter) => filter && filter.key === key)
+			if (!pf) {
+				return ''
+			}
+			const options = Array.isArray(pf.options) ? pf.options : (generatedPageFilterOptions(pf) || this.pageFilterFetched[pf.key] || [])
+			const option = options.find((o) => o && o.value === this.workspaceContext[pf.key])
+			if (!option) {
+				return ''
+			}
+			return periodText({ ...option, label: option.label ? this.effectiveTranslate(option.label) : String(option.value) }, new Date(), userLocale())
+		},
+
 		formatRangeLabel(from, to) {
 			if (!from && !to) {
 				return null
@@ -4677,17 +4717,21 @@ export default {
 
 		/**
 		 * The widget's manifest `headerActions`, resolved for its card's title
-		 * row; a click goes through the action dispatcher with the page's
-		 * router.
+		 * row; a click goes through the page's dispatcher when the renderer
+		 * provides one (so `open-modal` opens a registry dialog), else through
+		 * the action dispatcher with the page's router.
 		 *
 		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
 		 * @param {object} item Layout placement entry.
 		 * @return {Array<object>} The buttons, or none.
 		 */
 		getWidgetHeaderActions(item) {
 			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
 				translate: (key) => this.effectiveTranslate(key),
-				dispatch: (action) => dispatchAction(action, { router: this.$router || null }),
+				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action)
+					: dispatchAction(action, { router: this.$router || null })),
 			})
 		},
 

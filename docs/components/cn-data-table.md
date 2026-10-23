@@ -67,7 +67,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
-| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `op:"max"` with `field` instead shows the highest `field` among them, one `_limit=1` request sorted descending, through the column's formatter, and `zeroLabel` or `—` when there is none; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure; `aggregate.zeroLabel` names a zero count, translated through `cnTranslate`) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
+| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `op:"max"` with `field` instead shows the highest `field` among them, one `_limit=1` request sorted descending, through the column's formatter, and `zeroLabel` or `—` when there is none; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure; `aggregate.zeroLabel` names a zero count, translated through `cnTranslate`; `{ endpoint, key, requiresApp? }` reads the values from the host app instead, one GET of `endpoint` with `keys[]` (each visible row's `key` field) answered by `{ available, values: { key: value } }`, a row it does not name counting 0; the column is not drawn while `requiresApp` is not installed or after the endpoint answers `available: false`) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `rowIcon` | String \| Function | `null` | Optional leading icon at the start of every row. A static MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all rows, or `(row) => iconName` to vary it per row. Resolved through the shared `CnIcon` registry. Unset = no icon column. |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
@@ -119,6 +119,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 |------|-------|-------------|
 | `#column-{key}` | `{ row, value }` | Override the cell renderer for a specific column key |
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
+| `#row-detail` | `{ row }` | A full-width row under each data row, for what belongs to that row (CnObjectListWidget puts the row's child records here). Not draggable and not a drop target. |
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
 
@@ -233,6 +234,12 @@ The first column names the row: it carries the row link, the title look and the 
 
 ```json
 { "key": "title", "label": "Case", "secondary": "{number} · {requester.name}" }
+```
+
+`secondaryLabels` names a field's values on that line in words, `{ field: { value: label, "*": label } }`; the labels are i18n keys and `"*"` names any other value. A case type list reads "Meegeleverd · Woo" for a type the app shipped and "Eigen zaaktype · ..." for one an organisation made:
+
+```json
+{ "key": "title", "label": "Case type", "secondary": "{@self.owner} · {subject}", "secondaryLabels": { "@self.owner": { "__system__": "Shipped", "*": "Own case type" } } }
 ```
 
 A placeholder can carry a format, the same ones a widget row template takes: `{startAt|date}` reads "5 okt", `{startAt|weekday}` reads "ma 5 okt", `{startAt|weekday:today}` reads "Vandaag, ma 5 okt" on today's date, `{startAt|time}` reads "08.45", and `{amount|currency:EUR}` writes an amount. An agenda column reads "Intake" over "Vandaag, ma 5 okt, 08.45":

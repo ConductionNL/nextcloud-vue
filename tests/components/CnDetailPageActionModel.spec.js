@@ -319,6 +319,13 @@ describe('CnDetailPage "what now" card', () => {
 		expect(card(wrapper).text()).toContain('Then: step 2, handling')
 	})
 
+	it('titles the card one level under the record title: h2 in the board look, h3 in the Nextcloud look', async () => {
+		const board = (await mountPage({ nextStep, look: 'board' })).wrapper
+		expect(card(board).find('.cn-next-step-card__title').element.tagName).toBe('H2')
+		const nextcloud = (await mountPage({ nextStep })).wrapper
+		expect(card(nextcloud).find('.cn-next-step-card__title').element.tagName).toBe('H3')
+	})
+
 	it('moves the primary button into the card, so the page has one and only one', async () => {
 		const { wrapper } = await mountPage({ nextStep, primaryActionByStage: byStage })
 		expect(primary(wrapper)).toHaveLength(1)

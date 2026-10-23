@@ -1090,8 +1090,21 @@ function searchSource(config = {}, context = {}) {
 		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
 		.map((kind) => ({ ...kind, label: translate(String(kind.label || kind.id)) }))
 	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
+	// The All tab in the app's word when it has one ("Alles" in dossiq, as its
+	// other lists say), else the library's.
+	const allLabel = () => {
+		const own = translate('All')
+		return own !== 'All' ? own : t('nextcloud-vue', 'All')
+	}
 	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
 	let seq = 0
+	// Once the page's search box has sent a term, an empty box means no term,
+	// not the address's `?q=` again.
+	let boxUsed = false
+	const addressTerm = () => {
+		const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+		return String((query && query.get((config && config.termQuery) || 'q')) || '').trim()
+	}
 
 	/**
 	 * The labels of the objects a kind's status points at, by id: the
@@ -1115,6 +1128,30 @@ function searchSource(config = {}, context = {}) {
 			}
 		}
 		return labels
+	}
+
+	/**
+	 * What a row shows in the Linked column.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object.
+	 * @return {string}
+	 */
+	/**
+	 * What one row is, for the Kind column under `kindAsText`: the kind's
+	 * `rowLabel` (a template on the found object, "{objectType}"), else the
+	 * kind's label.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object or file entry.
+	 * @return {string}
+	 */
+	const kindTextOf = (kind, object) => {
+		if (typeof kind.rowLabel === 'string' && kind.rowLabel !== '') {
+			const label = translate(kind.rowLabel)
+			return kind.rowLabel.includes('{') ? (fillTemplate(label, object || {}) || kind.label) : label
+		}
+		return kind.label
 	}
 
 	/**
@@ -1153,6 +1190,7 @@ function searchSource(config = {}, context = {}) {
 					id: `${kind.id}:${id}`,
 					kind: kind.id,
 					kindLabel: kind.label,
+					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
 					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
 					status,
@@ -1176,6 +1214,7 @@ function searchSource(config = {}, context = {}) {
 				id: `${kind.id}:${entry.resourceUrl || index}`,
 				kind: kind.id,
 				kindLabel: kind.label,
+				kindText: kindTextOf(kind, entry),
 				title: entry.title || '',
 				subtitle: entry.subline || '',
 				status: '',
@@ -1197,7 +1236,7 @@ function searchSource(config = {}, context = {}) {
 			// The header filters on Kind, Linked and Status narrow the answer
 			// already fetched; they do not search again.
 			const filters = {}
-			for (const key of ['kindLabel', 'linked', 'status']) {
+			for (const key of ['kindLabel', 'kindText', 'linked', 'status']) {
 				const value = cfg && cfg[key]
 				const values = (Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])).map(String)
 				if (values.length > 0) {
@@ -1205,8 +1244,9 @@ function searchSource(config = {}, context = {}) {
 				}
 			}
 			state.filters = filters
-			const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-			const term = String((cfg && cfg.term) || (query && query.get((cfg && cfg.termQuery) || 'q')) || '').trim()
+			const typed = cfg && typeof cfg.searchTerm === 'string' ? cfg.searchTerm.trim() : ''
+			boxUsed = boxUsed || typed !== ''
+			const term = typed || (boxUsed ? '' : String((cfg && cfg.term) || addressTerm()).trim())
 			const mine = ++seq
 			state.term = term
 			if (term === '' || kinds.length === 0) {
@@ -1244,6 +1284,12 @@ function searchSource(config = {}, context = {}) {
 		 */
 		term: () => state.term,
 
+		// The page's search box searches again, and starts out holding the
+		// term from the address; the term shows as a removable chip.
+		searchParam: 'searchTerm',
+		initialSearch: () => String((config && config.term) || addressTerm()).trim(),
+		searchChip: true,
+
 		/**
 		 * @return {number} The active kind's total, or every kind's together on All.
 		 */
@@ -1257,20 +1303,37 @@ function searchSource(config = {}, context = {}) {
 		loading: () => state.loading,
 
 		columns: [
-			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle' },
-			{ key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label) },
-			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked') }] : []),
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
+			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
+			// DqZoekresultaten), instead of the plural kind as a pill.
+			config && config.kindAsText === true
+				? { key: 'kindText', label: t('nextcloud-vue', 'Kind'), sortable: true }
+				: { key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label), sortable: true },
+			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked'), sortable: true }] : []),
 			{
 				key: 'status',
 				label: t('nextcloud-vue', 'Status'),
 				widget: 'badge',
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
+				sortable: true,
 			},
 		],
 
+		/**
+		 * Every column header carries a filter button (DqZoekresultaten); the
+		 * filters narrow the answer already fetched (`load`).
+		 */
+		headerFilters: true,
+
+		/**
+		 * The page orders the rows a header asks for: the answer is one fetch,
+		 * so there is nothing to ask the servers again.
+		 */
+		sortsRows: true,
+
 		quickFilters: kinds.length > 0
 			? [
-					{ label: t('nextcloud-vue', 'All'), filter: { kind: 'all' }, default: true },
+					{ label: allLabel(), filter: { kind: 'all' }, default: true },
 					...kinds.map((kind) => ({ label: kind.label || kind.id, filter: { kind: kind.id } })),
 				]
 			: null,

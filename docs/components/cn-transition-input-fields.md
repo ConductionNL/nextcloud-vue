@@ -77,6 +77,7 @@ The summary's facts stack each label over its value, whatever Nextcloud's `apps.
 | `markRequired` | Boolean | `true` | Whether a required input's label carries ` *` |
 | `summary` | Object | `null` | The read-only block above the inputs |
 | `notice` | Object | `null` | The note under the inputs |
+| `markOptional` | Boolean | `false` | Marks an input that is not required with ` (optional)` after its label, as the boards do |
 
 ## Events
 

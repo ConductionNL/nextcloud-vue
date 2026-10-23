@@ -33,7 +33,7 @@
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					{{ t('nextcloud-vue', 'Add a note') }}
+					{{ t('nextcloud-vue', 'Add note') }}
 				</NcButton>
 				<NcButton data-testid="cn-timeline-export" @click="exportEntries">
 					<template #icon>
@@ -141,11 +141,21 @@
 			</li>
 		</ul>
 
-		<p v-if="!loading && !error && allEntries.length > 0"
-			class="cn-timeline-manage__count"
-			data-testid="cn-timeline-count">
-			{{ t('nextcloud-vue', '{shown} of {total} events', { shown: entries.length, total: allEntries.length }) }}
-		</p>
+		<div v-if="(!loading && !error && allEntries.length > 0) || auditTrailLinkLabel"
+			class="cn-timeline-manage__footer">
+			<p v-if="!loading && !error && allEntries.length > 0"
+				class="cn-timeline-manage__count"
+				data-testid="cn-timeline-count">
+				{{ t('nextcloud-vue', '{shown} of {total} events', { shown: entries.length, total: allEntries.length }) }}
+			</p>
+			<NcButton v-if="auditTrailLinkLabel"
+				variant="tertiary-no-background"
+				class="cn-timeline-manage__audit-link"
+				data-testid="cn-timeline-audit-link"
+				@click="openAuditTrail">
+				{{ auditTrailLinkLabel }}
+			</NcButton>
+		</div>
 
 		<form v-if="canManage && composerEnabled"
 			ref="composer"
@@ -153,7 +163,7 @@
 			data-testid="cn-timeline-composer"
 			@submit.prevent="submit">
 			<h3 class="cn-timeline-manage__composer-title">
-				{{ t('nextcloud-vue', 'Add a note') }}
+				{{ t('nextcloud-vue', 'Add note') }}
 			</h3>
 			<p class="cn-timeline-manage__composer-hint">
 				{{ t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible') }}
@@ -164,13 +174,13 @@
 				:options="blockOptions"
 				:clearable="true"
 				label="label"
-				:inputLabel="t('nextcloud-vue', 'Standard note')"
+				:inputLabel="t('nextcloud-vue', 'Template')"
 				:placeholder="t('nextcloud-vue', 'Write your own')"
 				data-testid="cn-timeline-block"
 				@update:modelValue="pickBlock" />
 
 			<label class="cn-timeline-manage__draft-label" :for="draftId">
-				{{ t('nextcloud-vue', 'Write a note on this record') }}
+				{{ t('nextcloud-vue', 'Note') }}
 			</label>
 			<textarea :id="draftId"
 				v-model="draft"
@@ -186,7 +196,7 @@
 				type="submit"
 				:disabled="saving || !draft.trim()"
 				data-testid="cn-timeline-save">
-				{{ t('nextcloud-vue', 'Add to the timeline') }}
+				{{ t('nextcloud-vue', 'Add it to the timeline') }}
 			</NcButton>
 		</form>
 
@@ -228,6 +238,8 @@ export default {
 		cnRegistry: { default: () => ({}) },
 		/** Consumer translation function; manifest labels are authored in English. */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's object sidebar channel; the audit trail link opens its tab. */
+		objectSidebarState: { default: null },
 	},
 
 	props: {
@@ -241,7 +253,10 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/**
 		 * The widget content: `{ title?, subtitle?, publicLabel?, exportName?,
-		 * composer?, textBlocks?, entryActions? }`.
+		 * composer?, textBlocks?, entryActions?, auditTrailLink? }`.
+		 * `auditTrailLink` (`true` or a label) draws a footer link that opens
+		 * the object sidebar on its audit trail tab, `auditTrailTab` when the
+		 * page declares that tab under its own id.
 		 */
 		content: { type: Object, default: () => ({}) },
 	},
@@ -277,7 +292,21 @@ export default {
 		},
 
 		publicLabel() {
-			return this.content.publicLabel ? this.translate(this.content.publicLabel) : t('nextcloud-vue', 'Visible to the applicant')
+			return this.content.publicLabel ? this.translate(this.content.publicLabel) : t('nextcloud-vue', 'Visible to the requester')
+		},
+
+		/**
+		 * The audit trail link's words, or '' when it is not drawn.
+		 *
+		 * @spec openspec/changes/timeline-audit-trail-link/specs/timeline/spec.md#requirement-the-manage-timeline-can-point-at-the-audit-trail-in-the-sidebar
+		 * @return {string}
+		 */
+		auditTrailLinkLabel() {
+			const link = this.content.auditTrailLink
+			if (!link || !this.objectSidebarState) {
+				return ''
+			}
+			return typeof link === 'string' ? this.translate(link) : t('nextcloud-vue', 'Full audit trail in the sidebar')
 		},
 
 		composerEnabled() {
@@ -516,6 +545,16 @@ export default {
 			URL.revokeObjectURL(url)
 		},
 
+		/**
+		 * Open the object sidebar on its audit trail tab.
+		 *
+		 * @spec openspec/changes/timeline-audit-trail-link/specs/timeline/spec.md#requirement-the-manage-timeline-can-point-at-the-audit-trail-in-the-sidebar
+		 */
+		openAuditTrail() {
+			this.objectSidebarState.open = true
+			this.objectSidebarState.requestedTab = this.content.auditTrailTab || 'auditTrail'
+		},
+
 		/** Bring the composer into view and focus its text. */
 		focusComposer() {
 			const form = this.$refs.composer
@@ -726,8 +765,17 @@ export default {
 	color: var(--color-main-background);
 }
 
-.cn-timeline-manage__count {
+.cn-timeline-manage__footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
 	margin: 12px 0 0;
+}
+
+.cn-timeline-manage__count {
+	margin: 0;
 	color: var(--color-text-maxcontrast);
 }
 
