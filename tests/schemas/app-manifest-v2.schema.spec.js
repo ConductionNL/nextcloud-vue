@@ -2743,4 +2743,15 @@ describe('default views carry a line and a secondary mark (default-views-seconda
 	it('refuses a secondary mark that is not a boolean', () => {
 		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, secondary: 'yes' })).valid).toBe(false)
 	})
+
+	it('accepts a string and a { count, one, other, zero? } form', () => {
+		expect(validateManifestV2(page('via {channel}')).valid).toBe(true)
+		expect(validateManifestV2(page({ count: 'open', one: '{count:open} open case', other: '{count:open} open cases', zero: '' })).valid).toBe(true)
+	})
+
+	it('refuses a plural form without its count or its forms', () => {
+		expect(validateManifestV2(page({ one: 'x', other: 'y' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x', other: 'y', few: 'z' })).valid).toBe(false)
+	})
 })

@@ -3097,11 +3097,15 @@ export default {
 		 * `{path|format}` formats it (`weekday`, `longdate`, `time`, `user`,
 		 * `currency:EUR`, ...). An empty token drops itself and its separator;
 		 * a line with no value at all is dropped. Only the board look draws it.
+		 * `{ count, one, other, zero? }` picks a form by the `headerMetaCounts`
+		 * total named `count` ("1 lopende zaak" / "2 lopende zaken"); each form
+		 * is translated on its own, and `zero` (when given) is used for none.
 		 *
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
 		 */
 		headerMeta: {
-			type: String,
+			type: [String, Object],
 			default: '',
 		},
 
@@ -3529,6 +3533,30 @@ export default {
 		},
 
 		/**
+		 * The header line's template: `headerMeta` itself, or for the plural
+		 * form `{ count, one, other, zero? }` the form its count asks for; null
+		 * while that count is missing.
+		 *
+		 * @return {string|null} The untranslated template, or null.
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
+		 */
+		headerMetaForm() {
+			const meta = this.headerMeta
+			if (!meta || typeof meta !== 'object') {
+				return typeof meta === 'string' ? meta : ''
+			}
+			const total = this.headerMetaCountValues[meta.count]
+			if (typeof total !== 'number') {
+				return null
+			}
+			if (total === 0 && typeof meta.zero === 'string') {
+				return meta.zero
+			}
+			const form = total === 1 ? meta.one : meta.other
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The meta line of row 2, translated and filled from the record.
 		 *
 		 * @return {string} The line, or ''.
@@ -3537,7 +3565,11 @@ export default {
 		headerMetaText() {
 			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
 			let missing = false
-			const template = (this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
+			const form = this.headerMetaForm
+			if (form === null) {
+				return ''
+			}
+			const template = (form ? this.effectiveTranslate(form) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
 				const value = this.headerMetaCountValues[name]
 				if (typeof value !== 'number') {
 					missing = true
