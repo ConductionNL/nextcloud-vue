@@ -2519,7 +2519,9 @@
     "Bundling and test message": "Bundeling en testbericht",
     "{name} is also looking at this record now": "{name} kijkt nu ook naar deze zaak",
     "Sorted by {field}, {direction}.": "Gesorteerd op {field}, {direction}.",
-    "Full audit trail in the sidebar": "Volledige audit trail in de zijbalk"
+    "Full audit trail in the sidebar": "Volledige audit trail in de zijbalk",
+    "Read only": "Alleen lezen",
+    "Shipped with the app; a new version updates them.": "Geleverd door de app; een nieuwe versie werkt ze bij."
   },
   "plurals": {
     "{count} member": [

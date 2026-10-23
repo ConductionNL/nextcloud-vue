@@ -2269,7 +2269,9 @@
     "Bundling and test message": "Bundling and test message",
     "{name} is also looking at this record now": "{name} is also looking at this record now",
     "Sorted by {field}, {direction}.": "Sorted by {field}, {direction}.",
-    "Full audit trail in the sidebar": "Full audit trail in the sidebar"
+    "Full audit trail in the sidebar": "Full audit trail in the sidebar",
+    "Read only": "Read only",
+    "Shipped with the app; a new version updates them.": "Shipped with the app; a new version updates them."
   },
   "plurals": {
     "{count} member": [
