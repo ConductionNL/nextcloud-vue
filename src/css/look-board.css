@@ -37,6 +37,9 @@
 	   between the main text and the muted text, so it follows a theme's pair. */
 	--cn-board-hairline: var(--color-border);
 	--cn-board-text-soft: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
+	/* A block sunk into a card (a phase group, a device frame, the other side's
+	   bubble) sits on the page's own ground, the boards' #f5f6f8. */
+	--cn-board-sunken-ground: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
 }
 
 /*

@@ -1146,6 +1146,15 @@
 	border-radius: 10px;
 }
 
+/* Sunken blocks on the page's own ground, as the boards draw them
+   (DqZaaktype phases, DqInspectie device frames, DqZaakContact's other side).
+   @spec openspec/changes/board-sunken-ground/specs/board-sunken-ground/spec.md#requirement-sunken-blocks-take-the-boards-sunken-ground */
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group,
+.cn-look-board .cn-device-frames-widget__frame.cn-device-frames-widget__frame,
+.cn-look-board .cn-conversation-thread__message:not(.cn-conversation-thread__message--us) .cn-conversation-thread__bubble {
+	background: var(--cn-board-sunken-ground);
+}
+
 .cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
 	font-weight: 700;
 }
