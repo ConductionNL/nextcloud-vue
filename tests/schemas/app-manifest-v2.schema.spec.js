@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.145.0', () => {
+	it('the manifest schema version reads 2.147.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1420,7 +1420,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.141.0 lets a widget header link switch the page to a body tab (header-link-switches-tab) and a side card name the body tabs it shows beside (side-card-follows-row).
 		// 2.144.0 lets a detail page's quick actions and next step follow the open tab (r23-detail-actions-per-tab), a chart aggregate merge groups by label (aggregate-merge-by-label), a detail page read its quick actions from a field of the record (quickActionsFrom, r23-quick-actions-from), and a dashboard set its side column's width with layout tracks (gridSideColumn, dashboard-side-column-width).
 		// 2.145.0 gives a detail page a band of widgets above its body (pq-adm-a-detail-band) and a primary action a query (pq-adm-a-detail-page-filters).
-		expect(schema.version).toBe('2.145.0')
+		// 2.147.0 lets a page filter option declare a rolling window of months, read by a dashboard description's {filter.<key>} (description-period-from-filter).
+		expect(schema.version).toBe('2.147.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1544,6 +1545,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		})
 		expect(validateManifestV2(page({ label: 'All history', tab: 'history' })).valid).toBe(true)
 		expect(validateManifestV2(page({ label: 'All history', tab: '' })).valid).toBe(false)
+	})
+
+	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.147.0)', () => {
+		const withFilter = (filter) => ({ ...MINIMAL_V2, pages: [{ id: 'pm', route: '/pm', type: 'dashboard', title: 'PM', config: { pageFilters: [filter] } }] })
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: '12m', label: 'Last 12 months', months: 12 }] })).valid).toBe(true)
+		expect(validateManifestV2(withFilter({ key: 'period', options: [{ value: 'x', label: 'None', months: 0 }] })).valid).toBe(false)
 	})
 
 	it('accepts the 2.139.0 generated quarter and year filters without options, and the endpoint request keys', () => {

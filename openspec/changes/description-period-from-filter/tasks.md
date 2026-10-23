@@ -4,4 +4,5 @@
 - [x] `periodText(option, today)` in utils/periodOptions.js
 - [x] CnDashboardPage fills the token in its description
 - [x] l10n: "{from} through {to}" (nl "{from} tot en met {to}")
-- [x] Tests: `tests/utils/periodText.spec.js`, `tests/components/CnDashboardPageDescriptionPeriod.spec.js`
+- [x] Schema 2.147.0: a page filter option may carry `months`
+- [x] Tests: `tests/utils/periodText.spec.js`, `tests/components/CnDashboardPageDescriptionPeriod.spec.js`, the schema spec

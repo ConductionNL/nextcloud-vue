@@ -15,5 +15,5 @@ year, any other option as its label. The text follows the filter when the reader
 
 ## Scope
 
-`utils/periodOptions.js` (`periodText`), CnDashboardPage's description. Page filter options may carry `months`; no
-schema change (page filter options are open objects).
+`utils/periodOptions.js` (`periodText`), CnDashboardPage's description. Schema 2.147.0: a page filter option may
+carry `months`.
