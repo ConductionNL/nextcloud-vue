@@ -39,6 +39,7 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupCount` | `{ one, other }` with `{count}`: a count pill in the group header. |
 | `extraGroup` | `{ title, path, itemText, join? }`: a dashed box of entries read at `path`, on one line. |
 | `columns` | Groups side by side (1 to 4, default 2); one column on a narrow screen. |
+| `actions` | A row of actions above the groups, as CnActionButtons draws them, drawn also while there are no groups (DqZaaktype "Bekijken als flow", "Taak toevoegen"). |
 | `emptyText`, `groupEmptyText`, `errorText` | The texts of an empty grid, an empty group and a failed read. A failed read offers Try again. |
 | `groupLines` | Templates drawn under a group's title, each left out when it does not fill. |
 | `itemFlag` | `{ field, label }`: a card whose `field` is true carries `label` ("Overdue") in the error colour. |

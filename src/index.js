@@ -31,6 +31,7 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 
 // Components
 export {
+	CnActionAuthMatrix,
 	CnActionButtons,
 	CnActionDialog,
 	CnActionsBar,
@@ -170,6 +171,7 @@ export {
 	CnGraphCanvas,
 	CnGroupedCardsWidget,
 	CnGuardianHome,
+	CnHandoffAction,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,
 	CnIcon,
@@ -294,6 +296,7 @@ export {
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnRowMarkList,
 	CnSavedViewEditDialog,
 	CnSavedViewMenuSettings,
 	CnSavedViewPresentationDialog,
@@ -310,6 +313,7 @@ export {
 	CnSearchIndexStatus,
 	CnSearchPage,
 	CnSearchSelect,
+	CnSecretAddressCard,
 	CnSectionsWidget,
 	CnSelectionScope,
 	CnSettingsCard,
@@ -321,6 +325,7 @@ export {
 	CnSetupWizard,
 	CnShippedConfigurationSection,
 	CnSignatureCapture,
+	CnSlotGrid,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,
@@ -650,6 +655,7 @@ export {
 	warnIfDeprecated,
 } from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
+export { loadMyTeam, peekMyTeam, registerMyTeamSource } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
 export { resolveImageUrl } from './utils/index.js'

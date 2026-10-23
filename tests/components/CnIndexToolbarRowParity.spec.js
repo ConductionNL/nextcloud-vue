@@ -41,7 +41,7 @@ function rulesFor(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').some((s) => s.trim().includes(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).some((s) => s.trim().includes(needle))) {
 			out.push(m[2])
 		}
 	}

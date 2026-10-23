@@ -77,3 +77,14 @@
 .cn-header-trail .cn-detail-page__breadcrumbs {
 	margin-bottom: 0;
 }
+
+/* NcAppSidebar's open toggle sits over the content's top-right corner while
+   the sidebar is closed, and sets --app-sidebar-offset to its footprint (0
+   otherwise). The header ends that far in, so the toggle never covers its
+   last button. The board look hides the toggle on these pages.
+   @spec openspec/changes/sidebar-toggle-clears-page-header/specs/sidebar-toggle-clears-page-header/spec.md#requirement-the-page-header-leaves-room-for-the-closed-sidebars-toggle */
+.cn-page-header:not(.cn-look-board *),
+.cn-detail-page__header:not(.cn-look-board *),
+.cn-dashboard-page__header:not(.cn-look-board *) {
+	padding-inline-end: var(--app-sidebar-offset, 0px);
+}

@@ -246,3 +246,18 @@
 .v-select .vs__search:focus-visible {
 	outline: none;
 }
+
+/*
+ * NcAppSidebar's open toggle is an icon-only button at Nextcloud's square
+ * clickable area, the footprint --app-sidebar-offset reserves. A theme's
+ * button padding (thematiq: 8px 16px, min-width max-content) grew it to
+ * 64x49 over the page header's last button.
+ * @spec openspec/changes/sidebar-toggle-clears-page-header/specs/sidebar-toggle-clears-page-header/spec.md#requirement-the-page-header-leaves-room-for-the-closed-sidebars-toggle
+ */
+.app-sidebar__toggle.button-vue.button-vue {
+	min-width: var(--default-clickable-area);
+	width: var(--default-clickable-area);
+	min-height: var(--default-clickable-area);
+	height: var(--default-clickable-area);
+	padding: 0;
+}

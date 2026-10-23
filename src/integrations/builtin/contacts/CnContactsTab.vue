@@ -37,26 +37,23 @@
   -->
 <template>
 	<div class="cn-contacts-tab">
-		<!-- Header actions: link existing / create new -->
+		<!-- Header actions: link existing / create new. The board look draws
+		     Link contact first and both outlined (DqZaakBetrokkenen); the
+		     Nextcloud look keeps Add new contact first and Link as the primary. -->
 		<div class="cn-contacts-tab__header">
 			<NcButton
-				variant="secondary"
-				:aria-label="addNewLabel"
-				@click="showCreateDialog = true">
+				v-for="button in headerButtons"
+				:key="button.key"
+				:variant="button.variant"
+				:aria-label="button.label"
+				@click="button.key === 'link' ? (showLinkDialog = true) : (showCreateDialog = true)">
 				<template #icon>
-					<AccountPlus :size="20" />
+					<LinkVariant v-if="button.key === 'link'" :size="20" />
+					<AccountPlus v-else :size="20" />
 				</template>
-				{{ addNewLabel }}
+				{{ button.label }}
 			</NcButton>
-			<NcButton
-				variant="primary"
-				:aria-label="linkExistingLabel"
-				@click="showLinkDialog = true">
-				<template #icon>
-					<LinkVariant :size="20" />
-				</template>
-				{{ linkExistingLabel }}
-			</NcButton>
+			<CnWidgetHeaderActionButtons v-if="bodyActions.length > 0" :actions="bodyActions" />
 		</div>
 
 		<!-- Loading -->
@@ -194,7 +191,10 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import CnWidgetHeaderActionButtons from '../../../components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { WIDGET_BODY_ACTIONS } from '../../../utils/widgetHeaderActions.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -239,6 +239,14 @@ export default {
 		CnStatusBadge,
 		CnContactPicker,
 		CnContactCreate,
+		CnWidgetHeaderActionButtons,
+	},
+
+	inject: {
+		/** The look the app is drawn in (`board` or `nextcloud`), from CnAppRoot or the page. */
+		cnLook: { default: 'nextcloud' },
+		/** The widget's manifest `bodyActions`, drawn after this tab's own buttons. */
+		cnWidgetBodyActions: { from: WIDGET_BODY_ACTIONS, default: null },
 	},
 
 	props: {
@@ -254,8 +262,8 @@ export default {
 		// --- Pre-translated labels (consumer-overridable for i18n flexibility) ---
 		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
-		/** Label for the button that creates a contact. */
-		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		/** Label for the button that creates a contact; empty takes the look's own (New contact, or Add new contact). */
+		addNewLabel: { type: String, default: '' },
 		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
 		/** Body of the empty state shown when no contact is linked. */
@@ -305,6 +313,34 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The two header buttons in the order and weight of the look: the
+		 * board look draws Link contact then New contact, both outlined; the
+		 * Nextcloud look keeps Add new contact first and Link as the primary.
+		 *
+		 * @return {Array<{key: string, label: string, variant: string}>} The buttons.
+		 */
+		headerButtons() {
+			const board = normalizeLook(this.cnLook) === 'board'
+			const newLabel = this.addNewLabel !== ''
+				? this.addNewLabel
+				: (board ? t('nextcloud-vue', 'New contact') : t('nextcloud-vue', 'Add new contact'))
+			const link = { key: 'link', label: this.linkExistingLabel, variant: board ? 'secondary' : 'primary' }
+			const create = { key: 'new', label: newLabel, variant: 'secondary' }
+			return board ? [link, create] : [create, link]
+		},
+
+		/**
+		 * The widget's body actions, unwrapped.
+		 *
+		 * @return {Array<object>} The resolved buttons, or none.
+		 */
+		bodyActions() {
+			const provided = this.cnWidgetBodyActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
+
 		/**
 		 * Defensive view onto `this.contacts` — always an array.
 		 *

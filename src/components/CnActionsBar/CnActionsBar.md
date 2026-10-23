@@ -219,6 +219,8 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `bulkNoun` | String | `''` | The plural in the bulk band lead, "With the selected <noun>" (default "items") |
 | `bulkHint` | String | `''` | The 13px hint after the bulk band's buttons |
 | `bulkBandAlways` | Boolean | `false` | Board look: draw the bulk band before anything is selected too, its buttons disabled until there is a selection (DqZaken, DqWerkbord). Only when the band has an action to offer. |
+| `bulkLead` | String | `''` | Board look: the band's lead instead of "With the selected …" ("1 zaak geselecteerd"). |
+| `bulkCancel` | Boolean | `false` | Board look: a Cancel button at the end of the band that clears the selection. |
 
 
 `showBuildiqButton` is documented in the prop table of the component reference (board look, screens-chrome-parity).

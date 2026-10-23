@@ -365,6 +365,18 @@ export default {
 		},
 
 		/**
+		 * Whether an input that is not required says so, with ` (optional)`
+		 * after its label, as the boards mark them (DqVolgendeStap "Dagen die
+		 * de aanvrager krijgt (niet verplicht)").
+		 *
+		 * @type {boolean}
+		 */
+		markOptional: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * A read-only block above the inputs about what the action works on:
 		 * `{ when, card: { icon, title, meta: [], badge }, title, facts:
 		 * [{ label, path, fallback }], testid }`. `when`, `title`, `meta`,
@@ -481,13 +493,16 @@ export default {
 		},
 
 		/**
-		 * The field's label, with the required marker when asked for.
+		 * The field's label, with the required or the optional marker when asked for.
 		 *
 		 * @param {object} field The descriptor.
 		 * @return {string}
 		 */
 		labelOf(field) {
-			return this.markRequired && field.required ? `${field.label} *` : field.label
+			if (this.markRequired && field.required) {
+				return `${field.label} *`
+			}
+			return this.markOptional && !field.required ? `${field.label} (${t('nextcloud-vue', 'optional')})` : field.label
 		},
 
 		/**

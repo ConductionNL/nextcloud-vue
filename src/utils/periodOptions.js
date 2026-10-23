@@ -77,3 +77,70 @@ export function generatedPageFilterOptions(filter, today = new Date()) {
 	}
 	return null
 }
+
+/**
+ * A month as the reader writes it, with or without its year.
+ *
+ * @param {Date} date A day in the month.
+ * @param {boolean} withYear Whether to add the year.
+ * @param {string} [locale] The locale (default the runtime's).
+ * @return {string} The month, e.g. "September 2026".
+ */
+function monthText(date, withYear, locale) {
+	const options = withYear ? { month: 'long', year: 'numeric' } : { month: 'long' }
+	try {
+		return new Intl.DateTimeFormat(locale || undefined, options).format(date)
+	} catch {
+		return new Intl.DateTimeFormat(undefined, options).format(date)
+	}
+}
+
+/**
+ * A run of months as text: "January through September 2026", the year
+ * written once when both months share it.
+ *
+ * @param {Date} from A day in the first month.
+ * @param {Date} to A day in the last month.
+ * @param {string} [locale] The locale.
+ * @return {string} The text.
+ */
+function monthsText(from, to, locale) {
+	if (from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth()) {
+		return monthText(to, true, locale)
+	}
+	const sameYear = from.getFullYear() === to.getFullYear()
+	return t('nextcloud-vue', '{from} through {to}', { from: monthText(from, !sameYear, locale), to: monthText(to, true, locale) })
+}
+
+/**
+ * A page filter's chosen option read as a period, for a description line
+ * (`{filter.<key>}`): `months: N` as the N months ending with the current
+ * one, a `YYYY-Qn` value as the quarter's months, a `YYYY` value as the
+ * year, any other option as its label.
+ *
+ * @param {{value?: (string|number), label?: string, months?: number}|null} option The chosen option.
+ * @param {Date} [today] The reference day (default now).
+ * @param {string} [locale] The locale for month names.
+ * @return {string} The period, '' without an option.
+ * @spec openspec/changes/description-period-from-filter/specs/description-period-from-filter/spec.md#requirement-a-dashboard-description-reads-the-active-period-of-a-page-filter
+ */
+export function periodText(option, today = new Date(), locale = undefined) {
+	if (!option || typeof option !== 'object') {
+		return ''
+	}
+	const months = Number(option.months)
+	if (Number.isInteger(months) && months > 0) {
+		const from = new Date(today.getFullYear(), today.getMonth() - (months - 1), 1)
+		return monthsText(from, today, locale)
+	}
+	const value = String(option.value ?? '')
+	const quarter = value.match(/^(\d{4})-Q([1-4])$/)
+	if (quarter) {
+		const first = (Number(quarter[2]) - 1) * 3
+		return monthsText(new Date(Number(quarter[1]), first, 1), new Date(Number(quarter[1]), first + 2, 1), locale)
+	}
+	if (/^\d{4}$/.test(value)) {
+		return value
+	}
+	return typeof option.label === 'string' ? option.label : value
+}

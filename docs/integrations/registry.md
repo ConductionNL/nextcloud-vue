@@ -35,7 +35,7 @@ Open any object in OpenRegister. Your tab is in the sidebar strip, ordered by `o
 
 ## The calendar card's buttons
 
-On a detail page the built-in calendar card can carry the calendar tab's two flows in its title row: `headerActions: ["link", "create"]` (in that order) draws "Bestaande koppelen", which links an event from the user's calendar through `…/objects/{r}/{s}/{id}/events/link`, and "Afspraak maken", which creates a meeting linked to the object. The list reads again afterwards, and a refused link shows the server's sentence. A manifest passes it as the integration widget's `props.headerActions`.
+On a detail page the built-in calendar card can carry the calendar tab's two flows in its title row: `headerActions: ["link", "create"]` (in that order) draws "Bestaande koppelen", which links an event from the user's calendar through `…/objects/{r}/{s}/{id}/events/link`, and "Afspraak maken", which creates a meeting linked to the object. The list reads again afterwards, and a refused link shows the server's sentence. A manifest passes it as the integration widget's `props.headerActions`. `props.createVariant: "secondary"` draws "Afspraak maken" outlined instead of primary, and `props.createIcon` names its icon.
 
 ## Registration shape
 

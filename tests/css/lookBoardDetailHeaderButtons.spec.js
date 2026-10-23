@@ -22,7 +22,7 @@ function rulesEndingWith(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).some((s) => s.endsWith(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).some((s) => s.endsWith(needle))) {
 			out.push(m[2])
 		}
 	}
@@ -30,6 +30,16 @@ function rulesEndingWith(needle) {
 }
 
 describe('look-board-detail.css: header buttons', () => {
+	/**
+	 * look-board.css spaces every header button row by 10px (DqZaak draws 10px
+	 * between Bericht, Document, ...). A gap here would outrank it.
+	 *
+	 * @spec openspec/changes/board-detail-header-actions-gap/specs/board-detail-header-actions-gap/spec.md#requirement-the-detail-header-buttons-are-10px-apart
+	 */
+	it('leaves the row gap to the shared 10px header rule', () => {
+		expect(rulesEndingWith('.cn-detail-page__header-actions')).not.toMatch(/(^|[;\s])gap:/)
+	})
+
 	it('draws the quick actions, Edit and the Meer menu neutral, outranking a theme', () => {
 		for (const needle of ['.cn-detail-page__header-actions > .button-vue--secondary', '.cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle']) {
 			const body = rulesEndingWith(needle)

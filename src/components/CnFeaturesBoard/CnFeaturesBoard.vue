@@ -389,6 +389,8 @@ export default {
 		filterLabel: { type: String, default: '' },
 		/** Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`). */
 		statusLabels: { type: Object, default: () => ({}) },
+		/** Overrides of the status tones, by key, as CnStatusBadge variants (DqFunctionaliteiten: `{ planned: 'default' }`). */
+		statusVariants: { type: Object, default: () => ({}) },
 		/** How many issues the Next card lists; 0 hides the card. */
 		next: { type: Number, default: 3 },
 		/** Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card. */
@@ -599,7 +601,7 @@ export default {
 		 * @return {string} The CnStatusBadge variant.
 		 */
 		variantOf(status) {
-			return FEATURE_STATUS_VARIANTS[status] || 'default'
+			return this.statusVariants[status] || FEATURE_STATUS_VARIANTS[status] || 'default'
 		},
 
 		/**

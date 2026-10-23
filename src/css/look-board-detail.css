@@ -14,7 +14,9 @@
  */
 .cn-look-board {
 	/* The notice card at the top of the side column. */
-	--cn-board-notice-bg: var(--color-warning-light, #fdf1d6);
+	--cn-board-notice-bg: var(--nl-color-orange-light, #fff4de);
+	/* The notice's text and icon. */
+	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
 	/* Card h2 and side heading. */
@@ -59,7 +61,6 @@
 
 .cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions {
 	flex-shrink: 1;
-	gap: 8px;
 	justify-content: flex-end;
 }
 
@@ -117,6 +118,18 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	min-width: 0;
+}
+
+/* Who else is looking, before Volgen (DqZaak "Anouk Bakker kijkt nu ook naar
+   deze zaak"): the initials, the sentence and a dot, 13px in the muted ink.
+   @spec openspec/changes/follow-row-presence/specs/board-follow-row/spec.md#requirement-the-follow-row-can-say-who-else-is-looking */
+.cn-look-board .cn-detail-page__presence {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
@@ -503,6 +516,20 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A first widget that renders nothing (DqZaakEmail) takes no room: the next
+   card starts under the strip and joins the open tab as the first card does.
+   Heavier than the stack-item rule above, so it wins.
+   @spec openspec/changes/board-tab-stack-empty-first/specs/board-tab-stack-empty-first/spec.md#requirement-a-board-tab-stack-skips-a-first-widget-that-renders-nothing */
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) {
+	display: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-widget-wrapper,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-detail-card {
+	border-top: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+}
+
 /* A case widget that draws its own card (CnConversationWidget,
    CnDocumentReviewWidget) is a board card: the board radius and padding.
    As the first card of a stack it joins the open tab like a widget card,
@@ -535,14 +562,45 @@
 	font-size: 13px;
 }
 
-.cn-look-board .cn-conversation-thread__channel {
+/* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
+   the thread to outrank the component's scoped muted ink. */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
 	padding: 1px 8px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
 	background: var(--color-main-background);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
+	line-height: 16px;
+}
+
+/* The case Status card as the board draws it: no grey box, the status's
+   explanation as its bold line, the time in the status muted under it.
+   @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
+.cn-look-board .cn-status-explainer.cn-status-explainer {
+	gap: 2px;
+	background-color: transparent;
+	padding: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-status-explainer__muted.cn-status-explainer__muted {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-status-explainer__dwell {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+/* The attention flag under the status sits under a hairline (DqZaak). */
+.cn-look-board .cn-detail-page__sections-card .cn-attention-flag.cn-attention-flag:not(.cn-look-nextcloud *) {
+	gap: 6px;
+	padding: 10px 0 0;
+	border-top: 1px solid var(--cn-board-hairline);
 }
 
 /* ---- Body cards and side cards ----------------------------------------- */
@@ -590,11 +648,11 @@
 /* 12px from the title's glyphs to the first line's glyphs, as drawn.
    @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
-	padding: calc(12px - var(--cn-board-first-line-leading)) 22px 20px;
+	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
@@ -777,6 +835,25 @@
    @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
 	background-color: transparent !important;
+}
+
+/* The notice text and its icon take the notice ink, and the icon is the
+   board's 18px, 10px before the text and 2px down to sit on the first line
+   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
+   `!important`. */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink) !important;
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-notice-ink);
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon svg:not(.cn-look-nextcloud *) {
+	height: 18px;
+	width: 18px;
 }
 
 /* A notice whose condition does not hold renders no banner; its slot then
@@ -1132,6 +1209,27 @@
 	line-height: normal;
 }
 
+/* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
+/* The case-tab boards draw a list's table edge to edge in its card
+   (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
+   under the card's 22px side padding and its outer cells take that padding,
+   so the column text lines up with the card title. Other boards keep the
+   table inside the padding (DqTenant "Mandaten"), so it is an opt-in.
+   @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-an-object-list-can-run-its-table-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container {
+	margin-inline: calc(-1 * var(--cn-board-card-inline-padding));
+	border: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):first-child {
+	padding-inline-start: var(--cn-board-card-inline-padding);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container :is(th, td):last-child {
+	padding-inline-end: var(--cn-board-card-inline-padding);
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
@@ -1144,6 +1242,15 @@
 .cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group {
 	padding: 14px;
 	border-radius: 10px;
+}
+
+/* Sunken blocks on the page's own ground, as the boards draw them
+   (DqZaaktype phases, DqInspectie device frames, DqZaakContact's other side).
+   @spec openspec/changes/board-sunken-ground/specs/board-sunken-ground/spec.md#requirement-sunken-blocks-take-the-boards-sunken-ground */
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group,
+.cn-look-board .cn-device-frames-widget__frame.cn-device-frames-widget__frame,
+.cn-look-board .cn-conversation-thread__message:not(.cn-conversation-thread__message--us) .cn-conversation-thread__bubble {
+	background: var(--cn-board-sunken-ground);
 }
 
 .cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
@@ -1204,4 +1311,41 @@
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
 	line-height: normal;
+}
+
+/* The notes tab's "Add note" button, when the add form waits behind it, is
+   the board's 40px control (DqZaakEmail "Notitie toevoegen").
+   @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
+.cn-look-board .cn-sidebar-tab__composer-toggle .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
+/* A facts card's tinted action ("Contact vastleggen", "Aan een programma
+   koppelen") is set at 600 on the boards (DqContact, DqZaakGerelateerd); the
+   widget drew it bold.
+   @spec openspec/changes/board-facts-action-weight/specs/board-facts-action-weight/spec.md#requirement-a-facts-cards-action-is-set-at-600 */
+.cn-look-board .cn-facts-widget__action:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+}
+
+/* ---- A card's Add ------------------------------------------------------ */
+/* The board draws a list card's Add as the neutral secondary at the 40px
+   control height, right-aligned in the title row (DqZaakGerelateerd
+   "Deelzaak aanmaken", DqZaakTaken "Toevoegen"). CnDetailWidgetHost renders
+   that button in the board look, so the list's footer Add bar, which ADR-062
+   draws in the Nextcloud look, is hidden in the card. The size outranks a
+   card title row's 34px buttons.
+   @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-object-list-widget__add {
+	display: none;
+}
+
+/* An empty list card shows its text under the title-row Add, without the
+   empty state's own Add. A filter's "clear" action stays. */
+.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add) {
+	display: none;
+}
+
+.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }

@@ -51,9 +51,9 @@
 						:aria-labelledby="`${sectionIdBase}-${group.key}`"
 						data-testid="cn-related-section">
 						<div class="cn-related-objects-widget__section-head">
-							<h4 :id="`${sectionIdBase}-${group.key}`" class="cn-related-objects-widget__section-title">
+							<component :is="innerHeadingTag" :id="`${sectionIdBase}-${group.key}`" class="cn-related-objects-widget__section-title cn-inner-heading">
 								{{ group.label }}
-							</h4>
+							</component>
 							<button v-if="groupAction(group)"
 								type="button"
 								class="cn-related-objects-widget__section-action"
@@ -200,9 +200,9 @@
 			<template v-else>
 				<!-- Objects -->
 				<section v-if="showObjects && objectItems.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ objectsLabel }} <span class="cn-related-objects-widget__count">{{ objectItems.length }}</span>
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="item in objectItems"
 							:key="`obj-${item.id}`"
@@ -220,9 +220,9 @@
 
 				<!-- Files -->
 				<section v-if="showFiles && fileItems.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ filesLabel }} <span class="cn-related-objects-widget__count">{{ fileItems.length }}</span>
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="item in fileItems"
 							:key="`file-${item.id}`"
@@ -242,9 +242,9 @@
 				<section v-for="section in allExtraSections"
 					:key="`extra-${section.key}`"
 					class="cn-related-objects-widget__group">
-					<h4 v-if="(section.items || []).length" class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" v-if="(section.items || []).length" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ section.label }} <span class="cn-related-objects-widget__count">{{ section.items.length }}</span>
-					</h4>
+					</component>
 					<ul v-if="(section.items || []).length" class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in section.items"
 							:key="`extra-${section.key}-${i}`"
@@ -264,9 +264,9 @@
 
 				<!-- Linked apps — leaf integrations carrying related content -->
 				<section v-if="showIntegrations && linkedApps.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ linkedAppsLabel }}
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list cn-related-objects-widget__list--apps">
 						<li v-for="app in linkedApps"
 							:key="`app-${app.id}`"
@@ -400,6 +400,7 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { useObjectStore } from '../../store/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
@@ -544,6 +545,8 @@ export default {
 		NcButton,
 		CnEmptyContent,
 	},
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**

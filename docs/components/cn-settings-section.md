@@ -36,6 +36,7 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |
 | `empty` | Boolean | `false` | Empty state — shows an empty message instead of content |
 | `emptyMessage` | String | `'No data available'` | Message shown when the section has no data |
+| `footerLink` | Object | `null` | `{ label, href }`: a link at the end of the card to where its list is managed ("Leges beheren in shillinq"), drawn only with both and a safe href. The label is already translated. |
 
 ## Slots
 

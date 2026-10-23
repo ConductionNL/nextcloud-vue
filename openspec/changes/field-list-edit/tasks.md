@@ -1,0 +1,3 @@
+- [x] 1. CnFieldListWidget: `edit`, checkbox fields, `add.exclusive`, scheme links.
+- [x] 2. `tests/components/CnFieldListWidgetEdit.spec.js`.
+- [x] 3. `docs/components/cn-field-list-widget.md`.

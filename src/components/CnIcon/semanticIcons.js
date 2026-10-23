@@ -60,6 +60,7 @@ import CalculatorVariantOutlineIcon from 'vue-material-design-icons/CalculatorVa
 import CalendarAccountOutlineIcon from 'vue-material-design-icons/CalendarAccountOutline.vue'
 import CalendarClockOutlineIcon from 'vue-material-design-icons/CalendarClockOutline.vue'
 import CalendarOutlineIcon from 'vue-material-design-icons/CalendarOutline.vue'
+import CalendarPlusOutlineIcon from 'vue-material-design-icons/CalendarPlusOutline.vue'
 import CalendarRemoveOutlineIcon from 'vue-material-design-icons/CalendarRemoveOutline.vue'
 import CalendarTextOutlineIcon from 'vue-material-design-icons/CalendarTextOutline.vue'
 import CalendarWeekendOutlineIcon from 'vue-material-design-icons/CalendarWeekendOutline.vue'
@@ -425,6 +426,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	CalendarAccountOutline: CalendarAccountOutlineIcon,
 	CalendarClockOutline: CalendarClockOutlineIcon,
 	CalendarOutline: CalendarOutlineIcon,
+	CalendarPlusOutline: CalendarPlusOutlineIcon,
 	CalendarRemoveOutline: CalendarRemoveOutlineIcon,
 	CalendarTextOutline: CalendarTextOutlineIcon,
 	CalendarWeekendOutline: CalendarWeekendOutlineIcon,

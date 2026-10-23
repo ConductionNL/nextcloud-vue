@@ -56,9 +56,9 @@
 				:data-role="group.key"
 				:aria-labelledby="`${idPrefix}-${group.key}`"
 				data-testid="cn-object-parties-role">
-				<h4 :id="`${idPrefix}-${group.key}`" class="cn-object-parties__role-label">
+				<component :is="innerHeadingTag" :id="`${idPrefix}-${group.key}`" class="cn-object-parties__role-label cn-inner-heading">
 					{{ group.label }}
-				</h4>
+				</component>
 				<ul class="cn-object-parties__list">
 					<li
 						v-for="party in group.parties"
@@ -112,6 +112,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import {
 	documentsOfParty,
@@ -171,6 +172,8 @@ export default {
 	name: 'CnObjectPartiesWidget',
 
 	components: { NcEmptyContent, NcLoadingIcon, NcNoteCard },
+
+	mixins: [innerHeading],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

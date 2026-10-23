@@ -35,7 +35,7 @@
 	<!-- The wrapper carries the board look's class, so the bar's row rules
 	     and the ghost-button rules reach the button the way they did when it
 	     was an NcActions trigger. -->
-	<div v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
+	<div v-if="save" v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
 		<NcButton
 			:variant="isBoardLook ? 'tertiary' : 'secondary'"
 			:aria-label="t('nextcloud-vue', 'Save view')"
@@ -82,6 +82,16 @@ export default {
 	inheritAttrs: false,
 
 	props: {
+		/**
+		 * Whether the toolbar draws its Save view button. `false` when the page
+		 * header already saves the view (a `save-view` header button), so the
+		 * page offers one way to save, as DqZoekresultaten draws it.
+		 */
+		save: {
+			type: Boolean,
+			default: true,
+		},
+
 		/**
 		 * Whether the board look draws the saved views as chips. `false`
 		 * leaves only Save view, for a page whose views live in the side

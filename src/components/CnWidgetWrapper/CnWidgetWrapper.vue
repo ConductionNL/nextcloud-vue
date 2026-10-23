@@ -57,16 +57,29 @@
 				     "Saldo per week" above "Prognose 13 weken". -->
 				<!-- A subtitle (`subtitle`) is a muted line under the title:
 				     "Dit kwartaal, beslist binnen de termijn". -->
-				<div v-if="resolvedEyebrow || resolvedSubtitle" class="cn-widget-wrapper__title-stack">
+				<div v-if="resolvedEyebrow || resolvedSubtitle || headerLinkUnderTitle" class="cn-widget-wrapper__title-stack">
 					<span v-if="resolvedEyebrow" class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
-					<h3 :id="titleId" class="cn-widget-wrapper__title">
+					<component :is="titleTag" :id="titleId" class="cn-widget-wrapper__title">
 						{{ resolvedTitle }}
-					</h3>
+					</component>
 					<span v-if="resolvedSubtitle" class="cn-widget-wrapper__subtitle" data-testid="cn-widget-wrapper-subtitle">{{ resolvedSubtitle }}</span>
+					<!-- `headerLink.placement: "title"`: the link under the title
+					     instead of among the actions (DqDashboard "Alles bekijken"). -->
+					<component
+						:is="headerLinkTag"
+						v-if="headerLinkUnderTitle"
+						class="cn-widget-wrapper__header-link cn-widget-wrapper__header-link--under-title"
+						data-testid="cn-widget-wrapper-header-link"
+						v-bind="headerLinkAttrs">
+						{{ headerLinkLabel }}
+					</component>
 				</div>
-				<h3 v-else :id="titleId" class="cn-widget-wrapper__title">
+				<component :is="titleTag"
+					v-else
+					:id="titleId"
+					class="cn-widget-wrapper__title">
 					{{ resolvedTitle }}
-				</h3>
+				</component>
 				<!-- @slot title-meta Rendered inside the header's left group,
 				     after the title and before the spacer. Use for small
 				     contextual chips (e.g. a date-range badge on chart
@@ -86,7 +99,7 @@
 				     anchor. Sits before the slot and the overflow menu. -->
 				<component
 					:is="headerLinkTag"
-					v-if="headerLinkTag"
+					v-if="headerLinkTag && !headerLinkUnderTitle"
 					class="cn-widget-wrapper__header-link"
 					data-testid="cn-widget-wrapper-header-link"
 					v-bind="headerLinkAttrs">
@@ -184,7 +197,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
+import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -246,6 +261,8 @@ export default {
 			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
 			// A card inside this one does not draw the widget's header actions again.
 			[WIDGET_HEADER_ACTIONS]: null,
+			// A titled card is a heading; a card inside it is one level deeper.
+			[HEADING_LEVEL]: () => resolveHeadingLevel(this.cnHeadingLevel) + (this.titleVisible ? 1 : 0),
 		}
 	},
 
@@ -264,6 +281,10 @@ export default {
 		 * variant, run }`). Null inside another card.
 		 */
 		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
+		/** The title's heading level, from the page or the card around this one (utils/headingLevel.js). */
+		cnHeadingLevel: { from: HEADING_LEVEL, default: DEFAULT_HEADING_LEVEL },
+		/** The app's look; the outline level applies in the board look only, the Nextcloud look keeps h3. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -705,6 +726,12 @@ export default {
 
 	emits: ['refresh', 'request-feature'],
 
+	data() {
+		return {
+			titleIdSuffix: '',
+		}
+	},
+
 	computed: {
 		/**
 		 * The provided header actions, unwrapped.
@@ -811,6 +838,17 @@ export default {
 		},
 
 		/**
+		 * Whether the header link sits under the title (`placement: "title"`)
+		 * rather than among the header's actions.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/header-link-under-title/specs/header-link-under-title/spec.md#requirement-a-header-link-can-sit-under-the-title
+		 */
+		headerLinkUnderTitle() {
+			return Boolean(this.headerLinkTag) && this.headerLink?.placement === 'title'
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -824,16 +862,16 @@ export default {
 		},
 
 		/**
-		 * Stable DOM id for the header title `<h3>`, used as the
-		 * `aria-labelledby` target of the scrollable content region so the
-		 * region gets an accessible name from the widget title (WCAG 4.1.2).
-		 * Derived from `resolvedWidgetId` so it is stable and unique per
-		 * widget instance on the page.
+		 * DOM id for the header title heading, used as the `aria-labelledby`
+		 * target of the scrollable content region so the region gets an
+		 * accessible name from the widget title (WCAG 4.1.2). Derived from
+		 * `resolvedWidgetId`; a wrapper whose id is already taken on the page
+		 * adds its instance uid (see `mounted`).
 		 *
 		 * @return {string}
 		 */
 		titleId() {
-			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}${this.titleIdSuffix}`
 		},
 
 		/**
@@ -949,6 +987,16 @@ export default {
 			return this.showTitle && !this.chromeless
 		},
 
+		/**
+		 * The title's tag: h2 directly under a page's h1, deeper when nested.
+		 * The class carries the look, so the tag never changes it.
+		 *
+		 * @return {string}
+		 */
+		titleTag() {
+			return normalizeLook(this.cnLook) === 'board' ? headingTag(this.cnHeadingLevel) : 'h3'
+		},
+
 		wrapperStyles() {
 			const styles = {}
 
@@ -994,6 +1042,15 @@ export default {
 			}
 			return styles
 		},
+	},
+
+	mounted() {
+		// Widgets sharing a widget id (object-data cards default to the object
+		// type) would share the title id and name every region after the first.
+		const id = `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		if (typeof document !== 'undefined' && document.querySelectorAll(`[id="${id}"]`).length > 1) {
+			this.titleIdSuffix = `-${this.$.uid}`
+		}
 	},
 
 	methods: {
@@ -1053,7 +1110,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag) || this.declaredHeaderActions.length > 0
+			return this.showActions || this.actionsSlotRenders() || (Boolean(this.headerLinkTag) && !this.headerLinkUnderTitle) || this.declaredHeaderActions.length > 0
 		},
 
 		/**
@@ -1335,6 +1392,13 @@ export default {
 	font-weight: var(--cn-widget-header-link-weight, 600);
 	text-decoration: none;
 	white-space: nowrap;
+}
+
+/* Under the title it starts at the title's edge and reads as a link. */
+.cn-widget-wrapper__header-link--under-title {
+	align-self: flex-start;
+	padding: 0;
+	text-decoration: underline;
 }
 
 .cn-widget-wrapper__header-link:hover,

@@ -215,6 +215,27 @@ const VALID_ORIENTATIONS = ['horizontal', 'vertical']
 const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
 
 /**
+ * A filter map as the list endpoint takes it: an operator as `field[op]`
+ * (`{ supersededBy: { isnull: true } }` reads `supersededBy[isnull]=true`).
+ *
+ * @param {object|undefined} filter The filter map.
+ * @return {object} The query pairs.
+ */
+function listQueryOf(filter) {
+	const query = {}
+	for (const [key, value] of Object.entries(filter || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value)) {
+			for (const [op, operand] of Object.entries(value)) {
+				query[`${key}[${op}]`] = operand
+			}
+		} else {
+			query[key] = value
+		}
+	}
+	return query
+}
+
+/**
  * CnMenuWidget — renders a hierarchical navigation widget with three visual
  * styles (dropdown, megamenu, tree) and active-item highlighting based on
  * `window.location.pathname`.
@@ -286,6 +307,8 @@ export default {
 			barItemRefs: [],
 			/** Children read through `childrenFrom`, keyed by the item's dotted path. */
 			fetchedChildren: {},
+			/** Counts read through `countFrom`, keyed by the item's dotted path. */
+			fetchedCounts: {},
 		}
 	},
 
@@ -314,6 +337,9 @@ export default {
 					out.label = translate(item.label)
 				}
 				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				if (typeof this.fetchedCounts[key] === 'number') {
+					out.count = this.fetchedCounts[key]
+				}
 				const declared = Array.isArray(item.children) ? translated(item.children, key) : null
 				const fetched = this.fetchedChildren[key]
 				if (fetched && fetched.length > 0) {
@@ -445,6 +471,7 @@ export default {
 		'content.items': {
 			handler() {
 				this.loadChildrenFrom()
+				this.loadCountsFrom()
 			},
 
 			immediate: true,
@@ -515,6 +542,50 @@ export default {
 				}
 			}))
 			this.fetchedChildren = Object.fromEntries(entries)
+		},
+
+		/**
+		 * Read the count of every item that declares `countFrom`: the total
+		 * of a register schema (`{ register, schema, filter? }`, one row
+		 * asked, an operator sent as `field[op]` as the list sends it), or the rows of an endpoint (`{ url, responsePath? }`, its
+		 * `total` when it answers one). A failed read draws no count.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/menu-item-counts/specs/menu-widget/spec.md#requirement-a-menu-item-can-show-a-count
+		 */
+		async loadCountsFrom() {
+			const sources = []
+			const walk = (list, prefix) => (Array.isArray(list) ? list : []).forEach((item, idx) => {
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				const from = item && item.countFrom
+				if (from && ((from.register && from.schema) || typeof from.url === 'string')) {
+					sources.push({ key, from })
+				}
+				walk(item && item.children, key)
+			})
+			walk(this.content?.items, '')
+			const entries = await Promise.all(sources.map(async ({ key, from }) => {
+				try {
+					if (from.register && from.schema) {
+						const body = await cnFetchJson(
+							`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+							{ query: { ...listQueryOf(from.filter), _limit: 1 } },
+						)
+						return [key, Number.isFinite(Number(body?.total)) ? Number(body.total) : null]
+					}
+					const body = await cnFetchJson(from.url)
+					if (Number.isFinite(Number(body?.total))) {
+						return [key, Number(body.total)]
+					}
+					const rows = from.responsePath
+						? String(from.responsePath).split('.').reduce((value, part) => (value ? value[part] : undefined), body)
+						: body
+					return [key, Array.isArray(rows) ? rows.length : null]
+				} catch {
+					return [key, null]
+				}
+			}))
+			this.fetchedCounts = Object.fromEntries(entries.filter(([, count]) => typeof count === 'number'))
 		},
 
 		/**

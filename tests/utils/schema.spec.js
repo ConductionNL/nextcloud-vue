@@ -592,6 +592,12 @@ describe('fieldsFromSchema', () => {
 		expect(keys).not.toContain('hidden')
 	})
 
+	it('brings a visible: false property onto the form when an override says hidden: false', () => {
+		const fields = fieldsFromSchema(formSchema, { overrides: { hidden: { hidden: false } } })
+		expect(fields.map((f) => f.key)).toContain('hidden')
+		expect(fieldsFromSchema(formSchema, { overrides: { hidden: { label: 'x' } } }).map((f) => f.key)).not.toContain('hidden')
+	})
+
 	it('excludes object-type properties', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const keys = fields.map((f) => f.key)

@@ -214,3 +214,25 @@ describe('CnTimelineWidget manage mode', () => {
 		expect(ruleFor('.cn-timeline-manage__chip-count')).toContain('border-radius: 10px')
 	})
 })
+
+describe('CnTimelineWidget manage mode: the composer in the board\'s words (DqZaakHistorie)', () => {
+	it('names the composer, its template picker, its note field, its switch and its button as the board does', async () => {
+		reads()
+		const wrapper = await mountManage()
+		const composer = wrapper.find('[data-testid="cn-timeline-composer"]')
+		expect(composer.find('.cn-timeline-manage__composer-title').text()).toBe('Add note')
+		expect(composer.find('[data-testid="cn-timeline-block"]').attributes('inputlabel')).toBe('Template')
+		expect(composer.find('.cn-timeline-manage__draft-label').text()).toBe('Note')
+		expect(wrapper.findComponent({ name: 'CnTimelineManage' }).vm.publicLabel).toBe('Visible to the requester')
+		expect(composer.find('[data-testid="cn-timeline-save"]').text()).toBe('Add it to the timeline')
+	})
+
+	it('reads them in Dutch as the board does', () => {
+		const nl = JSON.parse(fs.readFileSync(path.join(__dirname, '../../l10n/nl.json'), 'utf8')).translations
+		expect(nl['Add note']).toBe('Notitie toevoegen')
+		expect(nl.Template).toBe('Sjabloon')
+		expect(nl.Note).toBe('Notitie')
+		expect(nl['Visible to the requester']).toBe('Zichtbaar voor de verzoeker')
+		expect(nl['Add it to the timeline']).toBe('Aan de tijdlijn toevoegen')
+	})
+})

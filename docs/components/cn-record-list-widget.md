@@ -69,6 +69,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
+- `endpoint` (with `method`, default POST) makes it a button that calls that app URL for the row, as a `rowActions` endpoint entry does: `@objectId` and the row's `{field}` tokens filled in, the list read again afterwards, a refusal shown in the server's words (else `errorText`). A row whose `labels` entry is an empty string has no action, so DqZaakBesluiten shows "Herinneren" on an open advice request only.
 
 ### Several actions per row, and links onwards
 
@@ -89,6 +90,16 @@ path such as `/apps/forms/s/{token}` opens in place. Any other address hides the
   { "label": "Open the form", "href": "{externalUrl}", "visibleWhen": { "field": "instrumentKind", "value": "external" } }
 ]
 ```
+
+A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, doneLabel?, errorText? }`) is not in the
+menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
+(`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
+whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
+template filled from the row ("Assign to {displayName}").
+
+`footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
+(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+capacity"). It shows with no rows too, and not when the value is empty or zero.
 
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
@@ -116,6 +127,19 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 }
 ```
 
+With `groupBy`, `footerAction.group` names a group value: the action then ends that group's heading instead of standing under the list, and the heading is drawn even when no row is in that group (after the other groups, or under the empty text). `footerAction.variant: "tonal"` draws the action as a tonal pill (primary-light, 34px, fully rounded, 13px semibold) instead of a secondary button. Board DqZaakGerelateerd puts "Vervolg plannen" at the end of "Gepland vervolg" this way.
+
+```json
+"footerAction": {
+  "label": "Plan follow-up",
+  "icon": "CalendarClock",
+  "type": "open-modal",
+  "target": "PlanFollowUpDialog",
+  "group": "planned",
+  "variant": "tonal"
+}
+```
+
 ### Header
 
 On a card surface the detail page or the dashboard page draws the titled card. The widget reports its header through the `header` event, and the card shows it:
@@ -124,6 +148,7 @@ On a card surface the detail page or the dashboard page draws the titled card. T
 |-----|---------|
 | `headerLink` | `{ label, route, params?, query? }` or `{ label, href }`. `{total}` in the label is the list's total; `params` and `query` resolve tokens. |
 | `headerNote` | A muted text in the same place, such as `"{total} in totaal"`. `{count:<field>=<value>}` counts the loaded rows whose field reads that value: `"{count:status=done} van {total} stappen klaar"`. It reads the rows the list loaded, so set `limit` to cover the list. |
+| `headerSubtitle` | The muted line under the card title, with the same counts as `headerNote`: `"{total} in totaal"`, `"{count:status=completed} van {total} stappen klaar"` (DqContact "Laatste contactmomenten", DqTenant "Inrichten"). |
 | `headerCount` | `true` reports the list's total, which the dashboard card draws as a chip after its title ("Actiepunten 5"). |
 
 In a tab panel there is no card header, so neither is drawn.
@@ -139,6 +164,15 @@ In a tab panel there is no card header, so neither is drawn.
 | `alertAbove` | A number above it reads bold in the danger colour. |
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
 | `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
+
+A column's `sub` is a template drawn as a muted second line under the cell's text (board OrArchivering: the list's title, with "1.204 records" under it). It draws nothing when it fills empty.
+
+`rowActions` works in the table too: the table ends with a column headed `rowActionsHeader` (default "Actions") holding each row's menu, with the same entries, `visibleWhen` and `endpoint` calls as the `rows` presentation. A row with no action left has an empty cell.
+
+```json
+"columns": [{ "label": "List", "value": "{title}", "sub": "{summary}" }, { "label": "Status", "value": "{statusLabel}" }],
+"rowActions": [{ "label": "Approve", "endpoint": "/apps/openregister/api/archival/destruction-lists/{uuid}/approve", "visibleWhen": { "field": "status", "value": "in_review" } }]
+```
 
 `tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
 
@@ -169,6 +203,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
+
+`aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
 
 ## Props
 

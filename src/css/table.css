@@ -295,6 +295,20 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The header row of a `hideHeader` table: there for a screen reader, drawn
+   as nothing. !important because the looks style every header cell with
+   more specific selectors than any one table can know about. */
+.cn-data-table thead.cn-data-table__hidden-head tr,
+.cn-data-table thead.cn-data-table__hidden-head th {
+	height: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: none !important;
+	line-height: 0 !important;
+	font-size: 0 !important;
+	box-shadow: none !important;
+}
+
 /* Reusable cell utilities — set on a column's `cellClass`. Handy for compact
    list widgets (name + trailing status) that use `hideHeader`. */
 .cn-data-table td.cn-cell--strong {
@@ -371,6 +385,12 @@
 .cn-data-table th .cn-table-header__sort:hover,
 .cn-data-table th .cn-table-header__sort:focus {
 	background: transparent;
+}
+
+/* The sorted column's label is at full text colour, like its chevron. */
+.cn-data-table th[aria-sort='ascending'] .cn-table-header__sort,
+.cn-data-table th[aria-sort='descending'] .cn-table-header__sort {
+	color: var(--color-main-text);
 }
 
 .cn-data-table th .cn-table-header__sort:focus-visible {
@@ -636,6 +656,16 @@
 .cn-table-loading p {
 	margin-top: calc(5 * var(--default-grid-baseline));
 	color: var(--color-text-maxcontrast);
+}
+
+/* Detail row (`#row-detail`): what belongs to the row above it, such as its
+   child records, indented under that row across the full width. It is not a
+   data row: no hover, no pointer, its text wraps. */
+.cn-data-table .cn-table-row-detail > td {
+	max-width: none;
+	white-space: normal;
+	padding: 0 0 calc(2 * var(--default-grid-baseline)) calc(6 * var(--default-grid-baseline));
+	border-bottom: 1px solid var(--color-border);
 }
 
 /* Empty State (inside table) */

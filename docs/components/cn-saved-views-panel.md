@@ -24,6 +24,7 @@ Only the owner sees Edit and Delete; OpenRegister refuses the rest server-side a
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `views` | `Array` | `[]` | The views, defaults included. |
+| `summaries` | `Object` | `null` | What each view filters on, by view id, in words: the line under a view that has no description of its own. |
 | `loading` | `Boolean` | `false` | Shows a loading note. |
 | `currentUserId` | `String` | `''` | Decides ownership for a view without `@self.access`. |
 | `counts` | `Object` | `null` | Record counts by view id or slug. |
