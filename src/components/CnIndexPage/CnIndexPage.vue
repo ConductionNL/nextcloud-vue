@@ -2163,6 +2163,20 @@ export default {
 		},
 
 		/**
+		 * Board look: a count line per view (manifest `config.countTextByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a template as
+		 * `countText`: the board view says "bordweergave per status" where the
+		 * table says "gesorteerd op termijn" (DqWerkbord, DqZaken). A view it
+		 * does not name keeps `countText`; a scope's own `countText` comes first.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 */
+		countTextByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -8534,6 +8548,24 @@ export default {
 			return base ? `${base} · ${onMap}` : onMap
 		},
 
+		/**
+		 * The count line template: a scope's own, else the open view's
+		 * (`countTextByView`), else the page's `countText`.
+		 *
+		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
+		 * @return {string}
+		 */
+		presentedCountText() {
+			if (this.activeScopePresentation.countText === undefined) {
+				const byView = this.countTextByView
+				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
+				if (typeof own === 'string' && own !== '') {
+					return own
+				}
+			}
+			return this.presented('countText')
+		},
+
 		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
@@ -8543,7 +8575,7 @@ export default {
 				// The default count line is the library's own string, so it
 				// reads "14 van 14" in Dutch; a page's own template goes
 				// through the app's label lookup.
-				const countText = this.presented('countText')
+				const countText = this.presentedCountText
 				// The note after the breadcrumb already says how many there are.
 				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
 					return this.description

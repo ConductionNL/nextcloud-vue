@@ -36,9 +36,12 @@ function ctx(over = {}) {
 		isBoardLook: true,
 		countSubtitle: '',
 		description: '',
+		activeScopePresentation: {},
+		countTextByView: null,
 		...over,
 	}
 	c.headerMetaCarriesCount = headerMetaCarriesCount.call(c)
+	c.presentedCountText = CnIndexPage.computed.presentedCountText.call(c)
 	return c
 }
 
