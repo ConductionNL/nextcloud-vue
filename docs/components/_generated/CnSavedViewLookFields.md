@@ -15,7 +15,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                 | Payload | Description |
-| -------------------- | ------- | ----------- |
-| `update:description` | —       |             |
-| `update:icon`        | —       |             |
+| Name                                                           | Payload | Description |
+| -------------------------------------------------------------- | ------- | ----------- |
+| `update:description`                                           | —       |             |
+| `update:icon`                                                  | —       |             |
+| `update:description The typed description.`                    | —       |             |
+| `update:icon The chosen icon name, '' for the menu's default.` | —       |             |
