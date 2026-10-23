@@ -2328,7 +2328,9 @@
     "activities": "activities",
     "Fit all markers": "Fit all markers",
     "Show my location": "Show my location",
-    "Toggle fullscreen": "Toggle fullscreen"
+    "Toggle fullscreen": "Toggle fullscreen",
+    "{name}, in the menu": "{name}, in the menu",
+    "{name} (copy)": "{name} (copy)"
   },
   "plurals": {
     "{count} member": [

@@ -1834,3 +1834,15 @@
 	border-bottom: 1px solid var(--color-main-background);
 	font-weight: 700;
 }
+
+/* The applied view's row, and the row whose menu is open, on the primary
+   tint with the name in the deep primary ink (DqFilterBeheren "Wacht op
+   inwoner" with its menu open).
+   @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-the-row-whose-menu-is-open-is-marked */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) {
+	background: var(--color-primary-element-light);
+}
+
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
+	color: var(--color-primary-element-light-text);
+}

@@ -2579,7 +2579,9 @@
     "set": "ingevuld",
     "Fit all markers": "Alle pins in beeld",
     "Show my location": "Naar mijn locatie",
-    "Toggle fullscreen": "Volledig scherm"
+    "Toggle fullscreen": "Volledig scherm",
+    "{name}, in the menu": "{name}, in het menu",
+    "{name} (copy)": "{name} (kopie)"
   },
   "plurals": {
     "{count} member": [
