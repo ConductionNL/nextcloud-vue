@@ -2323,6 +2323,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
+/* A cell without a tone ("geen") sits on the page ground in the muted ink,
+   as the board draws it; toned and coloured cells keep their ground.
+   @spec openspec/changes/board-matrix-plain-cells/specs/board-matrix-plain-cells/spec.md#requirement-a-board-matrix-cell-without-a-tone-sits-on-the-ground-in-the-muted-ink */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--tone:not([style*="background"]),
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--0 {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	background: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+	color: var(--color-text-maxcontrast);
+}
+
 /* ---- A tree menu on a card (DqCatalogus "Zaaktypen, Attributen ...") ---- */
 /* The board draws a card of folders: 14px inside the card, rows 2px apart,
    each 8px 10px with an 8px corner at 15px, the open folder on the primary
