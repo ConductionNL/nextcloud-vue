@@ -159,6 +159,41 @@ describe('propertiesFromDefinitions', () => {
 	})
 })
 
+describe('propertiesFromDefinitions: list fields', () => {
+	const config = { ...CASE_CONFIG, map: { title: 'name', type: 'propertyType', items: 'items' } }
+	const instruments = {
+		id: 'def-i',
+		name: 'instrumenten',
+		propertyType: 'array',
+		items: {
+			type: 'object',
+			properties: {
+				kind: { type: 'string', title: 'Soort' },
+				budget: { type: 'number', title: 'Budget' },
+			},
+		},
+	}
+	const parties = { id: 'def-p', name: 'samenwerkendePartijen', propertyType: 'array', items: { type: 'string' } }
+
+	it('carries the shape of one entry onto a list field', () => {
+		const { properties } = propertiesFromDefinitions([instruments, parties], config)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-i`].items).toEqual(instruments.items)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-p`].items).toEqual({ type: 'string' })
+	})
+
+	it('edits a list of records row by row, and a list of words as tags', () => {
+		const { properties } = propertiesFromDefinitions([instruments, parties], config)
+		const fields = fieldsFromSchema({ properties, required: [] })
+		expect(fields.map((f) => f.widget)).toEqual(['sub-objects', 'tags'])
+		expect(Object.keys(fields[0].items.properties)).toEqual(['kind', 'budget'])
+	})
+
+	it('ignores an entry shape on a field that is not a list', () => {
+		const { properties } = propertiesFromDefinitions([{ id: 'def-s', name: 'x', propertyType: 'string', items: { type: 'string' } }], config)
+		expect(properties[`${DYNAMIC_KEY_PREFIX}def-s`].items).toBeUndefined()
+	})
+})
+
 describe('splitDynamicFormData', () => {
 	it('keeps the object own fields apart from the answers', () => {
 		const { base, answers } = splitDynamicFormData({
