@@ -141,6 +141,15 @@ In a tab panel there is no card header, so neither is drawn.
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
 | `tone` | The cell becomes a coloured label: `{ field?, map, default?, override? }`. The value at `field` (else the cell text) picks a badge variant from `map`, else `default`. `override: { when, tone }` gives the cell `tone` while `when`, a condition over the row, holds. |
 
+A column's `sub` is a template drawn as a muted second line under the cell's text (board OrArchivering: the list's title, with "1.204 records" under it). It draws nothing when it fills empty.
+
+`rowActions` works in the table too: the table ends with a column headed `rowActionsHeader` (default "Actions") holding each row's menu, with the same entries, `visibleWhen` and `endpoint` calls as the `rows` presentation. A row with no action left has an empty cell.
+
+```json
+"columns": [{ "label": "List", "value": "{title}", "sub": "{summary}" }, { "label": "Status", "value": "{statusLabel}" }],
+"rowActions": [{ "label": "Approve", "endpoint": "/apps/openregister/api/archival/destruction-lists/{uuid}/approve", "visibleWhen": { "field": "status", "value": "in_review" } }]
+```
+
 `tone.override` keeps a verdict from turning green on its own. This column is green for a compliant feature only when it is verified:
 
 ```json
