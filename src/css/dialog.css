@@ -190,6 +190,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	background: transparent;
 }
 
+/* A checkbox in a board dialog sits flush with the fields, its label 10px
+   after the box: NcCheckboxRadioSwitch pads its row by half the clickable
+   area, which set the box 9px in (DqBerichtVersturen "Dit is een besluit").
+   A note under the checkbox lines up with its label through
+   --cn-dialog-check-label-inset (the box and the gap). */
+.cn-dialog-board {
+	--cn-dialog-check-label-inset: 26px;
+}
+
+.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content {
+	padding-inline: 0;
+	gap: 10px;
+}
+
 /* Body: padding 20px 24px, 18px between blocks. */
 .cn-dialog-board .dialog__content {
 	display: flex;
