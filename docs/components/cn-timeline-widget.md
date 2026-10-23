@@ -116,3 +116,26 @@ the object.
 
 - [CnAuditTrailCard](./cn-audit-trail-card.md) for the change log alone.
 - [CnTimelineStages](./cn-timeline-stages.md) for a status progression.
+
+## Items from an app endpoint, with type chips
+
+An app that merges its own sources answers them from one endpoint. `endpointSource` reads it a page at a time, and `typeChips` narrow it on the server:
+
+```json
+{ "type": "timeline", "content": {
+  "order": "desc",
+  "endpointSource": {
+    "url": "/apps/pipelinq/api/timeline",
+    "params": { "entityType": "client", "entityId": "@objectId" },
+    "itemsPath": "items", "pagesPath": "pages",
+    "dateField": "date", "labelField": "title", "detailField": "description",
+    "typeField": "type", "userField": "user",
+    "typeLabels": { "interaction": "Contact moment", "task": "Task" },
+    "typesParam": "types[]", "limit": 20
+  },
+  "typeChips": [{ "value": "interaction", "label": "Contact moments" }, { "value": "task", "label": "Tasks" }]
+} }
+```
+
+`endpointSource.icons` (`{ path?, map?, typeMap?, default? }`) gives each event an icon instead of the dot: the value at `path` through `map` (a contact moment's channel: `{ "phone": "Phone", "email": "Email" }`), else its type through `typeMap`, else `default`. `emptyText` replaces "Nothing has happened yet." when there is nothing to show. Each item becomes an event: the label (an item without one reads "(no title)"), the detail cut at 120 characters, and a meta line of its type label and author. `pageParam` (default `_page`) and `limitParam` (default `_limit`) name the paging parameters; "Load more" reads the next page while the answer's `pages` is higher. A chip sends its value in `typesParam` and reads from page 1; All sends none. A failed read says that the activities could not load.
+

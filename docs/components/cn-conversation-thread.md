@@ -65,7 +65,7 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, note? }`. `channel` is shown after the author; `note` is a muted line under the text. Each message also says "Sent message" or "Received message" to a screen reader. |
+| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`. `channel` is shown after the author, then `status` ("Failed"); `note` is a muted line under the text, and `actions` (`{ id, label, disabled? }`) are buttons under it that emit `message-action`. Each message also says "Sent message" or "Received message" to a screen reader. |
 | `title` | String | `''` | Heading of the thread. |
 | `subtitle` | String | `''` | A line under the title. |
 | `showDirection` | Boolean | `false` | Say each message's direction in words before its time ("Incoming · 3 Oct"), not only to a screen reader. |
@@ -91,6 +91,7 @@ The `conversation` widget type reads the messages from a field on the record and
 | `send` | the text | A reply is submitted. |
 | `sent` | the response body | The endpoint accepted the reply. |
 | `error` | the error | The endpoint refused the reply. |
+| `message-action` | `{ action, message }` | A message's action button was pressed: the action id and the message key. |
 
 ### Slots
 
@@ -98,6 +99,7 @@ The `conversation` widget type reads the messages from a field on the record and
 |------|-------|-------------|
 | `header-actions` | none | Buttons beside the title, for example "Log contact". |
 | `reply-actions` | `{ draft }` | Extra buttons before Send, for example "Save draft". |
+| `reply-tools` | `{ setDraft }` | Tools above the reply box, for example a template picker that fills it with `setDraft(text)`. |
 
 ## Accessibility
 

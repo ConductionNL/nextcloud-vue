@@ -70,6 +70,8 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|myTeam|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-](?:[0-9]+|\\{@config\\.[A-Za-z][A-Za-z0-9_.]*\\})d$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
+	// party-actions: a record field made a link (`@object.phone|tel`, `|mailto`, `|geo`).
+	link: '^@object\\.[A-Za-z][A-Za-z0-9_]*\\|(?:tel|mailto|geo)$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
 	route: '^@route\\.[A-Za-z][A-Za-z0-9_-]*$',
 	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
@@ -140,6 +142,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'resolveFilterTokens',
 		description: 'Detail-page object context. Resolve only when a `{ objectId, object }` ctx is supplied.',
 		members: ['@objectId', '@object.<field>'],
+	},
+	link: {
+		resolver: 'CnPartyActionsWidget',
+		description: 'A record field made a tel:, mailto: or geo: link, for an action target; the action is left out when the value makes no link.',
+		members: ['@object.<field>|tel', '@object.<field>|mailto', '@object.<field>|geo'],
 	},
 	workspace: {
 		resolver: 'resolveFilterTokens',

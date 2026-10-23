@@ -2319,7 +2319,12 @@
     "Could not read the loaded sets.": "Could not read the loaded sets.",
     "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.": "Remove the set \"{set}\"? Its objects move to the trash, where you can restore them. Anything you made yourself stays.",
     "The set \"{set}\" was removed.": "The set \"{set}\" was removed.",
-    "The set \"{set}\" was not removed.": "The set \"{set}\" was not removed."
+    "The set \"{set}\" was not removed.": "The set \"{set}\" was not removed.",
+    "Could not copy": "Could not copy",
+    "The action failed.": "The action failed.",
+    "The warnings could not be loaded.": "The warnings could not be loaded.",
+    "Filter by type": "Filter by type",
+    "activities": "activities"
   },
   "plurals": {
     "{count} member": [

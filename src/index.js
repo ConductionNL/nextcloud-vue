@@ -171,6 +171,7 @@ export {
 	CnGraphCanvas,
 	CnGroupedCardsWidget,
 	CnGuardianHome,
+	CnHandoffAction,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,
 	CnIcon,

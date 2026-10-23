@@ -279,6 +279,19 @@ starts again from page one. Without these keys the heads stay plain labels
 
 A row action of type `object-op` with `op: "delete"` toasts "Deleted \{title\}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
 
+## Rows that point at more than one schema
+
+A relationship points at a contact or at an organisation. Three keys handle a list whose rows do that:
+
+| Key | Meaning |
+|-----|---------|
+| `rowRouteField` + `rowRouteMap` | The row opens the page its field names: `{ "toType": ... }` with `{ "client": "ClientDetail", "contact": "ContactDetail" }`. Falls back to `rowRoute`. |
+| `rowRouteIdField` | The row field whose value is the id the page opens (`toContact`), instead of the row's own id. |
+| `groupOrder` | With `groupBy`: the group keys listed first, in this order (`["Organisatie", "Professioneel", "Familie"]`); other groups follow as the rows came. |
+| `createEndpoint` | `{ url, bodyKey?, extra? }`: a new row is posted to this app endpoint instead of OpenRegister. With `bodyKey` the form values (plus the filter values) go under that key, beside `extra`: `{ "objectType": "contact", "object": { ... } }`. |
+
+A column with `widget: "fkResolve"` takes `widgetProps.schemaFrom` (`{ field, map }`) to resolve the reference in the schema the row names.
+
 ## Row selection for a following card (`rowSelection`)
 
 `"rowSelection": true` lets the reader select a row: a click selects it (and still opens `rowRoute` when one is set), and the selected row is marked. On a detail page the list publishes the rows it shows and the selected one under its widget id. A side card with `follows: { widget: "<this id>" }` then shows that row. See [CnDetailPage: a side card that follows a selected row](./cn-detail-page.md#a-side-card-that-follows-a-selected-row-follows).
