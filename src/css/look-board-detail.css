@@ -562,14 +562,17 @@
 	font-size: 13px;
 }
 
-.cn-look-board .cn-conversation-thread__channel {
+/* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
+   the thread to outrank the component's scoped muted ink. */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
 	padding: 1px 8px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
 	background: var(--color-main-background);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
+	line-height: 16px;
 }
 
 /* The case Status card as the board draws it: no grey box, the status's
