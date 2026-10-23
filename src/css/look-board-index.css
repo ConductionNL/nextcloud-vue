@@ -1712,6 +1712,20 @@
 	font-weight: 600;
 }
 
+/* A view's count: a grey pill at the end of its row (DqFilterBeheren). */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__count {
+	flex: none;
+	min-width: 26px;
+	padding: 2px 8px;
+	border-radius: 11px;
+	background: var(--color-border);
+	color: var(--cn-board-text-soft);
+	font-size: 12px;
+	font-weight: 600;
+	text-align: center;
+	box-sizing: border-box;
+}
+
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {
 	--button-size: 34px;
 	border-radius: 50%;
