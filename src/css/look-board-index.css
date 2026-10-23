@@ -760,6 +760,19 @@
 	white-space: nowrap;
 }
 
+/* A header too narrow for its label wraps it over two lines, as the boards
+   draw "KvK- / nummer" and "Lopende / zaken" (DqOrganisaties), instead of
+   cutting it with an ellipsis.
+   @spec openspec/changes/board-index-header-wraps/specs/data-table/spec.md#requirement-a-board-index-header-wraps-a-label-that-does-not-fit */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th {
+	white-space: normal;
+}
+
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort > :first-child {
+	white-space: normal;
+	text-overflow: clip;
+}
+
 /* A narrow header cuts its label, not its filter funnel. */
 .cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort:has(~ .cn-table-header__filter) {
 	max-width: calc(100% - 26px);
