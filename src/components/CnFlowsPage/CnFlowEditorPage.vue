@@ -12,6 +12,7 @@
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
 		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
+		:nodeLook="nodeLook"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
 		:pillVariant="pillVariant"
@@ -129,13 +130,23 @@ export default {
 
 		/**
 		 * Board look: the palette's groups as the page curates them,
-		 * `[{ app?, label?, tone?, entries: [{ type, label?, short? }] }]`;
+		 * `[{ app?, label?, pill?, tone?, entries: [{ type, label?, short? }] }]`;
 		 * every other step stays behind "More steps". Labels are translated
 		 * with the app's catalogue. Manifest key `config.paletteGroups`.
 		 */
 		paletteGroups: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Board look: `card` draws each step as a card with its name and the
+		 * pill of the app that does it; `type` (default) keeps the type line
+		 * over the name. Manifest key `config.nodeLook`.
+		 */
+		nodeLook: {
+			type: String,
+			default: 'type',
 		},
 
 		/**
@@ -236,6 +247,7 @@ export default {
 			return (this.paletteGroups || []).map((group) => ({
 				...group,
 				label: tr(group?.label),
+				pill: tr(group?.pill),
 				entries: (group?.entries || []).map((step) => ({ ...step, label: tr(step?.label), short: tr(step?.short) })),
 			}))
 		},

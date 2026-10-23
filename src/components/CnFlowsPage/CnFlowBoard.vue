@@ -148,6 +148,7 @@
 					:run="run"
 					:layoutDirection="flowDirection === 'down' ? 'down' : 'right'"
 					:fitMaxZoom="flowDirection === 'down' ? 1 : 0"
+					:nodeBadge="nodeLook === 'card' ? nodeBadge : null"
 					:toolbarActions="false"
 					:addStep="!showPalette"
 					@save="$emit('save')"
@@ -312,12 +313,19 @@ export default {
 		 * The palette's groups as the page curates them, in order:
 		 * `[{ app?, label?, tone?, entries: [{ type, label?, short? }] }]`.
 		 * `type` is a catalogue id; `label` replaces the step's catalogue name
-		 * and the group's app name; `tone` and `short` name the step's pill on
-		 * the canvas. Steps the catalogue lacks are left out, and every other
+		 * and the group's app name; on the canvas (`nodeLook: card`) a step's
+		 * pill reads the group's `pill` (else its name) and the step's `short`,
+		 * in the group's `tone`. Steps the catalogue lacks are left out, and every other
 		 * step stays behind "More steps". Empty draws the whole catalogue,
 		 * grouped per app (DqFlow: four groups, nine steps).
 		 */
 		paletteGroups: { type: Array, default: () => [] },
+		/**
+		 * `card` draws each step as a card with its name and the pill of the
+		 * app that does it ("dossiq · persoon vragen", DqFlow); default `type`
+		 * keeps the type line over the name.
+		 */
+		nodeLook: { type: String, default: 'type' },
 		/** `down` runs the steps top to bottom and opens them at their own size (DqFlow); default `right`, left to right and fitted. */
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
@@ -686,9 +694,9 @@ export default {
 	},
 
 	async created() {
-		// The palette names its groups by app display name; only the column
-		// palette draws them, so only it reads the names.
-		if (this.palette !== 'column') {
+		// The palette groups and the step pills name apps by display name;
+		// only those read the names.
+		if (this.palette !== 'column' && this.nodeLook !== 'card') {
 			return
 		}
 		const { default: axios } = await import('@nextcloud/axios')
@@ -696,6 +704,29 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The pill on a step's card: the app that does it, with the page's short
+		 * type when it gives one, in the palette group's tone (the app that owns
+		 * the flow in the primary tone); "Start" on a start step.
+		 *
+		 * @spec openspec/changes/flow-board-node-card/specs/flow-board/spec.md#requirement-a-flow-step-on-the-board-canvas-is-a-card-with-its-app-pill
+		 * @param {object} node A flow node.
+		 * @return {{label: string, variant: string}} The pill.
+		 */
+		nodeBadge(node) {
+			const type = String(node?.type || '')
+			if (this.store.roleOfNodeType(type) === 'trigger') {
+				return { label: this.t('nextcloud-vue', 'Start'), variant: 'default' }
+			}
+			const curated = (Array.isArray(this.paletteGroups) ? this.paletteGroups : []).find((group) => (group?.entries || []).some((step) => step && step.type === type))
+			const step = curated ? curated.entries.find((item) => item && item.type === type) : null
+			const entry = this.store.catalogEntry(type)
+			const app = String(curated?.app || entry?.app || type.split('.')[0] || '')
+			const name = curated ? (curated.pill || curated.label || this.appNames[app] || app) : (this.appNames[app] || app)
+			const variant = curated?.tone || (app === this.app ? 'primary' : 'default')
+			return { label: step && step.short ? `${name} · ${step.short}` : name, variant }
+		},
+
 		/**
 		 * Run the flow, with the run history in the panel to follow it.
 		 *
