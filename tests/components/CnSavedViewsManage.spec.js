@@ -141,7 +141,7 @@ describe('saved views in the app menu', () => {
 		const out = withSavedViewMenu(menu, [entry])
 		expect(out.map((i) => i.id)).toEqual(['Zaken', 'Cases', 'Rel', 'Contacts', 'saved-views-caption', 'saved-view-7'])
 		expect(out[4]).toMatchObject({ type: 'caption', label: 'My views' })
-		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterOutline', order: expect.any(Number) })
+		expect(out[5]).toEqual({ id: 'saved-view-7', label: 'Mine, overdue', route: 'Cases', query: { savedView: '7' }, icon: 'FilterVariant', order: expect.any(Number) })
 		expect(out[3].order < out[4].order && out[4].order < out[5].order).toBe(true)
 		expect(withSavedViewMenu(menu, [])).toBe(menu)
 	})
