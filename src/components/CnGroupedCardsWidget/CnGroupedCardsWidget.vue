@@ -5,6 +5,9 @@
 
 <template>
 	<div class="cn-grouped-cards" data-testid="cn-grouped-cards">
+		<h2 v-if="heading" class="cn-grouped-cards__heading" data-testid="cn-grouped-cards-heading">
+			{{ heading }}
+		</h2>
 		<!-- `actions`: a row of buttons above the groups ("Bekijken als flow",
 		     "Taak toevoegen" on DqZaaktype). -->
 		<CnActionButtons
@@ -50,6 +53,10 @@
 					data-testid="cn-grouped-cards-group-line">
 					{{ line }}
 				</p>
+				<div v-if="group.progress" class="cn-grouped-cards__progress" data-testid="cn-grouped-cards-progress">
+					<NcProgressBar :value="group.progress.value" :aria-label="group.progress.label || group.title" />
+					<span v-if="group.progress.label" class="cn-grouped-cards__progress-label">{{ group.progress.label }}</span>
+				</div>
 				<ul v-if="group.items.length > 0" class="cn-grouped-cards__items">
 					<li
 						v-for="item in group.items"
@@ -59,11 +66,39 @@
 						<span class="cn-grouped-cards__item-title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-grouped-cards__item-meta">{{ item.meta }}</span>
 						<span v-if="item.flag" class="cn-grouped-cards__item-flag" data-testid="cn-grouped-cards-flag">{{ item.flag }}</span>
+						<CnActionButtons
+							v-if="item.actions.length > 0"
+							class="cn-grouped-cards__item-actions"
+							:actions="item.actions"
+							data-testid="cn-grouped-cards-item-actions" />
 					</li>
 				</ul>
 				<p v-else class="cn-grouped-cards__group-empty">
 					{{ groupEmptyLabel }}
 				</p>
+				<template v-if="group.extraItems">
+					<h5 class="cn-grouped-cards__extra-heading" data-testid="cn-grouped-cards-extra-heading">
+						{{ group.extraHeading }}
+					</h5>
+					<ul v-if="group.extraItems.length > 0" class="cn-grouped-cards__items">
+						<li
+							v-for="item in group.extraItems"
+							:key="item.key"
+							class="cn-grouped-cards__item"
+							data-testid="cn-grouped-cards-extra-item">
+							<span class="cn-grouped-cards__item-title">{{ item.title }}</span>
+							<span v-if="item.meta" class="cn-grouped-cards__item-meta">{{ item.meta }}</span>
+							<CnActionButtons
+								v-if="item.actions.length > 0"
+								class="cn-grouped-cards__item-actions"
+								:actions="item.actions"
+								data-testid="cn-grouped-cards-item-actions" />
+						</li>
+					</ul>
+					<p v-else class="cn-grouped-cards__group-empty">
+						{{ groupEmptyLabel }}
+					</p>
+				</template>
 				<!-- `groupAction`: one action per group ("Add a task" on a phase),
 				     its `@group.<path>` tokens filled from the group. -->
 				<CnActionButtons
@@ -92,7 +127,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcProgressBar } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import innerHeading from '../../mixins/innerHeading.js'
@@ -100,6 +135,7 @@ import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { languageMapText } from '../../utils/languageMapText.js'
 import { readPath } from '../../utils/readPath.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 
 let uid = 0
@@ -167,7 +203,7 @@ function readable(row) {
 export default {
 	name: 'CnGroupedCardsWidget',
 
-	components: { CnActionButtons, NcButton, NcLoadingIcon },
+	components: { CnActionButtons, NcButton, NcLoadingIcon, NcProgressBar },
 
 	mixins: [innerHeading],
 
@@ -205,6 +241,22 @@ export default {
 		 * - `groupLines` lists templates drawn under a group's title, each left out when it does not fill
 		 *   (a list in place of a template is candidates, the first that fills).
 		 * - `itemFlag` (`{ field, label }`) marks a card whose `field` is true with `label` ("Overdue").
+		 * - `itemActions` are actions on every card (as CnActionButtons draws them). `@item.<path>` and
+		 *   `@group.<path>` in their strings read the card and its group (URL-encoded in `url`,
+		 *   `target` and `href`; a value that is exactly one token keeps its type); `visibleWhen` (the
+		 *   local form, `all` / `any` included) reads `item.<path>` and `group.<path>`.
+		 * - `itemMeta` parts may be `{ count, one, other }`: the number at the card's `count` path in
+		 *   the singular or plural text, `{count}` filled in; or `{ text, when }`: the text only when the
+		 *   local condition `when` holds on the card.
+		 * - `groupLines` entries may be `{ text, when }`: the line only when the local condition
+		 *   `when` holds on the group; or `{ count, one, other }` (and `when`) as for `itemMeta`.
+		 * - `groupProgress` (`{ valuePath, label? }`) draws a progress bar of the group's value (0 to
+		 *   100) at `valuePath`, with `label` filled from the group.
+		 * - `heading` is a template filled from the payload, drawn as the heading above the groups (on a
+		 *   page of its own); without a value it is left out.
+		 * - `extraItemsKey` with `extraItemsHeading` draws a second list of each group under that
+		 *   heading (`extraItemTitle`, `extraItemMeta`, `extraItemActions` as for the cards); a plain
+		 *   string entry reads as `{ value }`.
 		 * - `itemsPath` with `itemGroupField` reads the cards from one flat list of the payload instead of
 		 *   from each group: a card belongs to the group whose `id` its `itemGroupField` names. Cards
 		 *   naming no group gather under `ungroupedTitle`; without that title they are left out.
@@ -293,21 +345,23 @@ export default {
 				const itemList = flatItems
 					? flatItems.filter((item) => String(item[groupField] ?? '') !== '' && String(item[groupField]) === String(raw.id ?? ''))
 					: (Array.isArray(raw[c.itemsKey || 'items']) ? raw[c.itemsKey || 'items'] : [])
-				const items = this.itemsOf(itemList)
+				const items = this.itemsOf(itemList, raw)
 				return {
 					key: String(raw.id ?? `group-${index}`),
 					headingId: `${this.idPrefix}-group-${index}`,
 					title: this.fill(c.groupTitle || '{name}', group),
-					lines: this.linesOf(group),
+					lines: this.linesOf(group, raw),
 					count: this.countOf(items.length),
 					items,
 					action: this.groupActionFor(raw, index),
+					progress: this.progressOf(raw, group),
+					...this.extraOf(raw),
 				}
 			})
 			if (flatItems && typeof c.ungroupedTitle === 'string' && c.ungroupedTitle !== '') {
 				const loose = flatItems.filter((item) => !groupIds.has(String(item[groupField] ?? '')))
 				if (loose.length > 0) {
-					const items = this.itemsOf(loose)
+					const items = this.itemsOf(loose, {})
 					out.push({
 						key: 'ungrouped',
 						headingId: `${this.idPrefix}-ungrouped`,
@@ -347,6 +401,13 @@ export default {
 				title: this.translate(spec.title || 'Always available'),
 				text: parts.join(typeof spec.join === 'string' ? spec.join : ' · '),
 			}
+		},
+
+		/** @return {string} The heading above the groups, filled from the payload. */
+		heading() {
+			const template = this.content?.heading
+			const row = this.payload && typeof this.payload === 'object' && !Array.isArray(this.payload) ? readable(this.payload) : {}
+			return template ? this.fill(template, row) : ''
 		},
 
 		/** @return {string} The empty text. */
@@ -448,35 +509,149 @@ export default {
 		 * The cards ready to draw.
 		 *
 		 * @param {Array<object>} list The raw cards.
+		 * @param {object} [rawGroup] Their group as read, for `@group` tokens.
+		 * @param {object} [spec] `{ title, meta, actions }` for a second list, in place of the card settings.
 		 * @return {Array<{key: string, title: string, meta: string, flag: string}>}
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-grouped-cards-can-join-a-flat-list-and-flag-a-card
 		 */
-		itemsOf(list) {
+		itemsOf(list, rawGroup = {}, spec = {}) {
 			const c = this.content || {}
-			return list.filter((item) => item && typeof item === 'object').map((rawItem, itemIndex) => {
-				const item = readable(rawItem)
-				const flag = c.itemFlag && typeof c.itemFlag === 'object' && c.itemFlag.field && rawItem[c.itemFlag.field] === true
-					? this.translate(c.itemFlag.label || '')
-					: ''
-				return {
-					key: String(rawItem.id ?? `item-${itemIndex}`),
-					title: this.fill(c.itemTitle || '{title}', item),
-					meta: this.metaOf(item),
-					flag,
+			const titleTemplate = spec.title || c.itemTitle || '{title}'
+			const metaSpec = spec.meta !== undefined ? spec.meta : c.itemMeta
+			const actions = spec.actions !== undefined ? spec.actions : c.itemActions
+			return list
+				.map((entry) => (typeof entry === 'string' || typeof entry === 'number' ? { value: entry } : entry))
+				.filter((item) => item && typeof item === 'object')
+				.map((rawItem, itemIndex) => {
+					const item = readable(rawItem)
+					const flag = !spec.title && c.itemFlag && typeof c.itemFlag === 'object' && c.itemFlag.field && rawItem[c.itemFlag.field] === true
+						? this.translate(c.itemFlag.label || '')
+						: ''
+					const key = String(rawItem.id ?? rawItem.value ?? `item-${itemIndex}`)
+					return {
+						key,
+						title: this.fill(titleTemplate, item),
+						meta: this.metaOf(item, rawItem, metaSpec),
+						flag,
+						actions: this.itemActionsFor(actions, rawItem, rawGroup, key),
+					}
+				})
+		},
+
+		/**
+		 * The actions of one card, tokens filled from the card and its group,
+		 * those whose `visibleWhen` does not hold left out.
+		 *
+		 * @param {Array<object>|undefined} actions The configured actions.
+		 * @param {object} rawItem The card as read.
+		 * @param {object} rawGroup Its group as read.
+		 * @param {string} key The card's key, made part of each action id.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/grouped-cards-item-actions/specs/grouped-cards-item-actions/spec.md#requirement-every-card-can-carry-actions
+		 */
+		itemActionsFor(actions, rawItem, rawGroup, key) {
+			if (!Array.isArray(actions)) {
+				return []
+			}
+			const scope = { item: rawItem, group: rawGroup }
+			return actions
+				.filter((action) => action && typeof action === 'object')
+				.filter((action) => !action.visibleWhen || evaluateVisibleWhenLocal(action.visibleWhen, scope))
+				.map((action, index) => {
+					const { visibleWhen, ...rest } = action
+					return { ...this.fillTokens(rest, scope), id: `${action.id || 'item-action'}-${key}-${index}` }
+				})
+		},
+
+		/**
+		 * Fill `@item.<path>` and `@group.<path>` in every string of an action.
+		 * In `url`, `target` and `href` a value is URL-encoded; a string that is
+		 * exactly one token takes the value as it is.
+		 *
+		 * @param {unknown} value The action, or a part of it.
+		 * @param {object} scope `{ item, group }`.
+		 * @param {string} [key] The key the value sits under.
+		 * @return {unknown}
+		 */
+		fillTokens(value, scope, key = '') {
+			const token = /@(item|group)\.([\w.]+)/g
+			if (typeof value === 'string') {
+				const whole = value.match(/^@(item|group)\.([\w.]+)$/)
+				if (whole && !['url', 'target', 'href'].includes(key)) {
+					return readPath(scope[whole[1]], whole[2]) ?? null
 				}
-			})
+				const encode = ['url', 'target', 'href'].includes(key)
+				return value.replace(token, (match, root, path) => {
+					const found = readPath(scope[root], path)
+					const text = found === undefined || found === null ? '' : String(found)
+					return encode ? encodeURIComponent(text) : text
+				})
+			}
+			if (Array.isArray(value)) {
+				return value.map((entry) => this.fillTokens(entry, scope))
+			}
+			if (value && typeof value === 'object') {
+				return Object.fromEntries(Object.entries(value).map(([inner, entry]) => [inner, this.fillTokens(entry, scope, inner)]))
+			}
+			return value
+		},
+
+		/**
+		 * A group's progress bar, or null without `groupProgress`.
+		 *
+		 * @param {object} raw The group as read.
+		 * @param {object} group The group's readable row.
+		 * @return {{value: number, label: string}|null}
+		 */
+		progressOf(raw, group) {
+			const spec = this.content?.groupProgress
+			if (!spec || typeof spec !== 'object' || !spec.valuePath) {
+				return null
+			}
+			const value = Number(readPath(raw, spec.valuePath))
+			if (!Number.isFinite(value)) {
+				return null
+			}
+			return { value: Math.max(0, Math.min(100, value)), label: spec.label ? this.fill(spec.label, group) : '' }
+		},
+
+		/**
+		 * A group's second list (`extraItemsKey`), or nothing.
+		 *
+		 * @param {object} raw The group as read.
+		 * @return {{extraItems?: Array<object>, extraHeading?: string}}
+		 */
+		extraOf(raw) {
+			const c = this.content || {}
+			if (typeof c.extraItemsKey !== 'string' || c.extraItemsKey === '') {
+				return {}
+			}
+			const list = Array.isArray(raw[c.extraItemsKey]) ? raw[c.extraItemsKey] : []
+			return {
+				extraHeading: this.translate(c.extraItemsHeading || ''),
+				extraItems: this.itemsOf(list, raw, { title: c.extraItemTitle || '{value}', meta: c.extraItemMeta || [], actions: c.extraItemActions || [] }),
+			}
 		},
 
 		/**
 		 * The lines under a group's title (`groupLines`), the empty ones left out.
 		 *
 		 * @param {object} group The group's row.
+		 * @param {object} [raw] The group as read, for a line's `when`.
 		 * @return {Array<string>}
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-grouped-cards-can-join-a-flat-list-and-flag-a-card
 		 */
-		linesOf(group) {
+		linesOf(group, raw = {}) {
 			const spec = this.content?.groupLines
-			return (Array.isArray(spec) ? spec : []).map((line) => this.fill(line, group)).filter((text) => text !== '')
+			return (Array.isArray(spec) ? spec : [])
+				.filter((line) => !line || typeof line !== 'object' || Array.isArray(line) || !line.when || evaluateVisibleWhenLocal(line.when, raw))
+				.map((line) => {
+					if (line && typeof line === 'object' && !Array.isArray(line)) {
+						return line.count ? this.countText(line, raw) : this.fill(line.text, group)
+					}
+					return this.fill(line, group)
+				})
+				.filter((text) => text !== '')
 		},
 
 		/**
@@ -495,12 +670,38 @@ export default {
 		 * part whose token is empty being left out with its separator.
 		 *
 		 * @param {object} item The card's row.
+		 * @param {object} [rawItem] The card as read, for a count part.
+		 * @param {Array|string} [spec] The parts, by default `itemMeta`.
 		 * @return {string} The line.
 		 */
-		metaOf(item) {
-			const spec = this.content?.itemMeta
+		metaOf(item, rawItem = item, spec = this.content?.itemMeta) {
 			const parts = Array.isArray(spec) ? spec : (typeof spec === 'string' ? [spec] : [])
-			return parts.map((part) => this.fill(part, item)).filter((text) => text !== '').join(' · ')
+			return parts
+				.filter((part) => !part || typeof part !== 'object' || Array.isArray(part) || !part.when || evaluateVisibleWhenLocal(part.when, rawItem))
+				.map((part) => {
+					if (part && typeof part === 'object' && !Array.isArray(part)) {
+						return part.count ? this.countText(part, rawItem) : this.fill(part.text, item)
+					}
+					return this.fill(part, item)
+				})
+				.filter((text) => text !== '')
+				.join(' · ')
+		},
+
+		/**
+		 * A number in its singular or plural text (`{ count, one, other }`).
+		 *
+		 * @param {object} part The meta part.
+		 * @param {object} rawItem The card as read.
+		 * @return {string} The text, '' when the number is missing.
+		 */
+		countText(part, rawItem) {
+			const count = Number(readPath(rawItem, part.count))
+			if (!Number.isFinite(count)) {
+				return ''
+			}
+			const template = count === 1 ? part.one : part.other
+			return typeof template === 'string' && template !== '' ? this.translate(template).replace(/\{count\}/g, String(count)) : ''
 		},
 
 		/**
@@ -524,6 +725,29 @@ export default {
 <style scoped>
 .cn-grouped-cards__actions {
 	margin-block-end: 16px;
+}
+
+.cn-grouped-cards__heading {
+	margin: 0 0 12px;
+}
+
+.cn-grouped-cards__progress {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-grouped-cards__progress-label {
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+}
+
+.cn-grouped-cards__extra-heading {
+	margin: 4px 0 0;
+}
+
+.cn-grouped-cards__item-actions {
+	margin-inline-start: auto;
 }
 
 .cn-grouped-cards__grid {
