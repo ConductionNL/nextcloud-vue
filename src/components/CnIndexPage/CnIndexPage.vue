@@ -759,6 +759,7 @@
 				class="cn-index-page__main"
 				:class="{
 					'cn-index-page__main--map': currentViewMode === 'map',
+					'cn-index-page__main--list': currentViewMode === 'list',
 					'cn-index-page__main--table': currentViewMode === 'table',
 					'cn-index-page__main--split': splitLayout === 'split',
 				}"
@@ -1451,6 +1452,7 @@ import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
@@ -1465,6 +1467,7 @@ import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
+import { getDotted } from '../../utils/propertySourceFill.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
@@ -1883,6 +1886,9 @@ export default {
 	 */
 	provide() {
 		return {
+			// Widgets beside the list sit directly under the page's h1 in the
+			// board look; the Nextcloud look keeps its h3 widget titles.
+			[HEADING_LEVEL]: () => (this.isBoardLook ? 2 : 3),
 			cnIndexList: Object.defineProperties({}, {
 				appliedView: { enumerable: true, get: () => this.appliedSavedView },
 				total: {
@@ -6056,6 +6062,7 @@ export default {
 				counts: this.savedViewCounts,
 				selectedViewId: this.appliedSavedViewId,
 				menuIds: this.savedViewMenuIds,
+				summaries: Object.fromEntries(this.viewsForControl.map((view) => [viewIdOf(view), this.viewFilterSummary(view)])),
 			}
 		},
 
@@ -8156,55 +8163,17 @@ export default {
 			if (!this.isBoardLook) {
 				return []
 			}
-			const chips = [...this.searchTermChips, ...this.quickFilterActiveChips]
-			const ranges = new Map()
 			// An applied saved view names itself; its own filters are not chips
 			// (DqFilterBeheren draws "Wacht op inwoner" with no chip for it).
 			const view = this.appliedSavedView
 			const viewFilters = view && view.query && view.query.filters && typeof view.query.filters === 'object' ? view.query.filters : {}
 			const ownToView = (key, value) => Object.hasOwn(viewFilters, key)
 				&& (Array.isArray(viewFilters[key]) ? viewFilters[key].map(String) : [String(viewFilters[key])]).includes(String(value))
-			for (const [key, raw] of Object.entries(this.effectiveActiveFilters || {})) {
-				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
-				if (bound) {
-					const value = Array.isArray(raw) ? raw[0] : raw
-					if (value === null || value === undefined || value === '' || this.isFixedFilter(key, value)) {
-						continue
-					}
-					if (!ranges.has(bound[1])) {
-						ranges.set(bound[1], { from: null, to: null, keys: [] })
-						chips.push({ key: bound[1], rangeOf: bound[1] })
-					}
-					const range = ranges.get(bound[1])
-					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
-					range.keys.push(key)
-					continue
-				}
-				const ends = rangeEnds(raw)
-				if (ends) {
-					if (this.isFixedFilter(key, raw)) {
-						continue
-					}
-					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
-					continue
-				}
-				const values = (Array.isArray(raw) ? raw : [raw])
-					.filter((value) => value !== null && value !== undefined && value !== '')
-					.filter((value) => !this.isFixedFilter(key, value))
-					.filter((value) => !ownToView(key, value))
-					.map((value) => this.activeFilterValueLabel(key, value))
-				if (values.length === 0) {
-					continue
-				}
-				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
-			}
-			return chips.map((chip) => {
-				if (!chip.rangeOf) {
-					return chip
-				}
-				const range = ranges.get(chip.rangeOf)
-				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
-			})
+			return [
+				...this.searchTermChips,
+				...this.quickFilterActiveChips,
+				...this.filterChipsOf(this.effectiveActiveFilters, (key, value) => this.isFixedFilter(key, value) || ownToView(key, value)),
+			]
 		},
 
 		/**
@@ -11068,6 +11037,113 @@ export default {
 		},
 
 		/**
+		 * Filters as chips in the Active line's words, one per filter: "Team:
+		 * Woo". A filter with no value gives none. A range, as one `{from, to}`
+		 * value or as `key[gte]`/`key[lte]` keys, is one chip; `keys` lists the
+		 * filter keys it stands for. Several values of one filter read as a list
+		 * in the locale ("A en B").
+		 *
+		 * @param {object} filters The filters, by key.
+		 * @param {Function} [isFixed] `(key, value) => boolean`: a value that gets no chip.
+		 * @return {Array<{key: string, label: string, keys?: string[]}>}
+		 */
+		filterChipsOf(filters, isFixed = () => false) {
+			const chips = []
+			const ranges = new Map()
+			for (const [key, raw] of Object.entries(filters || {})) {
+				const bound = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+				if (bound) {
+					const value = Array.isArray(raw) ? raw[0] : raw
+					if (value === null || value === undefined || value === '' || isFixed(key, value)) {
+						continue
+					}
+					if (!ranges.has(bound[1])) {
+						ranges.set(bound[1], { from: null, to: null, keys: [] })
+						chips.push({ key: bound[1], rangeOf: bound[1] })
+					}
+					const range = ranges.get(bound[1])
+					range[bound[2].startsWith('g') ? 'from' : 'to'] = value
+					range.keys.push(key)
+					continue
+				}
+				const ends = rangeEnds(raw)
+				if (ends) {
+					if (isFixed(key, raw)) {
+						continue
+					}
+					chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${this.activeFilterRangeText(ends.from, ends.to, key)}` })
+					continue
+				}
+				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+					const text = this.activeFilterOperatorText(key, raw)
+					if (text !== '' && !isFixed(key, raw)) {
+						chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${text}` })
+					}
+					continue
+				}
+				const values = (Array.isArray(raw) ? raw : [raw])
+					.filter((value) => value !== null && value !== undefined && value !== '')
+					.filter((value) => !isFixed(key, value))
+					.map((value) => this.activeFilterValueLabel(key, value))
+				if (values.length === 0) {
+					continue
+				}
+				chips.push({ key, label: `${this.activeFilterFieldLabel(key)}: ${listText(values, getCanonicalLocale() || undefined)}` })
+			}
+			return chips.map((chip) => {
+				if (!chip.rangeOf) {
+					return chip
+				}
+				const range = ranges.get(chip.rangeOf)
+				return { key: chip.key, keys: range.keys, label: `${this.activeFilterFieldLabel(chip.rangeOf)}: ${this.activeFilterRangeText(range.from, range.to, chip.rangeOf)}` }
+			})
+		},
+
+		/**
+		 * What a saved view filters on, in the Active line's words, for the
+		 * line under its name in the side panel: its search term, then each
+		 * filter ("Search term: Lindelaan, Status: Open"). '' when it filters
+		 * on nothing.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {string}
+		 */
+		viewFilterSummary(view) {
+			const query = (view && view.query) || {}
+			const filters = query.filters || (view && (view.filters || view.filter)) || {}
+			const parts = []
+			const term = typeof query.search === 'string' ? query.search.trim() : ''
+			if (term !== '') {
+				parts.push(t('nextcloud-vue', 'Search term: {term}', { term }))
+			}
+			for (const chip of this.filterChipsOf(filters)) {
+				parts.push(chip.label)
+			}
+			return parts.join(', ')
+		},
+
+		/**
+		 * The text of a filter whose value is an operator object that is not a
+		 * range: a test for no value reads "not set" or "set", any other
+		 * operator its operands, named as a value would be.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {object} value The operator object (`{ isnull: true }`, `{ in: [...] }`).
+		 * @return {string} The text, or '' when it names nothing.
+		 */
+		activeFilterOperatorText(key, value) {
+			if (Object.hasOwn(value, 'isnull')) {
+				const empty = value.isnull === true || value.isnull === 'true'
+				return empty ? t('nextcloud-vue', 'not set') : t('nextcloud-vue', 'set')
+			}
+			const operands = Object.values(value)
+				.flatMap((operand) => (Array.isArray(operand) ? operand : [operand]))
+				.filter((operand) => operand !== null && operand !== undefined && operand !== '' && typeof operand !== 'object')
+				.map((operand) => this.activeFilterValueLabel(key, operand))
+			return listText(operands, getCanonicalLocale() || undefined)
+		},
+
+		/**
 		 * The text of a range chip: in words for a range from today when the
 		 * page's `filterLabels` entry sets `relative`, else its date ends in
 		 * the person's locale.
@@ -11524,7 +11600,9 @@ export default {
 		/**
 		 * The row's own name, for the row menu button's accessible name
 		 * ("Actions for <title>"): the `nameFormatter`, else the
-		 * `massActionNameField`, else the row's title or name.
+		 * `massActionNameField`, else the row's title or name, the record's
+		 * resolved display name, the title column's value, or the schema's
+		 * title property. The first plain text wins.
 		 *
 		 * @param {object} row The row.
 		 * @return {string} The name, or ''.
@@ -11535,8 +11613,18 @@ export default {
 				return ''
 			}
 			const named = typeof this.nameFormatter === 'function' ? this.nameFormatter(row) : row[this.massActionNameField]
-			const value = named ?? row.title ?? row.name ?? ''
-			return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+			const titleKey = this.renderedColumns?.[0]?.key
+			const nameField = this.effectiveSchema?.configuration?.objectNameField
+			const candidates = [
+				named,
+				row.title,
+				row.name,
+				row['@self']?.name,
+				titleKey ? getDotted(row, titleKey) : undefined,
+				nameField ? getDotted(row, nameField) : undefined,
+			]
+			const value = candidates.find((candidate) => (typeof candidate === 'string' && candidate.trim() !== '') || typeof candidate === 'number')
+			return value === undefined ? '' : String(value)
 		},
 
 		/**

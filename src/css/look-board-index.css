@@ -619,6 +619,36 @@
 	overflow: hidden;
 }
 
+/* The list and map views are one card as the table is, with the count line
+   and the pager inside it under the hairline (DqTeamwachtrij, DqZakenKaart).
+   The list keeps the height of its rows rather than scrolling inside the
+   column; the map keeps filling it, its own card unframed inside. */
+.cn-look-board .cn-index-page__main.cn-index-page__main--list,
+.cn-look-board .cn-index-page__main.cn-index-page__main--map {
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.cn-look-board .cn-index-page__main.cn-index-page__main--list {
+	flex: 1 1 auto;
+	align-self: flex-start;
+}
+
+.cn-look-board .cn-index-page__main--map > .cn-index-page__map-card {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+/* The numbered list scrolls inside the card's height rather than running
+   past its bottom, over the footer. */
+.cn-look-board .cn-index-page__main--map > .cn-index-page__map-card > .cn-index-page__map-side {
+	max-height: 100%;
+}
+
 .cn-look-board .cn-index-page__main--table > .cn-table-container.cn-table-container--board {
 	border: 0;
 	border-radius: 0;
@@ -1000,7 +1030,7 @@
 /* Under the card grid the footer is a row of its own, not a card's edge: no
    hairline, 4px 0 (DqAanMijToegewezen, BqAgents, BqStore).
    @spec openspec/changes/board-pagination-under-card-grid/specs/board-pagination-under-card-grid/spec.md#requirement-the-page-footer-under-a-card-grid-is-a-plain-row */
-.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table) > .cn-pagination--board {
+.cn-look-board .cn-index-page__main:not(.cn-index-page__main--table):not(.cn-index-page__main--list):not(.cn-index-page__main--map) > .cn-pagination--board {
 	margin-top: 8px;
 	padding: 4px 0;
 	border-top: 0;
@@ -1710,6 +1740,20 @@
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
 	font-size: 14px;
 	font-weight: 600;
+}
+
+/* A view's count: a grey pill at the end of its row (DqFilterBeheren). */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__count {
+	flex: none;
+	min-width: 26px;
+	padding: 2px 8px;
+	border-radius: 11px;
+	background: var(--color-border);
+	color: var(--cn-board-text-soft);
+	font-size: 12px;
+	font-weight: 600;
+	text-align: center;
+	box-sizing: border-box;
 }
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {

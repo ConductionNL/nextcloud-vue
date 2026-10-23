@@ -53,7 +53,9 @@ describe('look-board.css: scope', () => {
 				if (isTeleported(selector)) {
 					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)).toBe(true)
 				} else {
-					expect(selector.startsWith('.cn-look-board')).toBe(true)
+					// `html :where(.cn-look-board)` scopes a rule that must weigh no more
+					// than its elements (the inner heading size).
+					expect(selector.startsWith('.cn-look-board') || selector.startsWith('html :where(.cn-look-board)')).toBe(true)
 				}
 			}
 		}

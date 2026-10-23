@@ -12,14 +12,14 @@
 -->
 <template>
 	<div class="cn-task-work-card" :data-testid="`${idPrefix}-work`">
-		<h4 class="cn-task-work-card__title" :data-testid="`${idPrefix}-work-title`">
+		<component :is="innerHeadingTag" class="cn-task-work-card__title cn-inner-heading" :data-testid="`${idPrefix}-work-title`">
 			<router-link v-if="openRoute && $router" :to="openRoute" class="cn-task-work-card__link">
 				{{ title }}
 			</router-link>
 			<template v-else>
 				{{ title }}
 			</template>
-		</h4>
+		</component>
 		<dl class="cn-task-work-card__meta">
 			<dt>{{ tr('Reference') }}</dt>
 			<dd :data-testid="`${idPrefix}-work-reference`">
@@ -79,6 +79,7 @@
 import { NcButton } from '@nextcloud/vue'
 import CnTaskFormFields from '../CnTaskFormFields/CnTaskFormFields.vue'
 import { taskDueLabel } from '../../composables/indexSources.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { taskCandidates, taskForm, taskIsOffered, taskLock, taskReference } from '../../utils/flowTask.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 
@@ -86,6 +87,8 @@ export default {
 	name: 'CnTaskWorkCard',
 
 	components: { CnTaskFormFields, NcButton },
+
+	mixins: [innerHeading],
 
 	props: {
 		/** The task row. */

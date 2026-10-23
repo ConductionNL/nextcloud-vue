@@ -14,7 +14,7 @@
  */
 .cn-look-board {
 	/* The notice card at the top of the side column. */
-	--cn-board-notice-bg: var(--color-warning-light, #fdf1d6);
+	--cn-board-notice-bg: var(--nl-color-orange-light, #fff4de);
 	/* The notice's text and icon. */
 	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
@@ -514,6 +514,20 @@
 /* The stack's next cards are whole cards, not joined to the strip. */
 .cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-item .cn-widget-wrapper {
 	border-radius: var(--cn-board-card-radius);
+}
+
+/* A first widget that renders nothing (DqZaakEmail) takes no room: the next
+   card starts under the strip and joins the open tab as the first card does.
+   Heavier than the stack-item rule above, so it wins.
+   @spec openspec/changes/board-tab-stack-empty-first/specs/board-tab-stack-empty-first/spec.md#requirement-a-board-tab-stack-skips-a-first-widget-that-renders-nothing */
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) {
+	display: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-widget-wrapper,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack-first:not(:has(> * > *)) + .cn-tabs-widget__stack-item .cn-detail-card {
+	border-top: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
 }
 
 /* A case widget that draws its own card (CnConversationWidget,
@@ -1225,6 +1239,15 @@
 .cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group {
 	padding: 14px;
 	border-radius: 10px;
+}
+
+/* Sunken blocks on the page's own ground, as the boards draw them
+   (DqZaaktype phases, DqInspectie device frames, DqZaakContact's other side).
+   @spec openspec/changes/board-sunken-ground/specs/board-sunken-ground/spec.md#requirement-sunken-blocks-take-the-boards-sunken-ground */
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group,
+.cn-look-board .cn-device-frames-widget__frame.cn-device-frames-widget__frame,
+.cn-look-board .cn-conversation-thread__message:not(.cn-conversation-thread__message--us) .cn-conversation-thread__bubble {
+	background: var(--cn-board-sunken-ground);
 }
 
 .cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {

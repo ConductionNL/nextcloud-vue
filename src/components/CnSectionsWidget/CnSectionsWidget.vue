@@ -29,12 +29,12 @@
 				<!-- The heading waits for content: a widget type that does not
 				     resolve renders nothing, and a heading over nothing is a
 				     label on a void. -->
-				<h3
+				<component :is="sectionHeadingTag"
 					v-if="section.title && isShown(section.key)"
 					:id="headingId(section.key)"
 					class="cn-sections-widget__heading">
 					{{ section.title }}
-				</h3>
+				</component>
 				<p
 					v-if="section.description && isShown(section.key)"
 					class="cn-sections-widget__description">
@@ -69,6 +69,8 @@
 
 <script>
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
 
 /** Counter for unique heading ids across instances. */
 let instanceCounter = 0
@@ -113,8 +115,19 @@ export default {
 
 	components: { CnDetailWidgetHost },
 
+	provide() {
+		return {
+			// Widgets in a section sit under its heading.
+			[HEADING_LEVEL]: () => resolveHeadingLevel(this.cnHeadingLevel) + 1,
+		}
+	},
+
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		/** The section headings' level, from the card or page around this widget. */
+		cnHeadingLevel: { from: HEADING_LEVEL, default: DEFAULT_HEADING_LEVEL },
+		/** The app's look; the outline level applies in the board look only, the Nextcloud look keeps h3. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -220,6 +233,15 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The section headings' tag (utils/headingLevel.js).
+		 *
+		 * @return {string}
+		 */
+		sectionHeadingTag() {
+			return normalizeLook(this.cnLook) === 'board' ? headingTag(this.cnHeadingLevel) : 'h3'
+		},
+
 		/**
 		 * Whether each section is its own card.
 		 *

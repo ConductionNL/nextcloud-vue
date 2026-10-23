@@ -26,6 +26,11 @@ function page(filters, view) {
 		quickFilterActiveChips: [],
 		searchTermChips: [],
 		activeFilterFieldLabel: (key) => key,
+		activeFilterOperatorText: () => '',
+		activeFilterRangeText: (from, to) => `${from}–${to}`,
+		filterChipsOf(filters, isFixed) {
+			return CnIndexPage.methods.filterChipsOf.call(this, filters, isFixed)
+		},
 		effectiveActiveFilters: filters,
 		isFixedFilter: () => false,
 		activeFilterValueLabel: (key, value) => String(value),

@@ -637,7 +637,7 @@
 			v-if="showsNextStepCard"
 			class="cn-detail-page__next-step"
 			:title="nextStepCard.title"
-			titleTag="h3"
+			:titleTag="isBoard ? 'h2' : 'h3'"
 			:items="nextStepCard.items"
 			:after="nextStepCard.after"
 			data-testid="cn-detail-page-next-step">
@@ -939,12 +939,12 @@
 						     Built-in widgets (data / related / integration / catalog)
 						     render their own titled card header, so a grid <h3> here would
 						     duplicate the title above the widget. -->
-						<h3
+						<component :is="isBoard ? 'h2' : 'h3'"
 							v-if="showGridTitle(item)"
 							:id="`widget-title-${item.id}`"
 							class="cn-detail-page__widget-title">
 							{{ gridTitle(item) }}
-						</h3>
+						</component>
 						<!--
 							@slot `widget-${item.widgetId}`
 							@description Per-widget slot whose name is `widget-<widgetId>`. Use
@@ -1049,9 +1049,9 @@
 					content: an `<h3>` showing `statsTitle`.
 				-->
 				<slot name="stats-header">
-					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
+					<component :is="isBoard ? 'h2' : 'h3'" v-if="statsTitle" class="cn-detail-page__section-title">
 						{{ resolvedStatsTitle }}
-					</h3>
+					</component>
 				</slot>
 				<table class="cn-detail-page__stats-table">
 					<thead v-if="statsColumns.length > 0">
@@ -1440,6 +1440,7 @@ import { firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -1755,6 +1756,10 @@ export default {
 			// The record's newest create or update entry, for a widget that names
 			// who changed it last (`recordLastChange`); null until read.
 			cnRecordLastChange: lastChange,
+
+			// Widget titles sit one level under the record title: h1 in the
+			// board look, h2 in the Nextcloud look.
+			[HEADING_LEVEL]: () => (this.isBoard ? 2 : 3),
 			// The rows a list on this page shows and the one selected, for a side
 			// card that follows them (side-card-follows-row).
 			[WIDGET_SELECTION]: this.widgetSelection,

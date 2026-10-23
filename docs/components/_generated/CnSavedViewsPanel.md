@@ -17,6 +17,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `counts`         | `{[viewId: string]: number}&#124;null` |          | `null`  | How many records each view matches, keyed by view id (or slug). `null` shows no counts.                                 |
 | `selectedViewId` | `string`                               |          | `''`    | The id (or slug) of the applied view.                                                                                   |
 | `menuIds`        | `Array<string>&#124;null`              |          | `null`  | The ids of the views this user put in the app menu, or `null` when the page cannot pin (no app shell to hold the menu). |
+| `summaries`      | `union`                                |          | `null`  | What each view filters on, by view id, in words: the line under a view that has no description of its own.              |
 
 ### Events
 

@@ -80,13 +80,14 @@
 			</dl>
 
 			<div v-if="outcome" class="cn-retention__outcome" data-testid="cn-retention-outcome">
-				<h4>{{ t('nextcloud-vue', 'Outcome') }}</h4>
+				<component :is="innerHeadingTag" class="cn-inner-heading">
+					{{ t('nextcloud-vue', 'Outcome') }}
+				</component>
 				<p>{{ t('nextcloud-vue', 'Handed over as {kind} on {at} by {by}.', { kind: String(outcome.kind ?? ''), at: String(outcome.at ?? ''), by: String(outcome.by ?? '') }) }}</p>
 				<p v-if="outcome.transferListUuid">
 					{{ t('nextcloud-vue', 'Transfer list') }}: {{ outcome.transferListUuid }}
 				</p>
 			</div>
-
 		</template>
 	</div>
 </template>
@@ -99,6 +100,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnRetentionRecomputeDialog from './CnRetentionRecomputeDialog.vue'
+import innerHeading from '../../mixins/innerHeading.js'
 import { readPath } from '../../utils/readPath.js'
 
 /**
@@ -128,6 +130,8 @@ export default {
 	name: 'CnRetentionWidget',
 
 	components: { CnRetentionRecomputeDialog, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Refresh },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */

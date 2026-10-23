@@ -41,9 +41,9 @@
 		</p>
 
 		<template v-if="behindButton && !composing">
-			<h4 class="cn-attention-flag__heading" data-testid="cn-attention-flag-heading">
+			<component :is="innerHeadingTag" class="cn-attention-flag__heading cn-inner-heading" data-testid="cn-attention-flag-heading">
 				{{ reasonLabel }}
-			</h4>
+			</component>
 			<p class="cn-attention-flag__hint" data-testid="cn-attention-flag-hint">
 				{{ raised ? label('hintClear') : label('hintRaise') }}
 			</p>
@@ -105,6 +105,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcTextField } from '@nextcloud/vue'
 import FlagOutline from 'vue-material-design-icons/FlagOutline.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { dispatchObjectsChanged } from '../../utils/objectSignals.js'
 import { readPath } from '../../utils/readPath.js'
 
@@ -176,6 +177,8 @@ export default {
 	name: 'CnAttentionFlagWidget',
 
 	components: { FlagOutline, NcButton, NcTextField },
+
+	mixins: [innerHeading],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

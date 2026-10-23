@@ -38,9 +38,9 @@
 						<component :is="icon" v-if="icon" :size="18" />
 					</slot>
 				</span>
-				<h4 class="cn-kpi-card__title" :title="title || undefined">
+				<component :is="innerHeadingTag" class="cn-kpi-card__title cn-inner-heading" :title="title || undefined">
 					{{ title ? tl(title) : t('nextcloud-vue', 'Objects') }}
-				</h4>
+				</component>
 			</div>
 
 			<div v-if="hasError" class="cn-stats-block__count cn-stats-block__count--error">
@@ -88,6 +88,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 // The canonical KPI look, shared with CnStatWidget. Imported here so the
@@ -157,6 +158,8 @@ export default {
 	components: {
 		NcLoadingIcon,
 	},
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**
