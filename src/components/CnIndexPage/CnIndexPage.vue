@@ -1801,6 +1801,19 @@ function namedFilterToQuery(values) {
  * @slot row-actions — Custom row actions. Scope: `{ row }`
  * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
+
+/**
+ * Whether a page's named source orders its rows itself: on the page
+ * (`sortsRows`) or on the server (`sortParam`).
+ *
+ * @param {object} vm The index page.
+ * @return {boolean}
+ * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+ */
+function namedSourceSorts(vm) {
+	return Boolean(vm.isNamedSource && vm.namedSource
+		&& (vm.namedSource.sortsRows === true || typeof vm.namedSource.sortParam === 'function'))
+}
 export default {
 	name: 'CnIndexPage',
 
@@ -4372,6 +4385,10 @@ export default {
 		const namedActiveFilters = ref(namedFiltersWithDefaults(getCurrentInstance(), props))
 		// The search term on a named source that searches (`searchParam`).
 		const namedSearchTerm = ref('')
+		// The order a named source shows its rows in: sorted on the page
+		// (`sortsRows`) or asked of the server (`sortParam`), starting from
+		// the page's `sortKey` / `sortOrder`.
+		const namedSort = ref({ key: props.sortKey || '', order: props.sortOrder === 'desc' ? 'desc' : 'asc' })
 
 		const {
 			isNamedSource,
@@ -4380,7 +4397,7 @@ export default {
 			namedLoading,
 			namedQuickFilters,
 			namedReload,
-		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters, paging: namedPaging, searchTerm: namedSearchTerm, sort: namedSort })
 
 		return {
 			isBoard: isBoardLook,
@@ -4395,6 +4412,7 @@ export default {
 			namedActiveFilters,
 			namedPaging,
 			namedSearchTerm,
+			namedSort,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -4414,8 +4432,6 @@ export default {
 
 	data() {
 		return {
-			/** The order a named source that `sortsRows` shows its rows in. */
-			namedSort: { key: '', order: 'asc' },
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -7378,14 +7394,14 @@ export default {
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() {
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				return this.namedSort.key || null
 			}
 			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
 		},
 
 		effectiveSortOrder() {
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				return this.namedSort.order || 'asc'
 			}
 			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
@@ -10590,7 +10606,7 @@ export default {
 			if (this.sortSource.value) {
 				this.sortSource = { ...this.sortSource, value: '', page: 1 }
 			}
-			if (this.isNamedSource && this.namedSource && this.namedSource.sortsRows === true) {
+			if (namedSourceSorts(this)) {
 				this.namedSort = { key: (payload && payload.key) || '', order: (payload && payload.order) || 'asc' }
 			}
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {

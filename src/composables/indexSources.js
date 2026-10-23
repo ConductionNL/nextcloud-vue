@@ -467,6 +467,14 @@ export function taskDueLabel(task) {
 const TASK_TERMINAL_STATES = ['completed', 'terminated', 'disabled']
 
 /**
+ * The columns the task inbox sorts by (`TaskController::index` `sort`), by
+ * column key: the raw fields and the source's own label columns.
+ *
+ * @type {{[key: string]: string}}
+ */
+const TASK_SORT_FIELDS = { dueAt: 'dueAt', dueLabel: 'dueAt', priority: 'priority', priorityLabel: 'priority', created: 'created' }
+
+/**
  * The form the tasks source's Edit verb asks with: the task's own fields the
  * engine lets the people working it change, filled from the task.
  *
@@ -679,10 +687,25 @@ function tasksSource() {
 			{ key: 'title', label: t('nextcloud-vue', 'Task') },
 			{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject') },
 			{ key: 'stateLabel', label: t('nextcloud-vue', 'State'), widget: 'badge', widgetProps: { colorMap: stateColorMap } },
-			{ key: 'priorityLabel', label: t('nextcloud-vue', 'Priority'), widget: 'badge', widgetProps: { colorMap: priorityColorMap } },
-			{ key: 'dueLabel', label: t('nextcloud-vue', 'Due') },
+			{ key: 'priorityLabel', label: t('nextcloud-vue', 'Priority'), widget: 'badge', widgetProps: { colorMap: priorityColorMap }, sortable: true },
+			{ key: 'dueLabel', label: t('nextcloud-vue', 'Due'), sortable: true },
 			{ key: 'assignee', label: t('nextcloud-vue', 'Assignee') },
 		],
+
+		/**
+		 * The inbox argument a column header's order becomes: the inbox
+		 * sorts by deadline, priority or creation, server side, so a sorted
+		 * page is the first page of the whole sorted inbox.
+		 *
+		 * @param {string} key The column key.
+		 * @param {string} order `asc` or `desc`.
+		 * @return {{sort: string}|null} The parameter, or null for a column the inbox cannot sort by.
+		 * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+		 */
+		sortParam: (key, order) => {
+			const field = TASK_SORT_FIELDS[key]
+			return field ? { sort: (order === 'desc' ? '-' : '') + field } : null
+		},
 
 		// The scope tabs. Each tab's filter is merged over the page's
 		// `sourceConfig` (tab wins on a colliding key) and the merged config
