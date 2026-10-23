@@ -7,9 +7,11 @@ import { translate as t } from '@nextcloud/l10n'
  * Saved views a user added to the app menu.
  *
  * Per user, in the app's preferences (`cn_saved_view_menu`), as a list of
- * `{ id, page, name, badge? }`: the view id (or `default:<slug>`), the route
- * name of the index page it filters, the name to show, and the count the
- * entry shows when the view's `overrides.badge` asks for one. The view itself is not
+ * `{ id, page, name, icon?, description?, badge? }`: the view id (or
+ * `default:<slug>`), the route name of the index page it filters, the name
+ * to show, the view's icon, its description (the entry's tooltip) and the
+ * count the entry shows: the number of objects the view matches, unless its
+ * `overrides.badge` is `false`. The view itself is not
  * touched, so a view shared with the user can be added like an own one, and
  * removing it from the menu never deletes it.
  *
@@ -21,6 +23,52 @@ import { translate as t } from '@nextcloud/l10n'
 
 /** The preference key the list is stored under. */
 export const SAVED_VIEW_MENU_KEY = 'cn_saved_view_menu'
+
+/** The icon a My views entry shows when its view names none. */
+export const SAVED_VIEW_MENU_DEFAULT_ICON = 'FilterVariant'
+
+/**
+ * The icons a person can give a saved view: names from the shared semantic
+ * vocabulary, so each resolves in the menu without the app registering it.
+ * The menu's default comes first.
+ */
+export const SAVED_VIEW_ICONS = Object.freeze([
+	SAVED_VIEW_MENU_DEFAULT_ICON,
+	'ClockOutline',
+	'ClockAlertOutline',
+	'CalendarClockOutline',
+	'CalendarOutline',
+	'AccountOutline',
+	'AccountGroupOutline',
+	'FolderOutline',
+	'FileDocumentOutline',
+	'AlertCircleOutline',
+	'CheckCircleOutline',
+	'EmailOutline',
+	'MapMarkerOutline',
+	'TagOutline',
+	'BellOutline',
+	'ScaleBalance',
+	'BriefcaseOutline',
+	'EyeOutline',
+	'LockOutline',
+	'CurrencyEur',
+])
+
+/**
+ * The icon a saved view names: a default view's own `icon`, else the one a
+ * person chose, kept in the view's query (`query.icon`), else ''.
+ *
+ * @param {object} view The view.
+ * @return {string}
+ */
+export function savedViewIcon(view) {
+	if (view && typeof view.icon === 'string' && view.icon !== '') {
+		return view.icon
+	}
+	const icon = view && view.query && view.query.icon
+	return typeof icon === 'string' ? icon : ''
+}
 
 /** The id of the "My views" caption. */
 export const SAVED_VIEW_MENU_CAPTION = 'saved-views-caption'
@@ -67,6 +115,9 @@ export function normalizeSavedViewMenu(entries) {
 		if (typeof e.icon === 'string' && e.icon !== '') {
 			entry.icon = e.icon
 		}
+		if (typeof e.description === 'string' && e.description !== '') {
+			entry.description = e.description
+		}
 		const badge = normalizeBadge(e.badge)
 		if (badge) {
 			entry.badge = badge
@@ -90,7 +141,7 @@ export function toggleSavedViewMenuEntry(entries, entry) {
 	if (present) {
 		return list.filter((e) => !(e.id === id && e.page === entry.page))
 	}
-	return normalizeSavedViewMenu([...list, { id, page: entry.page, name: entry.name, icon: entry.icon, badge: entry.badge }])
+	return normalizeSavedViewMenu([...list, { id, page: entry.page, name: entry.name, icon: entry.icon, description: entry.description, badge: entry.badge }])
 }
 
 /**
@@ -121,11 +172,12 @@ export function syncSavedViewMenu(entries, page, views) {
 				return e
 			}
 			const view = byId.get(e.id)
-			const { badge, icon, id, ...rest } = e
+			const { badge, icon, id, description, ...rest } = e
 			rest.id = String(view.id || view.slug || id)
 			const next = normalizeBadge(view.menuBadge)
-			const nextIcon = typeof view.icon === 'string' && view.icon !== '' ? view.icon : icon
-			return normalizeSavedViewMenu([{ ...rest, name: view.name || e.name, ...(nextIcon ? { icon: nextIcon } : {}), ...(next ? { badge: next } : {}) }])[0]
+			const nextIcon = savedViewIcon(view) || icon
+			const nextDescription = typeof view.description === 'string' ? view.description : description
+			return normalizeSavedViewMenu([{ ...rest, name: view.name || e.name, ...(nextIcon ? { icon: nextIcon } : {}), ...(nextDescription ? { description: nextDescription } : {}), ...(next ? { badge: next } : {}) }])[0]
 		})
 }
 
@@ -170,7 +222,8 @@ export function withSavedViewMenu(menu, entries, options = {}) {
 					label: e.name,
 					route: e.page,
 					query: { savedView: e.id },
-					icon: e.icon || 'FilterVariant',
+					icon: e.icon || SAVED_VIEW_MENU_DEFAULT_ICON,
+					...(e.description ? { description: e.description } : {}),
 					...(e.badge || {}),
 				}))
 			: [{ id: SAVED_VIEW_MENU_EMPTY, type: 'hint', label: t('nextcloud-vue', 'Add a view to the menu from Filters') }]),

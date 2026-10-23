@@ -2361,7 +2361,9 @@
     "{shown} of {total} events, changes only": "{shown} of {total} events, changes only",
     "Opened the record": "Opened the record",
     "Viewed": "Viewed",
-    "w{week}": "w{week}"
+    "w{week}": "w{week}",
+    "Icon": "Icon",
+    "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu."
   },
   "plurals": {
     "{count} member": [
