@@ -590,7 +590,10 @@ export default {
 			if (!(this.canAdd && this.addTrigger && this.addPlacement === 'title')) {
 				return []
 			}
-			return [{ label: this.addLabel, icon: 'Plus', run: () => { this.adding = !this.adding } }]
+			const run = () => {
+				this.adding = !this.adding
+			}
+			return [{ label: this.addLabel, icon: 'Plus', run }]
 		},
 
 		addLabel() {

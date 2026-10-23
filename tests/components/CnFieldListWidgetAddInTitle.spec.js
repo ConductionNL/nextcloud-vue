@@ -50,7 +50,13 @@ function mountList(add) {
 	})
 }
 
-const lastHeader = (w) => {
+/**
+ * The last `header` event's payload.
+ *
+ * @param {object} w The wrapper.
+ * @return {object|null} The payload.
+ */
+function lastHeader(w) {
 	const events = w.emitted('header') || []
 	return events.length ? events[events.length - 1][0] : null
 }
