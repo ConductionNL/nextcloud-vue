@@ -2335,7 +2335,24 @@
     "this morning": "this morning",
     "this afternoon": "this afternoon",
     "this evening": "this evening",
-    "{subject}, checklist": "{subject}, checklist"
+    "{subject}, checklist": "{subject}, checklist",
+    "Kept for a procedure": "Kept for a procedure",
+    "Placed on {date} by {by}": "Placed on {date} by {by}",
+    "No legal hold": "No legal hold",
+    "If an objection or appeal runs, destruction is suspended": "If an objection or appeal runs, destruction is suspended",
+    "None": "None",
+    "Transfer to the e-Depot": "Transfer to the e-Depot",
+    "Goes to the e-Depot": "Goes to the e-Depot",
+    "Not applicable": "Not applicable",
+    "After the retention period the record is transferred": "After the retention period the record is transferred",
+    "Only records appraised to keep go to the e-Depot": "Only records appraised to keep go to the e-Depot",
+    "Transfer": "Transfer",
+    "No transfer": "No transfer",
+    "Depends on the result": "Depends on the result",
+    "%n week": [
+      "%n week",
+      "%n weeks"
+    ]
   },
   "plurals": {
     "{count} member": [
