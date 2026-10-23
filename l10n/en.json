@@ -1748,6 +1748,8 @@
     "Manage \"{name}\"": "Manage \"{name}\"",
     "Presentation": "Presentation",
     "Save a copy": "Save a copy",
+    "{name}, in the menu": "{name}, in the menu",
+    "{name} (copy)": "{name} (copy)",
     "Save the current filters to \"{name}\"": "Save the current filters to \"{name}\"",
     "Share": "Share",
     "Update with current filters": "Update with current filters",

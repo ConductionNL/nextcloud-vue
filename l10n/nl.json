@@ -1961,6 +1961,8 @@
     "Manage \"{name}\"": "Beheer {name}",
     "Presentation": "Presentatie",
     "Save a copy": "Kopie opslaan",
+    "{name}, in the menu": "{name}, in het menu",
+    "{name} (copy)": "{name} (kopie)",
     "Save the current filters to \"{name}\"": "Huidige filters opslaan in \"{name}\"",
     "Share": "Delen",
     "Update with current filters": "Bijwerken met huidige filters",

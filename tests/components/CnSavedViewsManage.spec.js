@@ -54,7 +54,7 @@ describe('the saved-views panel', () => {
 
 	it('offers each access only its own entries; only the owner edits and deletes', () => {
 		const w = mountPanel([own, writable, readOnly])
-		expect(entriesOf(w, '1')).toEqual(['edit', 'update', 'share', 'delete'])
+		expect(entriesOf(w, '1')).toEqual(['edit', 'update', 'share', 'copy', 'delete'])
 		expect(entriesOf(w, '2')).toEqual(['update', 'copy'])
 		expect(entriesOf(w, '3')).toEqual(['copy'])
 	})

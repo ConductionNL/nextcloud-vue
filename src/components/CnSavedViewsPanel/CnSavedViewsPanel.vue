@@ -86,9 +86,16 @@
 							:data-group="row.group"
 							:data-access="accessOf(row)"
 							:aria-pressed="isSelected(row.view)"
-							:aria-label="rowLabel(row)"
+							:aria-label="isInMenu(row.view) ? t('nextcloud-vue', '{name}, in the menu', { name: rowLabel(row) }) : rowLabel(row)"
 							@click="emitFor('apply', row.view)">
-							<span class="cn-saved-views-panel__name-text">{{ rowText(row) }}</span>
+							<span class="cn-saved-views-panel__name-text">
+								<Pin
+									v-if="isBoardLook && isInMenu(row.view)"
+									class="cn-saved-views-panel__in-menu"
+									data-testid="cn-saved-views-in-menu"
+									:size="14"
+									aria-hidden="true" />{{ rowText(row) }}
+							</span>
 							<span v-if="subline(row, section.key)" class="cn-saved-views-panel__subline">{{ subline(row, section.key) }}</span>
 						</button>
 						<span
@@ -119,7 +126,7 @@
 								:closeAfterClick="true"
 								@click="emitFor('update-request', row.view)">
 								<template #icon>
-									<ContentSaveOutline :size="20" />
+									<Refresh :size="20" />
 								</template>
 								{{ t('nextcloud-vue', 'Update with current filters') }}
 							</NcActionButton>
@@ -159,6 +166,7 @@
 								</template>
 								{{ isInMenu(row.view) ? t('nextcloud-vue', 'Remove from menu') : t('nextcloud-vue', 'Add to menu') }}
 							</NcActionButton>
+							<NcActionSeparator v-if="can(row, 'delete')" />
 							<NcActionButton
 								v-if="can(row, 'delete')"
 								data-testid="cn-saved-views-delete"
@@ -180,13 +188,15 @@
 </template>
 
 <script>
-import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcActionSeparator, NcButton } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
+import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOffOutline from 'vue-material-design-icons/PinOffOutline.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -199,7 +209,7 @@ import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
  * read-only Default views, and per view one "Manage {name}" menu with
  * Edit, Update with current filters, Share, Save a copy, Add to menu or Remove
  * from menu, and Delete. Entries show by the caller's access: the owner gets
- * Edit, Update, Share and Delete; a view shared with write access gets
+ * Edit, Update, Share, Save a copy and Delete; a view shared with write access gets
  * Update and Save a copy; one shared to use, and a default, get Save a copy.
  * Add to menu is there for every view when the app has a menu. The server
  * stays the authority.
@@ -211,7 +221,7 @@ import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
  * @event {object} edit-request — Edit an own view.
  * @event {object} share-request — Share an own view.
  * @event {object} update-request — Save the current filters into it (owner, write).
- * @event {object} copy-request — Save a copy of a shared or default view.
+ * @event {object} copy-request — Save a copy of a view.
  * @event {object} menu-toggle — Add the view to the app menu, or remove it.
  * @event {object} delete-request — Delete an own view (after confirmation).
  * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
@@ -222,13 +232,16 @@ export default {
 	components: {
 		NcActionButton,
 		NcActions,
+		NcActionSeparator,
 		NcButton,
 		ContentCopy,
 		ContentSaveOutline,
 		LockOutline,
 		PencilOutline,
+		Pin,
 		PinOffOutline,
 		PinOutline,
+		Refresh,
 		ShareVariantOutline,
 		TrashCanOutline,
 	},
@@ -267,7 +280,7 @@ export default {
 	emits: [
 		/** Apply the view. Payload: the View API object. */
 		'apply',
-		/** Save a copy of a shared or default view. Payload: the view. */
+		/** Save a copy of a view. Payload: the view. */
 		'copy-request',
 		/** Delete an own view, after confirmation. Payload: the view. */
 		'delete-request',
@@ -335,7 +348,7 @@ export default {
 				return entry === 'copy'
 			}
 			const allowed = {
-				owner: ['edit', 'update', 'share', 'delete'],
+				owner: ['edit', 'update', 'share', 'copy', 'delete'],
 				write: ['update', 'copy'],
 				read: ['copy'],
 			}
@@ -522,6 +535,13 @@ export default {
 	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.cn-saved-views-panel__in-menu {
+	display: inline-flex;
+	margin-inline-end: 6px;
+	vertical-align: -2px;
+	color: var(--color-primary-element-light-text);
 }
 
 .cn-saved-views-panel__subline {

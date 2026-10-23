@@ -1476,7 +1476,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewAccess, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
@@ -13305,16 +13305,19 @@ export default {
 		},
 
 		/**
-		 * "Save as my view" on a read-only shared view
-		 * (CnSavedViewsControl `@copy-request`): a personal copy with the same
-		 * name and query. The original stays untouched.
+		 * "Save a copy" of a view (CnSavedViewsControl `@copy-request`): a
+		 * personal copy with the same query. A copy of a view shared with the
+		 * reader or shipped with the app keeps its name; a copy of the reader's
+		 * own view is named "{name} (copy)". The original stays untouched.
 		 *
-		 * @param {object} view The shared View API object.
+		 * @param {object} view The View API object.
 		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 * @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-an-own-view-can-be-copied
 		 */
 		async onCopyViewRequest(view) {
+			const own = viewAccess(view, this.currentSavedViewsUserId) === 'owner'
 			const payload = {
-				name: view.name,
+				name: own ? t('nextcloud-vue', '{name} (copy)', { name: view.name }) : view.name,
 				description: view.description || '',
 				isPublic: false,
 				isDefault: false,

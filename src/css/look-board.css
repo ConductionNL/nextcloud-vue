@@ -853,6 +853,50 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	max-width: calc(100vw - 32px);
 }
 
+/* A saved view's manage menu (DqFilterBeheren, DqFilterInMenu "Beheer
+   <view>"): 264px wide, rows of at least 40px, 6px 10px in, 8px rounded,
+   the icon 12px before a 14px label at 600 with its explanation under it in
+   12px muted text at 400; the separator in the soft line, and Delete in the
+   error red. Its rows carry the panel's `cn-saved-views-` test ids.
+   @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-a-saved-views-manage-menu-is-the-boards-menu */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
+	box-sizing: border-box;
+	width: 264px;
+	max-width: calc(100vw - 32px);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
+	--font-weight-element: 600;
+	--nldesign-component-button-font-weight: 600;
+	--nldesign-component-button-border-radius: 8px;
+	gap: 12px;
+	min-height: 40px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	font-weight: 600;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__longtext-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__description {
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 16px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
+	border-bottom-color: var(--color-background-hover);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
+	color: var(--color-error-text);
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
