@@ -834,6 +834,10 @@
    the notice needs it too, or it stays a second tinted box in the first.
    @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
 	background-color: transparent !important;
 }
 
