@@ -63,6 +63,8 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
 
+`tiles: true` (with `presentation: "rows"`) draws each row as a framed tile, 8px 10px inside a hairline edge with radius 8, in a grid of 260px at the least and 8px apart, the title at 14px regular. Board DqZaaktypeOverzicht draws a case type's statuses this way: two columns of tiles, each with its colour dot and flags.
+
 ### One action per row
 
 `rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
