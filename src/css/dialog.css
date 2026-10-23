@@ -194,9 +194,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    after the box: NcCheckboxRadioSwitch pads its row by half the clickable
    area, which set the box 9px in (DqBerichtVersturen "Dit is een besluit").
    A note under the checkbox lines up with its label through
-   --cn-dialog-check-label-inset (the box and the gap). */
+   --cn-dialog-check-label-inset (the 20px box and the gap). */
 .cn-dialog-board {
-	--cn-dialog-check-label-inset: 26px;
+	--cn-dialog-check-label-inset: 30px;
 }
 
 .cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content {

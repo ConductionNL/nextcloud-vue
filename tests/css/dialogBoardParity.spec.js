@@ -60,7 +60,7 @@ describe('dialog.css: the board dialog', () => {
 		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
 		expect(content).toContain('padding-inline: 0;')
 		expect(content).toContain('gap: 10px;')
-		expect(bodyOf(dialog, '.cn-dialog-board')).toContain('--cn-dialog-check-label-inset: 26px;')
+		expect(bodyOf(dialog, '.cn-dialog-board')).toContain('--cn-dialog-check-label-inset: 30px;')
 		const assign = fs.readFileSync(path.join(__dirname, '../../src/components/CnAssignDialog/CnAssignDialog.vue'), 'utf8')
 		expect(assign).toMatch(/\.cn-assign-dialog__toggle-note \{\s*padding-inline-start: var\(--cn-dialog-check-label-inset, 44px\);/)
 	})
