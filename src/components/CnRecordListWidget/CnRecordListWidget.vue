@@ -1662,15 +1662,21 @@ export default {
 		 * Run a `rowAction` that is not a plain link through the page's
 		 * dispatcher: a `handler` gets the row as its last argument, an
 		 * `open-modal` gets it as the `row` prop, an `object-op` acts on it.
+		 * With `endpoint` it calls that app URL for the row, as a `rowActions`
+		 * endpoint entry does.
 		 *
 		 * @param {object} row The row.
 		 * @return {unknown} What the dispatcher returns.
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
+		 * @spec openspec/changes/record-list-row-action-endpoint/specs/record-list/spec.md#requirement-a-rows-one-action-can-call-an-app-endpoint-for-that-row
 		 */
 		runRowAction(row) {
 			const action = this.content?.rowAction
 			if (!action || typeof action !== 'object') {
 				return undefined
+			}
+			if (typeof action.endpoint === 'string' && action.endpoint !== '') {
+				return this.runRowActionEntry(action, row)
 			}
 			const type = action.type || 'handler'
 			let wrapped = action
