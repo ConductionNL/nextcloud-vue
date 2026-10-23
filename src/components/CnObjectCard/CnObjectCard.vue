@@ -5,8 +5,8 @@
 		@mousedown="onCardMouseDown"
 		@click="onCardClick($event)"
 		@auxclick="onCardAuxClick($event)">
-		<!-- Selection checkbox -->
-		<div v-if="selectable"
+		<!-- Selection checkbox (a record card draws it in its head row) -->
+		<div v-if="selectable && !recordLayout"
 			class="cn-object-card__checkbox"
 			@click.stop
 			@auxclick.stop>
@@ -19,6 +19,14 @@
 		     meta line, then a footer with a pill and a date. -->
 		<div v-if="recordLayout" class="cn-object-card__content cn-object-card__record" data-testid="cn-object-card-record">
 			<div class="cn-object-card__record-head">
+				<div v-if="selectable"
+					class="cn-object-card__checkbox"
+					@click.stop
+					@auxclick.stop>
+					<NcCheckboxRadioSwitch
+						:modelValue="selected"
+						@update:modelValue="$emit('select', object)" />
+				</div>
 				<CnStatusBadge
 					v-if="recordHeadPill"
 					class="cn-object-card__record-pill"

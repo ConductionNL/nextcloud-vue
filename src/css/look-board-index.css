@@ -1297,6 +1297,17 @@
 	min-height: 24px;
 }
 
+/* A selectable record card heads with its checkbox on the left and the pill
+   on the right (DqZakenSorteren).
+   @spec openspec/changes/board-record-card-select-in-head/specs/board-record-card-select-in-head/spec.md#requirement-a-selectable-board-record-card-heads-with-its-checkbox-and-its-pill-on-one-row */
+.cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox {
+	padding-top: 0;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox ~ .cn-object-card__record-pill {
+	margin-inline-start: auto;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-number {
 	margin-inline-start: auto;
 	color: var(--color-text-maxcontrast);
