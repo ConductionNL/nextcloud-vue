@@ -2580,7 +2580,8 @@
     "this morning": "vanochtend",
     "this afternoon": "vanmiddag",
     "this evening": "vanavond",
-    "Week {week}": "Week {week}"
+    "Week {week}": "Week {week}",
+    "w{week}": "w{week}"
   },
   "plurals": {
     "{count} member": [

@@ -2329,7 +2329,8 @@
     "this morning": "this morning",
     "this afternoon": "this afternoon",
     "this evening": "this evening",
-    "Week {week}": "Week {week}"
+    "Week {week}": "Week {week}",
+    "w{week}": "w{week}"
   },
   "plurals": {
     "{count} member": [

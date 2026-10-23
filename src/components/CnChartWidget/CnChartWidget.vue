@@ -499,7 +499,9 @@ export default {
 		 * `month-year` ("jan 2026"), in the user's language. A category that
 		 * is not a date is shown as is. Empty shows the categories unchanged.
 		 *
-		 * @type {''|'month'|'month-year'}
+		 * `week` writes an ISO week key (`2026-W40`) as "w40".
+		 *
+		 * @type {''|'month'|'month-year'|'week'}
 		 */
 		categoryFormat: {
 			type: String,
@@ -1646,6 +1648,12 @@ export default {
 		 */
 		displayCategories() {
 			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			if (this.categoryFormat === 'week') {
+				return categories.map((category) => {
+					const week = /^\d{4}-W(\d{1,2})$/.exec(String(category))
+					return week ? t('nextcloud-vue', 'w{week}', { week: Number(week[1]) }) : category
+				})
+			}
 			if (this.categoryFormat !== 'month' && this.categoryFormat !== 'month-year') {
 				return categories
 			}
