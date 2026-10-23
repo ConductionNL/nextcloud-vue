@@ -653,6 +653,17 @@
 	background: transparent;
 }
 
+/* The board splits the map card 3:2 over a 520px map and the 320px list,
+   18px apart (DqZakenKaart: map 655, list 409).
+   @spec openspec/changes/board-map-card-split/specs/board-map-card-split/spec.md#requirement-the-board-map-card-splits-as-the-board-does */
+.cn-look-board .cn-index-page__map-card:not(.cn-look-nextcloud *) {
+	gap: 18px;
+}
+
+.cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *) {
+	flex: 3 1 520px;
+}
+
 /* The numbered list scrolls inside the card's height rather than running
    past its bottom, over the footer. */
 .cn-look-board .cn-index-page__main--map > .cn-index-page__map-card > .cn-index-page__map-side {
