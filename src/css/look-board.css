@@ -763,7 +763,9 @@
 	font-weight: 600;
 }
 
-.cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover {
+/* While its menu is open the trigger stays white, also under the pointer
+   that just opened it (DqZaaktypen draws "Acties" open on the main ground). */
+.cn-look-board .action-item.action-item--secondary:not(.action-item--open) .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
 }
 
