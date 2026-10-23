@@ -141,6 +141,7 @@ import CnRetentionRecomputeDialog from './CnRetentionRecomputeDialog.vue'
 import innerHeading from '../../mixins/innerHeading.js'
 import { parseDuration } from '../../utils/isoDuration.js'
 import { readPath } from '../../utils/readPath.js'
+import { referenceLabel } from '../../utils/referenceLabel.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -168,7 +169,9 @@ import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFil
  *   resolved against the record); `fields: { appraisal, period,
  *   selectionListRow }` names their fields; `appraisalLabels` names the
  *   appraisal values; `periodText` writes the period (`{period} after the
- *   decision`); `decidedBy` says who decides. When the candidates agree the
+ *   decision`); `decidedBy` says who decides; `selectionListLookup:
+ *   { url, param?, label? }` reads a selection list URL as words
+ *   ("6.1, Ingewilligd"), the URL's last segment when the lookup fails. When the candidates agree the
  *   facts show that outcome, otherwise "Depends on the result". A failed
  *   read keeps the plain facts.
  * - `pendingNote`: the note under the facts of a record not closed yet.
@@ -246,6 +249,8 @@ export default {
 			busy: false,
 			/** The candidate rules `content.expected` reads, null until read or when unreadable. */
 			expectedRows: null,
+			/** The words for the agreed selection list URL, read through `expected.selectionListLookup`. */
+			selectionListLabel: '',
 		}
 	},
 
@@ -352,9 +357,10 @@ export default {
 			if (first.appraisal === '' && first.period === '') {
 				return null
 			}
+			const sameRow = outcomes.every((o) => o.selectionListRow === first.selectionListRow)
 			return agree
-				? { ...first, selectionListRow: outcomes.every((o) => o.selectionListRow === first.selectionListRow) ? first.selectionListRow : '', mixed: false }
-				: { appraisal: '', period: '', selectionListRow: '', mixed: true }
+				? { ...first, selectionListRow: sameRow ? (this.selectionListLabel || first.selectionListRow) : '', rowsDiffer: !sameRow, mixed: false }
+				: { appraisal: '', period: '', selectionListRow: '', rowsDiffer: true, mixed: true }
 		},
 
 		/**
@@ -381,8 +387,8 @@ export default {
 				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: expected.mixed ? depends : this.appraisalLabel(expected.appraisal) },
 				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: expected.mixed ? depends : this.periodLabel(expected.period) },
 			]
-			if (expected.selectionListRow) {
-				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: expected.selectionListRow })
+			if (expected.selectionListRow || expected.rowsDiffer) {
+				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: expected.rowsDiffer ? depends : expected.selectionListRow })
 			}
 			facts.push({ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure })
 			if (config.decidedBy) {
@@ -528,9 +534,26 @@ export default {
 			try {
 				const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}`), { params: { ...filter, _limit: 100 } })
 				this.expectedRows = Array.isArray(data?.results) ? data.results : []
+				await this.loadSelectionListLabel()
 			} catch {
 				this.expectedRows = null
 			}
+		},
+
+		/**
+		 * Read the agreed selection list value as words: a URL goes through
+		 * `expected.selectionListLookup`, and falls back to its last segment.
+		 *
+		 * @spec openspec/changes/retention-expected-outcome/specs/retention-widget/spec.md#requirement-an-open-record-shows-the-outcome-its-type-expects
+		 * @return {Promise<void>}
+		 */
+		async loadSelectionListLabel() {
+			this.selectionListLabel = ''
+			const raw = this.expectedOutcome && !this.expectedOutcome.rowsDiffer ? this.expectedOutcome.selectionListRow : ''
+			if (raw === '') {
+				return
+			}
+			this.selectionListLabel = await referenceLabel(raw, this.content.expected?.selectionListLookup || null)
 		},
 
 		/**

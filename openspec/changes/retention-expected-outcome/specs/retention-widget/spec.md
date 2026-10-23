@@ -22,3 +22,12 @@ With `content.legalHold` the widget SHALL list the record's active legal holds, 
 - **GIVEN** an open case without holds whose type destroys it
 - **WHEN** the Archiving card renders
 - **THEN** it SHALL read "No legal hold" and "Not applicable" for the transfer
+
+### Requirement: A selection list URL reads as its code and name
+
+With `expected.selectionListLookup` the widget SHALL read an agreed selection list URL through the lookup endpoint, once per URL, and SHALL show the URL's last segment when the lookup fails. When the candidate rules name different rows it SHALL say the row depends on the result.
+
+#### Scenario: the VNG row of a Woo request
+- **GIVEN** result types that all name the selectielijst URL of 6.1 "Ingewilligd"
+- **WHEN** the Archiving card renders
+- **THEN** Selection list row SHALL read "6.1, Ingewilligd"

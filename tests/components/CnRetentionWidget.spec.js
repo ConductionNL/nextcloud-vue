@@ -13,6 +13,7 @@ import axios from '@nextcloud/axios'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnRetentionWidget from '../../src/components/CnRetentionWidget/CnRetentionWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { __resetReferenceLabels } from '../../src/utils/referenceLabel.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -167,6 +168,7 @@ describe('CnRetentionWidget before the record closes', () => {
 
 	beforeEach(() => {
 		axios.get.mockReset()
+		__resetReferenceLabels()
 	})
 
 	it('shows the outcome the record type expects, read from its result types', async () => {
@@ -181,6 +183,27 @@ describe('CnRetentionWidget before the record closes', () => {
 			'Decided by': 'The case type, when it closes',
 			'Written on': 'Not yet',
 		})
+	})
+
+	it('reads a selection list URL as its code and name through the lookup', async () => {
+		const url = 'https://selectielijst.openzaak.nl/api/v1/resultaten/3fc7002b-31b6-4abe-82af-b6d46a9a1736'
+		axios.get.mockImplementation(async (path) => {
+			if (path.includes('/resultType')) {
+				return { data: { results: RESULT_TYPES.map((row) => ({ ...row, selectionListClass: url })) } }
+			}
+			if (path.includes('/selectielijst/resolve')) {
+				return { data: { code: '6.1', name: 'Ingewilligd' } }
+			}
+			return { data: OPEN }
+		})
+		const w = await mountWidget({ expected: { ...EXPECTED, selectionListLookup: { url: '/apps/openregister/api/archival/selectielijst/resolve' } } })
+		expect(pending(w)['Selection list row']).toBe('6.1, Ingewilligd')
+	})
+
+	it('says the selection list row depends on the result when the rows differ', async () => {
+		answer([RESULT_TYPES[0], { ...RESULT_TYPES[1], selectionListClass: '6.2, Afgewezen' }])
+		const w = await mountWidget({ expected: EXPECTED })
+		expect(pending(w)['Selection list row']).toBe('Depends on the result')
 	})
 
 	it('says the outcome depends on the result when the result types disagree', async () => {
