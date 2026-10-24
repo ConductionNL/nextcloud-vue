@@ -926,7 +926,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								:actions="rowActionsFor(row)"
+								:actions="rowMenuActionsFor(row)"
 								:row="row"
 								:rowLabel="rowTitleFor(row)"
 								@action="onRowAction" />
@@ -1173,7 +1173,7 @@
 					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="rowActionsFor(object)"
+								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								@action="onRowAction" />
@@ -1225,7 +1225,7 @@
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="rowActionsFor(object)"
+								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
@@ -1237,7 +1237,7 @@
 				<!-- Right-click context menu (positioned at cursor via CSS). Same per-row list as the row actions menu, so the two never drift. -->
 				<CnContextMenu
 					v-model:open="contextMenuOpen"
-					:actions="rowActionsFor(contextMenuShownRow)"
+					:actions="rowMenuActionsFor(contextMenuShownRow)"
 					:targetItem="contextMenuShownRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
@@ -8017,7 +8017,26 @@ export default {
 		},
 
 		hasRowActions() {
-			return this.$slots['row-actions'] || this.mergedActions.length > 0
+			const refs = this.columnActionRefs
+			return this.$slots['row-actions'] || this.mergedActions.some((action) => action && !refs.has(String(action.id || action.label)) && !refs.has(String(action.label)))
+		},
+
+		/**
+		 * The row actions an `actions` column already shows as buttons, by the
+		 * ids (or labels) its `widgetProps.actions` names. The row menu leaves
+		 * them out, so a row does not offer the same action twice (DqPostvak).
+		 *
+		 * @return {Set<string>}
+		 * @spec openspec/changes/column-actions-leave-the-row-menu/specs/column-actions-leave-the-row-menu/spec.md
+		 */
+		columnActionRefs() {
+			const refs = new Set()
+			for (const col of Array.isArray(this.columns) ? this.columns : []) {
+				if (col && typeof col === 'object' && col.widget === 'actions' && Array.isArray(col.widgetProps?.actions)) {
+					col.widgetProps.actions.forEach((ref) => refs.add(String(ref)))
+				}
+			}
+			return refs
 		},
 
 		/**
@@ -11862,6 +11881,22 @@ export default {
 				availableRowActions(this.mergedActions, row, this.rowActionField),
 				this.rowOpensDetailFor(row),
 			)
+		},
+
+		/**
+		 * The row menu's actions: the row's actions less those an `actions`
+		 * column already shows as buttons.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/column-actions-leave-the-row-menu/specs/column-actions-leave-the-row-menu/spec.md
+		 */
+		rowMenuActionsFor(row) {
+			const refs = this.columnActionRefs
+			if (refs.size === 0) {
+				return this.rowActionsFor(row)
+			}
+			return this.rowActionsFor(row).filter((action) => !refs.has(String(action.id || action.label)) && !refs.has(String(action.label)))
 		},
 
 		/**
