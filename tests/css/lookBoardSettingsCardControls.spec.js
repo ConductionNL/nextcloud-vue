@@ -47,7 +47,7 @@ describe('look-board.css: a settings card\'s controls are 40px', () => {
 		expect(body).toContain('font-size: 14px;')
 	})
 
-	it('draws the compact version card title at 18px', () => {
-		expect(bodyOf(`${SECTION}:has(.cn-version-info--compact) > .settings-section__name`)).toContain('font-size: 18px;')
+	it('draws the compact version card title at 17px unless the app names its board\'s size', () => {
+		expect(bodyOf(`${SECTION}:has(.cn-version-info--compact) > .settings-section__name`)).toContain('font-size: var(--cn-board-version-title-size, 17px);')
 	})
 })

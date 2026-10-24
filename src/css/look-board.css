@@ -2886,8 +2886,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 14px;
 }
 
+/* The version card's title follows its board: 17px on DqInstellingenAlgemeen
+   and LrBeheerinstellingen; an app whose board draws another size passes the
+   shell's `versionTitleSize`.
+   @spec openspec/changes/board-version-title-size/specs/board-settings-card-controls/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
-	font-size: 18px;
+	font-size: var(--cn-board-version-title-size, 17px);
 }
 
 /* ---- A card titled as a side card (`titleTone: "side"`) ------------------ */
