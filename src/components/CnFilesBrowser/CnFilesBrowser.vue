@@ -38,7 +38,7 @@
 		     Files app and its plugins registered for this folder (a new folder,
 		     a template, a file request) beside a plain upload. -->
 		<div class="cn-files-browser__bar">
-			<NcBreadcrumbs class="cn-files-browser__crumbs">
+			<NcBreadcrumbs class="cn-files-browser__crumbs" :class="{ 'cn-files-browser__crumbs--at-root': atRoot }">
 				<!-- The whole trail from the user's files root, as the Files app
 				     draws it. A crumb above the browser's root links into the Files
 				     app (the browser never leaves its root); the root and everything
@@ -1413,6 +1413,19 @@ export default {
 		 */
 		crumbs() {
 			return crumbsFor(this.rootPath, this.currentPath, this.rootLabel)
+		},
+
+		/**
+		 * Whether the open folder is the browser's root: the trail then ends on
+		 * the root itself (the board look draws no trail there).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root
+		 */
+		atRoot() {
+			const root = String(this.rootPath || '/').replace(/\/+$/, '') || '/'
+			const last = this.crumbs[this.crumbs.length - 1]
+			return Boolean(last) && last.path === root
 		},
 
 		/**
