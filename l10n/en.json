@@ -2379,7 +2379,17 @@
     "{field} is less than {value}": "{field} is less than {value}",
     "{field} is at most {value}": "{field} is at most {value}",
     "{field} is filled in": "{field} is filled in",
-    "No conditions: the rule always applies.": "No conditions: the rule always applies."
+    "No conditions: the rule always applies.": "No conditions: the rule always applies.",
+    "Add a party": "Add a party",
+    "Remove party": "Remove party",
+    "Remove {name} as {role}": "Remove {name} as {role}",
+    "Remove {name} as {role}?": "Remove {name} as {role}?",
+    "Someone already known": "Someone already known",
+    "Someone new": "Someone new",
+    "The change could not be saved. Nothing was changed.": "The change could not be saved. Nothing was changed.",
+    "The new person was not saved.": "The new person was not saved.",
+    "The party could not be added.": "The party could not be added.",
+    "You may not change who is on this record.": "You may not change who is on this record."
   },
   "plurals": {
     "{count} member": [

@@ -25,7 +25,16 @@
 				class="cn-field-list-widget__field"
 				:data-testid="`cn-field-list-input-${field.key}`">
 				<NcSelect
-					v-if="field.type === 'select'"
+					v-if="field.type === 'multiselect'"
+					v-model="draft[field.key]"
+					:inputLabel="field.label"
+					:options="field.options"
+					:reduce="(option) => option.value"
+					:multiple="true"
+					:keepOpen="true"
+					label="label" />
+				<NcSelect
+					v-else-if="field.type === 'select'"
 					v-model="draft[field.key]"
 					:inputLabel="field.label"
 					:options="field.options"
@@ -247,7 +256,16 @@
 				class="cn-field-list-widget__field"
 				:data-testid="`cn-field-list-input-${field.key}`">
 				<NcSelect
-					v-if="field.type === 'select'"
+					v-if="field.type === 'multiselect'"
+					v-model="draft[field.key]"
+					:inputLabel="field.label"
+					:options="field.options"
+					:reduce="(option) => option.value"
+					:multiple="true"
+					:keepOpen="true"
+					label="label" />
+				<NcSelect
+					v-else-if="field.type === 'select'"
 					v-model="draft[field.key]"
 					:inputLabel="field.label"
 					:options="field.options"
@@ -365,12 +383,12 @@ export default {
 		 * - `field` (required) — the object field holding the array.
 		 * - `key` — the item field that identifies an entry (default: the item itself for strings).
 		 * - `row` — `{ title, titleFallback?, avatar?, meta?: [paths|{ path, map?, format? }], pill?: { path, map?, variantMap? }, aside?: { path, format?, prefix?, fallback? }, detail?: { template, when?, copy?: [{ path, label }] } }`. `detail.copy` puts a copy button beside the detail line for each named value of the row (an empty value gets none), such as a DNS record's name and value.
-		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select', options?, required?, pattern?, patternMessage? }], unique?, defaults? }`.
+		 * - `add` — `{ label?, fields: [{ key, label, type?: 'text'|'select'|'multiselect'|'checkbox', options?, optionsSource?, required?, pattern?, patternMessage? }], unique?, defaults? }`. A `multiselect` field holds a list of values. `optionsSource` — `{ url, path?, valuePath?, labelPath? }` (default `id` and `name`) — adds options read from an endpoint after the static ones, each value once (tokens `@objectId`, `@object.<field>`), for choices that live in other records such as a case type's statuses.
 		 * - `remove` — `{ label? }`; omitted = no remove.
 		 * - `rowActions` — `[{ id, label, ariaLabel?, when?, placement?: 'band'|'inline', request: { method?, url, payload? } }]`, or `{ id, label, dialog, props }` to open a modal registered in the app registry with filled props (shown in `readOnly` too, since it writes nothing, and only when every token in `props` fills); tokens `@object.<field>`, `@objectId`, `@row.<field>`, `@index`. In the table variant `placement: 'inline'` draws the action as a button in the row instead of in the "..." menu; `ariaLabel` is a template filled from the row.
 		 * - `when` (row actions, `detail`) — `{ field: value }`, every field equal; or per field `{ eq?, neq?, set? }`, where a value `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`.
 		 * - `rowSource` — `{ url, path?, key }`: live per-row state merged by key.
-		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap? }]`: rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
+		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap?, labelsFrom? }]` (a list value reads as its items joined; `labelsFrom` names an add field whose option labels word the values): rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
 		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'title' | 'footer'` — the add form opens from a button; `title` reports the button for the card's title row on the `header` event.
 		 * - `readOnly`, `hint`, `emptyText`.
 		 * - `row.href` — the path of a link for the row title; only http(s) and root-relative links, an absolute one opens in a new tab.
@@ -431,6 +449,8 @@ export default {
 			noticeType: 'error',
 			// What the last copy button put on the clipboard, said to a screen reader.
 			copied: '',
+			/** Options read through each add field's `optionsSource`, by field key. */
+			sourcedOptions: {},
 		}
 	},
 
@@ -528,9 +548,12 @@ export default {
 				.map((field) => ({
 					...field,
 					label: this.tr(field.label || field.key),
-					options: (Array.isArray(field.options) ? field.options : []).map((option) => (
-						typeof option === 'object' ? { value: option.value, label: this.tr(option.label || String(option.value)) } : { value: option, label: this.tr(String(option)) }
-					)),
+					options: [
+						...(Array.isArray(field.options) ? field.options : []).map((option) => (
+							typeof option === 'object' ? { value: option.value, label: this.tr(option.label || String(option.value)) } : { value: option, label: this.tr(String(option)) }
+						)),
+						...(this.sourcedOptions[field.key] || []),
+					],
 				}))
 		},
 
@@ -652,12 +675,14 @@ export default {
 		objectData() {
 			this.saved = null
 			this.loadLive()
+			this.loadOptions()
 		},
 	},
 
 	created() {
 		this.resetDraft()
 		this.loadLive()
+		this.loadOptions()
 	},
 
 	methods: {
@@ -746,10 +771,75 @@ export default {
 				}
 				return def.format === 'date-long' ? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1)) : formatBoardDate(date)
 			}
+			if (Array.isArray(raw)) {
+				return raw.map((item) => this.wordOf(item, def)).filter((word) => word !== '').join(', ')
+			}
+			return this.wordOf(raw, def)
+		},
+
+		/**
+		 * One value in words: through the column's `map`, then the option labels
+		 * of the add field it names in `labelsFrom`, else the value itself.
+		 *
+		 * @param {string|number|boolean|object} raw The value.
+		 * @param {object} def The column.
+		 * @return {string}
+		 */
+		wordOf(raw, def) {
 			if (def.map && Object.hasOwn(def.map, String(raw))) {
 				return this.tr(def.map[String(raw)])
 			}
+			if (def.labelsFrom) {
+				const field = this.addFields.find((candidate) => candidate.key === def.labelsFrom)
+				const option = field && field.options.find((candidate) => String(candidate.value) === String(raw))
+				if (option) {
+					return option.label
+				}
+			}
 			return typeof raw === 'object' ? '' : String(raw)
+		},
+
+		/**
+		 * The empty value of an add field: false for a checkbox, a list for a multiselect.
+		 *
+		 * @param {object} field The add field.
+		 * @return {boolean|Array|string}
+		 */
+		emptyValue(field) {
+			if (field.type === 'checkbox') {
+				return false
+			}
+			return field.type === 'multiselect' ? [] : ''
+		},
+
+		/**
+		 * Read the options of every add field that names an `optionsSource`.
+		 *
+		 * A source that cannot be read leaves the static options alone.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadOptions() {
+			const fields = this.content.add && Array.isArray(this.content.add.fields) ? this.content.add.fields : []
+			for (const field of fields) {
+				const source = field && field.optionsSource
+				if (!source || !source.url || !field.key) {
+					continue
+				}
+				try {
+					const { axios } = await this.http()
+					const response = await axios.get(prefixUrl(this.resolve(source.url, {})))
+					const list = source.path ? readPath(response && response.data, source.path) : response && response.data
+					const options = (Array.isArray(list) ? list : [])
+						.map((item) => ({ value: readPath(item, source.valuePath || 'id'), label: String(readPath(item, source.labelPath || 'name') ?? '') }))
+						.filter((option, index, all) => option.value !== undefined && option.value !== null && option.value !== ''
+							&& all.findIndex((other) => String(other.value) === String(option.value)) === index)
+					this.sourcedOptions = { ...this.sourcedOptions, [field.key]: options }
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn('[CnFieldListWidget] optionsSource could not be read:', e?.message || e)
+				}
+			}
 		},
 
 		pillOf(entry, spec) {
@@ -923,7 +1013,7 @@ export default {
 		resetDraft() {
 			const draft = {}
 			for (const field of this.addFields) {
-				const empty = field.type === 'checkbox' ? false : ''
+				const empty = this.emptyValue(field)
 				const first = field.type === 'select' && field.options.length > 0 ? field.options[0].value : empty
 				draft[field.key] = field.default !== undefined ? field.default : first
 			}
@@ -1078,10 +1168,10 @@ export default {
 			const errors = {}
 			for (const field of this.addFields) {
 				const value = this.draft[field.key]
-				const empty = value === undefined || value === null || String(value).trim() === ''
+				const empty = value === undefined || value === null || (Array.isArray(value) ? value.length === 0 : String(value).trim() === '')
 				if (field.required && empty) {
 					errors[field.key] = this.tr('Fill this in.')
-				} else if (!empty && field.pattern && !new RegExp(field.pattern).test(String(value).trim())) {
+				} else if (!empty && field.pattern && !Array.isArray(value) && !new RegExp(field.pattern).test(String(value).trim())) {
 					errors[field.key] = this.tr(field.patternMessage || 'This value is not valid.')
 				}
 			}
@@ -1161,7 +1251,7 @@ export default {
 			for (const [index, field] of this.addFields.entries()) {
 				const scalarValue = this.content.add?.scalar === true && index === 0 ? row.item : undefined
 				const value = row.item && typeof row.item === 'object' ? readPath(row.item, field.key) : scalarValue
-				draft[field.key] = value === undefined || value === null ? (field.type === 'checkbox' ? false : '') : value
+				draft[field.key] = value === undefined || value === null ? this.emptyValue(field) : value
 			}
 			this.draft = draft
 			this.errors = {}
@@ -1194,7 +1284,10 @@ export default {
 			const entry = { ...(add.defaults || {}) }
 			for (const field of this.addFields) {
 				const value = this.draft[field.key]
-				if (value !== undefined && value !== null && String(value).trim() !== '') {
+				if (Array.isArray(value)) {
+					// An emptied list is written as empty, so an edit can clear it.
+					entry[field.key] = value
+				} else if (value !== undefined && value !== null && String(value).trim() !== '') {
 					entry[field.key] = trimmed(value)
 				}
 			}

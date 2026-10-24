@@ -33,6 +33,7 @@ See the [Pluggable Integration Registry](../integrations/registry.md) section fo
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu. |
 | `widget-id` | `String` | `''` | Stable id forwarded to the menu. |
 | `objectLabel` | `String` | `''` | The record's display name, handed to the leaf as `objectLabel`. |
+| `placementProps` | `Object` | `{}` | Extra props for the leaf, set by the placement (a manifest widget's `props.placementProps`), for example the kinds a finance leaf shows. The record's own identity always wins over a key of the same name. |
 | `leafSurface` | `String` | `''` | The surface the leaf is told it renders on when it differs from `surface` (a leaf in a dialog that keeps its `sidebar-tab` look). |
 | `appName` | `String` | `''` | The app that provides the `only` leaf. When that leaf is not registered, the widget shows "{App} not available" with the install hint instead of the plain line. |
 | `appIcon` | `String` | `''` | The icon of that empty state. |

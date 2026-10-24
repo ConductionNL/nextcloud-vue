@@ -768,7 +768,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 202,
+			"transitive": 203,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1015,7 +1015,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1644,7 +1644,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 213,
+			"transitive": 214,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2073,7 +2073,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 11,
-			"transitive": 210,
+			"transitive": 211,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3092,10 +3092,12 @@
 			"page": "cn-object-metadata-widget"
 		},
 		"CnObjectPartiesWidget": {
-			"direct": 4,
-			"transitive": 3,
-			"tier": "medium",
-			"via": [],
+			"direct": 6,
+			"transitive": 5,
+			"tier": "heavy",
+			"via": [
+				"CnPartyPicker"
+			],
 			"page": "cn-object-parties-widget"
 		},
 		"CnObjectPermissionsTab": {
@@ -3223,7 +3225,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 230,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3722,7 +3724,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 203,
+			"transitive": 204,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4990,7 +4992,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 193,
+			"transitive": 194,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
