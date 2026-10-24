@@ -579,7 +579,14 @@
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta:not(.cn-look-nextcloud *),
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta time:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
+	font-size: 13px;
 	line-height: normal;
+}
+
+/* 6px between the meta line and the text.
+   @spec openspec/changes/board-conversation-bubble-meta-gap/specs/board-conversation-bubble-meta-gap/spec.md#requirement-a-board-message-sets-its-meta-line-at-13px-6px-above-the-text */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
+	gap: 6px;
 }
 
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
