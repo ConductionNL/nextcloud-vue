@@ -1472,3 +1472,15 @@
 	border-radius: var(--cn-board-control-radius);
 	overflow: hidden;
 }
+
+/* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
+   the card's padding instead of its own, and its buttons start at the card's
+   edge under the subtitle.
+   @spec openspec/changes/board-contacts-in-card/specs/contacts/spec.md */
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
+	justify-content: flex-start;
+}

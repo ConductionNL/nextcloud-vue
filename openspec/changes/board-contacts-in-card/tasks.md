@@ -1,0 +1,2 @@
+- [x] 1.1 board CSS (tests/css/lookBoardContactsInCard.spec.js)
+- [x] 1.2 nl/en key (tests/l10n/contactsTabDutch.spec.js)
