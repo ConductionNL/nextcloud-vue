@@ -15,6 +15,7 @@ import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetail
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
+import '../../src/components/CnTimelineWidget/dashboardRegistration.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(() => Promise.resolve({ data: { id: 'z-1', '@self': {} } })), post: jest.fn() } }))
 
@@ -30,6 +31,10 @@ function mountHost(props = {}) {
 describe('CnDetailWidgetHost: a self-titled library widget on a card surface', () => {
 	it('is registered as owning its title and asking for the card', () => {
 		expect(getWidgetTypeEntry('retention')).toMatchObject({ ownsTitle: true, chrome: 'card' })
+	})
+
+	it('registers the timeline the same way, so a case history in a tab stack is a card', () => {
+		expect(getWidgetTypeEntry('timeline')).toMatchObject({ ownsTitle: true, chrome: 'card' })
 	})
 
 	it('stands in an untitled card, its own title row inside', () => {

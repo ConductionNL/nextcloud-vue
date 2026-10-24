@@ -3909,7 +3909,7 @@
 			"page": null
 		},
 		"CnSavedViewMenuSettings": {
-			"direct": 2,
+			"direct": 3,
 			"transitive": 7,
 			"tier": "medium",
 			"via": [],
