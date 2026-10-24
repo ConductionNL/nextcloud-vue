@@ -52,6 +52,8 @@ export function contentHeaderLink(content) {
 /**
  * The header link a widget DEFINITION declares: `headerLink` on the
  * definition itself, else what its content asks for (see contentHeaderLink).
+ * A view-all the widget draws under its own content
+ * (`viewAllPlacement: "footer"`) is not a header link.
  *
  * @param {object|null|undefined} widget A widget definition.
  * @return {{label: string, route?: string, params?: object, query?: object, href?: string}|null}
@@ -64,7 +66,11 @@ export function widgetHeaderLink(widget) {
 	if (declared && typeof declared === 'object' && typeof declared.label === 'string' && declared.label !== '') {
 		return declared
 	}
-	return contentHeaderLink(widget.content)
+	const content = widget.content
+	if (content && content.viewAllPlacement === 'footer' && !content.headerLink) {
+		return null
+	}
+	return contentHeaderLink(content)
 }
 
 /**

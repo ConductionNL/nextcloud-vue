@@ -34,6 +34,12 @@ describe('widgetHeaderLink', () => {
 		expect(widgetHeaderLink({ content: { viewAllRoute: 'Tasks' } })).toEqual({ label: 'View all', route: 'Tasks' })
 	})
 
+	it('draws no header link for a view-all the widget puts in its footer (DqZaakTaken tab strip)', () => {
+		expect(widgetHeaderLink({ content: { viewAllRoute: 'Tasks', viewAllPlacement: 'footer' } })).toBeNull()
+		const declared = { label: 'Elsewhere', route: 'X' }
+		expect(widgetHeaderLink({ content: { headerLink: declared, viewAllRoute: 'Tasks', viewAllPlacement: 'footer' } })).toBe(declared)
+	})
+
 	it('returns null without a widget or a usable link', () => {
 		expect(widgetHeaderLink(null)).toBeNull()
 		expect(widgetHeaderLink({ headerLink: { route: 'x' } })).toBeNull()
