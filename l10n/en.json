@@ -2395,7 +2395,9 @@
     "View all conversations": "View all conversations",
     "Back to the chat": "Back to the chat",
     "Talk to {agent}": "Talk to {agent}",
-    "Search a person or group": "Search a person or group"
+    "Search a person or group": "Search a person or group",
+    "Now: by {order}.": "Now: by {order}.",
+    "You save the order along with a view.": "You save the order along with a view."
   },
   "plurals": {
     "{count} member": [

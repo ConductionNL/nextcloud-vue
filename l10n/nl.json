@@ -2645,7 +2645,9 @@
     "View all conversations": "Alle gesprekken bekijken",
     "Back to the chat": "Terug naar het gesprek",
     "Talk to {agent}": "Praten met {agent}",
-    "Search a person or group": "Zoek een persoon of groep"
+    "Search a person or group": "Zoek een persoon of groep",
+    "Now: by {order}.": "Nu: op {order}.",
+    "You save the order along with a view.": "De sortering bewaart u mee in een weergave."
   },
   "plurals": {
     "{count} member": [
