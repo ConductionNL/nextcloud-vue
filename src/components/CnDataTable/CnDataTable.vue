@@ -345,7 +345,12 @@
 								     falls back to formatValue(). Columns with `aggregate` get a
 								     count of related objects (see cellValue/loadAggregates). The
 								     #column-{key} slot still wins. -->
+									<span
+										v-if="isTextZero(row, col)"
+										class="cn-table-cell__zero"
+										data-testid="cn-cell-zero">{{ cellValue(row, col) }}</span>
 									<CnCellRenderer
+										v-else
 										:value="cellValue(row, col)"
 										:property="columnProperty(col)"
 										:formatter="col.formatter || null"
@@ -2169,6 +2174,26 @@ export default {
 				return v
 			}
 			return this.getCellValue(row, this.columnValueField(col))
+		},
+
+		/**
+		 * Whether an aggregate cell shows its `zeroLabel` as muted text instead
+		 * of through the column's widget (`aggregate.zeroAs: "text"`): a count
+		 * of zero, or a max with nothing to read.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/aggregate-zero-as-text/specs/index-page/spec.md#requirement-a-count-column-can-show-its-zero-label-as-text
+		 */
+		isTextZero(row, col) {
+			const aggregate = col && col.aggregate
+			if (!aggregate || aggregate.zeroAs !== 'text' || typeof aggregate.zeroLabel !== 'string' || aggregate.zeroLabel === '') {
+				return false
+			}
+			const cached = this.aggregateValues[String(row[this.rowKey])]
+			const v = cached ? cached[col.key] : undefined
+			return v === 0 || v === '0' || v === null
 		},
 
 		/**
