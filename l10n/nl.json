@@ -2628,7 +2628,8 @@
     "Search a person or group": "Zoek een persoon of groep",
     "Now: by {order}.": "Nu: op {order}.",
     "You save the order along with a view.": "De sortering bewaart u mee in een weergave.",
-    "me": "ik"
+    "me": "ik",
+    "Open profile": "Profiel openen"
   },
   "plurals": {
     "{count} member": [
