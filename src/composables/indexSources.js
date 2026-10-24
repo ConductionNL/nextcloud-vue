@@ -19,6 +19,7 @@ import { fillTemplate } from '../utils/fillTemplate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
+import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
 import { useFlowStore } from './useFlowStore.js'
 import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
@@ -1084,7 +1085,7 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, linkedUser?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
@@ -1098,6 +1099,8 @@ function fillRowTemplate(template, row) {
  * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
  * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * `linkedUser: true` reads that value as a user id and shows the user's
+ * display name. `sourceConfig.columnWidths` sets a width per column key.
  * The page's title and count line can name the term as `{term}`, and the
  * count is the active kind's total. Kind, link and status are filterable.
  *
@@ -1107,6 +1110,23 @@ function fillRowTemplate(template, row) {
  * @return {object} The source adapter.
  * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
  */
+/**
+ * Columns with the widths a page names per column key
+ * (`sourceConfig.columnWidths`, `{ title: '250px' }`); a column it does not
+ * name keeps none.
+ *
+ * @param {Array<object>} columns The columns.
+ * @param {object|undefined} widths The widths by key.
+ * @return {Array<object>} The columns.
+ * @spec openspec/changes/search-linked-user-and-widths/specs/search-linked-user-and-widths/spec.md
+ */
+function withColumnWidths(columns, widths) {
+	if (!widths || typeof widths !== 'object') {
+		return columns
+	}
+	return columns.map((col) => (typeof widths[col.key] === 'string' && widths[col.key] !== '' ? { ...col, width: widths[col.key] } : col))
+}
+
 function searchSource(config = {}, context = {}) {
 	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
@@ -1195,12 +1215,20 @@ function searchSource(config = {}, context = {}) {
 		return ''
 	}
 
+	// `linkedUser`: the Linked cell holds a user id; name the user instead.
+	const linkedUserNames = async (kind, objects) => {
+		const ids = [...new Set(objects.map((object) => linkedOf(kind, object)).filter((id) => id !== ''))]
+		const options = await Promise.all(ids.map((id) => resolveNextcloudUser(id).catch(() => null)))
+		return new Map(ids.map((id, index) => [id, (options[index] && options[index].label) || id]))
+	}
+
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
 		const body = (res && res.data) || {}
 		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
 		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
+		const userNames = kind.linkedUser === true ? await linkedUserNames(kind, results) : null
 		return {
 			total: typeof body.total === 'number' ? body.total : results.length,
 			rows: results.map((object) => {
@@ -1217,7 +1245,7 @@ function searchSource(config = {}, context = {}) {
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
 					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
 					status,
-					linked: linkedOf(kind, object),
+					linked: userNames ? (userNames.get(linkedOf(kind, object)) || linkedOf(kind, object)) : linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
 					object,
 				}
@@ -1325,7 +1353,7 @@ function searchSource(config = {}, context = {}) {
 		 */
 		loading: () => state.loading,
 
-		columns: [
+		columns: withColumnWidths([
 			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
 			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
 			// DqZoekresultaten), instead of the plural kind as a pill.
@@ -1340,7 +1368,7 @@ function searchSource(config = {}, context = {}) {
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
 				sortable: true,
 			},
-		],
+		], config && config.columnWidths),
 
 		/**
 		 * Every column header carries a filter button (DqZoekresultaten); the
