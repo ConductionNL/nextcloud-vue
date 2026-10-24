@@ -116,3 +116,48 @@ describe('the ai-chat widget', () => {
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('ai-chat')
 	})
 })
+
+describe('the ai-chat widget in a titled card (DqZaakAssistent "Assistent")', () => {
+	const streamState = { messages: [], currentText: '', isStreaming: false, conversationUuid: null, error: null }
+	const { isContentOnlyWidgetDef } = require('../../src/utils/widgetDispatch.js')
+
+	it('is drawn by the host in its titled card', () => {
+		expect(isContentOnlyWidgetDef({ type: 'ai-chat' })).toBe(true)
+	})
+
+	it('reports the pill and the panel\'s controls for the card', async () => {
+		const wrapper = mount(CnAiChatWidget, { propsData: { content: { chatAppId: 'hermiq', pill: 'Hermiq', note: 'Sees only this case' } }, provide: {} })
+		await flushPromises()
+		const companion = wrapper.findComponent(CnAiCompanion)
+		expect(companion.props('titled')).toBe(true)
+		expect(companion.props('note')).toBe('Sees only this case')
+		const first = wrapper.emitted('header')[0][0]
+		expect(first.pill).toEqual({ label: 'Hermiq', variant: 'purple' })
+		const run = jest.fn()
+		companion.vm.$emit('menu', [{ label: 'Start new chat', icon: 'Plus', run }])
+		const last = wrapper.emitted('header').at(-1)[0]
+		expect(last.menuActions.map((action) => action.label)).toEqual(['Start new chat'])
+	})
+
+	it('draws no titlebar, hands its controls to the card and says what it sees', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, titled: true, note: 'Sees only this case', sendLabel: 'Ask', inputPlaceholder: 'Ask about this case', streamState }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('.cn-ai-chat-window__titlebar').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-ai-panel"]').classes()).toContain('cn-ai-chat-window--titled')
+		expect(wrapper.find('[data-testid="cn-ai-panel-note"]').text()).toBe('Sees only this case')
+		expect(wrapper.find('[data-testid="cn-ai-input-send"]').text()).toBe('Ask')
+		expect(wrapper.find('[data-testid="cn-ai-input-textarea"]').attributes('placeholder')).toBe('Ask about this case')
+		const labels = wrapper.emitted('menu').at(-1)[0].map((action) => action.label)
+		expect(labels).toContain('View all conversations')
+		wrapper.emitted('menu').at(-1)[0].find((action) => action.label === 'View all conversations').run()
+		await flushPromises()
+		expect(wrapper.emitted('menu').at(-1)[0].map((action) => action.label)).toContain('Back to the chat')
+	})
+
+	it('keeps its titlebar and reports no menu when it is not titled', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, streamState }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('.cn-ai-chat-window__titlebar').exists()).toBe(true)
+		expect(wrapper.emitted('menu')).toBeUndefined()
+	})
+})

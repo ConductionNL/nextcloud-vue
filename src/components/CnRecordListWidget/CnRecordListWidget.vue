@@ -498,10 +498,18 @@
 		<div
 			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
+			:class="{ 'cn-record-list__footer--wide': footerAction.wide }"
 			data-testid="cn-record-list-footer">
+			<p
+				v-if="footerAction.note"
+				class="cn-record-list__footer-note"
+				data-testid="cn-record-list-footer-note">
+				{{ footerAction.note }}
+			</p>
 			<NcButton
 				variant="secondary"
 				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:wide="footerAction.wide"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -669,7 +677,14 @@ export default {
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
-		 * button is disabled and `disabledReason` shows under it.
+		 * button is disabled and `disabledReason` shows under it. `note` is a
+		 * line above it and `wide: true` stretches it across the card. A list
+		 * of such actions draws the first whose `visibleWhen` (a local
+		 * condition over the page's record) holds (DqZaaktype Versies:
+		 * "Publiceren" on a draft, "Nieuwe versie maken" otherwise).
+		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
+		 * first case whose `when` holds on it, else by the pill's own `label`
+		 * and `variant` (Concept, Vastgezet, Actief).
 		 * `groupBy` (a field path) draws the rows in groups under a heading
 		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
 		 * (values) orders the groups and `groupEmptyLabel` heads the rows
@@ -806,16 +821,33 @@ export default {
 		 * @return {{label: string, icon: string, reason: string, action: object}|null}
 		 */
 		footerAction() {
-			const action = this.content?.footerAction
-			if (!action || typeof action !== 'object' || typeof action.label !== 'string' || action.label === '') {
+			const action = this.footerActionConfig
+			if (!action || typeof action.label !== 'string' || action.label === '') {
 				return null
 			}
 			return {
 				label: this.translate(action.label),
 				icon: typeof action.icon === 'string' ? action.icon : '',
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
+				note: typeof action.note === 'string' && action.note !== '' ? this.translate(action.note) : '',
+				wide: action.wide === true,
 				action,
 			}
+		},
+
+		/**
+		 * The `footerAction` entry in force. A list of entries draws the first
+		 * whose `visibleWhen` (a local condition over the page's record) holds;
+		 * an entry without one always holds.
+		 *
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-lists-footer-action-can-depend-on-the-record
+		 * @return {object|null} The entry, or null when none holds.
+		 */
+		footerActionConfig() {
+			const declared = this.content?.footerAction
+			const entries = Array.isArray(declared) ? declared : [declared]
+			const record = this.tokenCtx.object || {}
+			return entries.find((entry) => entry && typeof entry === 'object' && (!entry.visibleWhen || evaluateVisibleWhenLocal(entry.visibleWhen, record))) || null
 		},
 
 		/**
@@ -826,7 +858,7 @@ export default {
 		 * @return {string}
 		 */
 		footerGroup() {
-			const group = this.content?.footerAction?.group
+			const group = this.footerActionConfig?.group
 			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
 				return ''
 			}
@@ -850,7 +882,7 @@ export default {
 
 		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
 		footerTonal() {
-			return this.content?.footerAction?.variant === 'tonal'
+			return this.footerActionConfig?.variant === 'tonal'
 		},
 
 		/**
@@ -860,7 +892,7 @@ export default {
 		 * @return {string}
 		 */
 		footerDisabledKey() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				return ''
 			}
@@ -1634,7 +1666,7 @@ export default {
 		},
 
 		async evaluateFooterDisabled() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				this.footerDisabled = false
 				return
@@ -1659,7 +1691,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, group, variant, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, visibleWhen, note, wide, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -2466,6 +2498,9 @@ export default {
 		 */
 		pillOf(row, config) {
 			const pill = config || this.content?.pill
+			if (pill && typeof pill === 'object' && Array.isArray(pill.cases)) {
+				return this.pillCaseOf(row, pill)
+			}
 			if (!pill || typeof pill !== 'object' || !pill.field) {
 				return null
 			}
@@ -2484,6 +2519,29 @@ export default {
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
+			}
+		},
+
+		/**
+		 * The pill of `{ cases: [{ when, label, variant? }], label?, variant? }`:
+		 * the first case whose `when` (a local condition over the row) holds,
+		 * else the pill's own `label` and `variant`, else none. For a state that
+		 * reads more than one field (Concept, Actief, Vastgezet).
+		 *
+		 * @param {object} row The row.
+		 * @param {object} pill The pill config.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
+		 */
+		pillCaseOf(row, pill) {
+			const found = pill.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+			const chosen = found || pill
+			if (typeof chosen.label !== 'string' || chosen.label === '') {
+				return null
+			}
+			return {
+				label: this.translate(chosen.label),
+				variant: isBadgeVariant(chosen.variant) ? chosen.variant : 'default',
 			}
 		},
 
@@ -2837,6 +2895,16 @@ export default {
 	align-items: flex-start;
 	gap: 6px;
 	margin-top: 10px;
+}
+
+.cn-record-list__footer--wide {
+	align-items: stretch;
+}
+
+.cn-record-list__footer-note {
+	margin: 0 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-record-list__footer-reason {

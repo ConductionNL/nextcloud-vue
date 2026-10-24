@@ -888,14 +888,16 @@
 
 /* The notice text and its icon take the notice ink, and the icon is the
    board's 18px, 10px before the text and 2px down to sit on the first line
-   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
-   `!important`. */
+   (DqZaak "Advies gevraagd"); `align-self` overrules the icon's own centring.
+   NcNoteCard sets its text colour with `!important`.
+   @spec openspec/changes/board-side-notice-icon-first-line/specs/board-side-notice-icon-first-line/spec.md#requirement-a-side-notice-sets-its-icon-on-the-first-line */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-notice-ink) !important;
 	gap: 10px;
 }
 
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
 	color: var(--cn-board-notice-ink);
 	margin-top: 2px;
 }
@@ -1340,6 +1342,33 @@
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
 	font-weight: 500;
+}
+
+/* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
+/* The band over the ticked files is the case list's selection band: 10px
+   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   only (DqDocumentenBeheer "2 documenten geselecteerd").
+   @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
+	padding: 10px 14px;
+	border-radius: 10px;
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue__icon {
+	display: none;
 }
 
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */

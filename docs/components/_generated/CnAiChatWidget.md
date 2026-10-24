@@ -2,6 +2,12 @@
 
 ### Props
 
-| Name      | Type     | Required | Default | Description                                                                                                 |
-| --------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `content` | `object` |          | `\{\}`  | The widget's content: `chatAppId`, the backend app that answers the chat (defaults to the companion's own). |
+| Name      | Type     | Required | Default | Description                                                                                                                                                                                                                                                                                      |
+| --------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `content` | `object` |          | `\{\}`  | The widget's content: `chatAppId`, the backend app that answers the chat (defaults to the companion's own); `pill` and `pillVariant`, a pill in the card's title row; `note`, a line above the input; `placeholder` and `sendLabel`, the input's wording. Texts go through the host's translate. |
+
+### Events
+
+| Name     | Payload | Description                                     |
+| -------- | ------- | ----------------------------------------------- |
+| `header` | —       | The card's title row: `pill` and `menuActions`. |

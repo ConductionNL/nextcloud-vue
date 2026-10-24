@@ -767,13 +767,20 @@ export default {
 
 		/**
 		 * The order the list has now, in words: "Current order: Created,
-		 * descending", or that it is not sorted.
+		 * descending" ("Now: by created, descending." and that a view keeps
+		 * it, in the board look), or that it is not sorted.
 		 *
 		 * @return {string} The sentence.
 		 */
 		currentSortText() {
+			// The board look writes the order in running text, the field in
+			// lower case: "Now: by deadline, ascending." (DqZakenSorteren).
+			const name = (label) => (this.isBoardLook ? String(label).charAt(0).toLocaleLowerCase() + String(label).slice(1) : label)
+			const sentence = (order) => (this.isBoardLook
+				? `${t('nextcloud-vue', 'Now: by {order}.', { order })} ${t('nextcloud-vue', 'You save the order along with a view.')}`
+				: t('nextcloud-vue', 'Current order: {order}', { order }))
 			if (this.sortMatch && this.sortMatch.option.fixed === true) {
-				return t('nextcloud-vue', 'Current order: {order}', { order: this.sortMatch.option.label })
+				return sentence(name(this.sortMatch.option.label))
 			}
 			const current = Array.isArray(this.currentSort) ? this.currentSort : []
 			if (current.length === 0) {
@@ -781,12 +788,12 @@ export default {
 			}
 			const labelOf = (key) => {
 				const single = this.sortOptions.find((o) => Array.isArray(o.keys) && o.keys.length === 1 && o.keys[0].key === key)
-				return single ? single.label : key
+				return name(single ? single.label : key)
 			}
 			const order = this.sortMatch && this.sortMatch.option.keys.length > 1
-				? `${this.sortMatch.option.label}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
+				? `${name(this.sortMatch.option.label)}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
 				: current.map((entry) => `${labelOf(entry.key)}, ${entry.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`).join('; ')
-			return t('nextcloud-vue', 'Current order: {order}', { order })
+			return sentence(order)
 		},
 
 		/**
