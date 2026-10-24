@@ -52,6 +52,15 @@
 	grid-row: 2;
 }
 
+/* A list page's breadcrumb and note read 15px; the case page's row stays 14px. */
+.cn-look-board .cn-index-page .cn-page-header .cn-header-trail.cn-detail-page__header-row2 {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-index-page .cn-header-trail.cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb .button-vue.button-vue {
+	font-size: 15px;
+}
+
 .cn-look-board .cn-index-page .cn-page-header .cn-header-trail ~ .cn-page-header__description {
 	grid-row: 3;
 }
