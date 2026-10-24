@@ -1356,12 +1356,19 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-meta {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 }
 
+/* The meta line, note and description are paragraphs: each hands the theme,
+   which sets paragraphs with `!important`, its own size and ink. */
 .cn-look-board .cn-object-card--board .cn-object-card__record-note {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-font-weight: 600;
+	--nldesign-component-paragraph-color: var(--cn-board-text-soft);
 	margin: 0;
 	color: var(--cn-board-text-soft);
 	font-size: 13px;
@@ -1369,10 +1376,12 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
+	--nldesign-component-paragraph-color: var(--cn-status-purple-text);
 	color: var(--cn-status-purple-text);
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--teal {
+	--nldesign-component-paragraph-color: var(--cn-status-teal-text);
 	color: var(--cn-status-teal-text);
 }
 
@@ -1409,6 +1418,9 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-description {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.4;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
