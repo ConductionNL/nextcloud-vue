@@ -1,0 +1,3 @@
+- [x] look-board.css kicker rule + paragraph tokens
+- [x] tests/css/lookBoardBannerKickerCase.spec.js
+- [ ] thematiq zuiddrecht.css drops its kicker letter-spacing (thematiq PR)

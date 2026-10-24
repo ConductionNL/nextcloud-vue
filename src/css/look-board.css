@@ -321,6 +321,20 @@
 	border: 0;
 }
 
+/* A dashboard banner's kicker is a 13px bold line in sentence case, no
+   tracking (DqMijnWerk "Vandaag eerst", BqMijnGoedkeuringen "First, today");
+   the plain look keeps its spaced capitals. The kicker is a paragraph, so its
+   size and weight also go to the theme's paragraph tokens.
+   @spec openspec/changes/board-banner-kicker-case/specs/board-banner-kicker-case/spec.md#requirement-a-board-dashboard-banners-kicker-is-in-sentence-case */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-banner-widget__kicker {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-font-weight: 700;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
