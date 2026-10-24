@@ -20,9 +20,11 @@
 		<div v-else-if="loading && rows.length === 0" class="cn-record-list__loading">
 			<NcLoadingIcon :size="20" :name="loadingLabel" />
 		</div>
-		<p v-else-if="rows.length === 0" class="cn-record-list__empty" data-testid="cn-record-list-empty">
-			{{ emptyLabel }}
-		</p>
+		<template v-else-if="rows.length === 0">
+			<p v-if="emptyLabel !== ''" class="cn-record-list__empty" data-testid="cn-record-list-empty">
+				{{ emptyLabel }}
+			</p>
+		</template>
 		<!-- notice: the rows as sentences in one toned box ("2 waarschuwingen: ..."). -->
 		<div
 			v-else-if="presentation === 'notice'"
@@ -1446,6 +1448,10 @@ export default {
 			}
 			if (this.conditionalEmptyText !== '') {
 				return this.conditionalEmptyText
+			}
+			// `emptyText: ""` says nothing on an empty list.
+			if (this.content?.emptyText === '') {
+				return ''
 			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
