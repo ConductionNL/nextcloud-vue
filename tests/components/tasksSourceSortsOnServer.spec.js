@@ -40,10 +40,10 @@ beforeEach(() => mockGet.mockClear())
 describe('the tasks source sorts on the server', () => {
 	it('maps the sortable columns onto the inbox sort argument', () => {
 		const source = indexSources.tasks()
-		expect(source.sortParam('dueAt', 'asc')).toEqual({ sort: 'dueAt' })
-		expect(source.sortParam('dueLabel', 'desc')).toEqual({ sort: '-dueAt' })
-		expect(source.sortParam('priorityLabel', 'asc')).toEqual({ sort: 'priority' })
-		expect(source.sortParam('created', 'desc')).toEqual({ sort: '-created' })
+		expect(source.sortParam('dueAt', 'asc')).toEqual({ sort: 'dueAt', openFirst: true })
+		expect(source.sortParam('dueLabel', 'desc')).toEqual({ sort: '-dueAt', openFirst: true })
+		expect(source.sortParam('priorityLabel', 'asc')).toEqual({ sort: 'priority', openFirst: true })
+		expect(source.sortParam('created', 'desc')).toEqual({ sort: '-created', openFirst: true })
 		expect(source.sortParam('title', 'asc')).toBeNull()
 		const sortable = source.columns.filter((column) => column.sortable === true).map((column) => column.key)
 		expect(sortable).toEqual(['priorityLabel', 'dueLabel'])
@@ -54,6 +54,8 @@ describe('the tasks source sorts on the server', () => {
 		mountHost(sort)
 		await flushPromises()
 		expect(lastParams().sort).toBe('dueAt')
+		// Open work first, finished last (DqTaken; openregister task-inbox-open-first).
+		expect(lastParams().openFirst).toBe('true')
 		sort.value = { key: 'priorityLabel', order: 'desc' }
 		await nextTick()
 		await flushPromises()

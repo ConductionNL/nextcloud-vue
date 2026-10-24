@@ -699,12 +699,15 @@ function tasksSource() {
 		 *
 		 * @param {string} key The column key.
 		 * @param {string} order `asc` or `desc`.
-		 * @return {{sort: string}|null} The parameter, or null for a column the inbox cannot sort by.
+		 * Open tasks come before finished ones (`openFirst`), each in that order.
+		 *
+		 * @return {{sort: string, openFirst: boolean}|null} The parameters, or null for a column the inbox cannot sort by.
 		 * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+		 * @spec openspec/changes/tasks-source-open-first/specs/index-sources/spec.md#requirement-a-sorted-task-list-puts-open-tasks-first
 		 */
 		sortParam: (key, order) => {
 			const field = TASK_SORT_FIELDS[key]
-			return field ? { sort: (order === 'desc' ? '-' : '') + field } : null
+			return field ? { sort: (order === 'desc' ? '-' : '') + field, openFirst: true } : null
 		},
 
 		// The scope tabs. Each tab's filter is merged over the page's
