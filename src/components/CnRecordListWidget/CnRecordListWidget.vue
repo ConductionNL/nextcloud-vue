@@ -699,7 +699,6 @@ export default {
 		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
 		 * first case whose `when` holds on it, else by the pill's own `label`
 		 * and `variant` (Concept, Vastgezet, Actief).
-		 * button is disabled and `disabledReason` shows under it.
 		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
 		 * as a toned notice box with its icon (DqZaaktype opt-out note).
 		 * `tableLook: "data"` marks a `table` as a data table, which the board
