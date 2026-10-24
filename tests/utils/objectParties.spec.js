@@ -79,13 +79,15 @@ describe('newPartyRecord', () => {
 			{ key: 'email', address: { path: 'contactAddresses', kind: 'correspondence', type: 'email' } },
 			{ key: 'phone', address: { path: 'contactAddresses', kind: 'correspondence', type: 'phone' } },
 			{ key: 'city' },
+			{ key: 'houseNumber', path: 'residence.houseNumber', type: 'integer' },
 		],
 		compose: { displayName: ['name.givenNames', 'name.namePrefix', 'name.surname'] },
 	}
 
 	it('writes each value at its path, addresses as a list, and the composed name without gaps', () => {
-		expect(newPartyRecord(CREATE, { givenNames: ' Kees ', prefix: '', surname: 'Wit', email: 'kees@example.org', phone: '0612345678', city: 'Zuiddrecht' })).toEqual({
+		expect(newPartyRecord(CREATE, { givenNames: ' Kees ', prefix: '', surname: 'Wit', email: 'kees@example.org', phone: '0612345678', city: 'Zuiddrecht', houseNumber: '31' })).toEqual({
 			name: { givenNames: 'Kees', surname: 'Wit' },
+			residence: { houseNumber: 31 },
 			contactAddresses: [
 				{ kind: 'correspondence', type: 'email', value: 'kees@example.org' },
 				{ kind: 'correspondence', type: 'phone', value: '0612345678' },

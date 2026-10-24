@@ -54,7 +54,7 @@
 					:key="field.key"
 					:modelValue="values[field.key] || ''"
 					:label="field.label"
-					:type="field.type === 'email' ? 'email' : 'text'"
+					:type="inputType(field)"
 					:required="field.required === true"
 					:disabled="loading"
 					:data-testid="`cn-party-add-field-${field.key}`"
@@ -153,7 +153,7 @@ export default {
 		},
 
 		/**
-		 * The fields of a new person, `[{ key, label, type?, required? }]`,
+		 * The fields of a new person, `[{ key, label, type? (text, email, integer), required? }]`,
 		 * labels already translated. None: only existing parties can be picked.
 		 */
 		createFields: {
@@ -232,6 +232,19 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * The input type of a new-person field.
+		 *
+		 * @param {{type?: string}} field The field.
+		 * @return {string} `email`, `number` or `text`.
+		 */
+		inputType(field) {
+			if (field.type === 'email') {
+				return 'email'
+			}
+			return field.type === 'integer' ? 'number' : 'text'
+		},
 
 		/**
 		 * Set one new-person field.

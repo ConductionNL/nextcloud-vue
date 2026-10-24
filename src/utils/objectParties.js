@@ -207,6 +207,7 @@ function writePath(target, path, value) {
  * party model reads as the party's addresses. `compose` names the paths a
  * derived field joins with a space, skipping the empty ones
  * (`{ displayName: ["name.givenNames", "name.namePrefix", "name.surname"] }`).
+ * A field of `type: "integer"` is saved as a number when it reads as one.
  * An empty value is left out.
  *
  * @param {{fields?: Array<object>, compose?: Record<string, Array<string>>}} create The declaration.
@@ -227,7 +228,7 @@ export function newPartyRecord(create, values) {
 			writePath(record, field.address.path, [...(Array.isArray(list) ? list : []), entry])
 			continue
 		}
-		writePath(record, field.path || field.key, value)
+		writePath(record, field.path || field.key, field.type === 'integer' && /^-?\d+$/.test(value) ? Number(value) : value)
 	}
 	for (const [target, paths] of Object.entries(create?.compose && typeof create.compose === 'object' ? create.compose : {})) {
 		const joined = (Array.isArray(paths) ? paths : [])
