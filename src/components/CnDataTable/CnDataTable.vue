@@ -1070,6 +1070,18 @@ export default {
 		},
 
 		/**
+		 * The schema the header filters read instead of `schema`: a page that
+		 * filters through other fields than the rows' own (a named source's
+		 * search fields) hands them here. Null: the header filters read `schema`.
+		 *
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		filterSchema: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The active filter map, `{ paramKey: values[] }`: the same map the
 		 * facet sidebar writes, so a header filter and a sidebar filter on one
 		 * field show the same state.
@@ -2525,7 +2537,7 @@ export default {
 			if (!this.filterable || !col) {
 				return null
 			}
-			return columnFilterDef(col, this.schema)
+			return columnFilterDef(col, this.filterSchema || this.schema)
 		},
 
 		columnFilterStateFor(col) {

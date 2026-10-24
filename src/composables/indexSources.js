@@ -771,6 +771,10 @@ function tasksSource() {
 			dueAt: { range: ['dueAfter', 'dueBefore'] },
 		},
 
+		// The column headers filter through these same search fields: a column
+		// with a field behind it gets a funnel, the others none.
+		headerFilters: 'searchFields',
+
 		// A task is created by a flow, never by a person clicking Add. Without
 		// this the index falls back to its OpenRegister form dialog, which
 		// would build an object the task store never reads.
