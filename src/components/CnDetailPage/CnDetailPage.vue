@@ -253,7 +253,7 @@
 				     card, next to the checklist that explains it, and not here
 				     as well: one primary button per page. -->
 				<NcButton
-					v-if="effectivePrimaryLabel && !showsNextStepCard"
+					v-if="effectivePrimaryLabel && !showsNextStepCard && stagePrimaryOnTab"
 					:id="primaryActionAnchorId"
 					ref="primaryActionButton"
 					variant="primary"
@@ -3817,6 +3817,19 @@ export default {
 				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
 				.filter((pinned) => pinned && pinned.id !== primaryId)
 				.slice(0, MAX_QUICK_ACTIONS)
+		},
+
+		/**
+		 * Whether the stage's primary button belongs beside the open body tab:
+		 * an inline stage action with `tabs`/`notTabs` follows the tab like a
+		 * quick action (DqZaakAssistent: no "Next step" beside AI oversight).
+		 * It stays in the Actions menu either way.
+		 *
+		 * @return {boolean} true when the button may show.
+		 * @spec openspec/changes/stage-primary-follows-tab/specs/detail-page/spec.md#requirement-a-stage-action-can-follow-the-open-tab
+		 */
+		stagePrimaryOnTab() {
+			return !this.stagePrimaryEntry || onTab(this.stagePrimary, this.activeBodyTab)
 		},
 
 		/**
