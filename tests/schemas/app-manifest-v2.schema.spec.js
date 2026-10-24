@@ -1425,7 +1425,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
 		// 2.150.0 adds a board's declared states (board.states, columnFields[].states, board-declared-states).
 		// 2.151.0 adds the api-call PATCH method (r24-api-call-patch), a card layout note (cardLayout.note, card-layout-note), a page filter without a control (control: none, page-filter-without-control) and a default view's description and secondary flag (default-views-secondary).
-		// 2.152.0 adds the chart's week categories (categoryFormat: week, chart-week-categories), a header meta line in the singular or plural (header-meta-plural) and a list segment in the view switch (view-switch-order-and-more), an export's exportId and an open-form that edits through an endpoint without a schema (the shapes dossiq ships).
+		// 2.152.0 adds the chart's week categories (categoryFormat: week, chart-week-categories), a header meta line in the singular or plural (header-meta-plural) and a list segment in the view switch (view-switch-order-and-more), an export's exportId and an open-form that edits through an endpoint without a schema (the shapes dossiq ships), and the @source facts token (dossiq DqZaaktypeVelden).
 		expect(schema.version).toBe('2.152.0')
 	})
 
