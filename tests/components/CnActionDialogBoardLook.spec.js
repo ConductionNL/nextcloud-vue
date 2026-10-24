@@ -60,6 +60,7 @@ describe('CnActionDialog in the board look', () => {
 		const tile = rule(sfc, '.cn-action-dialog__summary-icon')
 		expect(tile).toContain('width: 36px')
 		expect(tile).toContain('background: var(--color-primary-element-light)')
+		expect(rule(sfc, '.cn-action-dialog__summary-text strong')).toContain('line-height: 1.2')
 		const both = rule(sfc, '.cn-action-dialog__facts dt,\n.cn-action-dialog__facts dd')
 		expect(both).toContain('width: auto')
 		expect(both).toContain('text-align: start')

@@ -836,6 +836,7 @@ export default {
 .cn-action-dialog__summary-text strong {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 .cn-action-dialog__summary-text .cn-action-dialog__muted {
