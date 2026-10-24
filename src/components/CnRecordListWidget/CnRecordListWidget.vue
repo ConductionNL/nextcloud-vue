@@ -253,6 +253,7 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
@@ -1471,6 +1472,18 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
 		 */
+		/**
+		 * Whether the row action is drawn as an outlined button sized to its
+		 * label (`rowAction.variant: "outlined"`, DqMijnTeam "Oppakken") instead
+		 * of the 150px pill (DcMijnActies "Stem uitbrengen").
+		 *
+		 * @return {boolean} True for the outlined variant.
+		 * @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button
+		 */
+		rowActionOutlined() {
+			return this.content?.rowAction?.variant === 'outlined'
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')

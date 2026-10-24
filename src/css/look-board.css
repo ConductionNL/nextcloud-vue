@@ -2335,17 +2335,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
-/* A row with one action (`rowAction`, DqMijnTeam "Oppakken"): its title link
-   reads as the row's title in the main ink (the theme's link rule reads
-   --nldesign-color-on-surface), and the action is an outlined button sized
-   to its label.
+/* A row whose one action is outlined (`rowAction.variant: "outlined"`,
+   DqMijnTeam "Oppakken"): its title link reads as the row's title in the main
+   ink (the theme's link rule reads --nldesign-color-on-surface), and the
+   action is an outlined button sized to its label. Without the variant the
+   action keeps its 150px pill (DcMijnActies).
    @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--action .cn-record-list__title--link {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--action:has(.cn-record-list__action--outlined) .cn-record-list__title--link {
 	--nldesign-color-on-surface: var(--color-main-text);
 	color: var(--color-main-text);
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined {
 	--nldesign-color-on-surface: var(--color-main-text);
 	flex: none;
 	padding: 0 12px;
@@ -2355,8 +2356,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-main-text);
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action:hover,
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action:focus-visible {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:hover,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:focus-visible {
 	background: var(--color-background-hover);
 }
 
