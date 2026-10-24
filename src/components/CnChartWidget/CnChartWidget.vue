@@ -148,12 +148,25 @@
 			data-testid="cn-chart-widget-footnote">
 			{{ hostTranslate(footnote) }}
 		</p>
+		<!-- `notice`: a toned note card under the chart whose words carry
+		     values from the page record (DqHandhaving "Advies: ..."). -->
+		<NcNoteCard
+			v-if="noticeParts"
+			:type="noticeParts.type"
+			:data-tone="noticeParts.type"
+			class="cn-chart-widget__notice"
+			data-testid="cn-chart-widget-notice">
+			<p class="cn-chart-widget__notice-text">
+				<strong v-if="noticeParts.lead">{{ noticeParts.lead }}</strong>{{ noticeParts.lead && noticeParts.text ? ' ' : '' }}{{ noticeParts.text }}
+			</p>
+		</NcNoteCard>
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -405,7 +418,7 @@ function formatterFor(vf) {
 export default {
 	name: 'CnChartWidget',
 
-	components: { CnEndpointNotice },
+	components: { CnEndpointNotice, NcNoteCard },
 
 	inject: {
 		/**
@@ -464,6 +477,24 @@ export default {
 		 */
 		matrixLabelWidth: {
 			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A toned note card under the chart whose words carry values from the
+		 * page record: `{ lead?, text?, values?, labels?, tone? }`. `lead`
+		 * (bold) and `text` go through the host's translate, then each
+		 * `{name}` is filled from `values[name]`, a literal or a token such as
+		 * `@object.recommendedIntervention`. `labels[name]` turns a key into
+		 * words: `"rows"`, `"columns"` or `"values"` read the matrix's
+		 * cellSource label maps, an object is its own map. `tone` is info
+		 * (default), success, warning or error. Hidden while a value is
+		 * missing, so a half-filled sentence never shows.
+		 *
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		notice: {
+			type: Object,
 			default: null,
 		},
 
@@ -1599,6 +1630,38 @@ export default {
 					}),
 				})),
 			}
+		},
+
+		/**
+		 * The notice's bold lead, text and note-card type, values filled in;
+		 * null when there is none or a value is missing.
+		 *
+		 * @return {{lead: string, text: string, type: string}|null} The notice.
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		noticeParts() {
+			const def = this.notice
+			if (!def || typeof def !== 'object' || (!def.lead && !def.text)) {
+				return null
+			}
+			const declared = def.values && typeof def.values === 'object' ? def.values : {}
+			const resolved = resolveFilterTokens(declared, this.chartTokenCtx())
+			const source = this.cellSource && typeof this.cellSource === 'object' ? this.cellSource : {}
+			const maps = { rows: source.rowLabels, columns: source.columnLabels, values: source.valueLabels }
+			const words = {}
+			for (const name of Object.keys(declared)) {
+				const raw = resolved[name]
+				if (raw === null || raw === undefined || raw === '' || (typeof raw === 'string' && raw.charAt(0) === '@')) {
+					return null
+				}
+				const ref = def.labels && def.labels[name]
+				const map = typeof ref === 'string' ? maps[ref] : ref
+				const label = map && typeof map === 'object' && typeof map[String(raw)] === 'string' ? map[String(raw)] : null
+				words[name] = label ? this.hostTranslate(label) : String(raw)
+			}
+			const fill = (key) => (key ? this.hostTranslate(key).replace(/\{(\w+)\}/g, (match, name) => (name in words ? words[name] : match)) : '')
+			const type = ['info', 'success', 'warning', 'error'].includes(def.tone) ? def.tone : 'info'
+			return { lead: fill(def.lead), text: fill(def.text), type }
 		},
 
 		/**
@@ -2945,6 +3008,14 @@ export default {
 
 .cn-chart-widget__footnote {
 	color: var(--color-text-maxcontrast);
+	margin: 0;
+}
+
+.cn-chart-widget__notice {
+	margin: 12px 0 0;
+}
+
+.cn-chart-widget__notice-text {
 	margin: 0;
 }
 
