@@ -32,11 +32,17 @@
 				</div>
 
 				<div class="cn-index-sidebar__section">
+					<!-- The board look names the field by its hint, as the list's
+					     own search field, with the magnifier (DqZakenSorteren). -->
 					<NcTextField
 						:modelValue="searchValue || ''"
 						:placeholder="searchPlaceholder"
-						:label="searchLabel"
-						@update:modelValue="$emit('search', $event)" />
+						:label="isBoardLook ? searchPlaceholder : searchLabel"
+						@update:modelValue="$emit('search', $event)">
+						<template v-if="isBoardLook" #icon>
+							<Magnify :size="18" />
+						</template>
+					</NcTextField>
 				</div>
 
 				<!-- Sort (list, card and map views; the table sorts by its headers):
@@ -355,6 +361,7 @@ import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import FilterRemoveOutline from 'vue-material-design-icons/FilterRemoveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
@@ -410,6 +417,7 @@ export default {
 		Pin,
 		PinOutline,
 		InformationOutline,
+		Magnify,
 	},
 
 	inject: {
