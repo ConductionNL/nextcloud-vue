@@ -881,6 +881,16 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+/* The server draws every dt as a 130px right-aligned inline block and pads
+   dt and dd 12px; a fact is a label over its value. */
+.cn-action-dialog__facts dt,
+.cn-action-dialog__facts dd {
+	display: block;
+	width: auto;
+	white-space: normal;
+	text-align: start;
+}
+
 .cn-action-dialog__facts dt {
 	margin: 0;
 	padding: 0;

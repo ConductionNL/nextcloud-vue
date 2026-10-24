@@ -60,8 +60,11 @@ describe('CnActionDialog in the board look', () => {
 		const tile = rule(sfc, '.cn-action-dialog__summary-icon')
 		expect(tile).toContain('width: 36px')
 		expect(tile).toContain('background: var(--color-primary-element-light)')
-		expect(rule(sfc, '.cn-action-dialog__facts dt')).toContain('padding: 0')
-		expect(rule(sfc, '.cn-action-dialog__facts dd')).toContain('padding: 0')
+		const both = rule(sfc, '.cn-action-dialog__facts dt,\n.cn-action-dialog__facts dd')
+		expect(both).toContain('width: auto')
+		expect(both).toContain('text-align: start')
+		expect(rule(sfc, '\n\n.cn-action-dialog__facts dt')).toContain('padding: 0')
+		expect(rule(sfc, '\n\n.cn-action-dialog__facts dd')).toContain('padding: 0')
 	})
 
 	it('keeps a board note\'s text and heading at the note\'s size against a theme', () => {
