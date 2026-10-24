@@ -2964,10 +2964,14 @@ export default {
 	display: contents;
 }
 
+/* A column takes its share of the width (minmax(0, 1fr)), so a long phase
+   name breaks inside its own column instead of running into the next. */
 .cn-chart-widget__matrix-head {
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	padding: 6px;
+	hyphens: auto;
+	overflow-wrap: anywhere;
 }
 
 .cn-chart-widget__matrix-label {
