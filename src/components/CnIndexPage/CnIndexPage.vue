@@ -11382,7 +11382,9 @@ export default {
 			const bucket = facet && Array.isArray(facet.values)
 				? facet.values.find((fv) => fv && typeof fv === 'object' && String(fv.value) === id)
 				: null
-			if (bucket && typeof bucket.label === 'string' && bucket.label !== '') {
+			// A facet that only echoes the value names nothing; a group or an
+			// option below may.
+			if (bucket && typeof bucket.label === 'string' && bucket.label !== '' && bucket.label !== id) {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
