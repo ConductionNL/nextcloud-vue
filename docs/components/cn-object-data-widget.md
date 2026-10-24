@@ -32,6 +32,7 @@ A plain-object value shows as a definition list, with one nested list for an obj
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
 | `collapsedFields` (`collapsed-fields`) | `Number` | `null` | Number of fields shown while collapsed, with a "Show all N fields" button for the rest. `null` fits the cell: the whole rows that fit stay, and the button only appears when the cell overflows |
+| `footnote` | `String` | `''` | A muted 13px line under the fields, through the host translate. A detail page `data` widget sets it as `content.footnote` (DqZaakContact "Ontvangstbevestiging"). |
 | `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
 | `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
 | `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
