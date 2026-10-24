@@ -35,7 +35,7 @@
 	--cn-board-card-inline-padding: 22px;
 	--cn-board-card-padding: 20px var(--cn-board-card-inline-padding);
 	/* The side inset of a dashboard card: its title and its rows. */
-	--cn-board-dashboard-card-inset: 24px;
+	--cn-board-dashboard-card-inset: 22px;
 	/* Hairline inside a card, and the soft secondary text: the boards' #3d4047,
 	   between the main text and the muted text, so it follows a theme's pair. */
 	--cn-board-hairline: var(--color-border);
@@ -620,6 +620,15 @@
    @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-34px */
 .cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
 	--button-size: 34px;
+}
+
+/* A detail page marked `cardButtons: "regular"` draws them at the 40px
+   control height: the case page's tab cards (DqZaakContact "Live gesprek",
+   DqZaakHistorie, DqZaakBetrokkenen), where setting and case-type pages keep 34.
+   @spec openspec/changes/detail-card-buttons-regular/specs/detail-card-buttons/spec.md#requirement-a-detail-page-can-draw-its-card-header-buttons-at-the-control-height */
+.cn-look-board.cn-detail-page--card-buttons-regular .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)),
+.cn-look-board .cn-detail-page--card-buttons-regular .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* The same beside a CnDetailCard's title (DqTaak "Notitie toevoegen" on the
@@ -2244,14 +2253,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* ---- Record list on a dashboard card (PtDashboard) ---------------------- */
 /* The dashboard's card body is flush, so the rows carry their own inset: the
-   board's card pads 24px at the sides and each row 12px (the Dq dashboards;
+   board's card pads 22px at the sides and each row 12px (the Dq dashboards;
    the pipelinq board's 14px gives way), a soft hairline
    between rows, the title 15px weight 600 and the meta 13px muted. A row is a
    link, but only the hover says so: no underline on any text run, however the
    host styles its links (`!important`, because a host rule such as
    `#content a` outranks any class). The pill and the date sit at the right. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list {
-	padding: 0 24px 10px;
+	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
 /* Inside a plain or grid sections widget the sections body already takes
@@ -2357,7 +2366,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-card-grid--in-cell {
-	padding: 16px 24px 20px;
+	padding: 16px var(--cn-board-dashboard-card-inset) 20px;
 }
 
 /* A record list drawn as cards (ShBank's bank accounts) keeps the rows' 24px
@@ -2366,7 +2375,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    draws them. A card is a link only by its hover: no underline on any text run.
    @spec openspec/changes/record-list-cards/specs/record-list-cards/spec.md#requirement-a-record-list-can-draw-its-rows-as-cards */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--cards {
-	padding: 16px 24px 20px;
+	padding: 16px var(--cn-board-dashboard-card-inset) 20px;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper--borderless .cn-record-list--cards {
@@ -2380,9 +2389,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* ---- Saved views on a dashboard card (PqMijnWerk) ------------------------ */
 /* The card body is flush, so the list and its empty line carry the card's
-   inset themselves, the same 24px at the sides as a record list. */
+   inset themselves, the same card inset at the sides as a record list. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-saved-views-widget {
-	padding: 4px 24px 20px;
+	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
 /* The board draws no chevron after the pill and date. */
@@ -2527,6 +2536,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-top: 6px;
 	border-radius: 50%;
 	background: var(--color-primary-element);
+}
+
+/* An item's tone (`content.itemTones`) colours its dot (DqMijnWerk: a
+   reaction blue, a publication green, a handover grey).
+   @spec openspec/changes/nc-widget-item-tones/specs/nc-widget-item-tones/spec.md#requirement-a-nextcloud-widget-item-can-take-a-tone-from-its-app-or-type */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-success .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-success);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-neutral .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-warning .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-warning);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-error .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-error);
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-icon-wrap img {

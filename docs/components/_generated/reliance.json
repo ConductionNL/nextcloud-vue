@@ -619,6 +619,13 @@
 			"via": [],
 			"page": "cn-command-palette"
 		},
+		"CnConditionListEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-condition-list-editor"
+		},
 		"CnConfigurationCard": {
 			"direct": 0,
 			"transitive": 0,

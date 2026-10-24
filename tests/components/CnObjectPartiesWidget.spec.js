@@ -164,3 +164,81 @@ describe('CnObjectPartiesWidget', () => {
 		expect(w.find('[data-testid="cn-object-parties-empty"]').exists()).toBe(true)
 	})
 })
+
+describe('CnObjectPartiesWidget presentation "primary"', () => {
+	const ORG_LISTING = {
+		primary: 'p-marja',
+		total: 2,
+		roles: [{ key: 'chair', label: 'Chair' }, { key: 'secretary', label: 'Secretary' }],
+		byRole: {
+			chair: [{ partyUuid: 'p-marja', displayName: 'Marja Verbeek', role: 'chair', email: 'marja.verbeek@zuiddrecht.example' }],
+			secretary: [{ partyUuid: 'p-kees', displayName: 'Kees de Wit', role: 'secretary' }],
+		},
+		results: [
+			{ partyUuid: 'p-kees', displayName: 'Kees de Wit', role: 'secretary' },
+			{ partyUuid: 'p-marja', displayName: 'Marja Verbeek', role: 'chair', email: 'marja.verbeek@zuiddrecht.example' },
+		],
+	}
+	const PRIMARY = {
+		presentation: 'primary',
+		roleLabels: { chair: 'Voorzitter' },
+		link: { label: 'Alle {total} contactpersonen', tab: 'contact-persons' },
+	}
+
+	function serveOrg(listing) {
+		mockGet.mockImplementation((url) => (url === '/apps/openregister/api/objects/x/item/r-1/parties'
+			? (listing instanceof Error ? Promise.reject(listing) : Promise.resolve({ data: listing }))
+			: Promise.reject(new Error(`404 ${url}`))))
+	}
+
+	it('shows the primary party as a lead with its role, its e-mail and the link to all of them', async () => {
+		serveOrg(ORG_LISTING)
+		const w = await mountParties(PRIMARY)
+		const lead = w.find('[data-testid="cn-object-parties-main"]')
+		expect(lead.exists()).toBe(true)
+		expect(lead.find('[data-testid="cn-object-parties-main-initials"]').text()).toBe('MV')
+		expect(lead.find('[data-testid="cn-object-parties-main-name"]').text()).toBe('Marja Verbeek')
+		expect(lead.find('[data-testid="cn-object-parties-main-role"]').text()).toBe('Voorzitter')
+		const mail = w.find('[data-testid="cn-object-parties-main-email"]')
+		expect(mail.attributes('href')).toBe('mailto:marja.verbeek@zuiddrecht.example')
+		expect(mail.text()).toBe('marja.verbeek@zuiddrecht.example')
+		const link = w.find('[data-testid="cn-object-parties-main-link"]')
+		expect(link.text()).toBe('Alle 2 contactpersonen')
+		expect(link.attributes('href')).toBe('#contact-persons')
+		expect(w.find('[data-testid="cn-object-parties-role"]').exists()).toBe(false)
+	})
+
+	it('reads the listing only, no party records', async () => {
+		serveOrg(ORG_LISTING)
+		await mountParties(PRIMARY)
+		expect(mockGet).toHaveBeenCalledTimes(1)
+	})
+
+	it('takes the role label the listing declares when the app names none', async () => {
+		serveOrg(ORG_LISTING)
+		const w = await mountParties({ ...PRIMARY, roleLabels: {} })
+		expect(w.find('[data-testid="cn-object-parties-main-role"]').text()).toBe('Chair')
+	})
+
+	it('says there is no main contact, and still links to the parties', async () => {
+		serveOrg({ ...ORG_LISTING, primary: null })
+		const w = await mountParties(PRIMARY)
+		expect(w.find('[data-testid="cn-object-parties-main"]').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-object-parties-main-none"]').text()).toBe('No main contact yet')
+		expect(w.find('[data-testid="cn-object-parties-main-link"]').text()).toBe('Alle 2 contactpersonen')
+	})
+
+	it('draws no foot link when the record has no parties', async () => {
+		serveOrg({ primary: null, total: 0, byRole: {}, results: [], roles: [] })
+		const w = await mountParties(PRIMARY)
+		expect(w.find('[data-testid="cn-object-parties-main-none"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-object-parties-main-link"]').exists()).toBe(false)
+	})
+
+	it('says a failed read failed, never "no main contact"', async () => {
+		serveOrg(new Error('500'))
+		const w = await mountParties(PRIMARY)
+		expect(w.find('[data-testid="cn-object-parties-failed"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-object-parties-main-none"]').exists()).toBe(false)
+	})
+})
