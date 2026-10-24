@@ -1801,14 +1801,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.5;
 }
 
+/* `!important` on the size: a theme that sizes every paragraph with
+   `!important` (thematiq's paragraph token, 15px) would win otherwise. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) p {
 	color: var(--color-primary-element-light-text) !important;
-	font-size: inherit;
+	font-size: inherit !important;
 	line-height: inherit;
 }
 
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__heading {
-	font-size: inherit;
+	font-size: inherit !important;
 	font-weight: 700 !important;
 }
 
