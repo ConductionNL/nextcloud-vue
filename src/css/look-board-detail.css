@@ -1315,6 +1315,25 @@
 	font-size: 15px;
 }
 
+/* A card with actions holds them at its end, beside the title and meta (the
+   board's "···" on each task). */
+.cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 12px;
+	align-items: center;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > :not(.cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	grid-column: 1;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > .cn-grouped-cards__item-actions:not(.cn-look-nextcloud *) {
+	grid-column: 2;
+	grid-row: 1 / span 3;
+	margin: 0;
+}
+
 /* ---- A file's side card (CnFilesBrowser) --------------------------------- */
 /* The board's side card: radius 12, 20px 22px of padding, the title a 15px
    muted heading at 600, the facts 8px 16px apart with the values at 500
