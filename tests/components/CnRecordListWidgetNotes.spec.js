@@ -98,6 +98,20 @@ describe('CnRecordListWidget notes', () => {
 		expect(w.findAll('.cn-record-notes__title').map((a) => a.attributes('data-to'))).toEqual(['CaseDetail', 'TaskDetail'])
 	})
 
+	it('labels each note field above it, tied to the field', async () => {
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		const w = mountList()
+		await flush()
+		const label = w.find('.cn-record-notes__field-label')
+		expect(label.exists()).toBe(true)
+		expect(label.text()).toBe('What happened')
+		// NcTextField (a stub here) takes the id onto its input and draws no
+		// label of its own with labelOutside.
+		const field = w.findComponent({ name: 'NcTextField' })
+		expect(field.attributes('id')).toBe(label.attributes('for'))
+		expect(['', 'true']).toContain(field.attributes('labeloutside'))
+	})
+
 	it('colours an ended or ending term as an error and a term to come as a warning', async () => {
 		axios.get.mockResolvedValue({ data: { open: OPEN } })
 		const w = mountList()

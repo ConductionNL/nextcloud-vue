@@ -37,15 +37,20 @@
 					data-testid="cn-record-list-due">{{ item.due.text }}</span>
 			</div>
 			<div class="cn-record-notes__fields">
-				<NcTextField
-					class="cn-record-notes__field"
-					:modelValue="drafts[item.key] || ''"
-					:label="fieldLabel"
-					:labelOutside="false"
-					:placeholder="placeholder"
-					:disabled="busy"
-					:data-testid="`cn-record-list-note-${item.key}`"
-					@update:modelValue="setDraft(item.key, $event)" />
+				<!-- The label stands above the field, as the leaf's own beside it
+				     (humaniq "Uren"), so both fields share one line. -->
+				<div class="cn-record-notes__field">
+					<label :for="fieldId(item.key)" class="cn-record-notes__field-label">{{ fieldLabel }}</label>
+					<NcTextField
+						:id="fieldId(item.key)"
+						:modelValue="drafts[item.key] || ''"
+						:label="fieldLabel"
+						labelOutside
+						:placeholder="placeholder"
+						:disabled="busy"
+						:data-testid="`cn-record-list-note-${item.key}`"
+						@update:modelValue="setDraft(item.key, $event)" />
+				</div>
 				<div v-if="leaf && leafProvider" class="cn-record-notes__leaf" :data-testid="`cn-record-list-leaf-${item.key}`">
 					<CnLeafMountHost
 						v-if="leafIsMount"
@@ -295,6 +300,16 @@ export default {
 		},
 
 		/**
+		 * The id of a row's note field, for its label.
+		 *
+		 * @param {string} key The row key.
+		 * @return {string} The id.
+		 */
+		fieldId(key) {
+			return `cn-record-notes-${this.$.uid}-${String(key).replace(/[^A-Za-z0-9_-]/g, '-')}`
+		},
+
+		/**
 		 * @param {string} key The row key.
 		 * @return {boolean} Whether the row has a note typed.
 		 */
@@ -462,7 +477,16 @@ export default {
 }
 
 .cn-record-notes__field {
+	display: flex;
 	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-record-notes__field-label {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-record-notes__leaf {
