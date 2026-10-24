@@ -582,6 +582,31 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- An ordered list field ----------------------------------------------- */
+/* DqPersoonlijkeInstellingen "Weergaven in mijn menu": a row's labelled remove
+   button ("Uit menu halen") is an outlined secondary button, and the select
+   that adds a row runs the field's full width.
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	height: 34px;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid var(--cn-board-control-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-ordered-list-field__add .v-select:not(.cn-look-nextcloud *) {
+	width: 100%;
+	max-width: none;
+}
+
 /* ---- A secondary button --------------------------------------------------- */
 /* The boards draw every secondary button neutral: the main background, a 1px
    control border, the main text, the hover ground on hover (DqFlow "Testen
