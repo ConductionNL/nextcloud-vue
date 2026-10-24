@@ -868,6 +868,7 @@
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
+					:filterChips="!isBoardLook"
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
