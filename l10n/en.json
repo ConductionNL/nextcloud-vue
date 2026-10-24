@@ -2570,6 +2570,14 @@
     "%n minute": [
       "%n minute",
       "%n minutes"
+    ],
+    "%n other": [
+      "%n other",
+      "%n others"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} has no location, so it is not on the map.",
+      "{names} have no location, so they are not on the map."
     ]
   }
 }

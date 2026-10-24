@@ -1029,6 +1029,7 @@
 						</ol>
 						<div v-if="mapList.missing.length > 0" class="cn-index-page__map-missing" data-testid="cn-index-map-missing">
 							<strong>{{ mapMissingTitle }}</strong>
+							<span v-if="mapMissingNote" class="cn-index-page__map-missing-note" data-testid="cn-index-map-missing-note">{{ mapMissingNote }}</span>
 							<NcButton variant="tertiary-no-background" data-testid="cn-index-map-missing-table" @click="onViewModeChange('table')">
 								{{ mapMissingLink }}
 							</NcButton>
@@ -1454,6 +1455,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
@@ -7105,6 +7107,31 @@ export default {
 		/** @return {string} The card under the list, for the rows without a place. */
 		mapMissingTitle() {
 			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+		},
+
+		/**
+		 * The sentence on that card naming the rows without a place by the
+		 * list's title template, three at most and the rest counted: "A, B and
+		 * C have no location, so they are not on the map." Empty without a
+		 * title template.
+		 *
+		 * @spec openspec/changes/map-missing-card-names-the-cases/specs/map-missing-card-names-the-cases/spec.md#requirement-the-missing-address-card-names-the-cases-it-counts
+		 * @return {string} The sentence.
+		 */
+		mapMissingNote() {
+			const list = this.mapConfig && this.mapConfig.list
+			const template = list && typeof list.title === 'string' ? this.cnTranslate(list.title) : ''
+			const missing = this.mapList.missing
+			if (template === '' || missing.length === 0) {
+				return ''
+			}
+			const shown = missing.slice(0, 3).map((row) => fillTemplate(template, row, undefined, this.cnFormatters ? { formatters: this.cnFormatters } : null)).filter((title) => title !== '')
+			if (shown.length === 0) {
+				return ''
+			}
+			const rest = missing.length - shown.length
+			const names = listText(rest > 0 ? [...shown, n('nextcloud-vue', '%n other', '%n others', rest)] : shown, getCanonicalLocale() || undefined)
+			return n('nextcloud-vue', '{names} has no location, so it is not on the map.', '{names} have no location, so they are not on the map.', missing.length, { names })
 		},
 
 		/** @return {string} The link from that card to the table. */

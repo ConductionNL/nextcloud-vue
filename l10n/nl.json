@@ -2837,6 +2837,14 @@
     "%n minute": [
       "%n minuut",
       "%n minuten"
+    ],
+    "%n other": [
+      "%n andere",
+      "%n andere"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} heeft geen locatie, dus staat niet op de kaart.",
+      "{names} hebben geen locatie, dus staan ze niet op de kaart."
     ]
   }
 }

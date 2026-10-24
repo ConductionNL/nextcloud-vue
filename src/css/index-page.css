@@ -221,6 +221,11 @@
 	font-size: 14px;
 }
 
+.cn-index-page__map-missing-note {
+	color: var(--color-main-text);
+	line-height: 1.45;
+}
+
 /* The selected folder's heading above the list. */
 /* A sort option whose endpoint failed: the note above the fallen-back list. */
 .cn-index-page__sort-source-note {
