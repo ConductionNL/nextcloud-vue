@@ -94,6 +94,9 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	// A record a detail page reads beside the loaded one (`visibilityContext`), read by a
 	// grid widget's or a tab's `visibleWhen` as `@context.<name>.<field>` (dot path).
 	context: '^@context\\.[A-Za-z][A-Za-z0-9_.]*$',
+	// A field of the object a facts widget shows (`@source.<field>`, dot path), read by a
+	// fact row's `route` params.
+	source: '^@source\\.[A-Za-z][A-Za-z0-9_.@]*$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -118,6 +121,7 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'row',
 	'subject',
 	'context',
+	'source',
 ])
 
 /**
@@ -187,6 +191,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen',
 		description: 'A record the detail page reads beside the loaded one, named in `config.visibilityContext` (a case\'s case type). A `visibleWhen` field reads it as `@context.<name>.<field>`, dot paths allowed (`@context.caseType.category`).',
 		members: ['@context.<name>.<field>'],
+	},
+	source: {
+		resolver: 'CnFactsWidget (a fact row\'s route params)',
+		description: 'A field of the object a facts widget shows, read when a fact row builds its link. Dot paths are allowed (`@source.caseType.parentCaseType`).',
+		members: ['@source.<field>'],
 	},
 })
 

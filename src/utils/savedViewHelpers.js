@@ -432,9 +432,10 @@ export function isOwnView(view, currentUserId) {
  * A default's `overrides` (page config laid over the page while it is
  * active, see `utils/savedViewOverrides.js`) ride in `query.overrides`, so a
  * copy of the default keeps them. A `description` is the line under the
- * view; `secondary: true` folds it behind "More default views" in the panel.
+ * view and its menu entry's tooltip; `icon` the icon of its menu entry;
+ * `secondary: true` folds it behind "More default views" in the panel.
  *
- * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label?, overrides?, description?, secondary? }`.
+ * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label?, overrides?, description?, icon?, secondary? }`.
  * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
  * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
  * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
@@ -472,6 +473,7 @@ export function defaultFilterViews(defaults, page = {}) {
 				query,
 				...(typeof entry.description === 'string' && entry.description !== '' ? { description: entry.description } : {}),
 				...(entry.secondary === true ? { secondary: true } : {}),
+				...(typeof entry.icon === 'string' && entry.icon !== '' ? { icon: entry.icon } : {}),
 			}
 		})
 }

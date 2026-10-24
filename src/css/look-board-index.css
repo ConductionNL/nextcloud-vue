@@ -137,6 +137,23 @@
 	margin-inline-start: 0;
 }
 
+/* Save view only stays on row 1 while the chips leave it room: with six chips
+   and the overflow button the chips took 967 of 1120px and Save view wrapped,
+   pulling the Filter unit to the end of row 2 (DqZaken, probed live). The chip
+   bar keeps room for Save view and wraps its chips inside that width; Save
+   view keeps to the top of row 1 and the Filter unit starts row 2.
+   @spec openspec/changes/board-toolbar-save-stays-on-row-one/specs/board-toolbar-save-stays-on-row-one/spec.md#requirement-save-view-stays-on-row-1-beside-the-chips */
+.cn-look-board .cn-index-page:not(.cn-index-page--quick-filters-toolbar) .cn-actions-bar--board .cn-actions-bar__row--views > .cn-quick-filter-bar--inline {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: calc(100% - var(--cn-board-save-view-room, 170px));
+}
+
+.cn-look-board .cn-index-page:not(.cn-index-page--quick-filters-toolbar) .cn-actions-bar--board .cn-actions-bar__row--views > .cn-saved-views__save {
+	align-self: flex-start;
+	margin-top: 2px;
+}
+
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-controls {
 	display: flex;
 	flex: 0 0 auto;
@@ -431,6 +448,15 @@
 	color: var(--color-main-text);
 }
 
+/* More views (`viewSwitch` leaves a view out): its trigger beside the track,
+   drawn pressed while one of its views is open.
+   @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views */
+.cn-look-board .cn-actions-bar--board .cn-actions-bar__view-more--active .button-vue {
+	background: var(--color-main-background) !important;
+	box-shadow: 0 1px 2px var(--color-box-shadow) !important;
+	color: var(--color-main-text);
+}
+
 /* A segment that opens another page: the same box as a button segment, as a link. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--link {
 	display: inline-flex;
@@ -653,6 +679,17 @@
 	background: transparent;
 }
 
+/* The board splits the map card 3:2 over a 520px map and the 320px list,
+   18px apart (DqZakenKaart: map 655, list 409).
+   @spec openspec/changes/board-map-card-split/specs/board-map-card-split/spec.md#requirement-the-board-map-card-splits-as-the-board-does */
+.cn-look-board .cn-index-page__map-card:not(.cn-look-nextcloud *) {
+	gap: 18px;
+}
+
+.cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *) {
+	flex: 3 1 520px;
+}
+
 /* The numbered list scrolls inside the card's height rather than running
    past its bottom, over the footer. */
 .cn-look-board .cn-index-page__main--map > .cn-index-page__map-card > .cn-index-page__map-side {
@@ -777,6 +814,28 @@
 	overflow: visible;
 	white-space: normal;
 	overflow-wrap: anywhere;
+}
+
+/* A header too narrow for its label wraps it over two lines, as the boards
+   draw "KvK- / nummer" and "Lopende / zaken" (DqOrganisaties), instead of
+   cutting it with an ellipsis.
+   @spec openspec/changes/board-index-header-wraps/specs/data-table/spec.md#requirement-a-board-index-header-wraps-a-label-that-does-not-fit */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th {
+	white-space: normal;
+}
+
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th .cn-table-header__sort > :first-child {
+	white-space: normal;
+	text-overflow: clip;
+}
+
+/* A cell with pills beside its value ("*****4054 Geheimhouding", DqContacten)
+   keeps value and pills on one line.
+   @spec openspec/changes/column-cell-pills/specs/data-table/spec.md#requirement-a-column-can-put-a-pill-beside-a-cells-value */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
 }
 
 /* A narrow header cuts its label, not its filter funnel. */
@@ -1264,6 +1323,17 @@
 	min-height: 24px;
 }
 
+/* A selectable record card heads with its checkbox on the left and the pill
+   on the right (DqZakenSorteren).
+   @spec openspec/changes/board-record-card-select-in-head/specs/board-record-card-select-in-head/spec.md#requirement-a-selectable-board-record-card-heads-with-its-checkbox-and-its-pill-on-one-row */
+.cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox {
+	padding-top: 0;
+}
+
+.cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox ~ .cn-object-card__record-pill {
+	margin-inline-start: auto;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-number {
 	margin-inline-start: auto;
 	color: var(--color-text-maxcontrast);
@@ -1462,10 +1532,11 @@
 	color: var(--cn-board-text-soft);
 }
 
-/* The folder pane as a card (DqAfdelingen): 280px, a hairline border, 12px
-   corners, with each folder's count in a grey pill. */
+/* The folder pane as a card (DqAfdelingen): 310px, a hairline border, 12px
+   corners, with each folder's count in a grey pill.
+   @spec openspec/changes/board-folder-pane-width/specs/board-folder-pane-width/spec.md */
 .cn-look-board .cn-index-page__folder-pane {
-	flex: 0 0 280px;
+	flex: 0 0 310px;
 	align-self: flex-start;
 	margin-inline-end: 20px;
 	padding: 14px;
@@ -1754,6 +1825,20 @@
 	font-weight: 600;
 }
 
+/* ---- A list row's leading cell (DqTeamwachtrij) ------------------------ */
+/* "6 dagen" in front of a team queue row: 14px at weight 700 on the normal
+   line height, an age widget included (board cells elsewhere keep it at 600).
+   @spec openspec/changes/board-list-lead-cell/specs/board-list-lead-cell/spec.md#requirement-a-board-list-rows-leading-cell-is-14px-bold */
+.cn-look-board .cn-object-row__lead:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.cn-look-board .cn-object-row__lead .cn-cell-renderer__age:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
 /* The board draws "3 zaken zonder adres" as a 15px title at its normal line
    height with "Toon ze in de tabel" under it as a link flush with the title,
@@ -1843,6 +1928,15 @@
 .cn-look-board .cn-index-page__board-select:not(.cn-look-nextcloud *) {
 	--nldesign-component-form-select-border-color: var(--cn-board-control-border);
 	border-color: var(--cn-board-control-border);
+}
+
+/* The narrowing select ("Zaaktype:") fits the chosen value, not the longest
+   option in the catalogue (DqWerkbord), with room for the caret. A browser
+   without field-sizing keeps the options' width.
+   @spec openspec/changes/board-narrow-select-fits-choice/specs/board-narrow-select-fits-choice/spec.md#requirement-the-board-views-narrowing-select-fits-the-chosen-value */
+.cn-look-board .cn-index-page__board-select--fit:not(.cn-look-nextcloud *) {
+	field-sizing: content;
+	padding-inline-end: 28px;
 }
 
 /* ---- Page tabs (CnIndexPage `pageTabs`, DqContracten) ------------------ */

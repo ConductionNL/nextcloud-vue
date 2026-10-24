@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.151.0', () => {
+	it('the manifest schema version reads 2.152.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1425,7 +1425,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.149.0 adds the link sentinel token, a record field made a tel:, mailto: or geo: link in an action target (pl1-party-actions), an index page's actions menu beside its header buttons (index-actions-menu-with-header-buttons) and a period filter's rolling window of months (description-period-from-filter).
 		// 2.150.0 adds a board's declared states (board.states, columnFields[].states, board-declared-states).
 		// 2.151.0 adds the api-call PATCH method (r24-api-call-patch), a card layout note (cardLayout.note, card-layout-note), a page filter without a control (control: none, page-filter-without-control) and a default view's description and secondary flag (default-views-secondary).
-		expect(schema.version).toBe('2.151.0')
+		// 2.152.0 adds the chart's week categories (categoryFormat: week, chart-week-categories), a header meta line in the singular or plural (header-meta-plural) and a list segment in the view switch (view-switch-order-and-more), an export's exportId and an open-form that edits through an endpoint without a schema (the shapes dossiq ships), and the @source facts token (dossiq DqZaaktypeVelden).
+		expect(schema.version).toBe('2.152.0')
 	})
 
 	it('accepts the 2.145.0 detail band: ids, { widgetId, span, chrome } and inline definitions', () => {
@@ -1560,6 +1561,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(page({ field: 'coveredFor' })).valid).toBe(true)
 		expect(validateManifestV2(page({ field: 'coveredFor', tone: 'red' })).valid).toBe(false)
 		expect(validateManifestV2(page({ formatter: 'coveredFor' })).valid).toBe(false)
+	})
+
+	it('accepts list in viewSwitch and refuses an unknown view (2.152.0)', () => {
+		const page = (viewSwitch) => ({ ...MINIMAL_V2, pages: [{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', config: { register: 'r', schema: 's', viewSwitch } }] })
+		expect(validateManifestV2(page(['list', 'cards', 'board', 'map'])).valid).toBe(true)
+		expect(validateManifestV2(page(['gallery'])).valid).toBe(false)
 	})
 
 	it('accepts a page filter option with a rolling window of months, and refuses a window under one (2.149.0)', () => {
@@ -2736,5 +2743,51 @@ describe('default views carry a line and a secondary mark (default-views-seconda
 
 	it('refuses a secondary mark that is not a boolean', () => {
 		expect(validateManifestV2(page({ slug: 'mine', name: 'Mine', filters: {}, secondary: 'yes' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — headerMeta plural forms (header-meta-plural)', () => {
+	const page = (headerMeta) => ({ ...MINIMAL_V2, pages: [{ id: 'OrganisationDetail', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { register: 'dossiq', schema: 'kvkCompany', headerMeta } }] })
+
+	it('accepts a string and a { count, one, other, zero? } form', () => {
+		expect(validateManifestV2(page('via {channel}')).valid).toBe(true)
+		expect(validateManifestV2(page({ count: 'open', one: '{count:open} open case', other: '{count:open} open cases', zero: '' })).valid).toBe(true)
+	})
+
+	it('refuses a plural form without its count or its forms', () => {
+		expect(validateManifestV2(page({ one: 'x', other: 'y' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x' })).valid).toBe(false)
+		expect(validateManifestV2(page({ count: 'open', one: 'x', other: 'y', few: 'z' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — header actions dossiq ships (dossiq Catalogue, EnvironmentOrganisationDetail)', () => {
+	const page = (type, headerActions) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: type === 'detail' ? '/p/:id' : '/p', type, title: 'P', config: { register: 'r', schema: 's', headerActions } }] })
+
+	it('accepts an export that names the table it downloads (exportId)', () => {
+		const result = validateManifestV2(page('dashboard', [{ id: 'catalogue-download', label: 'Download', icon: 'TrayArrowDown', type: 'export', exportId: 'catalogue-object-types' }]))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts an open-form that edits through an endpoint, without a schema', () => {
+		const result = validateManifestV2(page('detail', [{
+			id: 'organisation-edit',
+			type: 'open-form',
+			label: 'Edit',
+			icon: 'Pencil',
+			formTitle: 'Edit the organisation',
+			endpoint: { url: '/apps/openregister/api/organisations/@objectId', method: 'PATCH', responsePath: 'organisation' },
+			formProperties: { name: { type: 'string', title: 'Name' }, description: { type: 'string', title: 'Description', format: 'textarea' } },
+			successMessage: 'The organisation is saved.',
+			errorMessage: 'The organisation was not saved.',
+		}]))
+		expect(result.errors || []).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('still refuses an open-form with neither a schema nor an endpoint and its fields', () => {
+		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X' }])).valid).toBe(false)
+		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X', endpoint: { url: '/x' } }])).valid).toBe(false)
 	})
 })

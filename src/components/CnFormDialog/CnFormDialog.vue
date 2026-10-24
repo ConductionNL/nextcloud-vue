@@ -1032,6 +1032,7 @@ import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { foldDottedFields, spreadDottedFields } from '../../utils/dottedFields.js'
 import {
+	answersByArrayKey,
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
 	extendsFormDeclarations,
@@ -4643,8 +4644,11 @@ export default {
 				if (mine.length === 0) {
 					continue
 				}
-				const arrayKey = config.values.arrayKey
-				base[arrayKey] = mergeValueArray(base[arrayKey], mine, config, this.dynamicDefinitions)
+				// Each answer goes to the array its definition is routed to
+				// (`values.arrayKeyBy`), merged over what that array holds.
+				for (const [arrayKey, subset] of Object.entries(answersByArrayKey(mine, config, this.dynamicDefinitions))) {
+					base[arrayKey] = mergeValueArray(base[arrayKey], subset, config, this.dynamicDefinitions)
+				}
 			}
 		},
 

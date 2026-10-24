@@ -3892,6 +3892,13 @@
 			"via": [],
 			"page": "cn-saved-view-edit-dialog"
 		},
+		"CnSavedViewLookFields": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnSavedViewMenuSettings": {
 			"direct": 2,
 			"transitive": 7,

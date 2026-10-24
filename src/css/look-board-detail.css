@@ -562,6 +562,30 @@
 	font-size: 13px;
 }
 
+/* A message keeps 64px free on the side away from its avatar, so the two
+   sides read as two columns; the line above it is 13px in the soft ink at the
+   normal line height, and our bubble's text is in the main ink. Each names
+   the thread to outrank the component's scoped rules (DqZaakContact).
+   @spec openspec/changes/board-conversation-gutter-and-meta-ink/specs/board-conversation/spec.md#requirement-a-board-message-keeps-a-gutter-opposite-its-avatar */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message:not(.cn-look-nextcloud *) {
+	padding-inline-end: 64px;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us:not(.cn-look-nextcloud *) {
+	padding-inline-start: 64px;
+	padding-inline-end: 0;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__meta:not(.cn-look-nextcloud *),
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__meta time:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	line-height: normal;
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
 /* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
    the thread to outrank the component's scoped muted ink. */
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
@@ -855,6 +879,10 @@
    the notice needs it too, or it stays a second tinted box in the first.
    @spec openspec/changes/board-side-notice-flat-note/specs/board-side-notice-flat-note/spec.md#requirement-the-note-inside-a-side-notice-paints-no-ground */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
 	background-color: transparent !important;
 }
 
@@ -1374,6 +1402,13 @@
 	font-size: 14px;
 }
 
+/* ---- The mail tab's template row (CnMailTab) ---------------------------- */
+/* The template field and its buttons stand 14px 16px apart (DqZaakEmail).
+   @spec openspec/changes/mail-tab-blank-draft-beside-compose/specs/mail-tab/spec.md#requirement-the-empty-draft-can-stay-in-the-row-beside-the-compose-action */
+.cn-look-board .cn-mail-tab__template-row:not(.cn-look-nextcloud *) {
+	gap: 14px 16px;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
@@ -1429,4 +1464,11 @@
 
 .cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
 	--button-size: var(--cn-board-control-height);
+}
+
+/* A map in a board card has the board's control corners (DqZaak, DqZaakMeer
+   "Locaties"); overflow keeps the tiles inside them. */
+.cn-look-board .cn-map-widget:not(.cn-map-widget--fullscreen) {
+	border-radius: var(--cn-board-control-radius);
+	overflow: hidden;
 }

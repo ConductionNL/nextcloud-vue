@@ -71,7 +71,9 @@
 					:options="visibilityOptions"
 					:clearable="true"
 					label="label"
-					:inputLabel="t('nextcloud-vue', 'Visibility')"
+					:inputLabel="visibilityLabelShown ? t('nextcloud-vue', 'Visibility') : undefined"
+					:labelOutside="!visibilityLabelShown"
+					:ariaLabelCombobox="t('nextcloud-vue', 'Visibility')"
 					:placeholder="t('nextcloud-vue', 'Internal and public')"
 					data-testid="cn-timeline-visibility-filter"
 					@update:modelValue="load" />
@@ -121,7 +123,7 @@
 						{{ n('nextcloud-vue', 'Also written on %n other record', 'Also written on %n other records', entry.siblings.length) }}
 					</p>
 
-					<div v-if="canManage" class="cn-timeline-manage__actions">
+					<div v-if="canManage && !entry.isRead" class="cn-timeline-manage__actions">
 						<NcButton variant="tertiary"
 							:data-testid="'cn-timeline-pin-' + entry.id"
 							@click="togglePin(entry)">
@@ -144,13 +146,19 @@
 				</li>
 			</ul>
 
-			<div v-if="(!loading && !error && allEntries.length > 0) || auditTrailLinkLabel"
+			<div v-if="(!loading && !error && allEntries.length > 0) || auditTrailLinkLabel || readsToggleLabel"
 				class="cn-timeline-manage__footer">
 				<p v-if="!loading && !error && allEntries.length > 0"
 					class="cn-timeline-manage__count"
 					data-testid="cn-timeline-count">
-					{{ t('nextcloud-vue', '{shown} of {total} events', { shown: entries.length, total: allEntries.length }) }}
+					{{ countLine }}
 				</p>
+				<NcCheckboxRadioSwitch v-if="readsToggleLabel && readsAllowed"
+					v-model="includeReads"
+					data-testid="cn-timeline-include-reads"
+					@update:modelValue="load">
+					{{ readsToggleLabel }}
+				</NcCheckboxRadioSwitch>
 				<NcButton v-if="auditTrailLinkLabel"
 					variant="tertiary-no-background"
 					class="cn-timeline-manage__audit-link"
@@ -230,6 +238,9 @@ import { prefixUrl } from '../../utils/headers.js'
 
 let instanceCount = 0
 
+/** The kind of a read row (`readsToggle`), never a kind OpenRegister declares. */
+const READ_KIND = 'cn-read'
+
 /** Event-bus channel: a note was added to an object's timeline (`{ objectId, source }`). */
 const TIMELINE_CHANGED = 'cn:timeline:changed'
 
@@ -277,6 +288,9 @@ export default {
 		 * `false` none, `"separate"` none but keeps the "Add note" button,
 		 * which brings a `"only"` instance (the form alone, a card of its own
 		 * in a stack) into view; a note saved there reloads the list.
+		 * `readsToggle` (`true` or a label) adds a footer switch, off by
+		 * default, that puts who read the record (its audit trail's reads)
+		 * among the entries; the count then says "changes only" while it is off.
 		 * `auditTrailLink` (`true` or a label) draws a footer link that opens
 		 * the object sidebar on its audit trail tab, `auditTrailTab` when the
 		 * page declares that tab under its own id.
@@ -302,6 +316,10 @@ export default {
 			draftIsPublic: false,
 			saving: false,
 			activeModal: null,
+			/** Whether the list also shows who read the record (`readsToggle`). */
+			includeReads: false,
+			/** Whether OpenRegister gives this reader read entries (`readEventsVisible`); null until asked. */
+			readsAllowed: null,
 		}
 	},
 
@@ -343,6 +361,45 @@ export default {
 			return this.content.composer !== false && this.content.composer !== 'separate'
 		},
 
+		/**
+		 * The words of the "also who read it" switch, or '' when the widget
+		 * does not offer it (`readsToggle`: true or a label).
+		 *
+		 * @spec openspec/changes/timeline-reads-toggle/specs/timeline/spec.md#requirement-the-history-can-show-who-read-the-record
+		 * @return {string}
+		 */
+		readsToggleLabel() {
+			const toggle = this.content.readsToggle
+			if (!toggle) {
+				return ''
+			}
+			return typeof toggle === 'string' ? this.translate(toggle) : t('nextcloud-vue', 'Also who read it')
+		},
+
+		/**
+		 * "3 of 10 events", and ", changes only" while reads can be shown but are not.
+		 *
+		 * @return {string}
+		 */
+		countLine() {
+			const values = { shown: this.entries.length, total: this.allEntries.length }
+			return this.readsToggleLabel && this.readsAllowed && !this.includeReads
+				? t('nextcloud-vue', '{shown} of {total} events, changes only', values)
+				: t('nextcloud-vue', '{shown} of {total} events', values)
+		},
+
+		/**
+		 * Whether the visibility filter shows its "Visibility" label. With
+		 * `visibilityLabel: false` it keeps only its accessible name and the
+		 * select reads "Internal and public" on its own (board DqZaakHistorie).
+		 *
+		 * @spec openspec/changes/timeline-visibility-filter-unlabelled/specs/timeline/spec.md#requirement-the-visibility-filter-can-go-without-a-visible-label
+		 * @return {boolean}
+		 */
+		visibilityLabelShown() {
+			return this.content.visibilityLabel !== false
+		},
+
 		/** @return {boolean} The widget is the note form alone (`composer: "only"`), a card of its own beside the list. */
 		composerOnly() {
 			return this.content.composer === 'only'
@@ -364,7 +421,8 @@ export default {
 		 * @return {Array<object>} The options.
 		 */
 		kindOptions() {
-			return [{ id: '', label: t('nextcloud-vue', 'Note') }].concat(this.kinds.map((kind) => ({ id: kind.slug, label: kind.title || kind.slug })))
+			const options = [{ id: '', label: t('nextcloud-vue', 'Note') }].concat(this.kinds.map((kind) => ({ id: kind.slug, label: kind.title || kind.slug })))
+			return this.includeReads ? options.concat([{ id: READ_KIND, label: t('nextcloud-vue', 'Viewed') }]) : options
 		},
 
 		/**
@@ -544,7 +602,11 @@ export default {
 				}
 				const response = await axios.get(this.timelineUrl, { params })
 				this.canManage = response.data?.canManage === true
-				this.allEntries = response.data?.results || []
+				const entries = response.data?.results || []
+				if (this.readsToggleLabel && this.readsAllowed === null) {
+					await this.readEntries()
+				}
+				this.allEntries = this.readsToggleLabel && this.readsAllowed && this.includeReads ? this.withReads(entries, await this.readEntries()) : entries
 				this.entries = this.applyKindFilter(this.allEntries)
 			} catch {
 				this.allEntries = []
@@ -553,6 +615,56 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * Who read the record, from its audit trail (`action=read`), as timeline
+		 * rows. OpenRegister gives read entries only to the groups named for
+		 * them and says so in `readEventsVisible`, which decides whether the
+		 * switch is offered at all; a read it refuses or that fails leaves the
+		 * reads out and offers no switch.
+		 *
+		 * @spec openspec/changes/timeline-reads-toggle/specs/timeline/spec.md#requirement-the-history-can-show-who-read-the-record
+		 * @return {Promise<Array<object>>} The read rows.
+		 */
+		async readEntries() {
+			try {
+				const url = prefixUrl(`${this.base}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails`)
+				const response = await axios.get(url, { params: { action: 'read', limit: 50 } })
+				this.readsAllowed = response.data?.readEventsVisible === true
+				if (!this.readsAllowed) {
+					return []
+				}
+				const list = response.data?.results || []
+				return list
+					.filter((entry) => String(entry.action || '').toLowerCase() === 'read')
+					.map((entry) => ({
+						id: `read-${entry.id}`,
+						kind: READ_KIND,
+						isRead: true,
+						author: entry.actorDisplayName || entry.userName || entry.user || '',
+						created: entry.created || entry.creationDateTime || '',
+						message: t('nextcloud-vue', 'Opened the record'),
+					}))
+			} catch {
+				this.readsAllowed = false
+				return []
+			}
+		},
+
+		/**
+		 * The timeline's entries with the reads among them, newest first; the
+		 * pinned entries stay on top.
+		 *
+		 * @param {Array<object>} entries The timeline's entries.
+		 * @param {Array<object>} reads The read rows.
+		 * @return {Array<object>} The merged list.
+		 */
+		withReads(entries, reads) {
+			const time = (entry) => new Date(entry.created || 0).getTime() || 0
+			const pinned = entries.filter((entry) => entry.pinned)
+			const rest = [...entries.filter((entry) => !entry.pinned), ...reads].sort((a, b) => time(b) - time(a))
+			return [...pinned, ...rest]
 		},
 
 		/**
@@ -638,6 +750,9 @@ export default {
 		 * @return {string} The label.
 		 */
 		kindLabel(entry) {
+			if (entry.kind === READ_KIND) {
+				return t('nextcloud-vue', 'Viewed')
+			}
 			if (!entry.kind) {
 				return t('nextcloud-vue', 'Note')
 			}

@@ -2603,7 +2603,17 @@
     "Week {week}": "Week {week}",
     "More default views": "Meer standaardweergaven",
     "Fewer default views": "Minder standaardweergaven",
-    "More steps": "Meer stappen"
+    "More steps": "Meer stappen",
+    "More views": "Meer weergaven",
+    "{type} from {app}": "{type} van {app}",
+    "Start step": "Start",
+    "Also who read it": "Ook wie het las",
+    "{shown} of {total} events, changes only": "{shown} van {total} gebeurtenissen, alleen wijzigingen",
+    "Opened the record": "Heeft het geopend",
+    "Viewed": "Ingezien",
+    "w{week}": "w{week}",
+    "Icon": "Pictogram",
+    "Shown when you point at the view in the menu.": "Te zien als u in het menu op de weergave wijst."
   },
   "plurals": {
     "{count} member": [
@@ -2797,6 +2807,10 @@
     "%n week": [
       "%n week",
       "%n weken"
+    ],
+    "%n minute": [
+      "%n minuut",
+      "%n minuten"
     ]
   }
 }

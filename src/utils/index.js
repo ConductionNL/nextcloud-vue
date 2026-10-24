@@ -6,7 +6,7 @@ export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, va
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, mergeValueArray, PREFILL_KEY, splitDynamicFormData, storedAnswersFor, usesArrayValues, valueArrayFor, valueRecordsFor } from './dynamicProperties.js'
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './schemaApi.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './widgetVisibility.js'
-export { loadMyTeam, peekMyTeam, registerMyTeamSource } from './myTeam.js'
+export { fillMyTeamToken, loadMyTeam, loadMyTeamName, peekMyTeam, peekMyTeamName, registerMyTeamNameSource, registerMyTeamSource } from './myTeam.js'
 export { isAppInstalled } from './appInstalled.js'
 export { getAssistantMark } from './assistantMark.js'
 export { passesContextPredicates } from './visibleIfContext.js'

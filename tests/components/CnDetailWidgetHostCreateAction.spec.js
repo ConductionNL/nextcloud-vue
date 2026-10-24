@@ -45,6 +45,13 @@ describe('CnDetailWidgetHost — the catalog Add and createAction', () => {
 		expect(addLabel.call(ctx)).toBe('Add')
 	})
 
+	it('reads the list\'s own addLabel, as the list\'s Add does (DqZaaktypeStatussen "Status toevoegen")', () => {
+		const ctx = { ...host({ addLabel: 'Add status' }, { id: 1 }), cnTranslate: (k) => (k === 'Add status' ? 'Status toevoegen' : k) }
+		expect(addLabel.call(ctx)).toBe('Status toevoegen')
+		const both = { ...host({ addLabel: 'Add status', createAction: ACTION }, { id: 1 }) }
+		expect(addLabel.call(both)).toBe('Subrecord aanmaken')
+	})
+
 	it('keeps allowCreate: false as the off switch', () => {
 		expect(catalogAddEnabled.call(host({ createAction: ACTION, allowCreate: false }, { id: 1 }))).toBe(false)
 	})

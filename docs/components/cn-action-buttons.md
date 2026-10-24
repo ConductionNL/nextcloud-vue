@@ -157,6 +157,8 @@ current record without extra wiring.
 | `actions` | `Array` | `[]` | The declarative `headerActions[]` entries. |
 | `inline` | `Number` | `0` | How many collapsible actions stay as buttons; the rest fall into one `···` menu. `0` renders every action as a button (the pre-existing behaviour). |
 | `overflowLabel` | `String` | `''` | Name for the overflow menu. Empty falls back to a translated "Actions". |
+| `overflowOnly` | `Boolean` | `false` | Every collapsible action in the overflow menu and none as a button; the trigger is icon only. |
+| `overflowAriaLabel` | `String` | `''` | The accessible name of that icon-only trigger; empty falls back to the overflow label. |
 | `router` | `Object` | `null` | Explicit Vue Router for `navigate` / `onSuccessRoute` (falls back to `this.$router`). |
 | `display` | `String` | `'buttons'` | Where the actions are drawn. `buttons` puts one `NcButton` per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs. |
 
