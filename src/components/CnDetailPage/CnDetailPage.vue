@@ -1324,7 +1324,7 @@
 				:schema="currentSchema"
 				:item="currentObject"
 				:register="register"
-				:dialogTitle="editActionLabel"
+				:dialogTitle="editFormTitle"
 				:subtitle="editFormSubtitle"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
@@ -2450,6 +2450,12 @@ export default {
 
 		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Title of the record edit form, run through the host translate. Empty uses the Edit button's label. */
+		editTitle: {
 			type: String,
 			default: '',
 		},
@@ -4788,6 +4794,11 @@ export default {
 		 */
 		editActionLabel() {
 			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
+		},
+
+		/** @return {string} The edit form's title, translated; the Edit button's label when none is configured. */
+		editFormTitle() {
+			return this.editTitle ? this.effectiveTranslate(this.editTitle) : this.editActionLabel
 		},
 
 		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
