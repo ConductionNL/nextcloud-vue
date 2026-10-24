@@ -526,6 +526,11 @@
 	font-size: 14px;
 }
 
+/* After the board view's hint the active filters end the line on the right. */
+.cn-look-board .cn-actions-bar--board .cn-index-page__board-hint ~ .cn-actions-bar__active-label {
+	margin-inline-start: auto;
+}
+
 /* An active filter: the light primary tint, its label (a span) in the tint's
    ink through --nldesign-color-on-surface too. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__filter-chip {
