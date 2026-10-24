@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.154.0', () => {
+	it('the manifest schema version reads 2.155.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1428,7 +1428,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.152.0 adds the chart's week categories (categoryFormat: week, chart-week-categories), a header meta line in the singular or plural (header-meta-plural) and a list segment in the view switch (view-switch-order-and-more), an export's exportId and an open-form that edits through an endpoint without a schema (the shapes dossiq ships), and the @source facts token (dossiq DqZaaktypeVelden).
 		// 2.153.0 adds an action's confirm wording and icon (action-confirm-label-icon).
 		// 2.154.0 adds quickFilterPlacement `active` (index-toolbar-start-and-active-only-quick-filters) and a record-list footerAction list with an entry note and wide flag (record-list-pill-cases-footer-choice).
-		expect(schema.version).toBe('2.154.0')
+		expect(schema.version).toBe('2.155.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
