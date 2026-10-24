@@ -1477,10 +1477,7 @@
 	],
 	"plurals": [
 		"%n action is stored under config.actions, which this page type does not render.",
-		"%n feature",
 		"%n item",
-		"%n page, including {pages}",
-		"%n page: {pages}",
 		"Delete schema and %n object",
 		"There is %n error",
 		"{count} active",
@@ -1499,7 +1496,6 @@
 		"{count} report",
 		"{count} result",
 		"{count} submission",
-		"{on} of %n is in the menu",
 		"“{name}” still has %n object. Delete the schema and its object?"
 	]
 }
