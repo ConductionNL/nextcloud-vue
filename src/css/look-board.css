@@ -417,6 +417,16 @@
 	--cn-board-select-height: 36px;
 }
 
+/* A select on the description line is as wide as its choice: the board draws
+   "Laatste 12 maanden" and "Alle zaaktypen" as compact selects beside the
+   period group (DqProcesanalyse), where NcSelect's own 260px minimum pushed
+   the last one onto a line of its own.
+   @spec openspec/changes/board-description-select-compact/specs/board-description-select-compact/spec.md#requirement-a-description-select-is-as-wide-as-its-choice */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select {
+	min-width: 0;
+	width: auto;
+}
+
 /* ---- A text field and a multiple select --------------------------------- */
 /* A text field and a textarea are the same control as the board select: a 1px
    edge in the 3:1 control colour (DqZakenSorteren "Zoek op zaak, nummer of
@@ -763,7 +773,9 @@
 	font-weight: 600;
 }
 
-.cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover {
+/* While its menu is open the trigger stays white, also under the pointer
+   that just opened it (DqZaaktypen draws "Acties" open on the main ground). */
+.cn-look-board .action-item.action-item--secondary:not(.action-item--open) .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
 }
 
@@ -1387,8 +1399,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* Section actions sit at the end of the title row. The row is a grid, so a
-   long title wraps beside the buttons instead of running under them, and in a
-   narrow card the buttons drop under the title and description. */
+   long title wraps beside the buttons instead of running under them. A
+   half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
+   about 504px inside); only a card under 400px, such as on a phone, drops
+   them under the title and description.
+   @spec openspec/changes/board-half-card-title-actions/specs/board-half-card-title-actions/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions) {
 	/* `!important`: the card rules above set `display: flex` at higher specificity for a section in a wrapping element. */
 	display: grid !important;
@@ -1431,7 +1446,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: center;
 }
 
-@container (max-width: 520px) {
+@container (max-width: 400px) {
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions,
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .settings-section__desc) > .cn-settings-section__actions {
 		grid-row: auto;
@@ -1843,14 +1858,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    "aanmeldingen wachten op goedkeuring"), not NcNoteCard's 4px edge bar. A
    settings card's notes take the same box, success included
    (PtBeheerinstellingen "Er is een eigen ondertekeningssleutel ingesteld").
+   A detail page's side notice is left out: its own block is the box there
+   (DqZaak "Advies gevraagd", board-side-notice-flat-note).
    @spec openspec/changes/board-banner-note-tone/specs/board-banner-note-tone/spec.md#requirement-a-board-warning-or-error-banner-is-a-tinted-box-with-an-edge-in-its-tone */
-.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--warning:not(.cn-look-nextcloud *),
 .cn-look-board .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {
 	--cn-banner-ground: color-mix(in srgb, var(--color-warning) 13%, var(--color-main-background));
 	--cn-banner-edge: color-mix(in srgb, var(--color-warning) 50%, var(--color-main-background));
 }
 
-.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--error:not(.cn-look-nextcloud *),
 .cn-look-board .settings-section .notecard.notecard--error:not(.cn-look-nextcloud *) {
 	--cn-banner-ground: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
 	--cn-banner-edge: color-mix(in srgb, var(--color-error) 30%, var(--color-main-background));
@@ -1861,8 +1878,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--cn-banner-edge: color-mix(in srgb, var(--color-success) 30%, var(--color-main-background));
 }
 
-.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),
-.cn-look-board .cn-banner-widget .notecard.notecard--error:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--error:not(.cn-look-nextcloud *),
 .cn-look-board .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *),
 .cn-look-board .settings-section .notecard.notecard--error:not(.cn-look-nextcloud *),
 .cn-look-board .settings-section .notecard.notecard--success:not(.cn-look-nextcloud *) {
@@ -2061,6 +2078,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 10px 0;
 }
 
+/* A row that opens its record is a link, and the nldesign theme paints every
+   `<a>` in its link colour with an underline (`!important`, through its link
+   tokens). The boards draw it as a list row: the title in the main ink, the
+   meta muted, no underline (DqContact, DqOrganisatie "Zaken"); the row hands
+   the theme the values its rules read. Hover still underlines the title.
+   @spec openspec/changes/board-record-list-row-link-ink/specs/record-widgets/spec.md#requirement-a-board-list-row-that-is-a-link-draws-no-link-ink */
+.cn-look-board a.cn-record-list__row--link:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
 .cn-look-board .cn-record-list--rows:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
 	color: var(--color-main-text);
 	font-weight: 500;
@@ -2221,6 +2252,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    `#content a` outranks any class). The pill and the date sit at the right. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list {
 	padding: 0 24px 10px;
+}
+
+/* Inside a plain or grid sections widget the sections body already takes
+   the card's side inset, so a record list there takes none of its own (DqTermijnen "Totale
+   dwangsom in 2026" under the Jaar form).
+   @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--plain .cn-record-list,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--grid .cn-record-list {
+	padding-inline: 0;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
@@ -2520,6 +2560,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 22px 20px;
 }
 
+/* Inside a plain or grid sections widget the sections body already takes
+   the card's inset, so a widget table there takes none of its own (DqTermijnen Kwartaalrapport,
+   1074px in a 1120px card).
+   @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--plain .cn-widget-object-table,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid .cn-widget-object-table {
+	padding: 0;
+}
+
 /* ---- A plain sections widget on a dashboard card ------------------------ */
 /* The card is flush, because a sections widget usually draws its own cards;
    the plain one draws none, so its body takes the card's side inset and 20px
@@ -2802,6 +2851,22 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	height: 20px;
 	min-height: 20px;
 	accent-color: var(--color-primary-element);
+}
+
+/* The chosen setup choice is edged by a real 2px border, as DqInstellen
+   measures it, instead of a 1px border and a 1px inset shadow; the padding
+   gives the second pixel back so the words stay put. The board draws no
+   option icon, only the radio and the words.
+   @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *) {
+	padding: 11px 13px;
+	border-width: 2px;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-icon:not(.cn-look-nextcloud *) {
+	display: none;
 }
 
 /* ---- A dashboard chart's bar list --------------------------------------- */

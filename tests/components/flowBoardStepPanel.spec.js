@@ -61,10 +61,10 @@ describe('CnFlowBoard right panel', () => {
 		expect(w.find('.runs').exists()).toBe(true)
 	})
 
-	it('lists the settings of the selected step with their labels', async () => {
+	it('lists the settings of the selected step as fields with their labels', async () => {
 		const w = await mountBoard({ selectedNodeId: 'n1' })
-		const rows = w.findAll('[data-testid="flow-board-step-setting"]').map((row) => [row.find('dt').text(), row.find('dd').text()])
-		expect(rows).toEqual([['Decision table', 'Welstand areas'], ['Input', 'Case location'], ['Stop on no match', 'Yes']])
+		expect(w.vm.stepFields.map((field) => [field.label, field.widget])).toEqual([['Decision table', 'select'], ['Input', 'text'], ['Stop on no match', 'switch']])
+		expect(w.findAll('[data-testid="flow-board-step-setting"]')).toHaveLength(3)
 	})
 
 	it('names the step, then its type as a purple pill under the name (DqFlow)', async () => {

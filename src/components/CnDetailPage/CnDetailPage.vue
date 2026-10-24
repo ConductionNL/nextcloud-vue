@@ -573,7 +573,7 @@
 				<slot
 					:name="`widget-${headerWidgetDef.id}`"
 					:item="{ id: headerWidgetDef.id, widgetId: headerWidgetDef.id }"
-					:widget="headerWidgetDef"
+					:widget="titled(headerWidgetDef)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -581,7 +581,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="headerWidgetDef"
+						:widget="titled(headerWidgetDef)"
 						chrome="bare"
 						:objectId="objectId"
 						:object="currentObject"
@@ -594,7 +594,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -712,7 +712,7 @@
 				<slot
 					:name="`widget-${entry.widget.id}`"
 					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
-					:widget="entry.widget"
+					:widget="titled(entry.widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -720,7 +720,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="entry.widget"
+						:widget="titled(entry.widget)"
 						:chrome="entry.chrome"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -735,7 +735,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets" />
+						:availableWidgets="titledWidgets" />
 				</slot>
 			</div>
 		</div>
@@ -992,7 +992,7 @@
 						<slot
 							:name="`widget-${item.widgetId}`"
 							:item="item"
-							:widget="findWidget(item)"
+							:widget="titled(findWidget(item))"
 							:objectId="objectId"
 							:object="resolvedObject"
 							:objectData="resolvedObject"
@@ -1000,7 +1000,7 @@
 							:register="register"
 							:schema="schema">
 							<CnDetailWidgetHost
-								:widget="findWidget(item)"
+								:widget="titled(findWidget(item))"
 								chrome="card"
 								inGridCell
 								:showCardTitle="showCardTitle(item)"
@@ -1016,7 +1016,7 @@
 								:integrationContext="effectiveIntegrationContext"
 								:hideEmpty="hideEmpty"
 								:cnRegistry="cnRegistry"
-								:availableWidgets="bodyGridWidgets"
+								:availableWidgets="titledBodyGridWidgets"
 								@geoSaved="onGeoSaved"
 								@openIntegration="onAutoBodyOpenIntegration"
 								@selectObject="onRelatedObjectSelect" />
@@ -1212,7 +1212,7 @@
 				<slot
 					:name="`widget-${widget.id}`"
 					:item="{ id: widget.id, widgetId: widget.id }"
-					:widget="widget"
+					:widget="titled(widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -1221,7 +1221,7 @@
 					:schema="schema">
 					<component
 						:is="widget.follows ? 'CnFollowingWidgetHost' : 'CnDetailWidgetHost'"
-						:widget="widget"
+						:widget="titled(widget)"
 						chrome="card"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -1236,7 +1236,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -1258,7 +1258,7 @@
 		<CnWidgetStyleEditorModal
 			v-if="showWidgetConfig"
 			:show="showWidgetConfig"
-			:widget="configWidget"
+			:widget="titled(configWidget)"
 			:deletable="true"
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
@@ -1460,6 +1460,7 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { createWidgetSelection, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
+import { withTitlesWhen, withTitleWhen } from '../../utils/widgetTitleWhen.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -3096,11 +3097,15 @@ export default {
 		 * `{path|format}` formats it (`weekday`, `longdate`, `time`, `user`,
 		 * `currency:EUR`, ...). An empty token drops itself and its separator;
 		 * a line with no value at all is dropped. Only the board look draws it.
+		 * `{ count, one, other, zero? }` picks a form by the `headerMetaCounts`
+		 * total named `count` ("1 lopende zaak" / "2 lopende zaken"); each form
+		 * is translated on its own, and `zero` (when given) is used for none.
 		 *
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
 		 */
 		headerMeta: {
-			type: String,
+			type: [String, Object],
 			default: '',
 		},
 
@@ -3528,6 +3533,30 @@ export default {
 		},
 
 		/**
+		 * The header line's template: `headerMeta` itself, or for the plural
+		 * form `{ count, one, other, zero? }` the form its count asks for; null
+		 * while that count is missing.
+		 *
+		 * @return {string|null} The untranslated template, or null.
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
+		 */
+		headerMetaForm() {
+			const meta = this.headerMeta
+			if (!meta || typeof meta !== 'object') {
+				return typeof meta === 'string' ? meta : ''
+			}
+			const total = this.headerMetaCountValues[meta.count]
+			if (typeof total !== 'number') {
+				return null
+			}
+			if (total === 0 && typeof meta.zero === 'string') {
+				return meta.zero
+			}
+			const form = total === 1 ? meta.one : meta.other
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The meta line of row 2, translated and filled from the record.
 		 *
 		 * @return {string} The line, or ''.
@@ -3536,7 +3565,11 @@ export default {
 		headerMetaText() {
 			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
 			let missing = false
-			const template = (this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
+			const form = this.headerMetaForm
+			if (form === null) {
+				return ''
+			}
+			const template = (form ? this.effectiveTranslate(form) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
 				const value = this.headerMetaCountValues[name]
 				if (typeof value !== 'number') {
 					missing = true
@@ -4979,6 +5012,37 @@ export default {
 		 */
 		widgetVisibilityData() {
 			return widgetConditionData(this.resolvedObject, this.visibilityRows)
+		},
+
+		/**
+		 * The page's widget definitions with each `titleWhen` resolved against
+		 * the record, as the cards, the tab strip and the leaves read them.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledWidgets() {
+			return withTitlesWhen(this.widgets, this.titleData)
+		},
+
+		/**
+		 * The body grid's widget definitions with each `titleWhen` resolved.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledBodyGridWidgets() {
+			return withTitlesWhen(this.bodyGridWidgets, this.titleData)
+		},
+
+		/**
+		 * What a `titleWhen` reads: the record with its `@context` rows, null
+		 * while the record or those rows are on their way.
+		 *
+		 * @return {object|null}
+		 */
+		titleData() {
+			return this.visibilityRowsPending ? null : this.widgetVisibilityData
 		},
 
 		/**
@@ -7271,6 +7335,17 @@ export default {
 		 * @param {{ widgetId: string }} item Layout item.
 		 * @return {object|undefined} The matching widget definition.
 		 */
+		/**
+		 * A widget definition with its `titleWhen` resolved against the record.
+		 *
+		 * @param {object|null|undefined} def The definition.
+		 * @return {object|null|undefined} The definition to hand on.
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titled(def) {
+			return withTitleWhen(def, this.titleData)
+		},
+
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
 				|| this.findViewWidget(item.widgetId)

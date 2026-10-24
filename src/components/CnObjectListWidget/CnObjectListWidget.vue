@@ -35,7 +35,7 @@
 		     deliberate, and stays `compact` inside a fit-measured cell so it
 		     cannot outgrow a short tile (ADR-062). -->
 		<CnWidgetEmptyState
-			v-else-if="!loading && rows.length === 0"
+			v-else-if="!loading && rows.length === 0 && readOnlyRows.length === 0"
 			:name="resolvedEmptyText"
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
@@ -162,7 +162,7 @@
 						@sort="onSort"
 						@columnFilter="onHeaderFilter">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-							<CnRowActions :actions="mappedRowActions" :row="row" />
+							<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
 						</template>
 					</CnDataTable>
 				</div>
@@ -196,7 +196,7 @@
 					     when this slot is supplied, so a widget without
 					     `rowActions` keeps the column count it had. -->
 					<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-						<CnRowActions :actions="mappedRowActions" :row="row" />
+						<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
 					</template>
 					<!-- `content.children`: each row's child records under it, as
 					     a nested list fed from one query for all rows. -->
@@ -364,6 +364,7 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
@@ -579,6 +580,8 @@ export default {
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
+			/** The rows `content.readOnlyRows` adds after the list's own, tagged `_readOnly`. */
+			readOnlyRows: [],
 			loading: false,
 			error: '',
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
@@ -811,7 +814,8 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
-				if (!prop || out.widget !== undefined || out.formatter !== undefined) {
+				// The `label` widget writes the enum's label, so it still takes the enum.
+				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
 				}
 				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
@@ -1226,7 +1230,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		visibleRows() {
-			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
+			const rows = this.readOnlyRows.length > 0 ? [...this.rows, ...this.readOnlyRows] : this.rows
+			return this.fitRows ? rows.slice(0, this.fitRows) : rows
 		},
 
 		/**
@@ -1275,7 +1280,7 @@ export default {
 
 		/** Whether the designed empty state is what the widget is showing. */
 		showingEmptyState() {
-			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
+			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0 && this.readOnlyRows.length === 0
 		},
 
 		/**
@@ -1702,6 +1707,39 @@ export default {
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
 		 */
+		/**
+		 * Read the rows `content.readOnlyRows` adds after the list's own:
+		 * `{ url, responsePath?, where? }`, an app endpoint (tokens such as
+		 * `@objectId` in the url), narrowed by `where` (`{ field: value }` or
+		 * `{ field: [values] }`). Each row is tagged `_readOnly`. A read that
+		 * fails adds nothing.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-read-only-rows/specs/object-list-widget/spec.md#requirement-a-list-can-add-read-only-rows-from-an-endpoint
+		 */
+		async fetchReadOnlyRows() {
+			const config = this.content && this.content.readOnlyRows
+			if (!config || typeof config !== 'object' || typeof config.url !== 'string' || config.url === '') {
+				this.readOnlyRows = []
+				return
+			}
+			let data = null
+			try {
+				data = await fetchEndpointSource({ url: config.url, responsePath: config.responsePath || '' }, this.tokenCtx)
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load the read-only rows:', e)
+			}
+			const where = config.where && typeof config.where === 'object' ? Object.entries(config.where) : []
+			const matches = (row) => where.every(([field, want]) => {
+				const value = readPath(row, field)
+				return Array.isArray(want) ? want.map(String).includes(String(value)) : String(value) === String(want)
+			})
+			this.readOnlyRows = (Array.isArray(data) ? data : [])
+				.filter((row) => row && typeof row === 'object' && matches(row))
+				.map((row) => ({ ...row, _readOnly: true }))
+		},
+
 		async fetchChildren() {
 			const children = this.childrenConfig
 			const link = this.childLink
@@ -1976,6 +2014,7 @@ export default {
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
 				await this.fetchChildren()
+				await this.fetchReadOnlyRows()
 				this.$nextTick(() => {
 					this.measureFit()
 					this.measureWidthFit()
@@ -2414,6 +2453,9 @@ export default {
 		 * @return {void}
 		 */
 		onRowClick(row, event) {
+			if (row && row._readOnly === true) {
+				return
+			}
 			if (this.content.rowSelection === true && this.cnWidgetSelection && typeof this.cnHostWidgetId === 'function') {
 				this.cnWidgetSelection.select(this.cnHostWidgetId(), row)
 			}

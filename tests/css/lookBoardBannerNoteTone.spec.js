@@ -26,7 +26,7 @@ describe('look-board.css: warning and error banners', () => {
 	})
 
 	it('draws the box: 1px edge in its tone, radius 10, 12px 14px, no margin', () => {
-		const rule = block('.cn-look-board .cn-banner-widget .notecard.notecard--warning:not(.cn-look-nextcloud *),\n.cn-look-board .cn-banner-widget .notecard.notecard--error')
+		const rule = block('.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--warning:not(.cn-look-nextcloud *),\n.cn-look-board .cn-banner-widget:not(.cn-detail-page__side-item--notice *) .notecard.notecard--error')
 		expect(rule).toMatch(/border: 1px solid var\(--cn-banner-edge\);/)
 		expect(rule).toMatch(/border-radius: 10px;/)
 		expect(rule).toMatch(/padding: 12px 14px;/)

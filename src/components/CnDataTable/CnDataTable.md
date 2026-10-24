@@ -274,3 +274,12 @@ against. Note that only some hosts forward that prop from a manifest: a
 `type: 'logs'` page passes `config.fixedLayout` straight through, while
 `CnIndexPage` accepts the key and ignores it, leaving the class to truncate
 against the browser's own auto layout.
+
+## Cell pills (`col.pills`)
+
+A column can put a pill beside a cell's value when a condition holds on the row:
+`pills: [{ field: 'indicatieGeheim', equals: true, label: 'Data protection', variant: 'warning' }]`
+draws "*****4054 Geheimhouding" for a protected resident (DqContacten). The condition is
+the row-indicator grammar (`equals`, `in`, a date `after`/`before`, a number `lt`/`gt`, or
+truthiness), the label goes through the host translation, and `variant` is a
+`CnStatusBadge` variant (`default` when left out).

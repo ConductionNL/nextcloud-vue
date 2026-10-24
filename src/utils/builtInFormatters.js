@@ -1,6 +1,7 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { formatRelativeDate } from './boardDate.js'
 import { formatMoney } from './formatMetric.js'
+import { parseDuration } from './isoDuration.js'
 
 /**
  * @file Built-in formatters merged into the `cnFormatters` registry
@@ -473,6 +474,34 @@ export function formatMasked(value, _row, _property, options) {
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
+/**
+ * An ISO-8601 period of one unit in words (`isoDuration` registry key):
+ * `P10Y` reads "10 years", `P6W` "6 weeks". A retention period or a term is
+ * stored as such a period and was shown raw. Anything that is not a one-unit
+ * period is returned as written, `''` for null or empty.
+ *
+ * @param {unknown} value The stored period.
+ * @return {string} The period in words.
+ */
+export function formatIsoDuration(value) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const period = parseDuration(String(value))
+	if (period === null) {
+		return String(value)
+	}
+	const words = {
+		years: () => n('nextcloud-vue', '%n year', '%n years', period.amount),
+		months: () => n('nextcloud-vue', '%n month', '%n months', period.amount),
+		weeks: () => n('nextcloud-vue', '%n week', '%n weeks', period.amount),
+		days: () => n('nextcloud-vue', '%n day', '%n days', period.amount),
+		hours: () => n('nextcloud-vue', '%n hour', '%n hours', period.amount),
+		minutes: () => n('nextcloud-vue', '%n minute', '%n minutes', period.amount),
+	}
+	return words[period.unit] ? words[period.unit]() : String(value)
+}
+
 export const BUILT_IN_FORMATTERS = {
 	date: formatDate,
 	datetime: formatDateTime,
@@ -486,4 +515,5 @@ export const BUILT_IN_FORMATTERS = {
 	connectionStatus: formatConnectionStatus,
 	connectionSettingsLabel: formatConnectionSettingsLabel,
 	masked: formatMasked,
+	isoDuration: formatIsoDuration,
 }

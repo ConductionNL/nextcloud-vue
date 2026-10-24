@@ -209,6 +209,7 @@
 					v-else
 					:key="item.id"
 					:name="resolveLabel(item)"
+					:title="itemTooltip(item)"
 					:to="linkTo(item)"
 					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
@@ -1523,6 +1524,18 @@ export default {
 		 * @param {{ icon?: string }} item Menu item descriptor.
 		 * @return {import('vue').Component|null}
 		 */
+		/**
+		 * The tooltip of a menu entry: its `description` (a saved view's, say),
+		 * else null, which leaves NcAppNavigationItem's own (the name).
+		 *
+		 * @param {{ description?: string }} item Menu item descriptor.
+		 * @return {string|null}
+		 * @spec openspec/changes/saved-view-icon-description-count/specs/saved-view-icon-description-count/spec.md#requirement-a-saved-view-has-an-icon-and-a-description
+		 */
+		itemTooltip(item) {
+			return typeof item?.description === 'string' && item.description !== '' ? item.description : null
+		},
+
 		mdiIconComponent(item) {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) {

@@ -71,6 +71,11 @@ describe('CnIndexPage groups pane', () => {
 		expect(heading.find('[data-testid="cn-index-page-scope-subtitle"]').text()).toBe('Fysiek domein · 18 members')
 	})
 
+	it('draws the board pane 310px wide, as DqAfdelingen measures it (292 to 602, table from 622)', () => {
+		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8')
+		expect(css).toMatch(/\.cn-look-board \.cn-index-page__folder-pane\s*\{[^}]*flex: 0 0 310px;[^}]*margin-inline-end: 20px;/)
+	})
+
 	it('draws the board pane as a card with count pills', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8')
 		expect(css).toMatch(/\.cn-look-board \.cn-index-page__folder-pane\s*\{[^}]*border-radius:/)

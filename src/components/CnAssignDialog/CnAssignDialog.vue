@@ -528,7 +528,7 @@ export default {
 }
 
 .cn-assign-dialog__toggle-note {
-	padding-inline-start: 44px;
+	padding-inline-start: var(--cn-dialog-check-label-inset, 44px);
 }
 
 .cn-assign-dialog__error {
