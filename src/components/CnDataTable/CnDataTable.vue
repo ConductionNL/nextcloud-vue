@@ -274,7 +274,7 @@
 							<td
 								v-if="rowIcon"
 								class="cn-table-col--icon"
-								:class="pinClass(selectable ? 1 : 0)"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + iconTone]"
 								:style="pinStyle(selectable ? 1 : 0)">
 								<CnIcon :name="getRowIcon(row)" :size="20" />
 							</td>
@@ -641,6 +641,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The tone of the leading icon's tile in the board look: `primary`
+		 * (default), `teal` or `neutral` (DqOrganisaties draws a teal tile).
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/**
@@ -1140,6 +1151,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The leading icon tile's tone, one the board look draws.
+		 *
+		 * @return {string} `primary`, `teal` or `neutral`.
+		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
+		 */
+		iconTone() {
+			return ['primary', 'teal', 'neutral'].includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+		},
+
 		/**
 		 * Whether the table is drawn as the board look's white card.
 		 *

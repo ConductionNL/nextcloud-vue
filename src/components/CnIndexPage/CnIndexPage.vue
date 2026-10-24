@@ -871,6 +871,7 @@
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
+					:rowIconTone="rowIconTone"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
@@ -3108,6 +3109,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The leading icon's tile tone in the board look (`primary`, `teal`,
+		 * `neutral`), from `pages[].config.rowIconTone`. Forwarded to CnDataTable.
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/** Columns to exclude in schema mode */

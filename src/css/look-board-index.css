@@ -1981,3 +1981,43 @@
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
 	color: var(--color-primary-element-light-text);
 }
+
+/* A table's leading icon on a 32px tile, radius 8, an 18px glyph, 12px
+   before the title (DqOrganisaties, PqOrganisaties: teal; most boards: the
+   light primary). The tile's tone is the page's `rowIconTone`.
+   @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile */
+.cn-look-board .cn-data-table td.cn-table-col--icon,
+.cn-look-board .cn-data-table th.cn-table-col--icon {
+	width: 48px;
+	padding-inline: 16px 0;
+}
+
+.cn-look-board .cn-data-table td.cn-table-col--icon .material-design-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	justify-content: center;
+	align-items: center;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-data-table td.cn-table-col--icon-teal .material-design-icon {
+	background: var(--cn-status-teal-bg);
+	color: var(--cn-status-teal-text);
+}
+
+.cn-look-board .cn-data-table td.cn-table-col--icon-neutral .material-design-icon {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-data-table td.cn-table-col--icon .material-design-icon svg {
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .cn-data-table td.cn-table-col--icon + td,
+.cn-look-board .cn-data-table th.cn-table-col--icon + th {
+	padding-inline-start: 12px;
+}
