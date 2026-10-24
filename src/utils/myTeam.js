@@ -31,11 +31,31 @@ let _source = null
 let _pending = null
 
 /**
+ * The team the app answered, as kept: one group id, a list of two or more,
+ * or `''` for none. Blank entries are dropped and a list of one reads as that
+ * one id.
+ *
+ * @spec openspec/changes/my-team-source-may-answer-several-teams/specs/schema-utilities/spec.md#requirement-myteam-may-resolve-to-several-teams
+ * @param {unknown} team What the app's loader answered.
+ * @return {string|string[]} The kept team.
+ */
+function normalizeTeam(team) {
+	if (Array.isArray(team)) {
+		const ids = team.filter((id) => typeof id === 'string').map((id) => id.trim()).filter((id) => id !== '')
+		if (ids.length === 0) {
+			return ''
+		}
+		return ids.length === 1 ? ids[0] : ids
+	}
+	return typeof team === 'string' ? team.trim() : ''
+}
+
+/**
  * Name where the current user's primary team is read: a function answering
  * the team's Nextcloud group id, or null/'' for a user in no team.
  *
  * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
- * @param {(() => Promise<string|null>)|null} loader The app's loader, or null to unregister.
+ * @param {(() => Promise<string|string[]|null>)|null} loader The app's loader (a group id, or the ids of several teams), or null to unregister.
  * @return {void}
  */
 export function registerMyTeamSource(loader) {
@@ -49,7 +69,7 @@ export function registerMyTeamSource(loader) {
  * when no source is registered, or when the read fails.
  *
  * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
- * @return {Promise<string>} The team's group id, or ''.
+ * @return {Promise<string|string[]>} The team's group id (or ids), or ''.
  */
 export function loadMyTeam() {
 	if (_state.team !== null) {
@@ -64,7 +84,7 @@ export function loadMyTeam() {
 	}
 	_pending = Promise.resolve()
 		.then(() => _source())
-		.then((team) => (typeof team === 'string' ? team.trim() : ''))
+		.then((team) => normalizeTeam(team))
 		.catch(() => '')
 		.then((team) => {
 			_state.team = team
@@ -79,7 +99,7 @@ export function loadMyTeam() {
  * it is being read (and starts the read on first use).
  *
  * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
- * @return {string|null} The team, '' or null.
+ * @return {string|string[]|null} The team (or teams), '' or null.
  */
 export function peekMyTeam() {
 	if (_state.team === null) {

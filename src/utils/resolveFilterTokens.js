@@ -85,15 +85,16 @@ export const MY_GROUPS_TOKEN = '@myGroups'
 export const MY_TEAM_TOKEN = '@myTeam'
 
 /**
- * Resolve `@myTeam`: the team's group id; `@myTeam` while it is being read (the
+ * Resolve `@myTeam`: the team's group id, or the ids of several teams when the
+ * app answers a list (an IN filter); `@myTeam` while it is being read (the
  * caller waits); `@myTeam?` for a user in no team (the caller drops the key).
  *
  * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
- * @param {{myTeam?: string}} [ctx] Optional context; `ctx.myTeam` wins.
- * @return {string} The group id or the token.
+ * @param {{myTeam?: (string|string[])}} [ctx] Optional context; `ctx.myTeam` wins.
+ * @return {string|string[]} The group id(s) or the token.
  */
 function resolveMyTeam(ctx) {
-	const team = ctx && typeof ctx.myTeam === 'string' ? ctx.myTeam : peekMyTeam()
+	const team = ctx && (typeof ctx.myTeam === 'string' || Array.isArray(ctx.myTeam)) ? ctx.myTeam : peekMyTeam()
 	if (team === null) {
 		return MY_TEAM_TOKEN
 	}
