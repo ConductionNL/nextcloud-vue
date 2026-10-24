@@ -540,6 +540,7 @@ export default {
 		 * Without it the table stays inside the padding.
 		 * `headerSubtitle` is a line under the card title with the list's
 		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
+		 * `headerNote` takes the same counts beside the card title instead.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
@@ -1372,12 +1373,18 @@ export default {
 		 * @return {string}
 		 */
 		headerSubtitleText() {
-			const text = this.content.headerSubtitle
-			if (typeof text !== 'string' || text === '') {
-				return ''
-			}
-			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+			return this.countLine(this.content.headerSubtitle)
+		},
+
+		/**
+		 * `content.headerNote` filled in like `headerSubtitle`, for beside the
+		 * card title ("4 vastgelegd"), or '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-header-note/specs/object-list-header-note/spec.md#requirement-an-object-list-can-say-its-counts-beside-its-card-title
+		 */
+		headerNoteText() {
+			return this.countLine(this.content.headerNote)
 		},
 
 		resolvedSummary() {
@@ -1563,6 +1570,11 @@ export default {
 
 		/** The counts under the card title follow the rows (`content.headerSubtitle`). */
 		headerSubtitleText() {
+			this.emitHeader()
+		},
+
+		/** The counts beside the card title follow the rows (`content.headerNote`). */
+		headerNoteText() {
 			this.emitHeader()
 		},
 
@@ -1835,20 +1847,37 @@ export default {
 		},
 
 		/**
+		 * A counts template (`{total}`, `{count:<field>=<value>}`) translated and
+		 * filled from the rows, or '' without one.
+		 *
+		 * @param {unknown} text The template.
+		 * @return {string}
+		 */
+		countLine(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+		},
+
+		/**
 		 * Tell the card around this list what its header shows: the Download
-		 * action (`content.export`) and the counts line under the title
-		 * (`content.headerSubtitle`). Nothing when the list has neither.
+		 * action (`content.export`), the counts line under the title
+		 * (`content.headerSubtitle`) and the note beside it
+		 * (`content.headerNote`). Nothing when the list has none of them.
 		 *
 		 * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
 		 */
 		emitHeader() {
 			const subtitle = this.headerSubtitleText
+			const note = this.headerNoteText
 			// A line shown before is cleared with an empty one, so the card does
 			// not keep a stale count; a list that never had one stays silent.
-			if (!this.headerAction && subtitle === '' && !this.headerSubtitleShown) {
+			if (!this.headerAction && subtitle === '' && note === '' && !this.headerSubtitleShown) {
 				return
 			}
-			this.headerSubtitleShown = subtitle !== ''
+			this.headerSubtitleShown = subtitle !== '' || note !== ''
 			/**
 			 * @event header The card header's parts: the Download action for the
 			 * list as filtered here (`content.export`) and the counts line under
@@ -1858,6 +1887,7 @@ export default {
 			this.$emit('header', {
 				...(this.headerAction ? { action: this.headerAction } : {}),
 				subtitle,
+				note,
 			})
 		},
 
