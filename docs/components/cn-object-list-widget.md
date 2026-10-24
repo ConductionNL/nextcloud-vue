@@ -267,6 +267,8 @@ its placeholders. Nothing is drawn over an empty list.
 
 `content.rowTitle` sets how the table draws its title column, as CnDataTable's `rowTitle`: `link` (the default), `plain` or `text`. `text` is an ordinary cell for a log table whose first column is a date (DqZaakContact's contact moments, with a `date` column `widgetProps: { short: true, showTime: true }` and the channel as `iconLabel` with `widgetProps.icons`).
 
+A column's `cellClass` reaches the table: `"cn-cell--wrap"` wraps a column of prose instead of cutting it off (DqZaakContact's Samenvatting).
+
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
 ## Sorting and filtering from the column heads
