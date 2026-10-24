@@ -1,0 +1,2 @@
+- [x] mail registration ownsTitle + chrome card
+- [x] Spec tests/components/CnMailWidgetCard.spec.js
