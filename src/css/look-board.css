@@ -2538,6 +2538,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	background: var(--color-primary-element);
 }
 
+/* An item's tone (`content.itemTones`) colours its dot (DqMijnWerk: a
+   reaction blue, a publication green, a handover grey).
+   @spec openspec/changes/nc-widget-item-tones/specs/nc-widget-item-tones/spec.md#requirement-a-nextcloud-widget-item-can-take-a-tone-from-its-app-or-type */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-success .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-success);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-neutral .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-warning .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-warning);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--tone-error .cn-nc-widget-widget__item-icon-wrap {
+	background: var(--color-error);
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item--vertical .cn-nc-widget-widget__item-icon-wrap img {
 	display: none;
 }
