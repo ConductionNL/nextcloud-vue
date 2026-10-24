@@ -114,3 +114,46 @@ describe('CnIndexPage folderSidebar source groups', () => {
 		])
 	})
 })
+
+describe('users index source pages, searches and sorts', () => {
+	/**
+	 * @spec openspec/changes/users-source-pages/specs/index-page/spec.md#requirement-the-users-source-pages-searches-and-sorts-its-members
+	 */
+	it('declares a pager, a search argument and a sort argument', () => {
+		const source = resolveIndexSource('users')
+		expect(source.pages).toBe(true)
+		expect(source.searchParam).toBe('search')
+		expect(source.sortParam('email', 'desc')).toEqual({ sortKey: 'email', sortOrder: 'desc' })
+	})
+
+	it('gives one page and the total of the group', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0 })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali', 'Lars de Koning'])
+		expect(source.total()).toBe(3)
+		await source.load({ group: 'vergunningen', limit: 2, offset: 2 })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Sanne Bakker'])
+	})
+
+	it('reads the group once while only the page, search or order change', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0 })
+		const calls = mockGet.mock.calls.length
+		await source.load({ group: 'vergunningen', limit: 2, offset: 2 })
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0, search: 'bakker' })
+		expect(mockGet.mock.calls.length).toBe(calls)
+	})
+
+	it('searches name, function, roles and e-mail, and counts what matches', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, search: 'toezicht' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		expect(source.total()).toBe(1)
+	})
+
+	it('sorts on a column', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, sortKey: 'email', sortOrder: 'desc' })
+		expect(source.rows().map((row) => row.email)).toEqual(['s.bakker@zuiddrecht.nl', 'l.dekoning@zuiddrecht.nl', 'j.ouali@zuiddrecht.nl'])
+	})
+})

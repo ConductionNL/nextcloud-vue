@@ -1402,6 +1402,32 @@ function searchSource(config = {}, context = {}) {
 }
 
 /**
+ * The members that match a search, in the asked order, and the page of them
+ * the pager asks for.
+ *
+ * @param {Array<object>} members The members, by name.
+ * @param {object} config `search`, `sortKey`, `sortOrder`, `limit`, `offset`.
+ * @return {{rows: Array<object>, total: number}} The page and how many match.
+ */
+function membersPage(members, config = {}) {
+	const term = String(config.search || '').trim().toLowerCase()
+	let rows = term === ''
+		? members.slice()
+		: members.filter((member) => ['displayname', 'function', 'roles', 'email'].some((field) => String(member[field] || '').toLowerCase().includes(term)))
+	if (config.sortKey) {
+		const sign = config.sortOrder === 'desc' ? -1 : 1
+		rows = rows.sort((a, b) => sign * String(a[config.sortKey] ?? '').localeCompare(String(b[config.sortKey] ?? '')))
+	}
+	const total = rows.length
+	const limit = Number(config.limit) || 0
+	if (limit > 0) {
+		const offset = Number(config.offset) || 0
+		rows = rows.slice(offset, offset + limit)
+	}
+	return { rows, total }
+}
+
+/**
  * The users source: the members of a Nextcloud group, with their function,
  * roles, e-mail and whether they are in today (`entitySource: "users"`,
  * DqAfdelingen). Pair it with `folderSidebar: { source: 'groups',
@@ -1417,12 +1443,20 @@ function searchSource(config = {}, context = {}) {
  * Listing a group needs an admin or the group's sub-admin; a refused request
  * leaves the list empty.
  *
+ * The page gets a pager (`pages`), and the search term and the header's order
+ * come as `search` and `sortKey` / `sortOrder`: the group's members are read
+ * once and searched, sorted and paged here, so a new page, term or order does
+ * not read every member's presence again.
+ *
  * @return {object} The source adapter.
  * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
  */
 function usersSource() {
-	const state = reactive({ rows: [], loading: false })
+	const state = reactive({ rows: [], loading: false, total: 0 })
 	let seq = 0
+	// The members last read, for the group and request they were read for.
+	let readMembers = []
+	let membersKey = null
 	const presenceLabels = {
 		present: t('nextcloud-vue', 'Present'),
 		away: t('nextcloud-vue', 'Away'),
@@ -1441,6 +1475,15 @@ function usersSource() {
 		 */
 		load: async (config) => {
 			const group = String((config && (config.group || config.defaultGroup)) || '')
+			const { search, sortKey, sortOrder, limit, offset, ...request } = config || {}
+			const key = JSON.stringify({ ...request, group })
+			// A new page, term or order of the members already read: no request.
+			if (key === membersKey && (offset !== undefined || search !== undefined || sortKey !== undefined)) {
+				const page = membersPage(readMembers, config)
+				state.rows = page.rows
+				state.total = page.total
+				return
+			}
 			const mine = ++seq
 			state.loading = true
 			try {
@@ -1475,11 +1518,18 @@ function usersSource() {
 					}
 				}))
 				if (mine === seq) {
-					state.rows = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+					readMembers = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+					membersKey = key
+					const page = membersPage(readMembers, config)
+					state.rows = page.rows
+					state.total = page.total
 				}
 			} catch (error) {
 				if (mine === seq) {
+					readMembers = []
+					membersKey = null
 					state.rows = []
+					state.total = 0
 				}
 				throw error
 			} finally {
@@ -1490,9 +1540,25 @@ function usersSource() {
 		},
 
 		/**
-		 * @return {Array<object>} The members.
+		 * @return {Array<object>} The members on this page.
 		 */
 		rows: () => state.rows,
+
+		pages: true,
+
+		/**
+		 * @return {number} The members that match, on every page.
+		 */
+		total: () => state.total,
+
+		searchParam: 'search',
+
+		/**
+		 * @param {string} key The column.
+		 * @param {string} order `asc` or `desc`.
+		 * @return {object} The load arguments.
+		 */
+		sortParam: (key, order) => ({ sortKey: key, sortOrder: order }),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
