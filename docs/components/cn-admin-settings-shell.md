@@ -106,6 +106,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 | `setupSteps` | `Array` | `[]` | The `manifest.setup.steps` array passed to the wizard. |
 | `showHelp` | `boolean` | `false` | Show a "Help us" link to the forge's feature-request issue form (`helpRepo`). |
 | `helpRepo` | `string` | `''` | `<owner>/<repo>` slug for the feature-request modal. |
+| `versionTitleSize` | `number` | `0` | Board look: the version card title size in px when the app's board draws it other than 17px. |
 
 ## Slots
 

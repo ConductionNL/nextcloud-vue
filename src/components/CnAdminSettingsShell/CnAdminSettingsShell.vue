@@ -1,5 +1,8 @@
 <template>
-	<div class="cn-admin-settings-shell" :class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']">
+	<div
+		class="cn-admin-settings-shell"
+		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']"
+		:style="versionTitleSize ? { '--cn-board-version-title-size': `${versionTitleSize}px` } : null">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -756,6 +759,15 @@ export default {
 		helpRepo: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The board look's version card title size in px, when the app's board
+		 * draws it other than 17px (PqBeheer 19, OcInstellingen 18).
+		 */
+		versionTitleSize: {
+			type: Number,
+			default: 0,
 		},
 	},
 
