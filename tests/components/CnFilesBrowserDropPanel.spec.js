@@ -75,6 +75,15 @@ describe('CnFilesBrowser drop panel', () => {
 		w.unmount()
 	})
 
+	it('takes the first detail variant whose when is true, or that has none', async () => {
+		const variants = [{ when: false, text: 'Review case: {count} files.' }, { text: '{count} files go to case {case}.' }]
+		const w = mountBrowser({ dropDetail: variants, dropDetailValues: { case: '2026-0082' } })
+		await flushPromises()
+		await w.trigger('dragenter', filesDrag(2))
+		expect(w.find('[data-testid="cn-files-browser-drop-detail"]').text()).toBe('2 files go to case 2026-0082.')
+		w.unmount()
+	})
+
 	it('leaves the detail line out while a named value is not known yet', async () => {
 		const w = mountBrowser({ dropDetail: '{count} files go to case {case}.', dropDetailValues: { case: '@object.identifier' } })
 		await flushPromises()
