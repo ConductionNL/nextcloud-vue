@@ -2363,7 +2363,8 @@
     "Viewed": "Viewed",
     "w{week}": "w{week}",
     "Icon": "Icon",
-    "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu."
+    "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu.",
+    "No main contact yet": "No main contact yet"
   },
   "plurals": {
     "{count} member": [
