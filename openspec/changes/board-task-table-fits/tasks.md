@@ -1,0 +1,1 @@
+- [x] 1.1 board look: name/meta wrap, actions on one line (tests/css/lookBoardTaskTableBleed.spec.js)

@@ -1258,6 +1258,18 @@
 	line-height: normal;
 }
 
+/* A long task name wraps under itself, as the board draws it, rather than
+   widening the table past the card. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
+	white-space: normal;
+}
+
+/* A row's button and its task menu stand on one line. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
 /* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
 /* The case-tab boards draw a list's table edge to edge in its card
    (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs

@@ -49,4 +49,14 @@ describe('look-board-detail.css: task table in a detail card', () => {
 		expect(body).toContain('min-height: 0')
 		expect(body).toContain('line-height: normal')
 	})
+
+	it('wraps a long task name and its line under it, so the table fits the card (r25b: 843 wide in a 798 card)', () => {
+		expect(rule(TABLE + ' :is(.cn-tasks-widget__name, .cn-tasks-widget__meta)')).toContain('white-space: normal')
+	})
+
+	it('keeps a row\'s buttons on one line: the task menu stands beside Afronden, not under it', () => {
+		const body = rule(TABLE + ' .cn-tasks-widget__cell-actions > *')
+		expect(body).toContain('display: inline-flex')
+		expect(body).toContain('vertical-align: middle')
+	})
 })
