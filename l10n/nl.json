@@ -2639,7 +2639,12 @@
     "The change could not be saved. Nothing was changed.": "De wijziging kon niet worden opgeslagen. Er is niets veranderd.",
     "The new person was not saved.": "De nieuwe persoon is niet opgeslagen.",
     "The party could not be added.": "De partij kon niet worden toegevoegd.",
-    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort."
+    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort.",
+    "Stop reading replies aloud": "Niet meer voorlezen",
+    "Read replies aloud": "Antwoorden voorlezen",
+    "View all conversations": "Alle gesprekken bekijken",
+    "Back to the chat": "Terug naar het gesprek",
+    "Talk to {agent}": "Praten met {agent}"
   },
   "plurals": {
     "{count} member": [
