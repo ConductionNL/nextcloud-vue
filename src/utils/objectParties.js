@@ -13,6 +13,7 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
+import { readPath } from './readPath.js'
 
 /**
  * What a role is called: the app's own word (`roleLabels`), else the label
@@ -173,4 +174,81 @@ export function documentsOfParty(documents, identifier, fields = {}) {
  */
 export function kindCode(kind) {
 	return String(kind?.code || kind?.key || '')
+}
+
+/**
+ * Write a value at a dotted path, creating the objects on the way.
+ *
+ * @param {object} target The object written into.
+ * @param {string} path The dotted path (`name.surname`).
+ * @param {unknown} value The value.
+ * @return {void}
+ */
+function writePath(target, path, value) {
+	const keys = String(path).split('.').filter((key) => key !== '')
+	let node = target
+	keys.slice(0, -1).forEach((key) => {
+		if (!node[key] || typeof node[key] !== 'object') {
+			node[key] = {}
+		}
+		node = node[key]
+	})
+	if (keys.length > 0) {
+		node[keys[keys.length - 1]] = value
+	}
+}
+
+/**
+ * The record a new party is saved as, from the fields a host declares.
+ *
+ * Each field `{ key, path?, address? }` writes its trimmed value at `path`
+ * (default `key`); a field with `address: { path, kind, type }` instead adds
+ * `{ kind, type, value }` to the list at that path, the shape OpenRegister's
+ * party model reads as the party's addresses. `compose` names the paths a
+ * derived field joins with a space, skipping the empty ones
+ * (`{ displayName: ["name.givenNames", "name.namePrefix", "name.surname"] }`).
+ * A field of `type: "integer"` is saved as a number when it reads as one.
+ * An empty value is left out.
+ *
+ * @param {{fields?: Array<object>, compose?: Record<string, Array<string>>}} create The declaration.
+ * @param {Record<string, string>} values The values by field key.
+ * @return {object} The record.
+ * @spec openspec/changes/object-parties-manage/specs/record-widgets/spec.md#requirement-the-parties-widget-can-add-and-remove-parties
+ */
+export function newPartyRecord(create, values) {
+	const record = {}
+	for (const field of Array.isArray(create?.fields) ? create.fields : []) {
+		const value = String(values?.[field?.key] ?? '').trim()
+		if (!field || !field.key || value === '') {
+			continue
+		}
+		if (field.address && field.address.path) {
+			const list = readPath(record, field.address.path)
+			const entry = { kind: field.address.kind || 'correspondence', type: field.address.type || 'email', value }
+			writePath(record, field.address.path, [...(Array.isArray(list) ? list : []), entry])
+			continue
+		}
+		writePath(record, field.path || field.key, field.type === 'integer' && /^-?\d+$/.test(value) ? Number(value) : value)
+	}
+	for (const [target, paths] of Object.entries(create?.compose && typeof create.compose === 'object' ? create.compose : {})) {
+		const joined = (Array.isArray(paths) ? paths : [])
+			.map((path) => String(readPath(record, path) ?? '').trim())
+			.filter((part) => part !== '')
+			.join(' ')
+		if (joined !== '') {
+			writePath(record, target, joined)
+		}
+	}
+	return record
+}
+
+/**
+ * The uuid a create answered with: `id`, `uuid` or `@self.id`.
+ *
+ * @param {object} saved The saved object.
+ * @return {string} The uuid, or ''.
+ * @spec openspec/changes/object-parties-manage/specs/record-widgets/spec.md#requirement-the-parties-widget-can-add-and-remove-parties
+ */
+export function savedUuid(saved) {
+	return String(saved?.['@self']?.id || saved?.uuid || saved?.id || '')
 }

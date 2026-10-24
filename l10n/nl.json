@@ -2629,7 +2629,17 @@
     "{field} is less than {value}": "{field} kleiner is dan {value}",
     "{field} is at most {value}": "{field} hoogstens {value} is",
     "{field} is filled in": "{field} is ingevuld",
-    "No conditions: the rule always applies.": "Geen voorwaarden: de regel geldt altijd."
+    "No conditions: the rule always applies.": "Geen voorwaarden: de regel geldt altijd.",
+    "Add a party": "Partij toevoegen",
+    "Remove party": "Partij verwijderen",
+    "Remove {name} as {role}": "{name} als {role} verwijderen",
+    "Remove {name} as {role}?": "{name} als {role} verwijderen?",
+    "Someone already known": "Iemand die al bekend is",
+    "Someone new": "Iemand nieuw",
+    "The change could not be saved. Nothing was changed.": "De wijziging kon niet worden opgeslagen. Er is niets veranderd.",
+    "The new person was not saved.": "De nieuwe persoon is niet opgeslagen.",
+    "The party could not be added.": "De partij kon niet worden toegevoegd.",
+    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort."
   },
   "plurals": {
     "{count} member": [
