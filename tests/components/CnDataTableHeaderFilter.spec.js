@@ -158,6 +158,16 @@ describe('CnDataTable header filters', () => {
 		expect(wrapper.emitted('column-filter')[0][0]).toEqual({ key: 'status', params: { status: [] } })
 	})
 
+	/**
+	 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+	 */
+	it('draws no chips of its own with filterChips false, and keeps the header mark', () => {
+		const wrapper = mountTable({ activeFilters: { status: ['open'] }, filterChips: false })
+		expect(wrapper.find('[data-testid="cn-table-filter-chips"]').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Status').find('[data-testid="cn-table-header-filter-dot"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
 	it('a reference filter searches the referenced objects and filters on their id', async () => {
 		axios.get.mockResolvedValue({ data: { results: [{ '@self': { id: 'c1' }, name: 'Acme' }, { '@self': { id: 'c2' }, name: 'Globex' }] } })
 		const wrapper = mountTable()
