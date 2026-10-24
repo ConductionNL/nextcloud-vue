@@ -2353,7 +2353,22 @@
     "Week {week}": "Week {week}",
     "More default views": "More default views",
     "Fewer default views": "Fewer default views",
-    "More steps": "More steps"
+    "More steps": "More steps",
+    "is": "is",
+    "is not": "is not",
+    "greater than": "greater than",
+    "at least": "at least",
+    "less than": "less than",
+    "at most": "at most",
+    "is filled in": "is filled in",
+    "{field} is {value}": "{field} is {value}",
+    "{field} is not {value}": "{field} is not {value}",
+    "{field} is greater than {value}": "{field} is greater than {value}",
+    "{field} is at least {value}": "{field} is at least {value}",
+    "{field} is less than {value}": "{field} is less than {value}",
+    "{field} is at most {value}": "{field} is at most {value}",
+    "{field} is filled in": "{field} is filled in",
+    "No conditions: the rule always applies.": "No conditions: the rule always applies."
   },
   "plurals": {
     "{count} member": [
