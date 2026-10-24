@@ -89,7 +89,7 @@
 }
 
 .cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--secondary:hover,
-.cn-look-board .cn-index-page .cn-index-page__header-buttons > .action-item .button-vue:hover {
+.cn-look-board .cn-index-page .cn-index-page__header-buttons > .action-item:not(.action-item--open) .button-vue:hover {
 	background: var(--color-background-hover) !important;
 }
 
