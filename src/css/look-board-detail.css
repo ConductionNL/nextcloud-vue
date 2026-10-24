@@ -1344,6 +1344,33 @@
 	font-weight: 500;
 }
 
+/* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
+/* The band over the ticked files is the case list's selection band: 10px
+   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   only (DqDocumentenBeheer "2 documenten geselecteerd").
+   @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
+	padding: 10px 14px;
+	border-radius: 10px;
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue__icon {
+	display: none;
+}
+
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */
 /* The board's compact card table (DqDocumentenBeheer): a near-white header at
    14px/600 in the muted ink, 10px 12px; 14px cells, 11px 12px, a hairline
