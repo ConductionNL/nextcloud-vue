@@ -2897,9 +2897,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    gives the second pixel back so the words stay put. The board draws no
    option icon, only the radio and the words.
    @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+/* The radio sits 21px inside the option's edge (DqInstellen): 1px border and
+   20px padding, or 2px and 19px on the chosen option.
+   @spec openspec/changes/board-setup-choice-inset/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *) {
+	padding: 12px 20px;
+}
+
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *) {
-	padding: 11px 13px;
+	padding: 11px 19px;
 	border-width: 2px;
 	box-shadow: none;
 }

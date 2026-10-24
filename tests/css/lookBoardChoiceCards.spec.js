@@ -68,7 +68,14 @@ describe('look-board.css: a setup step\'s choices (DqInstellen)', () => {
 		const chosen = rule(`${step} .cn-choice-cards__row--selected${guard},\n${step} .cn-choice-cards__row--selected:hover${guard}`)
 		expect(chosen).toContain('border-width: 2px')
 		expect(chosen).toContain('box-shadow: none')
-		expect(chosen).toContain('padding: 11px 13px')
+		expect(chosen).toContain('padding: 11px 19px')
+	})
+
+	/**
+	 * @spec openspec/changes/board-setup-choice-inset/specs/board-setup-choice-rows/spec.md#requirement-a-setup-choices-radio-sits-21px-inside-its-edge
+	 */
+	it('sets the radio 21px inside the option\'s edge, as the board does', () => {
+		expect(rule(`${step} .cn-choice-cards__row${guard}`)).toContain('padding: 12px 20px')
 	})
 
 	it('draws no option icon, as the board draws only the radio and the words', () => {
