@@ -401,12 +401,15 @@ export function liveUpdatesPlugin(opts = {}) {
 
 			// Detached: the store outlives the component whose setup first
 			// used it, and an attached observer is removed with that scope.
-			store.$onAction(({ name, args, after }) => {
+			// Recorded when the fetch starts, so a hint arriving while it is in
+			// flight repeats it rather than the query before. An append page
+			// (the board's "Load more") is not a query of its own.
+			store.$onAction(({ name, args }) => {
 				if (name === 'fetchCollection') {
-					const [type, params = {}] = args
-					after(() => {
+					const [type, params = {}, options = {}] = args
+					if (!(options && options.append === true)) {
 						store.__lastCollectionParams.set(type, params)
-					})
+					}
 				}
 			}, true)
 
@@ -440,6 +443,12 @@ export function liveUpdatesPlugin(opts = {}) {
 				}
 				const key = collectionDedupKey(type, params)
 				let entry = collectionInFlight.get(key)
+				if (entry && !(options && options.append === true)) {
+					// Joining makes the shared request's query the newest again.
+					const currentQuery = store.__currentCollectionQuery || (store.__currentCollectionQuery = {})
+					currentQuery[type] = JSON.stringify(params)
+					store.__lastCollectionParams.set(type, params)
+				}
 				if (!entry) {
 					// The shared request reports into its own sink, copied to
 					// each caller's `options.outcome` below, so a caller that

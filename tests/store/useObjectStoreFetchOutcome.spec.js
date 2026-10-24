@@ -101,8 +101,8 @@ describe('useObjectStore fetchCollection outcome option', () => {
 		newer.resolve(okResponse([{ id: 'b' }]))
 		await pNewer
 
-		// The shared map is unchanged in meaning: the older failure stays on it.
-		expect(store.errors.client.status).toBe(400)
+		// The newer query owns the shared map, so the older failure stays off it.
+		expect(store.errors.client).toBeNull()
 		expect(olderOutcome.error.status).toBe(400)
 		expect(newerOutcome.error).toBeNull()
 	})
