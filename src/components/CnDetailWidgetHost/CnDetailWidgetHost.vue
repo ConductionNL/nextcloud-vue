@@ -1509,6 +1509,7 @@ export default {
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
 				...this.leafTitleLabel,
+				...(this.widgetSubtitle ? { subtitle: this.translateLabel(this.widgetSubtitle) } : {}),
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
