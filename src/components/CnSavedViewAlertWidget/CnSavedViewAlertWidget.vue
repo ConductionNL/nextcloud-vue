@@ -31,14 +31,19 @@
 					<span class="cn-saved-view-alert__hint">{{ hintText }}</span>
 				</span>
 			</NcCheckboxRadioSwitch>
-			<NcTextField v-if="enabled"
-				:modelValue="String(threshold)"
-				type="number"
-				min="0"
-				:label="t('nextcloud-vue', 'Threshold')"
-				:disabled="saving || !canEdit"
-				data-testid="cn-saved-view-alert-threshold"
-				@update:modelValue="onThreshold" />
+			<div v-if="enabled" class="cn-saved-view-alert__field">
+				<label :for="thresholdId" class="cn-saved-view-alert__label">{{ t('nextcloud-vue', 'Threshold') }}</label>
+				<NcTextField
+					:id="thresholdId"
+					:modelValue="String(threshold)"
+					type="number"
+					min="0"
+					:label="t('nextcloud-vue', 'Threshold')"
+					:labelOutside="true"
+					:disabled="saving || !canEdit"
+					data-testid="cn-saved-view-alert-threshold"
+					@update:modelValue="onThreshold" />
+			</div>
 			<p v-if="error"
 				class="cn-saved-view-alert__error"
 				role="alert"
@@ -102,6 +107,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {string} The id that ties the threshold label to its field. */
+		thresholdId() {
+			return `cn-saved-view-alert-threshold-${this._uid ?? this.$?.uid ?? 0}`
+		},
+
 		/** @return {object|null} The applied saved view, or null. */
 		view() {
 			return (this.cnIndexList && this.cnIndexList.appliedView) || null
@@ -257,6 +267,16 @@ export default {
 }
 
 .cn-saved-view-alert__facts dd {
+	font-weight: 600;
+}
+
+.cn-saved-view-alert__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-saved-view-alert__label {
 	font-weight: 600;
 }
 
