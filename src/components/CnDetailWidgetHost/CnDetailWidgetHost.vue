@@ -1444,6 +1444,7 @@ export default {
 				objectId: this.objectId,
 				object: this.object,
 				config: unwrapAppConfig(this.cnAppConfig),
+				context: (this.cnDetailVisibilityRows && this.cnDetailVisibilityRows.value) || null,
 			})
 		},
 

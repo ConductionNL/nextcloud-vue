@@ -1128,6 +1128,21 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * The second line as a list of fields joined with " · ", a field
+		 * without a value left out: the `nameSecondary` tokens without their
+		 * braces (`["type", "size", "modified|date"]`, a row-data field such as
+		 * `"senderName"`). Or a list of variants `{ when, fields }`: the first
+		 * whose `when` is `true`, or that has no `when`, is used (a case type
+		 * flag read through `@context`). Takes precedence over `nameSecondary`.
+		 *
+		 * @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-a-files-second-line-is-a-list-of-fields
+		 */
+		secondLine: {
+			type: Array,
+			default: null,
+		},
+
 		/** The line `dropHint` shows. */
 		dropHintLabel: {
 			type: String,
@@ -1526,6 +1541,26 @@ export default {
 		 *
 		 * @return {Array<object>} The file nodes.
 		 */
+		/**
+		 * The fields `secondLine` names for this browser: the list itself, or
+		 * the fields of its first variant whose `when` is `true` or absent.
+		 * Null without `secondLine` or a matching variant.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-a-files-second-line-is-a-list-of-fields
+		 */
+		secondLineFields() {
+			const list = Array.isArray(this.secondLine) ? this.secondLine : []
+			if (list.length === 0) {
+				return null
+			}
+			if (list.every((item) => typeof item === 'string')) {
+				return list
+			}
+			const variant = list.find((item) => item && typeof item === 'object' && Array.isArray(item.fields) && (!('when' in item) || item.when === true))
+			return variant ? variant.fields.filter((field) => typeof field === 'string') : null
+		},
+
 		/**
 		 * The bulk bar's count text.
 		 *
@@ -2079,7 +2114,8 @@ export default {
 		 * @return {string}
 		 */
 		nameSecondaryOf(node) {
-			if (!this.nameSecondary || this.isFolder(node)) {
+			const fields = this.secondLineFields
+			if ((!this.nameSecondary && fields === null) || this.isFolder(node)) {
 				return ''
 			}
 			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
@@ -2092,6 +2128,12 @@ export default {
 				size: this.formatSize(node.size),
 				type: this.typeLabelOf(node),
 				...(owner ? { owner } : {}),
+			}
+			if (fields !== null) {
+				return fields
+					.map((field) => fillTemplate(`{${field}}`, object))
+					.filter((text) => text !== '')
+					.join(' · ')
 			}
 			return fillTemplate(this.cnTranslate(this.nameSecondary), object)
 		},
