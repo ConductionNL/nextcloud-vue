@@ -2379,7 +2379,8 @@
     "Now: by {order}.": "Now: by {order}.",
     "You save the order along with a view.": "You save the order along with a view.",
     "me": "me",
-    "Open profile": "Open profile"
+    "Open profile": "Open profile",
+    "Link a contact from your address book.": "Link a contact from your address book."
   },
   "plurals": {
     "{count} member": [
