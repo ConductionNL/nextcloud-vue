@@ -51,7 +51,8 @@ describe('look-board-index.css: header buttons', () => {
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
 				if (selector.includes('cn-index-page__header-buttons')) {
-					expect(selector.startsWith('.cn-look-board .cn-index-page')).toBe(true)
+					// The look class sits on an ancestor or on the page root itself.
+					expect(/^\.cn-look-board( |\.)cn-index-page/.test(selector)).toBe(true)
 				}
 			}
 		}
