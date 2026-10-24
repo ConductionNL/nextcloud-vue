@@ -408,8 +408,11 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0 && effectiveQuickFilterPlacement !== 'row'" #filters>
+			<template v-if="$slots['toolbar-start'] || quickFilterTabsInToolbar" #filters>
+				<!-- @slot toolbar-start The page's own controls at the start of the toolbar row, before the quick-filter chips (DqAanMijToegewezen: the team's name chips). -->
+				<slot name="toolbar-start" />
 				<CnQuickFilterBar
+					v-if="quickFilterTabsInToolbar"
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
@@ -2540,19 +2543,22 @@ export default {
 		 * buttons leave, and those that do not fit move into the overflow chip.
 		 * `'row'` puts them on a row of their own above the toolbar, wrapping
 		 * onto more lines instead of folding into the overflow chip.
+		 * `'active'` draws no tabs: a chosen tab with an `activeLabel` shows
+		 * only on the Active line, where it can be removed
+		 * (DqAanMijToegewezen).
 		 *
-		 * @type {''|'toolbar'|'row'}
+		 * @type {''|'toolbar'|'row'|'active'}
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row', 'active'].includes(v),
 		},
 
 		/**
 		 * The quick-filter placement per view mode (manifest
 		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
-		 * each `''`, `'toolbar'` or `'row'`. A view it does not name keeps
+		 * each `''`, `'toolbar'`, `'row'` or `'active'`. A view it does not name keeps
 		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
 		 * its board and map views, on their own row in its table view).
 		 *
@@ -4630,12 +4636,24 @@ export default {
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
 		 *
 		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
-		 * @return {''|'toolbar'|'row'} The placement.
+		 * @return {''|'toolbar'|'row'|'active'} The placement.
 		 */
 		effectiveQuickFilterPlacement() {
 			const byView = this.quickFilterPlacementByView
 			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
-			return ['', 'toolbar', 'row'].includes(own) ? own : this.quickFilterPlacement
+			return ['', 'toolbar', 'row', 'active'].includes(own) ? own : this.quickFilterPlacement
+		},
+
+		/**
+		 * Whether the quick-filter tabs are drawn in the toolbar row: there are
+		 * tabs, and the placement is neither a row of their own nor the Active
+		 * line only.
+		 *
+		 * @spec openspec/changes/index-toolbar-start-and-active-only-quick-filters/specs/index-page/spec.md#requirement-quick-filters-can-show-only-on-the-active-line
+		 * @return {boolean} True when the toolbar draws the tabs.
+		 */
+		quickFilterTabsInToolbar() {
+			return Boolean(this.tabStripEntries && this.tabStripEntries.length > 0) && !['row', 'active'].includes(this.effectiveQuickFilterPlacement)
 		},
 
 		/**
