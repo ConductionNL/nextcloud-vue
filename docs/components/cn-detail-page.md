@@ -20,6 +20,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
+| `cardButtons` | String | `'compact'` | How tall the labelled buttons in the page's card title rows stand in the board look: `compact` (34px, setting and case-type pages) or `regular` (the 40px control height, as the case page's tab cards draw them, DqZaakContact "Live gesprek"). Manifest `config.cardButtons`. |
 | `description` | String | `''` | Optional subtitle shown below the title |
 | `icon` | String | `''` | MDI icon name (rendered via CnIcon) |
 | `iconSize` | Number | `28` | Icon size in pixels |

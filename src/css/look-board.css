@@ -622,6 +622,15 @@
 	--button-size: 34px;
 }
 
+/* A detail page marked `cardButtons: "regular"` draws them at the 40px
+   control height: the case page's tab cards (DqZaakContact "Live gesprek",
+   DqZaakHistorie, DqZaakBetrokkenen), where setting and case-type pages keep 34.
+   @spec openspec/changes/detail-card-buttons-regular/specs/detail-card-buttons/spec.md#requirement-a-detail-page-can-draw-its-card-header-buttons-at-the-control-height */
+.cn-look-board.cn-detail-page--card-buttons-regular .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)),
+.cn-look-board .cn-detail-page--card-buttons-regular .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* The same beside a CnDetailCard's title (DqTaak "Notitie toevoegen" on the
    notes card, a detail card's declared header actions).
    @spec openspec/changes/board-detail-card-header-button-height/specs/board-detail-card-header-button-height/spec.md#requirement-a-labelled-detail-card-header-button-is-40px */
