@@ -7,7 +7,7 @@
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
  */
-import { documentsOfParty, indicatorsOf, indicatorVerdict, partiesInOrder, representedByMap, roleLabel, rolesInOrder } from '../../src/utils/objectParties.js'
+import { documentsOfParty, indicatorsOf, indicatorVerdict, newPartyRecord, partiesInOrder, representedByMap, roleLabel, rolesInOrder, savedUuid } from '../../src/utils/objectParties.js'
 
 const LISTING = {
 	results: [],
@@ -67,5 +67,45 @@ describe('objectParties', () => {
 		expect(jan.sent).toHaveLength(2)
 		expect(jan.received).toHaveLength(1)
 		expect(documentsOfParty(docs, '')).toEqual({ sent: [], received: [] })
+	})
+})
+
+describe('newPartyRecord', () => {
+	const CREATE = {
+		fields: [
+			{ key: 'givenNames', path: 'name.givenNames' },
+			{ key: 'prefix', path: 'name.namePrefix' },
+			{ key: 'surname', path: 'name.surname' },
+			{ key: 'email', address: { path: 'contactAddresses', kind: 'correspondence', type: 'email' } },
+			{ key: 'phone', address: { path: 'contactAddresses', kind: 'correspondence', type: 'phone' } },
+			{ key: 'city' },
+		],
+		compose: { displayName: ['name.givenNames', 'name.namePrefix', 'name.surname'] },
+	}
+
+	it('writes each value at its path, addresses as a list, and the composed name without gaps', () => {
+		expect(newPartyRecord(CREATE, { givenNames: ' Kees ', prefix: '', surname: 'Wit', email: 'kees@example.org', phone: '0612345678', city: 'Zuiddrecht' })).toEqual({
+			name: { givenNames: 'Kees', surname: 'Wit' },
+			contactAddresses: [
+				{ kind: 'correspondence', type: 'email', value: 'kees@example.org' },
+				{ kind: 'correspondence', type: 'phone', value: '0612345678' },
+			],
+			city: 'Zuiddrecht',
+			displayName: 'Kees Wit',
+		})
+	})
+
+	it('leaves out what was not given and asks for no identifier', () => {
+		expect(newPartyRecord(CREATE, { surname: 'Wit' })).toEqual({ name: { surname: 'Wit' }, displayName: 'Wit' })
+		expect(newPartyRecord({}, { surname: 'Wit' })).toEqual({})
+	})
+})
+
+describe('savedUuid', () => {
+	it('reads the uuid a create answered with', () => {
+		expect(savedUuid({ '@self': { id: 'a' } })).toBe('a')
+		expect(savedUuid({ uuid: 'b' })).toBe('b')
+		expect(savedUuid({ id: 'c' })).toBe('c')
+		expect(savedUuid(null)).toBe('')
 	})
 })

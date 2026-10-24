@@ -5,6 +5,23 @@
 
 <template>
 	<div class="cn-object-parties" data-testid="cn-object-parties">
+		<div v-if="canAdd" class="cn-object-parties__manage">
+			<NcButton data-testid="cn-object-parties-add" @click="adding = true">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ manageWord('add', 'label', t('nextcloud-vue', 'Add a party')) }}
+			</NcButton>
+		</div>
+
+		<NcNoteCard
+			v-if="manageError"
+			type="error"
+			role="alert"
+			data-testid="cn-object-parties-manage-error">
+			{{ manageError }}
+		</NcNoteCard>
+
 		<NcLoadingIcon v-if="loading" :size="24" />
 
 		<NcEmptyContent
@@ -128,19 +145,60 @@
 							:data-effect="indicator.effect"
 							:title="indicator.verdict"
 							data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
+						<NcButton
+							v-if="canRemove && party.partyUuid"
+							class="cn-object-parties__remove"
+							variant="tertiary"
+							:aria-label="removeLabel(party, group)"
+							:title="removeLabel(party, group)"
+							data-testid="cn-object-parties-remove"
+							@click="removing = { party, group }">
+							<template #icon>
+								<TrashCanOutline :size="20" />
+							</template>
+						</NcButton>
 					</li>
 				</ul>
 			</section>
 		</template>
+
+		<CnPartyAddDialog
+			v-if="adding"
+			ref="addDialog"
+			:dialogTitle="manageWord('add', 'dialogTitle', t('nextcloud-vue', 'Add a party'))"
+			:roles="addRoles"
+			:sources="addSources"
+			:createFields="createFields"
+			:createLabel="manageWord('add', 'createLabel', t('nextcloud-vue', 'Someone new'))"
+			:allowPrimary="content.manage.add.primary === true"
+			:primaryLabel="label('primary')"
+			:confirmLabel="manageWord('add', 'confirmLabel', t('nextcloud-vue', 'Add'))"
+			@close="adding = false"
+			@confirm="addParty" />
+
+		<CnConfirmDialog
+			v-if="removing"
+			ref="removeDialog"
+			:dialogTitle="manageWord('remove', 'title', t('nextcloud-vue', 'Remove party'))"
+			:message="removeMessage"
+			:confirmLabel="manageWord('remove', 'confirmLabel', t('nextcloud-vue', 'Remove'))"
+			variant="error"
+			@close="removing = null"
+			@confirm="removeParty" />
 	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnPartyAddDialog from '../../dialogs/CnPartyAddDialog.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
@@ -150,10 +208,13 @@ import {
 	indicatorsOf,
 	indicatorVerdict,
 	kindCode,
+	newPartyRecord,
 	representedByMap,
 	roleLabel,
 	rolesInOrder,
+	savedUuid,
 } from '../../utils/objectParties.js'
+import { fetchCallerScope } from '../../utils/objectPermissions.js'
 import { readPath } from '../../utils/readPath.js'
 
 let uid = 0
@@ -197,6 +258,16 @@ function defaultLabels() {
  * }
  * ```
  *
+ * `manage` lets a reader change the parties through OpenRegister's party
+ * API, which asks the record's update right on every write: `add` (`{ label?,
+ * dialogTitle?, kind?, sources, create?, primary?, confirmLabel? }`) opens a
+ * dialog to pick somebody known or describe somebody new (`create: {
+ * register, schema, label?, fields, compose? }`, see `newPartyRecord`), choose
+ * a role and optionally make them the primary party; `remove` (`{ title?,
+ * message?, confirmLabel? }`, `{name}` and `{role}` in the message) takes a
+ * party off in one role. Both are hidden when OpenRegister says the reader
+ * may not update the schema; a refusal is shown, never swallowed.
+ *
  * `presentation: "primary"` draws only the primary party, as a side card
  * does: initials, name and role label, its correspondence e-mail, and
  * `link` (`{ label, href? | tab? }`, `{total}` = the number of parties) at
@@ -210,7 +281,7 @@ function defaultLabels() {
 export default {
 	name: 'CnObjectPartiesWidget',
 
-	components: { EmailOutline, NcEmptyContent, NcLoadingIcon, NcNoteCard },
+	components: { CnConfirmDialog, CnPartyAddDialog, EmailOutline, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Plus, TrashCanOutline },
 
 	mixins: [innerHeading],
 
@@ -229,7 +300,8 @@ export default {
 		 * party, `{party}` filled in), `correspondence` (`{ endpoint, path?,
 		 * senderField?, recipientsField? }`), `labels`, `presentation`
 		 * (`"primary"`: only the primary party) and `link` (`{ label,
-		 * href? | tab? }`, the primary presentation's foot link).
+		 * href? | tab? }`, the primary presentation's foot link) and
+		 * `manage` (`{ add?, remove? }`, adding and removing parties).
 		 */
 		content: {
 			type: Object,
@@ -267,6 +339,10 @@ export default {
 			kinds: null,
 			extra: {},
 			documents: [],
+			mayUpdate: true,
+			adding: false,
+			removing: null,
+			manageError: '',
 		}
 	},
 
@@ -274,6 +350,58 @@ export default {
 		/** @return {Array<object>} The role groups, primary first. */
 		groups() {
 			return rolesInOrder(this.listing, this.translatedMap(this.content?.roleLabels))
+		},
+
+		/** @return {object} The `manage` declaration, or an empty one. */
+		manage() {
+			const manage = this.content?.manage
+			return manage && typeof manage === 'object' ? manage : {}
+		},
+
+		/** @return {boolean} Whether the add button shows. */
+		canAdd() {
+			return Boolean(this.manage.add) && this.mayUpdate && !this.isPrimaryPresentation && !this.loading && !this.failed
+		},
+
+		/** @return {boolean} Whether each party offers its remove button. */
+		canRemove() {
+			return Boolean(this.manage.remove) && this.mayUpdate && !this.isPrimaryPresentation
+		},
+
+		/** @return {Array<{key: string, label: string}>} The roles a new party may hold, in the reader's words. */
+		addRoles() {
+			const declared = Array.isArray(this.listing?.roles) ? this.listing.roles : []
+			const kind = this.manage.add?.kind
+			const accepted = kind ? (this.listing?.kinds || []).find((entry) => kindCode(entry) === kind)?.roles : null
+			const keys = Array.isArray(accepted) && accepted.length > 0 ? accepted : declared.map((role) => role?.key).filter(Boolean)
+			const own = this.translatedMap(this.content?.roleLabels)
+			return keys.map((key) => ({ key, label: own[key] || this.cnTranslate(roleLabel(key, declared, {})) }))
+		},
+
+		/** @return {Array<object>} The picker sources, their words translated by the picker. */
+		addSources() {
+			return Array.isArray(this.manage.add?.sources) ? this.manage.add.sources : []
+		},
+
+		/** @return {Array<object>} The new-person fields, labels translated. */
+		createFields() {
+			const fields = this.manage.add?.create?.fields
+			return (Array.isArray(fields) ? fields : [])
+				.filter((field) => field && field.key)
+				.map((field) => ({ ...field, label: this.cnTranslate(field.label || field.key) }))
+		},
+
+		/** @return {string} The question the remove dialog asks. */
+		removeMessage() {
+			if (!this.removing) {
+				return ''
+			}
+			const name = this.nameOf(this.removing.party)
+			const role = this.removing.group.label
+			const own = this.manage.remove?.message
+			return own
+				? this.cnTranslate(own).replaceAll('{name}', name).replaceAll('{role}', role)
+				: t('nextcloud-vue', 'Remove {name} as {role}?', { name, role }, undefined, { escape: false })
 		},
 
 		/** @return {boolean} Whether only the primary party is drawn. */
@@ -381,7 +509,21 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.onPageRefresh = (payload) => {
+			if (payload?.source !== this.idPrefix) {
+				this.load()
+			}
+		}
+		subscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		t,
 		initialsOf,
 		kindCode,
 
@@ -394,6 +536,115 @@ export default {
 		label(key) {
 			const own = this.content?.labels && typeof this.content.labels[key] === 'string' ? this.content.labels[key] : ''
 			return own !== '' ? this.cnTranslate(own) : defaultLabels()[key]
+		},
+
+		/**
+		 * A word of the `manage` declaration, translated, else the default.
+		 *
+		 * @param {string} part `add` or `remove`.
+		 * @param {string} key The word's key.
+		 * @param {string} fallback The default.
+		 * @return {string}
+		 */
+		manageWord(part, key, fallback) {
+			const own = this.manage[part]?.[key]
+			return typeof own === 'string' && own !== '' ? this.cnTranslate(own) : fallback
+		},
+
+		/**
+		 * The remove button's accessible name.
+		 *
+		 * @param {object} party The listing row.
+		 * @param {object} group The role group.
+		 * @return {string}
+		 */
+		removeLabel(party, group) {
+			return t('nextcloud-vue', 'Remove {name} as {role}', { name: this.nameOf(party), role: group.label }, undefined, { escape: false })
+		},
+
+		/**
+		 * Why a write failed, in the reader's words.
+		 *
+		 * @param {unknown} error The axios error.
+		 * @return {string}
+		 */
+		refusalOf(error) {
+			if (error?.response?.status === 403) {
+				return t('nextcloud-vue', 'You may not change who is on this record.')
+			}
+			const said = error?.response?.data?.error
+			return typeof said === 'string' && said !== '' ? said : t('nextcloud-vue', 'The change could not be saved. Nothing was changed.')
+		},
+
+		/** @return {string} The record's parties URL. */
+		partiesUrl() {
+			return this.urlOf(this.content?.rolesSource || '/apps/openregister/api/objects/@register/@schema/@objectId/parties')
+		},
+
+		/** @return {Promise<void>} Whether OpenRegister lets the reader update this schema; unknown counts as yes, the server decides. */
+		async loadMayUpdate() {
+			if (!this.manage.add && !this.manage.remove) {
+				return
+			}
+			const slug = (value) => (value && typeof value === 'object' ? String(value.slug || value.id || '') : String(value || ''))
+			const scope = await fetchCallerScope({ register: slug(this.register), schema: slug(this.schema) })
+			this.mayUpdate = !scope || !Array.isArray(scope.actions) || scope.actions.includes('update')
+		},
+
+		/**
+		 * Create the person when they are new, then give them the role; a
+		 * primary party is set through the primary route, which records the
+		 * replacement.
+		 *
+		 * @param {{mode: string, partyUuid: string|null, values: object, role: string, primary: boolean}} choice The dialog's choice.
+		 * @return {Promise<void>}
+		 */
+		async addParty(choice) {
+			try {
+				let partyUuid = choice.partyUuid
+				if (choice.mode === 'new') {
+					const create = this.manage.add?.create || {}
+					const { data } = await axios.post(
+						generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(create.register || '')}/${encodeURIComponent(create.schema || '')}`),
+						newPartyRecord(create, choice.values),
+					)
+					partyUuid = savedUuid(data)
+					if (partyUuid === '') {
+						throw new Error(t('nextcloud-vue', 'The new person was not saved.'))
+					}
+				}
+				if (choice.primary) {
+					await axios.put(generateUrl(`${this.partiesUrl()}/primary`), { partyUuid, role: choice.role })
+				} else {
+					await axios.post(generateUrl(this.partiesUrl()), { partyUuid, role: choice.role })
+				}
+				this.adding = false
+				this.changed()
+			} catch (error) {
+				this.$refs.addDialog?.fail(error?.response ? this.refusalOf(error) : (error?.message || this.refusalOf(error)))
+			}
+		},
+
+		/** @return {Promise<void>} Take the chosen party off in the chosen role. */
+		async removeParty() {
+			const { party, group } = this.removing || {}
+			if (!party) {
+				return
+			}
+			try {
+				await axios.delete(generateUrl(`${this.partiesUrl()}/${encodeURIComponent(party.partyUuid)}`), { params: { role: group.key } })
+				this.removing = null
+				this.changed()
+			} catch (error) {
+				this.$refs.removeDialog?.setResult({ error: this.refusalOf(error) })
+			}
+		},
+
+		/** @return {void} Read the parties again and tell the page (tab counts, the side card). */
+		changed() {
+			this.manageError = ''
+			this.load()
+			emit('cn:page:refresh', { source: this.idPrefix })
 		},
 
 		/**
@@ -465,6 +716,7 @@ export default {
 				return
 			}
 			this.listing = listing
+			await this.loadMayUpdate()
 			if (this.isPrimaryPresentation) {
 				this.loading = false
 				return
@@ -741,6 +993,15 @@ export default {
 
 .cn-object-parties__muted {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-object-parties__manage {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.cn-object-parties__remove {
+	margin-inline-start: auto;
 }
 
 .cn-object-parties__main-card {
