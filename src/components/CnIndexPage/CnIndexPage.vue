@@ -11386,6 +11386,10 @@ export default {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
+			// The reader on a user filter is "me" (DqFilterInMenu "Behandelaar: ik").
+			if (prop && prop.referenceType === 'nextcloud-user' && id === (getCurrentUser()?.uid ?? '')) {
+				return t('nextcloud-vue', 'me')
+			}
 			if (prop && prop.referenceType === 'nextcloud-group') {
 				const name = groupDisplayName(id)
 				if (name === null) {
