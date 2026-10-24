@@ -94,7 +94,7 @@
 				role="table"
 				class="cn-chart-widget__matrix"
 				:aria-label="matrixLabel"
-				:style="{ gridTemplateColumns: `minmax(120px, max-content) repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
+				:style="{ gridTemplateColumns: `${matrixLabelColumn} repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
 				<div role="row" class="cn-chart-widget__matrix-row">
 					<span role="columnheader" class="cn-chart-widget__matrix-corner" />
 					<span
@@ -456,6 +456,18 @@ export default {
 		},
 
 		/**
+		 * A `matrix`'s row-label column width in px. Null, the default, sizes
+		 * the column to its longest label (at least 120px); a width wraps a
+		 * long label instead (DqProcesanalyse "Dagen per fase": 240).
+		 *
+		 * @spec openspec/changes/chart-matrix-label-width/specs/chart-matrix-label-width/spec.md#requirement-a-matrix-can-give-its-row-labels-a-fixed-width
+		 */
+		matrixLabelWidth: {
+			type: Number,
+			default: null,
+		},
+
+		/**
 		 * A line under the chart ("Klik een balk om de zaken te zien"),
 		 * through the host's translate: under the rows of a `bar-list` or
 		 * `matrix`, and under the plot of an ApexCharts type.
@@ -487,7 +499,9 @@ export default {
 		 * `month-year` ("jan 2026"), in the user's language. A category that
 		 * is not a date is shown as is. Empty shows the categories unchanged.
 		 *
-		 * @type {''|'month'|'month-year'}
+		 * `week` writes an ISO week key (`2026-W40`) as "w40".
+		 *
+		 * @type {''|'month'|'month-year'|'week'}
 		 */
 		categoryFormat: {
 			type: String,
@@ -1506,6 +1520,12 @@ export default {
 			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
 		},
 
+		/** @return {string} The matrix row-label column's grid track. */
+		matrixLabelColumn() {
+			const width = Number(this.matrixLabelWidth)
+			return Number.isFinite(width) && width > 0 ? `${width}px` : 'minmax(120px, max-content)'
+		},
+
 		/**
 		 * The rows of a `bar-list`: the categories of the first displayed
 		 * series, each with its value's share of `barMax` (or the largest
@@ -1538,7 +1558,7 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
 		 */
 		matrix() {
-			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => String(c))
+			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => this.hostTranslate(String(c)))
 			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((entry) => entry && typeof entry === 'object') : []
 			const max = Math.max(0, ...series.flatMap((entry) => (Array.isArray(entry.data) ? entry.data.map((v) => Number(v) || 0) : [])))
 			const levelOf = (value) => {
@@ -1556,7 +1576,7 @@ export default {
 			return {
 				columns,
 				rows: series.map((entry, rowIndex) => ({
-					label: String(entry.name ?? ''),
+					label: this.hostTranslate(String(entry.name ?? '')),
 					cells: columns.map((column, index) => {
 						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
 						const isCurrent = current !== null && current.row === rowIndex && current.column === index
@@ -1628,6 +1648,12 @@ export default {
 		 */
 		displayCategories() {
 			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			if (this.categoryFormat === 'week') {
+				return categories.map((category) => {
+					const week = /^\d{4}-W(\d{1,2})$/.exec(String(category))
+					return week ? t('nextcloud-vue', 'w{week}', { week: Number(week[1]) }) : category
+				})
+			}
 			if (this.categoryFormat !== 'month' && this.categoryFormat !== 'month-year') {
 				return categories
 			}

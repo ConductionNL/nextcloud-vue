@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.151.0",
+	"version": "2.152.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -942,6 +942,11 @@
 			"pattern": "^@context\\.[A-Za-z][A-Za-z0-9_.]*$",
 			"description": "Detail context: a record a detail page reads beside the loaded one (`config.visibilityContext`), read by a grid widget's or a tab's `visibleWhen` field as @context.<name>.<field> (dot path allowed). Mirrors SENTINEL_TOKEN_PATTERNS.context."
 		},
+		"sentinelSourceToken": {
+			"type": "string",
+			"pattern": "^@source\\.[A-Za-z][A-Za-z0-9_.@]*$",
+			"description": "Facts source: a field of the object a facts widget shows (@source.<field>, dot path allowed), read by a fact row's `route` params. Mirrors SENTINEL_TOKEN_PATTERNS.source."
+		},
 		"sentinelSubjectToken": {
 			"type": "string",
 			"pattern": "^@subject\\.[A-Za-z][A-Za-z0-9_.]*$",
@@ -962,6 +967,7 @@
 				{ "$ref": "#/$defs/sentinelRowToken" },
 				{ "$ref": "#/$defs/sentinelSubjectToken" },
 				{ "$ref": "#/$defs/sentinelContextToken" },
+				{ "$ref": "#/$defs/sentinelSourceToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
@@ -2617,7 +2623,7 @@
 									"barMax": { "type": "number", "exclusiveMinimum": 0, "description": "chartKind 'bar-list': the value a full track stands for (100 for percentages). Omitted = the largest value." },
 									"footnote": { "type": "string", "description": "A line under the chart, through the host's translate: under the rows of a bar-list or matrix, and under the plot of a line, area or bar chart." },
 									"referenceLines": { "type": "array", "description": "line, area and bar charts: dashed horizontal reference lines on the value axis, such as a norm. Each `{ value, label?, color? }`; the label goes through the host's translate, the colour defaults to the theme's error colour.", "items": { "type": "object", "required": ["value"], "properties": { "value": { "type": "number" }, "label": { "type": "string" }, "color": { "type": "string" } } } },
-									"categoryFormat": { "type": "string", "enum": ["", "month", "month-year"], "description": "How date categories read on the x-axis: `month` (\"jan\") or `month-year` (\"jan 2026\"), in the user's language. Categories that are not dates are left as is." },
+									"categoryFormat": { "type": "string", "enum": ["", "month", "month-year", "week"], "description": "How date categories read on the x-axis: `month` (\"jan\") or `month-year` (\"jan 2026\"), in the user's language, or `week` for ISO week keys (\"2026-W40\" as \"w40\"). Categories that are not dates are left as is." },
 									"emptyCellLabel": { "type": "string", "description": "chartKind 'matrix': the text of a cell without a value (\"geen\"), through the host's translate. Empty leaves the cell blank. Passed through to CnChartWidget." },
 									"highlight": {
 										"type": "object",
@@ -3316,6 +3322,11 @@
 					"required": ["url"],
 					"additionalProperties": false
 				},
+				"exportId": {
+					"type": "string",
+					"minLength": 1,
+					"description": "export only: the id of the table on the page whose rows the export downloads (an object-table widget's `content.exportId`); the dispatcher emits cn:widget:export with it."
+				},
 				"formProperties": {
 					"type": "object",
 					"description": "open-form with `endpoint` only: the fields the form shows and sends, as JSON-schema properties (`{ \"name\": { \"type\": \"string\", \"title\": \"Name\" } }`).",
@@ -3533,12 +3544,12 @@
 					"then": { "required": ["url"] }
 				},
 				{
-					"description": "open-form actions MUST declare the create schema via `schema`.",
+					"description": "open-form actions MUST declare the create schema via `schema`, or edit through an `endpoint` with the `formProperties` it shows.",
 					"if": {
 						"properties": { "type": { "const": "open-form" } },
 						"required": ["type"]
 					},
-					"then": { "required": ["schema"] }
+					"then": { "anyOf": [{ "required": ["schema"] }, { "required": ["endpoint", "formProperties"] }] }
 				},
 				{
 					"description": "agent actions MUST declare the target agent uuid via `agent`.",
@@ -5349,8 +5360,21 @@
 							"description": "type='dashboard' | type='detail': the accessible name of the page's view switch, e.g. \"Whose work\"; defaults to \"View\" (view-switch-containers). Maps to `viewsLabel`."
 						},
 						"headerMeta": {
-							"type": "string",
-							"minLength": 1,
+							"oneOf": [
+								{ "type": "string", "minLength": 1 },
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["count", "one", "other"],
+									"description": "header-meta-plural: the line in the singular or the plural by a `headerMetaCounts` total (\"1 lopende zaak\" / \"2 lopende zaken\"); each form is translated on its own; `zero`, when given, is used for none (an empty string leaves the line out).",
+									"properties": {
+										"count": { "type": "string", "minLength": 1, "description": "The `headerMetaCounts` name whose total picks the form." },
+										"one": { "type": "string", "description": "The form for exactly one." },
+										"other": { "type": "string", "description": "The form for any other number." },
+										"zero": { "type": "string", "description": "The form for none; without it, none reads `other`." }
+									}
+								}
+							],
 							"description": "type='detail', board look: the meta line on row 2 of the header, after the breadcrumb and a middle dot (screens-detail-page-parity). A field template such as `\"via {channel}\"`: every `{path}` is read from the record, and a line with an empty value is dropped. Maps to CnDetailPage `headerMeta`. type='index' | 'dashboard' | 'settings' (page-header-breadcrumb): the note after the breadcrumb and a middle dot under the title; on an index page `{total}` and `{shown}` are the list's counts."
 						},
 						"headerMetaCounts": {
@@ -5543,7 +5567,7 @@
 									"searchPlaceholder": { "type": "string", "minLength": 1, "description": "The search placeholder while the preset applies." },
 									"footerNote": { "type": "string", "minLength": 1, "description": "The footer note while the preset applies." },
 									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
-									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map"] }, "description": "The drawn view segments while the preset applies." },
+									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map", "list"] }, "description": "The drawn view segments while the preset applies." },
 									"addLabel": { "type": "string", "minLength": 1, "description": "The add button label while the preset applies (index-scope-presentation)." },
 									"headerButtons": { "type": "array", "description": "The header buttons while the preset applies; same shape as config.headerButtons (index-scope-presentation)." },
 									"breadcrumb": { "description": "The breadcrumb while the preset applies; same shape as config.breadcrumb (index-scope-presentation).", "anyOf": [{ "$ref": "#/$defs/breadcrumbCrumb" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/breadcrumbCrumb" } }] },
@@ -5556,8 +5580,8 @@
 							"type": "array",
 							"minItems": 1,
 							"uniqueItems": true,
-							"items": { "type": "string", "enum": ["table", "cards", "board", "map"] },
-							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". Order is always table, cards, board, map. Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
+							"items": { "type": "string", "enum": ["table", "cards", "board", "map", "list"] },
+							"description": "type='index', board look: the segments the view switch draws, e.g. [\"table\", \"cards\", \"board\", \"map\"] as the boards do. A listed mode the page can open is an ordinary segment; one it cannot (no board columns, no map) is drawn disabled and named \"<mode>: not available on this list\". The segments are drawn in the order named, `list` included; a view the page offers that is not named is listed under More views (view-switch-order-and-more, 2.152.0). Ignored without the board look (screens-view-switch-parity). Maps to CnIndexPage `viewSwitch`."
 						},
 						"filterStrip": {
 							"type": "object",

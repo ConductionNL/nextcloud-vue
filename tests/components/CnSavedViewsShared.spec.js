@@ -114,7 +114,7 @@ describe('CnSaveViewDialog', () => {
 		const w = mount(CnSaveViewDialog)
 		await w.setData({ name: 'Mine' })
 		w.vm.onConfirm()
-		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine', isPublic: false, sharedWith: [] })
+		expect(w.emitted('confirm')[0][0]).toEqual({ name: 'Mine', description: '', icon: '', isPublic: false, sharedWith: [] })
 	})
 
 	it('confirms with the chosen audience', async () => {

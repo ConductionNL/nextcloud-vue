@@ -17,10 +17,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description                                         |
-| --------- | ------- | --------------------------------------------------- |
-| `close`   | —       | Dialog dismissed.                                   |
-| `confirm` | —       | Save clicked. Payload: `{ name, replaceCriteria }`. |
+| Name      | Payload | Description                                                            |
+| --------- | ------- | ---------------------------------------------------------------------- |
+| `close`   | —       | Dialog dismissed.                                                      |
+| `confirm` | —       | Save clicked. Payload: `{ name, replaceCriteria, description, icon }`. |
 
 ### Methods
 

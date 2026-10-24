@@ -202,6 +202,7 @@
 			:showViewToggle="showViewToggle"
 			:availableViewModes="effectiveToggleModes"
 			:disabledViewModes="viewSwitchDisabledModes"
+			:viewSwitch="isBoardLook ? presented('viewSwitch') : null"
 			:viewModeLinks="viewSwitchLinkTargets"
 			:cardsLabel="cardsLabel"
 			:tableLabel="tableLabel"
@@ -282,7 +283,7 @@
 						data-testid="cn-board-narrow">
 						<span class="cn-index-page__board-control-label">{{ boardNarrowLabel }}</span>
 						<select
-							class="cn-index-page__board-select"
+							class="cn-index-page__board-select cn-index-page__board-select--fit"
 							data-testid="cn-board-narrow-select"
 							:value="boardNarrowValue"
 							@change="onBoardNarrowChange($event.target.value)">
@@ -1466,7 +1467,7 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { mapListItems } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { loadMyTeam, peekMyTeam } from '../../utils/myTeam.js'
+import { fillMyTeamToken, loadMyTeam, peekMyTeam, peekMyTeamName } from '../../utils/myTeam.js'
 import { fetchGroups } from '../../utils/nextcloudDirectory.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
@@ -1481,6 +1482,7 @@ import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, pr
 import { compileRowClass } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterViews, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, pageOffersSavedViews, savedViewScope, schemaSlug, viewAccess, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { savedViewIcon } from '../../utils/savedViewMenu.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
@@ -8679,7 +8681,8 @@ export default {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
 				if (countText) {
-					return this.cnTranslate(countText)
+					const translated = this.cnTranslate(countText)
+					return fillMyTeamToken(translated, translated.includes('{myTeam}') ? (peekMyTeamName() || '') : '')
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
@@ -13112,13 +13115,13 @@ export default {
 			this.savedViews = (this.savedViews || []).map((other) => (same(other) ? view : other))
 		},
 
-		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {
+		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation, description = '', icon = '' }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
 				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
 			const payload = buildViewCreatePayload({
 				name,
-				description: '',
+				description,
 				isPublic,
 				isDefault: false,
 				state,
@@ -13128,6 +13131,9 @@ export default {
 				sharedWith,
 				presentation,
 			})
+			if (icon) {
+				payload.query.icon = icon
+			}
 			try {
 				const view = await useSavedViewsApi().createView(payload)
 				if (!view) {
@@ -13227,20 +13233,26 @@ export default {
 				return
 			}
 			const badge = this.savedViewMenuBadge(view)
-			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(typeof view.icon === 'string' && view.icon !== '' ? { icon: view.icon } : {}), ...(badge ? { badge } : {}) })
+			const icon = savedViewIcon(view)
+			const description = typeof view.description === 'string' ? view.description : ''
+			menu.toggle({ id: String(view.id || view.slug), page: this.savedViewPage, name: view.name, ...(icon ? { icon } : {}), ...(description ? { description } : {}), ...(badge ? { badge } : {}) })
 		},
 
 		/**
-		 * The count a view's menu entry shows, from its `overrides.badge`:
+		 * The count a view's menu entry shows: the objects its criteria match,
+		 * on this page's register and schema, or what its `overrides.badge`
+		 * says. `overrides.badge: false` shows none.
 		 * `{ count: { register, schema, filter }, counterVariant? }`, or null.
 		 *
 		 * @param {object} view The view.
 		 * @return {{count: object, counterVariant?: string}|null}
 		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @spec openspec/changes/saved-view-icon-description-count/specs/saved-view-icon-description-count/spec.md#requirement-a-saved-view-in-the-menu-shows-its-count
 		 */
 		savedViewMenuBadge(view) {
 			const overrides = savedViewOverrides(view)
-			const badge = overrides ? overrides.badge : null
+			const declared = overrides ? overrides.badge : undefined
+			const badge = declared === undefined || declared === null ? true : declared
 			const filters = view && view.query && typeof view.query.filters === 'object' ? view.query.filters : {}
 			const locked = overrides && overrides.lockedFilters && typeof overrides.lockedFilters === 'object' ? overrides.lockedFilters : {}
 			return savedViewBadge(badge, { register: this.register, schema: schemaSlug(this.schema), filter: this.filter }, { ...locked, ...filters })
@@ -13331,12 +13343,15 @@ export default {
 		 * @param {{ name: string, replaceCriteria: boolean }} payload The dialog payload.
 		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
 		 */
-		async onEditViewConfirm({ name, replaceCriteria }) {
+		async onEditViewConfirm({ name, replaceCriteria, description, icon }) {
 			const view = this.viewPendingEdit
 			if (!view) {
 				return
 			}
 			const body = { name }
+			if (typeof description === 'string' && description !== (typeof view.description === 'string' ? view.description : '')) {
+				body.description = description
+			}
 			if (replaceCriteria === true) {
 				const state = this.isSelfFetchMode
 					? this.currentViewState()
@@ -13352,6 +13367,18 @@ export default {
 				if (view.query && view.query.overrides) {
 					body.query.overrides = view.query.overrides
 				}
+			}
+			// The icon rides in the query: OpenRegister keeps a view's query whole.
+			if (typeof icon === 'string' && icon !== savedViewIcon(view)) {
+				const query = { ...(body.query || view.query || {}) }
+				if (icon === '') {
+					delete query.icon
+				} else {
+					query.icon = icon
+				}
+				body.query = query
+			} else if (body.query && savedViewIcon(view)) {
+				body.query.icon = savedViewIcon(view)
 			}
 			try {
 				const saved = await useSavedViewsApi().patchView(view.id, body)

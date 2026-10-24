@@ -56,6 +56,15 @@ describe('dialog.css: the board dialog', () => {
 		expect(subtitle).toContain('--nldesign-component-paragraph-color: var(--color-text-maxcontrast);')
 	})
 
+	it('sets a dialog checkbox flush with the fields, its label 10px after the box (DqBerichtVersturen)', () => {
+		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
+		expect(content).toContain('padding-inline: 0;')
+		expect(content).toContain('gap: 10px;')
+		expect(bodyOf(dialog, '.cn-dialog-board')).toContain('--cn-dialog-check-label-inset: 30px;')
+		const assign = fs.readFileSync(path.join(__dirname, '../../src/components/CnAssignDialog/CnAssignDialog.vue'), 'utf8')
+		expect(assign).toMatch(/\.cn-assign-dialog__toggle-note \{\s*padding-inline-start: var\(--cn-dialog-check-label-inset, 44px\);/)
+	})
+
 	it('inks the eyebrow in a text colour, never the text on a primary fill', () => {
 		const root = bodyOf(dialog, '.cn-dialog-board')
 		expect(root).toContain('--cn-dialog-eyebrow-color: var(--color-primary-element-light-text')

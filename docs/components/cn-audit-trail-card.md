@@ -51,7 +51,9 @@ Pass pre-translated labels when your app handles i18n:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `source` | Object | `null` | `{ kind: 'flow-task', id }` reads `{apiBase}/flow-tasks/{id}/audit`, the task engine's own trail. `id` may be left out or written `@objectId`. |
-| `actionLabels` | Object | `null` | What happened, in words: by action (`claim`) or by action and the state it led to (`complete:completed`, tried first). `{actor}` and `{state}` are filled in, and a label that names the actor leaves it off the line under it. An action without a label shows as written, with its state in brackets. DqTaak: `{ "claim": "Task picked up by {actor}" }`. |
+| `actionLabels` | Object | `null` | What happened, in words: by action (`claim`) or by action and the state it led to (`complete:completed`, tried first). `{actor}`, `{state}` and `{changed.<key>}` (a value the entry recorded, in the words of `valueLabels`) are filled in, and a label that names the actor leaves it off the line under it. An action without a label shows as written, with its state in brackets. DqTaak: `{ "claim": "Task picked up by {actor}" }`. |
+| `valueLabels` | Object | `null` | Words for the values a label quotes as `{changed.<key>}`: `{ "purpose": { "handling": "Handling" } }`. A value without words shows as written. |
+| `relatedSources` | Array | `[]` | Records beside the object whose events join its history: `[{ as, register, schema, filter, limit? }]`. The card lists the objects matching `filter` (`@objectId` is this object, at most `limit`, default 5), reads their trails and merges the entries with the object's own, newest first; a related entry is labelled by `actionLabels["<as>.<action>"]` first. A related read that fails leaves only its entries out. DqSociaalDomein: `{ as: "consent", schema: "toestemming", filter: { caseId: "@objectId" } }`. |
 | `endpoint` | String | `''` | A trail URL of its own; `{id}` is filled with the source's id or `objectId`. |
 | `order` | String | `''` | `newest` or `oldest` first. Empty reads a source oldest first and an object newest first. |
 

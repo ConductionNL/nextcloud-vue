@@ -60,3 +60,18 @@ describe('look-board.css: choice cards', () => {
 		}
 	})
 })
+
+describe('look-board.css: a setup step\'s choices (DqInstellen)', () => {
+	const step = '.cn-look-board .cn-setup-step .cn-choice-cards'
+
+	it('edges the chosen option with a real 2px border, no inset shadow, the content where it was', () => {
+		const chosen = rule(`${step} .cn-choice-cards__row--selected${guard},\n${step} .cn-choice-cards__row--selected:hover${guard}`)
+		expect(chosen).toContain('border-width: 2px')
+		expect(chosen).toContain('box-shadow: none')
+		expect(chosen).toContain('padding: 11px 13px')
+	})
+
+	it('draws no option icon, as the board draws only the radio and the words', () => {
+		expect(rule(`${step} .cn-choice-cards__row-icon${guard}`)).toContain('display: none')
+	})
+})

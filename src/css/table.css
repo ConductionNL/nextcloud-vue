@@ -177,6 +177,20 @@
 /* The secondary line of a cell (`columns[].secondary`): muted, smaller, on its
    own line under the value. Theme hooks: --cn-table-secondary-size and
    --cn-table-secondary-color. */
+/* Pills beside a cell's value (`col.pills`, "Geheimhouding"). */
+.cn-data-table td > .cn-table-cell__pills {
+	display: inline-flex;
+	gap: 6px;
+	margin-inline-start: 8px;
+	vertical-align: middle;
+}
+
+.cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
 .cn-data-table .cn-table-cell__secondary {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
@@ -597,9 +611,12 @@
 	outline-offset: -2px;
 }
 
+/* The controls in a linked row sit above the row link. A checkbox switch's
+   own input stays absolutely placed behind its icon: lifting it put the 34px
+   input in the flow and grew every row (the selection cell is lifted). */
 .cn-table-row--linked .cn-table-col--checkbox,
 .cn-table-row--linked .cn-table-col--actions,
-.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link) {
+.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link):not(.checkbox-radio-switch__input) {
 	position: relative;
 	z-index: 1;
 }
