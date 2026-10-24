@@ -90,7 +90,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
-| `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board). The row stays clickable. |
+| `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board); `text` draws it as an ordinary 14px cell, weight 400, no underline (a log table such as DqZaakContact's contact moments). The row stays clickable. |
 | `reorderable` | Boolean | `false` | Lets the reader drag rows into another order. A drop emits `row-move`; the host stores the order. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |

@@ -10,6 +10,7 @@
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-the-title-link-underlines-the-title-only
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-the-row-menu-keeps-its-board-border-under-any-theme
+ * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
  */
 const fs = require('fs')
 const path = require('path')
@@ -48,6 +49,13 @@ describe('look-board-index.css: table rows', () => {
 		expect(secondary).toMatch(/margin-top:\s*2px/)
 	})
 
+	it('draws a text title as an ordinary cell: weight 400, the cell size, no underline', () => {
+		const title = rulesEndingWith('.cn-table-container--title-text .cn-data-table td.cn-table-col--title')
+		expect(title).toMatch(/font-weight:\s*400/)
+		expect(title).toMatch(/font-size:\s*14px/)
+		expect(title).toMatch(/text-decoration:\s*none/)
+	})
+
 	it('makes the row menu a 34px square with a grey border that outranks a theme', () => {
 		const body = rulesEndingWith('.cn-row-actions--board .button-vue')
 		for (const decl of [
@@ -69,7 +77,7 @@ describe('look-board-index.css: table rows', () => {
 		let m
 		while ((m = re.exec(css))) {
 			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
-				if (/title-plain|cn-row-actions--board|cn-table-col--title/.test(selector)) {
+				if (/title-plain|title-text|cn-row-actions--board|cn-table-col--title/.test(selector)) {
 					expect(selector.startsWith('.cn-look-board')).toBe(true)
 				}
 			}

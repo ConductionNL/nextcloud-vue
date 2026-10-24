@@ -5,6 +5,7 @@
 		:class="{
 			'cn-table-container--board': isBoardLook,
 			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
+			'cn-table-container--title-text': isBoardLook && rowTitle === 'text',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -848,15 +849,18 @@ export default {
 		 * How the board look draws the title column: `link` (the default) is
 		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
 		 * the 15px bold title without an underline and a 13px muted secondary
-		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
-		 * clickable either way. The Nextcloud look ignores it.
+		 * line, as the PqTickets and OcPublicaties boards draw it; `text` is an
+		 * ordinary cell, for a log table whose first column is a date
+		 * (DqZaakContact). The row stays clickable either way. The Nextcloud
+		 * look ignores it.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text'].includes(value),
 		},
 
 		/**

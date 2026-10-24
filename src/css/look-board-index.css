@@ -937,6 +937,16 @@
 	font-size: 13px;
 }
 
+/* `rowTitle: "text"` (DqZaakContact's contact moments): the title column is
+   an ordinary cell, the row still a link.
+   @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-table-col--title {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 400;
+	text-decoration: none;
+}
+
 /* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
    the name, the e-mail under the name beside it. The name keeps the title's
    weight and size, and its underline: an inline-flex box is atomic, so the
