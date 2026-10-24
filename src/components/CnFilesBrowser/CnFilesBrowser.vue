@@ -2685,7 +2685,8 @@ export default {
 							}
 						})
 						.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''),
-					actions: (Array.isArray(card.actions) ? card.actions : []).filter((action) => action && action.id),
+					actions: (Array.isArray(card.actions) ? card.actions : [])
+						.filter((action) => action && action.id && hostActionApplies(action, node, this.rowValueOf(node))),
 				}))
 		},
 
@@ -2981,7 +2982,18 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		hostActionsFor(node) {
-			return this.rowActions.filter((action) => hostActionApplies(action, node))
+			return this.rowActions.filter((action) => hostActionApplies(action, node, this.rowValueOf(node)))
+		},
+
+		/**
+		 * A reader of the host's row fields for one file, for `visibleIf.row`.
+		 *
+		 * @param {object} node The file.
+		 * @return {(key: string) => unknown} `(key) => value` over the row the host gave for the file.
+		 * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
+		 */
+		rowValueOf(node) {
+			return (key) => fileColumnValue({ key, source: 'row' }, node, this.resolvedRowData)
 		},
 
 		/**

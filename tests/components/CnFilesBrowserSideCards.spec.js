@@ -158,6 +158,30 @@ describe('CnFilesBrowser selection label, side cards and tones', () => {
 		wrapper.unmount()
 	})
 
+	it('offers a side card action only on a file whose row meets its visibleIf.row', async () => {
+		const cards = [{
+			id: 'visibility',
+			title: 'Who can see this: {name}',
+			fields: [{ key: 'visibleTo', label: 'Visible to' }],
+			actions: [{ id: 'change', label: 'Change exception', type: 'open-modal', target: 'VisibilityModal', visibleIf: { row: { canChangeAccess: true } } }],
+		}]
+		const rowData = {
+			21: { ...ROW_DATA[21], canChangeAccess: true },
+			22: { ...ROW_DATA[22], canChangeAccess: 'true' },
+			23: { ...ROW_DATA[23] },
+		}
+		const wrapper = mountBrowser({ sideCards: cards, rowData })
+		await flushPromises()
+		const action = () => wrapper.find('[data-testid="cn-files-browser-side-action-change"]')
+		await select(wrapper, 'request.pdf')
+		expect(action().exists()).toBe(true)
+		await select(wrapper, 'quote.pdf')
+		expect(action().exists()).toBe(false)
+		await select(wrapper, 'photo.zip')
+		expect(action().exists()).toBe(false)
+		wrapper.unmount()
+	})
+
 	it('draws a badge column in the tone its colorMap gives the value', async () => {
 		const wrapper = mountBrowser()
 		await flushPromises()

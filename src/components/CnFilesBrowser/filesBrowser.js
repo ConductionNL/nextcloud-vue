@@ -284,14 +284,18 @@ export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
  *
  * `visibleIf.extension` lists file extensions (no case, a leading dot is
  * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
- * `/*` names the whole family. Every condition named must hold. An action
- * without `visibleIf` is offered on every file, as before.
+ * `/*` names the whole family; `visibleIf.row` maps fields of the host's row
+ * for the file to the value each must have (compared strictly, so `true` is
+ * not `"true"`). Every condition named must hold. An action without
+ * `visibleIf` is offered on every file, as before.
  *
  * @param {object} action The declared action.
  * @param {object} node The file (`basename`, `mime`).
+ * @param {((key: string) => unknown)|null} rowValue Reads a field of the host's row for the file; without it a `row` condition fails.
  * @return {boolean} True when the action belongs on this file.
+ * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
  */
-export function hostActionApplies(action, node) {
+export function hostActionApplies(action, node, rowValue = null) {
 	const condition = action && action.visibleIf
 	if (!condition || typeof condition !== 'object') {
 		return true
@@ -315,6 +319,15 @@ export function hostActionApplies(action, node) {
 			return mime === wanted
 		})
 		if (!matches) {
+			return false
+		}
+	}
+	if (condition.row && typeof condition.row === 'object') {
+		if (typeof rowValue !== 'function') {
+			return false
+		}
+		const holds = Object.entries(condition.row).every(([key, wanted]) => rowValue(key) === wanted)
+		if (!holds) {
 			return false
 		}
 	}
