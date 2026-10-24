@@ -184,8 +184,9 @@
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:data-testid="`cn-nav-caption-${item.id}`">
-					<template v-if="item.href" #actions>
+					<template v-if="item.href || item.action === 'user-settings'" #actions>
 						<NcActionLink
+							v-if="item.href"
 							:href="item.href"
 							:aria-label="captionEditLabel(item)"
 							:data-testid="`cn-nav-caption-edit-${item.id}`">
@@ -194,6 +195,16 @@
 							</template>
 							{{ captionEditLabel(item) }}
 						</NcActionLink>
+						<NcActionButton
+							v-else
+							:aria-label="captionEditLabel(item)"
+							:data-testid="`cn-nav-caption-edit-${item.id}`"
+							@click="cnOpenUserSettings()">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+							{{ captionEditLabel(item) }}
+						</NcActionButton>
 					</template>
 				</NcAppNavigationCaption>
 				<!-- `type: "hint"`: a muted line, no link, as the empty "My
@@ -447,8 +458,9 @@
 							:key="item.id"
 							:name="resolveLabel(item)"
 							:data-testid="`cn-nav-caption-${item.id}`">
-							<template v-if="item.href" #actions>
+							<template v-if="item.href || item.action === 'user-settings'" #actions>
 								<NcActionLink
+									v-if="item.href"
 									:href="item.href"
 									:aria-label="captionEditLabel(item)"
 									:data-testid="`cn-nav-caption-edit-${item.id}`">
@@ -457,6 +469,16 @@
 									</template>
 									{{ captionEditLabel(item) }}
 								</NcActionLink>
+								<NcActionButton
+									v-else
+									:aria-label="captionEditLabel(item)"
+									:data-testid="`cn-nav-caption-edit-${item.id}`"
+									@click="cnOpenUserSettings()">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ captionEditLabel(item) }}
+								</NcActionButton>
 							</template>
 						</NcAppNavigationCaption>
 						<NcAppNavigationItem
@@ -500,7 +522,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
 import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -595,6 +617,7 @@ export default {
 	name: 'CnAppNav',
 
 	components: {
+		NcActionButton,
 		NcActionLink,
 		Pencil,
 		NcAppNavigation,
@@ -1974,6 +1997,8 @@ export default {
 		 * `icon`, `count`, `children`, and `pinned`. A caption's `href` is
 		 * drawn as a pencil link beside the heading: the place where what
 		 * stands under it is changed (a user's own choice of entries, say).
+		 * `action: "user-settings"` draws the same pencil as a button that
+		 * opens the user settings dialog.
 		 *
 		 * @param {{ type?: string }} item Menu entry descriptor.
 		 * @return {boolean}

@@ -198,6 +198,9 @@ export const SAVED_VIEW_MENU_EMPTY = 'saved-views-empty'
  * An entry with a badge carries it as the menu entry's `count` (and
  * `counterVariant`), which CnAppRoot fetches like any filtered menu count.
  *
+ * The caption carries a pencil that opens the user settings, where the views
+ * in the menu are reordered, removed and added.
+ *
  * With `showEmpty`, an app that offers saved views shows the group also while
  * the user pinned none, with one line saying how to add one, so the group can
  * be found.
@@ -215,7 +218,7 @@ export function withSavedViewMenu(menu, entries, options = {}) {
 	}
 	const sorted = menu.map((item, index) => ({ item, index })).sort((a, b) => byOrder(a.item, b.item) || a.index - b.index).map(({ item }) => item)
 	const group = [
-		{ id: SAVED_VIEW_MENU_CAPTION, type: 'caption', label: t('nextcloud-vue', 'My views') },
+		{ id: SAVED_VIEW_MENU_CAPTION, type: 'caption', label: t('nextcloud-vue', 'My views'), action: 'user-settings' },
 		...(list.length > 0
 			? list.map((e) => ({
 					id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`,
