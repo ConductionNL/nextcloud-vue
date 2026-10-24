@@ -31,8 +31,8 @@ describe('the user settings dialog in the board look', () => {
 
 	it('draws the notification grid head white, 13px at 1.2', () => {
 		const matrix = read('CnNotificationMatrix/CnNotificationMatrix.vue')
-		expect(body(matrix, '	.cn-notification-matrix__table')).toContain('--nldesign-component-table-header-background-color: transparent;')
-		expect(body(matrix, '	.cn-notification-matrix__table thead th')).toContain('line-height: 1.2;')
+		expect(body(matrix, '\t.cn-notification-matrix__table')).toContain('--nldesign-component-table-header-background-color: transparent;')
+		expect(body(matrix, '\t.cn-notification-matrix__table thead th')).toContain('line-height: 1.2;')
 	})
 
 	it('hides the saved-view list\'s label the section heading repeats', () => {

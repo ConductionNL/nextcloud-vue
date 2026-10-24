@@ -5,7 +5,11 @@
 
 <template>
 	<div class="cn-ordered-list-field" data-testid="cn-ordered-list-field">
-		<p v-if="label" :id="labelId" class="cn-ordered-list-field__label" :class="{ 'hidden-visually': hideLabel }">
+		<p
+			v-if="label"
+			:id="labelId"
+			class="cn-ordered-list-field__label"
+			:class="{ 'hidden-visually': hideLabel }">
 			{{ label }}
 		</p>
 		<ol
