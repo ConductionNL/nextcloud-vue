@@ -1,0 +1,5 @@
+- [x] CnDataTable rowTitle "text" + board CSS
+- [x] CnObjectListWidget forwards content.rowTitle
+- [x] CnCellRenderer date widgetProps.short
+- [x] CnCellRenderer iconLabel widgetProps.icons
+- [x] Specs tests/components/CnDataTableRowTitle.spec.js, tests/components/CnCellRendererLogCells.spec.js, tests/css/lookBoardTableRows.spec.js

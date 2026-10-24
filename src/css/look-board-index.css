@@ -52,6 +52,15 @@
 	grid-row: 2;
 }
 
+/* A list page's breadcrumb and note read 15px; the case page's row stays 14px. */
+.cn-look-board .cn-index-page .cn-page-header .cn-header-trail.cn-detail-page__header-row2 {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-index-page .cn-header-trail.cn-detail-page__header-row2 .cn-detail-page__breadcrumbs .vue-crumb .button-vue.button-vue {
+	font-size: 15px;
+}
+
 .cn-look-board .cn-index-page .cn-page-header .cn-header-trail ~ .cn-page-header__description {
 	grid-row: 3;
 }
@@ -526,6 +535,11 @@
 	font-size: 14px;
 }
 
+/* After the board view's hint the active filters end the line on the right. */
+.cn-look-board .cn-actions-bar--board .cn-index-page__board-hint ~ .cn-actions-bar__active-label {
+	margin-inline-start: auto;
+}
+
 /* An active filter: the light primary tint, its label (a span) in the tint's
    ink through --nldesign-color-on-surface too. */
 .cn-look-board .cn-actions-bar--board .cn-actions-bar__filter-chip {
@@ -935,6 +949,16 @@
 .cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
 	margin-top: 2px;
 	font-size: 13px;
+}
+
+/* `rowTitle: "text"` (DqZaakContact's contact moments): the title column is
+   an ordinary cell, the row still a link.
+   @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-table-col--title {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 400;
+	text-decoration: none;
 }
 
 /* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before

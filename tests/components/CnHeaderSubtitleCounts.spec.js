@@ -9,6 +9,7 @@
  * `content.summaryInHeader` on CnChecklistWidget.
  *
  * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
+ * @spec openspec/changes/object-list-header-note/specs/object-list-header-note/spec.md
  */
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(() => new Promise(() => {})), post: jest.fn(), patch: jest.fn() } }))
 
@@ -50,6 +51,22 @@ describe('header subtitle counts', () => {
 		await w.setProps({ content: { ...w.vm.content, headerSubtitle: '' } })
 		await nextTick()
 		expect(lastHeader(w).subtitle).toBe('')
+	})
+
+	it('CnObjectListWidget says its counts beside the title as a note, translated', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: { content: { register: 'r', schema: 'contactmoment', columns: [{ key: 'date', label: 'Date' }], headerNote: '{total} recorded' } },
+			provide: { cnTranslate: translate },
+			stubs: { CnDataTable: true },
+		})
+		w.vm.rows = [{ id: 'a' }, { id: 'b' }]
+		w.vm.total = 2
+		await nextTick()
+		expect(lastHeader(w).note).toBe('2 vastgelegd')
+		expect(lastHeader(w).subtitle).toBe('')
+		await w.setProps({ content: { ...w.vm.content, headerNote: '' } })
+		await nextTick()
+		expect(lastHeader(w).note).toBe('')
 	})
 
 	it('CnObjectListWidget reports no header without a subtitle or an export', async () => {

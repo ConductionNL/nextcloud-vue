@@ -51,6 +51,10 @@
 			ref="panel"
 			:visible="embedded || isPanelOpen"
 			:embedded="embedded"
+			:titled="titled"
+			:note="note"
+			:inputPlaceholder="inputPlaceholder"
+			:sendLabel="sendLabel"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
 			:context="effectiveContext"
@@ -59,7 +63,8 @@
 			@close="closePanel"
 			@send="onSend"
 			@newThread="onNewThread"
-			@loadConversation="onLoadConversation" />
+			@loadConversation="onLoadConversation"
+			@menu="onMenu" />
 	</div>
 </template>
 
@@ -191,7 +196,33 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/** An embedded chat in a card that draws its title; see CnAiChatPanel `titled`. */
+		titled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** A line above the input, already translated. */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/** The input's placeholder, already translated. */
+		inputPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
 	},
+
+	emits: ['menu'],
 
 	data() {
 		return {
@@ -486,6 +517,18 @@ export default {
 
 		onLoadConversation(uuid) {
 			this.stream.loadConversation(uuid)
+		},
+
+		/**
+		 * Passes a titled panel's session controls on to the host card.
+		 *
+		 * @param {Array} actions The panel's controls as menu actions
+		 */
+		onMenu(actions) {
+			/**
+			 * @event menu The session controls of a titled panel, for its card's menu.
+			 */
+			this.$emit('menu', actions)
 		},
 	},
 }

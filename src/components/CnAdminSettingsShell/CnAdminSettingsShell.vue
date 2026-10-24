@@ -245,6 +245,7 @@ import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { ensureTranslations } from '../../l10n/index.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
@@ -757,6 +758,16 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Cell formatters by id, as `CnAppRoot`'s `formatters`: a table column
+		 * on the admin page names one with `formatter`. Added over the
+		 * built-ins and an ancestor's registry.
+		 */
+		formatters: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
@@ -779,6 +790,9 @@ export default {
 		// shell hands down the app's own catalog, keyed by its app id.
 		const hostTranslate = inject('cnTranslate', null)
 		provide('cnTranslate', hostTranslate || ((text, vars) => t(props.appId, text, vars)))
+		// No CnAppRoot provides the cell formatters on an admin page either.
+		const hostFormatters = inject('cnFormatters', null)
+		provide('cnFormatters', { ...BUILT_IN_FORMATTERS, ...(hostFormatters || {}), ...props.formatters })
 		return { environmentName, isBoard, ownLookClass }
 	},
 
