@@ -400,7 +400,10 @@ export default {
 	background: var(--color-main-background);
 }
 
+/* A section's heading and description start at the text's edge, as the
+   board draws them (NcAppSettingsSection indents them 12px). */
 .cn-user-settings-dialog__sections :deep(.app-settings-section) {
+	--app-settings-section-text-offset: 0;
 	margin: 0;
 	padding: 0;
 	border: 0;

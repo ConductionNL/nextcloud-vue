@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-ordered-list-field" data-testid="cn-ordered-list-field">
-		<p v-if="label" :id="labelId" class="cn-ordered-list-field__label">
+		<p v-if="label" :id="labelId" class="cn-ordered-list-field__label" :class="{ 'hidden-visually': hideLabel }">
 			{{ label }}
 		</p>
 		<ol
@@ -190,6 +190,12 @@ export default {
 		label: {
 			type: String,
 			default: '',
+		},
+
+		/** Keep the label for assistive technology only, when a heading above already says it. */
+		hideLabel: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The picker's label. */

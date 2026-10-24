@@ -1093,12 +1093,16 @@ export default {
 		white-space: nowrap;
 	}
 
+	/* A theme that colours every th (thematiq's table header token) leaves
+	   the board grid's head white. */
 	.cn-notification-matrix__table {
+		--nldesign-component-table-header-background-color: transparent;
 		font-size: 14px;
 	}
 
 	.cn-notification-matrix__table thead th {
 		padding: 8px 10px 8px 0;
+		line-height: 1.2;
 		border-block-end: 1px solid var(--color-border);
 		color: var(--color-text-maxcontrast);
 		font-size: 13px;
