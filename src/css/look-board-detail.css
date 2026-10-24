@@ -888,14 +888,16 @@
 
 /* The notice text and its icon take the notice ink, and the icon is the
    board's 18px, 10px before the text and 2px down to sit on the first line
-   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
-   `!important`. */
+   (DqZaak "Advies gevraagd"); `align-self` overrules the icon's own centring.
+   NcNoteCard sets its text colour with `!important`.
+   @spec openspec/changes/board-side-notice-icon-first-line/specs/board-side-notice-icon-first-line/spec.md#requirement-a-side-notice-sets-its-icon-on-the-first-line */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-notice-ink) !important;
 	gap: 10px;
 }
 
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
 	color: var(--cn-board-notice-ink);
 	margin-top: 2px;
 }
