@@ -175,6 +175,10 @@ searches `/apps/openregister/api/objects/{register}/{schema}`, with the
 register from the column (`widgetProps.register`, `x-external-register`) or
 the `filterRegister` prop.
 
+A page that filters through other fields than the rows' own (a named
+source's search fields) passes them as `filterSchema`; the header filters
+then read that schema instead of `schema`.
+
 Every sortable header shows a chevron after its label: pale while the
 column is unsorted, dark and pointing in the sort direction once it is
 sorted. The label and chevron are one real button named by the column label,

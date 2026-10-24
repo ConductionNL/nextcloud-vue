@@ -20,6 +20,10 @@ The FAB and panel are both hidden when `useAiContext().pageKind === 'chat'` (i.e
 | `position` | `'bottom-right'` \| `'bottom-left'` \| `'top-right'` \| `'top-left'` | `'bottom-right'` | Corner at which to anchor the FAB |
 | `chatAppId` | `String` | `'hermiq'` | Backend app id the chat/agent endpoints resolve against; passed through to `useAiChatStream`. Pass `'openregister'` to ride OR's compat window (openregister#305). |
 | `embedded` | `Boolean` | `false` | Render the chat as a panel of the page (no launcher, always open, no close button). It does not take the page's single floating-companion slot. `CnAiChatWidget` (`type: "ai-chat"`) uses it. |
+| `titled` | `Boolean` | `false` | An embedded chat in a card that draws its title: the panel drops its own titlebar and emits its controls as `menu`. `CnAiChatWidget` sets it. |
+| `note` | `String` | `''` | A line above the input, already translated. |
+| `inputPlaceholder` | `String` | `''` | The input's placeholder, already translated. |
+| `sendLabel` | `String` | `''` | A label on the send button, already translated. |
 
 ## Inject
 

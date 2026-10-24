@@ -64,7 +64,7 @@
 			@send="onSend"
 			@newThread="onNewThread"
 			@loadConversation="onLoadConversation"
-			@menu="$emit('menu', $event)" />
+			@menu="onMenu" />
 	</div>
 </template>
 
@@ -517,6 +517,18 @@ export default {
 
 		onLoadConversation(uuid) {
 			this.stream.loadConversation(uuid)
+		},
+
+		/**
+		 * Passes a titled panel's session controls on to the host card.
+		 *
+		 * @param {Array} actions The panel's controls as menu actions
+		 */
+		onMenu(actions) {
+			/**
+			 * @event menu The session controls of a titled panel, for its card's menu.
+			 */
+			this.$emit('menu', actions)
 		},
 	},
 }

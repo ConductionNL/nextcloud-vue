@@ -21,6 +21,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name   | Payload | Description |
-| ------ | ------- | ----------- |
-| `menu` | —       |             |
+| Name   | Payload | Description                                                  |
+| ------ | ------- | ------------------------------------------------------------ |
+| `menu` | —       | The session controls of a titled panel, for its card's menu. |
