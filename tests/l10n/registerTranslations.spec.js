@@ -42,6 +42,18 @@ describe('registerTranslations', () => {
 		expect(n('nextcloud-vue', '%n day', '%n days', 1)).toBe('1 dag')
 	})
 
+	it('gives a Dutch reader every plural a catalog defines, none parked among the singulars', () => {
+		readAs('nl')
+
+		expect(n('nextcloud-vue', 'within %n day', 'within %n days', 7)).toBe('binnen 7 dagen')
+		expect(n('nextcloud-vue', '%n feature', '%n features', 2)).toBe('2 functies')
+		for (const lang of ['en', 'nl']) {
+			const bundle = require(`../../l10n/${lang}.json`)
+			const parked = Object.entries(bundle.translations).filter(([, value]) => Array.isArray(value)).map(([key]) => key)
+			expect(parked).toEqual([])
+		}
+	})
+
 	it('gives a Dutch reader the archival labels in Dutch', () => {
 		readAs('nl')
 

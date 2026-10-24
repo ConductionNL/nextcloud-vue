@@ -1671,18 +1671,6 @@
     "Pages": "Pagina's",
     "Open {module}": "{module} openen",
     "{list} and {last}": "{list} en {last}",
-    "%n page: {pages}": [
-      "%n pagina: {pages}",
-      "%n pagina's: {pages}"
-    ],
-    "%n page, including {pages}": [
-      "%n pagina, waaronder {pages}",
-      "%n pagina's, waaronder {pages}"
-    ],
-    "{on} of %n is in the menu": [
-      "{on} van %n staat in het menu",
-      "{on} van %n staan in het menu"
-    ],
     "Put it in the menu:": "In het menu zetten:",
     "Support this app": "Steun deze app",
     "No features with this status": "Geen functies met deze status",
@@ -1699,10 +1687,6 @@
     "{status}, {expected}": "{status}, {expected}",
     "Build on this app": "Bouw verder op deze app",
     "AI skills": "AI-vaardigheden",
-    "%n feature": [
-      "%n functie",
-      "%n functies"
-    ],
     "Your account": "Uw account",
     "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
     "Sections of the settings": "Onderdelen van de instellingen",
@@ -2504,10 +2488,6 @@
     "from {from}": "vanaf {from}",
     "up to {to}": "tot en met {to}",
     "this week": "deze week",
-    "within %n day": [
-      "binnen %n dag",
-      "binnen %n dagen"
-    ],
     "Search term: {term}": "Zoekterm: {term}",
     "New contact": "Nieuw contact",
     "Template": "Sjabloon",
@@ -2845,6 +2825,26 @@
     "%n minute": [
       "%n minuut",
       "%n minuten"
+    ],
+    "%n page: {pages}": [
+      "%n pagina: {pages}",
+      "%n pagina's: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n pagina, waaronder {pages}",
+      "%n pagina's, waaronder {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} van %n staat in het menu",
+      "{on} van %n staan in het menu"
+    ],
+    "%n feature": [
+      "%n functie",
+      "%n functies"
+    ],
+    "within %n day": [
+      "binnen %n dag",
+      "binnen %n dagen"
     ]
   }
 }
