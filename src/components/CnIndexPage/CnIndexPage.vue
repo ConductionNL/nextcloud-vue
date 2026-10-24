@@ -8955,7 +8955,9 @@ export default {
 
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
-			return (this.sidebar && this.sidebar.search) || {}
+			// The page's own search hint, unless `sidebar.search` names one.
+			const own = this.shownSearchPlaceholder ? { searchPlaceholder: this.shownSearchPlaceholder } : {}
+			return { ...own, ...((this.sidebar && this.sidebar.search) || {}) }
 		},
 
 		/**
