@@ -284,6 +284,19 @@
 	white-space: nowrap;
 }
 
+/* A growing column that opts into wrapping (`cn-cell--wrap`, DqDoorlooptijd
+   "Zaken met risico" titles) wraps its text over lines instead of cutting
+   it, and keeps a readable width: with `max-width: 0` the wide one-line
+   cells beside it squeezed it to its padding (24px).
+   @spec openspec/changes/fit-table-wrap-column-keeps-width/specs/fit-table-wrap-column-keeps-width/spec.md#requirement-a-wrapping-growing-column-keeps-a-readable-width */
+.cn-data-table--fit th.cn-table-col--grow.cn-cell--wrap,
+.cn-data-table--fit td.cn-table-col--grow.cn-cell--wrap {
+	min-width: 8em;
+	max-width: none;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
 /* The secondary line of the growing column ("2026-0004" under a case title)
    is a line of its own with its own ellipsis. The cell does not wrap, so in
    the board look, where the secondary line is an inline block (the title

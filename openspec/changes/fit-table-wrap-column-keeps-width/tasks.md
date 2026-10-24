@@ -1,0 +1,2 @@
+- [x] table.css grow + wrap rule
+- [x] tests/css/fitTableWrapColumn.spec.js
