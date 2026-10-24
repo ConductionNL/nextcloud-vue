@@ -1097,6 +1097,18 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Named values filled into `dropDetail` as `{name}`, such as the case
+		 * number (`{ "case": "@object.identifier" }` in a detail page's props).
+		 * While a value is unknown the line is left out.
+		 *
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailValues: {
+			type: Object,
+			default: null,
+		},
+
 		/** Show a line under the list saying files can be dropped on it. */
 		dropHint: {
 			type: Boolean,
@@ -1385,7 +1397,18 @@ export default {
 			if (!this.dropDetail) {
 				return ''
 			}
-			const text = this.cnTranslate(this.dropDetail)
+			let text = this.cnTranslate(this.dropDetail)
+			// `dropDetailValues`: named values such as the case number; a value
+			// still unknown (an unresolved `@` token, or empty) leaves the line out.
+			// @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+			const values = this.dropDetailValues && typeof this.dropDetailValues === 'object' ? this.dropDetailValues : {}
+			for (const [name, value] of Object.entries(values)) {
+				const shown = value === null || value === undefined ? '' : String(value)
+				if (shown === '' || shown.startsWith('@')) {
+					return ''
+				}
+				text = text.split(`{${name}}`).join(shown)
+			}
 			if (!text.includes('{count}')) {
 				return text
 			}
