@@ -1368,6 +1368,7 @@
 	margin-inline-start: auto;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	white-space: nowrap;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record .cn-object-card__title {
