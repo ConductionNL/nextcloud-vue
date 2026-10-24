@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -676,6 +676,8 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * `density: "stacked"` stands the rows 10px apart with no rule and no
+		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -2978,6 +2980,23 @@ export default {
 
 .cn-record-list--compact .cn-record-list__title {
 	font-weight: 500;
+}
+
+/* `density: "stacked"`: the rows stand 10px apart with no rule and no row
+   padding, a short side list (DqDagAfsluiten "Morgen eerst"). */
+.cn-record-list--stacked .cn-record-list__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-record-list--stacked .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
 }
 
 .cn-record-list__meta {
