@@ -66,19 +66,25 @@
 								v-else-if="row.to"
 								:to="row.to"
 								class="cn-facts-widget__value-link">
-								{{ row.masked && !revealed[row.key] ? row.masked : row.value }}
+								{{ shownValue(row) }}
 							</router-link>
-							<span v-else>{{ row.masked && !revealed[row.key] ? row.masked : row.value }}</span>
+							<span v-else>{{ shownValue(row) }}</span>
 							<button
 								v-if="row.reveal && !revealed[row.key]"
 								type="button"
 								class="cn-facts-widget__inline-button"
 								:aria-label="revealLabel(row)"
 								:data-testid="`cn-fact-reveal-${row.key}`"
+								:disabled="revealing === row.key"
 								@click="reveal(row)">
 								<EyeOutline :size="16" aria-hidden="true" />
 								{{ showLabel }}
 							</button>
+							<span
+								v-if="revealErrors[row.key]"
+								class="cn-facts-widget__reveal-error"
+								role="alert"
+								:data-testid="`cn-fact-reveal-error-${row.key}`">{{ revealErrors[row.key] }}</span>
 							<button
 								v-if="row.copy"
 								type="button"
@@ -420,7 +426,7 @@ export default {
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
-		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
+		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show, which unmasks the record's value; `reveal: { url, path? }` makes Show ask the server for the value at `url` (tokens resolved), read at `path` (else the entry's path), so a server that answers the mask can check and record the reveal). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
@@ -474,6 +480,9 @@ export default {
 			error: false,
 			/** Keys of the masked rows the reader chose to show. */
 			revealed: {},
+			revealedValues: {},
+			revealErrors: {},
+			revealing: '',
 			/** Key of the row whose value was just copied. */
 			copied: '',
 			/** Labels of the referenced objects read so far, by `refKey`. */
@@ -1321,7 +1330,12 @@ export default {
 				extras.external = true
 			} else if (field.format === 'masked') {
 				extras.masked = value.length > 4 ? '*'.repeat(Math.min(value.length - 4, 5)) + value.slice(-4) : value
-				extras.reveal = field.reveal === true && value.length > 4
+				const server = field.reveal && typeof field.reveal === 'object' && typeof field.reveal.url === 'string' && field.reveal.url !== ''
+				extras.reveal = (field.reveal === true || server) && value.length > 4
+				if (server) {
+					extras.revealUrl = field.reveal.url
+					extras.revealPath = typeof field.reveal.path === 'string' && field.reveal.path !== '' ? field.reveal.path : (field.path || '')
+				}
 			}
 			return extras
 		},
@@ -1333,7 +1347,14 @@ export default {
 		 * @param {object} row The row.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
 		 */
-		reveal(row) {
+		async reveal(row) {
+			if (row.revealUrl) {
+				const value = await this.fetchRevealed(row)
+				if (value === null) {
+					return
+				}
+				this.revealedValues = { ...this.revealedValues, [row.key]: value }
+			}
 			this.revealed = { ...this.revealed, [row.key]: true }
 			const detail = { path: row.path }
 			/**
@@ -1342,6 +1363,47 @@ export default {
 			 */
 			this.$emit('reveal', detail)
 			emit(FACTS_REVEAL_CHANNEL, { ...detail, objectId: this.tokenCtx.objectId, register: this.tokenCtx.register || null, schema: this.tokenCtx.schema || null })
+		},
+
+		/**
+		 * The text a row shows: its mask until revealed, then the value the
+		 * server answered (a server reveal) or the value the record holds.
+		 *
+		 * @param {object} row The row.
+		 * @return {string}
+		 * @spec openspec/changes/facts-reveal-from-server/specs/facts-widget/spec.md#requirement-a-masked-fact-can-be-revealed-by-the-server
+		 */
+		shownValue(row) {
+			if (!row.masked || !this.revealed[row.key]) {
+				return row.masked || row.value
+			}
+			return Object.hasOwn(this.revealedValues, row.key) ? this.revealedValues[row.key] : row.value
+		},
+
+		/**
+		 * Ask the server for a masked value (`reveal.url`, tokens resolved,
+		 * read at `reveal.path`), never from a cache: each show is a request
+		 * the server can check and record.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<string|null>} The value, or null when it could not be read.
+		 * @spec openspec/changes/facts-reveal-from-server/specs/facts-widget/spec.md#requirement-a-masked-fact-can-be-revealed-by-the-server
+		 */
+		async fetchRevealed(row) {
+			this.revealing = row.key
+			this.revealErrors = { ...this.revealErrors, [row.key]: '' }
+			try {
+				const payload = await fetchEndpointSource({ url: row.revealUrl, responsePath: row.revealPath }, this.tokenCtx, { force: true })
+				if (payload === null || payload === undefined || payload === '' || typeof payload === 'object') {
+					throw new Error('no value')
+				}
+				return String(payload)
+			} catch {
+				this.revealErrors = { ...this.revealErrors, [row.key]: t('nextcloud-vue', 'The value could not be shown.') }
+				return null
+			} finally {
+				this.revealing = ''
+			}
 		},
 
 		/**
@@ -1951,6 +2013,11 @@ export default {
 	cursor: pointer;
 	display: inline-flex;
 	font: inherit;
+}
+
+.cn-facts-widget__reveal-error {
+	font-size: 13px;
+	color: var(--color-text-error, var(--color-error));
 }
 
 .cn-facts-widget__inline-button {
