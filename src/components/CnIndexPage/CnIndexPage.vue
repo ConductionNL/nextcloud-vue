@@ -13049,7 +13049,9 @@ export default {
 				return
 			}
 			// An opened view is unchanged until the reader changes it.
-			this.$nextTick(() => { this.viewChanged = false })
+			this.$nextTick(() => {
+				this.viewChanged = false
+			})
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
