@@ -263,6 +263,9 @@ its placeholders. Nothing is drawn over an empty list.
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
 
 `content.tableBleed: true` runs the table edge to edge in its card. In the board look the table goes under the detail card's 22px side padding and its outer cells take that padding, so the column text lines up with the card title (DqZaakContact "Contactmomenten op deze zaak"). Without it the table stays inside the card's padding (DqTenant "Mandaten"). `content.headerSubtitle` is the muted line under the card title with the list's counts: `{total}` (the list's total) and `{count:<field>=<value>}` (the loaded rows whose field reads that value), through the host translate (DqZaakContact "4 vastgelegd").
+`content.headerNote` takes the same counts beside the card title instead of under it, as a record list's `headerNote` ("4 vastgelegd" at the right of DqZaakContact's "Contactmomenten op deze zaak").
+
+`content.rowTitle` sets how the table draws its title column, as CnDataTable's `rowTitle`: `link` (the default), `plain` or `text`. `text` is an ordinary cell for a log table whose first column is a date (DqZaakContact's contact moments, with a `date` column `widgetProps: { short: true, showTime: true }` and the channel as `iconLabel` with `widgetProps.icons`).
 
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
@@ -295,6 +298,10 @@ A column with `widget: "fkResolve"` takes `widgetProps.schemaFrom` (`{ field, ma
 ## Row selection for a following card (`rowSelection`)
 
 `"rowSelection": true` lets the reader select a row: a click selects it (and still opens `rowRoute` when one is set), and the selected row is marked. On a detail page the list publishes the rows it shows and the selected one under its widget id. A side card with `follows: { widget: "<this id>" }` then shows that row. See [CnDetailPage: a side card that follows a selected row](./cn-detail-page.md#a-side-card-that-follows-a-selected-row-follows).
+
+## Rows from an app endpoint (`endpointSource`)
+
+A list without `register`/`schema` can read all its rows from an app endpoint: `"endpointSource": { "url": "/apps/hermiq/api/ai-oversight/subject", "params": { "originApp": "dossiq", "subjectId": "@objectId", "limit": 25 } }` (DqZaakAssistent: what the assistant did on this case). Params take the same tokens as a filter. The rows are read at `responsePath` (default `results`), the count at `total`. A refusal shows the server's message. Set `allowCreate: false` on such a list: it owns no records. Its `export` can name an app endpoint as well: `"export": { "label": "Download", "url": "/apps/hermiq/api/ai-oversight/subject/export", "params": { "originApp": "dossiq", "subjectId": "@objectId" }, "group": "ai-oversight" }` downloads that URL instead of OpenRegister's export.
 
 ## Read-only rows from an endpoint (`readOnlyRows`)
 

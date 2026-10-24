@@ -408,8 +408,11 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0 && effectiveQuickFilterPlacement !== 'row'" #filters>
+			<template v-if="$slots['toolbar-start'] || quickFilterTabsInToolbar" #filters>
+				<!-- @slot toolbar-start The page's own controls at the start of the toolbar row, before the quick-filter chips (DqAanMijToegewezen: the team's name chips). -->
+				<slot name="toolbar-start" />
 				<CnQuickFilterBar
+					v-if="quickFilterTabsInToolbar"
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
@@ -891,6 +894,7 @@
 					:rowTitle="rowTitle"
 					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
+					:filterSchema="headerFilterSchema"
 					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
@@ -1530,7 +1534,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { rowsToCsv } from './rowsToCsv.js'
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
-import { useNamedSource } from './useNamedSource.js'
+import { declaredSearchFields, useNamedSource } from './useNamedSource.js'
 import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
@@ -1715,6 +1719,56 @@ function namedFilterToQuery(values) {
 		.map((entry) => ((entry && typeof entry === 'object' && 'id' in entry) ? entry.id : entry))
 		.filter((entry) => entry !== undefined && entry !== null && String(entry) !== '')
 	return list.join(',')
+}
+
+/**
+ * Active filters with each `{ from, to }` window spelled as the header range
+ * keys `<key>[gte]` and `<key>[lte]`.
+ *
+ * @param {object} filters The active filters.
+ * @return {object} The filters as a header filter reads them.
+ * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+ */
+function rangesAsBounds(filters) {
+	const out = {}
+	for (const [key, value] of Object.entries(filters || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value) && ('from' in value || 'to' in value)) {
+			if (value.from) {
+				out[`${key}[gte]`] = value.from
+			}
+			if (value.to) {
+				out[`${key}[lte]`] = value.to
+			}
+		} else {
+			out[key] = value
+		}
+	}
+	return out
+}
+
+/**
+ * Header filter params with each `<key>[gte]` / `<key>[lte]` pair folded into
+ * one `{ from, to }` window (an empty list clears the window, `[]` for others).
+ *
+ * @param {object} params The header filter's params, `{ key: values[] }`.
+ * @return {object} `{ key: values[] | { from, to } }`.
+ * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+ */
+function boundsAsRanges(params) {
+	const out = {}
+	for (const [key, values] of Object.entries(params || {})) {
+		const list = Array.isArray(values) ? values : []
+		const bound = key.match(/^(.+)\[(gte|lte)\]$/)
+		if (!bound) {
+			out[key] = list
+			continue
+		}
+		const window = (out[bound[1]] && typeof out[bound[1]] === 'object' && !Array.isArray(out[bound[1]])) ? out[bound[1]] : { from: '', to: '' }
+		const value = list.length > 0 ? String(list[0]).slice(0, 10) : ''
+		window[bound[2] === 'gte' ? 'from' : 'to'] = value
+		out[bound[1]] = window
+	}
+	return out
 }
 
 /**
@@ -2540,19 +2594,22 @@ export default {
 		 * buttons leave, and those that do not fit move into the overflow chip.
 		 * `'row'` puts them on a row of their own above the toolbar, wrapping
 		 * onto more lines instead of folding into the overflow chip.
+		 * `'active'` draws no tabs: a chosen tab with an `activeLabel` shows
+		 * only on the Active line, where it can be removed
+		 * (DqAanMijToegewezen).
 		 *
-		 * @type {''|'toolbar'|'row'}
+		 * @type {''|'toolbar'|'row'|'active'}
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row', 'active'].includes(v),
 		},
 
 		/**
 		 * The quick-filter placement per view mode (manifest
 		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
-		 * each `''`, `'toolbar'` or `'row'`. A view it does not name keeps
+		 * each `''`, `'toolbar'`, `'row'` or `'active'`. A view it does not name keeps
 		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
 		 * its board and map views, on their own row in its table view).
 		 *
@@ -4630,12 +4687,24 @@ export default {
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
 		 *
 		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
-		 * @return {''|'toolbar'|'row'} The placement.
+		 * @return {''|'toolbar'|'row'|'active'} The placement.
 		 */
 		effectiveQuickFilterPlacement() {
 			const byView = this.quickFilterPlacementByView
 			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
-			return ['', 'toolbar', 'row'].includes(own) ? own : this.quickFilterPlacement
+			return ['', 'toolbar', 'row', 'active'].includes(own) ? own : this.quickFilterPlacement
+		},
+
+		/**
+		 * Whether the quick-filter tabs are drawn in the toolbar row: there are
+		 * tabs, and the placement is neither a row of their own nor the Active
+		 * line only.
+		 *
+		 * @spec openspec/changes/index-toolbar-start-and-active-only-quick-filters/specs/index-page/spec.md#requirement-quick-filters-can-show-only-on-the-active-line
+		 * @return {boolean} True when the toolbar draws the tabs.
+		 */
+		quickFilterTabsInToolbar() {
+			return Boolean(this.tabStripEntries && this.tabStripEntries.length > 0) && !['row', 'active'].includes(this.effectiveQuickFilterPlacement)
 		},
 
 		/**
@@ -6672,7 +6741,47 @@ export default {
 			if (this.followColumnOn && this.favouriteSchemaSlug !== '') {
 				cols = [{ key: FOLLOW_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
 			}
+			// Filtering through search fields: a column with no field behind it
+			// draws no funnel, because nothing could answer it.
+			const filterFields = this.headerFilterSchema && this.headerFilterSchema.properties
+			if (filterFields) {
+				cols = cols.map((col) => {
+					if (!col || typeof col !== 'object') {
+						return col
+					}
+					const field = typeof col.filterField === 'string' && col.filterField !== '' ? col.filterField : col.key
+					return Object.hasOwn(filterFields, field) ? col : { ...col, filterable: false }
+				})
+			}
 			return cols
+		},
+
+		/**
+		 * The schema the column header filters read on a named source that
+		 * filters through its search fields (`headerFilters: "searchFields"`):
+		 * the sidebar fields the source declares as search fields, a reference
+		 * field pointed at its `optionsSource`. Null otherwise.
+		 *
+		 * @return {{properties: object}|null}
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		headerFilterSchema() {
+			if (!this.isNamedSource || !this.namedSource || this.namedSource.headerFilters !== 'searchFields') {
+				return null
+			}
+			const sidebarFields = (this.resolvedSidebar && this.resolvedSidebar.fields) || {}
+			const declared = declaredSearchFields(this.namedSource, this.sourceConfig && this.sourceConfig.searchFields) || {}
+			const properties = {}
+			for (const [key, field] of Object.entries(sidebarFields)) {
+				if (!field || typeof field !== 'object' || !Object.hasOwn(declared, key)) {
+					continue
+				}
+				const options = field.optionsSource
+				properties[key] = (field.inputControl === 'reference' && options && typeof options.schema === 'string')
+					? { ...field, $ref: options.schema, 'x-external-register': options.register || '' }
+					: field
+			}
+			return { properties }
 		},
 
 		/**
@@ -7324,8 +7433,10 @@ export default {
 			if (!this.headerFilters) {
 				return false
 			}
-			// A named source that narrows its own rows asks for the buttons.
-			if (this.isNamedSource && this.namedSource && this.namedSource.headerFilters === true) {
+			// A named source that narrows its own rows asks for the buttons, and
+			// one that filters through its search fields gets them where a field
+			// stands behind the column.
+			if (this.isNamedSource && this.namedSource && (this.namedSource.headerFilters === true || Boolean(this.headerFilterSchema))) {
 				return true
 			}
 			if (this.effectiveSchema || this.isSelfFetchMode) {
@@ -8249,7 +8360,11 @@ export default {
 		 * @return {object} The filters.
 		 */
 		tableActiveFilters() {
-			const filters = this.effectiveActiveFilters || {}
+			let filters = this.effectiveActiveFilters || {}
+			// A window held as one `{ from, to }` value reads as the header's range.
+			if (this.headerFilterSchema) {
+				filters = rangesAsBounds(filters)
+			}
 			const key = this.folderFilterKey
 			if (!key || this.selectedFolderId === null || this.selectedFolderId === undefined || !Object.hasOwn(filters, key)) {
 				return filters
@@ -11423,6 +11538,14 @@ export default {
 		 */
 		onColumnFilterEvent(payload) {
 			const params = (payload && payload.params) || {}
+			if (this.headerFilterSchema) {
+				// The header's range is the sidebar's window: one `{ from, to }` value.
+				for (const [key, value] of Object.entries(boundsAsRanges(params))) {
+					this.setNamedFilter(key, value)
+					this.$emit('filter-change', { key, values: value })
+				}
+				return
+			}
 			const entries = Object.entries(params).map(([key, values]) => [key, Array.isArray(values) ? values : []])
 			if (this.isSelfFetchMode) {
 				const next = { ...this.list.activeFilters.value }

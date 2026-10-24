@@ -87,7 +87,7 @@ describe('CnSavedViewShareFields', () => {
 		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }])
 		const w = mount(CnSavedViewShareFields)
 		await flushPromises()
-		expect(w.vm.options).toEqual([{ id: 'user:fatma', label: 'Fatma Yilmaz' }, { id: 'desk', label: 'Handling desk' }])
+		expect(w.vm.options).toEqual([{ id: 'user:fatma', label: 'Fatma Yilmaz', kind: 'user' }, { id: 'desk', label: 'Handling desk', kind: 'group' }])
 		w.vm.onGroups(w.vm.options)
 		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'read' }, { group: 'desk', mode: 'read' }])
 	})
@@ -99,6 +99,32 @@ describe('CnSavedViewShareFields', () => {
 		expect(w.vm.labelOf('user:fatma')).toBe('Fatma Yilmaz')
 		w.vm.onMode('user:fatma', 'write')
 		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ user: 'fatma', mode: 'write' }, { group: 'desk', mode: 'read' }])
+	})
+
+	it('adds a picked search result to the Shared with list and stops offering it', async () => {
+		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }])
+		const w = mount(CnSavedViewShareFields, { props: { modelValue: [{ group: 'desk', mode: 'write' }] } })
+		await flushPromises()
+		expect(w.vm.pickable.map((o) => o.id)).toEqual(['user:fatma'])
+		w.vm.onPick({ id: 'user:fatma', label: 'Fatma Yilmaz', kind: 'user' })
+		expect(w.emitted('update:modelValue').at(-1)[0]).toEqual([{ group: 'desk', mode: 'write' }, { user: 'fatma', mode: 'read' }])
+		w.vm.onPick(null)
+		w.vm.onPick({ id: 'desk', label: 'Handling desk', kind: 'group' })
+		expect(w.emitted('update:modelValue')).toHaveLength(1)
+	})
+
+	it('draws each entry as a row with its kind and a rights select', async () => {
+		mockSearch.mockResolvedValue([{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }])
+		const w = mount(CnSavedViewShareFields, { props: { modelValue: [{ group: 'desk', mode: 'read' }, { user: 'fatma', mode: 'write' }] } })
+		await flushPromises()
+		const desk = w.find('[data-testid="cn-saved-view-share-row-desk"]')
+		const fatma = w.find('[data-testid="cn-saved-view-share-row-user:fatma"]')
+		expect(desk.text()).toContain('Handling desk')
+		expect(desk.text()).toContain('Group')
+		expect(fatma.text()).toContain('Person')
+		expect(w.find('input[type="radio"]').exists()).toBe(false)
+		expect(w.vm.modeOption({ group: 'desk', mode: 'read' }).label).toBe('May use')
+		expect(w.vm.modeOption({ user: 'fatma', mode: 'write' }).label).toBe('May update')
 	})
 
 	it('keeps an existing audience visible even when the search is empty', async () => {

@@ -438,6 +438,7 @@ import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeD
 import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -748,7 +749,13 @@ export default {
 		 * @return {object|string|null} A component, an icon name, or null.
 		 */
 		iconLabelIcon() {
-			const icon = this.widgetProps && this.widgetProps.icon
+			const props = this.widgetProps || {}
+			// `widgetProps.icons`: an icon per stored value, `icon` for the rest.
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-an-icon-label-cell-can-pick-its-icon-by-value
+			if (props.icons && typeof props.icons === 'object' && this.hasValue && typeof this.value !== 'object' && Object.hasOwn(props.icons, String(this.value))) {
+				return props.icons[String(this.value)] || null
+			}
+			const icon = props.icon
 			const resolved = typeof icon === 'function' ? icon(this.row) : icon
 			return resolved || null
 		},
@@ -1230,6 +1237,12 @@ export default {
 			// the short date ("vandaag, 09.42" with `showTime`), in any look.
 			if (props.relative === true) {
 				return formatRelativeDate(date, { withTime: props.showTime === true })
+			}
+			// `widgetProps.short: true` writes the board's short date in any
+			// look, with `showTime` followed by the time ("5 okt, 09:15").
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-date-cell-can-write-the-boards-short-date-with-its-time
+			if (props.short === true && props.timeOnly !== true) {
+				return props.showTime === true ? formatBoardDateTime(date) : formatBoardDate(date)
 			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.

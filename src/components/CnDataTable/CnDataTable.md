@@ -208,6 +208,7 @@ export default {
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in |
 | `filterable` | Boolean | `false` | Show a filter button in every header whose column can filter: enum, boolean, text, number, date and reference columns backed by a schema property. A column opts out with `filterable: false`. Applying a filter emits `column-filter`; the host owns the state and passes it back as `activeFilters`. `CnIndexPage` turns it on by default. |
 | `activeFilters` | Object | `{}` | The active filter map, `{ paramKey: values[] }`: the same map the facet sidebar writes, so a header filter and a sidebar filter on one field show the same state. |
+| `filterSchema` | Object | `null` | The schema the header filters read instead of `schema`, for a page that filters through other fields than the rows' own (a named source's search fields). Null: the header filters read `schema`. |
 | `filterRegister` | String | `''` | Register slug a reference column's filter searches in when the column names none. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable personal lens in self-fetch mode, keyed `<lens>.<reason>` or `<reason>`. Without it the library's text is used (see below). |
 
