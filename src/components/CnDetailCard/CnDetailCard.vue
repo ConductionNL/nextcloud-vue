@@ -22,7 +22,15 @@
 						:size="20"
 						class="cn-detail-card__icon" />
 				</slot>
-				<h3 class="cn-detail-card__title">
+				<div v-if="subtitle" class="cn-detail-card__heading">
+					<h3 class="cn-detail-card__title">
+						{{ title }}
+					</h3>
+					<p class="cn-detail-card__subtitle">
+						{{ subtitle }}
+					</p>
+				</div>
+				<h3 v-else class="cn-detail-card__title">
 					{{ title }}
 				</h3>
 			</div>
@@ -121,6 +129,12 @@ export default {
 
 		/** Card header title */
 		title: {
+			type: String,
+			default: '',
+		},
+
+		/** A line under the title, such as where the card's content comes from. */
+		subtitle: {
 			type: String,
 			default: '',
 		},
@@ -254,6 +268,20 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.cn-detail-card__heading {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-detail-card__subtitle {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-detail-card__collapse-btn {

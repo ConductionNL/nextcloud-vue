@@ -1508,6 +1508,7 @@ export default {
 				// Through the host's translate: an integration card (CnDetailCard)
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
+				...(this.widget?.subtitle ? { subtitle: this.translateLabel(this.widget.subtitle) } : {}),
 				...this.leafTitleLabel,
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
