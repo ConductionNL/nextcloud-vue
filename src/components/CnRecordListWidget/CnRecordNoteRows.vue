@@ -118,6 +118,13 @@ import { readPath } from '../../utils/readPath.js'
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
+ * The document event a recorded note sends, so a row's leaf (humaniq's
+ * hours) can record what it holds for the same object at the same moment.
+ * `detail` is the row's leaf props plus `note`.
+ */
+const NOTE_RECORDED_EVENT = 'cn-record-notes:recorded'
+
+/**
  * The rows of a record list drawn as notes to record (`presentation:
  * "notes"`, DqDagAfsluiten "Nog open van vandaag"): per row its pill, title,
  * meta and due text, a field for what happened, an optional integration leaf
@@ -351,6 +358,9 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				await axios.post(prefixUrl(url), { [this.action.bodyField || 'message']: text })
+				if (this.leaf) {
+					document.dispatchEvent(new CustomEvent(NOTE_RECORDED_EVENT, { detail: { ...this.leafProps(item.row), note: text } }))
+				}
 				const { [item.key]: done, ...rest } = this.drafts
 				this.drafts = rest
 				if (refresh) {

@@ -137,6 +137,36 @@ describe('CnRecordListWidget notes', () => {
 		expect(rows.vm.hasDraft('task:t1')).toBe(false)
 	})
 
+	it('tells the row\'s leaf that the note is recorded, so it can record its hours with it', async () => {
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		axios.post.mockResolvedValue({ data: { id: 1 } })
+		const heard = []
+		const listener = (event) => heard.push(event.detail)
+		document.addEventListener('cn-record-notes:recorded', listener)
+		const w = mountList({ ...CONTENT, rowLeaf: { id: 'humaniq-hours', app: 'humaniq', register: 'dossiq', objectIdField: 'subjectId', schemaField: 'subjectType' } })
+		await flush()
+		const rows = w.findComponent({ name: 'CnRecordNoteRows' })
+		rows.vm.setDraft('task:t1', 'Advies gelezen')
+		await rows.vm.record(rows.vm.items[1])
+		document.removeEventListener('cn-record-notes:recorded', listener)
+		expect(heard).toEqual([{ objectId: 't1', register: 'dossiq', schema: '', surface: 'row', note: 'Advies gelezen' }])
+	})
+
+	it('sends no leaf event for a list without a leaf', async () => {
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		axios.post.mockResolvedValue({ data: { id: 1 } })
+		const heard = []
+		const listener = (event) => heard.push(event.detail)
+		document.addEventListener('cn-record-notes:recorded', listener)
+		const w = mountList()
+		await flush()
+		const rows = w.findComponent({ name: 'CnRecordNoteRows' })
+		rows.vm.setDraft('case:c1', 'Gebeld')
+		await rows.vm.record(rows.vm.items[0])
+		document.removeEventListener('cn-record-notes:recorded', listener)
+		expect(heard).toEqual([])
+	})
+
 	it('records every filled row with one button and refreshes once', async () => {
 		axios.get.mockResolvedValue({ data: { open: OPEN } })
 		axios.post.mockResolvedValue({ data: {} })

@@ -1,0 +1,3 @@
+- [x] CnRecordNoteRows dispatches cn-record-notes:recorded after a recorded note with a rowLeaf
+- [x] CnRecordListWidgetNotes: event with leaf props + note; none without a leaf
+- [ ] humaniq CnHoursWidget row surface listens (humaniq PR)
