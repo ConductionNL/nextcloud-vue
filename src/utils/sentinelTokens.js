@@ -188,7 +188,7 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		members: ['@subject.<field>'],
 	},
 	context: {
-		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen',
+		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen, and by a widget\'s props (CnDetailWidgetHost)',
 		description: 'A record the detail page reads beside the loaded one, named in `config.visibilityContext` (a case\'s case type). A `visibleWhen` field reads it as `@context.<name>.<field>`, dot paths allowed (`@context.caseType.category`).',
 		members: ['@context.<name>.<field>'],
 	},

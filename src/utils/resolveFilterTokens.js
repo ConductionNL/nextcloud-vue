@@ -43,6 +43,9 @@
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
+ *  - `@context.<name>.<path>` → a value off a record the detail page reads beside
+ *                           the loaded one (needs `ctx.context`); left as written
+ *                           while that record is not read
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -75,6 +78,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
 import { peekMyTeam } from './myTeam.js'
+import { readPath } from './readPath.js'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
 import { peekCurrentUserGroups } from './userGroupsPeek.js'
 
@@ -194,6 +198,11 @@ export function resolveFilterValue(v, ctx) {
 			return ctx.object[field]
 		}
 		return v
+	}
+	if (v.startsWith('@context.')) {
+		// @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-widget-props-can-read-the-detail-pages-context-records
+		const found = ctx && ctx.context ? readPath(ctx.context, v.slice('@context.'.length)) : undefined
+		return found === undefined ? v : found
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the
