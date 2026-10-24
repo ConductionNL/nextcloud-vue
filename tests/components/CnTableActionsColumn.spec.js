@@ -55,6 +55,39 @@ describe('CnIndexPage actions column', () => {
 		expect(col.widgetProps.items(ROW).map((item) => item.label)).toEqual(['Aan zaak koppelen', 'Nieuwe zaak'])
 	})
 
+	it('keeps the actions the column shows out of the row menu, and drops the menu when none are left', () => {
+		const builtinsOff = { showViewAction: false, showEditAction: false, showCopyAction: false, showDeleteAction: false }
+		const w = mountPage()
+		expect(w.vm.rowMenuActionsFor(ROW).map((a) => a.id)).not.toEqual(expect.arrayContaining(['link-case']))
+		expect(w.vm.rowMenuActionsFor(ROW).map((a) => a.id)).not.toContain('new-case')
+		const only = shallowMount(CnIndexPage, {
+			props: {
+				title: 'Postvak',
+				schema: { title: 'Bericht', properties: {} },
+				objects: [ROW],
+				actions: ACTIONS,
+				columns: [{ key: 'do', label: 'Doen', widget: 'actions', widgetProps: { actions: ['link-case', 'new-case', 'archive'] } }],
+				...builtinsOff,
+			},
+			global: { mocks: { $router: { push: jest.fn() }, $route: { query: {}, params: {}, name: 'Postvak' } } },
+		})
+		expect(only.vm.rowMenuActionsFor(ROW)).toEqual([])
+		expect(only.vm.hasRowActions).toBeFalsy()
+		const other = shallowMount(CnIndexPage, {
+			props: {
+				...builtinsOff,
+				title: 'Postvak',
+				schema: { title: 'Bericht', properties: {} },
+				objects: [ROW],
+				actions: [...ACTIONS, { id: 'spam', label: 'Spam' }],
+				columns: [{ key: 'do', label: 'Doen', widget: 'actions', widgetProps: { actions: ['link-case', 'new-case'] } }],
+			},
+			global: { mocks: { $router: { push: jest.fn() }, $route: { query: {}, params: {}, name: 'Postvak' } } },
+		})
+		expect(other.vm.rowMenuActionsFor({ ...ROW, match: 'none' }).map((a) => a.id)).toEqual(['archive', 'spam'])
+		expect(other.vm.hasRowActions).toBeTruthy()
+	})
+
 	it('runs the handler and emits the same action event a row menu entry does', () => {
 		const w = mountPage()
 		const col = w.vm.renderedColumns.find((c) => c.key === 'do')
