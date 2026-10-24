@@ -3236,6 +3236,17 @@ export default {
 	font-size: 14px;
 }
 
+/* Core's apps.css draws every dt/dd inline-block with a fixed, end-aligned dt.
+   @spec openspec/changes/files-side-facts-core-dl/specs/files-side-facts-core-dl/spec.md#requirement-a-file-side-cards-facts-are-not-drawn-by-cores-dl-rules */
+.cn-files-browser__side-facts dt,
+.cn-files-browser__side-facts dd {
+	display: block;
+	width: auto;
+	padding: 0;
+	text-align: start;
+	white-space: normal;
+}
+
 .cn-files-browser__side-facts dt {
 	color: var(--color-text-maxcontrast);
 }
