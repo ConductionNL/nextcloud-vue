@@ -542,6 +542,7 @@ import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
+import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -607,7 +608,8 @@ function unwrap(value) {
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
  * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
- * payload, after `responsePath`, is the array of rows, as on the object table); `avatar` puts a circle with the initials of a name
+ * payload, after `responsePath`, is the array of rows, as on the object table), or `objectRows`
+ * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
  * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
@@ -647,7 +649,8 @@ export default {
 		 * with `overVariant: "error"`), or without `maxField` against the
 		 * largest row. `endpointSource` (`{ url, method?,
 		 * params?, responsePath? }`) reads the rows from an app endpoint instead
-		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
+		 * of `register` / `schema`. `objectRows` (`{ path, where?, valuePath? }`)
+		 * lists rows the page record holds, with no request. `valueLabels` maps a field's stored values to the labels
 		 * the templates show. `headerNote` and `headerLink.label` fill `{total}`
 		 * and `{count:<field>=<value>}`, the loaded rows with that value.
 		 * A row that is a plain string or number (an endpoint
@@ -958,6 +961,30 @@ export default {
 		endpointActive() {
 			const source = this.content?.endpointSource
 			return Boolean(source && typeof source === 'object' && source.url)
+		},
+
+		/**
+		 * Whether the rows come from the page's own record (`objectRows`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-object-rows/specs/record-list/spec.md#requirement-a-record-list-can-list-rows-the-page-record-holds
+		 */
+		objectRowsActive() {
+			return isObjectRowsSpec(this.content?.objectRows)
+		},
+
+		/**
+		 * The rows `objectRows` names on the page record (see utils/objectRows.js).
+		 *
+		 * @return {Array<object>}
+		 */
+		objectRowsList() {
+			return this.objectRowsActive ? objectRowsOf(this.objectData, this.content.objectRows) : []
+		},
+
+		/** @return {string} The page record's rows, to copy into the list when they change. */
+		objectRowsKey() {
+			return this.objectRowsActive ? JSON.stringify(this.objectRowsList) : ''
 		},
 
 		/** @return {string} The endpoint read's state, to copy into the list when it changes. */
@@ -1461,6 +1488,10 @@ export default {
 		},
 
 		endpointKey() {
+			this.fetchRows()
+		},
+
+		objectRowsKey() {
 			this.fetchRows()
 		},
 
@@ -2607,6 +2638,15 @@ export default {
 			}
 			if (this.endpointActive) {
 				this.takeEndpointRows()
+				return
+			}
+			if (this.objectRowsActive) {
+				this.rows = this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row)))
+				this.total = this.rows.length
+				this.loading = false
+				this.error = false
+				this.lenses = {}
+				this.emitHeader()
 				return
 			}
 			if (!c.register || !c.schema || this.waiting) {
