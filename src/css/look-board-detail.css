@@ -1589,6 +1589,7 @@
 
 .cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
 	margin-bottom: 8px;
+}
 
 /* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
    the card's padding instead of its own, and its buttons start at the card's
