@@ -1431,6 +1431,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(schema.version).toBe('2.154.0')
 	})
 
+	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
+		const recordList = (content) => ({ ...MINIMAL_V2, pages: [{ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'versions', widgetKey: 'record-list', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2, props: { content } }] }] })
+		const publish = { label: 'Publish', type: 'open-modal', target: 'PublishDialog', visibleWhen: { field: 'isDraft', op: 'eq', value: true } }
+		const newVersion = { label: 'Make a new version', type: 'open-modal', target: 'NewVersionDialog', note: 'A published version no longer changes.', wide: true }
+		expect(validateManifestV2(recordList({ footerAction: [publish, newVersion] })).valid).toBe(true)
+		expect(validateManifestV2(recordList({ footerAction: [publish, { type: 'open-modal' }] })).valid).toBe(false)
+		expect(validateManifestV2(recordList({ footerAction: { ...newVersion, wide: 'yes' } })).valid).toBe(false)
+	})
+
 	it('accepts an action\'s confirm wording (2.153.0)', () => {
 		const fields = require('../../src/schemas/app-manifest-v2.schema.json').$defs.actionFields.properties
 		for (const key of ['confirmTitle', 'confirmMessage', 'confirmLabel', 'confirmIcon']) {
