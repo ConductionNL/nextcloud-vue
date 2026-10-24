@@ -58,3 +58,21 @@ describe('look-board.css: an open secondary Actions menu trigger', () => {
 		expect(rulesFor('.cn-look-board .action-item.action-item--secondary .action-item__menutoggle.button-vue--secondary:not(.cn-look-nextcloud *):hover')).toBe('')
 	})
 })
+
+describe('the page header hover rules: an open Actions trigger', () => {
+	const fs = require('fs')
+	const path = require('path')
+	const read = (file) => fs.readFileSync(path.join(__dirname, '../../src/css', file), 'utf8')
+
+	it('skips an open menu on the index header (r25b DqZaaktypen "Acties" read the hover grey)', () => {
+		const css = read('look-board-index.css')
+		expect(css).toContain('.cn-look-board .cn-index-page .cn-index-page__header-buttons > .action-item:not(.action-item--open) .button-vue:hover')
+		expect(css).not.toContain('.cn-index-page__header-buttons > .action-item .button-vue:hover')
+	})
+
+	it('skips an open menu on the detail header', () => {
+		const css = read('look-board-detail.css')
+		expect(css).toContain('.cn-detail-page__header-actions .action-item--secondary:not(.action-item--open) .action-item__menutoggle:hover')
+		expect(css).not.toContain('.cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle:hover')
+	})
+})

@@ -91,7 +91,7 @@
 }
 
 .cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary:hover,
-.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle:hover {
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary:not(.action-item--open) .action-item__menutoggle:hover {
 	background: var(--color-background-hover) !important;
 }
 
