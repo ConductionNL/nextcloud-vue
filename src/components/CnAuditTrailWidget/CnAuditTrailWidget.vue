@@ -20,10 +20,8 @@
 			:actionLabels="actionLabels"
 			:valueLabels="valueLabels"
 			:relatedSources="relatedSources"
+			:footnote="footnote"
 			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
-		<p v-if="footnote" class="cn-audit-trail-widget__footnote" data-testid="cn-audit-trail-widget-footnote">
-			{{ footnote }}
-		</p>
 	</div>
 </template>
 
@@ -283,14 +281,8 @@ export default {
 </script>
 
 <style scoped>
-/* The card keeps its own box; the wrapper only adds the line under it. */
+/* The card keeps its own box, footnote included. */
 .cn-audit-trail-widget {
 	display: contents;
-}
-
-.cn-audit-trail-widget__footnote {
-	margin: 0;
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
 }
 </style>
