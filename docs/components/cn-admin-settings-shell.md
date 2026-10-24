@@ -106,6 +106,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 | `setupSteps` | `Array` | `[]` | The `manifest.setup.steps` array passed to the wizard. |
 | `showHelp` | `boolean` | `false` | Show a "Help us" link to the forge's feature-request issue form (`helpRepo`). |
 | `helpRepo` | `string` | `''` | `<owner>/<repo>` slug for the feature-request modal. |
+| `formatters` | `object` | `{}` | Cell formatters by id, as `CnAppRoot`'s `formatters`. The shell provides `cnFormatters` (built-ins, an ancestor's registry, then these), so a table column's `formatter` resolves on an admin page that no `CnAppRoot` wraps. |
 
 ## Slots
 
