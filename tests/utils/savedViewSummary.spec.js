@@ -88,3 +88,24 @@ describe('viewFilterReferences', () => {
 			.toEqual([{ key: 'caseType', register: 'catalogue', schema: 'caseType', labelField: 'title', ids: ['a', 'b'] }])
 	})
 })
+
+/**
+ * @spec openspec/changes/saved-view-summary-match-field-labels/specs/saved-view-menu-settings/spec.md#requirement-a-filter-on-a-records-identifier-reads-as-the-records-name
+ */
+describe('viewFilterReferences from the page\'s filterLabels', () => {
+	it('lists a filter whose filterLabels entry names the record it identifies, with the field it matches on', () => {
+		const filterLabels = { caseTypeIdentifier: { label: 'Case type', reference: { register: 'dossiq', schema: 'caseType', matchField: 'identifier', labelField: 'title' } } }
+		expect(viewFilterReferences({ filters: { caseTypeIdentifier: 'woo-verzoek', isDraft: false } }, [], filterLabels))
+			.toEqual([{ key: 'caseTypeIdentifier', register: 'dossiq', schema: 'caseType', labelField: 'title', matchField: 'identifier', ids: ['woo-verzoek'] }])
+	})
+
+	it('reads the looked-up name in the line, under the filterLabels title', () => {
+		const filterLabels = { caseTypeIdentifier: { label: 'Case type' } }
+		expect(summarizeViewFilters({ filters: { caseTypeIdentifier: 'woo-verzoek' } }, {
+			filterLabels,
+			valueLabels: { caseTypeIdentifier: { 'woo-verzoek': 'Woo-verzoek' } },
+			translate,
+		})).toBe('Zaaktype Woo-verzoek')
+	})
+})
+
