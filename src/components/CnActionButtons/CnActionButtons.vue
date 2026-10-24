@@ -160,6 +160,7 @@
 			:dialogTitle="tr(confirmEntry.confirmTitle || confirmEntry.label)"
 			:message="tr(confirmEntry.confirmMessage) || defaultConfirmMessage"
 			:variant="confirmEntry.variant === 'error' ? 'error' : 'primary'"
+			v-bind="confirmButtonProps"
 			@confirm="onConfirmProceed"
 			@close="confirmEntry = null" />
 
@@ -471,6 +472,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The confirm button's words and icon from the action
+		 * (`confirmLabel`, `confirmIcon`); none set leaves the dialog's own.
+		 *
+		 * @return {object}
+		 */
+		confirmButtonProps() {
+			const entry = this.confirmEntry || {}
+			return {
+				...(typeof entry.confirmLabel === 'string' && entry.confirmLabel !== '' ? { confirmLabel: this.tr(entry.confirmLabel) } : {}),
+				...(typeof entry.confirmIcon === 'string' && entry.confirmIcon !== '' ? { confirmIcon: entry.confirmIcon } : {}),
+			}
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.

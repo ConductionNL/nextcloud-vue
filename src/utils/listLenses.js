@@ -74,6 +74,12 @@ export function splitViewsIntoTabs(views, tabIds) {
  * One saved view as a tab for CnQuickFilterBar, so a lens renders through the
  * tab strip the page already has rather than a second one beside it.
  *
+ * Its filter is the view's own `filters`/`filter`, else what an OpenRegister
+ * view (and a default view) keeps in its query: `query.filters` with the
+ * locked conditions of `query.overrides.lockedFilters` under them. Reading
+ * only the first left a stored view with no filter, so every view in the
+ * side panel counted the whole list.
+ *
  * @param {object} view A saved view.
  * @return {{id: string, label: string, filter: object}}
  */
@@ -81,8 +87,21 @@ export function viewAsTab(view) {
 	return {
 		id: viewIdOf(view),
 		label: (view && (view.title || view.name)) || viewIdOf(view),
-		filter: (view && (view.filters || view.filter)) || {},
+		filter: (view && (view.filters || view.filter)) || queryFilterOf(view),
 	}
+}
+
+/**
+ * The conditions a stored view's query applies: its locked filters, then its filters.
+ *
+ * @param {object} view A saved view.
+ * @return {object}
+ */
+function queryFilterOf(view) {
+	const query = view && view.query && typeof view.query === 'object' ? view.query : {}
+	const plain = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {})
+	const locked = plain(query.overrides && query.overrides.lockedFilters)
+	return { ...locked, ...plain(query.filters) }
 }
 
 /**
