@@ -69,6 +69,10 @@ The segments take their colour from one ramp built on the theme: a light tint of
 
 The legend is a list that holds every label and count. The bar is a picture of that list, so it is `aria-hidden` and nothing is read twice.
 
+## `content.compact`
+
+`compact: true` draws the widget as a summary box, as DqZaakDocumenten's "4 van 7 beoordeeld": the sunken ground (radius 10, 14px 16px), a 15px heading with its meta beside it, one 8px bar of joined segments, and the legend on one line with each count beside its label. Off by default.
+
 ## `content.inset`
 
 `inset: true` draws the bar and legend inside the board's inset (16px above, 24px at the sides, 22px below; theme hook `--cn-widget-board-inset`) instead of from card edge to card edge. Off by default.

@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-stacked-bar" :class="{ 'cn-stacked-bar--inset': inset }" data-testid="cn-stacked-bar">
+	<div class="cn-stacked-bar" :class="{ 'cn-stacked-bar--inset': inset, 'cn-stacked-bar--compact': compact }" data-testid="cn-stacked-bar">
 		<div v-if="isLoading" class="cn-stacked-bar__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span>{{ loadingLabel }}</span>
@@ -183,7 +183,7 @@ export default {
 		 * segments to the card (`header` event, `count`), for a chip after the
 		 * title or a `{count}` in it.
 		 *
-		 * @type {{inset?: boolean, headerCount?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
+		 * @type {{inset?: boolean, compact?: boolean, headerCount?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
 		 */
 		content: {
 			type: Object,
@@ -239,6 +239,17 @@ export default {
 		 */
 		inset() {
 			return Boolean(this.content && this.content.inset === true)
+		},
+
+		/**
+		 * Whether the widget is the compact summary box (`content.compact`):
+		 * a 15px heading, one thin bar and the legend on one line.
+		 *
+		 * @spec openspec/changes/stacked-bar-compact/specs/stacked-bar-compact/spec.md#requirement-a-stacked-bar-can-be-drawn-as-the-compact-summary-box
+		 * @return {boolean}
+		 */
+		compact() {
+			return Boolean(this.content && this.content.compact === true)
 		},
 
 		/**
@@ -650,5 +661,60 @@ export default {
 	font-weight: 700;
 	line-height: 1.2;
 	color: var(--color-main-text);
+}
+
+/* `content.compact: true`: the summary box (DqZaakDocumenten "4 van 7
+   beoordeeld"): the sunken ground, a 15px heading, one 8px bar of joined
+   segments and the legend on one line, each count beside its label. */
+.cn-stacked-bar--compact {
+	box-sizing: border-box;
+	gap: 10px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--cn-board-sunken-ground, var(--color-background-hover));
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__heading {
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 15px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__bar {
+	gap: 0;
+	height: 8px;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__segment {
+	border-radius: 0;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 18px;
+	font-size: 14px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__legend-item {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__label {
+	color: var(--color-main-text);
+	font-size: 1em;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__dot {
+	border-radius: 50%;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__count {
+	font-size: 1em;
+	line-height: inherit;
 }
 </style>
