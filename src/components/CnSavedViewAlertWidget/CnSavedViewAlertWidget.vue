@@ -239,13 +239,25 @@ export default {
 	margin: 0;
 }
 
+/* Nextcloud core gives dt and dd inline-block, 12px padding and dt a 130px end-aligned box. */
+.cn-saved-view-alert__facts dt,
+.cn-saved-view-alert__facts dd {
+	display: block;
+	width: auto;
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
 .cn-saved-view-alert__facts dt {
 	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
 }
 
 .cn-saved-view-alert__facts dd {
-	margin: 0;
-	font-weight: 500;
+	font-weight: 600;
 }
 
 .cn-saved-view-alert__switch-text {
