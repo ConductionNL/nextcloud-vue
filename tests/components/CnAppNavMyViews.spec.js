@@ -61,4 +61,17 @@ describe('the My views menu section', () => {
 	it('adds nothing for an app without saved views', () => {
 		expect(withSavedViewMenu(MENU, [], { showEmpty: false })).toBe(MENU)
 	})
+
+	it('gives the My views heading a pencil that opens the user settings (DqZijbalk)', async () => {
+		const out = withSavedViewMenu(MENU, [], { showEmpty: true })
+		const open = jest.fn()
+		const $route = reactive({ name: 'Dashboard', path: '/', query: {} })
+		const w = mount(CnAppNav, {
+			global: { provide: { cnManifest: { menu: out }, cnTranslate: (k) => k, cnOpenUserSettings: open }, mocks: { $route } },
+		})
+		const pencil = w.find('[data-testid="cn-nav-caption-edit-saved-views-caption"]')
+		expect(pencil.exists()).toBe(true)
+		await pencil.trigger('click')
+		expect(open).toHaveBeenCalled()
+	})
 })

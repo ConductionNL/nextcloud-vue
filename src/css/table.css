@@ -203,6 +203,11 @@
 /* The overline of a cell (`columns[].overline` / `overlineText`): muted and
    smaller, on its own line above the value. Same theme hooks as the
    secondary line. */
+/* A count column's zero label as text (`aggregate.zeroAs: "text"`): "Geen" in the muted ink. */
+.cn-data-table .cn-table-cell__zero {
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-data-table .cn-table-cell__overline {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));

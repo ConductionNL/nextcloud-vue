@@ -141,3 +141,4 @@ export default {
 | `borderless` | Boolean | `false` | Drop the card border and background, for a host that draws its own (a tab panel). |
 | `flush` | Boolean | `false` | Drop the content padding, for a host that supplies its own inset. |
 | `chromeless` | Boolean | `false` | Draw no card at all: what a tab panel wants, in one prop instead of three. Implies `show-title="false"`, `borderless` and `flush`, and drops the header divider too. The Save button keeps its header. Forwarded to `CnWidgetWrapper`. |
+| `footnote` | String | `''` | A muted line under the fields, through the host translate (DqZaakContact "Ontvangstbevestiging"). |

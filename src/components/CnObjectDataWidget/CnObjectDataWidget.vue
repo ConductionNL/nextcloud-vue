@@ -396,6 +396,10 @@
 			</NcButton>
 		</div>
 
+		<p v-if="footnote" class="cn-object-data-widget__footnote" data-testid="cn-object-data-widget-footnote">
+			{{ cnTranslate(footnote) }}
+		</p>
+
 		<!-- Read-only @self metadata, surfaced on demand from the
 		     Metadata action item rather than as a permanent page widget. -->
 		<CnObjectMetadataModal
@@ -835,6 +839,17 @@ export default {
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
+		},
+
+		/**
+		 * A muted line under the fields, through the host translate
+		 * (DqZaakContact "Ontvangstbevestiging").
+		 *
+		 * @spec openspec/changes/data-widget-footnote/specs/data-widget-footnote/spec.md#requirement-a-data-card-can-end-with-a-footnote
+		 */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/** Label for the Metadata item in the overflow Actions menu. */
@@ -2533,6 +2548,12 @@ export default {
 .cn-object-data-widget__textarea:focus {
 	border-color: var(--color-primary-element);
 	outline: none;
+}
+
+.cn-object-data-widget__footnote {
+	margin: calc(var(--default-grid-baseline, 4px) * 3) 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-object-data-widget__empty {

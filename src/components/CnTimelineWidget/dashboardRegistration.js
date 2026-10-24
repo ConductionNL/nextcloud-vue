@@ -6,7 +6,8 @@
  * dashboardWidgetRegistry. Like `audit-trail` it is a DETAIL-PAGE surface:
  * the object comes from the page's object context. It has no config form
  * yet, so it is placed from the manifest and never offered in the
- * Add-widget picker.
+ * Add-widget picker. It draws its own title row and asks for the card, so a
+ * tab stack or the side column stands it in an untitled card.
  *
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md#requirement-a-timeline-widget-shows-an-objects-dated-events-in-order
  */
@@ -29,4 +30,5 @@ registerDashboardWidget('timeline', {
 	icon: 'TimelineClockOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+	chrome: 'card',
 })
