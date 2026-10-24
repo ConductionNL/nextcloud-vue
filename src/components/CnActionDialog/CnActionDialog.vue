@@ -14,7 +14,9 @@
 		<div v-if="!done" class="cn-action-dialog">
 			<!-- The record the action is about: its title, a meta line, a badge. -->
 			<div v-if="summary" class="cn-action-dialog__summary" data-testid="cn-action-dialog-summary">
-				<CnIcon :name="config.summary.icon || 'FolderOutline'" :size="20" class="cn-action-dialog__summary-icon" />
+				<span class="cn-action-dialog__summary-icon">
+					<CnIcon :name="config.summary.icon || 'FolderOutline'" :size="20" />
+				</span>
 				<span class="cn-action-dialog__summary-text">
 					<strong>{{ summary.title }}</strong>
 					<span v-if="summary.meta" class="cn-action-dialog__muted">{{ summary.meta }}</span>
@@ -142,6 +144,9 @@
 				:type="noteType"
 				:heading="text(config.note.title)"
 				data-testid="cn-action-dialog-note">
+				<template v-if="config.note.icon" #icon>
+					<CnIcon :name="config.note.icon" :size="20" />
+				</template>
 				{{ text(config.note.text) }}
 			</NcNoteCard>
 
@@ -239,7 +244,8 @@ let reasonSeq = 0
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
- * - `note`: `{ variant?, title?, text }`: a read-only note.
+ * - `note`: `{ variant?, title?, text, icon? }`: a read-only note; `icon` an
+ *   icon name in place of the variant's own ("LockOutline").
  * - `confirm`: `{ label, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` posts itself (`body` templates filled with the record and
  *   `{reason}`); `action` dispatches a manifest action through the page.
@@ -808,10 +814,32 @@ export default {
 .cn-action-dialog__summary {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 	padding: 12px 14px;
 	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 8px);
+	border-radius: var(--border-radius-large, 10px);
+}
+
+/* The record's icon on a tinted tile (DqArchiveren). */
+.cn-action-dialog__summary-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-action-dialog__summary-text strong {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-action-dialog__summary-text .cn-action-dialog__muted {
+	font-size: 13px;
 }
 
 .cn-action-dialog__summary-text {
@@ -853,13 +881,26 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+/* The server draws every dt as a 130px right-aligned inline block and pads
+   dt and dd 12px; a fact is a label over its value. */
+.cn-action-dialog__facts dt,
+.cn-action-dialog__facts dd {
+	display: block;
+	width: auto;
+	white-space: normal;
+	text-align: start;
+}
+
 .cn-action-dialog__facts dt {
+	margin: 0;
+	padding: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 }
 
 .cn-action-dialog__facts dd {
 	margin: 0;
+	padding: 0;
 	font-size: 15px;
 	font-weight: 500;
 }

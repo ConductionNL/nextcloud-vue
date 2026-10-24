@@ -179,6 +179,10 @@ A page that filters through other fields than the rows' own (a named
 source's search fields) passes them as `filterSchema`; the header filters
 then read that schema instead of `schema`.
 
+The active header filters show as removable chips above the table. A host
+that lists them itself sets `filterChips` to false; `CnIndexPage` does so in
+the board look, where its Active line shows them.
+
 Every sortable header shows a chevron after its label: pale while the
 column is unsorted, dark and pointing in the sort direction once it is
 sorted. The label and chevron are one real button named by the column label,
