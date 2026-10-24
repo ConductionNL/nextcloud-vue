@@ -186,3 +186,18 @@ describe('users index source header filters', () => {
 		expect(mockGet.mock.calls.length).toBe(calls)
 	})
 })
+
+/**
+ * @spec openspec/changes/users-source-row-actions/specs/index-page/spec.md#requirement-a-members-row-menu-opens-their-profile-and-mails-them
+ */
+describe('users index source row menu', () => {
+	it('links a member to their profile, and to an e-mail when they have an address', () => {
+		const source = resolveIndexSource('users')
+		const [profile, mail] = source.rowActions
+		expect(profile.id).toBe('open-profile')
+		expect(profile.href({ id: 'lars' })).toBe('/index.php/u/lars')
+		expect(mail.href({ id: 'lars', email: 'l.dekoning@zuiddrecht.nl' })).toBe('mailto:l.dekoning@zuiddrecht.nl')
+		expect(mail.visible({ id: 'ada', email: '' })).toBe(false)
+		expect(mail.visible({ id: 'lars', email: 'l.dekoning@zuiddrecht.nl' })).toBe(true)
+	})
+})

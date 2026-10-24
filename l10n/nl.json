@@ -2639,7 +2639,8 @@
     "The change could not be saved. Nothing was changed.": "De wijziging kon niet worden opgeslagen. Er is niets veranderd.",
     "The new person was not saved.": "De nieuwe persoon is niet opgeslagen.",
     "The party could not be added.": "De partij kon niet worden toegevoegd.",
-    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort."
+    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort.",
+    "Open profile": "Profiel openen"
   },
   "plurals": {
     "{count} member": [

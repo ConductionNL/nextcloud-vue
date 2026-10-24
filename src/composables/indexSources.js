@@ -6,9 +6,11 @@
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -1589,6 +1591,15 @@ function usersSource() {
 
 		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
 		headerFilters: true,
+
+		/**
+		 * A member's row menu (DqAfdelingen): their Nextcloud profile, and an
+		 * e-mail when they have an address. Both are links.
+		 */
+		rowActions: [
+			{ id: 'open-profile', label: t('nextcloud-vue', 'Open profile'), icon: AccountOutline, href: (row) => generateUrl(`/u/${encodeURIComponent(row.id)}`) },
+			{ id: 'send-email', label: t('nextcloud-vue', 'Send email'), icon: EmailOutline, href: (row) => `mailto:${row.email}`, visible: (row) => Boolean(row && row.email) },
+		],
 
 		showAdd: false,
 	}
