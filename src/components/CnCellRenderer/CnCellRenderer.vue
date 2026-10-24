@@ -638,7 +638,7 @@ export default {
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
 		 *
-		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 * @type {{style?: 'currency'|'number'|'decimal'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
@@ -1696,9 +1696,9 @@ export default {
 			return typeof s === 'string' ? s : null
 		},
 
-		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		/** True when a built-in NUMERIC format (currency/number/decimal/percent/duration) applies. */
 		hasBuiltinFormat() {
-			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+			return ['currency', 'number', 'decimal', 'percent', 'duration'].includes(this.formatStyle)
 		},
 
 		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
@@ -1903,9 +1903,11 @@ export default {
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
+			// `decimal` defaults to one fraction digit, as formatMetricValue does.
+			const defaultDecimals = { currency: 2, decimal: 1 }
 			const decimals = Number.isFinite(fmt.decimals)
 				? fmt.decimals
-				: (fmt.style === 'currency' ? 2 : 0)
+				: (defaultDecimals[fmt.style] ?? 0)
 			let body
 			if (fmt.style === 'currency') {
 				// `format.currencyField` reads the code from the row's own field.
