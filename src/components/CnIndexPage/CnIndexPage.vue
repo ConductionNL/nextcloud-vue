@@ -10864,7 +10864,8 @@ export default {
 		/**
 		 * A view's state as the edit dialog shows it under a criteria choice:
 		 * its filters, search term and sort in sentences, read against the
-		 * page schema's titles.
+		 * page schema's titles and the page's `filterLabels` (a `hidden`
+		 * filter is left out).
 		 *
 		 * @param {object} state A view state (`extractViewState` or `currentViewState`).
 		 * @return {string} The sentences.
@@ -10874,6 +10875,7 @@ export default {
 			const schema = this.effectiveSchema
 			return viewCriteriaSummary(state, {
 				properties: (schema && schema.properties) || {},
+				filterLabels: this.filterLabels || {},
 				translate: (text) => this.cnTranslate(text),
 			})
 		},
