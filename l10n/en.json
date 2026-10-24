@@ -2389,7 +2389,9 @@
     "The change could not be saved. Nothing was changed.": "The change could not be saved. Nothing was changed.",
     "The new person was not saved.": "The new person was not saved.",
     "The party could not be added.": "The party could not be added.",
-    "You may not change who is on this record.": "You may not change who is on this record."
+    "You may not change who is on this record.": "You may not change who is on this record.",
+    "Now: by {order}.": "Now: by {order}.",
+    "You save the order along with a view.": "You save the order along with a view."
   },
   "plurals": {
     "{count} member": [
