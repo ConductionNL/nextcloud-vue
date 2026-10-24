@@ -225,6 +225,31 @@ describe('CnIndexPage board: columns from a referenced field', () => {
 		map.unmount()
 	})
 
+	it('leaves the mode the address opened when the address drops ?_view=, and keeps a mode the person picked', async () => {
+		const mountWith = (query) => mount(CnIndexPage, {
+			propsData: { title: 'Zaken', schema: SCHEMA, objects: ROWS, viewModes: ['table', 'cards', 'board'], board: { statusField: 'status' } },
+			global: {
+				provide: { cnLook: 'board' },
+				mocks: { $router: { push: jest.fn() }, $route: { query, params: {}, name: 'Cases' } },
+				stubs: { CnDataTable: true, CnCardGrid: true, CnPagination: true, CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnSavedViewsControl: true, CnBuildiqEditButton: true, CnBoardView: true },
+			},
+		})
+		const viewWatcher = CnIndexPage.watch['$route.query._view']
+
+		const opened = mountWith({ _view: 'board' })
+		opened.vm.$route.query = {}
+		viewWatcher.call(opened.vm, undefined, 'board')
+		expect(opened.vm.currentViewMode).toBe('table')
+		opened.unmount()
+
+		const picked = mountWith({ _view: 'board' })
+		picked.vm.onViewModeChange('cards')
+		picked.vm.$route.query = {}
+		viewWatcher.call(picked.vm, undefined, 'board')
+		expect(picked.vm.currentViewMode).toBe('cards')
+		picked.unmount()
+	})
+
 	it('selecting a card on the board feeds the page selection', async () => {
 		const w = await mountPage({ selectable: true })
 		await w.find('[data-testid="cn-board-card-select"][data-card-id="c2"]').setValue(true)

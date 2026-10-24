@@ -8928,7 +8928,14 @@ export default {
 			deep: true,
 		},
 
-		'$route.query._view': function() {
+		'$route.query._view': function(now, before) {
+			// Leaving the mode's address (a plain link to the page) leaves the
+			// mode it opened, unless the person picked another one since.
+			if ((typeof now !== 'string' || now === '') && typeof before === 'string' && before !== '' && before === this.currentViewMode) {
+				this.routeViewPending = false
+				this.currentViewMode = this.viewMode
+				return
+			}
 			this.applyViewModeFromRoute()
 		},
 
