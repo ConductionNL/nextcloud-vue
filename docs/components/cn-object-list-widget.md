@@ -299,6 +299,10 @@ A column with `widget: "fkResolve"` takes `widgetProps.schemaFrom` (`{ field, ma
 
 `"rowSelection": true` lets the reader select a row: a click selects it (and still opens `rowRoute` when one is set), and the selected row is marked. On a detail page the list publishes the rows it shows and the selected one under its widget id. A side card with `follows: { widget: "<this id>" }` then shows that row. See [CnDetailPage: a side card that follows a selected row](./cn-detail-page.md#a-side-card-that-follows-a-selected-row-follows).
 
+## Rows from an app endpoint (`endpointSource`)
+
+A list without `register`/`schema` can read all its rows from an app endpoint: `"endpointSource": { "url": "/apps/hermiq/api/ai-oversight/subject", "params": { "originApp": "dossiq", "subjectId": "@objectId", "limit": 25 } }` (DqZaakAssistent: what the assistant did on this case). Params take the same tokens as a filter. The rows are read at `responsePath` (default `results`), the count at `total`. A refusal shows the server's message. Set `allowCreate: false` on such a list: it owns no records. Its `export` can name an app endpoint as well: `"export": { "label": "Download", "url": "/apps/hermiq/api/ai-oversight/subject/export", "params": { "originApp": "dossiq", "subjectId": "@objectId" }, "group": "ai-oversight" }` downloads that URL instead of OpenRegister's export.
+
 ## Read-only rows from an endpoint (`readOnlyRows`)
 
 `"readOnlyRows": { "url": "/apps/dossiq/api/case-types/@objectId/blueprint", "responsePath": "propertyDefinitions", "where": { "origin": ["inherited", "shared"] } }` adds, after the list's own rows, the rows an app endpoint answers that the list does not own (DqZaaktypeVelden: the fields a case type inherits from its parent). `where` keeps the rows whose field equals the value, or one of the values. Each added row is tagged `_readOnly`: it carries no row actions and a click on it opens nothing. A list that owns no rows but adds some shows them instead of its empty state; a failed read adds nothing. A cell formatter reads the row's own origin fields (`origin`, `originCaseTypeTitle`) to say where it came from.
