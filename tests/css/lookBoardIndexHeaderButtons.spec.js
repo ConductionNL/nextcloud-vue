@@ -52,7 +52,7 @@ describe('look-board-index.css: header buttons', () => {
 			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
 				if (selector.includes('cn-index-page__header-buttons')) {
 					// The look class sits on an ancestor or on the page root itself.
-					expect(/^\.cn-look-board( |\.)cn-index-page/.test(selector)).toBe(true)
+					expect(/^\.cn-look-board ?\.cn-index-page/.test(selector)).toBe(true)
 				}
 			}
 		}
