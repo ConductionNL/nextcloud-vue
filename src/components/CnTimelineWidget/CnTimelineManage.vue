@@ -169,6 +169,19 @@
 			</div>
 		</template>
 
+		<div v-if="composerOnly && canManage && composerEnabled"
+			class="cn-timeline-manage__header"
+			data-testid="cn-timeline-composer-heading">
+			<div class="cn-timeline-manage__heading">
+				<h3 class="cn-timeline-manage__title">
+					{{ composerTitleText }}
+				</h3>
+				<p class="cn-timeline-manage__subtitle">
+					{{ composerSubtitleText }}
+				</p>
+			</div>
+		</div>
+
 		<NcNoteCard v-if="composerOnly && error" type="error" data-testid="cn-timeline-error">
 			{{ error }}
 		</NcNoteCard>
@@ -330,6 +343,16 @@ export default {
 
 		subtitleText() {
 			return this.content.subtitle ? this.translate(this.content.subtitle) : t('nextcloud-vue', 'What happened, who did it and when, newest first')
+		},
+
+		/** @return {string} The title of the note form's own card (`composer: "only"`): `content.title`, else Add note. */
+		composerTitleText() {
+			return this.content.title ? this.translate(this.content.title) : t('nextcloud-vue', 'Add note')
+		},
+
+		/** @return {string} The line under that title: `content.subtitle`, else where the note goes. */
+		composerSubtitleText() {
+			return this.content.subtitle ? this.translate(this.content.subtitle) : t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible')
 		},
 
 		publicLabel() {
