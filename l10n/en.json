@@ -1484,18 +1484,6 @@
     "Pages": "Pages",
     "Open {module}": "Open {module}",
     "{list} and {last}": "{list} and {last}",
-    "%n page: {pages}": [
-      "%n page: {pages}",
-      "%n pages: {pages}"
-    ],
-    "%n page, including {pages}": [
-      "%n page, including {pages}",
-      "%n pages, including {pages}"
-    ],
-    "{on} of %n is in the menu": [
-      "{on} of %n is in the menu",
-      "{on} of %n are in the menu"
-    ],
     "Put it in the menu:": "Put it in the menu:",
     "Admin settings": "Admin settings",
     "Support this app": "Support this app",
@@ -1513,10 +1501,6 @@
     "{status}, {expected}": "{status}, {expected}",
     "Build on this app": "Build on this app",
     "AI skills": "AI skills",
-    "%n feature": [
-      "%n feature",
-      "%n features"
-    ],
     "Your account": "Your account",
     "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
     "Sections of the settings": "Sections of the settings",
@@ -2254,10 +2238,6 @@
     "from {from}": "from {from}",
     "up to {to}": "up to {to}",
     "this week": "this week",
-    "within %n day": [
-      "within %n day",
-      "within %n days"
-    ],
     "Search term: {term}": "Search term: {term}",
     "New contact": "New contact",
     "Template": "Template",
@@ -2578,6 +2558,26 @@
     "%n minute": [
       "%n minute",
       "%n minutes"
+    ],
+    "%n page: {pages}": [
+      "%n page: {pages}",
+      "%n pages: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n page, including {pages}",
+      "%n pages, including {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} of %n is in the menu",
+      "{on} of %n are in the menu"
+    ],
+    "%n feature": [
+      "%n feature",
+      "%n features"
+    ],
+    "within %n day": [
+      "within %n day",
+      "within %n days"
     ]
   }
 }

@@ -47,6 +47,9 @@
 				</p>
 			</li>
 		</ul>
+		<p v-if="footnote" class="cn-audit-card__footnote" data-testid="cn-audit-trail-widget-footnote">
+			{{ footnote }}
+		</p>
 		<template v-if="shownEntries.length > maxDisplay" #footer>
 			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ shownEntries.length }})
@@ -93,6 +96,12 @@ export default {
 	components: { CnDetailCard, NcLoadingIcon },
 
 	props: {
+		/**
+		 * A muted line under the trail, inside the card ("Kenmerk ZT-OMV-REG").
+		 *
+		 * @spec openspec/changes/audit-trail-footnote/specs/audit-trail/spec.md#requirement-a-history-card-can-end-in-a-line-about-the-record
+		 */
+		footnote: { type: String, default: '' },
 		/** OpenRegister register id (slug or uuid). Optional for `scope: "app"`. */
 		register: { type: String, default: '' },
 		/** OpenRegister schema id (slug or uuid). Optional for `scope: "app"`. */
@@ -521,6 +530,12 @@ export default {
 	color: var(--color-text-maxcontrast);
 	text-align: center;
 	padding: 12px 0;
+}
+
+.cn-audit-card__footnote {
+	margin: 12px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-audit-card__show-all {
