@@ -72,6 +72,7 @@
 						:options="schemaSelectOptions(groupIdx)"
 						:placeholder="labels.selectSchema"
 						:inputLabel="type.label"
+						:clearable="false"
 						label="label"
 						trackBy="value"
 						@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
@@ -1369,6 +1370,12 @@ export default {
 
 .cn-register-mapping__selects-register {
 	max-width: 50%;
+}
+
+/* DqBeheerinstellingen: the register select fills its half of the card. */
+.cn-register-mapping__selects-register :deep(.v-select) {
+	width: 100%;
+	max-width: none;
 }
 
 .cn-register-mapping__select-grid {
