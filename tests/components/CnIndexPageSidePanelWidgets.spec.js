@@ -94,6 +94,17 @@ describe('saved-view-alert widget', () => {
 		expect(mockPatch).toHaveBeenLastCalledWith('/index.php/apps/openregister/api/views/v-7', { alert: null })
 	})
 
+	it('names the threshold field with a label above it, tied to the field', () => {
+		const view = { ...VIEW, alert: { operator: 'gte', threshold: 12, recipients: ['pieter'] } }
+		const w = mountAlert({ appliedView: view, total: 9, replaceSavedView: jest.fn() })
+		const label = w.find('label.cn-saved-view-alert__label')
+		expect(label.exists()).toBe(true)
+		expect(label.text()).toBe('Threshold')
+		const field = w.findComponent({ name: 'NcTextField' })
+		expect(field.attributes('labeloutside') ?? field.props('labelOutside')).toBeTruthy()
+		expect(label.attributes('for')).toBe(field.attributes('id'))
+	})
+
 	it('shows the server\'s reason when the alert cannot be saved', async () => {
 		mockPatch.mockRejectedValue({ response: { data: { error: 'alert.recipients: name at least one recipient' } } })
 		const w = mountAlert({ appliedView: VIEW, total: 9 })
