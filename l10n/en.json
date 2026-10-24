@@ -2394,7 +2394,8 @@
     "Read replies aloud": "Read replies aloud",
     "View all conversations": "View all conversations",
     "Back to the chat": "Back to the chat",
-    "Talk to {agent}": "Talk to {agent}"
+    "Talk to {agent}": "Talk to {agent}",
+    "Search a person or group": "Search a person or group"
   },
   "plurals": {
     "{count} member": [

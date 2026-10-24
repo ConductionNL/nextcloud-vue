@@ -2644,7 +2644,8 @@
     "Read replies aloud": "Antwoorden voorlezen",
     "View all conversations": "Alle gesprekken bekijken",
     "Back to the chat": "Terug naar het gesprek",
-    "Talk to {agent}": "Praten met {agent}"
+    "Talk to {agent}": "Praten met {agent}",
+    "Search a person or group": "Zoek een persoon of groep"
   },
   "plurals": {
     "{count} member": [
