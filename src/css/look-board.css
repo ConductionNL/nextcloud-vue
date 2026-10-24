@@ -2597,6 +2597,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0;
 }
 
+/* A chart in a section of a sections widget (a framed section card, 14px
+   16px in) takes none of the dashboard card's inset either: its bars and plot
+   start 17px in, not 39 (DqDoorlooptijd "Naleving": Naleving per zaaktype,
+   Verdeling doorlooptijd, Maandelijkse SLA-trend, Doorstroom).
+   @spec openspec/changes/board-sections-chart-single-inset/specs/board-sections-chart-single-inset/spec.md#requirement-a-chart-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget__html,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget__canvas,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget > .cn-chart-widget__footnote {
+	padding: 0;
+}
+
 /* ---- A plain sections widget on a dashboard card ------------------------ */
 /* The card is flush, because a sections widget usually draws its own cards;
    the plain one draws none, so its body takes the card's side inset and 20px
