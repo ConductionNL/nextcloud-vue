@@ -93,13 +93,23 @@ function loadSchema(register, schema) {
 /**
  * The names of referenced records, each asked once.
  *
- * @param {{register: string, schema: string, labelField: string, ids: Array<string>}} ref The reference filter.
+ * @param {{register: string, schema: string, labelField: string, matchField?: string, ids: Array<string>}} ref The reference filter; with `matchField` the ids are that field's values.
  * @return {Promise<{[id: string]: string}>}
  */
 async function loadLabels(ref) {
-	const prefix = `${ref.register}|${ref.schema}|${ref.labelField}|`
+	const prefix = `${ref.register}|${ref.schema}|${ref.labelField}|${ref.matchField || ''}|`
 	const missing = ref.ids.filter((id) => !labelCache.has(prefix + id))
-	if (missing.length > 0) {
+	// A value that identifies a record by another field: one read per value.
+	if (missing.length > 0 && ref.matchField) {
+		for (const value of missing) {
+			labelCache.set(prefix + value, getJson(`/apps/openregister/api/objects/${encodeURIComponent(ref.register)}/${encodeURIComponent(ref.schema)}`, { [ref.matchField]: value, _limit: 1 })
+				.then((data) => {
+					const row = Array.isArray(data && data.results) ? data.results[0] : null
+					return row ? pickRefLabel(row, ref.labelField) : null
+				})
+				.catch(() => null))
+		}
+	} else if (missing.length > 0) {
 		const request = getJson(`/apps/openregister/api/objects/${encodeURIComponent(ref.register)}/${encodeURIComponent(ref.schema)}`, { _ids: missing.join(','), _limit: missing.length })
 			.then((data) => {
 				const byId = {}
@@ -372,7 +382,7 @@ export default {
 				const fields = fieldsFromSchema(schema, { includeReadOnly: true })
 				const refs = this.candidates
 					.filter((c) => c.page === page.id)
-					.flatMap((c) => viewFilterReferences(c.state, fields))
+					.flatMap((c) => viewFilterReferences(c.state, fields, page.filterLabels))
 				for (const ref of refs) {
 					const labels = await loadLabels({ ...ref, register: ref.register || page.register })
 					if (Object.keys(labels).length === 0) {
