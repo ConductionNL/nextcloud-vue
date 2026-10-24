@@ -1084,7 +1084,7 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
@@ -1098,6 +1098,8 @@ function fillRowTemplate(template, row) {
  * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
  * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
+ * result, else `subtitleField`.
  * The page's title and count line can name the term as `{term}`, and the
  * count is the active kind's total. Kind, link and status are filterable.
  *
@@ -1195,6 +1197,13 @@ function searchSource(config = {}, context = {}) {
 		return ''
 	}
 
+	const subtitleOf = (kind, object) => {
+		if (kind.subtitleTemplate) {
+			return fillTemplate(translate(kind.subtitleTemplate), object)
+		}
+		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
+	}
+
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
@@ -1215,7 +1224,7 @@ function searchSource(config = {}, context = {}) {
 					kindLabel: kind.label,
 					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
-					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
+					subtitle: subtitleOf(kind, object),
 					status,
 					linked: linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
