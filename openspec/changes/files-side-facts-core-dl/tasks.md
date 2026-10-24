@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser side facts dt/dd reset
+- [x] Spec tests/components/CnFilesBrowserSideFactsReset.spec.js
