@@ -1,0 +1,1 @@
+- [x] 1.1 label width auto (tests/css/factsWidgetDtDd.spec.js)

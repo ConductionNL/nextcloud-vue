@@ -1845,11 +1845,13 @@ export default {
 	display: contents;
 }
 
-/* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding), which
-   pushed the label to the right of its column and added 12px around both. The
-   class is doubled so these resets outrank that rule, and a dossiq-style
-   `:deep()` override in an app is not needed. */
+/* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding, a
+   130px-wide `dt`), which pushed the label to the right of its column, added
+   12px around both and widened the label column to 130px. The class is
+   doubled so these resets outrank that rule, and a dossiq-style `:deep()`
+   override in an app is not needed. */
 .cn-facts-widget__label.cn-facts-widget__label {
+	width: auto;
 	margin: 0;
 	padding: 0;
 	text-align: start;
