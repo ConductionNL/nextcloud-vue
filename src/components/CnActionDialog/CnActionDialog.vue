@@ -191,6 +191,7 @@ import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -219,7 +220,8 @@ let reasonSeq = 0
  *   `eyebrow` a template filled from the record ("Close off · {identifier}").
  * - `summary`: `{ source?, title, meta?, badge?, icon? }`: templates filled from
  *   the record (`source` an endpointSource to read it from, else `object`).
- * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template.
+ * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template; a
+ *   `{path|<formatter>}` token reads through the built-in and app formatters.
  * - `checklist`: `{ title?, source, itemsPath?, labels?, required? }`: items
  *   `{ id, met, label?, detail? }` read from `source`; `labels[id]` gives an
  *   item's `{ label, detail?, unmetDetail? }`; the ids in `required` must be
@@ -262,6 +264,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's pre-bound action dispatcher (CnPageRenderer), for `confirm.action`. */
 		cnDispatchAction: { default: null },
+		/** The app's named formatters (CnAppRoot), for `{path|<formatter>}` in a template. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -594,7 +598,8 @@ export default {
 			if (typeof template !== 'string' || template === '') {
 				return ''
 			}
-			return fillTemplate(this.cnTranslate(template), row || this.record || {}).trim()
+			const formatters = { ...BUILT_IN_FORMATTERS, ...(this.cnFormatters || {}) }
+			return fillTemplate(this.cnTranslate(template), row || this.record || {}, new Date(), { formatters }).trim()
 		},
 
 		/**
