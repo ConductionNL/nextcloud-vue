@@ -1845,6 +1845,22 @@
 	font-weight: 700;
 }
 
+/* A pill in a trailing cell stays inside the cell's width and ends in an
+   ellipsis, instead of running over the next cell (DqTeamwachtrij). */
+.cn-look-board .cn-object-row__trail .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	display: block;
+	max-width: 100%;
+}
+
+.cn-look-board .cn-object-row__trail .cn-status-badge:not(.cn-look-nextcloud *) {
+	display: inline-block;
+	box-sizing: border-box;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	vertical-align: middle;
+}
+
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
 /* The board draws "3 zaken zonder adres" as a 15px title at its normal line
    height with "Toon ze in de tabel" under it as a link flush with the title,
