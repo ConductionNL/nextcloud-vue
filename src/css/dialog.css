@@ -212,8 +212,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding: 22px 24px 20px;
 }
 
+/* The body starts 22px under the header text, as every dialog board draws it
+   (header padding 4px, the body's 18px gap); a choice legend is 14px/600 on
+   the normal line height (DqDocumentGenereren "Sjabloon").
+   @spec openspec/changes/board-dialog-header-gap/specs/board-dialog-header-gap/spec.md#requirement-a-board-dialogs-body-starts-22px-under-its-header */
 .cn-dialog-board .dialog__content > .cn-dialog-header {
-	margin-bottom: -2px;
+	margin-bottom: 4px;
+}
+
+.cn-dialog-board .cn-choice-cards__legend {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
 }
 
 /* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */

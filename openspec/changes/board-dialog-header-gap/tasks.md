@@ -1,0 +1,2 @@
+- [x] dialog.css header margin 4px, legend 14px/600/normal
+- [x] Spec tests/css/dialogBoardHeaderGap.spec.js
