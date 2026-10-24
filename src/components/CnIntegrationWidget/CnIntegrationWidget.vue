@@ -306,6 +306,15 @@ export default {
 		objectLabel: { type: String, default: '' },
 
 		/**
+		 * Extra props for the leaf, set by the placement (a manifest widget's
+		 * `props.placementProps`), for example the kinds a finance leaf shows. The
+		 * record's own identity always wins over a key of the same name.
+		 *
+		 * @type {object}
+		 */
+		placementProps: { type: Object, default: () => ({}) },
+
+		/**
 		 * The surface the leaf itself is told it renders on, when it differs
 		 * from `surface` (a leaf placed in a dialog that draws its sidebar-tab
 		 * look: `sidebar-tab`). Empty passes `surface`.
@@ -580,6 +589,7 @@ export default {
 		 */
 		leafProps(provider) {
 			return {
+				...this.placementProps,
 				integrationId: provider.id,
 				register: this.resolvedRegister,
 				schema: this.resolvedSchema,
