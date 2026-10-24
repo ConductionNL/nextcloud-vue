@@ -2,9 +2,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * A board dashboard row with one action (DqMijnTeam "Wachtrij van uw team",
- * "Oppakken") draws the action as an outlined button sized to its label and
- * its title link in the main ink. jsdom draws no layout, so the rules are
+ * A board dashboard row whose one action is outlined (`rowAction.variant:
+ * "outlined"`, DqMijnTeam "Wachtrij van uw team", "Oppakken") draws the action
+ * as an outlined button sized to its label and its title link in the main
+ * ink; without the variant the action keeps its 150px pill (DcMijnActies). jsdom draws no layout, so the rules are
  * read from the stylesheet.
  *
  * @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button
@@ -34,7 +35,7 @@ function declarationsOf(selector) {
 
 describe('look-board: a dashboard row action is an outlined button', () => {
 	it('outlines the action and sizes it to its label', () => {
-		const rule = declarationsOf(`${PREFIX} .cn-record-list__action`)
+		const rule = declarationsOf(`${PREFIX} .cn-record-list__action--outlined`)
 		expect(rule).toMatch(/border:\s*1px solid var\(--cn-board-control-border\)/)
 		expect(rule).toMatch(/border-radius:\s*8px/)
 		expect(rule).toMatch(/background:\s*var\(--color-main-background\)/)
@@ -43,7 +44,12 @@ describe('look-board: a dashboard row action is an outlined button', () => {
 	})
 
 	it('draws the title link in the main ink', () => {
-		const rule = declarationsOf(`${PREFIX} .cn-record-list__row--action .cn-record-list__title--link`)
+		const rule = declarationsOf(`${PREFIX} .cn-record-list__row--action:has(.cn-record-list__action--outlined) .cn-record-list__title--link`)
 		expect(rule).toMatch(/--nldesign-color-on-surface:\s*var\(--color-main-text\)/)
+	})
+
+	it('leaves an action without the variant to its 150px pill', () => {
+		expect(declarationsOf(`${PREFIX} .cn-record-list__action`)).toBe('')
+		expect(declarationsOf(`${PREFIX} .cn-record-list__row--action .cn-record-list__title--link`)).toBe('')
 	})
 })
