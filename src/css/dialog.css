@@ -212,6 +212,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding: 22px 24px 20px;
 }
 
+/* NcDialog's scoped `.dialog__content[data-v-…]` sets padding-inline-end
+   12px with the same specificity as the rule above, so wherever its chunk
+   loads later (an admin page's setup wizard) the body ran 12px wider than
+   the board (DqInstellen 684 for 672). This one outranks it. */
+.cn-dialog-board .dialog .dialog__content {
+	padding-inline-end: 24px;
+}
+
 .cn-dialog-board .dialog__content > .cn-dialog-header {
 	margin-bottom: -2px;
 }
