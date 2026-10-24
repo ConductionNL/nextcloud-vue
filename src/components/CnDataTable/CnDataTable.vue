@@ -1052,11 +1052,6 @@ export default {
 		},
 
 		/**
-		 * The active filter map, `{ paramKey: values[] }`: the same map the
-		 * facet sidebar writes, so a header filter and a sidebar filter on one
-		 * field show the same state.
-		 */
-		/**
 		 * The schema the header filters read instead of `schema`: a page that
 		 * filters through other fields than the rows' own (a named source's
 		 * search fields) hands them here. Null: the header filters read `schema`.
@@ -1068,6 +1063,11 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The active filter map, `{ paramKey: values[] }`: the same map the
+		 * facet sidebar writes, so a header filter and a sidebar filter on one
+		 * field show the same state.
+		 */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
