@@ -471,6 +471,27 @@ export function formatMasked(value, _row, _property, options) {
 }
 
 /**
+ * A stored value through a display map (`valueMap` registry key): the label
+ * `options.map` gives the value, else the value as stored. "Besloten
+ * Vennootschap" reads "BV" on DqOrganisaties.
+ *
+ * @param {unknown} value The stored value.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{map?: Object<string, string>}} [options] The column's `formatterOptions`.
+ * @return {string} The label, or the value.
+ * @spec openspec/changes/value-map-formatter/specs/index-page/spec.md#requirement-a-column-can-show-stored-values-through-a-display-map
+ */
+export function formatValueMap(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const map = options && options.map && typeof options.map === 'object' ? options.map : {}
+	const label = Object.hasOwn(map, String(value)) ? map[String(value)] : undefined
+	return typeof label === 'string' && label !== '' ? label : String(value)
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -516,4 +537,5 @@ export const BUILT_IN_FORMATTERS = {
 	connectionSettingsLabel: formatConnectionSettingsLabel,
 	masked: formatMasked,
 	isoDuration: formatIsoDuration,
+	valueMap: formatValueMap,
 }
