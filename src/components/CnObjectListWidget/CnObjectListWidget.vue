@@ -151,6 +151,7 @@
 						:sortKey="localSort.field || null"
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
+						:rowTitle="rowTitle"
 						:fitWidth="fitWidthActive"
 						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
@@ -180,6 +181,7 @@
 					:sortKey="localSort.field || null"
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
+					:rowTitle="rowTitle"
 					:fitWidth="fitWidthActive"
 					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
@@ -656,6 +658,17 @@ export default {
 			const selected = this.cnWidgetSelection.entry(this.cnHostWidgetId()).selected
 			const idOf = (row) => String((row && (row.id ?? row['@self']?.id)) ?? '')
 			return (row) => (selected && idOf(row) !== '' && idOf(row) === idOf(selected) ? 'cn-object-list-widget__row--selected' : '')
+		},
+
+		/**
+		 * How the table draws its title column (`content.rowTitle`: link, plain
+		 * or text), link when unset or unknown.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
+		 */
+		rowTitle() {
+			return ['plain', 'text'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
 		},
 
 		/**
