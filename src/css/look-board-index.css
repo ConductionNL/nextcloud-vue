@@ -62,6 +62,27 @@
 	margin-inline-start: 0;
 }
 
+/* With the side panel open the buttons take the row under the title, the
+   breadcrumb and the count line follow (DqZakenSorteren).
+   @spec openspec/changes/board-header-buttons-under-title-beside-side-panel/specs/board-header-buttons-under-title-beside-side-panel/spec.md#requirement-the-header-buttons-sit-under-the-title-while-the-side-panel-is-open */
+.cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-index-page__header-buttons,
+.cn-look-board .cn-index-page--sidebar-open .cn-page-header .cn-index-page__header-buttons {
+	grid-column: 1 / -1;
+	grid-row: 2;
+	justify-self: start;
+	margin-block: 6px 3px;
+}
+
+.cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-header-trail,
+.cn-look-board .cn-index-page--sidebar-open .cn-page-header .cn-header-trail {
+	grid-row: 3;
+}
+
+.cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description,
+.cn-look-board .cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description {
+	grid-row: 4;
+}
+
 /* The header buttons keep the board's button under a theme that styles every
    secondary or primary button with `!important` (the nldesign theme: a
    primary border, 8px 16px padding): Download and the Actions menu are 40px,

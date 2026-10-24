@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -8749,6 +8749,17 @@ export default {
 		 */
 		hasSidebar() {
 			return !!this.resolvedSidebar.enabled && this.resolvedSidebar.show !== false
+		},
+
+		/**
+		 * Whether the page's side panel is open now; the board look then lays
+		 * the header out narrower (DqZakenSorteren).
+		 *
+		 * @spec openspec/changes/board-header-buttons-under-title-beside-side-panel/specs/board-header-buttons-under-title-beside-side-panel/spec.md#requirement-the-header-buttons-sit-under-the-title-while-the-side-panel-is-open
+		 * @return {boolean}
+		 */
+		sidebarPanelOpen() {
+			return Boolean(this.sidebarOpen && this.hasSidebar)
 		},
 
 		/**
