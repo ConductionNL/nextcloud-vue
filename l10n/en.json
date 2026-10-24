@@ -2364,7 +2364,22 @@
     "w{week}": "w{week}",
     "Icon": "Icon",
     "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu.",
-    "No main contact yet": "No main contact yet"
+    "No main contact yet": "No main contact yet",
+    "is": "is",
+    "is not": "is not",
+    "greater than": "greater than",
+    "at least": "at least",
+    "less than": "less than",
+    "at most": "at most",
+    "is filled in": "is filled in",
+    "{field} is {value}": "{field} is {value}",
+    "{field} is not {value}": "{field} is not {value}",
+    "{field} is greater than {value}": "{field} is greater than {value}",
+    "{field} is at least {value}": "{field} is at least {value}",
+    "{field} is less than {value}": "{field} is less than {value}",
+    "{field} is at most {value}": "{field} is at most {value}",
+    "{field} is filled in": "{field} is filled in",
+    "No conditions: the rule always applies.": "No conditions: the rule always applies."
   },
   "plurals": {
     "{count} member": [

@@ -2614,7 +2614,22 @@
     "w{week}": "w{week}",
     "Icon": "Pictogram",
     "Shown when you point at the view in the menu.": "Te zien als u in het menu op de weergave wijst.",
-    "No main contact yet": "Nog geen hoofdcontact"
+    "No main contact yet": "Nog geen hoofdcontact",
+    "is": "is",
+    "is not": "is niet",
+    "greater than": "groter dan",
+    "at least": "minstens",
+    "less than": "kleiner dan",
+    "at most": "hoogstens",
+    "is filled in": "is ingevuld",
+    "{field} is {value}": "{field} {value} is",
+    "{field} is not {value}": "{field} niet {value} is",
+    "{field} is greater than {value}": "{field} groter is dan {value}",
+    "{field} is at least {value}": "{field} minstens {value} is",
+    "{field} is less than {value}": "{field} kleiner is dan {value}",
+    "{field} is at most {value}": "{field} hoogstens {value} is",
+    "{field} is filled in": "{field} is ingevuld",
+    "No conditions: the rule always applies.": "Geen voorwaarden: de regel geldt altijd."
   },
   "plurals": {
     "{count} member": [
