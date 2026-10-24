@@ -1402,14 +1402,24 @@ function searchSource(config = {}, context = {}) {
  * the pager asks for.
  *
  * @param {Array<object>} members The members, by name.
- * @param {object} config `search`, `sortKey`, `sortOrder`, `limit`, `offset`.
+ * @param {object} config `search`, `nameLike`, `rolesLike`, `emailLike`, `today`, `sortKey`, `sortOrder`, `limit`, `offset`.
  * @return {{rows: Array<object>, total: number}} The page and how many match.
  */
 function membersPage(members, config = {}) {
+	const has = (member, fields, text) => fields.some((field) => String(member[field] || '').toLowerCase().includes(text))
 	const term = String(config.search || '').trim().toLowerCase()
-	let rows = term === ''
-		? members.slice()
-		: members.filter((member) => ['displayname', 'function', 'roles', 'email'].some((field) => String(member[field] || '').toLowerCase().includes(term)))
+	let rows = term === '' ? members.slice() : members.filter((member) => has(member, ['displayname', 'function', 'roles', 'email'], term))
+	// The table heads' filters: text contains, and the Today values picked.
+	for (const [param, fields] of [['nameLike', ['displayname', 'function']], ['rolesLike', ['roles']], ['emailLike', ['email']]]) {
+		const text = String(config[param] || '').trim().toLowerCase()
+		if (text !== '') {
+			rows = rows.filter((member) => has(member, fields, text))
+		}
+	}
+	const today = (Array.isArray(config.today) ? config.today : (config.today ? [config.today] : [])).map(String)
+	if (today.length > 0) {
+		rows = rows.filter((member) => today.includes(member.today))
+	}
 	if (config.sortKey) {
 		const sign = config.sortOrder === 'desc' ? -1 : 1
 		rows = rows.sort((a, b) => sign * String(a[config.sortKey] ?? '').localeCompare(String(b[config.sortKey] ?? '')))
@@ -1471,10 +1481,11 @@ function usersSource() {
 		 */
 		load: async (config) => {
 			const group = String((config && (config.group || config.defaultGroup)) || '')
-			const { search, sortKey, sortOrder, limit, offset, ...request } = config || {}
+			const { search, sortKey, sortOrder, limit, offset, nameLike, rolesLike, emailLike, today, ...request } = config || {}
 			const key = JSON.stringify({ ...request, group })
-			// A new page, term or order of the members already read: no request.
-			if (key === membersKey && (offset !== undefined || search !== undefined || sortKey !== undefined)) {
+			const narrows = [offset, search, sortKey, nameLike, rolesLike, emailLike, today].some((value) => value !== undefined)
+			// A new page, term, order or head filter of the members already read: no request.
+			if (key === membersKey && narrows) {
 				const page = membersPage(readMembers, config)
 				state.rows = page.rows
 				state.total = page.total
@@ -1570,7 +1581,14 @@ function usersSource() {
 
 		searchFields: {
 			group: { param: 'group', single: true },
+			'displayname[like]': { param: 'nameLike', single: true },
+			'roles[like]': { param: 'rolesLike', single: true },
+			'email[like]': { param: 'emailLike', single: true },
+			today: { param: 'today' },
 		},
+
+		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
+		headerFilters: true,
 
 		showAdd: false,
 	}

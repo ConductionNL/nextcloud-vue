@@ -157,3 +157,32 @@ describe('users index source pages, searches and sorts', () => {
 		expect(source.rows().map((row) => row.email)).toEqual(['s.bakker@zuiddrecht.nl', 'l.dekoning@zuiddrecht.nl', 'j.ouali@zuiddrecht.nl'])
 	})
 })
+
+/**
+ * @spec openspec/changes/users-source-header-filters/specs/index-page/spec.md#requirement-the-users-source-filters-from-its-table-heads
+ */
+describe('users index source header filters', () => {
+	it('asks for a filter button on every head and declares the arguments they send', () => {
+		const source = resolveIndexSource('users')
+		expect(source.headerFilters).toBe(true)
+		expect(source.searchFields['displayname[like]']).toEqual({ param: 'nameLike', single: true })
+		expect(source.searchFields['roles[like]']).toEqual({ param: 'rolesLike', single: true })
+		expect(source.searchFields['email[like]']).toEqual({ param: 'emailLike', single: true })
+		expect(source.searchFields.today).toEqual({ param: 'today' })
+	})
+
+	it('narrows the members it read, without reading them again', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0 })
+		const calls = mockGet.mock.calls.length
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, rolesLike: 'teamleider' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Lars de Koning'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, emailLike: 'BAKKER' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Sanne Bakker'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, today: ['Buiten'] })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, nameLike: 'toezicht' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		expect(mockGet.mock.calls.length).toBe(calls)
+	})
+})
