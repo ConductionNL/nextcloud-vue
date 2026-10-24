@@ -19,7 +19,7 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detai
  * @return {string} The body, '' when absent.
  */
 function rule(selector) {
-	const at = css.indexOf(selector + ' {')
+	const at = css.lastIndexOf('\n' + selector + ' {')
 	return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
 }
 
