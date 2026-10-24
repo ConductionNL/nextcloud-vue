@@ -24,7 +24,7 @@
 
 		<!-- Active header filters, one removable chip each. -->
 		<ul
-			v-if="!isLoading && activeColumnFilterChips.length > 0"
+			v-if="filterChips && !isLoading && activeColumnFilterChips.length > 0"
 			class="cn-data-table__filter-chips"
 			:aria-label="activeFiltersLabel"
 			data-testid="cn-table-filter-chips">
@@ -1079,6 +1079,18 @@ export default {
 		filterSchema: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Draw the active header filters as removable chips above the table.
+		 * A host that lists them itself (the index page's board Active line)
+		 * turns this off, so a filter is not shown twice.
+		 *
+		 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+		 */
+		filterChips: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**

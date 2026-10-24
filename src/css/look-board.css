@@ -582,6 +582,31 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- An ordered list field ----------------------------------------------- */
+/* DqPersoonlijkeInstellingen "Weergaven in mijn menu": a row's labelled remove
+   button ("Uit menu halen") is an outlined secondary button, and the select
+   that adds a row runs the field's full width.
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	height: 34px;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid var(--cn-board-control-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-ordered-list-field__add .v-select:not(.cn-look-nextcloud *) {
+	width: 100%;
+	max-width: none;
+}
+
 /* ---- A secondary button --------------------------------------------------- */
 /* The boards draw every secondary button neutral: the main background, a 1px
    control border, the main text, the hover ground on hover (DqFlow "Testen
@@ -1407,6 +1432,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* A linked cell in a settings card's table reads in the text ink, as the index
+   tables do, not in the settings page's link blue (DqInstellingen: a
+   connection's name opens its settings card). The underline marks the link.
+   @spec openspec/changes/settings-table-link-ink/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-data-table a.cn-cell-renderer__link:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+	text-decoration: underline;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
@@ -1801,14 +1835,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.5;
 }
 
+/* `!important` on the size: a theme that sizes every paragraph with
+   `!important` (thematiq's paragraph token, 15px) would win otherwise. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) p {
 	color: var(--color-primary-element-light-text) !important;
-	font-size: inherit;
+	font-size: inherit !important;
 	line-height: inherit;
 }
 
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__heading {
-	font-size: inherit;
+	font-size: inherit !important;
 	font-weight: 700 !important;
 }
 
@@ -2886,9 +2922,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    gives the second pixel back so the words stay put. The board draws no
    option icon, only the radio and the words.
    @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+/* The radio sits 21px inside the option's edge (DqInstellen): 1px border and
+   20px padding, or 2px and 19px on the chosen option.
+   @spec openspec/changes/board-setup-choice-inset/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *) {
+	padding: 12px 20px;
+}
+
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *) {
-	padding: 11px 13px;
+	padding: 11px 19px;
 	border-width: 2px;
 	box-shadow: none;
 }

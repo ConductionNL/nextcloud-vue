@@ -91,7 +91,7 @@
 }
 
 .cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary:hover,
-.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle:hover {
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary:not(.action-item--open) .action-item__menutoggle:hover {
 	background: var(--color-background-hover) !important;
 }
 
@@ -1317,6 +1317,25 @@
 	font-size: 15px;
 }
 
+/* A card with actions holds them at its end, beside the title and meta (the
+   board's "···" on each task). */
+.cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 12px;
+	align-items: center;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > :not(.cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	grid-column: 1;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > .cn-grouped-cards__item-actions:not(.cn-look-nextcloud *) {
+	grid-column: 2;
+	grid-row: 1 / span 3;
+	margin: 0;
+}
+
 /* ---- A file's side card (CnFilesBrowser) --------------------------------- */
 /* The board's side card: radius 12, 20px 22px of padding, the title a 15px
    muted heading at 600, the facts 8px 16px apart with the values at 500
@@ -1500,4 +1519,31 @@
 .cn-look-board .cn-map-widget:not(.cn-map-widget--fullscreen) {
 	border-radius: var(--cn-board-control-radius);
 	overflow: hidden;
+}
+
+/* ---- A record list drawn as a data table (CnRecordListWidget) ----------- */
+/* `tableLook: "data"` (DqZaaktype "Berichten aan de aanvrager"): the board's
+   card table rather than the compact grid, a near-white header band at
+   14px/600 in the muted ink, 10px 12px, and 14px cells, 11px 12px, a
+   hairline above each row. Two classes more than the compact grid's rule.
+   @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-table-can-be-drawn-as-a-data-table */
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table th:not(.cn-look-nextcloud *) {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 0;
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table td:not(.cn-look-nextcloud *) {
+	padding: 11px 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: 0;
+	font-size: 14px;
+	line-height: 1.2;
 }
