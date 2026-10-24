@@ -9,10 +9,9 @@
  *
  * @spec openspec/changes/integration-card-subtitle/specs/detail-card/spec.md
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailCard from '../../src/components/CnDetailCard/CnDetailCard.vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { flushPromises } from '@vue/test-utils'
 import CnDeckCard from '../../src/integrations/builtin/deck/CnDeckCard.vue'
 
 describe('CnDetailCard subtitle', () => {
