@@ -141,6 +141,14 @@ describe('the manifest schema for actions per tab', () => {
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts tabs and notTabs on an inline stage action', () => {
+		const result = validateManifestV2(manifest({
+			stageField: 'status',
+			primaryActionByStage: { received: { id: 'next', type: 'open-modal', label: 'Next step', target: 'NextDialog', notTabs: ['ai'] } },
+		}))
+		expect(result.errors).toEqual([])
+	})
+
 	it('refuses an id-only quick action that names no tabs', () => {
 		expect(validateManifestV2(manifest({ quickActions: [{ id: 'document' }] })).valid).toBe(false)
 	})

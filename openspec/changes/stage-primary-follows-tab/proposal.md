@@ -10,4 +10,4 @@ COMPDIFF r25b DqZaakAssistent (24 Oct): on the AI oversight tab the "what now" c
 
 ## Impact
 
-CnDetailPage only, opt-in. No schema change (`headerAction` is open).
+CnDetailPage only, opt-in. Schema 2.155.0: `headerAction` takes `tabs` and `notTabs` (its object form allows no unknown keys).
