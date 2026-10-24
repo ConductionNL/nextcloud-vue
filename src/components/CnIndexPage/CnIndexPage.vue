@@ -8499,8 +8499,10 @@ export default {
 			if (this.savedViewSave === false || this.headerSavesView) {
 				return false
 			}
-			// The board look offers it once the view has changed.
-			return !this.isBoardLook || this.viewChanged
+			// The board look offers it once the view differs from the one
+			// opened: changed by the reader, or, with no saved view open,
+			// filtered by the address.
+			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
 		},
 
 		/**

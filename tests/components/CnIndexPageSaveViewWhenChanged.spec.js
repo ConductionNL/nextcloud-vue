@@ -15,11 +15,12 @@ import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 
 /**
  * @param {string} look The provided look.
+ * @param {object} [extra] Extra props.
  * @return {object} The wrapper.
  */
-function mountPage(look) {
+function mountPage(look, extra = {}) {
 	return mount(CnIndexPage, {
-		propsData: { title: 'Cases', schema: { title: 'Case', properties: {} }, objects: [], pagination: { page: 1, pages: 1, total: 0, limit: 20 } },
+		propsData: { title: 'Cases', schema: { title: 'Case', properties: {} }, objects: [], pagination: { page: 1, pages: 1, total: 0, limit: 20 }, ...extra },
 		global: {
 			provide: { cnLook: look },
 			mocks: { $router: { push: jest.fn(), replace: jest.fn(() => Promise.resolve()) }, $route: { query: {}, name: 'Cases' } },
@@ -51,6 +52,13 @@ describe('Save view in the board look', () => {
 		w.vm.onSearchEvent('lindelaan')
 		w.vm.onApplySavedView({ id: 'v1', name: 'Mine', query: { filters: {} } })
 		await w.vm.$nextTick()
+		expect(w.vm.toolbarSavesView).toBe(false)
+	})
+
+	it('comes for a list the address filtered, with no saved view open', () => {
+		const w = mountPage('board', { activeFilters: { status: 'open' } })
+		expect(w.vm.toolbarSavesView).toBe(true)
+		w.vm.appliedSavedViewId = 'v1'
 		expect(w.vm.toolbarSavesView).toBe(false)
 	})
 
