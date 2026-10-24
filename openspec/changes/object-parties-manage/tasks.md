@@ -1,0 +1,4 @@
+- [x] 1 jest: manage buttons, scope hiding, roles offered, add known / new + primary, refusal, remove (widget, dialog, helpers)
+- [x] 2 CnPartyAddDialog in src/dialogs; newPartyRecord and savedUuid
+- [x] 3 CnObjectPartiesWidget `content.manage`
+- [x] 4 docs/components/cn-object-parties-widget.md, l10n en/nl
