@@ -89,6 +89,22 @@ describe('CnCellRenderer — declarative format', () => {
 			})
 			expect(wrapper.text()).toBe('~42 pts')
 		})
+
+		it('formats style:"decimal" as a number with one fraction digit by default, as the metrics do', () => {
+			const expected = (num, digits) => new Intl.NumberFormat(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(num)
+			const wrapper = mountRenderer({
+				value: 56,
+				property: { type: 'number' },
+				format: { style: 'decimal' },
+			})
+			expect(wrapper.text()).toBe(expected(56, 1))
+			const two = mountRenderer({
+				value: 28.125,
+				property: { type: 'number' },
+				format: { style: 'decimal', decimals: 2 },
+			})
+			expect(two.text()).toBe(expected(28.125, 2))
+		})
 	})
 
 	describe('duration', () => {
