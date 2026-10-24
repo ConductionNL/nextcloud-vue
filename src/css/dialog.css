@@ -204,6 +204,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	gap: 10px;
 }
 
+/* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
+   the board draws it (DqOverdragen, 76px for a label and a two-line note):
+   10px 14px padding, the checkbox row at the 24px minimum target instead of
+   NcCheckboxRadioSwitch's 34px, the note at 1.2 line height. */
+.cn-dialog-board .cn-assign-dialog__toggle {
+	padding: 10px 14px;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content,
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle-note {
+	line-height: 1.2;
+}
+
 /* Body: padding 20px 24px, 18px between blocks. */
 .cn-dialog-board .dialog__content {
 	display: flex;

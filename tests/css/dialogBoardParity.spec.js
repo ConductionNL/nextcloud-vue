@@ -56,6 +56,14 @@ describe('dialog.css: the board dialog', () => {
 		expect(subtitle).toContain('--nldesign-component-paragraph-color: var(--color-text-maxcontrast);')
 	})
 
+	it('draws a checkbox choice card as tight as the board, the row at the 24px target (DqOverdragen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
+		const row = bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content')
+		expect(row).toContain('min-height: 24px;')
+		expect(row).toContain('padding-block: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle-note')).toContain('line-height: 1.2;')
+	})
+
 	it('sets a dialog checkbox flush with the fields, its label 10px after the box (DqBerichtVersturen)', () => {
 		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
 		expect(content).toContain('padding-inline: 0;')
