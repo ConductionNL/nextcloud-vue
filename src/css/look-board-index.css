@@ -1981,3 +1981,24 @@
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
 	color: var(--color-primary-element-light-text);
 }
+
+/* ---- The side-panel grid's row spacing --------------------------------- */
+/* The side-panel page is a grid of seven rows; a row-gap opens between every
+   pair, empty or not, so a page without below-header, stat row or chip row
+   drew 60px of nothing under its header (DqZoekresultaten). The grid has no
+   row gap here; each part that is present carries the section gap under it.
+   @spec openspec/changes/side-panel-grid-no-empty-row-gaps/specs/side-panel-grid-no-empty-row-gaps/spec.md */
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) {
+	row-gap: 0;
+}
+
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > :first-child,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__below-header,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-actions-bar {
+	margin-bottom: var(--cn-board-section-gap);
+}
+
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
+	margin-bottom: calc(var(--cn-board-section-gap) + 12px);
+}
