@@ -1427,7 +1427,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.151.0 adds the api-call PATCH method (r24-api-call-patch), a card layout note (cardLayout.note, card-layout-note), a page filter without a control (control: none, page-filter-without-control) and a default view's description and secondary flag (default-views-secondary).
 		// 2.152.0 adds the chart's week categories (categoryFormat: week, chart-week-categories), a header meta line in the singular or plural (header-meta-plural) and a list segment in the view switch (view-switch-order-and-more), an export's exportId and an open-form that edits through an endpoint without a schema (the shapes dossiq ships), and the @source facts token (dossiq DqZaaktypeVelden).
 		// 2.153.0 adds an action's confirm wording and icon (action-confirm-label-icon).
-		// 2.154.0 adds quickFilterPlacement `active` (index-toolbar-start-and-active-only-quick-filters).
+		// 2.154.0 adds quickFilterPlacement `active` (index-toolbar-start-and-active-only-quick-filters) and a record-list footerAction list with an entry note and wide flag (record-list-pill-cases-footer-choice).
 		expect(schema.version).toBe('2.154.0')
 	})
 
