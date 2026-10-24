@@ -1407,6 +1407,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* A linked cell in a settings card's table reads in the text ink, as the index
+   tables do, not in the settings page's link blue (DqInstellingen: a
+   connection's name opens its settings card). The underline marks the link.
+   @spec openspec/changes/settings-table-link-ink/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-data-table a.cn-cell-renderer__link:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+	text-decoration: underline;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
