@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.153.0",
+	"version": "2.154.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -543,6 +543,20 @@
 		}
 	},
 	"$defs": {
+		"recordListFooterAction": {
+			"type": "object",
+			"additionalProperties": true,
+			"required": ["label"],
+			"properties": {
+				"label": { "type": "string", "minLength": 1 },
+				"icon": { "type": "string", "minLength": 1 },
+				"note": { "type": "string" },
+				"wide": { "type": "boolean" },
+				"visibleWhen": { "$ref": "#/$defs/visibleWhen" },
+				"disabledWhen": { "$ref": "#/$defs/visibleWhen" },
+				"disabledReason": { "type": "string" }
+			}
+		},
 		"fieldOverride": {
 			"type": "object",
 			"additionalProperties": true,
@@ -2361,16 +2375,11 @@
 										"type": "object",
 										"properties": {
 											"footerAction": {
-												"type": "object",
-												"additionalProperties": true,
-												"required": ["label"],
-												"description": "One action under the list, also under the empty text (DqBezwaar \"Beroep registreren\"). Its other keys are an action's (`type`, `route`, `form`, ...). While `disabledWhen` holds it is disabled and says `disabledReason` (\"Kan zodra de beslissing is verzonden\"). Label and reason go through the host's translate.",
-												"properties": {
-													"label": { "type": "string", "minLength": 1 },
-													"icon": { "type": "string", "minLength": 1 },
-													"disabledWhen": { "$ref": "#/$defs/visibleWhen" },
-													"disabledReason": { "type": "string" }
-												}
+												"description": "One action under the list, also under the empty text (DqBezwaar \"Beroep registreren\"). Its other keys are an action's (`type`, `route`, `form`, ...). While `disabledWhen` holds it is disabled and says `disabledReason` (\"Kan zodra de beslissing is verzonden\"). `note` is a line above it, `wide: true` stretches it across the card. A list of actions draws the first whose `visibleWhen` (a local condition over the page's record) holds (DqZaaktype Versies). Label, reason and note go through the host's translate.",
+												"anyOf": [
+													{ "$ref": "#/$defs/recordListFooterAction" },
+													{ "type": "array", "items": { "$ref": "#/$defs/recordListFooterAction" } }
+												]
 											},
 											"dot": { "description": "A colour dot before the title: a field name, or `{ field, colorMap? }` (2.129.0).", "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "object", "required": ["field"], "additionalProperties": false, "properties": { "field": { "type": "string", "minLength": 1 }, "colorMap": { "type": "object", "additionalProperties": { "type": "string" } } } }] },
 											"flags": { "type": "array", "description": "The labels of the flags a row has, at its end (\"Start\", \"End\"): `[{ field, label, value? }]` (DqZaaktypeOverzicht, 2.129.0).", "items": { "type": "object", "required": ["field", "label"], "additionalProperties": false, "properties": { "field": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "value": {} } } }
