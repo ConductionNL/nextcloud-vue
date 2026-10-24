@@ -172,7 +172,7 @@
 				:maxVisible="quickFilterMaxVisible"
 				:fit="false"
 				:multiple="quickFilterMultiple"
-				:activeIndex="activeQuickFilterIndex"
+				:activeIndex="shownQuickFilterIndex"
 				:selectedIndices="selectedQuickFilterIndices"
 				:counts="effectiveTabCounts"
 				@update:activeIndex="onQuickFilterChange"
@@ -2179,6 +2179,21 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-index-header-reads-title-count-and-the-board-buttons
 		 */
 		countText: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the count line while a saved view is applied (manifest
+		 * `config.savedViewCountText`), a template as `countText` that may name
+		 * the view's conditions as `{view}`: its description, else its filters
+		 * in words (DqFilterInMenu "3 van 48 lopende zaken · termijn binnen 7
+		 * dagen, van mij · gesorteerd op termijn"). A view's own `countText`
+		 * override and a scope's come first.
+		 *
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		savedViewCountText: {
 			type: String,
 			default: '',
 		},
@@ -4520,6 +4535,8 @@ export default {
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
 			appliedSavedViewId: '',
+			/** Whether the reader picked a lens chip after the applied view (then their chip shows). */
+			lensChosenByHand: false,
 			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
 			viewSortOption: '',
 			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
@@ -6347,13 +6364,53 @@ export default {
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
 		/**
-		 * The chip the strip lights: the active tab, else the default tab of
-		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
-		 * one the fetch applies.
+		 * The lens chip an applied saved view narrows within: the non-default
+		 * tab whose every condition the view's own conditions (its filters
+		 * over its locked filters, tokens as written) hold, the most specific
+		 * first (DqFilterInMenu: "Termijn deze week" lit for the view of that
+		 * name). Null without an applied view or a fitting tab.
+		 *
+		 * @return {number|null} The tab index.
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewLensIndex() {
+			const view = this.appliedSavedView
+			const tabs = Array.isArray(this.tabStripEntries) ? this.tabStripEntries : []
+			if (!view || tabs.length === 0) {
+				return null
+			}
+			const query = view.query && typeof view.query === 'object' ? view.query : {}
+			const locked = query.overrides && typeof query.overrides.lockedFilters === 'object' ? query.overrides.lockedFilters : {}
+			const conditions = { ...(locked || {}), ...(query.filters || view.filters || {}) }
+			const same = (a, b) => JSON.stringify(Array.isArray(a) ? a.map(String) : String(a)) === JSON.stringify(Array.isArray(b) ? b.map(String) : String(b))
+			let best = null
+			let bestSize = 0
+			tabs.forEach((tab, index) => {
+				const filter = tab && tab.filter && typeof tab.filter === 'object' ? tab.filter : {}
+				const keys = Object.keys(filter)
+				if (tab.default === true || keys.length === 0 || keys.length <= bestSize) {
+					return
+				}
+				if (keys.every((key) => Object.hasOwn(conditions, key) && same(conditions[key], filter[key]))) {
+					best = index
+					bestSize = keys.length
+				}
+			})
+			return best
+		},
+
+		/**
+		 * The chip the strip lights: the lens an applied saved view narrows
+		 * within (until the reader picks a chip), else the active tab, else
+		 * the default tab of tabs that arrived after setup
+		 * (`quickFiltersFrom`), which is the one the fetch applies.
 		 *
 		 * @return {number|null} The tab index, or null without tabs.
 		 */
 		shownQuickFilterIndex() {
+			if (!this.quickFilterMultiple && !this.lensChosenByHand && this.appliedViewLensIndex !== null) {
+				return this.appliedViewLensIndex
+			}
 			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
 				return this.activeQuickFilterIndex
 			}
@@ -8653,6 +8710,11 @@ export default {
 		 * @return {string}
 		 */
 		presentedCountText() {
+			const viewLine = this.savedViewCountText
+			const view = this.appliedSavedView
+			if (view && typeof viewLine === 'string' && viewLine !== '' && this.activeScopePresentation.countText === undefined && !savedViewOverrides(view)?.countText) {
+				return viewLine
+			}
 			if (this.activeScopePresentation.countText === undefined) {
 				const byView = this.countTextByView
 				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
@@ -8661,6 +8723,23 @@ export default {
 				}
 			}
 			return this.presented('countText')
+		},
+
+		/**
+		 * The applied saved view's conditions for the count line's `{view}`:
+		 * its description, else its filters in words, starting lower case.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewConditionsText() {
+			const view = this.appliedSavedView
+			if (!view) {
+				return ''
+			}
+			const own = typeof view.description === 'string' ? view.description.trim() : ''
+			const text = own !== '' ? own : String(this.viewFilterSummary(view) || '')
+			return text.charAt(0).toLowerCase() + text.slice(1)
 		},
 
 		headerDescriptionBase() {
@@ -8686,6 +8765,7 @@ export default {
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
+						.replace(/\{view\}/g, this.appliedViewConditionsText)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -10616,6 +10696,7 @@ export default {
 			// `activeQuickFilterIndex` is a setup-returned ref; the
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
+			this.lensChosenByHand = true
 			this.$emit('quick-filter-change', index)
 		},
 
@@ -13019,6 +13100,7 @@ export default {
 		 */
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
+			this.lensChosenByHand = false
 			const state = extractViewState(view)
 			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
 			// and an optional one that answers nothing (no team) is dropped. A
