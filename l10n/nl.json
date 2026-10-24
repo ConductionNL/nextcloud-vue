@@ -2631,7 +2631,8 @@
     "Talk to {agent}": "Praten met {agent}",
     "Search a person or group": "Zoek een persoon of groep",
     "Now: by {order}.": "Nu: op {order}.",
-    "You save the order along with a view.": "De sortering bewaart u mee in een weergave."
+    "You save the order along with a view.": "De sortering bewaart u mee in een weergave.",
+    "Link a contact from your address book.": "Koppel een contact uit je adresboek."
   },
   "plurals": {
     "{count} member": [
