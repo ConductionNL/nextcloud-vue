@@ -1211,6 +1211,16 @@
 	font-weight: 500;
 }
 
+/* "Bewaren voor een procedure" and "Overdracht naar het e-Depot" are 15px/600
+   section titles over their rows, not the inner heading's 1.4em. */
+.cn-look-board .cn-retention .cn-retention__section > .cn-inner-heading,
+.cn-look-board .cn-retention .cn-retention__outcome > .cn-inner-heading {
+	margin: 4px 0 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
 /* ---- The task table's row button (CnTasksWidget table, DqZaakTaken) ------ */
 /* "Afronden" is a 34px secondary with 13px text 14px in. NcButton pads a
    text-only label 12px plus 4px inside; the doubled class outranks its
