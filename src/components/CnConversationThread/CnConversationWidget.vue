@@ -6,6 +6,7 @@
 <template>
 	<div class="cn-case-widget-card">
 		<CnConversationThread
+			ref="thread"
 			:messages="messages"
 			:title="tr(content.title || '')"
 			:subtitle="tr(content.subtitle || '')"
@@ -34,7 +35,7 @@
 					data-testid="cn-conversation-templates"
 					@apply="applyTemplate($event, setDraft)" />
 			</template>
-			<template v-if="replyOptions.length > 0" #reply-actions>
+			<template v-if="replyOptions.length > 0 || draftUrl" #reply-actions="{ draft }">
 				<NcCheckboxRadioSwitch
 					v-for="option in replyOptions"
 					:key="option.key"
@@ -42,6 +43,19 @@
 					:data-testid="`cn-conversation-option-${option.key}`">
 					{{ tr(option.label) }}
 				</NcCheckboxRadioSwitch>
+				<span v-if="draftUrl && draftStatus"
+					class="cn-conversation-widget__draft-status"
+					role="status"
+					data-testid="cn-conversation-draft-status">
+					{{ draftStatus }}
+				</span>
+				<NcButton
+					v-if="draftUrl"
+					data-testid="cn-conversation-save-draft"
+					:disabled="savingDraft"
+					@click="saveDraft(draft)">
+					{{ t('nextcloud-vue', 'Save as draft') }}
+				</NcButton>
 			</template>
 			<template v-if="headerAction || statusBadgeText" #header-actions>
 				<span v-if="statusBadgeText"
@@ -71,11 +85,13 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
 import CnConversationThread from './CnConversationThread.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { formatTimeOfDay } from '../../utils/boardDate.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -178,6 +194,10 @@ export default {
 			acting: '',
 			/** The threads `statusBadge` reads. */
 			badgeRows: [],
+			/** What the last draft save said: when it was saved, or that it failed. */
+			draftStatus: '',
+			/** Whether a draft is being saved. */
+			savingDraft: false,
 		}
 	},
 
@@ -315,6 +335,21 @@ export default {
 		 * @return {string} The URL, or '' when the content names none.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
+		/**
+		 * The reply draft's url (`content.draft.url`, `@objectId` filled in),
+		 * or '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/conversation-reply-draft/specs/conversation-reply-draft/spec.md#requirement-a-reply-can-be-saved-as-a-draft-and-comes-back
+		 */
+		draftUrl() {
+			const url = this.content.draft && this.content.draft.url
+			if (typeof url !== 'string' || url === '') {
+				return ''
+			}
+			return url.replace(/@objectId/g, encodeURIComponent(String(this.objectId ?? '')))
+		},
+
 		endpoint() {
 			const url = this.content.endpoint
 			if (typeof url !== 'string' || url === '') {
@@ -340,6 +375,7 @@ export default {
 			handler() {
 				this.loadSource()
 				this.loadBadge()
+				this.loadDraft()
 			},
 		},
 	},
@@ -353,6 +389,61 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Read the saved reply draft into the reply box.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/conversation-reply-draft/specs/conversation-reply-draft/spec.md#requirement-a-reply-can-be-saved-as-a-draft-and-comes-back
+		 */
+		async loadDraft() {
+			if (!this.draftUrl) {
+				return
+			}
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const { generateUrl } = await import('@nextcloud/router')
+				const { data } = await axios.get(generateUrl(this.draftUrl))
+				const text = data && typeof data.text === 'string' ? data.text : ''
+				if (text !== '' && this.$refs.thread) {
+					this.$refs.thread.setDraft(text)
+				}
+			} catch {
+				// No saved draft to read leaves the box empty.
+			}
+		},
+
+		/**
+		 * Store the reply box as the draft and say when it was saved.
+		 *
+		 * @param {string} text The reply box's text.
+		 * @return {Promise<void>}
+		 */
+		async saveDraft(text) {
+			this.savingDraft = true
+			try {
+				await this.storeDraft(String(text ?? ''))
+				this.draftStatus = t('nextcloud-vue', 'Draft saved at {time}', { time: formatTimeOfDay(new Date()) })
+			} catch {
+				this.draftStatus = t('nextcloud-vue', 'The draft could not be saved')
+			} finally {
+				this.savingDraft = false
+			}
+		},
+
+		/**
+		 * PUT the draft text.
+		 *
+		 * @param {string} text The text; '' clears the draft.
+		 * @return {Promise<void>}
+		 */
+		async storeDraft(text) {
+			const { default: axios } = await import('@nextcloud/axios')
+			const { generateUrl } = await import('@nextcloud/router')
+			await axios.put(generateUrl(this.draftUrl), { text })
+		},
+
 		/**
 		 * Read the messages again when the page refreshes (a dialog sent one).
 		 *
@@ -691,6 +782,9 @@ export default {
 			if (typeof text !== 'string' || text === '') {
 				return
 			}
+			if (this.draftUrl) {
+				this.storeDraft('')
+			}
 			this.sentHere.push({
 				id: `sent-${this.sentHere.length}`,
 				time: new Date().toISOString(),
@@ -721,5 +815,10 @@ export default {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large);
 	padding: calc(5 * var(--default-grid-baseline));
+}
+
+.cn-conversation-widget__draft-status {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 </style>
