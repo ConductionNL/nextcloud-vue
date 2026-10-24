@@ -51,6 +51,10 @@
 			ref="panel"
 			:visible="embedded || isPanelOpen"
 			:embedded="embedded"
+			:titled="titled"
+			:note="note"
+			:inputPlaceholder="inputPlaceholder"
+			:sendLabel="sendLabel"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
 			:context="effectiveContext"
@@ -59,7 +63,8 @@
 			@close="closePanel"
 			@send="onSend"
 			@newThread="onNewThread"
-			@loadConversation="onLoadConversation" />
+			@loadConversation="onLoadConversation"
+			@menu="$emit('menu', $event)" />
 	</div>
 </template>
 
@@ -191,7 +196,33 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/** An embedded chat in a card that draws its title; see CnAiChatPanel `titled`. */
+		titled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** A line above the input, already translated. */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/** The input's placeholder, already translated. */
+		inputPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
 	},
+
+	emits: ['menu'],
 
 	data() {
 		return {
