@@ -99,6 +99,7 @@
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
 			:collapsedFields="content.collapsedFields ?? null"
+			:footnote="content.footnote || ''"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into

@@ -205,6 +205,40 @@ describe('CnSavedViewMenuSettings', () => {
 		expect(line).not.toContain('isDraft')
 	})
 
+	/**
+	 * @spec openspec/changes/saved-view-summary-match-field-labels/specs/saved-view-menu-settings/spec.md#requirement-a-filter-on-a-records-identifier-reads-as-the-records-name
+	 */
+	it('names a record a filter identifies by another field, as the page\'s filterLabels says', async () => {
+		const manifest = {
+			pages: [{
+				id: 'Cases',
+				type: 'index',
+				title: 'All cases',
+				config: {
+					register: 'dossiq',
+					schema: 'case',
+					allowSavedViews: true,
+					filterLabels: { caseTypeIdentifier: { label: 'Case type', reference: { schema: 'caseType', matchField: 'identifier', labelField: 'title' } } },
+				},
+			}],
+		}
+		mockGet.mockImplementation(async () => ({ data: { results: [{ id: 12, name: 'Woo requests', query: { scope: 'dossiq/case', filters: { caseTypeIdentifier: 'woo-verzoek' } } }] } }))
+		global.fetch = jest.fn(async (url) => ({
+			ok: true,
+			json: async () => (String(url).includes('/schemas/') ? SCHEMA : (String(url).includes('identifier=woo-verzoek') ? { results: [{ id: 'woo-uuid', identifier: 'woo-verzoek', title: 'Woo-verzoek' }] } : { results: [] })),
+		}))
+		const wrapper = mount(CnSavedViewMenuSettings, {
+			global: {
+				provide: { cnSavedViewMenu: { entries: [{ id: '12', page: 'Cases', name: 'Woo requests' }], set: jest.fn() }, cnManifest: manifest, cnTranslate: (key) => key },
+				stubs: { NcSelect: NcSelectStub },
+			},
+		})
+		await flushPromises()
+		await flushPromises()
+		expect(wrapper.find('.cn-ordered-list-field__row').text()).toContain('Case type Woo-verzoek')
+		expect(global.fetch.mock.calls.some(([url]) => String(url).includes('/objects/dossiq/caseType') && String(url).includes('identifier=woo-verzoek'))).toBe(true)
+	})
+
 	it('asks for a page\'s schema again when it could not be read, so a failed read is not a session of raw keys', async () => {
 		const manifest = {
 			pages: [{ id: 'Retry', type: 'index', title: 'Retry', config: { register: 'retryreg', schema: 'case', allowSavedViews: true } }],

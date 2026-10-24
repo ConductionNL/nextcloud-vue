@@ -1368,6 +1368,7 @@
 	margin-inline-start: auto;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	white-space: nowrap;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record .cn-object-card__title {
@@ -1380,12 +1381,19 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-meta {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 }
 
+/* The meta line, note and description are paragraphs: each hands the theme,
+   which sets paragraphs with `!important`, its own size and ink. */
 .cn-look-board .cn-object-card--board .cn-object-card__record-note {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-font-weight: 600;
+	--nldesign-component-paragraph-color: var(--cn-board-text-soft);
 	margin: 0;
 	color: var(--cn-board-text-soft);
 	font-size: 13px;
@@ -1393,10 +1401,12 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
+	--nldesign-component-paragraph-color: var(--cn-status-purple-text);
 	color: var(--cn-status-purple-text);
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--teal {
+	--nldesign-component-paragraph-color: var(--cn-status-teal-text);
 	color: var(--cn-status-teal-text);
 }
 
@@ -1433,6 +1443,9 @@
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-description {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.4;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
@@ -1869,6 +1882,22 @@
 	font-weight: 700;
 }
 
+/* A pill in a trailing cell stays inside the cell's width and ends in an
+   ellipsis, instead of running over the next cell (DqTeamwachtrij). */
+.cn-look-board .cn-object-row__trail .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	display: block;
+	max-width: 100%;
+}
+
+.cn-look-board .cn-object-row__trail .cn-status-badge:not(.cn-look-nextcloud *) {
+	display: inline-block;
+	box-sizing: border-box;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	vertical-align: middle;
+}
+
 /* ---- The map view's missing-address card (DqZakenKaart) ---------------- */
 /* The board draws "3 zaken zonder adres" as a 15px title at its normal line
    height with "Toon ze in de tabel" under it as a link flush with the title,
@@ -2029,4 +2058,25 @@
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row:is(.cn-saved-views-panel__row--selected, :has(.action-item--open)) .cn-saved-views-panel__name-text {
 	color: var(--color-primary-element-light-text);
+}
+
+/* ---- The side-panel grid's row spacing --------------------------------- */
+/* The side-panel page is a grid of seven rows; a row-gap opens between every
+   pair, empty or not, so a page without below-header, stat row or chip row
+   drew 60px of nothing under its header (DqZoekresultaten). The grid has no
+   row gap here; each part that is present carries the section gap under it.
+   @spec openspec/changes/side-panel-grid-no-empty-row-gaps/specs/side-panel-grid-no-empty-row-gaps/spec.md */
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) {
+	row-gap: 0;
+}
+
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > :first-child,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__below-header,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-actions-bar {
+	margin-bottom: var(--cn-board-section-gap);
+}
+
+.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
+	margin-bottom: calc(var(--cn-board-section-gap) + 12px);
 }
