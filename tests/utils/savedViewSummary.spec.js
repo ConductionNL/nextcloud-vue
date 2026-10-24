@@ -108,4 +108,3 @@ describe('viewFilterReferences from the page\'s filterLabels', () => {
 		})).toBe('Zaaktype Woo-verzoek')
 	})
 })
-
