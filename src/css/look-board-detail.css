@@ -1472,3 +1472,39 @@
 	border-radius: var(--cn-board-control-radius);
 	overflow: hidden;
 }
+
+/* A checklist (DqTaak): each item an 18-20px box at the card's own inset, the
+   label 10px after it in weight 600, 12px between items, the list 2px below
+   the title block. Nextcloud's checkbox pads its box 7px in and makes every row
+   34px tall, which put the list 7px right and 2px apart too far per item.
+   @spec openspec/changes/board-checklist-rows/specs/checklist-widget/spec.md#requirement-a-board-checklist-sits-at-the-card-inset */
+.cn-look-board .cn-checklist-widget__items {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content {
+	padding: 0;
+	gap: 10px;
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content.checkbox-content .checkbox-content__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch__input {
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__wrapper,
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	line-height: 18px;
+	min-height: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	font-weight: 600;
+}
