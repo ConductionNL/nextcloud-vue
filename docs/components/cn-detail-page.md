@@ -621,6 +621,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `formSize` (`form-size`) | String | `'normal'` | NcDialog size for this page's create and edit form dialogs (`'small'`, `'normal'`, `'large'`). Set from the manifest as `config.formSize`. Before 2.44.0 the page passed no size, so both forms sat at `normal` however many properties the schema declared, while a manifest `open-form` header action could already ask for `large`. |
 | `formColumns` (`form-columns`) | Number | `1` | How many columns the create and edit forms flow their fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Textareas and JSON editors still span both, and the layout collapses back to one column below 700px. Set from the manifest as `config.formColumns`. |
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
+| `editTitle` | String | `''` | Title of the record edit form, run through the host translate. Empty uses the Edit button's label. |
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
 
 ### Widget icons (ADR-062)
