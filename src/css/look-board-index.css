@@ -954,6 +954,19 @@
 	font-weight: 700;
 }
 
+/* `widgetProps.tone: "neutral"`: the grey person chip (DqContacten), 13px,
+   12px before the name.
+   @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 13px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {
+	gap: 12px;
+}
+
 .cn-look-board .cn-table-container--board .cn-data-table td.cn-table-col--title .cn-cell-renderer__avatar-name {
 	text-decoration: underline;
 	text-underline-offset: 2px;
