@@ -701,13 +701,20 @@ export default {
 	width: 1px;
 }
 
+/* A theme's paragraph rule sets every p's size and colour with !important
+   (thematiq), so the note and the footnote also set its tokens.
+   @spec openspec/changes/calendar-footnote-paragraph-tokens/specs/working-calendar-footnote/spec.md */
 .cn-working-calendar__note {
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	color: var(--color-text-maxcontrast);
 	margin: 0;
 }
 
 /* @spec openspec/changes/working-calendar-footnote/specs/working-calendar-footnote/spec.md */
 .cn-working-calendar__footnote {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-line-height: 1.3;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	font-size: 13px;
 	line-height: 1.3;
