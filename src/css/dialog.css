@@ -212,8 +212,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding: 22px 24px 20px;
 }
 
+/* The body starts 22px under the header, as most dialog boards draw it
+   (header padding-bottom 4px + form padding-top 18px; DqBerichtVersturen,
+   DqOverdragen, DqNieuweZaak, DqBesluit): the 18px gap plus 4px. */
 .cn-dialog-board .dialog__content > .cn-dialog-header {
-	margin-bottom: -2px;
+	margin-bottom: 4px;
 }
 
 /* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
