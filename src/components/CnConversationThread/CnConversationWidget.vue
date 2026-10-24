@@ -382,10 +382,12 @@ export default {
 
 	mounted() {
 		subscribe('cn:page:refresh', this.onPageRefresh)
+		subscribe('cn:conversation:reply-sent', this.onReplySentElsewhere)
 	},
 
 	beforeUnmount() {
 		unsubscribe('cn:page:refresh', this.onPageRefresh)
+		unsubscribe('cn:conversation:reply-sent', this.onReplySentElsewhere)
 	},
 
 	methods: {
@@ -429,6 +431,30 @@ export default {
 				this.draftStatus = t('nextcloud-vue', 'The draft could not be saved')
 			} finally {
 				this.savingDraft = false
+			}
+		},
+
+		/**
+		 * A reply on this record went out through a dialog or another surface
+		 * (`cn:conversation:reply-sent` with `{ objectId }`): the saved draft
+		 * and the reply box are cleared.
+		 *
+		 * @param {{objectId?: string}} payload The record the reply was on.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/conversation-reply-draft/specs/conversation-reply-draft/spec.md#requirement-a-reply-can-be-saved-as-a-draft-and-comes-back
+		 */
+		async onReplySentElsewhere(payload) {
+			if (!this.draftUrl || String(payload?.objectId ?? '') !== String(this.objectId ?? '')) {
+				return
+			}
+			if (this.$refs.thread) {
+				this.$refs.thread.setDraft('')
+			}
+			this.draftStatus = ''
+			try {
+				await this.storeDraft('')
+			} catch {
+				// The next save overwrites a draft that could not be cleared.
 			}
 		},
 

@@ -13,5 +13,6 @@ CnConversationWidget `content.draft: { url }`: on load the widget reads the
 saved draft (`GET url` answers `{ text }`) into the reply box; "Save as draft"
 beside Send stores the box (`PUT url` with `{ text }`) and says when it was
 saved, or that it could not be. A reply that goes out through the widget's
-own endpoint clears the draft. `@objectId` in the url is the record. The app
+own endpoint clears the draft, and so does `cn:conversation:reply-sent`
+`{ objectId }` on the event bus, which a send dialog emits. `@objectId` in the url is the record. The app
 owns the endpoint and who may read it.

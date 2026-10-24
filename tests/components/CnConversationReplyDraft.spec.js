@@ -56,3 +56,23 @@ describe('CnConversationWidget reply draft', () => {
 		expect(w.find('[data-testid="cn-conversation-save-draft"]').exists()).toBe(false)
 	})
 })
+
+describe('CnConversationWidget reply draft cleared on a sent reply', () => {
+	it('clears the draft when a reply on this record was sent elsewhere (cn:conversation:reply-sent)', async () => {
+		const axios = (await import('@nextcloud/axios')).default
+		const bus = await import('@nextcloud/event-bus')
+		const w = mountWidget()
+		await flushPromises()
+		axios.put.mockClear()
+
+		bus.emit('cn:conversation:reply-sent', { objectId: 'other-case' })
+		await flushPromises()
+		expect(axios.put).not.toHaveBeenCalled()
+
+		bus.emit('cn:conversation:reply-sent', { objectId: 'case-1' })
+		await flushPromises()
+		expect(axios.put).toHaveBeenCalledWith('/apps/x/api/cases/case-1/reply-draft', { text: '' })
+		expect(w.find('textarea').element.value).toBe('')
+		w.unmount()
+	})
+})
