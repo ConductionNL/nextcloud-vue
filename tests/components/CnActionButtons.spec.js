@@ -204,6 +204,25 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 		expect(dispatchAction).toHaveBeenCalledTimes(1)
 	})
 
+	it('words the confirm with the action\'s confirmTitle, confirmMessage, confirmLabel and confirmIcon (DqZaakDialogen "Vastleggen")', async () => {
+		const wrapper = mountBar([
+			{ id: 'ack', label: 'Record receipt confirmed', type: 'api-call', url: '/ack', confirm: true, confirmMessage: 'Are you sure?', confirmLabel: 'Record', confirmIcon: 'Check' },
+		])
+		await flush()
+		await wrapper.find('[data-testid="cn-action-ack"]').trigger('click')
+		const dialog = wrapper.findComponent({ name: 'CnConfirmDialog' })
+		expect(dialog.vm.$attrs.confirmLabel).toBe('Record')
+		expect(dialog.vm.$attrs.confirmIcon).toBe('Check')
+		expect(dialog.vm.$attrs.message).toBe('Are you sure?')
+	})
+
+	it('leaves the dialog its own Confirm without a confirmLabel', async () => {
+		const wrapper = mountBar([{ id: 'archive', label: 'Archive', type: 'api-call', url: '/arch', confirm: true }])
+		await flush()
+		await wrapper.find('[data-testid="cn-action-archive"]').trigger('click')
+		expect('confirmLabel' in wrapper.findComponent({ name: 'CnConfirmDialog' }).vm.$attrs).toBe(false)
+	})
+
 	describe('toggle', () => {
 		it('seeds state from stateSource and writes the flipped value optimistically on click', async () => {
 			fetchEndpointSource.mockResolvedValue({ open: true })
