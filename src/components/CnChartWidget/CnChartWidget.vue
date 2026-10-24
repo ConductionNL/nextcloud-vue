@@ -65,7 +65,7 @@
 		     share of `barMax` (default the largest value), the value at the
 		     end. Rows navigate when the source declares a drilldown. -->
 		<div v-else-if="type === 'bar-list'" class="cn-chart-widget__html" data-testid="cn-chart-widget-bar-list">
-			<ul class="cn-chart-widget__bar-list">
+			<ul class="cn-chart-widget__bar-list" :class="{ 'cn-chart-widget__bar-list--value-at-end': barValueAtEnd }">
 				<li v-for="row in barListRows" :key="row.index" class="cn-chart-widget__bar-row">
 					<component
 						:is="row.drill ? 'button' : 'div'"
@@ -75,10 +75,16 @@
 						data-testid="cn-chart-widget-bar-row"
 						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
 						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
-						<span class="cn-chart-widget__bar-track" aria-hidden="true">
-							<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+						<span v-if="barValueAtEnd" class="cn-chart-widget__bar-track">
+							<span class="cn-chart-widget__bar-fill" aria-hidden="true" :style="{ flexBasis: `${row.share}%` }" />
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
 						</span>
-						<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						<template v-else>
+							<span class="cn-chart-widget__bar-track" aria-hidden="true">
+								<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+							</span>
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						</template>
 					</component>
 				</li>
 			</ul>
@@ -453,6 +459,18 @@ export default {
 		barMax: {
 			type: Number,
 			default: null,
+		},
+
+		/**
+		 * A `bar-list` without a track: each bar as long as its share and its
+		 * value right after the bar's end (DqProcesanalyse "Doorlooptijd per
+		 * status"). False, the default, keeps the track and the value column.
+		 *
+		 * @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end
+		 */
+		barValueAtEnd: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2941,6 +2959,33 @@ export default {
 	font-weight: 600;
 	text-align: end;
 	white-space: nowrap;
+}
+
+/* `barValueAtEnd`: no track; the bar takes its share of the row and gives way
+   to the value right after its end, so the longest bar still fits. */
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-line {
+	grid-template-columns: minmax(80px, 130px) minmax(0, 1fr);
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-track {
+	align-items: center;
+	background: none;
+	display: flex;
+	gap: 6px;
+	height: auto;
+	overflow: visible;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-fill {
+	border-radius: 4px;
+	flex: 0 1 auto;
+	height: 18px;
+	min-width: 2px;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-value {
+	flex: none;
+	text-align: start;
 }
 
 .cn-chart-widget__footnote {

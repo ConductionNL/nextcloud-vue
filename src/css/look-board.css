@@ -2908,6 +2908,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd
+   per status") sets its rows in 13px, the label in the secondary text, the
+   value in the main ink at 600, rows 34px apart.
+   @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end */
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) .cn-chart-widget__bar-line {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) .cn-chart-widget__bar-label {
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
+	color: var(--cn-board-text-soft);
+}
+
 /* A dialog's options as the boards draw them (DqVolgendeStap, DqBesluit,
    DqDocumentGenereren, DqFilterBewerken): rounded at 10px, an idle option
    edged in the dark border grey, and an 18px radio. The chosen and the
