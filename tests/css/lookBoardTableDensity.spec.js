@@ -57,4 +57,8 @@ describe('look-board-index.css: the board table density', () => {
 	it('keeps the selection column of a table in a card 60px wide', () => {
 		expect(rule(`${inCard} .cn-data-table .cn-table-col--checkbox`)).toContain('padding-inline: 16px')
 	})
+
+	it('lets a table in a card keep its 40px rows when a row has an actions menu (DqZaaktypeStatussen: 57px)', () => {
+		expect(rule(`${inCard} .cn-data-table .cn-table-col--actions`)).toContain('padding-block: 0')
+	})
 })

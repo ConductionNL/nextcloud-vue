@@ -13,6 +13,35 @@
 			:description="label('failedDetail')"
 			data-testid="cn-object-parties-failed" />
 
+		<div
+			v-else-if="isPrimaryPresentation"
+			class="cn-object-parties__main-card"
+			data-testid="cn-object-parties-main-card">
+			<div
+				v-if="mainParty"
+				class="cn-object-parties__main"
+				:data-party="mainParty.partyUuid"
+				data-testid="cn-object-parties-main">
+				<span class="cn-object-parties__main-initials" aria-hidden="true" data-testid="cn-object-parties-main-initials">{{ initialsOf(nameOf(mainParty)) }}</span>
+				<span class="cn-object-parties__main-text">
+					<strong class="cn-object-parties__main-name" data-testid="cn-object-parties-main-name">{{ nameOf(mainParty) }}</strong>
+					<span v-if="mainRole" class="cn-object-parties__muted cn-object-parties__main-role" data-testid="cn-object-parties-main-role">{{ mainRole }}</span>
+				</span>
+			</div>
+			<span v-else class="cn-object-parties__muted" data-testid="cn-object-parties-main-none">{{ label('noPrimary') }}</span>
+			<a
+				v-if="mainParty && mainParty.email"
+				class="cn-object-parties__main-email"
+				:href="`mailto:${mainParty.email}`"
+				data-testid="cn-object-parties-main-email">
+				<EmailOutline :size="16" aria-hidden="true" />{{ mainParty.email }}</a>
+			<a
+				v-if="footLink"
+				class="cn-object-parties__main-link"
+				:href="footLink.href"
+				data-testid="cn-object-parties-main-link">{{ footLink.label }}</a>
+		</div>
+
 		<NcEmptyContent
 			v-else-if="groups.length === 0"
 			:name="label('empty')"
@@ -111,15 +140,18 @@ import axios from '@nextcloud/axios'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
+import { initialsOf } from '../../utils/initials.js'
 import {
 	documentsOfParty,
 	indicatorsOf,
 	indicatorVerdict,
 	kindCode,
 	representedByMap,
+	roleLabel,
 	rolesInOrder,
 } from '../../utils/objectParties.js'
 import { readPath } from '../../utils/readPath.js'
@@ -141,6 +173,7 @@ function defaultLabels() {
 		primary: t('nextcloud-vue', 'Primary party'),
 		notAccepted: t('nextcloud-vue', 'Kind not accepted here'),
 		representedBy: t('nextcloud-vue', 'Represented by'),
+		noPrimary: t('nextcloud-vue', 'No main contact yet'),
 	}
 }
 
@@ -164,6 +197,12 @@ function defaultLabels() {
  * }
  * ```
  *
+ * `presentation: "primary"` draws only the primary party, as a side card
+ * does: initials, name and role label, its correspondence e-mail, and
+ * `link` (`{ label, href? | tab? }`, `{total}` = the number of parties) at
+ * the foot; `tab` opens that tab of the page through the route hash. It
+ * reads the listing only.
+ *
  * A failed read says so and is never shown as "no parties".
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
@@ -171,7 +210,7 @@ function defaultLabels() {
 export default {
 	name: 'CnObjectPartiesWidget',
 
-	components: { NcEmptyContent, NcLoadingIcon, NcNoteCard },
+	components: { EmailOutline, NcEmptyContent, NcLoadingIcon, NcNoteCard },
 
 	mixins: [innerHeading],
 
@@ -188,7 +227,9 @@ export default {
 		 * `kindsSource` (`{ url, enforce?, sourceText? }`), `extraLines`
 		 * (`[{ endpoint, path?, valueLabels?, lines }]`, one request per
 		 * party, `{party}` filled in), `correspondence` (`{ endpoint, path?,
-		 * senderField?, recipientsField? }`) and `labels`.
+		 * senderField?, recipientsField? }`), `labels`, `presentation`
+		 * (`"primary"`: only the primary party) and `link` (`{ label,
+		 * href? | tab? }`, the primary presentation's foot link).
 		 */
 		content: {
 			type: Object,
@@ -233,6 +274,46 @@ export default {
 		/** @return {Array<object>} The role groups, primary first. */
 		groups() {
 			return rolesInOrder(this.listing, this.translatedMap(this.content?.roleLabels))
+		},
+
+		/** @return {boolean} Whether only the primary party is drawn. */
+		isPrimaryPresentation() {
+			return this.content?.presentation === 'primary'
+		},
+
+		/** @return {object|null} The primary party's listing row. */
+		mainParty() {
+			if (!this.primary) {
+				return null
+			}
+			return (this.listing?.results || []).find((row) => row && row.partyUuid === this.primary) || null
+		},
+
+		/** @return {string} The primary party's role, in the app's words. */
+		mainRole() {
+			const key = this.mainParty?.role
+			if (!key) {
+				return ''
+			}
+			const own = this.translatedMap(this.content?.roleLabels)
+			if (typeof own[key] === 'string' && own[key] !== '') {
+				return own[key]
+			}
+			return this.cnTranslate(roleLabel(key, this.listing?.roles, {}))
+		},
+
+		/** @return {{label: string, href: string}|null} The primary presentation's foot link; none without parties. */
+		footLink() {
+			const link = this.content?.link
+			const total = Number(this.listing?.total ?? (this.listing?.results || []).length)
+			if (!link || typeof link !== 'object' || !link.label || !(total > 0)) {
+				return null
+			}
+			const href = link.tab ? `#${encodeURIComponent(link.tab)}` : (link.href || '')
+			if (href === '') {
+				return null
+			}
+			return { label: this.cnTranslate(link.label).replaceAll('{total}', String(total)), href }
 		},
 
 		/** @return {string|null} The primary party's uuid. */
@@ -301,6 +382,7 @@ export default {
 	},
 
 	methods: {
+		initialsOf,
 		kindCode,
 
 		/**
@@ -383,6 +465,10 @@ export default {
 				return
 			}
 			this.listing = listing
+			if (this.isPrimaryPresentation) {
+				this.loading = false
+				return
+			}
 			const uuids = [...new Set((listing.results || []).map((row) => row && row.partyUuid).filter(Boolean))]
 			const partyUrl = this.content?.partySource || '/apps/openregister/api/parties/{uuid}'
 			const records = await Promise.all(uuids.map((uuid) => this.read(this.urlOf(partyUrl, uuid))))
@@ -655,6 +741,57 @@ export default {
 
 .cn-object-parties__muted {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-object-parties__main-card {
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--default-grid-baseline, 4px) * 3);
+}
+
+.cn-object-parties__main {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--default-grid-baseline, 4px) * 3);
+}
+
+.cn-object-parties__main-initials {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-object-parties__main-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-object-parties__main-name {
+	font-size: 15px;
+}
+
+.cn-object-parties__main-role {
+	font-size: 13px;
+}
+
+.cn-object-parties__main-email {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--default-grid-baseline, 4px) * 2.5);
+	color: var(--color-main-text);
+	overflow-wrap: anywhere;
+}
+
+.cn-object-parties__main-link {
+	color: var(--color-primary-element);
+	font-weight: 600;
 }
 
 .cn-object-parties__accepted {

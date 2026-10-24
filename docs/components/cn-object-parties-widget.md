@@ -43,9 +43,30 @@ Each party shows its kind, who represents it and the indicators on it. An indica
 | `kindsSource` | `{ url, enforce?, sourceText? }`: the kinds this record accepts, answered as `{ source, kinds }`. A party of another kind is marked, only when `source` is `enforce`. |
 | `extraLines` | Lines under each party, one request per party (`{party}` filled in): `path` into the answer, `valueLabels` for its coded values, and `lines`, candidate sentences with an optional local `when`. |
 | `correspondence` | `{ endpoint, path?, senderField?, recipientsField? }`: how many documents each party sent and received. |
-| `labels` | Overrides of the words: `failed`, `failedDetail`, `empty`, `emptyDetail`, `accepted`, `primary`, `notAccepted`, `representedBy`, `verdictPublication`, `verdictSend`, `verdictWarn`, `sentencePublication` and `sentenceSend` (with `{party}`). |
+| `presentation` | `"primary"` draws only the primary party, as a side card does (see below). Default: every party by role. |
+| `link` | The primary presentation's foot link: `{ label, href? \| tab? }`. `{total}` in the label is the number of parties; `tab` opens that tab of the page through the route hash. Not drawn when the record has no parties. |
+| `labels` | Overrides of the words: `failed`, `failedDetail`, `empty`, `emptyDetail`, `accepted`, `primary`, `notAccepted`, `representedBy`, `noPrimary`, `verdictPublication`, `verdictSend`, `verdictWarn`, `sentencePublication` and `sentenceSend` (with `{party}`). |
 
 `@register`, `@schema` and `@objectId` in a URL are the record's.
+
+## The primary presentation
+
+A side card that names one person, such as an organisation's main contact:
+
+```json
+{
+  "id": "side-main-contact",
+  "type": "parties",
+  "title": "Main contact",
+  "content": {
+    "presentation": "primary",
+    "roleLabels": { "chair": "Chair" },
+    "link": { "label": "All {total} contact persons", "tab": "org-contact-persons" }
+  }
+}
+```
+
+It shows the primary party's initials, name and role label, the correspondence e-mail the listing carries for it as a `mailto:` link, and the foot link. It reads the listing only. Without a primary party it reads `labels.noPrimary` ("No main contact yet").
 
 ## Behaviour
 
