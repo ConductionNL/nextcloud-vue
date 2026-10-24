@@ -20,10 +20,10 @@ entries dropped. A list of one SHALL resolve to that id and an empty list SHALL 
 
 ### Requirement: A menu count resolves @myTeam as the list does
 
-A menu entry's count whose filter carries \`@myTeam\` SHALL wait for the team to be read, then count over every team the
+A menu entry's count whose filter carries `@myTeam` SHALL wait for the team to be read, then count over every team the
 app answers; for a reader in no team the team filter SHALL be dropped, as the list drops it.
 
 #### Scenario: DqTeamwachtrij
 
-- GIVEN the Queue menu entry counts unassigned open cases on \`assignedGroup: @myTeam\`
+- GIVEN the Queue menu entry counts unassigned open cases on `assignedGroup: @myTeam`
 - THEN its badge equals the team queue list's total
