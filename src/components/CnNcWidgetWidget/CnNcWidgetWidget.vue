@@ -55,7 +55,7 @@
 					v-for="(item, idx) in shownItems"
 					:key="item.sinceId || item.id || idx"
 					class="cn-nc-widget-widget__item"
-					:class="itemClass"
+					:class="[itemClass, toneClass(item)]"
 					:href="item.link || '#'"
 					:title="item.title">
 					<span class="cn-nc-widget-widget__item-icon-wrap">
@@ -92,6 +92,9 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl } from '@nextcloud/router'
+
+/** The tones `content.itemTones` may give an item. */
+const ITEM_TONES = ['success', 'info', 'neutral', 'warning', 'error']
 
 const API_ITEM_LIMIT = 7
 
@@ -137,7 +140,7 @@ export default {
 
 	props: {
 		/**
-		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?, excludeApps?, excludeTypes?}`.
+		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?, excludeApps?, excludeTypes?, itemTones?}`.
 		 * `excludeApps` (`["systemtags"]`) and `excludeTypes` leave out the
 		 * items of those apps or types (an item's own `app` / `type`, else the
 		 * app in its link or icon URL); the list then comes from the items API.
@@ -365,18 +368,54 @@ export default {
 				return false
 			}
 			const { apps, types } = this.exclusions
-			const own = (value) => (typeof value === 'string' ? value.toLowerCase() : '')
-			const appsOf = [own(item.app)]
-			for (const url of [item.link, item.iconUrl, item.overlayIconUrl]) {
-				const match = typeof url === 'string' ? url.match(/\/apps\/([a-z0-9_-]+)\//i) : null
-				if (match) {
-					appsOf.push(match[1].toLowerCase())
-				}
-			}
-			if (apps.length > 0 && appsOf.some((app) => app !== '' && apps.includes(app))) {
+			const kinds = this.kindsOf(item)
+			if (apps.length > 0 && kinds.apps.some((app) => apps.includes(app))) {
 				return true
 			}
-			return types.length > 0 && [own(item.type), own(item.objectType)].some((type) => type !== '' && types.includes(type))
+			return types.length > 0 && kinds.types.some((type) => types.includes(type))
+		},
+
+		/**
+		 * What an item is, lower case: its own `type` / `objectType`, and its
+		 * own `app` or the app in an `/apps/<app>/` part of its icons or link.
+		 *
+		 * @param {object} item A widget item.
+		 * @return {{apps: string[], types: string[]}}
+		 */
+		kindsOf(item) {
+			const own = (value) => (typeof value === 'string' ? value.toLowerCase() : '')
+			// The icons first: the activity app sets them from the activity's own app.
+			const apps = [own(item.app)]
+			for (const url of [item.iconUrl, item.overlayIconUrl, item.link]) {
+				const match = typeof url === 'string' ? url.match(/\/apps\/([a-z0-9_-]+)\//i) : null
+				if (match) {
+					apps.push(match[1].toLowerCase())
+				}
+			}
+			return { apps: apps.filter((app) => app !== ''), types: [own(item.type), own(item.objectType)].filter((type) => type !== '') }
+		},
+
+		/**
+		 * The item's class for its tone (`content.itemTones`), keyed by its
+		 * type first, then its app; '' without a match.
+		 *
+		 * @spec openspec/changes/nc-widget-item-tones/specs/nc-widget-item-tones/spec.md#requirement-a-nextcloud-widget-item-can-take-a-tone-from-its-app-or-type
+		 * @param {object} item A widget item.
+		 * @return {string}
+		 */
+		toneClass(item) {
+			const map = this.content && this.content.itemTones
+			if (!map || typeof map !== 'object' || !item || typeof item !== 'object') {
+				return ''
+			}
+			const kinds = this.kindsOf(item)
+			for (const key of [...kinds.types, ...kinds.apps]) {
+				const tone = Object.keys(map).find((name) => name.toLowerCase() === key)
+				if (tone && ITEM_TONES.includes(map[tone])) {
+					return `cn-nc-widget-widget__item--tone-${map[tone]}`
+				}
+			}
+			return ''
 		},
 
 		t,
