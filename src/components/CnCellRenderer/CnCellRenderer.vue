@@ -56,7 +56,7 @@
 		<!-- Built-in "label" widget: the value's label (an enum's translated
 		     label) as plain text, where a list wants words and no pill. -->
 		<template v-else-if="widget === 'label'">
-			<span v-if="hasValue" :title="rawTitle">{{ labelledValue }}</span>
+			<span v-if="hasValue" :title="rawTitle">{{ shownLabel }}</span>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -65,7 +65,7 @@
 		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
 			<CnStatusBadge v-if="hasValue"
-				:label="labelledValue"
+				:label="shownLabel"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
 				:colorKey="badgeColorKey"
@@ -438,6 +438,7 @@ import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeD
 import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -1442,6 +1443,22 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
 		 */
+		/**
+		 * What a `label` or `badge` cell shows: its label, worded by
+		 * `widgetProps.textTemplate` when given (translated, filled from the
+		 * row, `{value}` the label; DqPostvak "Lijkt op 2026-0079").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-text-template/specs/cell-text-template/spec.md
+		 */
+		shownLabel() {
+			const template = this.widgetProps && this.widgetProps.textTemplate
+			if (typeof template !== 'string' || template === '') {
+				return this.labelledValue
+			}
+			return fillTemplate(this.cnTranslate(template), { ...(this.row || {}), value: this.labelledValue })
+		},
+
 		labelledValue() {
 			if (!this.hasFormatter && this.isEnum && this.hasValue && typeof this.value !== 'object') {
 				return this.enumLabel

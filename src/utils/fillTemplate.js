@@ -64,7 +64,7 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -124,6 +124,12 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'ago') {
 		return formatAgo(value, now)
+	}
+	if (format === 'mailbox') {
+		// An address up to and with its @ ("gemeente@" from gemeente@zuiddrecht.nl).
+		const text = String(value)
+		const at = text.indexOf('@')
+		return at > 0 ? text.slice(0, at + 1) : text
 	}
 	if (format === 'lower') {
 		return String(value).toLocaleLowerCase()
