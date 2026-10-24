@@ -1,0 +1,2 @@
+- [x] matrix head hyphens auto + overflow-wrap anywhere
+- [x] tests/css/matrixHeadWraps.spec.js
