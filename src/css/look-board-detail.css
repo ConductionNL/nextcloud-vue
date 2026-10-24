@@ -1501,3 +1501,30 @@
 	border-radius: var(--cn-board-control-radius);
 	overflow: hidden;
 }
+
+/* ---- A record list drawn as a data table (CnRecordListWidget) ----------- */
+/* `tableLook: "data"` (DqZaaktype "Berichten aan de aanvrager"): the board's
+   card table rather than the compact grid, a near-white header band at
+   14px/600 in the muted ink, 10px 12px, and 14px cells, 11px 12px, a
+   hairline above each row. Two classes more than the compact grid's rule.
+   @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-table-can-be-drawn-as-a-data-table */
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table th:not(.cn-look-nextcloud *) {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 0;
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table td:not(.cn-look-nextcloud *) {
+	padding: 11px 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: 0;
+	font-size: 14px;
+	line-height: 1.2;
+}

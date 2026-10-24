@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -448,7 +448,21 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<div
+			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
+			class="cn-record-list__notice cn-record-list__notice--footnote"
+			:class="`cn-record-list__notice--${footnoteTone}`"
+			data-testid="cn-record-list-footnote">
+			<CnIcon
+				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
+				:size="16"
+				class="cn-record-list__notice-icon"
+				aria-hidden="true" />
+			<p class="cn-record-list__notice-text">
+				{{ footnote }}
+			</p>
+		</div>
+		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
@@ -685,6 +699,12 @@ export default {
 		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
 		 * first case whose `when` holds on it, else by the pill's own `label`
 		 * and `variant` (Concept, Vastgezet, Actief).
+		 * button is disabled and `disabledReason` shows under it.
+		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
+		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * `tableLook: "data"` marks a `table` as a data table, which the board
+		 * look draws as its card table (header band, 40px rows, hairlines)
+		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
 		 * `groupBy` (a field path) draws the rows in groups under a heading
 		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
 		 * (values) orders the groups and `groupEmptyLabel` heads the rows
@@ -1210,6 +1230,19 @@ export default {
 				return this.translate(note.text).replace(/\{value\}/g, String(value))
 			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * The tone the footnote is drawn in as a notice box
+		 * (`content.footnoteVariant`: info, warning or error); '' for a plain
+		 * muted line.
+		 *
+		 * @return {string} The tone, or ''.
+		 * @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-footnote-can-be-a-toned-notice
+		 */
+		footnoteTone() {
+			const tone = this.content?.footnoteVariant
+			return NOTICE_VARIANTS.includes(tone) ? tone : ''
 		},
 
 		/**
@@ -2936,6 +2969,10 @@ export default {
 .cn-record-list__notice--error {
 	background: var(--color-error-light, rgba(219, 0, 0, 0.08));
 	color: var(--color-error-text, var(--color-main-text));
+}
+
+.cn-record-list__notice--footnote {
+	margin-top: 12px;
 }
 
 .cn-record-list__notice-icon {
