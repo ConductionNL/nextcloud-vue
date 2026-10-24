@@ -1258,6 +1258,11 @@
 	line-height: normal;
 }
 
+/* Head and body text at line height 1.2, as the board draws the table. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td) {
+	line-height: 1.2;
+}
+
 /* A long task name wraps under itself, as the board draws it, rather than
    widening the table past the card. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
