@@ -622,6 +622,13 @@
 	--button-size: 34px;
 }
 
+/* Two buttons in a card's title row stand 8px apart (DqZaakContact "Live
+   gesprek", DqZaakEmail "Mail koppelen" / "Mail opstellen").
+   @spec openspec/changes/board-card-header-actions-gap/specs/board-card-header-actions-gap/spec.md#requirement-a-board-cards-title-row-buttons-stand-8px-apart */
+.cn-look-board .cn-widget-wrapper__actions:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
 /* A detail page marked `cardButtons: "regular"` draws them at the 40px
    control height: the case page's tab cards (DqZaakContact "Live gesprek",
    DqZaakHistorie, DqZaakBetrokkenen), where setting and case-type pages keep 34.

@@ -1,0 +1,2 @@
+- [x] look-board.css card header actions gap 8px
+- [x] Spec tests/css/lookBoardCardHeaderActionsGap.spec.js
