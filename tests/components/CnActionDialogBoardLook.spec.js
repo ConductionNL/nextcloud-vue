@@ -56,10 +56,22 @@ describe('CnActionDialog in the board look', () => {
 		expect(w.find('[data-testid="cn-action-dialog-note"] .icon').attributes('data-name')).toBe('LockOutline')
 	})
 
+	it('reads a fact through a named formatter (Bewaartermijn "5 jaar")', async () => {
+		axios.get.mockResolvedValue({ data: { title: 'Verlichting fietspad Lindelaan', identifier: '2026-0082', '@self': { _retention: { retentionPeriod: 'P5Y' } } } })
+		const config = { ...CONFIG, facts: [{ title: 'Retention', items: [{ label: 'Retention period', value: '{@self._retention.retentionPeriod|isoDuration}' }] }] }
+		const w = mount(CnActionDialog, {
+			props: { config, objectId: 'z-82' },
+			global: { stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		expect(w.find('[data-testid="cn-action-dialog-facts"] dd').text()).toBe('5 years')
+	})
+
 	it('draws the tile and resets the facts\' cell padding', () => {
 		const tile = rule(sfc, '.cn-action-dialog__summary-icon')
 		expect(tile).toContain('width: 36px')
 		expect(tile).toContain('background: var(--color-primary-element-light)')
+		expect(rule(sfc, '.cn-action-dialog__summary-text strong')).toContain('line-height: 1.2')
 		const both = rule(sfc, '.cn-action-dialog__facts dt,\n.cn-action-dialog__facts dd')
 		expect(both).toContain('width: auto')
 		expect(both).toContain('text-align: start')

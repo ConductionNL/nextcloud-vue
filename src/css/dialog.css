@@ -216,9 +216,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 /* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
    the board draws it (DqOverdragen, 76px for a label and a two-line note):
    10px 14px padding, the checkbox row at the 24px minimum target instead of
-   NcCheckboxRadioSwitch's 34px, the note at 1.2 line height. */
+   NcCheckboxRadioSwitch's 34px, the note at 1.2 line height; the card's
+   corners 8px and the label on an 18px line, as the board draws them. */
 .cn-dialog-board .cn-assign-dialog__toggle {
 	padding: 10px 14px;
+	border-radius: 8px;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text {
+	line-height: 18px;
 }
 
 .cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content,

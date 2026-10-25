@@ -78,10 +78,10 @@ function serve(overrides = {}) {
 	})
 }
 
-async function mountParties(content = CONTENT) {
+async function mountParties(content = CONTENT, look = 'nextcloud') {
 	const wrapper = mount(CnObjectPartiesWidget, {
 		props: { content, objectId: 'r-1', register: 'x', schema: 'item' },
-		global: { stubs: { NcLoadingIcon: true, NcEmptyContent: { props: ['name', 'description'], template: '<div class="empty">{{ name }} {{ description }}</div>' }, NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' } } },
+		global: { provide: { cnLook: look }, stubs: { NcLoadingIcon: true, NcEmptyContent: { props: ['name', 'description'], template: '<div class="empty">{{ name }} {{ description }}</div>' }, NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' } } },
 	})
 	await flush()
 	return wrapper
@@ -403,5 +403,28 @@ describe('CnObjectPartiesWidget manage', () => {
 		serveOrg()
 		const w = await mountManaged({ ...MANAGE, presentation: 'primary' })
 		expect(w.find('[data-testid="cn-object-parties-add"]').exists()).toBe(false)
+	})
+})
+
+describe('CnObjectPartiesWidget in the board look (DqZaakBetrokkenen "Rollen")', () => {
+	it('draws one ruled row per party: initials tile, name, the role on the meta line, pills at the end', async () => {
+		serve()
+		const w = await mountParties(CONTENT, 'board')
+		expect(w.find('[data-testid="cn-object-parties"]').classes()).toContain('cn-object-parties--board')
+		const rows = w.findAll('[data-testid="cn-object-parties-party"]')
+		const jan = rows.find((row) => row.text().includes('Jan Jansen'))
+		expect(jan.find('.cn-object-parties__tile').text()).toBe('JJ')
+		const meta = jan.find('[data-testid="cn-object-parties-meta"]').text()
+		expect(meta).toContain('Primary party')
+		expect(meta).toContain('Requester')
+		const mr = rows.find((row) => row.text().includes('Mr. Advocaat'))
+		expect(mr.find('.cn-object-parties__end').text()).toContain('Read first')
+	})
+
+	it('keeps the Nextcloud rows in the Nextcloud look', async () => {
+		serve()
+		const w = await mountParties()
+		expect(w.find('.cn-object-parties__tile').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-object-parties-meta"]').exists()).toBe(false)
 	})
 })

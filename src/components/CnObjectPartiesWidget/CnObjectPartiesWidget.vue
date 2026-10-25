@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-object-parties" data-testid="cn-object-parties">
+	<div class="cn-object-parties" :class="{ 'cn-object-parties--board': isBoard }" data-testid="cn-object-parties">
 		<div v-if="canAdd" class="cn-object-parties__manage">
 			<NcButton data-testid="cn-object-parties-add" @click="adding = true">
 				<template #icon>
@@ -112,51 +112,89 @@
 						class="cn-object-parties__party"
 						:data-party="party.partyUuid || party.contactUid"
 						data-testid="cn-object-parties-party">
-						<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
-						<span
-							v-if="primary && party.partyUuid === primary"
-							class="cn-status-badge cn-status-badge--primary"
-							data-testid="cn-object-parties-primary">{{ label('primary') }}</span>
-						<span v-if="kindOf(party)" class="cn-object-parties__muted">{{ kindOf(party) }}</span>
-						<span
-							v-if="notAccepted(party)"
-							class="cn-status-badge cn-status-badge--warning"
-							data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
-						<span
-							v-for="(line, index) in extraLinesOf(party)"
-							:key="`line-${index}`"
-							class="cn-object-parties__muted"
-							data-testid="cn-object-parties-extra-line">{{ line }}</span>
-						<span v-if="party.email" class="cn-object-parties__muted">{{ party.email }}</span>
-						<span
-							v-if="representedBy(party)"
-							class="cn-object-parties__muted"
-							data-testid="cn-object-parties-represented">{{ label('representedBy') }}: {{ representedBy(party) }}</span>
-						<span
-							v-if="correspondenceOf(party)"
-							class="cn-object-parties__muted"
-							:data-party-documents="party.partyUuid || party.contactUid"
-							data-testid="cn-object-parties-documents">{{ correspondenceOf(party) }}</span>
-						<span
-							v-for="indicator in indicatorsFor(party)"
-							:key="`${party.partyUuid}-${indicator.key}`"
-							class="cn-status-badge cn-status-badge--default"
-							:class="`cn-object-parties__indicator--${indicator.severity}`"
-							:data-effect="indicator.effect"
-							:title="indicator.verdict"
-							data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
-						<NcButton
-							v-if="canRemove && party.partyUuid"
-							class="cn-object-parties__remove"
-							variant="tertiary"
-							:aria-label="removeLabel(party, group)"
-							:title="removeLabel(party, group)"
-							data-testid="cn-object-parties-remove"
-							@click="removing = { party, group }">
-							<template #icon>
-								<TrashCanOutline :size="20" />
-							</template>
-						</NcButton>
+						<!-- The board look draws a party as one ruled row (DqZaakBetrokkenen
+						     "Rollen"): an initials tile, the name over one meta line that
+						     names the role, the pills at the end. -->
+						<template v-if="isBoard">
+							<span class="cn-object-parties__tile" aria-hidden="true">{{ initialsOf(nameOf(party)) }}</span>
+							<span class="cn-object-parties__text">
+								<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
+								<span class="cn-object-parties__meta" data-testid="cn-object-parties-meta">{{ boardMetaOf(party, group) }}</span>
+							</span>
+							<span class="cn-object-parties__end">
+								<span
+									v-if="notAccepted(party)"
+									class="cn-status-badge cn-status-badge--warning"
+									data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
+								<span
+									v-for="indicator in indicatorsFor(party)"
+									:key="`${party.partyUuid}-${indicator.key}`"
+									class="cn-status-badge cn-status-badge--default"
+									:class="`cn-object-parties__indicator--${indicator.severity}`"
+									:data-effect="indicator.effect"
+									:title="indicator.verdict"
+									data-testid="cn-object-parties-indicator">{{ indicator.label }}</span>
+								<NcButton
+									v-if="canRemove && party.partyUuid"
+									class="cn-object-parties__remove"
+									variant="tertiary"
+									:aria-label="removeLabel(party, group)"
+									:title="removeLabel(party, group)"
+									data-testid="cn-object-parties-remove"
+									@click="removing = { party, group }">
+									<template #icon>
+										<TrashCanOutline :size="20" />
+									</template>
+								</NcButton>
+							</span>
+						</template>
+						<template v-else>
+							<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
+							<span
+								v-if="primary && party.partyUuid === primary"
+								class="cn-status-badge cn-status-badge--primary"
+								data-testid="cn-object-parties-primary">{{ label('primary') }}</span>
+							<span v-if="kindOf(party)" class="cn-object-parties__muted">{{ kindOf(party) }}</span>
+							<span
+								v-if="notAccepted(party)"
+								class="cn-status-badge cn-status-badge--warning"
+								data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
+							<span
+								v-for="(line, index) in extraLinesOf(party)"
+								:key="`line-${index}`"
+								class="cn-object-parties__muted"
+								data-testid="cn-object-parties-extra-line">{{ line }}</span>
+							<span v-if="party.email" class="cn-object-parties__muted">{{ party.email }}</span>
+							<span
+								v-if="representedBy(party)"
+								class="cn-object-parties__muted"
+								data-testid="cn-object-parties-represented">{{ label('representedBy') }}: {{ representedBy(party) }}</span>
+							<span
+								v-if="correspondenceOf(party)"
+								class="cn-object-parties__muted"
+								:data-party-documents="party.partyUuid || party.contactUid"
+								data-testid="cn-object-parties-documents">{{ correspondenceOf(party) }}</span>
+							<span
+								v-for="indicator in indicatorsFor(party)"
+								:key="`${party.partyUuid}-${indicator.key}`"
+								class="cn-status-badge cn-status-badge--default"
+								:class="`cn-object-parties__indicator--${indicator.severity}`"
+								:data-effect="indicator.effect"
+								:title="indicator.verdict"
+								data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
+							<NcButton
+								v-if="canRemove && party.partyUuid"
+								class="cn-object-parties__remove"
+								variant="tertiary"
+								:aria-label="removeLabel(party, group)"
+								:title="removeLabel(party, group)"
+								data-testid="cn-object-parties-remove"
+								@click="removing = { party, group }">
+								<template #icon>
+									<TrashCanOutline :size="20" />
+								</template>
+							</NcButton>
+						</template>
 					</li>
 				</ul>
 			</section>
@@ -200,6 +238,7 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnPartyAddDialog from '../../dialogs/CnPartyAddDialog.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { initialsOf } from '../../utils/initials.js'
@@ -287,6 +326,7 @@ export default {
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -347,6 +387,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} The board look draws one ruled row per party. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/** @return {Array<object>} The role groups, primary first. */
 		groups() {
 			return rolesInOrder(this.listing, this.translatedMap(this.content?.roleLabels))
@@ -916,6 +961,29 @@ export default {
 		 * @param {object} party The listing row.
 		 * @return {Array<object>}
 		 */
+		/**
+		 * The board row's meta line: the primary mark, the role, the kind,
+		 * whom the party represents, its extra lines, e-mail and documents,
+		 * separated by middots.
+		 *
+		 * @param {object} party The party.
+		 * @param {object} group Its role group.
+		 * @return {string}
+		 */
+		boardMetaOf(party, group) {
+			const parts = []
+			if (this.primary && party.partyUuid === this.primary) {
+				parts.push(this.label('primary'))
+			}
+			parts.push(group.label, this.kindOf(party))
+			const represented = this.representedBy(party)
+			if (represented) {
+				parts.push(`${this.label('representedBy')}: ${represented}`)
+			}
+			parts.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
+			return parts.filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
 		indicatorsFor(party) {
 			const record = this.partyRecords[party.partyUuid]
 			if (!record) {

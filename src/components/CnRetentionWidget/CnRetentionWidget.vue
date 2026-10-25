@@ -85,6 +85,7 @@
 				</component>
 				<ul class="cn-retention__rows">
 					<li v-for="hold in holds" :key="hold.id" class="cn-retention__row">
+						<span class="cn-retention__mark cn-retention__mark--hold" aria-hidden="true">LH</span>
 						<span class="cn-retention__row-text">
 							<span class="cn-retention__row-title">{{ hold.reason || t('nextcloud-vue', 'Legal hold') }}</span>
 							<span class="cn-retention__muted">{{ t('nextcloud-vue', 'Placed on {date} by {by}', { date: hold.placedDate, by: hold.placedBy }) }}</span>
@@ -92,6 +93,7 @@
 						<CnStatusBadge :label="t('nextcloud-vue', 'Active')" variant="warning" />
 					</li>
 					<li v-if="holds.length === 0" class="cn-retention__row">
+						<span class="cn-retention__mark cn-retention__mark--hold" aria-hidden="true">LH</span>
 						<span class="cn-retention__row-text">
 							<span class="cn-retention__row-title">{{ t('nextcloud-vue', 'No legal hold') }}</span>
 							<span class="cn-retention__muted">{{ t('nextcloud-vue', 'If an objection or appeal runs, destruction is suspended') }}</span>
@@ -107,6 +109,7 @@
 				</component>
 				<ul class="cn-retention__rows">
 					<li class="cn-retention__row">
+						<span class="cn-retention__mark" aria-hidden="true">ED</span>
 						<span class="cn-retention__row-text">
 							<span class="cn-retention__row-title">{{ transfers ? t('nextcloud-vue', 'Goes to the e-Depot') : t('nextcloud-vue', 'Not applicable') }}</span>
 							<span class="cn-retention__muted">{{ transfers ? t('nextcloud-vue', 'After the retention period the record is transferred') : t('nextcloud-vue', 'Only records appraised to keep go to the e-Depot') }}</span>
@@ -643,15 +646,37 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
-	padding: 10px 0;
+	padding: 12px 0;
 	border-top: 1px solid var(--color-border);
 }
 
 .cn-retention__row-text {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+}
+
+/* A round mark before a hold or transfer row: LH (legal hold) on the error
+   tint, ED (e-Depot) on the chip ground (DqZaakArchivering). */
+.cn-retention__mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 16px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-retention__mark--hold {
+	background: var(--color-error-light, #fcedec);
+	color: var(--color-error-text, #a30000);
 }
 
 .cn-retention__row-title {

@@ -41,3 +41,20 @@ describe('CnRetentionWidget facts and sections', () => {
 		expect(heading).toContain('font-weight: 600')
 	})
 })
+
+describe('CnRetentionWidget hold and transfer marks', () => {
+	it('marks the hold row LH and the transfer row ED, as the board draws them', () => {
+		const template = fs.readFileSync(path.join(__dirname, '../../src/components/CnRetentionWidget/CnRetentionWidget.vue'), 'utf8')
+		expect(template.match(/cn-retention__mark cn-retention__mark--hold" aria-hidden="true">LH</g)).toHaveLength(2)
+		expect(template).toContain('class="cn-retention__mark" aria-hidden="true">ED<')
+		expect(rule(sfc, '.cn-retention__mark')).toContain('width: 32px')
+		expect(rule(sfc, '.cn-retention__row')).toContain('padding: 12px 0')
+	})
+})
+
+describe('CnRetentionWidget board rhythm', () => {
+	it('sets the head subtitle on a 1.2 line and stacks the parts 10px apart', () => {
+		expect(rule(detail, '.cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted')).toContain('line-height: 1.2')
+		expect(rule(detail, '.cn-look-board .cn-retention.cn-retention')).toContain('gap: 10px')
+	})
+})

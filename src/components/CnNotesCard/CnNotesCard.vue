@@ -96,6 +96,7 @@
 						:key="row.note.id"
 						class="cn-notes-card__note"
 						:class="{ 'cn-notes-card__note--reply': row.isReply }">
+						<span class="cn-notes-card__initials" aria-hidden="true">{{ initialsOf(getNoteAuthorName(row.note)) }}</span>
 						<div class="cn-notes-card__note-header">
 							<CnUserActionMenu
 								v-if="!isCurrentUser(row.note)"
@@ -175,6 +176,7 @@ import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import CnVisibilityChip from '../CnVisibilityChip/CnVisibilityChip.vue'
 import { useFileComments } from '../../composables/useFileComments.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { initialsOf } from '../../utils/initials.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
 import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
@@ -635,6 +637,8 @@ export default {
 			return note.actorId || note.author || ''
 		},
 
+		initialsOf,
+
 		getNoteAuthorName(note) {
 			return note.actorDisplayName || note.author || 'Unknown'
 		},
@@ -868,6 +872,10 @@ export default {
 
 .cn-notes-card__note:last-child {
 	border-bottom: none;
+}
+
+.cn-notes-card__initials {
+	display: none;
 }
 
 .cn-notes-card__note-header {

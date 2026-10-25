@@ -67,6 +67,8 @@ describe('dialog.css: the board dialog', () => {
 
 	it('draws a checkbox choice card as tight as the board, the row at the 24px target (DqOverdragen)', () => {
 		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle')).toContain('border-radius: 8px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text')).toContain('line-height: 18px;')
 		const row = bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content')
 		expect(row).toContain('min-height: 24px;')
 		expect(row).toContain('padding-block: 0;')
