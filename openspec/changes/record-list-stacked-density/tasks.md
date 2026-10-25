@@ -1,0 +1,2 @@
+- [x] density stacked (component + board look)
+- [x] CnRecordListWidgetStacked spec

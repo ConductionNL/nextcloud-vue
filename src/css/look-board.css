@@ -2432,6 +2432,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	gap: 2px;
 }
 
+/* A stacked list (`density: "stacked"`) keeps its rows unruled and unpadded
+   in the board look too, 10px apart (DqDagAfsluiten "Morgen eerst").
+   @spec openspec/changes/record-list-stacked-density/specs/record-list-stacked-density/spec.md#requirement-a-record-list-can-stack-its-rows */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding-block: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked.cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
+}
+
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
    text does not move. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {
