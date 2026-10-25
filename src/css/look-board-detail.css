@@ -1235,6 +1235,13 @@
 
 .cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted {
 	font-size: 14px;
+	line-height: 1.2;
+}
+
+/* The board stacks the archiving card's parts 10px apart (r26a: the head
+   row 45.9 vs 41 and the facts 55.9 vs 30 under the title). */
+.cn-look-board .cn-retention.cn-retention {
+	gap: 10px;
 }
 
 .cn-look-board .cn-retention .cn-retention__fact {
