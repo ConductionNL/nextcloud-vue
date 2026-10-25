@@ -14,7 +14,7 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css')
 
 describe('look-board.css: settings subtitle measure', () => {
 	it('lifts the 900px measure on every board settings card', () => {
-		const sel = '.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {'
+		const sel = '.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name,\n.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {'
 		const at = css.indexOf(sel)
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toContain('max-width: none;')
