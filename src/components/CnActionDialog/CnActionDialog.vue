@@ -191,6 +191,7 @@ import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -219,7 +220,8 @@ let reasonSeq = 0
  *   `eyebrow` a template filled from the record ("Close off · {identifier}").
  * - `summary`: `{ source?, title, meta?, badge?, icon? }`: templates filled from
  *   the record (`source` an endpointSource to read it from, else `object`).
- * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template.
+ * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template; a
+ *   `{path|<formatter>}` token reads through the built-in and app formatters.
  * - `checklist`: `{ title?, source, itemsPath?, labels?, required? }`: items
  *   `{ id, met, label?, detail? }` read from `source`; `labels[id]` gives an
  *   item's `{ label, detail?, unmetDetail? }`; the ids in `required` must be
@@ -262,6 +264,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's pre-bound action dispatcher (CnPageRenderer), for `confirm.action`. */
 		cnDispatchAction: { default: null },
+		/** The app's named formatters (CnAppRoot), for `{path|<formatter>}` in a template. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -594,7 +598,8 @@ export default {
 			if (typeof template !== 'string' || template === '') {
 				return ''
 			}
-			return fillTemplate(this.cnTranslate(template), row || this.record || {}).trim()
+			const formatters = { ...BUILT_IN_FORMATTERS, ...(this.cnFormatters || {}) }
+			return fillTemplate(this.cnTranslate(template), row || this.record || {}, new Date(), { formatters }).trim()
 		},
 
 		/**
@@ -836,6 +841,7 @@ export default {
 .cn-action-dialog__summary-text strong {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 .cn-action-dialog__summary-text .cn-action-dialog__muted {
@@ -949,7 +955,25 @@ export default {
 	padding: 12px 14px;
 	border: 2px solid var(--color-primary-element);
 	border-radius: var(--border-radius-element, 8px);
-	background: var(--color-primary-element-light);
+	background: var(--color-main-background);
+}
+
+/* The box sits at the card's inset, 12px before the label, the label on
+   its first line (DqArchiveren "Sanne de Vries laten weten ..."):
+   NcCheckboxRadioSwitch pads its row and centres a 34px target. */
+.cn-action-dialog__checkbox :deep(.checkbox-content) {
+	padding: 0;
+	gap: 12px;
+	align-items: flex-start;
+	min-height: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-content__icon) {
+	margin: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-radio-switch__input) {
+	min-height: 0;
 }
 
 .cn-action-dialog__checkbox-text {
@@ -961,6 +985,7 @@ export default {
 .cn-action-dialog__checkbox-label {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 .cn-action-dialog__checkbox .cn-action-dialog__muted {

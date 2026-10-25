@@ -17,9 +17,11 @@
 					class="cn-conversation-thread__title">
 					{{ title }}
 				</component>
-				<p v-if="subtitle" class="cn-conversation-thread__subtitle" data-testid="cn-conversation-subtitle">
+				<!-- A div, not a <p>: a theme that sets every paragraph's size with
+				     !important would otherwise override the 14px subtitle. -->
+				<div v-if="subtitle" class="cn-conversation-thread__subtitle" data-testid="cn-conversation-subtitle">
 					{{ subtitle }}
-				</p>
+				</div>
 			</div>
 			<div v-if="$slots['header-actions']" class="cn-conversation-thread__header-actions">
 				<!-- @slot header-actions Buttons beside the title, for example "Log contact". -->
@@ -633,6 +635,7 @@ export default {
 .cn-conversation-thread__subtitle {
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: normal;
 	margin: 0;
 }
 

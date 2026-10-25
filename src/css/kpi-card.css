@@ -547,6 +547,9 @@ a.cn-kpi-card--board * {
 .cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) {
 	--cn-kpi-stacked-padding: 20px 22px;
 	--cn-kpi-stacked-gap: 8px;
+	/* Its label is set at 600, as every board draws this tile (DqDashboard,
+	   DqMijnTeam, DqPersoonlijkeInstellingen); the plain stacked tile keeps 400. */
+	--cn-kpi-stacked-title-weight: 600;
 }
 
 .cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) .cn-kpi-card__value {

@@ -64,6 +64,14 @@ describe('CnFilesBrowser secondLine', () => {
 		review.unmount()
 	})
 
+	// @spec openspec/changes/files-second-line-modified-date/specs/files-second-line-modified-date/spec.md#requirement-the-second-line-shows-the-files-date
+	it('shows the modified date, which the file carries as a Date', async () => {
+		const wrapper = mountBrowser({ secondLine: ['type', 'modified|longdate:year'] })
+		await flushPromises()
+		expect(lines(wrapper)[0]).toMatch(/^PDF · .*2026$/)
+		wrapper.unmount()
+	})
+
 	it('wins over nameSecondary, and is forwarded by the files tab', async () => {
 		const wrapper = mountBrowser({ secondLine: ['type'], nameSecondary: '{name}' })
 		await flushPromises()

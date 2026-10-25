@@ -93,6 +93,33 @@
 			<div v-else-if="cards.length === 0" class="cn-deck-card__empty">
 				{{ emptyLabel }}
 			</div>
+			<!-- The board look draws each linked card as a ruled row: its title,
+			     one meta line (board, list, assignees) and its first label at
+			     the end, then a link to Deck. -->
+			<div v-else-if="isBoard" class="cn-deck-card__rows">
+				<ul class="cn-deck-card__row-list">
+					<li v-for="card in cards"
+						:key="cardKey(card)"
+						class="cn-deck-card__row"
+						data-testid="cn-deck-card-row">
+						<span class="cn-deck-card__row-main">
+							<a class="cn-deck-card__row-title"
+								:href="cardUrl(card)"
+								target="_blank"
+								rel="noopener">{{ cardTitle(card) }}</a>
+							<span class="cn-deck-card__row-meta" data-testid="cn-deck-card-meta">{{ boardMetaOf(card) }}</span>
+						</span>
+						<span v-if="firstLabel(card)"
+							class="cn-status-badge cn-status-badge--purple"
+							data-testid="cn-deck-card-label">{{ firstLabel(card) }}</span>
+					</li>
+				</ul>
+				<a class="cn-deck-card__open"
+					:href="deckAppUrl"
+					target="_blank"
+					rel="noopener"
+					data-testid="cn-deck-card-open">{{ openDeckLabel }}</a>
+			</div>
 			<div v-else class="cn-deck-card__kanban">
 				<section
 					v-for="stack in miniColumns"
@@ -146,7 +173,9 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { assigneeDisplayName, cardAssignees, cardBoardTitle, cardLabels, cardStackTitle } from './deckCardParts.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -160,6 +189,10 @@ export default {
 	name: 'CnDeckCard',
 
 	components: { CnDeckCardCreate, CnDeckCardPicker, CnDetailCard, LinkVariant, NcButton, NcLoadingIcon, Plus, ViewColumnOutline },
+
+	inject: {
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'deck'`). */
@@ -203,6 +236,8 @@ export default {
 		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link an existing card') },
 		/** Label of the `create` button. */
 		createLabel: { type: String, default: () => t('nextcloud-vue', 'New card') },
+		/** Label of the link to Deck under the rows (board look). */
+		openDeckLabel: { type: String, default: () => t('nextcloud-vue', 'Open Deck') },
 	},
 
 	data() {
@@ -229,6 +264,11 @@ export default {
 				return []
 			}
 			return this.headerActions.filter((action, index, all) => ['create', 'link'].includes(action) && all.indexOf(action) === index)
+		},
+
+		/** @return {boolean} The board look draws ruled rows instead of the mini-kanban. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
 		},
 
 		cardHeaderTitle() {
@@ -325,6 +365,32 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A card's meta line in the board look: its board, its list and its
+		 * assignees, separated by middots.
+		 *
+		 * @param {object} card The card row.
+		 * @return {string}
+		 */
+		boardMetaOf(card) {
+			const board = cardBoardTitle(card)
+			const stack = cardStackTitle(card)
+			return [
+				board ? t('nextcloud-vue', 'Board {name}', { name: board }) : '',
+				stack ? t('nextcloud-vue', 'list {name}', { name: stack }) : '',
+				...cardAssignees(card).map(assigneeDisplayName),
+			].filter(Boolean).join(' · ')
+		},
+
+		/**
+		 * @param {object} card The card row.
+		 * @return {string} Its first label's title, or ''.
+		 */
+		firstLabel(card) {
+			const label = cardLabels(card)[0]
+			return label ? String(label.title ?? label.name ?? '') : ''
+		},
+
 		/** @return {string} The object's Deck endpoint the link and create flows post to. */
 		deckEndpoint() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/deck`

@@ -28,5 +28,8 @@ describe('look-board: a dashboard banner kicker in sentence case', () => {
 		expect(body).toMatch(/letter-spacing:\s*0/)
 		expect(body).toMatch(/font-size:\s*13px/)
 		expect(body).toMatch(/font-weight:\s*700/)
+		// One 15.6px line, as the board's h2: the case title starts 42px down the card.
+		expect(body).toMatch(/(^|;|\s)line-height:\s*normal/)
+		expect(body).toMatch(/--nldesign-component-paragraph-line-height:\s*normal/)
 	})
 })

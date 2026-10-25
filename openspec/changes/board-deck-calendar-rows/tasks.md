@@ -1,0 +1,4 @@
+- [x] 1.1 calendar rows (src/integrations/builtin/calendar/__tests__/CnCalendarCardBoardRows.spec.js)
+- [x] 1.2 deck rows (src/integrations/builtin/deck/__tests__/CnDeckCardBoardRows.spec.js)
+- [x] 1.3 board CSS (tests/css/lookBoardDeckCalendarRows.spec.js)
+- [x] 1.4 shared helpers used by the tabs

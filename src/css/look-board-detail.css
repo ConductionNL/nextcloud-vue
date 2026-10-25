@@ -1235,6 +1235,13 @@
 
 .cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted {
 	font-size: 14px;
+	line-height: 1.2;
+}
+
+/* The board stacks the archiving card's parts 10px apart (r26a: the head
+   row 45.9 vs 41 and the facts 55.9 vs 30 under the title). */
+.cn-look-board .cn-retention.cn-retention {
+	gap: 10px;
 }
 
 .cn-look-board .cn-retention .cn-retention__fact {
@@ -1400,6 +1407,15 @@
 	margin: 0;
 }
 
+/* ---- A sidebar tab standing in a page card --------------------------------- */
+/* The Files, Notes, Tasks... tabs pad themselves 12px for the sidebar. On a
+   detail page the card around them already pads, and the boards draw their
+   toolbar, table and rows flush with the card title (DqZaakDocumenten, DqZaakEmail).
+   @spec openspec/changes/board-sidebar-tab-flush-in-card/specs/board-sidebar-tab-flush-in-card/spec.md#requirement-a-sidebar-tab-in-a-page-card-adds-no-padding-of-its-own */
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
 /* ---- A file's side card (CnFilesBrowser) --------------------------------- */
 /* The board's side card: radius 12, 20px 22px of padding, the title a 15px
    muted heading at 600, the facts 8px 16px apart with the values at 500
@@ -1529,6 +1545,25 @@
 	gap: 14px 16px;
 }
 
+/* In a page card the mail tab is the card's body: no padding of its own, 12px
+   between its parts, the heading at the card title's 17px/700 and the
+   description at 14px (DqZaakEmail "E-mail").
+   @spec openspec/changes/board-mail-tab-in-card/specs/board-mail-tab-in-card/spec.md#requirement-a-mail-tab-in-a-page-card-reads-as-the-card */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab:not(.cn-look-nextcloud *) {
+	gap: 12px;
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__title:not(.cn-look-nextcloud *) {
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__subtitle:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
@@ -1547,6 +1582,31 @@
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
 	line-height: normal;
+}
+
+/* In a page card the notes tab's "Add note" stands at the end of the card's
+   title row, and each note thread opens with a hairline (DqZaakEmail
+   "Notities": the button beside the title, rows 12px 0 under a rule). The
+   card (CnWidgetWrapper) is the positioned box; the add form, when open,
+   stays in the body.
+   @spec openspec/changes/board-notes-card-add-in-title-row/specs/board-notes-card-add-in-title-row/spec.md#requirement-a-notes-card-carries-its-add-in-the-title-row */
+.cn-look-board .cn-detail-widget-host .cn-widget-wrapper .cn-sidebar-tab__composer-toggle:not(.cn-look-nextcloud *) {
+	position: absolute;
+	top: 20px;
+	inset-inline-end: var(--cn-board-card-inline-padding);
+}
+
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab__action:has(> .cn-sidebar-tab__composer-toggle):not(:has(.cn-sidebar-tab__composer)):not(.cn-look-nextcloud *) {
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab__list:not(.cn-look-nextcloud *) {
+	gap: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread:not(.cn-look-nextcloud *) {
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
 }
 
 /* The notes tab's "Add note" button, when the add form waits behind it, is
@@ -1721,4 +1781,261 @@
 
 .cn-look-board .cn-checklist-widget__item .checkbox-content__text {
 	font-weight: 600;
+}
+
+/* The parties widget's "Dit zaaktype accepteert" strip as DqZaakBetrokkenen
+   draws it: a sunken strip rounded at 8px, the label 14px bold, the kinds
+   as outlined 13px chips.
+   @spec openspec/changes/board-parties-accepted-strip/specs/parties/spec.md */
+.cn-look-board .cn-object-parties .cn-object-parties__accepted {
+	gap: 6px 8px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background-color: var(--cn-board-sunken-ground);
+}
+
+.cn-look-board .cn-object-parties .cn-object-parties__accepted-label {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-object-parties .cn-object-parties__accepted-kind {
+	padding: 2px 8px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+/* A short side list (`density: "stacked"`, DqOrganisatie "Lopende zaken")
+   starts 10px under the title with no hairline and no row padding; a main
+   contact (DqOrganisatie "Hoofdcontact") starts 12px under it, its two lines
+   at their normal height so they centre on the 40px tile.
+   @spec openspec/changes/board-side-lead-gaps/specs/board-side-lead-gaps/spec.md#requirement-a-board-side-card-starts-a-stacked-list-or-main-contact-as-drawn */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-record-list--stacked) {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-object-parties > .cn-object-parties__main-card) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__item {
+	border-top: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-text {
+	line-height: normal;
+}
+
+/* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
+   every row including the first, 12px 0 padding, a 32px round tile (the day
+   an appointment starts, the author's initials) 12px before the text, the
+   title 15/600 and one 13px muted meta line joined with " · ".
+   @spec openspec/changes/board-task-cards-rows/specs/task-cards/spec.md#requirement-board-appointment-and-note-rows-carry-a-tile-and-a-meta-line */
+.cn-look-board .cn-events-card__list {
+	gap: 0;
+}
+
+.cn-look-board .cn-events-card__event,
+.cn-look-board .cn-events-card__event:last-child,
+.cn-look-board .cn-notes-card__note,
+.cn-look-board .cn-notes-card__note:last-child {
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: none;
+}
+
+.cn-look-board .cn-events-card__day,
+.cn-look-board .cn-notes-card__initials {
+	display: inline-flex;
+	flex: 0 0 32px;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-events-card__text {
+	flex-flow: row wrap;
+	row-gap: 2px;
+}
+
+.cn-look-board .cn-events-card__summary,
+.cn-look-board .cn-notes-card__body {
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.cn-look-board .cn-events-card__summary {
+	flex-basis: 100%;
+}
+
+.cn-look-board .cn-events-card__when,
+.cn-look-board .cn-events-card__where,
+.cn-look-board .cn-notes-card__author,
+.cn-look-board .cn-notes-card__time {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-events-card__where::before,
+.cn-look-board .cn-notes-card__time::before {
+	content: ' · ';
+	white-space: pre;
+}
+
+.cn-look-board .cn-notes-card__note {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-inline-start: 44px;
+}
+
+.cn-look-board .cn-notes-card__initials {
+	position: absolute;
+	top: 12px;
+	inset-inline-start: 0;
+}
+
+.cn-look-board .cn-notes-card__body {
+	order: -1;
+}
+
+.cn-look-board .cn-notes-card__note-header {
+	justify-content: flex-start;
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-notes-card__time {
+	margin-inline-start: 0;
+}
+
+/* The parties widget's rows as DqZaakBetrokkenen "Rollen" draws them: one
+   ruled row per party, a 32px initials tile, the name over a muted meta line
+   that names the role, the pills at the end. The role headings stay for
+   assistive tech only.
+   @spec openspec/changes/board-parties-rows/specs/parties/spec.md */
+.cn-look-board .cn-object-parties--board .cn-object-parties__role-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__list {
+	gap: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__party {
+	flex-wrap: nowrap;
+	gap: 12px;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__tile {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 16px;
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__meta {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The calendar and Deck cards' rows as DqZaakTaken "Afspraken" and "Kaarten"
+   draw them: ruled rows, the title over a muted meta line, the pill at the
+   end, and the link to the app under the rows.
+   @spec openspec/changes/board-deck-calendar-rows/specs/integrations/spec.md */
+.cn-look-board .cn-detail-page .cn-calendar-card__row,
+.cn-look-board .cn-detail-page .cn-deck-card__row {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__row-main,
+.cn-look-board .cn-detail-page .cn-deck-card__row-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__title,
+.cn-look-board .cn-detail-page .cn-deck-card__row-title {
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__meta,
+.cn-look-board .cn-detail-page .cn-deck-card__row-meta {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__end {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.cn-look-board .cn-detail-page .cn-deck-card__row-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__open,
+.cn-look-board .cn-detail-page .cn-deck-card__open {
+	display: inline-block;
+	margin-top: 12px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
 }
