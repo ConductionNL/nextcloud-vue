@@ -1,0 +1,2 @@
+- [x] look-board.css rule
+- [x] tests/css/lookBoardChoiceRowTitle700.spec.js (red first)

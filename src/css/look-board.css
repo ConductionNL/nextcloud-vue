@@ -3126,6 +3126,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: flex-start;
 }
 
+/* An option's name is bold, as the dialog boards draw it in <strong>
+   (DqDocumentGenereren, DqVolgendeStap); the component sets 600.
+   @spec openspec/changes/board-choice-row-title-700/specs/board-choice-row-title-700/spec.md#requirement-a-board-choice-options-name-is-700 */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 /* The chosen option's fields start under its text: radio 18, icon 20 and
    two 12px gaps past the row's 14px inset. */
 .cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details:not(.cn-look-nextcloud *) {
