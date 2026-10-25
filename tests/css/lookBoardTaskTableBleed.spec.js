@@ -59,4 +59,8 @@ describe('look-board-detail.css: task table in a detail card', () => {
 		expect(body).toContain('display: inline-flex')
 		expect(body).toContain('vertical-align: middle')
 	})
+
+	it('sets head and body text at line height 1.2, as the board draws it (r25b: 21 vs 16.8)', () => {
+		expect(rule(TABLE + ' :is(th, td)')).toContain('line-height: 1.2')
+	})
 })

@@ -579,7 +579,14 @@
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta:not(.cn-look-nextcloud *),
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta time:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
+	font-size: 13px;
 	line-height: normal;
+}
+
+/* 6px between the meta line and the text.
+   @spec openspec/changes/board-conversation-bubble-meta-gap/specs/board-conversation-bubble-meta-gap/spec.md#requirement-a-board-message-sets-its-meta-line-at-13px-6px-above-the-text */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
+	gap: 6px;
 }
 
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
@@ -1270,6 +1277,11 @@
 	line-height: normal;
 }
 
+/* Head and body text at line height 1.2, as the board draws the table. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td) {
+	line-height: 1.2;
+}
+
 /* A long task name wraps under itself, as the board draws it, rather than
    widening the table past the card. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
@@ -1568,4 +1580,16 @@
 	border-bottom: 0;
 	font-size: 14px;
 	line-height: 1.2;
+}
+
+/* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
+   the card's padding instead of its own, and its buttons start at the card's
+   edge under the subtitle.
+   @spec openspec/changes/board-contacts-in-card/specs/contacts/spec.md */
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
+	justify-content: flex-start;
 }
