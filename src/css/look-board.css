@@ -329,9 +329,11 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-banner-widget__kicker {
 	--nldesign-component-paragraph-font-size: 13px;
 	--nldesign-component-paragraph-font-weight: 700;
+	--nldesign-component-paragraph-line-height: normal;
 	font-size: 13px;
 	font-weight: 700;
 	letter-spacing: 0;
+	line-height: normal;
 	text-transform: none;
 }
 
