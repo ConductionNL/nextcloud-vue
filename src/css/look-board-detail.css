@@ -1691,3 +1691,28 @@
 .cn-look-board .cn-checklist-widget__item .checkbox-content__text {
 	font-weight: 600;
 }
+
+/* The parties widget's "Dit zaaktype accepteert" strip as DqZaakBetrokkenen
+   draws it: a sunken strip rounded at 8px, the label 14px bold, the kinds
+   as outlined 13px chips.
+   @spec openspec/changes/board-parties-accepted-strip/specs/parties/spec.md */
+.cn-look-board .cn-object-parties .cn-object-parties__accepted {
+	gap: 6px 8px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background-color: var(--cn-board-sunken-ground);
+}
+
+.cn-look-board .cn-object-parties .cn-object-parties__accepted-label {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-object-parties .cn-object-parties__accepted-kind {
+	padding: 2px 8px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
