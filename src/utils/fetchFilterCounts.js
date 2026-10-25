@@ -176,10 +176,13 @@ export function singleEqualityOf(filter) {
  * @param {Array<{key: (string|number), filter: object}>} options.entries The filters to count, each under its own key.
  * @param {object} [options.baseFilter] A filter every count is narrowed by (the page's fixed filter).
  * @param {object} [options.ctx] Token-resolution context for the filters.
+ * @param {string} [options.via] `'list'` counts every entry through the list endpoint, the request a list sends, so a
+ *   count beside a list cannot disagree with it; else the aggregation endpoints where they apply.
  * @return {Promise<{[key: string]: number}>} The count per entry key. An entry whose count failed is left out.
  * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+ * @spec openspec/changes/index-counts-read-the-list-endpoint/specs/index-page/spec.md#requirement-an-index-pages-counts-come-from-the-list-request
  */
-export async function fetchFilterCounts({ register, schema, entries, baseFilter, ctx } = {}) {
+export async function fetchFilterCounts({ register, schema, entries, baseFilter, ctx, via = '' } = {}) {
 	const counts = {}
 	if (!register || !schema || !Array.isArray(entries) || entries.length === 0) {
 		return counts
@@ -191,7 +194,7 @@ export async function fetchFilterCounts({ register, schema, entries, baseFilter,
 	// and `/value` returns exactly its number.
 	// A list of values anywhere in a request rules the aggregation endpoints
 	// out for it. A base filter with one rules them out for every entry.
-	const baseHasList = needsListEndpoint(base)
+	const baseHasList = via === 'list' || needsListEndpoint(base)
 	const byField = {}
 	const single = []
 	const viaList = []
