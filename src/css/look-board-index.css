@@ -909,14 +909,19 @@
    `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
    `content-box` here was ignored and the cell left 12px for the checkbox (the
    header's checkbox showed as a stray bracket). */
-/* The checkbox starts 20px in, as the boards draw a native checkbox (16px of
-   cell padding and its 4px margin; DqZoekresultaten), in the same 60px. */
+/* The cell pads 16px as the boards do and the checkbox starts 4px further in,
+   a native checkbox's margin (DqZoekresultaten, DqPostvak, DqContracten), in
+   the same 60px. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
 	box-sizing: border-box !important;
 	width: 60px;
 	min-width: 60px;
-	padding-inline: 20px 12px;
+	padding-inline: 16px;
 	text-align: start;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox .checkbox-radio-switch {
+	margin-inline-start: 4px;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .checkbox-radio-switch {
