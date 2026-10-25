@@ -627,6 +627,14 @@
 	font-size: 14px;
 }
 
+/* A lead widget in a card (the review summary over the files) stands 16px
+   above the card's own body, the boards' gap between a card's parts
+   (DqZaakDocumenten r29: the files toolbar sat flush under the summary).
+   @spec openspec/changes/board-lead-widget-gap-16/specs/board-lead-widget-gap-16/spec.md#requirement-a-lead-widget-stands-16px-above-the-cards-body */
+.cn-look-board .cn-detail-widget-host__lead:not(.cn-look-nextcloud *) {
+	margin-bottom: 16px;
+}
+
 /* The case Status card as the board draws it: no grey box, the status's
    explanation as its bold line, the time in the status muted under it.
    @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
