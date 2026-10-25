@@ -8,7 +8,8 @@
  * beoordelen document."). Both lines go through the host translate, and the
  * files tab (the case files leaf) forwards them.
  *
- * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
+ * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md
+ * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
  */
 import { flushPromises, mount } from '@vue/test-utils'
 import CnFilesBrowser from '../../src/components/CnFilesBrowser/CnFilesBrowser.vue'
@@ -63,6 +64,31 @@ describe('CnFilesBrowser drop panel', () => {
 		expect(overlay.find('[data-testid="cn-files-browser-drop-detail"]').text()).toBe('3 bestanden komen bij deze zaak, als nog te beoordelen document.')
 		expect(w.classes()).toContain('cn-files-browser--drop-panel')
 		expect(w.find('[data-testid="cn-files-browser-drop-status"]').text()).toBe('Laat los om toe te voegen 3 bestanden komen bij deze zaak, als nog te beoordelen document.')
+		w.unmount()
+	})
+
+	it('fills named values into the detail line, such as the case number (DqZaakDocumentenSlepen)', async () => {
+		const w = mountBrowser({ dropDetail: '{count} files go to case {case}.', dropDetailValues: { case: '2026-0082' } })
+		await flushPromises()
+		await w.trigger('dragenter', filesDrag(3))
+		expect(w.find('[data-testid="cn-files-browser-drop-detail"]').text()).toBe('3 files go to case 2026-0082.')
+		w.unmount()
+	})
+
+	it('takes the first detail variant whose when is true, or that has none', async () => {
+		const variants = [{ when: false, text: 'Review case: {count} files.' }, { text: '{count} files go to case {case}.' }]
+		const w = mountBrowser({ dropDetail: variants, dropDetailValues: { case: '2026-0082' } })
+		await flushPromises()
+		await w.trigger('dragenter', filesDrag(2))
+		expect(w.find('[data-testid="cn-files-browser-drop-detail"]').text()).toBe('2 files go to case 2026-0082.')
+		w.unmount()
+	})
+
+	it('leaves the detail line out while a named value is not known yet', async () => {
+		const w = mountBrowser({ dropDetail: '{count} files go to case {case}.', dropDetailValues: { case: '@object.identifier' } })
+		await flushPromises()
+		await w.trigger('dragenter', filesDrag(3))
+		expect(w.find('[data-testid="cn-files-browser-drop-detail"]').exists()).toBe(false)
 		w.unmount()
 	})
 

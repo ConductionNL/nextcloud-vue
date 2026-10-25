@@ -875,6 +875,7 @@
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
+					:rowIconTone="rowIconTone"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
@@ -3183,6 +3184,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The leading icon's tile tone in the board look (`primary`, `teal`,
+		 * `neutral`), from `pages[].config.rowIconTone`. Forwarded to CnDataTable.
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/** Columns to exclude in schema mode */
@@ -6422,6 +6434,7 @@ export default {
 				r: this.register,
 				s: this.exportSchemaSlug,
 				f: this.filter || null,
+				a: this.effectiveActiveFilters || null,
 				e: this.countEntries,
 				// The store's total, not the error override in effectivePagination,
 				// so a failed fetch and its recovery do not refetch the counts.
@@ -10012,7 +10025,15 @@ export default {
 			const counts = await fetchFilterCounts({
 				register: this.register,
 				schema,
-				entries: this.countEntries.map((entry) => ({ key: entry.key, filter: resolveFilterMap(entry.filter, params, ctx) })),
+				// A quick filter counts within the list as filtered (the
+				// active filters, its own field its own); a saved view counts
+				// its own query.
+				entries: this.countEntries.map((entry) => ({
+					key: entry.key,
+					filter: entry.key.startsWith('tab:')
+						? { ...(this.effectiveActiveFilters || {}), ...resolveFilterMap(entry.filter, params, ctx) }
+						: resolveFilterMap(entry.filter, params, ctx),
+				})),
 				baseFilter: resolveFilterMap(this.filter, params, ctx),
 				ctx,
 			})
