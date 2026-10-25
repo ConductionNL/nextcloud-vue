@@ -1836,23 +1836,25 @@
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
    every row including the first, 12px 0 padding, a 32px round tile (the day
    an appointment starts, the author's initials) 12px before the text, the
-   title 15/600 and one 13px muted meta line joined with " · ".
+   title 15/600 and one 13px muted meta line joined with " · ". Every
+   selector carries :not(.cn-look-nextcloud *) to outrank the cards' scoped
+   rules, which tie with a two-class selector and load later.
    @spec openspec/changes/board-task-cards-rows/specs/task-cards/spec.md#requirement-board-appointment-and-note-rows-carry-a-tile-and-a-meta-line */
-.cn-look-board .cn-events-card__list {
+.cn-look-board .cn-events-card__list:not(.cn-look-nextcloud *) {
 	gap: 0;
 }
 
-.cn-look-board .cn-events-card__event,
-.cn-look-board .cn-events-card__event:last-child,
-.cn-look-board .cn-notes-card__note,
-.cn-look-board .cn-notes-card__note:last-child {
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child,
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
 	padding: 12px 0;
 	border-top: 1px solid var(--cn-board-hairline);
 	border-bottom: none;
 }
 
-.cn-look-board .cn-events-card__day,
-.cn-look-board .cn-notes-card__initials {
+.cn-look-board .cn-events-card__day:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
 	display: inline-flex;
 	flex: 0 0 32px;
 	align-items: center;
@@ -1866,60 +1868,60 @@
 	font-weight: 700;
 }
 
-.cn-look-board .cn-events-card__text {
+.cn-look-board .cn-events-card__text:not(.cn-look-nextcloud *) {
 	flex-flow: row wrap;
 	row-gap: 2px;
 }
 
-.cn-look-board .cn-events-card__summary,
-.cn-look-board .cn-notes-card__body {
+.cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.35;
 }
 
-.cn-look-board .cn-events-card__summary {
+.cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *) {
 	flex-basis: 100%;
 }
 
-.cn-look-board .cn-events-card__when,
-.cn-look-board .cn-events-card__where,
-.cn-look-board .cn-notes-card__author,
-.cn-look-board .cn-notes-card__time {
+.cn-look-board .cn-events-card__when:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__author:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	font-weight: 400;
 }
 
-.cn-look-board .cn-events-card__where::before,
-.cn-look-board .cn-notes-card__time::before {
+.cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *)::before {
 	content: ' · ';
 	white-space: pre;
 }
 
-.cn-look-board .cn-notes-card__note {
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	padding-inline-start: 44px;
 }
 
-.cn-look-board .cn-notes-card__initials {
+.cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
 	position: absolute;
 	top: 12px;
 	inset-inline-start: 0;
 }
 
-.cn-look-board .cn-notes-card__body {
+.cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	order: -1;
 }
 
-.cn-look-board .cn-notes-card__note-header {
+.cn-look-board .cn-notes-card__note-header:not(.cn-look-nextcloud *) {
 	justify-content: flex-start;
 	margin-bottom: 0;
 }
 
-.cn-look-board .cn-notes-card__time {
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	margin-inline-start: 0;
 }
 
