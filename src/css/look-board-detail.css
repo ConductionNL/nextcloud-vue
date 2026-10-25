@@ -1452,6 +1452,13 @@
 	padding-inline-end: var(--cn-board-card-inline-padding);
 }
 
+/* A row menu in the last column keeps its 34px button and 16px start
+   padding beside the card's end padding, so it is not cut off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container .cn-data-table .cn-table-col--actions:last-child {
+	width: calc(50px + var(--cn-board-card-inline-padding));
+	min-width: calc(50px + var(--cn-board-card-inline-padding));
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
