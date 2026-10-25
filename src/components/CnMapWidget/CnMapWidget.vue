@@ -226,6 +226,25 @@ function controlIcon(path) {
  * @slot popup Per-marker popup body override. Scoped props: `{ feature, properties }`. When omitted, the widget renders the value of `markers.popupField` (or no popup at all when unset).
  * @slot fallback Replaces the default "map unavailable" message when Leaflet fails to load (test environments, CSP-blocked builds, offline dev). No scoped props.
  */
+/**
+ * The count line a header spec gives (`{ one, other }` or one string, with
+ * `{total}`), once the marker source answered with markers.
+ *
+ * @param {object|string|undefined} spec The declared line.
+ * @param {object} vm The map: `markersLoaded`, `markersFailed`, `markerCount`, `cnTranslate`.
+ * @return {string} The line, or ''.
+ */
+function countLine(spec, vm) {
+	if (!spec || !vm.markersLoaded || vm.markersFailed || vm.markerCount === 0) {
+		return ''
+	}
+	const text = typeof spec === 'string' ? spec : (vm.markerCount === 1 ? spec.one : spec.other)
+	if (typeof text !== 'string' || text === '') {
+		return ''
+	}
+	return vm.cnTranslate(text).replace(/\{total\}/g, String(vm.markerCount))
+}
+
 export default {
 	name: 'CnMapWidget',
 
@@ -577,15 +596,19 @@ export default {
 		 * @spec openspec/changes/map-widget-header-count/specs/map-widget-header-count/spec.md#requirement-a-map-card-can-say-how-many-places-it-shows
 		 */
 		headerSubtitleText() {
-			const spec = this.content?.headerSubtitle
-			if (!spec || !this.markersLoaded || this.markersFailed || this.markerCount === 0) {
-				return ''
-			}
-			const text = typeof spec === 'string' ? spec : (this.markerCount === 1 ? spec.one : spec.other)
-			if (typeof text !== 'string' || text === '') {
-				return ''
-			}
-			return this.cnTranslate(text).replace(/\{total\}/g, String(this.markerCount))
+			return countLine(this.content?.headerSubtitle, this)
+		},
+
+		/**
+		 * The same count as a note at the right of the card's title row
+		 * (`content.headerNote`, the same shape as `headerSubtitle`), as the
+		 * case boards draw "Locaties ... 1 locatie".
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-count-note/specs/map-widget/spec.md
+		 */
+		headerNoteText() {
+			return countLine(this.content?.headerNote, this)
 		},
 
 		markerStatusText() {
@@ -669,6 +692,21 @@ export default {
 				 * @type {{subtitle: string}}
 				 */
 				this.$emit('header', { subtitle })
+			}
+		},
+
+		/**
+		 * Report the count note to the card around the map.
+		 *
+		 * @param {string} note The note, or ''.
+		 */
+		headerNoteText(note) {
+			if (this.content?.headerNote) {
+				/**
+				 * @event header The card header's note at the right of the title.
+				 * @type {{note: string}}
+				 */
+				this.$emit('header', { note })
 			}
 		},
 
