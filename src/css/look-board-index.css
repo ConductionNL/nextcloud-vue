@@ -190,6 +190,15 @@
 	gap: 8px;
 }
 
+/* With the side panel open the boards keep Filter on row 1 after Save view
+   and wrap the view switch alone to row 2 (DqFilterBeheren, DqZakenSorteren):
+   the unit dissolves into the bar's flex row.
+   @spec openspec/changes/board-filter-row-one-beside-side-panel/specs/board-filter-row-one-beside-side-panel/spec.md */
+.cn-look-board.cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-controls,
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-controls {
+	display: contents;
+}
+
 /* `quickFilterPlacement: "toolbar"` (DqTeamwachtrij): the chips take the room
    the Filter button and the view switch leave on row 1, so the three stay on
    one row in the column beside a side panel; the chips that do not fit move
