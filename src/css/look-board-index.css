@@ -826,6 +826,15 @@
 	padding: 10px 12px;
 }
 
+/* A table on a settings card draws its head 42.5px, as DqInstellingen and
+   DqVthInstellingen do, also when no head cell carries a control that makes
+   it that tall (the VTH tables read 37.5px).
+   @spec openspec/changes/board-settings-table-head-height/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-table-container--board .cn-data-table thead th:not(.cn-look-nextcloud *) {
+	height: 42.5px;
+	box-sizing: border-box;
+}
+
 .cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table td {
 	padding: 11px 12px;
 }
