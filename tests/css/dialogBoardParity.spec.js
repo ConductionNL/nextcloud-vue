@@ -50,9 +50,10 @@ describe('dialog.css: the board dialog', () => {
 		expect(close).not.toContain('--button-radius')
 	})
 
-	it('starts the saved-view edit and share forms 22px under the subtitle, as the boards draw them', () => {
-		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 6px;')
-		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 6px;')
+	it('starts the body 22px under the subtitle, the header foot and the gap alone (r29: Bewerken, Delen, Verwijderen read 28/28/26)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-confirm__confirm')).toContain('padding-top: 0;')
 	})
 
 	it('hands the subtitle\'s 14px muted line to the theme\'s paragraph tokens', () => {
