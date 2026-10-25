@@ -1716,3 +1716,93 @@
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-text {
 	line-height: normal;
 }
+
+/* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
+   every row including the first, 12px 0 padding, a 32px round tile (the day
+   an appointment starts, the author's initials) 12px before the text, the
+   title 15/600 and one 13px muted meta line joined with " · ".
+   @spec openspec/changes/board-task-cards-rows/specs/task-cards/spec.md#requirement-board-appointment-and-note-rows-carry-a-tile-and-a-meta-line */
+.cn-look-board .cn-events-card__list {
+	gap: 0;
+}
+
+.cn-look-board .cn-events-card__event,
+.cn-look-board .cn-events-card__event:last-child,
+.cn-look-board .cn-notes-card__note,
+.cn-look-board .cn-notes-card__note:last-child {
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: none;
+}
+
+.cn-look-board .cn-events-card__day,
+.cn-look-board .cn-notes-card__initials {
+	display: inline-flex;
+	flex: 0 0 32px;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-events-card__text {
+	flex-flow: row wrap;
+	row-gap: 2px;
+}
+
+.cn-look-board .cn-events-card__summary,
+.cn-look-board .cn-notes-card__body {
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.cn-look-board .cn-events-card__summary {
+	flex-basis: 100%;
+}
+
+.cn-look-board .cn-events-card__when,
+.cn-look-board .cn-events-card__where,
+.cn-look-board .cn-notes-card__author,
+.cn-look-board .cn-notes-card__time {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-events-card__where::before,
+.cn-look-board .cn-notes-card__time::before {
+	content: ' · ';
+	white-space: pre;
+}
+
+.cn-look-board .cn-notes-card__note {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-inline-start: 44px;
+}
+
+.cn-look-board .cn-notes-card__initials {
+	position: absolute;
+	top: 12px;
+	inset-inline-start: 0;
+}
+
+.cn-look-board .cn-notes-card__body {
+	order: -1;
+}
+
+.cn-look-board .cn-notes-card__note-header {
+	justify-content: flex-start;
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-notes-card__time {
+	margin-inline-start: 0;
+}
