@@ -20,6 +20,8 @@
 			:excludeActions="resolvedExcludeActions"
 			:actionLabels="actionLabels"
 			:valueLabels="valueLabels"
+			:changeLabels="changeLabels"
+			:object="ctx.object || ctx.objectData || null"
 			:relatedSources="relatedSources"
 			:footnote="footnote"
 			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
@@ -191,6 +193,22 @@ export default {
 			return Object.fromEntries(Object.entries(labels)
 				.filter(([, text]) => typeof text === 'string' && text !== '')
 				.map(([key, text]) => [key, translate(text)]))
+		},
+
+		/**
+		 * `content.changeLabels`, each rule's label through the app's translate.
+		 *
+		 * @return {Array<object>}
+		 */
+		changeLabels() {
+			const rules = this.content.changeLabels
+			if (!Array.isArray(rules)) {
+				return []
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return rules
+				.filter((rule) => rule && typeof rule.label === 'string' && rule.label !== '')
+				.map((rule) => ({ ...rule, label: translate(rule.label) }))
 		},
 
 		/**
