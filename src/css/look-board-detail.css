@@ -1691,3 +1691,28 @@
 .cn-look-board .cn-checklist-widget__item .checkbox-content__text {
 	font-weight: 600;
 }
+
+/* A short side list (`density: "stacked"`, DqOrganisatie "Lopende zaken")
+   starts 10px under the title with no hairline and no row padding; a main
+   contact (DqOrganisatie "Hoofdcontact") starts 12px under it, its two lines
+   at their normal height so they centre on the 40px tile.
+   @spec openspec/changes/board-side-lead-gaps/specs/board-side-lead-gaps/spec.md#requirement-a-board-side-card-starts-a-stacked-list-or-main-contact-as-drawn */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-record-list--stacked) {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-object-parties > .cn-object-parties__main-card) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__item {
+	border-top: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-text {
+	line-height: normal;
+}
