@@ -1721,8 +1721,9 @@ export default {
 
 		/**
 		 * The swatch colour — read from the sibling row field named by
-		 * `format.colorField` (default `'color'`). Returns null when no usable
-		 * colour string is present (the dot is then omitted).
+		 * `format.colorField` (default `'color'`), through `format.colorMap`
+		 * when given (a stored name such as `blue` to a CSS colour). Returns
+		 * null when no usable colour is present (the dot is then omitted).
 		 *
 		 * @return {string|null}
 		 */
@@ -1732,7 +1733,14 @@ export default {
 			}
 			const field = (this.format && this.format.colorField) || 'color'
 			const c = this.row && this.row[field]
-			return (typeof c === 'string' && c.trim() !== '') ? c : null
+			if (typeof c !== 'string' || c.trim() === '') {
+				return null
+			}
+			const map = this.format && this.format.colorMap
+			if (map && typeof map === 'object') {
+				return typeof map[c] === 'string' && map[c] !== '' ? map[c] : null
+			}
+			return c
 		},
 
 		formattedValue() {
