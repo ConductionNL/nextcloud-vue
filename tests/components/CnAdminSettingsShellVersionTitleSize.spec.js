@@ -40,3 +40,18 @@ describe('CnAdminSettingsShell versionTitleSize', () => {
 		expect(root({ versionTitleSize: 19 }).style.getPropertyValue('--cn-board-version-title-size')).toBe('19px')
 	})
 })
+
+/**
+ * @spec openspec/changes/board-settings-desc-spacing/specs/settings-board-look/spec.md
+ */
+describe('CnAdminSettingsShell descGap', () => {
+	it('sets no description gap of its own by default (4px)', () => {
+		expect(root().style.getPropertyValue('--cn-board-settings-desc-gap')).toBe('')
+	})
+
+	it('hands the board\'s gap to the cards, beside a version title size', () => {
+		const el = root({ descGap: 6, versionTitleSize: 19 })
+		expect(el.style.getPropertyValue('--cn-board-settings-desc-gap')).toBe('6px')
+		expect(el.style.getPropertyValue('--cn-board-version-title-size')).toBe('19px')
+	})
+})

@@ -2,7 +2,7 @@
 	<div
 		class="cn-admin-settings-shell"
 		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']"
-		:style="versionTitleSize ? { '--cn-board-version-title-size': `${versionTitleSize}px` } : null">
+		:style="shellStyle">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -780,6 +780,16 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
+		/**
+		 * The board look's gap in px between a card's title and its
+		 * description, when the app's board draws it other than 4px; the
+		 * content follows 10px further (DqBeheerinstellingen 6, so 16).
+		 */
+		descGap: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
@@ -818,6 +828,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The board look sizes an app's board sets on the shell
+		 * (`versionTitleSize`, `descGap`), as CSS custom properties.
+		 *
+		 * @return {object|null} The style, or null when none is set.
+		 */
+		shellStyle() {
+			const style = {}
+			if (this.versionTitleSize) {
+				style['--cn-board-version-title-size'] = `${this.versionTitleSize}px`
+			}
+			if (this.descGap) {
+				style['--cn-board-settings-desc-gap'] = `${this.descGap}px`
+			}
+			return Object.keys(style).length > 0 ? style : null
+		},
+
 		/**
 		 * The tabs that have an id and a label.
 		 *

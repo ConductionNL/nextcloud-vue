@@ -19,5 +19,8 @@ describe('look-board.css: a linked cell in a settings table', () => {
 		const rule = /\.cn-look-board \.settings-section \.cn-data-table a\.cn-cell-renderer__link:not\(\.cn-look-nextcloud \*\)\s*\{([^}]*)\}/.exec(css)
 		expect(rule).not.toBeNull()
 		expect(rule[1]).toContain('color: var(--color-main-text);')
+		// thematiq's `a { color: var(--nldesign-component-link-color) !important }` (r26b probe).
+		expect(rule[1]).toContain('--nldesign-component-link-color: var(--color-main-text);')
+		expect(rule[1]).toContain('--nldesign-color-on-surface: var(--color-main-text);')
 	})
 })

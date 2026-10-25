@@ -243,6 +243,7 @@ export default {
 }
 
 .cn-saved-view-alert__facts {
+	padding: 0;
 	display: grid;
 	grid-template-columns: max-content 1fr;
 	gap: 6px 16px;
@@ -278,6 +279,11 @@ export default {
 
 .cn-saved-view-alert__label {
 	font-weight: 600;
+}
+
+/* The switch sits flush with the card edge, as the board draws it. */
+.cn-saved-view-alert :deep(.checkbox-radio-switch__content) {
+	padding: 0;
 }
 
 .cn-saved-view-alert__switch-text {

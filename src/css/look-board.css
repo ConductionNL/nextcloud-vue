@@ -1458,6 +1458,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    connection's name opens its settings card). The underline marks the link.
    @spec openspec/changes/settings-table-link-ink/specs/settings-board-look/spec.md */
 .cn-look-board .settings-section .cn-data-table a.cn-cell-renderer__link:not(.cn-look-nextcloud *) {
+	/* thematiq colours every link with `!important` from these two tokens. */
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-color-on-surface: var(--color-main-text);
 	color: var(--color-main-text);
 	text-decoration: underline;
 }
@@ -1542,7 +1545,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc {
-	margin-top: -10px;
+	/* 4px under the title and 14px above the content (PtBeheerinstellingen);
+	   the shell's `descGap` sets another gap, the content 10px further, as
+	   the boards drawn from NcBeheerInstellingen space them (6 and 16:
+	   DqBeheerinstellingen, LrBeheerinstellingen). The card's gap is 14px.
+	   @spec openspec/changes/board-settings-desc-spacing/specs/settings-board-look/spec.md */
+	margin-top: calc(var(--cn-board-settings-desc-gap, 4px) - 14px);
+	margin-bottom: calc(var(--cn-board-settings-desc-gap, 4px) - 4px);
 }
 
 .cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .notecard,
@@ -2122,6 +2131,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* Over a list that rules above its first row (record list ruleAbove, task
+   list, decision list) the rule stands 6px under the title and the row's own
+   12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
+   "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt").
+   @spec openspec/changes/board-card-title-above-ruled-list/specs/board-card-title-above-ruled-list/spec.md#requirement-a-ruled-list-starts-6px-under-the-card-title */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows) .cn-widget-wrapper__header {
+	padding-bottom: 6px;
+}
+
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
 /* A macro reads as the boards draw a card's list row: the name at weight 500
    over its 13px line, both at the font's normal line height, 56px a row
@@ -2220,6 +2238,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-top: 2px;
 	font-size: 13px;
 	line-height: normal;
+}
+
+/* A stacked audit row (DqTaak "Historie", `content.layout: "stacked"`): 12px
+   above and below, the action 15px weight 600, the moment and who under it
+   13px muted, 2px apart.
+   @spec openspec/changes/audit-card-stacked-rows/specs/audit-trail/spec.md#requirement-an-audit-row-can-put-its-moment-under-the-action */
+.cn-look-board .cn-audit-card__row--stacked:not(.cn-look-nextcloud *) {
+	padding: 12px 0;
+}
+
+.cn-look-board .cn-audit-card__row--stacked .cn-audit-card__action:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-audit-card__row--stacked .cn-audit-card__when:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast);
 }
 
 /* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
@@ -3212,4 +3247,41 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):hover,
 .cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):focus-visible {
 	background: var(--color-background-hover);
+}
+
+/* The manage timeline's lines as DqZaakHistorie draws them: the subtitle and
+   the event count 14px muted (over a theme's paragraph tokens, which set a
+   paragraph 15px ink), the count line under a hairline, and the note form
+   card 12px under its heading with each label 6px over its field. */
+.cn-look-board .cn-timeline-manage__subtitle:not(.cn-look-nextcloud *),
+.cn-look-board .cn-timeline-manage__count:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.2;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: 1.2;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-timeline-manage__footer:not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-timeline-manage--composer-only .cn-timeline-manage__header:not(.cn-look-nextcloud *) {
+	margin-block-end: 12px;
+}
+
+.cn-look-board .cn-timeline-manage__composer:not(.cn-look-nextcloud *) {
+	gap: 6px;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
+	margin-block-start: 6px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:first-child:not(.cn-look-nextcloud *) {
+	margin-block-start: 0;
 }

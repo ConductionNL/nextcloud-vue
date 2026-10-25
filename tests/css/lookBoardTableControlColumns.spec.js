@@ -46,6 +46,13 @@ describe('look-board-index.css: table control columns under the Nextcloud box mo
 		expect(px(body, 'min-width')).toBe(px(body, 'width'))
 	})
 
+	it('starts the checkbox 20px in, where the boards draw it, and keeps the column 60px', () => {
+		// DqZoekresultaten r26a: the board's checkbox sits 21px into the card, live sat at 16.
+		const body = rulesEndingWith('.cn-table-container--board .cn-data-table .cn-table-col--checkbox')
+		expect(body).toMatch(/padding-inline:\s*20px 12px/)
+		expect(px(body, 'width')).toBe(60)
+	})
+
 	it('forces border-box on the row menu column and sizes it to the 34px button plus 16px either side', () => {
 		const body = rulesEndingWith('.cn-table-container--board .cn-data-table .cn-table-col--actions')
 		expect(body).toMatch(/box-sizing:\s*border-box !important/)

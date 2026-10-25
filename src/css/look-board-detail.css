@@ -842,6 +842,29 @@
 	display: flex;
 }
 
+/* The assistant in the side column (DqZaakAssistent "Assistent") is a panel,
+   not a label card: a 17px title over a hairline, 16px 18px in, its pill at
+   the row's end, the chat flush under it. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) > .cn-widget-wrapper__header {
+	padding: 16px 18px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__title {
+	color: var(--color-main-text) !important;
+	font-size: var(--cn-board-heading-size, 17px);
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items) {
+	display: flex;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) > .cn-widget-wrapper__content {
+	padding: 0;
+}
+
 /* A widget-reported card header action in the main column is a neutral 40px
    control: the main background, the control border, the main text at
    14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document
@@ -1428,6 +1451,14 @@
 }
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue__icon {
+	display: none;
+}
+
+/* ---- A file list's trail at its root (CnFilesBrowser) ------------------- */
+/* At the browser's root the boards draw the bar's buttons only, no trail of
+   one crumb naming the case (DqZaakDocumenten); in a subfolder the trail shows.
+   @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root */
+.cn-look-board .cn-files-browser__crumbs--at-root:not(.cn-look-nextcloud *) {
 	display: none;
 }
 

@@ -1,0 +1,3 @@
+- [x] CnFilesBrowser atRoot + class
+- [x] look-board-detail.css hides it
+- [x] Spec tests/components/CnFilesBrowserRootCrumb.spec.js
