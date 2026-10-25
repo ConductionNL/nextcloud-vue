@@ -238,8 +238,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-inline-end: 24px;
 }
 
+/* The body starts 22px under the header, as most dialog boards draw it
+   (header padding-bottom 4px + form padding-top 18px; DqBerichtVersturen,
+   DqOverdragen, DqNieuweZaak, DqBesluit): the 18px gap plus 4px. */
 .cn-dialog-board .dialog__content > .cn-dialog-header {
-	margin-bottom: -2px;
+	margin-bottom: 4px;
 }
 
 /* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
@@ -342,6 +345,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
 .cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
 	margin-block-start: 26px;
+}
+
+/* A select in a form dialog sits under its label and over its help line
+   as a text field does (DqNieuweZaak "Zaaktype", "Intakekanaal"): the
+   form's label stands outside the select, so NcSelect's own 6px/4px margins
+   only pushed the control 6px below the text fields beside it and its help
+   line 4px further down. */
+.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
 }
 
 /* A multiple select is the board's 40px field too (DqFilterDelen "Delen

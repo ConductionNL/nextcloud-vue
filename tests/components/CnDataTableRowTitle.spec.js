@@ -57,11 +57,18 @@ describe('CnDataTable: rowTitle', () => {
 		expect(mountTable('nextcloud', { rowTitle: 'text' }).find('[data-testid="cn-object-list"]').classes()).not.toContain('cn-table-container--title-text')
 	})
 
-	it('accepts only link, plain and text', () => {
+	it('marks the board table strong when asked (DqZaaktypeStatussen)', () => {
+		const container = mountTable('board', { rowTitle: 'strong' }).find('[data-testid="cn-object-list"]')
+		expect(container.classes()).toContain('cn-table-container--title-strong')
+		expect(mountTable('nextcloud', { rowTitle: 'strong' }).find('[data-testid="cn-object-list"]').classes()).not.toContain('cn-table-container--title-strong')
+	})
+
+	it('accepts only link, plain, text and strong', () => {
 		const { validator } = CnDataTable.props.rowTitle
 		expect(validator('link')).toBe(true)
 		expect(validator('plain')).toBe(true)
 		expect(validator('text')).toBe(true)
+		expect(validator('strong')).toBe(true)
 		expect(validator('bold')).toBe(false)
 	})
 
