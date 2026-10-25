@@ -801,6 +801,33 @@
 	line-height: normal;
 }
 
+/* A note in a page card starts at the card's inset: no list-item padding
+   around it, its icon 12px before the text (DqZaakEmail Notities r29: icon
+   at 31 and text at 71 where the board draws 23 and 67).
+   @spec openspec/changes/board-notes-card-rows-flush/specs/board-notes-card-rows-flush/spec.md#requirement-a-note-in-a-page-card-starts-at-the-cards-inset */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__wrapper:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content:not(.cn-look-nextcloud *) {
+	padding-inline-start: 12px;
+}
+
+/* The note's two lines on the normal line height and its icon at the top of
+   the row, as the board draws the author tile beside the name (probed on
+   :8080: the name 44.8 under the title as drawn, the icon 6.5px lower while
+   centred in the 45px item).
+   @spec openspec/changes/board-notes-card-rows-flush/specs/board-notes-card-rows-flush/spec.md#requirement-a-note-in-a-page-card-starts-at-the-cards-inset */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__name:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__subname:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__anchor > :first-child:not(.list-item-content):not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+}
+
 /* Side cards: the heading is a 15px muted label, not a title. The tone
    carries `!important` against a theme that colours every h3 that way
    (thematiq's heading colour). */
