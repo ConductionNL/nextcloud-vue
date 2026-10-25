@@ -310,7 +310,7 @@
 .cn-data-table--fit td.cn-table-col--grow.cn-cell--wrap {
 	min-width: 8em;
 	max-width: none;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 	white-space: normal;
 }
 
