@@ -1584,6 +1584,31 @@
 	line-height: normal;
 }
 
+/* In a page card the notes tab's "Add note" stands at the end of the card's
+   title row, and each note thread opens with a hairline (DqZaakEmail
+   "Notities": the button beside the title, rows 12px 0 under a rule). The
+   card (CnWidgetWrapper) is the positioned box; the add form, when open,
+   stays in the body.
+   @spec openspec/changes/board-notes-card-add-in-title-row/specs/board-notes-card-add-in-title-row/spec.md#requirement-a-notes-card-carries-its-add-in-the-title-row */
+.cn-look-board .cn-detail-widget-host .cn-widget-wrapper .cn-sidebar-tab__composer-toggle:not(.cn-look-nextcloud *) {
+	position: absolute;
+	top: 20px;
+	inset-inline-end: var(--cn-board-card-inline-padding);
+}
+
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab__action:has(> .cn-sidebar-tab__composer-toggle):not(:has(.cn-sidebar-tab__composer)):not(.cn-look-nextcloud *) {
+	margin-bottom: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab__list:not(.cn-look-nextcloud *) {
+	gap: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread:not(.cn-look-nextcloud *) {
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
 /* The notes tab's "Add note" button, when the add form waits behind it, is
    the board's 40px control (DqZaakEmail "Notitie toevoegen").
    @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
