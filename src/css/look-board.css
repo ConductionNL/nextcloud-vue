@@ -1513,6 +1513,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: center;
 }
 
+/* Without a subtitle the title centres on the title-row buttons, as the boards
+   draw the card head (DqVthInstellingen "Inspectiechecklists",
+   DqInstellingenAlgemeen "Werkdagen en feestdagen": title 27.5px down, live 21).
+   @spec openspec/changes/board-settings-title-centred-and-link-flush/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions):not(:has(> .settings-section__desc)) > .settings-section__name {
+	align-self: center;
+}
+
+/* The "Uitleg tonen" toggle is a text link flush with the card's right edge
+   (DqBeheerinstellingen Zaak-e-mail), not a padded tertiary button.
+   @spec openspec/changes/board-settings-title-centred-and-link-flush/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue {
+	--button-padding: 0px;
+	--button-padding-default: 0px;
+	padding-inline: 0;
+	min-width: 0;
+}
+
 @container (max-width: 400px) {
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *) > .cn-settings-section__actions,
 	.cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .settings-section__desc) > .cn-settings-section__actions {
