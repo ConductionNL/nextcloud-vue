@@ -622,6 +622,7 @@ export default {
 .cn-choice-cards__row-title {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 /* Regular weight on the span itself: a theme that sets every label bold

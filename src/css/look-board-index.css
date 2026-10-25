@@ -824,6 +824,15 @@
 	padding: 10px 12px;
 }
 
+/* A table on a settings card draws its head 42.5px, as DqInstellingen and
+   DqVthInstellingen do, also when no head cell carries a control that makes
+   it that tall (the VTH tables read 37.5px).
+   @spec openspec/changes/board-settings-table-head-height/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-table-container--board .cn-data-table thead th:not(.cn-look-nextcloud *) {
+	height: 42.5px;
+	box-sizing: border-box;
+}
+
 .cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table td {
 	padding: 11px 12px;
 }
@@ -900,11 +909,13 @@
    `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
    `content-box` here was ignored and the cell left 12px for the checkbox (the
    header's checkbox showed as a stray bracket). */
+/* The checkbox starts 20px in, as the boards draw a native checkbox (16px of
+   cell padding and its 4px margin; DqZoekresultaten), in the same 60px. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
 	box-sizing: border-box !important;
 	width: 60px;
 	min-width: 60px;
-	padding-inline: 16px;
+	padding-inline: 20px 12px;
 	text-align: start;
 }
 
@@ -1698,6 +1709,36 @@
 /* The selected folder's heading above the list: a 20px title over a soft line. */
 .cn-look-board .cn-index-page__scope-heading {
 	margin-bottom: 16px;
+}
+
+/* The heading sits above the list card, not inside it (DqAfdelingen: "Vergunningen"
+   and its line, then the card): with a heading the list area is unframed and
+   its table and footer carry the card.
+   @spec openspec/changes/board-folder-scope-outside-card/specs/index-page/spec.md#requirement-the-selected-folder-heads-the-list-from-outside-its-card */
+.cn-look-board .cn-index-page__main.cn-index-page__main--table:has(> .cn-index-page__scope-heading) {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	overflow: visible;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading) > .cn-table-container.cn-table-container--board {
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+	overflow: hidden;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading):has(> .cn-index-page__pagination) > .cn-table-container.cn-table-container--board {
+	border-bottom: 0;
+	border-radius: var(--cn-board-card-radius, 12px) var(--cn-board-card-radius, 12px) 0 0;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading) > .cn-index-page__pagination {
+	border: 1px solid var(--color-border);
+	border-top: 0;
+	border-radius: 0 0 var(--cn-board-card-radius, 12px) var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
 }
 
 .cn-look-board .cn-index-page__scope-title {

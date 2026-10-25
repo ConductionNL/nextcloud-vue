@@ -1,0 +1,2 @@
+- [x] CnDetailWidgetHost passes widgetSubtitle to a data widget
+- [x] Spec tests/components/CnObjectDataWidgetSubtitle.spec.js

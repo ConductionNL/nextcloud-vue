@@ -38,7 +38,7 @@
 		     Files app and its plugins registered for this folder (a new folder,
 		     a template, a file request) beside a plain upload. -->
 		<div class="cn-files-browser__bar">
-			<NcBreadcrumbs class="cn-files-browser__crumbs">
+			<NcBreadcrumbs class="cn-files-browser__crumbs" :class="{ 'cn-files-browser__crumbs--at-root': atRoot }">
 				<!-- The whole trail from the user's files root, as the Files app
 				     draws it. A crumb above the browser's root links into the Files
 				     app (the browser never leaves its root); the root and everything
@@ -1472,6 +1472,19 @@ export default {
 		},
 
 		/**
+		 * Whether the open folder is the browser's root: the trail then ends on
+		 * the root itself (the board look draws no trail there).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root
+		 */
+		atRoot() {
+			const root = String(this.rootPath || '/').replace(/\/+$/, '') || '/'
+			const last = this.crumbs[this.crumbs.length - 1]
+			return Boolean(last) && last.path === root
+		},
+
+		/**
 		 * The children in the chosen order, folders first the way the Files app
 		 * lists them.
 		 *
@@ -2768,7 +2781,8 @@ export default {
 							}
 						})
 						.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''),
-					actions: (Array.isArray(card.actions) ? card.actions : []).filter((action) => action && action.id),
+					actions: (Array.isArray(card.actions) ? card.actions : [])
+						.filter((action) => action && action.id && hostActionApplies(action, node, this.rowValueOf(node))),
 				}))
 		},
 
@@ -3064,7 +3078,18 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		hostActionsFor(node) {
-			return this.rowActions.filter((action) => hostActionApplies(action, node))
+			return this.rowActions.filter((action) => hostActionApplies(action, node, this.rowValueOf(node)))
+		},
+
+		/**
+		 * A reader of the host's row fields for one file, for `visibleIf.row`.
+		 *
+		 * @param {object} node The file.
+		 * @return {(key: string) => unknown} `(key) => value` over the row the host gave for the file.
+		 * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
+		 */
+		rowValueOf(node) {
+			return (key) => fileColumnValue({ key, source: 'row' }, node, this.resolvedRowData)
 		},
 
 		/**

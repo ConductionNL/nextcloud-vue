@@ -168,11 +168,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
 .cn-dialog-header__subtitle {
 	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.5;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 4px 0 0;
 	font-size: 14px;
+	line-height: 1.5;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The saved-view edit and share forms start 22px under the subtitle, as
+   the Dq dialog boards draw a first field: the body's 16px gap and 6px. */
+.cn-dialog-board .dialog__content .cn-edit-view,
+.cn-dialog-board .dialog__content .cn-share-view {
+	padding-top: 6px;
 }
 
 /* The close button is a 36px circle. NcButton sizes an icon-only button by
@@ -537,6 +546,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 		flex: 1 1 0;
 		min-height: 44px;
 	}
+}
+
+/* A choice legend in a board dialog is 14px/600 on the normal line height, as
+   the dialog boards draw it (DqDocumentGenereren "Sjabloon").
+   @spec openspec/changes/board-choice-legend-type/specs/board-choice-legend-type/spec.md#requirement-a-board-dialogs-choice-legend-is-14px-600-on-the-normal-line-height */
+.cn-dialog-board .cn-choice-cards__legend {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
 }
 
 /* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
