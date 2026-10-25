@@ -51,3 +51,10 @@ describe('CnRetentionWidget hold and transfer marks', () => {
 		expect(rule(sfc, '.cn-retention__row')).toContain('padding: 12px 0')
 	})
 })
+
+describe('CnRetentionWidget board rhythm', () => {
+	it('sets the head subtitle on a 1.2 line and stacks the parts 10px apart', () => {
+		expect(rule(detail, '.cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted')).toContain('line-height: 1.2')
+		expect(rule(detail, '.cn-look-board .cn-retention.cn-retention')).toContain('gap: 10px')
+	})
+})
