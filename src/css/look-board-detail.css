@@ -2060,6 +2060,10 @@
    that names the role, the pills at the end. The role headings stay for
    assistive tech only.
    @spec openspec/changes/board-parties-rows/specs/parties/spec.md */
+.cn-look-board .cn-object-parties--board {
+	gap: 8px;
+}
+
 .cn-look-board .cn-object-parties--board .cn-object-parties__role-label {
 	position: absolute;
 	width: 1px;
