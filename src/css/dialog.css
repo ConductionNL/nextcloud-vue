@@ -218,7 +218,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    10px 14px padding, the checkbox row at the 24px minimum target instead of
    NcCheckboxRadioSwitch's 34px, the note at 1.2 line height; the card's
    corners 8px and the label on an 18px line, as the board draws them. */
-.cn-dialog-board .cn-assign-dialog__toggle {
+/* `.dialog` outranks the component's scoped rule (class + attribute), which
+   loads after this sheet and kept 12px 14px and 12px corners on :8080 (r29). */
+.cn-dialog-board .dialog .cn-assign-dialog__toggle {
 	padding: 10px 14px;
 	border-radius: 8px;
 }
