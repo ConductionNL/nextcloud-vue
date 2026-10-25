@@ -19,9 +19,11 @@
 					<h3 v-if="heading" class="cn-mail-tab__title">
 						{{ heading }}
 					</h3>
-					<p v-if="description" class="cn-mail-tab__subtitle">
+					<!-- Divs, not <p>: a theme that sizes every paragraph with !important
+					     would override the card's 14px description. -->
+					<div v-if="description" class="cn-mail-tab__subtitle">
 						{{ description }}
-					</p>
+					</div>
 				</div>
 				<div v-if="hasHeaderActions" class="cn-mail-tab__header-actions">
 					<NcButton
@@ -77,9 +79,9 @@
 					{{ t('nextcloud-vue', 'Empty draft') }}
 				</NcButton>
 			</div>
-			<p v-if="hint" class="cn-mail-tab__hint">
+			<div v-if="hint" class="cn-mail-tab__hint">
 				{{ hint }}
-			</p>
+			</div>
 
 			<NcNoteCard
 				v-if="error"

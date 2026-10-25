@@ -67,6 +67,8 @@ describe('CnMailTab', () => {
 		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/app/api/types/t1/email-templates', { params: {} })
 		expect(wrapper.find('.cn-mail-tab__title').text()).toBe('Email')
 		expect(wrapper.find('.cn-mail-tab__subtitle').text()).toBe('Mail linked to this case')
+		// @spec openspec/changes/mail-tab-subtitle-not-a-paragraph/specs/mail-tab-subtitle-not-a-paragraph/spec.md#requirement-the-mail-tab-description-keeps-its-size-under-a-paragraph-theme
+		expect(wrapper.find('.cn-mail-tab__subtitle').element.tagName).toBe('DIV')
 		expect(wrapper.find('.cn-mail-tab__hint').text()).toBe('You send it from Mail.')
 		expect(wrapper.vm.templates).toEqual([{ id: 'tpl-1', name: 'Receipt' }])
 		expect(wrapper.find('[data-testid="cn-mail-tab-draft-template"]').exists()).toBe(true)
