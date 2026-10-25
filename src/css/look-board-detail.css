@@ -643,6 +643,14 @@
 	margin-bottom: 16px;
 }
 
+/* The compact review summary runs on the normal line height, as the board
+   draws its heading and legend (DqZaakDocumenten r29: heading 22.5 vs 18,
+   the box 99.5 vs 91 high).
+   @spec openspec/changes/board-stacked-bar-compact-line-height/specs/board-stacked-bar-compact-line-height/spec.md#requirement-the-compact-summary-runs-on-the-normal-line-height */
+.cn-look-board .cn-stacked-bar--compact:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* The case Status card as the board draws it: no grey box, the status's
    explanation as its bold line, the time in the status muted under it.
    @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
