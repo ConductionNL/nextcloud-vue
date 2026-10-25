@@ -2380,7 +2380,8 @@
     "You save the order along with a view.": "You save the order along with a view.",
     "me": "me",
     "Open profile": "Open profile",
-    "Link a contact from your address book.": "Link a contact from your address book."
+    "Link a contact from your address book.": "Link a contact from your address book.",
+    "The value could not be shown.": "The value could not be shown."
   },
   "plurals": {
     "{count} member": [
