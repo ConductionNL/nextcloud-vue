@@ -19,4 +19,11 @@ describe('look-board.css: card header actions', () => {
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toMatch(/gap:\s*8px/)
 	})
+
+	it('stand 8px apart in an integration card\'s header too (DqZaakTaken Afspraken / Kaarten, r29: 4)', () => {
+		const selector = '.cn-look-board .cn-detail-card__header-right:not(.cn-look-nextcloud *) {'
+		const at = css.indexOf(selector)
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toMatch(/gap:\s*8px/)
+	})
 })
