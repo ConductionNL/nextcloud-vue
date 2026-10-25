@@ -1645,7 +1645,7 @@ function usersSource() {
 		loading: () => state.loading,
 
 		columns: [
-			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function', sortable: true },
+			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function', sortable: true, cellClass: 'cn-cell--lead' },
 			{ key: 'roles', label: t('nextcloud-vue', 'Roles'), sortable: true },
 			{ key: 'email', label: t('nextcloud-vue', 'E-mail'), sortable: true },
 			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'warning' }, sortable: true },
