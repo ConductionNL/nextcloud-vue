@@ -2209,7 +2209,7 @@
    title.
    @spec openspec/changes/board-ruled-list-card-start/specs/board-ruled-list-card-start/spec.md#requirement-a-board-ruled-list-in-a-page-card-starts-12px-under-the-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *),
-.cn-look-board .cn-detail-page .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *) {
+.cn-look-board .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *) {
 	padding-top: 12px;
 }
 

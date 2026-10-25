@@ -25,7 +25,7 @@ function rule(selector) {
 
 describe('look-board-detail.css: ruled list in a page card', () => {
 	it('starts the list 12px under the title', () => {
-		expect(rule('.cn-look-board .cn-detail-page .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *)')).toContain('padding-top: 12px;')
+		expect(rule('.cn-look-board .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *)')).toContain('padding-top: 12px;')
 		expect(css).toContain('.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *),')
 	})
 
