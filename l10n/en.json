@@ -2381,7 +2381,8 @@
     "me": "me",
     "Open profile": "Open profile",
     "Link a contact from your address book.": "Link a contact from your address book.",
-    "The value could not be shown.": "The value could not be shown."
+    "The value could not be shown.": "The value could not be shown.",
+    "No value": "No value"
   },
   "plurals": {
     "{count} member": [

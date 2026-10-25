@@ -226,6 +226,18 @@
 	overflow-wrap: anywhere;
 }
 
+/* In a table fitted to its tile every column but the growing one asks for
+   as little width as its content allows (`width: 1%`). With
+   `overflow-wrap: anywhere` that is one character, so a wrapping head broke
+   letter by letter ("D o e l", DqDoorlooptijd "Prestaties per zaaktype",
+   240px tall). Here a wrapping column breaks between words and only breaks
+   a word that is longer than the column.
+   @spec openspec/changes/fit-table-wrap-by-word/specs/fit-table-wrap-by-word/spec.md#requirement-a-wrapping-column-in-a-fitted-table-breaks-between-words */
+.cn-data-table--fit th.cn-cell--wrap,
+.cn-data-table--fit td.cn-cell--wrap {
+	overflow-wrap: break-word;
+}
+
 /* Opt-in fixed layout (CnDataTable's `fixedLayout` prop).
 
    Under the default `table-layout: auto` a column's declared `width` is only a
