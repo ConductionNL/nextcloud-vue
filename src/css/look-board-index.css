@@ -1428,6 +1428,19 @@
 	padding-top: 0;
 }
 
+/* The selection box sits flush where the boards draw it: NcCheckbox pads its
+   content 7px on each side (DqAanMijToegewezen card head, DqTeamwachtrij rows,
+   whose box starts 18px in).
+   @spec openspec/changes/board-selection-box-flush/specs/board-selection-box-flush/spec.md#requirement-a-cards-and-a-rows-selection-box-sits-where-the-board-draws-it */
+.cn-look-board .cn-object-card__record-head > .cn-object-card__checkbox .checkbox-radio-switch__content,
+.cn-look-board .cn-object-row__checkbox .checkbox-radio-switch__content {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-object-row__checkbox {
+	margin-inline-start: 6px;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox ~ .cn-object-card__record-pill {
 	margin-inline-start: auto;
 }
