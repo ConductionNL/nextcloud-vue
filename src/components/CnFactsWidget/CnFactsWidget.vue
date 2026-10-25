@@ -416,6 +416,8 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The page's object sidebar channel; a `link.sidebarTab` opens one of its tabs. */
 		objectSidebarState: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a `labelPath`. */
+		cnDetailVisibilityRows: { default: null },
 	},
 
 	props: {
@@ -432,6 +434,7 @@ export default {
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
@@ -722,7 +725,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.tr(field.label || ''), value, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -1404,6 +1407,30 @@ export default {
 			} finally {
 				this.revealing = ''
 			}
+		},
+
+		/**
+		 * A row's label: the value at `labelPath` (the record, or the page's
+		 * `@context.<name>` records) when it holds text, else `label`, both
+		 * through the host translate. A case type can name its handler
+		 * ("Regisseur") while another keeps "Behandelaar".
+		 *
+		 * @param {object} record The record shown.
+		 * @param {object} field The entry.
+		 * @return {string}
+		 * @spec openspec/changes/facts-label-from-path/specs/facts-widget/spec.md#requirement-a-facts-row-can-take-its-label-from-the-record-or-its-context
+		 */
+		labelOf(record, field) {
+			if (typeof field.labelPath === 'string' && field.labelPath !== '') {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ ...(record || {}), '@context': rows || {} }, field.labelPath)
+				if (typeof named === 'string' && named.trim() !== '') {
+					return this.tr(named.trim())
+				}
+			}
+			return this.tr(field.label || '')
 		},
 
 		/**
