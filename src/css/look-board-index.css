@@ -61,6 +61,13 @@
 	font-size: 15px;
 }
 
+/* The note after the breadcrumb ("38 contracten bij 21 leveranciers") is 14px
+   muted on every Dq list board (37 of 37).
+   @spec openspec/changes/board-index-header-meta-14/specs/index-page/spec.md */
+.cn-look-board .cn-index-page .cn-page-header .cn-header-trail .cn-detail-page__header-meta {
+	font-size: 14px;
+}
+
 .cn-look-board .cn-index-page .cn-page-header .cn-header-trail ~ .cn-page-header__description {
 	grid-row: 3;
 }
