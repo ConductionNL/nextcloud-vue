@@ -22,7 +22,13 @@
 						:size="20"
 						class="cn-detail-card__icon" />
 				</slot>
-				<h3 class="cn-detail-card__title">
+				<div v-if="subtitle" class="cn-detail-card__heading">
+					<h3 class="cn-detail-card__title">
+						{{ title }}
+					</h3>
+					<span class="cn-detail-card__subtitle" data-testid="cn-detail-card-subtitle">{{ subtitle }}</span>
+				</div>
+				<h3 v-else class="cn-detail-card__title">
 					{{ title }}
 				</h3>
 			</div>
@@ -121,6 +127,12 @@ export default {
 
 		/** Card header title */
 		title: {
+			type: String,
+			default: '',
+		},
+
+		/** A muted line under the title, as given (translate before passing). */
+		subtitle: {
 			type: String,
 			default: '',
 		},
@@ -245,6 +257,18 @@ export default {
 .cn-detail-card__icon {
 	color: var(--color-primary-element);
 	flex-shrink: 0;
+}
+
+.cn-detail-card__heading {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.cn-detail-card__subtitle {
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-detail-card__title {

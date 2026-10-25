@@ -1,0 +1,2 @@
+- [x] CnObjectListWidget column passthrough includes cellClass
+- [x] Spec tests/components/CnObjectListWidgetCellClass.spec.js

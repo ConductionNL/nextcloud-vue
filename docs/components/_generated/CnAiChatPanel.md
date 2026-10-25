@@ -2,21 +2,26 @@
 
 ### Props
 
-| Name          | Type               | Required | Default               | Description                                                                                                                                                                                                                                         |
-| ------------- | ------------------ | -------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `visible`     | `boolean`          |          | `false`               | Controls panel visibility                                                                                                                                                                                                                           |
-| `embedded`    | `boolean`          |          | `false`               | Draw the window in the page's flow, as a panel of the page (a tab of a detail page), instead of floating above it from the launcher: no pointer, no close button, and Escape does not close it.                                                     |
-| `streamState` | `object`           | ✓        | —                     | Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.                                                                                                                                             |
-| `fabRef`      | `object&#124;null` |          | `null`                | The launcher button, kept for focus return on close.                                                                                                                                                                                                |
-| `position`    | `string`           |          | `'bottom-right'`      | Corner the window is anchored to — mirrors the launcher hex's own `position`, so the window opens from the button rather than across the page from it.                                                                                              |
-| `chatAppId`   | `string`           |          | `DEFAULT_CHAT_APP_ID` | Backend app id that answers the chat/agents/conversations HTTP calls.                                                                                                                                                                               |
-| `context`     | `object`           |          | `\{\}`                | The page the companion is sitting on: `{ appId, pageKind, fileId, route }`. Used ONLY to decide which agents are worth offering first. An empty object means "no page context", and every agent is listed — the behaviour before filtering existed. |
+| Name               | Type               | Required | Default               | Description                                                                                                                                                                                                                                         |
+| ------------------ | ------------------ | -------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visible`          | `boolean`          |          | `false`               | Controls panel visibility                                                                                                                                                                                                                           |
+| `embedded`         | `boolean`          |          | `false`               | Draw the window in the page's flow, as a panel of the page (a tab of a detail page), instead of floating above it from the launcher: no pointer, no close button, and Escape does not close it.                                                     |
+| `titled`           | `boolean`          |          | `false`               | The panel stands in a card that draws its title: no titlebar of its own, and the session controls (new chat, conversations, read aloud, agent) are reported through the `menu` event for the card's menu.                                           |
+| `note`             | `string`           |          | `''`                  | A line above the input, already translated (what the assistant can see).                                                                                                                                                                            |
+| `inputPlaceholder` | `string`           |          | `''`                  | The input's placeholder, already translated; '' keeps the default.                                                                                                                                                                                  |
+| `sendLabel`        | `string`           |          | `''`                  | A label on the send button, already translated; '' keeps the icon.                                                                                                                                                                                  |
+| `streamState`      | `object`           | ✓        | —                     | Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.                                                                                                                                             |
+| `fabRef`           | `object&#124;null` |          | `null`                | The launcher button, kept for focus return on close.                                                                                                                                                                                                |
+| `position`         | `string`           |          | `'bottom-right'`      | Corner the window is anchored to — mirrors the launcher hex's own `position`, so the window opens from the button rather than across the page from it.                                                                                              |
+| `chatAppId`        | `string`           |          | `DEFAULT_CHAT_APP_ID` | Backend app id that answers the chat/agents/conversations HTTP calls.                                                                                                                                                                               |
+| `context`          | `object`           |          | `\{\}`                | The page the companion is sitting on: `{ appId, pageKind, fileId, route }`. Used ONLY to decide which agents are worth offering first. An empty object means "no page context", and every agent is listed — the behaviour before filtering existed. |
 
 ### Events
 
-| Name                | Payload                  | Description |
-| ------------------- | ------------------------ | ----------- |
-| `close`             | —                        |             |
-| `send`              | `undefined`, `undefined` |             |
-| `new-thread`        | —                        |             |
-| `load-conversation` | —                        |             |
+| Name                | Payload                  | Description                                                  |
+| ------------------- | ------------------------ | ------------------------------------------------------------ |
+| `close`             | —                        |                                                              |
+| `send`              | `undefined`, `undefined` |                                                              |
+| `new-thread`        | —                        |                                                              |
+| `load-conversation` | —                        |                                                              |
+| `menu`              | —                        | The session controls of a titled panel, for its card's menu. |

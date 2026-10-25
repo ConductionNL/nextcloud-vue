@@ -224,6 +224,41 @@ function daysAfter(days, now) {
 }
 
 /**
+ * Today plus that many days, as a date input's value.
+ *
+ * @param {unknown} days Whole days, 1 or more.
+ * @param {Date} [now] What counts as today.
+ * @return {string} `yyyy-mm-dd`, '' without a positive whole number.
+ * @spec openspec/changes/days-input-as-date/specs/transition-inputs/spec.md
+ */
+export function dayAfterIso(days, now = new Date()) {
+	const date = daysAfter(days, now)
+	if (date === null) {
+		return ''
+	}
+	const pad = (number) => String(number).padStart(2, '0')
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/**
+ * The whole days from today to a date input's value, at least 1.
+ *
+ * @param {unknown} iso A `yyyy-mm-dd` date.
+ * @param {Date} [now] What counts as today.
+ * @return {string} The days, '' without a date.
+ * @spec openspec/changes/days-input-as-date/specs/transition-inputs/spec.md
+ */
+export function daysUntilIso(iso, now = new Date()) {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? '').trim())
+	if (!match) {
+		return ''
+	}
+	const target = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+	const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+	return String(Math.max(1, Math.round((target - today) / 86400000)))
+}
+
+/**
  * A date as a reader sees it: day, short month and year.
  *
  * @param {Date|string} value The date.
@@ -290,6 +325,9 @@ export function fillInputTemplate(template, values, now = new Date()) {
  *   in that other input.
  * - `preview: { label, template, note, testid }`: a line under the input,
  *   filled by `fillInputTemplate` and shown only once it resolves.
+ * - `dateField: { label, note, testid }`: on a days input, an editable date
+ *   under it, today plus the days; a chosen date sets the days to the whole
+ *   days from today, at least 1. `dateValue` carries the date.
  * - `default`: the starting value.
  * - Presentation: `labelOutside`, `id`, `note`, `wide`, `testid`, `rows`,
  *   `placeholder`.
@@ -302,7 +340,7 @@ export function fillInputTemplate(template, values, now = new Date()) {
  * @param {string} [options.register] Register the reference pickers fall back to.
  * @param {object} [options.context] What `optionsSource` reads.
  * @param {object} [options.values] The values so far.
- * @param {Date} [options.now] What counts as today, for previews.
+ * @param {Date} [options.now] What counts as today, for previews and `dateField`.
  * @return {Array<object>} The descriptors.
  */
 export function resolveInputFields(declared, { schema = null, register = '', context = {}, values = {}, now } = {}) {
@@ -344,6 +382,9 @@ export function resolveInputFields(declared, { schema = null, register = '', con
 		const preview = field.input.preview
 		field.previewText = preview && typeof preview === 'object'
 			? fillInputTemplate(preview.template, values, now)
+			: ''
+		field.dateValue = field.input.dateField && typeof field.input.dateField === 'object'
+			? dayAfterIso(values[field.key], now)
 			: ''
 	}
 

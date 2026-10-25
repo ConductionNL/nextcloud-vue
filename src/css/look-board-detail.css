@@ -91,7 +91,7 @@
 }
 
 .cn-look-board .cn-detail-page .cn-detail-page__header-actions > .button-vue--secondary:hover,
-.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary .action-item__menutoggle:hover {
+.cn-look-board .cn-detail-page .cn-detail-page__header-actions .action-item--secondary:not(.action-item--open) .action-item__menutoggle:hover {
 	background: var(--color-background-hover) !important;
 }
 
@@ -579,7 +579,14 @@
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta:not(.cn-look-nextcloud *),
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__meta time:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
+	font-size: 13px;
 	line-height: normal;
+}
+
+/* 6px between the meta line and the text.
+   @spec openspec/changes/board-conversation-bubble-meta-gap/specs/board-conversation-bubble-meta-gap/spec.md#requirement-a-board-message-sets-its-meta-line-at-13px-6px-above-the-text */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
+	gap: 6px;
 }
 
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
@@ -712,6 +719,13 @@
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
 	padding-top: calc(14px - var(--cn-board-first-line-leading));
+}
+
+/* A table (an object list) starts 12px below the title's box: its head has
+   a fill and no leading, so the glyph-to-glyph gap above left it 2px short
+   (DqZaaktypeStatussen "Statussen", "Resultaten"). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-list-widget):not(.cn-detail-page__side *) {
+	padding-top: 12px;
 }
 
 /* Running text (DqZaak "Het verzoek") sits 12px below the title's box and
@@ -888,14 +902,16 @@
 
 /* The notice text and its icon take the notice ink, and the icon is the
    board's 18px, 10px before the text and 2px down to sit on the first line
-   (DqZaak "Advies gevraagd"). NcNoteCard sets its text colour with
-   `!important`. */
+   (DqZaak "Advies gevraagd"); `align-self` overrules the icon's own centring.
+   NcNoteCard sets its text colour with `!important`.
+   @spec openspec/changes/board-side-notice-icon-first-line/specs/board-side-notice-icon-first-line/spec.md#requirement-a-side-notice-sets-its-icon-on-the-first-line */
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card.notecard.notecard:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-notice-ink) !important;
 	gap: 10px;
 }
 
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
 	color: var(--cn-board-notice-ink);
 	margin-top: 2px;
 }
@@ -1268,6 +1284,23 @@
 	line-height: normal;
 }
 
+/* Head and body text at line height 1.2, as the board draws the table. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(th, td) {
+	line-height: 1.2;
+}
+
+/* A long task name wraps under itself, as the board draws it, rather than
+   widening the table past the card. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
+	white-space: normal;
+}
+
+/* A row's button and its task menu stand on one line. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
 /* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
 /* The case-tab boards draw a list's table edge to edge in its card
    (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
@@ -1325,6 +1358,25 @@
 	font-size: 15px;
 }
 
+/* A card with actions holds them at its end, beside the title and meta (the
+   board's "···" on each task). */
+.cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 12px;
+	align-items: center;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > :not(.cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
+	grid-column: 1;
+}
+
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > .cn-grouped-cards__item-actions:not(.cn-look-nextcloud *) {
+	grid-column: 2;
+	grid-row: 1 / span 3;
+	margin: 0;
+}
+
 /* ---- A file's side card (CnFilesBrowser) --------------------------------- */
 /* The board's side card: radius 12, 20px 22px of padding, the title a 15px
    muted heading at 600, the facts 8px 16px apart with the values at 500
@@ -1350,6 +1402,33 @@
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
 	font-weight: 500;
+}
+
+/* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
+/* The band over the ticked files is the case list's selection band: 10px
+   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   only (DqDocumentenBeheer "2 documenten geselecteerd").
+   @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
+	padding: 10px 14px;
+	border-radius: 10px;
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue__icon {
+	display: none;
 }
 
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */
@@ -1455,12 +1534,12 @@
 }
 
 /* ---- A card's Add ------------------------------------------------------ */
-/* The board draws a list card's Add as the neutral secondary at the 40px
-   control height, right-aligned in the title row (DqZaakGerelateerd
-   "Deelzaak aanmaken", DqZaakTaken "Toevoegen"). CnDetailWidgetHost renders
+/* The board draws a list card's Add as the neutral secondary right-aligned
+   in the title row, at the title row's 34px (DqZaaktypeStatussen "Status
+   toevoegen", DqZaaktype "Taak toevoegen", DqCatalogus "Objecttype
+   toevoegen": 13 of the 15 boards that draw one). CnDetailWidgetHost renders
    that button in the board look, so the list's footer Add bar, which ADR-062
-   draws in the Nextcloud look, is hidden in the card. The size outranks a
-   card title row's 34px buttons.
+   draws in the Nextcloud look, is hidden in the card.
    @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button */
 .cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-object-list-widget__add {
 	display: none;
@@ -1472,13 +1551,143 @@
 	display: none;
 }
 
-.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
-	--button-size: var(--cn-board-control-height);
-}
-
 /* A map in a board card has the board's control corners (DqZaak, DqZaakMeer
    "Locaties"); overflow keeps the tiles inside them. */
 .cn-look-board .cn-map-widget:not(.cn-map-widget--fullscreen) {
 	border-radius: var(--cn-board-control-radius);
 	overflow: hidden;
+}
+
+/* ---- A record list drawn as a data table (CnRecordListWidget) ----------- */
+/* `tableLook: "data"` (DqZaaktype "Berichten aan de aanvrager"): the board's
+   card table rather than the compact grid, a near-white header band at
+   14px/600 in the muted ink, 10px 12px, and 14px cells, 11px 12px, a
+   hairline above each row. Two classes more than the compact grid's rule.
+   @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-table-can-be-drawn-as-a-data-table */
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table th:not(.cn-look-nextcloud *) {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 0;
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-record-list.cn-record-list--table.cn-record-list--data-table .cn-record-list__table td:not(.cn-look-nextcloud *) {
+	padding: 11px 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-bottom: 0;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+/* The contacts tab's rows as DqZaakBetrokkenen "Partijen" draws them: the
+   role heading 15px bold ink in sentence case, each person on a row 12px
+   high-padded under a hairline, the details and the period 13px muted.
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group-title {
+	margin: 6px 0 0;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item {
+	align-items: center;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item:first-child {
+	margin-top: 8px;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__meta,
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	flex: none;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
+	margin-bottom: 8px;
+}
+
+/* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
+   the card's padding instead of its own, and its buttons start at the card's
+   edge under the subtitle.
+   @spec openspec/changes/board-contacts-in-card/specs/contacts/spec.md */
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
+	justify-content: flex-start;
+}
+
+/* A body card's subtitle as the Dq boards draw it: 14px muted at line
+   height 1.2, 3px under the title, and the content 12px under it.
+   @spec openspec/changes/board-card-subtitle-gaps/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__title-stack:has(> .cn-widget-wrapper__subtitle) {
+	gap: 3px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__subtitle {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content {
+	padding-top: 12px;
+}
+
+/* A checklist (DqTaak): each item an 18-20px box at the card's own inset, the
+   label 10px after it in weight 600, 12px between items, the list 2px below
+   the title block. Nextcloud's checkbox pads its box 7px in and makes every row
+   34px tall, which put the list 7px right and 2px apart too far per item.
+   @spec openspec/changes/board-checklist-rows/specs/checklist-widget/spec.md#requirement-a-board-checklist-sits-at-the-card-inset */
+.cn-look-board .cn-checklist-widget__items {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content {
+	padding: 0;
+	gap: 10px;
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content.checkbox-content .checkbox-content__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch__input {
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__wrapper,
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	line-height: 18px;
+	min-height: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	font-weight: 600;
 }

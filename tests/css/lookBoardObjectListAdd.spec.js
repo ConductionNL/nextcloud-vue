@@ -42,9 +42,9 @@ describe('a list card\'s Add', () => {
 		}
 	})
 
-	it('is a 40px button in the board-look title row', () => {
-		const body = bodyOf(detail, '.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *))')
-		expect(body).toContain('--button-size: var(--cn-board-control-height);')
+	it('takes the title row\'s 34px, with no size of its own (13 of 15 boards)', () => {
+		const rules = detail.split('}').map((r) => r.split('{')[0]).filter((sel) => sel.includes('.cn-detail-page__catalog-add'))
+		expect(rules).toEqual([])
 	})
 
 	it('stays the divider-topped footer bar in the Nextcloud look', () => {

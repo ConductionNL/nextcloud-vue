@@ -204,6 +204,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	gap: 10px;
 }
 
+/* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
+   the board draws it (DqOverdragen, 76px for a label and a two-line note):
+   10px 14px padding, the checkbox row at the 24px minimum target instead of
+   NcCheckboxRadioSwitch's 34px, the note at 1.2 line height. */
+.cn-dialog-board .cn-assign-dialog__toggle {
+	padding: 10px 14px;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content,
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle-note {
+	line-height: 1.2;
+}
+
 /* Body: padding 20px 24px, 18px between blocks. */
 .cn-dialog-board .dialog__content {
 	display: flex;
@@ -212,8 +230,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding: 22px 24px 20px;
 }
 
+/* NcDialog's scoped `.dialog__content[data-v-…]` sets padding-inline-end
+   12px with the same specificity as the rule above, so wherever its chunk
+   loads later (an admin page's setup wizard) the body ran 12px wider than
+   the board (DqInstellen 684 for 672). This one outranks it. */
+.cn-dialog-board .dialog .dialog__content {
+	padding-inline-end: 24px;
+}
+
+/* The body starts 22px under the header, as most dialog boards draw it
+   (header padding-bottom 4px + form padding-top 18px; DqBerichtVersturen,
+   DqOverdragen, DqNieuweZaak, DqBesluit): the 18px gap plus 4px. */
 .cn-dialog-board .dialog__content > .cn-dialog-header {
-	margin-bottom: -2px;
+	margin-bottom: 4px;
 }
 
 /* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
@@ -316,6 +345,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
 .cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
 	margin-block-start: 26px;
+}
+
+/* A select in a form dialog sits under its label and over its help line
+   as a text field does (DqNieuweZaak "Zaaktype", "Intakekanaal"): the
+   form's label stands outside the select, so NcSelect's own 6px/4px margins
+   only pushed the control 6px below the text fields beside it and its help
+   line 4px further down. */
+.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
 }
 
 /* A multiple select is the board's 40px field too (DqFilterDelen "Delen

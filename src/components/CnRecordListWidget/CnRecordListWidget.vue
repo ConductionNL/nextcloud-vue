@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -20,9 +20,11 @@
 		<div v-else-if="loading && rows.length === 0" class="cn-record-list__loading">
 			<NcLoadingIcon :size="20" :name="loadingLabel" />
 		</div>
-		<p v-else-if="rows.length === 0" class="cn-record-list__empty" data-testid="cn-record-list-empty">
-			{{ emptyLabel }}
-		</p>
+		<template v-else-if="rows.length === 0">
+			<p v-if="emptyLabel !== ''" class="cn-record-list__empty" data-testid="cn-record-list-empty">
+				{{ emptyLabel }}
+			</p>
+		</template>
 		<!-- notice: the rows as sentences in one toned box ("2 waarschuwingen: ..."). -->
 		<div
 			v-else-if="presentation === 'notice'"
@@ -251,6 +253,7 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
@@ -448,7 +451,21 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<div
+			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
+			class="cn-record-list__notice cn-record-list__notice--footnote"
+			:class="`cn-record-list__notice--${footnoteTone}`"
+			data-testid="cn-record-list-footnote">
+			<CnIcon
+				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
+				:size="16"
+				class="cn-record-list__notice-icon"
+				aria-hidden="true" />
+			<p class="cn-record-list__notice-text">
+				{{ footnote }}
+			</p>
+		</div>
+		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
 		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
@@ -498,10 +515,18 @@
 		<div
 			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
+			:class="{ 'cn-record-list__footer--wide': footerAction.wide }"
 			data-testid="cn-record-list-footer">
+			<p
+				v-if="footerAction.note"
+				class="cn-record-list__footer-note"
+				data-testid="cn-record-list-footer-note">
+				{{ footerAction.note }}
+			</p>
 			<NcButton
 				variant="secondary"
 				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:wide="footerAction.wide"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -669,13 +694,27 @@ export default {
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
-		 * button is disabled and `disabledReason` shows under it.
+		 * button is disabled and `disabledReason` shows under it. `note` is a
+		 * line above it and `wide: true` stretches it across the card. A list
+		 * of such actions draws the first whose `visibleWhen` (a local
+		 * condition over the page's record) holds (DqZaaktype Versies:
+		 * "Publiceren" on a draft, "Nieuwe versie maken" otherwise).
+		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
+		 * first case whose `when` holds on it, else by the pill's own `label`
+		 * and `variant` (Concept, Vastgezet, Actief).
+		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
+		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * `tableLook: "data"` marks a `table` as a data table, which the board
+		 * look draws as its card table (header band, 40px rows, hairlines)
+		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
 		 * `groupBy` (a field path) draws the rows in groups under a heading
 		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
 		 * (values) orders the groups and `groupEmptyLabel` heads the rows
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * `density: "stacked"` stands the rows 10px apart with no rule and no
+		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -806,16 +845,33 @@ export default {
 		 * @return {{label: string, icon: string, reason: string, action: object}|null}
 		 */
 		footerAction() {
-			const action = this.content?.footerAction
-			if (!action || typeof action !== 'object' || typeof action.label !== 'string' || action.label === '') {
+			const action = this.footerActionConfig
+			if (!action || typeof action.label !== 'string' || action.label === '') {
 				return null
 			}
 			return {
 				label: this.translate(action.label),
 				icon: typeof action.icon === 'string' ? action.icon : '',
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
+				note: typeof action.note === 'string' && action.note !== '' ? this.translate(action.note) : '',
+				wide: action.wide === true,
 				action,
 			}
+		},
+
+		/**
+		 * The `footerAction` entry in force. A list of entries draws the first
+		 * whose `visibleWhen` (a local condition over the page's record) holds;
+		 * an entry without one always holds.
+		 *
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-lists-footer-action-can-depend-on-the-record
+		 * @return {object|null} The entry, or null when none holds.
+		 */
+		footerActionConfig() {
+			const declared = this.content?.footerAction
+			const entries = Array.isArray(declared) ? declared : [declared]
+			const record = this.tokenCtx.object || {}
+			return entries.find((entry) => entry && typeof entry === 'object' && (!entry.visibleWhen || evaluateVisibleWhenLocal(entry.visibleWhen, record))) || null
 		},
 
 		/**
@@ -826,7 +882,7 @@ export default {
 		 * @return {string}
 		 */
 		footerGroup() {
-			const group = this.content?.footerAction?.group
+			const group = this.footerActionConfig?.group
 			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
 				return ''
 			}
@@ -850,7 +906,7 @@ export default {
 
 		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
 		footerTonal() {
-			return this.content?.footerAction?.variant === 'tonal'
+			return this.footerActionConfig?.variant === 'tonal'
 		},
 
 		/**
@@ -860,7 +916,7 @@ export default {
 		 * @return {string}
 		 */
 		footerDisabledKey() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				return ''
 			}
@@ -1181,6 +1237,19 @@ export default {
 		},
 
 		/**
+		 * The tone the footnote is drawn in as a notice box
+		 * (`content.footnoteVariant`: info, warning or error); '' for a plain
+		 * muted line.
+		 *
+		 * @return {string} The tone, or ''.
+		 * @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-footnote-can-be-a-toned-notice
+		 */
+		footnoteTone() {
+			const tone = this.content?.footnoteVariant
+			return NOTICE_VARIANTS.includes(tone) ? tone : ''
+		},
+
+		/**
 		 * Whether the footnote reads the answer: it then shows with no rows too.
 		 *
 		 * @return {boolean}
@@ -1405,6 +1474,18 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
 		 */
+		/**
+		 * Whether the row action is drawn as an outlined button sized to its
+		 * label (`rowAction.variant: "outlined"`, DqMijnTeam "Oppakken") instead
+		 * of the 150px pill (DcMijnActies "Stem uitbrengen").
+		 *
+		 * @return {boolean} True for the outlined variant.
+		 * @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button
+		 */
+		rowActionOutlined() {
+			return this.content?.rowAction?.variant === 'outlined'
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
@@ -1446,6 +1527,10 @@ export default {
 			}
 			if (this.conditionalEmptyText !== '') {
 				return this.conditionalEmptyText
+			}
+			// `emptyText: ""` says nothing on an empty list.
+			if (this.content?.emptyText === '') {
+				return ''
 			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
@@ -1634,7 +1719,7 @@ export default {
 		},
 
 		async evaluateFooterDisabled() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				this.footerDisabled = false
 				return
@@ -1659,7 +1744,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, group, variant, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, visibleWhen, note, wide, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -2466,6 +2551,9 @@ export default {
 		 */
 		pillOf(row, config) {
 			const pill = config || this.content?.pill
+			if (pill && typeof pill === 'object' && Array.isArray(pill.cases)) {
+				return this.pillCaseOf(row, pill)
+			}
 			if (!pill || typeof pill !== 'object' || !pill.field) {
 				return null
 			}
@@ -2484,6 +2572,29 @@ export default {
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
+			}
+		},
+
+		/**
+		 * The pill of `{ cases: [{ when, label, variant? }], label?, variant? }`:
+		 * the first case whose `when` (a local condition over the row) holds,
+		 * else the pill's own `label` and `variant`, else none. For a state that
+		 * reads more than one field (Concept, Actief, Vastgezet).
+		 *
+		 * @param {object} row The row.
+		 * @param {object} pill The pill config.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
+		 */
+		pillCaseOf(row, pill) {
+			const found = pill.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+			const chosen = found || pill
+			if (typeof chosen.label !== 'string' || chosen.label === '') {
+				return null
+			}
+			return {
+				label: this.translate(chosen.label),
+				variant: isBadgeVariant(chosen.variant) ? chosen.variant : 'default',
 			}
 		},
 
@@ -2839,6 +2950,16 @@ export default {
 	margin-top: 10px;
 }
 
+.cn-record-list__footer--wide {
+	align-items: stretch;
+}
+
+.cn-record-list__footer-note {
+	margin: 0 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 .cn-record-list__footer-reason {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
@@ -2868,6 +2989,10 @@ export default {
 .cn-record-list__notice--error {
 	background: var(--color-error-light, rgba(219, 0, 0, 0.08));
 	color: var(--color-error-text, var(--color-main-text));
+}
+
+.cn-record-list__notice--footnote {
+	margin-top: 12px;
 }
 
 .cn-record-list__notice-icon {
@@ -2978,6 +3103,23 @@ export default {
 
 .cn-record-list--compact .cn-record-list__title {
 	font-weight: 500;
+}
+
+/* `density: "stacked"`: the rows stand 10px apart with no rule and no row
+   padding, a short side list (DqDagAfsluiten "Morgen eerst"). */
+.cn-record-list--stacked .cn-record-list__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-record-list--stacked .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
 }
 
 .cn-record-list__meta {

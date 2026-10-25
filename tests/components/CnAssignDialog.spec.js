@@ -12,12 +12,14 @@ import axios from '@nextcloud/axios'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnAssignDialog from '../../src/components/CnAssignDialog/CnAssignDialog.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
+import { groupSublines } from '../../src/utils/groupSublines.js'
 import { searchNextcloudGroups, searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/nc${p}`, generateOcsUrl: (p) => p }))
 jest.mock('@nextcloud/event-bus', () => ({ emit: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() }))
 jest.mock('../../src/utils/userAutocomplete.js', () => ({ searchNextcloudGroups: jest.fn(), searchNextcloudUsers: jest.fn() }))
+jest.mock('../../src/utils/groupSublines.js', () => ({ groupSublines: jest.fn(async (ids) => Object.fromEntries(ids.map((id) => [id, '']))) }))
 
 const HANDOVER = {
 	title: 'Hand this case to another team',
@@ -128,6 +130,17 @@ describe('CnAssignDialog', () => {
 		axios.get.mockResolvedValue({ data: { identifier: '2026-0082' } })
 		const w = await mountDialog({ ...HANDOVER, toggles: [{ field: 'doorzending', label: 'Tell the applicant', note: '{initiatorDisplayName} then gets a message.', noteFallback: 'The applicant then gets a message.' }] })
 		expect(w.find('[data-testid="cn-assign-dialog-toggle-doorzending"]').text()).toContain('The applicant then gets a message.')
+		w.unmount()
+	})
+
+	it('lines each team with its member count and the description the app keeps (DqOverdragen)', async () => {
+		groupSublines.mockResolvedValueOnce({ legal: '6 members · bezwaar, beroep en Woo-advies' })
+		const describe = { register: 'dossiq', schema: 'organisatieRol' }
+		const w = await mountDialog({ ...HANDOVER, assignee: { ...HANDOVER.assignee, describe } })
+		await type(w, 'Jur')
+		expect(groupSublines).toHaveBeenLastCalledWith(['legal'], 'Jur', describe)
+		const legal = w.findComponent(SearchSelect).props('options').find((o) => o.id === 'legal')
+		expect(legal.secondary).toBe('6 members · bezwaar, beroep en Woo-advies')
 		w.unmount()
 	})
 

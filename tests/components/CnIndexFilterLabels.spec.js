@@ -168,6 +168,17 @@ describe('a group filter is named by the group\'s display name', () => {
 		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Team: Woo en informatie'])
 	})
 
+	it('reads the display name when the facet only echoes the group id', async () => {
+		const w = mountPage({
+			schema: { title: 'Case', properties: { assignedGroup: { title: 'Team', type: 'string', referenceType: 'nextcloud-group' } } },
+			sidebar: { enabled: true, facets: { assignedGroup: { values: [{ value: 'zuiddrecht-woo-en-informatie', label: 'zuiddrecht-woo-en-informatie', count: 3 }] } } },
+			activeFilters: { assignedGroup: 'zuiddrecht-woo-en-informatie' },
+		})
+		await loadGroupDisplayName('zuiddrecht-woo-en-informatie')
+		await w.vm.$nextTick()
+		expect(w.vm.activeFilterChips.map((c) => c.label)).toEqual(['Team: Woo en informatie'])
+	})
+
 	it('shows the id of a value that is no group field', () => {
 		const w = mountPage({ activeFilters: { status: 'zuiddrecht-woo-en-informatie' } })
 		expect(w.vm.activeFilterChips[0].label).toBe('Status: zuiddrecht-woo-en-informatie')

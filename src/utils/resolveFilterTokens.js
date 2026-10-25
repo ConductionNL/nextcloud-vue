@@ -43,6 +43,9 @@
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
+ *  - `@context.<name>.<path>` → a value off a record the detail page reads beside
+ *                           the loaded one (needs `ctx.context`); left as written
+ *                           while that record is not read
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -75,6 +78,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
 import { peekMyTeam } from './myTeam.js'
+import { readPath } from './readPath.js'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
 import { peekCurrentUserGroups } from './userGroupsPeek.js'
 
@@ -85,15 +89,16 @@ export const MY_GROUPS_TOKEN = '@myGroups'
 export const MY_TEAM_TOKEN = '@myTeam'
 
 /**
- * Resolve `@myTeam`: the team's group id; `@myTeam` while it is being read (the
+ * Resolve `@myTeam`: the team's group id, or the ids of several teams when the
+ * app answers a list (an IN filter); `@myTeam` while it is being read (the
  * caller waits); `@myTeam?` for a user in no team (the caller drops the key).
  *
  * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
- * @param {{myTeam?: string}} [ctx] Optional context; `ctx.myTeam` wins.
- * @return {string} The group id or the token.
+ * @param {{myTeam?: (string|string[])}} [ctx] Optional context; `ctx.myTeam` wins.
+ * @return {string|string[]} The group id(s) or the token.
  */
 function resolveMyTeam(ctx) {
-	const team = ctx && typeof ctx.myTeam === 'string' ? ctx.myTeam : peekMyTeam()
+	const team = ctx && (typeof ctx.myTeam === 'string' || Array.isArray(ctx.myTeam)) ? ctx.myTeam : peekMyTeam()
 	if (team === null) {
 		return MY_TEAM_TOKEN
 	}
@@ -194,6 +199,11 @@ export function resolveFilterValue(v, ctx) {
 			return ctx.object[field]
 		}
 		return v
+	}
+	if (v.startsWith('@context.')) {
+		// @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-widget-props-can-read-the-detail-pages-context-records
+		const found = ctx && ctx.context ? readPath(ctx.context, v.slice('@context.'.length)) : undefined
+		return found === undefined ? v : found
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the

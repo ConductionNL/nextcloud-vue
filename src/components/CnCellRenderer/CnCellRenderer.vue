@@ -56,7 +56,7 @@
 		<!-- Built-in "label" widget: the value's label (an enum's translated
 		     label) as plain text, where a list wants words and no pill. -->
 		<template v-else-if="widget === 'label'">
-			<span v-if="hasValue" :title="rawTitle">{{ labelledValue }}</span>
+			<span v-if="hasValue" :title="rawTitle">{{ shownLabel }}</span>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -65,7 +65,7 @@
 		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
 			<CnStatusBadge v-if="hasValue"
-				:label="labelledValue"
+				:label="shownLabel"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
 				:colorKey="badgeColorKey"
@@ -175,7 +175,7 @@
 		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
-				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
+				<span v-if="avatarUserId && !isBoardLook" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
 					<NcAvatar
 						:user="avatarUserId"
 						:displayName="avatarName || avatarUserId"
@@ -186,6 +186,7 @@
 				<span
 					v-else
 					class="cn-cell-renderer__avatar-initials"
+					:class="avatarToneClass"
 					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
 					aria-hidden="true">{{ avatarInitials }}</span>
 				<span class="cn-cell-renderer__avatar-text">
@@ -438,6 +439,7 @@ import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeD
 import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillTemplate, formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -638,7 +640,7 @@ export default {
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
 		 *
-		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 * @type {{style?: 'currency'|'number'|'decimal'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
@@ -748,7 +750,13 @@ export default {
 		 * @return {object|string|null} A component, an icon name, or null.
 		 */
 		iconLabelIcon() {
-			const icon = this.widgetProps && this.widgetProps.icon
+			const props = this.widgetProps || {}
+			// `widgetProps.icons`: an icon per stored value, `icon` for the rest.
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-an-icon-label-cell-can-pick-its-icon-by-value
+			if (props.icons && typeof props.icons === 'object' && this.hasValue && typeof this.value !== 'object' && Object.hasOwn(props.icons, String(this.value))) {
+				return props.icons[String(this.value)] || null
+			}
+			const icon = props.icon
 			const resolved = typeof icon === 'function' ? icon(this.row) : icon
 			return resolved || null
 		},
@@ -935,6 +943,19 @@ export default {
 		 * @return {number}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
+		/**
+		 * `avatar` widget: the chip's tone class in the board look,
+		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
+		 * default light primary.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
+		 */
+		avatarToneClass() {
+			const tone = this.widgetProps && this.widgetProps.tone
+			return tone === 'neutral' ? 'cn-cell-renderer__avatar-initials--neutral' : ''
+		},
+
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
 			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)
@@ -1231,6 +1252,12 @@ export default {
 			if (props.relative === true) {
 				return formatRelativeDate(date, { withTime: props.showTime === true })
 			}
+			// `widgetProps.short: true` writes the board's short date in any
+			// look, with `showTime` followed by the time ("5 okt, 09:15").
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-date-cell-can-write-the-boards-short-date-with-its-time
+			if (props.short === true && props.timeOnly !== true) {
+				return props.showTime === true ? formatBoardDateTime(date) : formatBoardDate(date)
+			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.
 			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
@@ -1442,6 +1469,22 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
 		 */
+		/**
+		 * What a `label` or `badge` cell shows: its label, worded by
+		 * `widgetProps.textTemplate` when given (translated, filled from the
+		 * row, `{value}` the label; DqPostvak "Lijkt op 2026-0079").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-text-template/specs/cell-text-template/spec.md
+		 */
+		shownLabel() {
+			const template = this.widgetProps && this.widgetProps.textTemplate
+			if (typeof template !== 'string' || template === '') {
+				return this.labelledValue
+			}
+			return fillTemplate(this.cnTranslate(template), { ...(this.row || {}), value: this.labelledValue })
+		},
+
 		labelledValue() {
 			if (!this.hasFormatter && this.isEnum && this.hasValue && typeof this.value !== 'object') {
 				return this.enumLabel
@@ -1696,9 +1739,9 @@ export default {
 			return typeof s === 'string' ? s : null
 		},
 
-		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		/** True when a built-in NUMERIC format (currency/number/decimal/percent/duration) applies. */
 		hasBuiltinFormat() {
-			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+			return ['currency', 'number', 'decimal', 'percent', 'duration'].includes(this.formatStyle)
 		},
 
 		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
@@ -1708,8 +1751,9 @@ export default {
 
 		/**
 		 * The swatch colour — read from the sibling row field named by
-		 * `format.colorField` (default `'color'`). Returns null when no usable
-		 * colour string is present (the dot is then omitted).
+		 * `format.colorField` (default `'color'`), through `format.colorMap`
+		 * when given (a stored name such as `blue` to a CSS colour). Returns
+		 * null when no usable colour is present (the dot is then omitted).
 		 *
 		 * @return {string|null}
 		 */
@@ -1719,7 +1763,14 @@ export default {
 			}
 			const field = (this.format && this.format.colorField) || 'color'
 			const c = this.row && this.row[field]
-			return (typeof c === 'string' && c.trim() !== '') ? c : null
+			if (typeof c !== 'string' || c.trim() === '') {
+				return null
+			}
+			const map = this.format && this.format.colorMap
+			if (map && typeof map === 'object') {
+				return typeof map[c] === 'string' && map[c] !== '' ? map[c] : null
+			}
+			return c
 		},
 
 		formattedValue() {
@@ -1903,9 +1954,11 @@ export default {
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
+			// `decimal` defaults to one fraction digit, as formatMetricValue does.
+			const defaultDecimals = { currency: 2, decimal: 1 }
 			const decimals = Number.isFinite(fmt.decimals)
 				? fmt.decimals
-				: (fmt.style === 'currency' ? 2 : 0)
+				: (defaultDecimals[fmt.style] ?? 0)
 			let body
 			if (fmt.style === 'currency') {
 				// `format.currencyField` reads the code from the row's own field.
