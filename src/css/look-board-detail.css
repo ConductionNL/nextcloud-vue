@@ -2157,3 +2157,22 @@
 	font-weight: 600;
 	text-decoration: underline;
 }
+
+/* Two-column facts (`columns: 2`, DqContact "Contact", DqOrganisatie
+   "Organisatie"): the boards draw the label 2px above a regular-weight
+   value, with no hairline under the fact; the 14px row gap separates them.
+   @spec openspec/changes/board-facts-columns-plain/specs/board-facts-columns-plain/spec.md#requirement-board-two-column-facts-are-plain-label-over-value-pairs */
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__row {
+	gap: 2px;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 400;
+	line-height: normal;
+}
+
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__label.cn-facts-widget__label {
+	line-height: normal;
+}
