@@ -539,6 +539,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	}
 }
 
+/* A choice legend in a board dialog is 14px/600 on the normal line height, as
+   the dialog boards draw it (DqDocumentGenereren "Sjabloon").
+   @spec openspec/changes/board-choice-legend-type/specs/board-choice-legend-type/spec.md#requirement-a-board-dialogs-choice-legend-is-14px-600-on-the-normal-line-height */
+.cn-dialog-board .cn-choice-cards__legend {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
 /* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
    DqVolgendeStap: the top edge sits about 90px down at 1440 wide) instead of
    centring it. `--cn-dialog-top` moves it. */
