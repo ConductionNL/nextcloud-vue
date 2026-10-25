@@ -33,5 +33,7 @@ describe('src/css/look-board-detail.css', () => {
 	it('drops the list-item padding and starts the text 12px after the icon', () => {
 		expect(bodyOf('.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item:not(.cn-look-nextcloud *)')).toMatch(/padding:\s*0;/)
 		expect(bodyOf('.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content:not(.cn-look-nextcloud *)')).toMatch(/padding-inline-start:\s*12px/)
+		expect(bodyOf('.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__name:not(.cn-look-nextcloud *)')).toMatch(/line-height:\s*normal/)
+		expect(bodyOf('.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__anchor > :first-child:not(.list-item-content):not(.cn-look-nextcloud *)')).toMatch(/align-self:\s*flex-start/)
 	})
 })

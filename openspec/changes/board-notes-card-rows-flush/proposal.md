@@ -7,3 +7,4 @@ DqZaakEmail draws each note with its 32px tile at the card's 22px inset and the 
 ## What changes
 
 - Board look, notes tab in a page card: the note's list-item wrapper and item have no padding; the content starts 12px after the icon.
+- Its name and subname run on the normal line height and its icon sits at the top of the item (probed on :8080: name 44.8 under the title as drawn, icon 44.8 instead of 51.3).
