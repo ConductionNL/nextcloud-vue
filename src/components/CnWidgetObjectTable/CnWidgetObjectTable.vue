@@ -118,7 +118,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, interpolateActionTarget, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { headerFilterParams, nextHeaderFilters, withSortableColumns } from '../../utils/headerFilterState.js'
 import { localHeaderRows } from '../../utils/localHeaderRows.js'
@@ -1160,9 +1160,13 @@ export default {
 				return { ok: false, error: '' }
 			}
 			if (action.type !== 'object-op') {
-				const wrapped = (!action.type || action.type === 'handler')
-					? { ...action, args: [...(action.args || []), row] }
-					: action
+				let wrapped = action
+				if (!action.type || action.type === 'handler') {
+					wrapped = { ...action, args: [...(action.args || []), row] }
+				} else if (action.type === 'navigate' && row) {
+					// A row's navigate reads that row: `{objectId}` / `@objectId` is its id, `@object.<field>` its fields.
+					wrapped = { ...action, target: interpolateActionTarget(action.target, { objectId: row.id, object: row }) }
+				}
 				if (typeof this.cnDispatchAction === 'function') {
 					this.cnDispatchAction(wrapped)
 				} else {

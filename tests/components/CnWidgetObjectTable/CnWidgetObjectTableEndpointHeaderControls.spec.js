@@ -81,3 +81,26 @@ describe('CnWidgetObjectTable — endpoint rows with head controls', () => {
 		expect(wrapper.findComponent({ name: 'CnDataTable' }).props('rows').map((r) => r.title)).toEqual(['Boom'])
 	})
 })
+
+describe('CnWidgetObjectTable — a row navigate action reads its row', () => {
+	beforeEach(() => {
+		axios.get.mockReset()
+		invalidateEndpointSourceCache()
+	})
+
+	it('resolves @object.<field> in the target against the row before dispatching', async () => {
+		const dispatch = jest.fn()
+		axios.get.mockResolvedValue({ data: { results: ROWS } })
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				endpointSource: { url: '/apps/dossiq/api/catalogue/object-types', responsePath: 'results' },
+				columns: [{ key: 'title', label: 'Object type' }],
+				actions: [{ id: 'open-schema', label: 'Open schema', type: 'navigate', target: '/index.php/apps/openregister/schemas/@object.schemaId' }],
+			},
+			global: { provide: { cnDispatchAction: dispatch } },
+		})
+		await flush()
+		await wrapper.vm.runAction(wrapper.vm.actions[0], { id: 'Boom', schemaId: '42' })
+		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ target: '/index.php/apps/openregister/schemas/42' }))
+	})
+})
