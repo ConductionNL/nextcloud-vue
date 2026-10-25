@@ -285,13 +285,19 @@ export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
  * `visibleIf.extension` lists file extensions (no case, a leading dot is
  * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
  * `/*` names the whole family. Every condition named must hold. An action
- * without `visibleIf` is offered on every file, as before.
+ * without `visibleIf` is offered on every file, as before. An action with
+ * `when` is offered only while `when` is `true`.
  *
  * @param {object} action The declared action.
  * @param {object} node The file (`basename`, `mime`).
  * @return {boolean} True when the action belongs on this file.
  */
 export function hostActionApplies(action, node) {
+	// `when`: the action applies only while it is true (a case type flag).
+	// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+	if (action && typeof action === 'object' && 'when' in action && action.when !== true) {
+		return false
+	}
 	const condition = action && action.visibleIf
 	if (!condition || typeof condition !== 'object') {
 		return true
