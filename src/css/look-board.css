@@ -2173,6 +2173,26 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A list in a side card draws a hairline over every row, the first too, so
+   a line separates the title from the list (DqZaaktype*, DqTenant,
+   DqSociaalDomein, DqTaak "Versies" and the like). Its row titles keep the
+   main ink without an underline: the plain side rule marks them as links,
+   and the board underlines on hover only. The footer note is 13px muted; the
+   theme sets paragraphs through its tokens with `!important`, so the note
+   hands it its size and ink through those tokens. */
+.cn-look-board .cn-detail-page__side .cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__item {
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row:not(:hover):not(:focus-visible) .cn-record-list__title {
+	text-decoration: none;
+}
+
+.cn-look-board .cn-record-list__footer-note:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+}
+
 /* An audit row is a board list row (DqHandhaving, DqTenant "Historie"): 10px
    above and below, a hairline over every row including the first, the head
    and the line under it at their normal line height, 2px apart: 56px, the
