@@ -787,6 +787,20 @@
 	font-weight: 500;
 }
 
+/* A data card's label and value sit 3px apart on the normal line height, as
+   the boards draw their facts (194 of 212 dt/dd pairs: gap 3px, no line
+   height); live ran them at 1.5 with a 2px gap (DqZaakContact
+   Ontvangstbevestiging r29: the first label 33.8 under the title, board 29).
+   @spec openspec/changes/board-data-cell-rhythm/specs/board-data-cell-rhythm/spec.md#requirement-a-data-cards-label-and-value-sit-3px-apart-on-the-normal-line-height */
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__cell.cn-object-data-widget__cell {
+	gap: 3px;
+}
+
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__label.cn-object-data-widget__label,
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__value {
+	line-height: normal;
+}
+
 /* Side cards: the heading is a 15px muted label, not a title. The tone
    carries `!important` against a theme that colours every h3 that way
    (thematiq's heading colour). */
