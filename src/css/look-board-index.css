@@ -998,6 +998,13 @@
 	font-weight: 400;
 }
 
+/* In such a plain log a wrapping prose cell runs at line height 1.45, as
+   DqZaakContact draws the contact summary (rows 61.6 high, not 57).
+   @spec openspec/changes/board-log-table-prose-line-height/specs/board-log-table-prose-line-height/spec.md#requirement-a-plain-logs-prose-cell-runs-at-line-height-1-45 */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap:not(.cn-look-nextcloud *) {
+	line-height: 1.45;
+}
+
 /* `rowTitle: "strong"` (DqZaaktypeStatussen "Statussen", "Resultaten"): the
    name column of a card's list, the cell's 14px at weight 600 in the main
    ink, no underline; the row stays a link.
