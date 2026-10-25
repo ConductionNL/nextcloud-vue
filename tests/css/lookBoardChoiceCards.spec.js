@@ -7,7 +7,8 @@
  * r24 measured 47 items): an option is edged in the dark border grey
  * (130,138,149, live drew the hairline 228,230,234), rounded at 10px (live 12),
  * and its radio is 18px (live 13). The chosen and the refused options keep
- * their own edges. Read from the stylesheet text.
+ * their own edges; a refused option keeps the dark edge on the sunken ground.
+ * Read from the stylesheet text.
  */
 const fs = require('fs')
 const path = require('path')
@@ -36,6 +37,12 @@ describe('look-board.css: choice cards', () => {
 	it('edges an option that is neither chosen nor refused in the dark border grey', () => {
 		const idle = rule(`${cards} .cn-choice-cards__row:not(.cn-choice-cards__row--selected):not(.cn-choice-cards__row--disabled)${guard}`)
 		expect(idle).toContain('border-color: var(--color-border-maxcontrast)')
+	})
+
+	it('edges a refused option in the dark border grey too, on the sunken ground (DqVolgendeStap r25b: 228 edge, 240 ground)', () => {
+		const refused = rule(`${cards} .cn-choice-cards__row--disabled${guard},\n${cards} .cn-choice-cards__row--disabled:hover${guard}`)
+		expect(refused).toContain('border-color: var(--color-border-maxcontrast)')
+		expect(refused).toContain('background: var(--cn-board-sunken-ground)')
 	})
 
 	it('keeps a chosen option and its details frame white (design-system #371)', () => {

@@ -2630,7 +2630,11 @@
     "You save the order along with a view.": "De sortering bewaart u mee in een weergave.",
     "me": "ik",
     "Open profile": "Profiel openen",
-    "Link a contact from your address book.": "Koppel een contact uit je adresboek."
+    "Link a contact from your address book.": "Koppel een contact uit je adresboek.",
+    "The value could not be shown.": "De waarde kon niet worden getoond.",
+    "Save as draft": "Opslaan als concept",
+    "Draft saved at {time}": "Concept opgeslagen om {time}",
+    "The draft could not be saved": "Het concept kon niet worden opgeslagen"
   },
   "plurals": {
     "{count} member": [
