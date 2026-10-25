@@ -944,6 +944,24 @@
 	width: 18px;
 }
 
+/* NcNoteCard renders a slotted icon (the banner's own, DqSociaalDomein
+   "Bijzondere persoonsgegevens") as a bare 22px material icon without the
+   `notecard__icon` wrapper; it takes the same 18px box on the first line, so
+   the text starts 44px in.
+   @spec openspec/changes/board-notice-slotted-icon/specs/board-notice-slotted-icon/spec.md#requirement-a-side-notices-slotted-icon-is-18px */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card > .material-design-icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+	color: var(--cn-board-notice-ink);
+	margin-top: 2px;
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card > .material-design-icon svg:not(.cn-look-nextcloud *) {
+	height: 18px;
+	width: 18px;
+}
+
 /* A notice whose condition does not hold renders no banner; its slot then
    takes no room instead of standing as an empty tinted block. */
 .cn-look-board .cn-detail-page__side-item--notice:not(:has(.cn-banner-widget)) {
