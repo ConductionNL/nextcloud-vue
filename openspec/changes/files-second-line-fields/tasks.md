@@ -1,0 +1,3 @@
+- [x] CnFilesBrowser secondLine (fields / variants) + CnFilesTab forwards it
+- [x] resolveFilterValue @context.<name>.<path> via ctx.context; CnDetailWidgetHost passes the visibility rows
+- [x] Specs tests/components/CnFilesBrowserSecondLine.spec.js, tests/utils/resolveContextToken.spec.js

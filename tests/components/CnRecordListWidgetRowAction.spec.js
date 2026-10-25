@@ -63,6 +63,15 @@ describe('rowAction', () => {
 		expect(w.find('.cn-record-list__chevron').exists()).toBe(false)
 	})
 
+	it('marks the action outlined only with variant "outlined"', async () => {
+		const pill = mountList({ title: '{title}', rowRoute: 'ActionItemDetail', rowAction })
+		const outlined = mountList({ title: '{title}', rowRoute: 'ActionItemDetail', rowAction: { ...rowAction, variant: 'outlined' } })
+		await flush()
+		expect(actionsOf(pill).every((a) => !a.classes().includes('cn-record-list__action--outlined'))).toBe(true)
+		expect(actionsOf(outlined).every((a) => a.classes().includes('cn-record-list__action--outlined'))).toBe(true)
+		expect(actionsOf(outlined)).toHaveLength(2)
+	})
+
 	it('reads @object tokens of a navigate target off the row', async () => {
 		const resolve = jest.fn((to) => ({ href: '#' + JSON.stringify(to) }))
 		const w = mount(CnRecordListWidget, {

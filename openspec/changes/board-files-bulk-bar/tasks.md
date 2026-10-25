@@ -1,0 +1,2 @@
+- [x] look-board-detail.css files bulk bar rules
+- [x] Spec tests/css/lookBoardFilesBulkBar.spec.js

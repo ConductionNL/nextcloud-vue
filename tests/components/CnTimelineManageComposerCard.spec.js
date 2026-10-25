@@ -5,7 +5,8 @@
  * The manage timeline's note form as its own card (board DqZaakHistorie,
  * "Notitie toevoegen"): `composer: "only"` draws the form alone,
  * `composer: "separate"` keeps the list's "Add note" without a form, and a
- * note saved in the form card reloads the list.
+ * note saved in the form card reloads the list. The form card titles
+ * itself, since a self-titled widget's host card draws no title.
  *
  * @spec openspec/changes/timeline-composer-card/specs/timeline/spec.md
  */
@@ -82,6 +83,21 @@ describe('the note form as its own card', () => {
 		expect(foot.find('[data-testid="cn-timeline-draft-public"]').exists()).toBe(true)
 		expect(foot.find('[data-testid="cn-timeline-save"]').exists()).toBe(true)
 		form.unmount()
+	})
+
+	it('titles its own card: content.title and content.subtitle, else Add note and where the note goes', async () => {
+		const plain = await mountManage({ composer: 'only' })
+		const heading = plain.find('[data-testid="cn-timeline-composer-heading"]')
+		expect(heading.find('.cn-timeline-manage__title').text()).toBe('Add note')
+		expect(heading.find('.cn-timeline-manage__subtitle').text()).toBe('Goes on the timeline above, internal unless you make it visible')
+		plain.unmount()
+		const named = await mountManage({ composer: 'only', title: 'Add a note to the case', subtitle: 'Internal unless you share it' })
+		expect(named.find('[data-testid="cn-timeline-composer-heading"] .cn-timeline-manage__title').text()).toBe('Add a note to the case')
+		expect(named.find('[data-testid="cn-timeline-composer-heading"] .cn-timeline-manage__subtitle').text()).toBe('Internal unless you share it')
+		named.unmount()
+		const list = await mountManage({ composer: 'separate' })
+		expect(list.find('[data-testid="cn-timeline-composer-heading"]').exists()).toBe(false)
+		list.unmount()
 	})
 
 	it('keeps "Add note" on the list without a form, and focuses the form card', async () => {

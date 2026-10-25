@@ -321,6 +321,20 @@
 	border: 0;
 }
 
+/* A dashboard banner's kicker is a 13px bold line in sentence case, no
+   tracking (DqMijnWerk "Vandaag eerst", BqMijnGoedkeuringen "First, today");
+   the plain look keeps its spaced capitals. The kicker is a paragraph, so its
+   size and weight also go to the theme's paragraph tokens.
+   @spec openspec/changes/board-banner-kicker-case/specs/board-banner-kicker-case/spec.md#requirement-a-board-dashboard-banners-kicker-is-in-sentence-case */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-banner-widget__kicker {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-font-weight: 700;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
@@ -582,6 +596,31 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- An ordered list field ----------------------------------------------- */
+/* DqPersoonlijkeInstellingen "Weergaven in mijn menu": a row's labelled remove
+   button ("Uit menu halen") is an outlined secondary button, and the select
+   that adds a row runs the field's full width.
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	height: 34px;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid var(--cn-board-control-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-ordered-list-field__add .v-select:not(.cn-look-nextcloud *) {
+	width: 100%;
+	max-width: none;
+}
+
 /* ---- A secondary button --------------------------------------------------- */
 /* The boards draw every secondary button neutral: the main background, a 1px
    control border, the main text, the hover ground on hover (DqFlow "Testen
@@ -620,6 +659,13 @@
    @spec openspec/changes/board-card-header-button-height/specs/board-card-header-button-height/spec.md#requirement-a-labelled-card-header-button-is-34px */
 .cn-look-board .cn-widget-wrapper__actions .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
 	--button-size: 34px;
+}
+
+/* Two buttons in a card's title row stand 8px apart (DqZaakContact "Live
+   gesprek", DqZaakEmail "Mail koppelen" / "Mail opstellen").
+   @spec openspec/changes/board-card-header-actions-gap/specs/board-card-header-actions-gap/spec.md#requirement-a-board-cards-title-row-buttons-stand-8px-apart */
+.cn-look-board .cn-widget-wrapper__actions:not(.cn-look-nextcloud *) {
+	gap: 8px;
 }
 
 /* A detail page marked `cardButtons: "regular"` draws them at the 40px
@@ -1407,6 +1453,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* A linked cell in a settings card's table reads in the text ink, as the index
+   tables do, not in the settings page's link blue (DqInstellingen: a
+   connection's name opens its settings card). The underline marks the link.
+   @spec openspec/changes/settings-table-link-ink/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-data-table a.cn-cell-renderer__link:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+	text-decoration: underline;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
@@ -1801,14 +1856,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.5;
 }
 
+/* `!important` on the size: a theme that sizes every paragraph with
+   `!important` (thematiq's paragraph token, 15px) would win otherwise. */
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) p {
 	color: var(--color-primary-element-light-text) !important;
-	font-size: inherit;
+	font-size: inherit !important;
 	line-height: inherit;
 }
 
 .cn-look-board .notecard.notecard--info:not(.cn-look-nextcloud *) .notecard__heading {
-	font-size: inherit;
+	font-size: inherit !important;
 	font-weight: 700 !important;
 }
 
@@ -2116,6 +2173,26 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A list in a side card draws a hairline over every row, the first too, so
+   a line separates the title from the list (DqZaaktype*, DqTenant,
+   DqSociaalDomein, DqTaak "Versies" and the like). Its row titles keep the
+   main ink without an underline: the plain side rule marks them as links,
+   and the board underlines on hover only. The footer note is 13px muted; the
+   theme sets paragraphs through its tokens with `!important`, so the note
+   hands it its size and ink through those tokens. */
+.cn-look-board .cn-detail-page__side .cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__item {
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row:not(:hover):not(:focus-visible) .cn-record-list__title {
+	text-decoration: none;
+}
+
+.cn-look-board .cn-record-list__footer-note:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 13px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+}
+
 /* An audit row is a board list row (DqHandhaving, DqTenant "Historie"): 10px
    above and below, a hairline over every row including the first, the head
    and the line under it at their normal line height, 2px apart: 56px, the
@@ -2299,6 +2376,32 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
+/* A row whose one action is outlined (`rowAction.variant: "outlined"`,
+   DqMijnTeam "Oppakken"): its title link reads as the row's title in the main
+   ink (the theme's link rule reads --nldesign-color-on-surface), and the
+   action is an outlined button sized to its label. Without the variant the
+   action keeps its 150px pill (DcMijnActies).
+   @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--action:has(.cn-record-list__action--outlined) .cn-record-list__title--link {
+	--nldesign-color-on-surface: var(--color-main-text);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined {
+	--nldesign-color-on-surface: var(--color-main-text);
+	flex: none;
+	padding: 0 12px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: 8px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:hover,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:focus-visible {
+	background: var(--color-background-hover);
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__meta {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
@@ -2327,6 +2430,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__main {
 	gap: 2px;
+}
+
+/* A stacked list (`density: "stacked"`) keeps its rows unruled and unpadded
+   in the board look too, 10px apart (DqDagAfsluiten "Morgen eerst").
+   @spec openspec/changes/record-list-stacked-density/specs/record-list-stacked-density/spec.md#requirement-a-record-list-can-stack-its-rows */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding-block: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked.cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
+}
+
+/* A dashboard card's task list and decision list rule above every row, the
+   first one under the title included, as the record lists with ruleAbove do
+   (DqMijnWerk "Mijn taken", "Mijn archiefbeoordelingen"); no rule under the
+   last row.
+   @spec openspec/changes/board-dashboard-lists-rule-above/specs/board-dashboard-lists-rule-above/spec.md#requirement-a-dashboard-task-or-decision-list-rules-above-every-row */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-tasks-widget__row,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-decision-list__row {
+	border-block-end: 0;
+	border-top: 1px solid var(--color-border);
 }
 
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
@@ -2597,6 +2723,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0;
 }
 
+/* A chart in a section of a sections widget (a framed section card, 14px
+   16px in) takes none of the dashboard card's inset either: its bars and plot
+   start 17px in, not 39 (DqDoorlooptijd "Naleving": Naleving per zaaktype,
+   Verdeling doorlooptijd, Maandelijkse SLA-trend, Doorstroom).
+   @spec openspec/changes/board-sections-chart-single-inset/specs/board-sections-chart-single-inset/spec.md#requirement-a-chart-inside-a-dashboard-sections-card-is-inset-once */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget__html,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget__canvas,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget__section .cn-chart-widget > .cn-chart-widget__footnote {
+	padding: 0;
+}
+
 /* ---- A plain sections widget on a dashboard card ------------------------ */
 /* The card is flush, because a sections widget usually draws its own cards;
    the plain one draws none, so its body takes the card's side inset and 20px
@@ -2720,6 +2857,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell:not(.cn-chart-widget__matrix-cell--current) {
 	font-weight: 600;
+}
+
+/* A toned cell takes the theme's status badge grounds, as the board's tones
+   are (DqHandhaving: #E7F3EA, #FFF4DE, #FCEDEC); the darkest tone has its
+   own token and otherwise deepens the error ground. Nextcloud's own mix of
+   the status colours read a shade off each.
+   @spec openspec/changes/board-matrix-tones/specs/board-matrix-tones/spec.md#requirement-a-board-matrix-cell-takes-the-themes-status-grounds */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--success {
+	background: var(--nldesign-component-status-badge-success-background-color, var(--color-success-light, color-mix(in srgb, var(--color-success) 15%, var(--color-main-background))));
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--warning {
+	background: var(--nldesign-component-status-badge-warning-background-color, var(--color-warning-light, color-mix(in srgb, var(--color-warning) 15%, var(--color-main-background))));
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--error {
+	background: var(--nldesign-component-status-badge-error-background-color, var(--color-error-light, color-mix(in srgb, var(--color-error) 12%, var(--color-main-background))));
+}
+
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--danger {
+	background: var(--nldesign-component-status-badge-danger-background-color, color-mix(in srgb, var(--color-error) 10%, var(--nldesign-component-status-badge-error-background-color, var(--color-main-background))));
 }
 
 /* A cell without a tone ("geen") sits on the page ground in the muted ink,
@@ -2850,8 +3008,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 14px;
 }
 
+/* The version card's title follows its board: 17px on DqInstellingenAlgemeen
+   and LrBeheerinstellingen; an app whose board draws another size passes the
+   shell's `versionTitleSize`.
+   @spec openspec/changes/board-version-title-size/specs/board-settings-card-controls/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(.cn-version-info--compact) > .settings-section__name {
-	font-size: 18px;
+	font-size: var(--cn-board-version-title-size, 17px);
 }
 
 /* ---- A card titled as a side card (`titleTone: "side"`) ------------------ */
@@ -2886,9 +3048,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    gives the second pixel back so the words stay put. The board draws no
    option icon, only the radio and the words.
    @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+/* The radio sits 21px inside the option's edge (DqInstellen): 1px border and
+   20px padding, or 2px and 19px on the chosen option.
+   @spec openspec/changes/board-setup-choice-inset/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *) {
+	padding: 12px 20px;
+}
+
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:not(.cn-look-nextcloud *),
 .cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row--selected:hover:not(.cn-look-nextcloud *) {
-	padding: 11px 13px;
+	padding: 11px 19px;
 	border-width: 2px;
 	box-shadow: none;
 }
@@ -2908,10 +3077,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd
+   per status") sets its rows in 13px, the label in the secondary text, the
+   value in the main ink at 600, rows 34px apart.
+   @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end */
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) .cn-chart-widget__bar-line {
+	font-size: 13px;
+}
+
+.cn-look-board .cn-chart-widget__bar-list--value-at-end:not(.cn-look-nextcloud *) .cn-chart-widget__bar-label {
+	--nldesign-color-on-surface: var(--cn-board-text-soft);
+	color: var(--cn-board-text-soft);
+}
+
 /* A dialog's options as the boards draw them (DqVolgendeStap, DqBesluit,
    DqDocumentGenereren, DqFilterBewerken): rounded at 10px, an idle option
-   edged in the dark border grey, and an 18px radio. The chosen and the
-   refused options keep their own edges. */
+   edged in the dark border grey, and an 18px radio. The chosen option keeps
+   its own edge. */
 .cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-look-nextcloud *),
 .cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:not(.cn-look-nextcloud *) {
 	border-radius: 10px;
@@ -2919,6 +3105,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-choice-cards .cn-choice-cards__row:not(.cn-choice-cards__row--selected):not(.cn-choice-cards__row--disabled):not(.cn-look-nextcloud *) {
 	border-color: var(--color-border-maxcontrast);
+}
+
+/* A refused option keeps that edge and sits on the sunken ground
+   (DqVolgendeStap: Hervatten, Archiveren, Heropenen). */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--disabled:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__row--disabled:hover:not(.cn-look-nextcloud *) {
+	border-color: var(--color-border-maxcontrast);
+	background: var(--cn-board-sunken-ground);
+}
+
+/* An option's two lines at line height 1.2 and its icon at the top of the
+   row, as DqVolgendeStap draws them (rows 60 high, not 70). */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+}
+
+/* The chosen option's fields start under its text: radio 18, icon 20 and
+   two 12px gaps past the row's 14px inset. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details:not(.cn-look-nextcloud *) {
+	padding-inline-start: 76px;
 }
 
 /* A chosen option stays white under its primary edge, as every Dq dialog board

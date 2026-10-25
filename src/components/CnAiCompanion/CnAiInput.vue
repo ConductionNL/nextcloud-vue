@@ -198,7 +198,7 @@
 				class="cn-ai-input__textarea"
 				:aria-label="cnTranslate('Message input')"
 				:disabled="disabled"
-				:placeholder="cnTranslate('Message input')"
+				:placeholder="placeholder || cnTranslate('Message input')"
 				rows="1"
 				data-testid="cn-ai-input-textarea"
 				@keydown.enter.exact.prevent="handleEnter"
@@ -206,14 +206,18 @@
 				@input="autoGrow" />
 			<button
 				class="cn-ai-input__send-button"
+				:class="{ 'cn-ai-input__send-button--labelled': sendLabel }"
 				type="button"
-				:aria-label="cnTranslate('Send message')"
+				:aria-label="sendLabel ? null : cnTranslate('Send message')"
 				:disabled="disabled || isSendDisabled"
 				data-testid="cn-ai-input-send"
 				@click="handleSend">
 				<NcLoadingIcon
 					v-if="disabled"
 					:size="20" />
+				<template v-else-if="sendLabel">
+					{{ sendLabel }}
+				</template>
 				<Send
 					v-else
 					:size="20" />
@@ -280,6 +284,18 @@ export default {
 		disabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/** The textarea's placeholder, already translated; '' keeps "Message input". */
+		placeholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated; '' draws the send icon. */
+		sendLabel: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -1339,6 +1355,15 @@ export default {
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	cursor: pointer;
+}
+
+.cn-ai-input__send-button--labelled {
+	width: auto;
+	min-height: 40px;
+	padding: 0 14px;
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
 }
 
 .cn-ai-input__send-button:hover:not(:disabled) {

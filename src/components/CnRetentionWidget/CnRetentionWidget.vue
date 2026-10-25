@@ -603,13 +603,26 @@ export default {
 	margin: 0;
 }
 
+/* The server draws every dt as a 130px right-aligned inline block and pads
+   dt and dd 12px; a fact is a label over its value. */
+.cn-retention__fact dt,
+.cn-retention__fact dd {
+	display: block;
+	width: auto;
+	white-space: normal;
+	text-align: start;
+}
+
 .cn-retention__fact dt {
+	margin: 0;
+	padding: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 }
 
 .cn-retention__fact dd {
 	margin: 0;
+	padding: 0;
 	font-weight: 600;
 }
 

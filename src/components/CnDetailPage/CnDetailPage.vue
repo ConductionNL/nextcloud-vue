@@ -253,7 +253,7 @@
 				     card, next to the checklist that explains it, and not here
 				     as well: one primary button per page. -->
 				<NcButton
-					v-if="effectivePrimaryLabel && !showsNextStepCard"
+					v-if="effectivePrimaryLabel && !showsNextStepCard && stagePrimaryOnTab"
 					:id="primaryActionAnchorId"
 					ref="primaryActionButton"
 					variant="primary"
@@ -1324,7 +1324,8 @@
 				:schema="currentSchema"
 				:item="currentObject"
 				:register="register"
-				:dialogTitle="editActionLabel"
+				:dialogTitle="editFormTitle"
+				:subtitle="editFormSubtitle"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -2449,6 +2450,18 @@ export default {
 
 		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Title of the record edit form, run through the host translate. Empty uses the Edit button's label. */
+		editTitle: {
+			type: String,
+			default: '',
+		},
+
+		/** One line under the edit form's title, run through the host translate. Empty shows none. */
+		editSubtitle: {
 			type: String,
 			default: '',
 		},
@@ -3820,6 +3833,19 @@ export default {
 		},
 
 		/**
+		 * Whether the stage's primary button belongs beside the open body tab:
+		 * an inline stage action with `tabs`/`notTabs` follows the tab like a
+		 * quick action (DqZaakAssistent: no "Next step" beside AI oversight).
+		 * It stays in the Actions menu either way.
+		 *
+		 * @return {boolean} true when the button may show.
+		 * @spec openspec/changes/stage-primary-follows-tab/specs/detail-page/spec.md#requirement-a-stage-action-can-follow-the-open-tab
+		 */
+		stagePrimaryOnTab() {
+			return !this.stagePrimaryEntry || onTab(this.stagePrimary, this.activeBodyTab)
+		},
+
+		/**
 		 * The stage's primary action in dispatchable form: the menu entry
 		 * CnActionButtons built for it, with its `run()`. Null while the
 		 * action is hidden by its own `visibleWhen`, in which case the page
@@ -4781,6 +4807,16 @@ export default {
 		 */
 		editActionLabel() {
 			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
+		},
+
+		/** @return {string} The edit form's title, translated; the Edit button's label when none is configured. */
+		editFormTitle() {
+			return this.editTitle ? this.effectiveTranslate(this.editTitle) : this.editActionLabel
+		},
+
+		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
+		editFormSubtitle() {
+			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
 		},
 
 		/**
