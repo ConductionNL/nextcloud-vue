@@ -209,6 +209,7 @@ describe('users index source columns', () => {
 	it('sorts on every column, as the board draws a chevron on each head', () => {
 		const source = resolveIndexSource('users')
 		expect(source.columns.map((column) => column.sortable)).toEqual([true, true, true, true])
+		expect(source.columns[0].cellClass).toBe('cn-cell--lead')
 		expect(source.sortParam('email', 'desc')).toEqual({ sortKey: 'email', sortOrder: 'desc' })
 	})
 })

@@ -359,6 +359,13 @@
 	font-weight: 500;
 }
 
+/* A lead cell's value reads 15px, a person's name over their function
+   (DqAfdelingen). */
+.cn-data-table td.cn-cell--lead > .cn-cell-renderer,
+.cn-data-table td.cn-cell--lead .cn-table-row__link > .cn-cell-renderer {
+	font-size: 15px;
+}
+
 .cn-data-table td.cn-cell--muted {
 	color: var(--color-text-maxcontrast);
 }
