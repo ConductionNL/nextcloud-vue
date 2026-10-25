@@ -164,15 +164,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* The subtitle is a <p>, which the nldesign theme sizes and inks with
-   `!important` through its paragraph tokens: the board's 14px muted line
-   goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
+   `!important` through its paragraph tokens: the board's 14px muted line,
+   at a normal line height, goes to those tokens too (DqOverdragen,
+   DqDocumentGenereren, DqFilterBewerken). */
 .cn-dialog-header__subtitle {
 	--nldesign-component-paragraph-font-size: 14px;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-paragraph-line-height: normal;
 	margin: 4px 0 0;
 	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The saved-view edit and share forms start 22px under the subtitle, the
+   board's 4px header foot and 18px form top: the body's 16px gap and 6px. */
+.cn-dialog-board .dialog__content .cn-edit-view,
+.cn-dialog-board .dialog__content .cn-share-view {
+	padding-top: 6px;
 }
 
 /* The close button is a 36px circle. NcButton sizes an icon-only button by
