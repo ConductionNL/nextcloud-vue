@@ -47,17 +47,42 @@
 			<table v-else class="cn-tasks-widget__table" data-testid="cn-tasks-widget-table">
 				<thead>
 					<tr>
-						<th scope="col">
-							{{ tr('Task') }}
-						</th>
-						<th scope="col">
-							{{ tr('Handler') }}
-						</th>
-						<th scope="col">
-							{{ tr('Task deadline') }}
-						</th>
-						<th scope="col">
-							{{ tr('Status') }}
+						<!-- `content.sortable` / `content.filterable`: a head sorts by its
+						     column and filters on its values (DqZaakTaken). -->
+						<th v-for="column in headColumns"
+							:key="column.key"
+							scope="col"
+							:aria-sort="headSort.key === column.key ? (headSort.dir === 'asc' ? 'ascending' : 'descending') : null"
+							:data-testid="`cn-tasks-widget-head-${column.key}`">
+							<span v-if="content.sortable === true || content.filterable === true" class="cn-tasks-widget__head">
+								<button v-if="content.sortable === true"
+									type="button"
+									class="cn-tasks-widget__head-sort"
+									:data-testid="`cn-tasks-widget-sort-${column.key}`"
+									@click="sortBy(column.key)">
+									{{ column.label }}
+									<ChevronUp v-if="headSort.key === column.key && headSort.dir === 'asc'" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</button>
+								<template v-else>{{ column.label }}</template>
+								<NcActions v-if="content.filterable === true"
+									class="cn-tasks-widget__head-filter"
+									:aria-label="tr('Filter by {column}').replace('{column}', column.label)"
+									:data-testid="`cn-tasks-widget-filter-${column.key}`">
+									<template #icon>
+										<FilterOutline :size="14" />
+									</template>
+									<NcActionCheckbox v-for="option in headOptions(column.key)"
+										:key="option.value"
+										:modelValue="(headFilters[column.key] || []).includes(option.value)"
+										@update:modelValue="toggleHeadFilter(column.key, option.value)">
+										{{ option.label }}
+									</NcActionCheckbox>
+								</NcActions>
+							</span>
+							<template v-else>
+								{{ column.label }}
+							</template>
 						</th>
 						<th scope="col">
 							<span class="hidden-visually">{{ tr('Task actions') }}</span>
@@ -375,10 +400,13 @@ import axios from '@nextcloud/axios'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcActionCheckbox, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
 import CnTaskWorkCard from './CnTaskWorkCard.vue'
@@ -458,12 +486,16 @@ export default {
 
 	components: {
 		CheckCircle,
+		ChevronDown,
+		ChevronUp,
 		CircleOutline,
 		CnStatusBadge,
 		CnTaskFormDialog,
 		CnTaskWorkCard,
+		FilterOutline,
 		NcActions,
 		NcActionButton,
+		NcActionCheckbox,
 		NcAvatar,
 		NcButton,
 		NcLoadingIcon,
@@ -618,6 +650,10 @@ export default {
 	data() {
 		return {
 			pollTimer: null,
+			/** The table's head sort, `{ key, dir }`; no key keeps open tasks first. */
+			headSort: { key: '', dir: 'asc' },
+			/** The table's head filters, `{ column: values[] }`. */
+			headFilters: {},
 			/** Uuids of the tasks a checkbox is completing, until the next read. */
 			completing: [],
 			/** Whether the table's create form is open. */
@@ -777,7 +813,26 @@ export default {
 		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
 		 */
 		tableRows() {
-			return [...this.rows.filter((task) => task.isTerminal !== true), ...this.rows.filter((task) => task.isTerminal === true)]
+			const kept = this.rows.filter((task) => Object.entries(this.headFilters).every(([key, values]) => values.length === 0 || values.includes(this.headValue(task, key))))
+			if (this.headSort.key) {
+				const dir = this.headSort.dir === 'desc' ? -1 : 1
+				return [...kept].sort((a, b) => {
+					const x = this.headSortValue(a, this.headSort.key)
+					const y = this.headSortValue(b, this.headSort.key)
+					return (x < y ? -1 : (x > y ? 1 : 0)) * dir
+				})
+			}
+			return [...kept.filter((task) => task.isTerminal !== true), ...kept.filter((task) => task.isTerminal === true)]
+		},
+
+		/** @return {Array<{key: string, label: string}>} The table's data columns. */
+		headColumns() {
+			return [
+				{ key: 'title', label: this.tr('Task') },
+				{ key: 'handler', label: this.tr('Handler') },
+				{ key: 'due', label: this.tr('Task deadline') },
+				{ key: 'state', label: this.tr('Status') },
+			]
 		},
 
 		/**
@@ -1158,6 +1213,84 @@ export default {
 		 * @param {object} task The task row.
 		 * @return {string} The name.
 		 */
+		/**
+		 * A row's value in a column, as a head filter keeps it.
+		 *
+		 * @param {object} task The task row.
+		 * @param {string} key The column.
+		 * @return {string}
+		 */
+		headValue(task, key) {
+			if (key === 'title') {
+				return this.titleOf(task)
+			}
+			if (key === 'handler') {
+				return String(task.assignee || '')
+			}
+			if (key === 'due') {
+				return this.content.dueFormat === 'date' ? this.dueDate(task) : this.dueLabel(task)
+			}
+			return String(task.state || '')
+		},
+
+		/**
+		 * A row's value in a column, as its head sorts it: the deadline by date.
+		 *
+		 * @param {object} task The task row.
+		 * @param {string} key The column.
+		 * @return {string|number}
+		 */
+		headSortValue(task, key) {
+			if (key === 'due') {
+				const time = Date.parse(task.dueAt || task.dueDate || '')
+				return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+			}
+			if (key === 'handler') {
+				return this.handlerName(task).toLowerCase()
+			}
+			if (key === 'state') {
+				return this.stateLabel(task).toLowerCase()
+			}
+			return this.titleOf(task).toLowerCase()
+		},
+
+		/**
+		 * The values a column's head filter offers, one per value the rows hold.
+		 *
+		 * @param {string} key The column.
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		headOptions(key) {
+			const seen = new Map()
+			for (const task of this.rows) {
+				const value = this.headValue(task, key)
+				if (value !== '' && !seen.has(value)) {
+					seen.set(value, key === 'handler' ? this.handlerName(task) : (key === 'state' ? this.stateLabel(task) : value))
+				}
+			}
+			return [...seen].map(([value, label]) => ({ value, label }))
+		},
+
+		/**
+		 * Sort by a column: ascending first, then descending.
+		 *
+		 * @param {string} key The column.
+		 */
+		sortBy(key) {
+			this.headSort = this.headSort.key === key && this.headSort.dir === 'asc' ? { key, dir: 'desc' } : { key, dir: 'asc' }
+		},
+
+		/**
+		 * Keep or drop one value of a column's head filter.
+		 *
+		 * @param {string} key The column.
+		 * @param {string} value The value.
+		 */
+		toggleHeadFilter(key, value) {
+			const current = this.headFilters[key] || []
+			this.headFilters = { ...this.headFilters, [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value] }
+		},
+
 		handlerName(task) {
 			return userDisplayName(task.assignee) || String(task.assignee || '')
 		},
@@ -1592,6 +1725,30 @@ function recordUuid(configured, objectId) {
 	width: 100%;
 	border-collapse: collapse;
 	font-size: 14px;
+}
+
+.cn-tasks-widget__head {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-tasks-widget__head-sort {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-tasks-widget__head-filter {
+	--button-size: 22px;
 }
 
 .cn-tasks-widget__table th {
