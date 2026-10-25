@@ -121,6 +121,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { headerFilterParams, nextHeaderFilters, withSortableColumns } from '../../utils/headerFilterState.js'
+import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -869,9 +870,9 @@ export default {
 			if (this.endpointActive && this.columns.some((col) => col && typeof col === 'object' && col.labelPath)) {
 				inner.columns = this.labelledColumns(inner.columns || this.columns)
 			}
-			// Header sort and filter (`sortable`, `filterable`) only where the
-			// widget fetches its own rows: the server sorts and filters.
-			if (this.selfFetchActive && (this.sortable !== false || this.filterable)) {
+			// Header sort and filter (`sortable`, `filterable`): the server sorts
+			// and filters a self-fetch; endpoint rows are sorted and filtered here.
+			if ((this.selfFetchActive || this.endpointActive) && (this.sortable !== false || this.filterable)) {
 				inner.columns = withSortableColumns(inner.columns || this.columns, this.sortable)
 				inner.filterable = this.filterable
 				inner.activeFilters = this.headerFilters
@@ -889,7 +890,7 @@ export default {
 				}
 			}
 			if (this.endpointActive) {
-				inner.rows = this.endpointRows
+				inner.rows = localHeaderRows(this.endpointRows, this.headerSort, this.headerFilters)
 				inner.loading = this.epLoading || this.loading
 			}
 			if (this.rowRoute) {
