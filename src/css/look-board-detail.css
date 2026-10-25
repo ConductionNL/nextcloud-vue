@@ -627,6 +627,14 @@
 	font-size: 14px;
 }
 
+/* The reply box's buttons (Opslaan als concept, Versturen) are the board's
+   40px control, as DqBerichtVersturen draws Versturen; NcButton draws 34
+   (DqZaakContact r29 controlHeight 34; design-system #478 redraws its 38 at 40).
+   @spec openspec/changes/board-conversation-reply-buttons-40/specs/board-conversation-reply-buttons-40/spec.md#requirement-the-reply-boxs-buttons-are-the-boards-40px-control */
+.cn-look-board .cn-conversation-thread__reply .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* The case Status card as the board draws it: no grey box, the status's
    explanation as its bold line, the time in the status muted under it.
    @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
