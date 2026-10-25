@@ -86,6 +86,7 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			:showActions="!isBare && actionsShown"
 			:icon="widget.icon || null"
