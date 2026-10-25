@@ -9,3 +9,9 @@ the label 2.8px lower (titleInsetTop 15.8 vs 13).
 ## What changes
 
 In a board dialog, CnAssignDialog's toggle card takes 8px corners and its label an 18px line.
+
+## Follow-up (r29)
+
+On :8080 the rule tied with CnAssignDialog's scoped `.cn-assign-dialog__toggle[data-v-…]` (class + attribute), which
+loads later and won: the card kept 12px 14px padding and 12px corners (r29: radius 12 vs 8, titleInsetTop 15.8 vs 13).
+The selector takes `.dialog` so it outranks the scoped rule whatever the load order.

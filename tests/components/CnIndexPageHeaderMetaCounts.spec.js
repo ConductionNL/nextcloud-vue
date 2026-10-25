@@ -109,3 +109,19 @@ describe('CnIndexPage header meta counts', () => {
 		expect(validateManifestV2(page({ headerMetaCounts: { suppliers: { register: 'contracts' } } })).valid).toBe(false)
 	})
 })
+
+/**
+ * @spec openspec/changes/board-count-line-show-count/specs/index-page/spec.md#requirement-a-board-page-can-leave-out-its-count-line
+ */
+describe('CnIndexPage board count line and showCount', () => {
+	it('leaves the default count line out when the page sets showCount false', () => {
+		expect(headerDescription.call(ctx({ showCount: false }))).toBe('')
+		expect(headerDescription.call(ctx({ showCount: true }))).toBe('20 of 38')
+	})
+
+	it('keeps a page\'s own count subtitle', () => {
+		const c = ctx({ showCount: false, countSubtitle: '{total} accounts' })
+		c.countLine = () => '38 accounts'
+		expect(headerDescription.call(c)).toBe('38 accounts')
+	})
+})

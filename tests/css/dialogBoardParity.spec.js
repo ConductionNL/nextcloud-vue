@@ -50,9 +50,10 @@ describe('dialog.css: the board dialog', () => {
 		expect(close).not.toContain('--button-radius')
 	})
 
-	it('starts the saved-view edit and share forms 22px under the subtitle, as the boards draw them', () => {
-		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 6px;')
-		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 6px;')
+	it('starts the body 22px under the subtitle, the header foot and the gap alone (r29: Bewerken, Delen, Verwijderen read 28/28/26)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-confirm__confirm')).toContain('padding-top: 0;')
 	})
 
 	it('hands the subtitle\'s 14px muted line to the theme\'s paragraph tokens', () => {
@@ -66,8 +67,8 @@ describe('dialog.css: the board dialog', () => {
 	})
 
 	it('draws a checkbox choice card as tight as the board, the row at the 24px target (DqOverdragen)', () => {
-		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
-		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle')).toContain('border-radius: 8px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('border-radius: 8px;')
 		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text')).toContain('line-height: 18px;')
 		const row = bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content')
 		expect(row).toContain('min-height: 24px;')

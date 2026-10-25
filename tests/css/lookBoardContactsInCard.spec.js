@@ -29,4 +29,9 @@ describe('look-board-detail.css: the contacts tab in a card', () => {
 	it('starts its buttons at the card edge', () => {
 		expect(rule(TAB + ' .cn-contacts-tab__header')).toContain('justify-content: flex-start')
 	})
+
+	it('sizes its buttons at the board control height and the row to them (r29: 34 vs 40, row 754 vs 485 wide)', () => {
+		expect(rule(TAB + ' .cn-contacts-tab__header')).toContain('display: inline-flex')
+		expect(rule(TAB + ' .cn-contacts-tab__header .button-vue')).toContain('--button-size: var(--cn-board-control-height)')
+	})
 })

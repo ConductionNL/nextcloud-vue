@@ -44,10 +44,10 @@ describe('look-board-index.css: the board table rhythm', () => {
 		expect(content).toContain('padding: 0')
 	})
 
-	it('gives the selection column 20px before the checkbox and 12px after, 60px in all', () => {
+	it('gives the selection column 16px of padding either side, 60px in all', () => {
 		const col = rule('.cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox')
 		expect(col).toContain('width: 60px')
-		expect(col).toContain('padding-inline: 20px 12px;')
+		expect(col).toContain('padding-inline: 16px;')
 	})
 
 	it('draws the header labels 14px muted, the secondary line too', () => {

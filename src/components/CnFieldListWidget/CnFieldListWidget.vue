@@ -607,7 +607,7 @@ export default {
 		/**
 		 * The card title row's actions: the add button with `add.placement: "title"`.
 		 *
-		 * @return {Array<{label: string, icon: string, run: () => void}>} The actions.
+		 * @return {Array<{label: string, icon: string, add: boolean, run: () => void}>} The actions.
 		 */
 		titleActions() {
 			if (!(this.canAdd && this.addTrigger && this.addPlacement === 'title')) {
@@ -616,7 +616,7 @@ export default {
 			const run = () => {
 				this.adding = !this.adding
 			}
-			return [{ label: this.addLabel, icon: 'Plus', run }]
+			return [{ label: this.addLabel, icon: 'Plus', add: true, run }]
 		},
 
 		addLabel() {

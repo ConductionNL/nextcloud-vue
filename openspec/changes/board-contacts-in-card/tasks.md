@@ -1,2 +1,3 @@
 - [x] 1.1 board CSS (tests/css/lookBoardContactsInCard.spec.js)
+- [x] 1.4 header buttons at the board control height, the row as wide as its buttons (r29)
 - [x] 1.2 nl/en key (tests/l10n/contactsTabDutch.spec.js)

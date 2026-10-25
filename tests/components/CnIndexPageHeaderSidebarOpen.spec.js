@@ -32,4 +32,12 @@ describe('the header beside an open side panel', () => {
 		expect(css).toMatch(/--sidebar-open \.cn-page-header \.cn-header-trail \{[^}]*grid-row: 3;/)
 		expect(css).toMatch(/--sidebar-open \.cn-page-header \.cn-page-header__text > \.cn-page-header__description \{[^}]*grid-row: 4;/)
 	})
+
+	// r29: the count line stood 67px under the title where DqZakenSorteren
+	// draws 58: without a trail its row stayed empty and added a second gap.
+	it('closes up the count line when there is no trail', () => {
+		expect(css).toMatch(/--sidebar-open \.cn-page-header:not\(:has\(\.cn-header-trail\)\) \.cn-page-header__text > \.cn-page-header__description \{[^}]*grid-row: 3;/)
+		const buttons = css.match(/\.cn-look-board \.cn-index-page--sidebar-open \.cn-page-header \.cn-index-page__header-buttons \{([^}]*)\}/)
+		expect(buttons[1]).toContain('margin-block: 6px 0;')
+	})
 })
