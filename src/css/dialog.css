@@ -177,6 +177,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	color: var(--color-text-maxcontrast);
 }
 
+/* The saved-view edit and share forms start 22px under the subtitle, as
+   the Dq dialog boards draw a first field: the body's 16px gap and 6px. */
+.cn-dialog-board .dialog__content .cn-edit-view,
+.cn-dialog-board .dialog__content .cn-share-view {
+	padding-top: 6px;
+}
+
 /* The close button is a 36px circle. NcButton sizes an icon-only button by
    --button-size with `!important`, so the size goes through that; the radius
    also goes to the nldesign theme's button radius token. */

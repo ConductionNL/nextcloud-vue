@@ -50,6 +50,11 @@ describe('dialog.css: the board dialog', () => {
 		expect(close).not.toContain('--button-radius')
 	})
 
+	it('starts the saved-view edit and share forms 22px under the subtitle, as the boards draw them', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 6px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 6px;')
+	})
+
 	it('hands the subtitle\'s 14px muted line to the theme\'s paragraph tokens', () => {
 		const subtitle = bodyOf(dialog, '.cn-dialog-header__subtitle')
 		expect(subtitle).toContain('--nldesign-component-paragraph-font-size: 14px;')
