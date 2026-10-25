@@ -3096,3 +3096,40 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-map-widget .leaflet-bar a.cn-map-widget__control:not(.cn-look-nextcloud *):focus-visible {
 	background: var(--color-background-hover);
 }
+
+/* The manage timeline's lines as DqZaakHistorie draws them: the subtitle and
+   the event count 14px muted (over a theme's paragraph tokens, which set a
+   paragraph 15px ink), the count line under a hairline, and the note form
+   card 12px under its heading with each label 6px over its field. */
+.cn-look-board .cn-timeline-manage__subtitle:not(.cn-look-nextcloud *),
+.cn-look-board .cn-timeline-manage__count:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.2;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: 1.2;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-timeline-manage__footer:not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-timeline-manage--composer-only .cn-timeline-manage__header:not(.cn-look-nextcloud *) {
+	margin-block-end: 12px;
+}
+
+.cn-look-board .cn-timeline-manage__composer:not(.cn-look-nextcloud *) {
+	gap: 6px;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
+	margin-block-start: 6px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:first-child:not(.cn-look-nextcloud *) {
+	margin-block-start: 0;
+}
