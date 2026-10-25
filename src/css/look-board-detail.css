@@ -865,6 +865,12 @@
 	padding: 0;
 }
 
+/* Its Actions menu is the board's 34px header control. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions .action-item .button-vue {
+	height: 34px;
+	min-height: 34px;
+}
+
 /* A widget-reported card header action in the main column is a neutral 40px
    control: the main background, the control border, the main text at
    14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document
