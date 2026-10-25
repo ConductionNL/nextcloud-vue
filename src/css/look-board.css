@@ -1467,6 +1467,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-decoration: underline;
 }
 
+/* In a one-column settings card a single-line field is at most 560px wide,
+   its hint under it, as the boards draw a field on its own row
+   (DqBeheerGeavanceerd "Financiële integratie", "Storeregister"); a text
+   area, a note or a switch still spans the card.
+   @spec openspec/changes/board-settings-single-field-width/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--text,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--password,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--secret,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--number,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--email,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--url,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--select,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--date,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--datetime-local {
+	max-width: 560px;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
