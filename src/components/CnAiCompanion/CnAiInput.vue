@@ -23,7 +23,7 @@
     for the parent's async request to resolve before clearing either).
 -->
 <template>
-	<div class="cn-ai-input" data-testid="cn-ai-input">
+	<div class="cn-ai-input" :class="{ 'cn-ai-input--stacked': stacked }" data-testid="cn-ai-input">
 		<NcNoteCard
 			v-if="uploadError"
 			type="error"
@@ -296,6 +296,15 @@ export default {
 		sendLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The narrow layout of a card: the text box and the send button on the
+		 * first line, dictation and attach on a line under it.
+		 */
+		stacked: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1182,6 +1191,28 @@ export default {
 	display: flex;
 	gap: 8px;
 	align-items: flex-end;
+}
+
+/* `stacked`: in a card the box keeps the line, dictation and attach wrap
+   under it (DqZaakAssistent "Vraag iets over deze zaak" + "Vragen"). */
+.cn-ai-input--stacked {
+	padding: 12px 18px;
+}
+
+.cn-ai-input--stacked .cn-ai-input__row {
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.cn-ai-input--stacked .cn-ai-input__textarea {
+	order: -2;
+	flex: 1 1 calc(100% - 104px);
+	min-width: 0;
+	min-height: 40px;
+}
+
+.cn-ai-input--stacked .cn-ai-input__send-button {
+	order: -1;
 }
 
 .cn-ai-input__file-input {

@@ -310,6 +310,7 @@
 						:disabled="streamState.isStreaming"
 						:placeholder="inputPlaceholder"
 						:sendLabel="sendLabel"
+						:stacked="titled"
 						:chatAppId="chatAppId"
 						:speechInputEngine="speechPolicy.inputEngine"
 						:dictationSilenceTimeout="speechPolicy.silenceTimeout"
@@ -1599,8 +1600,19 @@ export default {
 }
 
 .cn-ai-chat-window--titled .cn-ai-chat-window__input {
+	padding: 0;
+	border-top: 0;
 	border-radius: 0;
 	background: transparent;
+}
+
+/* In a card the panel's body takes the card's 16px 18px inset. */
+.cn-ai-chat-window--titled .cn-ai-chat-window__messages {
+	padding: 16px 18px;
+}
+
+.cn-ai-chat-window--titled .cn-ai-chat-window__note {
+	margin: 0 18px 16px;
 }
 
 .cn-ai-chat-window__input {
