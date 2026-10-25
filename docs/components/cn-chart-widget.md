@@ -402,6 +402,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events (broadcast by CnWidgetWrapper's Refresh); on a matching id the chart re-queries its `dataSource`. |
+| `barValueAtEnd` | Boolean | `false` | A `bar-list` without a track: each bar as long as its share and its value right after the bar's end (DqProcesanalyse "Doorlooptijd per status"). False keeps the track and the value column. |
 
 The chart also subscribes to `cn:page:refresh`, the channel the **page-level** Refresh action broadcasts on (`CnDashboardPage` / `CnDetailPage`). That one carries no widget id — a page refresh refreshes everything on the page — so a chart placed without a `widgetId` still reloads.
 
