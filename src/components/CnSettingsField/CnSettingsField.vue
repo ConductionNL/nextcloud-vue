@@ -275,6 +275,7 @@
 			type="number"
 			:min="field.min"
 			:max="field.max"
+			:step="numberStep"
 			:modelValue="stringValue"
 			:readonly="field.readOnly"
 			:error="!!error"
@@ -422,6 +423,20 @@ export default {
 		/** @return {string} The input type of a text-like field. */
 		inputType() {
 			return INPUT_TYPES.includes(this.kind) ? this.kind : 'text'
+		},
+
+		/**
+		 * The number input's step: the field's own, 1 for a whole number, else
+		 * any, so a decimal value (0.8) is not invalid to the browser.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/settings-number-decimal-step/specs/settings-fields/spec.md#requirement-a-number-setting-steps-as-it-is-declared
+		 */
+		numberStep() {
+			if (typeof this.field.step === 'number' || (typeof this.field.step === 'string' && this.field.step !== '')) {
+				return String(this.field.step)
+			}
+			return this.field.integer ? '1' : 'any'
 		},
 
 		/** @return {string} The label. */
