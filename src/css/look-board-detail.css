@@ -1897,3 +1897,69 @@
 .cn-look-board .cn-notes-card__time {
 	margin-inline-start: 0;
 }
+
+/* The parties widget's rows as DqZaakBetrokkenen "Rollen" draws them: one
+   ruled row per party, a 32px initials tile, the name over a muted meta line
+   that names the role, the pills at the end. The role headings stay for
+   assistive tech only.
+   @spec openspec/changes/board-parties-rows/specs/parties/spec.md */
+.cn-look-board .cn-object-parties--board .cn-object-parties__role-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__list {
+	gap: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__party {
+	flex-wrap: nowrap;
+	gap: 12px;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__tile {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 16px;
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__meta {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__end {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
