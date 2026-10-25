@@ -1499,6 +1499,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-align: start;
 }
 
+/* The working calendar's month reads as the board draws it: the month name
+   first, at the content edge, with the previous and next month buttons after
+   it, and the buttons add no height to the line, so the month sits 20px under
+   the card title (DqInstellingenAlgemeen "Werkdagen en feestdagen": the
+   arrow put the month 30px in and 28px down).
+   @spec openspec/changes/working-calendar-board-head/specs/settings-board-look/spec.md */
+.cn-look-board .cn-working-calendar__title:not(.cn-look-nextcloud *) {
+	order: -1;
+	min-width: 0;
+	margin-inline-end: 4px;
+	line-height: 1.2;
+	text-align: start;
+}
+
 .cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td {
 	padding: 10px 12px;
 	border-bottom: 1px solid var(--color-background-dark);
@@ -1519,6 +1533,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .settings-section .cn-data-table td.cn-cell--strong:not(.cn-look-nextcloud *) > .cn-cell-renderer {
 	font-size: 15px;
 	font-weight: 700;
+}
+
+.cn-look-board .cn-working-calendar__head:not(.cn-look-nextcloud *) > .button-vue:not(.cn-working-calendar__add) {
+	margin-block: -8px;
 }
 
 /* Section actions sit at the end of the title row. The row is a grid, so a
