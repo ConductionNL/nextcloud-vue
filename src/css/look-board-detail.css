@@ -885,6 +885,13 @@
 	line-height: 1;
 }
 
+/* A list's Add in the title row is the card's 34px control, as the boards
+   draw a card's Add (DqZaaktype "Variant toevoegen"). */
+.cn-look-board .cn-detail-page__catalog-action--add:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) {
+	height: 34px;
+	min-height: 34px;
+}
+
 .cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
 }
