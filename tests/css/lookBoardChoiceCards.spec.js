@@ -50,6 +50,10 @@ describe('look-board.css: choice cards', () => {
 		expect(rule(`${cards} .cn-choice-cards__row-icon${guard}`)).toContain('align-self: flex-start')
 	})
 
+	it('sets an option\'s title bold, as the boards draw it (r26c: 600 vs 700)', () => {
+		expect(rule(`${cards} .cn-choice-cards__row-title${guard}`)).toContain('font-weight: 700')
+	})
+
 	it('indents the chosen option\'s fields to its text when the option has an icon (r26a: 44 vs 76)', () => {
 		expect(rule(`${cards} .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details${guard}`)).toContain('padding-inline-start: 76px')
 	})
