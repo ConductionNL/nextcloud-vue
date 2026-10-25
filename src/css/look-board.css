@@ -2444,6 +2444,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-top: 0;
 }
 
+/* A dashboard card's task list and decision list rule above every row, the
+   first one under the title included, as the record lists with ruleAbove do
+   (DqMijnWerk "Mijn taken", "Mijn archiefbeoordelingen"); no rule under the
+   last row.
+   @spec openspec/changes/board-dashboard-lists-rule-above/specs/board-dashboard-lists-rule-above/spec.md#requirement-a-dashboard-task-or-decision-list-rules-above-every-row */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-tasks-widget__row,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-decision-list__row {
+	border-block-end: 0;
+	border-top: 1px solid var(--color-border);
+}
+
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
    text does not move. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {
