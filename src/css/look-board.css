@@ -3115,6 +3115,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	background: var(--cn-board-sunken-ground);
 }
 
+/* An option's two lines at line height 1.2 and its icon at the top of the
+   row, as DqVolgendeStap draws them (rows 60 high, not 70). */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+}
+
+/* The chosen option's fields start under its text: radio 18, icon 20 and
+   two 12px gaps past the row's 14px inset. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details:not(.cn-look-nextcloud *) {
+	padding-inline-start: 76px;
+}
+
 /* A chosen option stays white under its primary edge, as every Dq dialog board
    draws it (design-system #371); the Nextcloud look keeps the tint.
    @spec openspec/changes/board-choice-row-chosen-white/specs/board-choice-row-chosen-white/spec.md#requirement-a-chosen-board-option-is-white */
