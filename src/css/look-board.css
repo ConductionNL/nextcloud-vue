@@ -664,9 +664,14 @@
 }
 
 /* Two buttons in a card's title row stand 8px apart (DqZaakContact "Live
-   gesprek", DqZaakEmail "Mail koppelen" / "Mail opstellen").
+   gesprek", DqZaakEmail "Mail koppelen" / "Mail opstellen"), also in an
+   integration card's CnDetailCard header (DqZaakTaken "Afspraken", "Kaarten").
    @spec openspec/changes/board-card-header-actions-gap/specs/board-card-header-actions-gap/spec.md#requirement-a-board-cards-title-row-buttons-stand-8px-apart */
 .cn-look-board .cn-widget-wrapper__actions:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
+.cn-look-board .cn-detail-card__header-right:not(.cn-look-nextcloud *) {
 	gap: 8px;
 }
 
@@ -1467,6 +1472,90 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-decoration: underline;
 }
 
+/* A plain table an app draws in a settings card (dossiq's ZGW mapping, StUF
+   endpoints and audit log, AWB terms) reads as the board's settings tables:
+   14px, a near-white head with muted 600 labels, 10px 12px cells, soft rules.
+   The theme paints every th through its table header tokens, so the head
+   hands those tokens the board's values too.
+   @spec openspec/changes/board-settings-plain-tables/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) th {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--color-border);
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: start;
+}
+
+/* The working calendar's month reads as the board draws it: the month name
+   first, at the content edge, with the previous and next month buttons after
+   it, and the buttons add no height to the line, so the month sits 20px under
+   the card title (DqInstellingenAlgemeen "Werkdagen en feestdagen": the
+   arrow put the month 30px in and 28px down).
+   @spec openspec/changes/working-calendar-board-head/specs/settings-board-look/spec.md */
+.cn-look-board .cn-working-calendar__title:not(.cn-look-nextcloud *) {
+	order: -1;
+	min-width: 0;
+	margin-inline-end: 4px;
+	line-height: 1.2;
+	text-align: start;
+}
+
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 14px;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
+/* A strong cell's name in a settings card reads 15px bold over its muted
+   second line, as the boards draw a connection's name (DqInstellingen
+   "Koppelingen": <strong> 15px), not the index tables' 14px 500.
+   @spec openspec/changes/board-settings-strong-cell-name/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-data-table td.cn-cell--strong:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
+.cn-look-board .settings-section .cn-data-table td.cn-cell--strong:not(.cn-look-nextcloud *) > .cn-cell-renderer {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-working-calendar__head:not(.cn-look-nextcloud *) > .button-vue:not(.cn-working-calendar__add) {
+	margin-block: -8px;
+}
+
+/* In a one-column settings card a single-line field is at most 560px wide,
+   its hint under it, as the boards draw a field on its own row
+   (DqBeheerGeavanceerd "Financiële integratie", "Storeregister"); a text
+   area, a note or a switch still spans the card.
+   @spec openspec/changes/board-settings-single-field-width/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--text,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--password,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--secret,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--number,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--email,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--url,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--select,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--date,
+.cn-look-board .cn-settings-fields__grid--1:not(.cn-look-nextcloud *) > .cn-settings-field--datetime-local {
+	max-width: 560px;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
@@ -1521,6 +1610,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    @spec openspec/changes/board-settings-title-centred-and-link-flush/specs/settings-board-look/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *):has(> .cn-settings-section__actions):not(:has(> .settings-section__desc)) > .settings-section__name {
 	align-self: center;
+}
+
+/* A switch or radio in a board settings card starts at the card's content
+   edge, its label 12px (switch) or 10px (radio) after the control, as the
+   boards draw them (DqBeheerinstellingen "AI-ondersteunde verwerking").
+   NcCheckboxRadioSwitch pads its content 9px on each side, which set the
+   control 9px in from the fields above and below it.
+   @spec openspec/changes/board-settings-switch-radio-flush/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content-switch {
+	gap: 12px;
+}
+
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content-radio {
+	gap: 10px;
 }
 
 /* The "Uitleg tonen" toggle is a text link flush with the card's right edge
@@ -1596,8 +1703,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	max-width: none;
 }
 
-.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name,
-.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__desc {
+/* A board card's title and subtitle run the card's width, wide or not
+   (DqBeheerGeavanceerd "Eerste keer", "StUF-ZKN-endpoints": the subtitle
+   wrapped at NcSettingsSection's 900px measure, the board's does not).
+   @spec openspec/changes/board-settings-desc-full-width/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {
 	max-width: none;
 }
 
@@ -2156,7 +2267,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
    "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt").
    @spec openspec/changes/board-card-title-above-ruled-list/specs/board-card-title-above-ruled-list/spec.md#requirement-a-ruled-list-starts-6px-under-the-card-title */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows) .cn-widget-wrapper__header {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows, > .cn-widget-wrapper__content .cn-nc-widget-widget__body--vertical) .cn-widget-wrapper__header {
 	padding-bottom: 6px;
 }
 
@@ -2692,13 +2803,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* A vertical NC widget is the board's activity list (DqMijnWerk "Recente
    activiteit"): hairline rows 12px above and below the text, a 10px dot in
-   the icon's place, the title 14px in the main ink and wrapping, the first
-   hairline 12px under the title. Thematiq underlines links with a heavier
-   selector, hence the !important.
+   the icon's place, the title 14px in the main ink and wrapping. Thematiq underlines links with a heavier
+   selector, hence the !important. The first hairline stands 6px under the
+   title, as on every Dq list card (design-system #432).
    @spec openspec/changes/board-nc-widget-activity-rows/specs/board-nc-widget-activity-rows/spec.md#requirement-a-board-dashboard-nc-widget-draws-its-items-as-activity-rows */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body--vertical {
 	gap: 0;
-	padding: 2px var(--cn-board-dashboard-card-inset) 10px;
+	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-nc-widget-widget__body--vertical a.cn-nc-widget-widget__item--vertical {
@@ -3130,6 +3241,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin: 0;
 	font-size: 14px;
 	line-height: normal;
+}
+
+/* A bar list in a framed section of a sections card is the board's small
+   list: 13px rows 8px apart, a 150px label column, a 10px bar and a 48px
+   value column (DqDoorlooptijd "Naleving per zaaktype").
+   @spec openspec/changes/board-section-bar-list-compact/specs/board-section-bar-list-compact/spec.md#requirement-a-bar-list-in-a-sections-card-section-is-compact */
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-line {
+	grid-template-columns: 150px minmax(0, 1fr) 48px;
+	gap: 10px;
+	font-size: 13px;
+}
+
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-track {
+	height: 10px;
+	border-radius: 5px;
 }
 
 /* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd

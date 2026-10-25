@@ -1,0 +1,2 @@
+- [x] CnMailTab description + hint as div
+- [x] jest CnMailTab tag check (red first)

@@ -627,6 +627,30 @@
 	font-size: 14px;
 }
 
+/* The reply box's buttons (Opslaan als concept, Versturen) are the board's
+   40px control, as DqBerichtVersturen draws Versturen; NcButton draws 34
+   (DqZaakContact r29 controlHeight 34).
+   @spec openspec/changes/board-conversation-reply-buttons-40/specs/board-conversation-reply-buttons-40/spec.md#requirement-the-reply-boxs-buttons-are-the-boards-40px-control */
+.cn-look-board .cn-conversation-thread__reply .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
+/* A lead widget in a card (the review summary over the files) stands 16px
+   above the card's own body, the boards' gap between a card's parts
+   (DqZaakDocumenten r29: the files toolbar sat flush under the summary).
+   @spec openspec/changes/board-lead-widget-gap-16/specs/board-lead-widget-gap-16/spec.md#requirement-a-lead-widget-stands-16px-above-the-cards-body */
+.cn-look-board .cn-detail-widget-host__lead:not(.cn-look-nextcloud *) {
+	margin-bottom: 16px;
+}
+
+/* The compact review summary runs on the normal line height, as the board
+   draws its heading and legend (DqZaakDocumenten r29: heading 22.5 vs 18,
+   the box 99.5 vs 91 high).
+   @spec openspec/changes/board-stacked-bar-compact-line-height/specs/board-stacked-bar-compact-line-height/spec.md#requirement-the-compact-summary-runs-on-the-normal-line-height */
+.cn-look-board .cn-stacked-bar--compact:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* The case Status card as the board draws it: no grey box, the status's
    explanation as its bold line, the time in the status muted under it.
    @spec openspec/changes/status-explainer-board/specs/record-widgets/spec.md#requirement-the-status-card-says-where-the-record-stands-as-the-board-draws-it */
@@ -705,6 +729,14 @@
 
 .cn-look-board .cn-detail-card .cn-detail-card__content {
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
+}
+
+/* A history card with stacked rows (DqTaak "Historie") opens on the first
+   row's hairline 6px under the title, the row's own 12px padding above its
+   text, as drawn: 19px from the title to the first action.
+   @spec openspec/changes/board-history-card-ruled-start/specs/board-history-card-ruled-start/spec.md#requirement-a-board-history-card-with-stacked-rows-opens-on-its-first-rule */
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-audit-card__list > .cn-audit-card__row--stacked:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 6px;
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
@@ -787,6 +819,47 @@
 	font-weight: 500;
 }
 
+/* A data card's label and value sit 3px apart on the normal line height, as
+   the boards draw their facts (194 of 212 dt/dd pairs: gap 3px, no line
+   height); live ran them at 1.5 with a 2px gap (DqZaakContact
+   Ontvangstbevestiging r29: the first label 33.8 under the title, board 29).
+   @spec openspec/changes/board-data-cell-rhythm/specs/board-data-cell-rhythm/spec.md#requirement-a-data-cards-label-and-value-sit-3px-apart-on-the-normal-line-height */
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__cell.cn-object-data-widget__cell {
+	gap: 3px;
+}
+
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__label.cn-object-data-widget__label,
+.cn-look-board .cn-object-data-widget__grid .cn-object-data-widget__value {
+	line-height: normal;
+}
+
+/* A note in a page card starts at the card's inset: no list-item padding
+   around it, its icon 12px before the text (DqZaakEmail Notities r29: icon
+   at 31 and text at 71 where the board draws 23 and 67).
+   @spec openspec/changes/board-notes-card-rows-flush/specs/board-notes-card-rows-flush/spec.md#requirement-a-note-in-a-page-card-starts-at-the-cards-inset */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__wrapper:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content:not(.cn-look-nextcloud *) {
+	padding-inline-start: 12px;
+}
+
+/* The note's two lines on the normal line height and its icon at the top of
+   the row, as the board draws the author tile beside the name (probed on
+   :8080: the name 44.8 under the title as drawn, the icon 6.5px lower while
+   centred in the 45px item).
+   @spec openspec/changes/board-notes-card-rows-flush/specs/board-notes-card-rows-flush/spec.md#requirement-a-note-in-a-page-card-starts-at-the-cards-inset */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__name:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__subname:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__anchor > :first-child:not(.list-item-content):not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+}
+
 /* Side cards: the heading is a 15px muted label, not a title. The tone
    carries `!important` against a theme that colours every h3 that way
    (thematiq's heading colour). */
@@ -804,6 +877,14 @@
 
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
 	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
+}
+
+/* A side card that opens on a list draws its first row's hairline 10px below
+   the title box; the row has no leading for the glyph gap above to subtract
+   (DqZaaktypeRegels, DqZaaktypeStatussen "Versies").
+   @spec openspec/changes/board-side-list-gap/specs/board-side-list-gap/spec.md#requirement-a-board-side-cards-list-starts-10px-below-its-title */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-record-list--rows) {
+	padding-top: 10px;
 }
 
 /* A side card that opens on a lead (DqZaak "Aanvrager", DqOrganisatie "KvK en
@@ -883,6 +964,13 @@
 	font-size: 14px;
 	font-weight: 600;
 	line-height: 1;
+}
+
+/* A list's Add in the title row is the card's 34px control, as the boards
+   draw a card's Add (DqZaaktype "Variant toevoegen"). */
+.cn-look-board .cn-detail-page__catalog-action--add:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) {
+	height: 34px;
+	min-height: 34px;
 }
 
 .cn-look-board .cn-detail-page__catalog-action:not(.cn-detail-page__side *):not(.cn-look-nextcloud *):hover {
@@ -1319,6 +1407,26 @@
 	line-height: 1.2;
 }
 
+/* The task name takes the spare width, so it wraps only when long; the
+   handler stays on one line. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table th:first-child,
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-task {
+	width: 100%;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-handler {
+	white-space: nowrap;
+}
+
+/* A head's filter is a 22px button, so a head is 42px high as drawn. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__head-filter .button-vue {
+	--button-size: 22px;
+	min-width: 22px;
+	min-height: 22px;
+	width: 22px;
+	height: 22px;
+}
+
 /* A long task name wraps under itself, as the board draws it, rather than
    widening the table past the card. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
@@ -1352,6 +1460,13 @@
 	padding-inline-end: var(--cn-board-card-inline-padding);
 }
 
+/* A row menu in the last column keeps its 34px button and 16px start
+   padding beside the card's end padding, so it is not cut off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container .cn-data-table .cn-table-col--actions:last-child {
+	width: calc(50px + var(--cn-board-card-inline-padding));
+	min-width: calc(50px + var(--cn-board-card-inline-padding));
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title
@@ -1377,6 +1492,14 @@
 
 .cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
 	font-weight: 700;
+	line-height: 1.2;
+}
+
+/* The buttons above the groups are the card's 34px controls ("Bekijken als
+   flow", "Taak toevoegen"), not the page's 40px ones. */
+.cn-look-board .cn-grouped-cards__actions:not(.cn-look-nextcloud *) .button-vue {
+	min-height: 34px;
+	height: 34px;
 }
 
 .cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item {
@@ -1386,6 +1509,7 @@
 
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
+	line-height: 1.2;
 }
 
 /* A card with actions holds them at its end, beside the title and meta (the
@@ -1564,6 +1688,15 @@
 	font-size: 14px;
 }
 
+/* The mail card's description runs on the normal line height: thematiq's
+   board paragraph token (1.5) gave
+   it 21px lines (probed on :8080 after REFRESH-4b: 14px/21 vs the board's
+   normal; DqZaakEmail r29 E-mail gapBelowTitle 44.4 vs 49).
+   @spec openspec/changes/board-mail-subtitle-line-height/specs/board-mail-subtitle-line-height/spec.md#requirement-the-mail-cards-description-runs-on-the-normal-line-height */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__subtitle.cn-mail-tab__subtitle:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
@@ -1728,7 +1861,12 @@
 }
 
 .cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
+	display: inline-flex;
 	justify-content: flex-start;
+}
+
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header .button-vue {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* A body card's subtitle as the Dq boards draw it: 14px muted at line
@@ -1836,23 +1974,25 @@
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
    every row including the first, 12px 0 padding, a 32px round tile (the day
    an appointment starts, the author's initials) 12px before the text, the
-   title 15/600 and one 13px muted meta line joined with " · ".
+   title 15/600 and one 13px muted meta line joined with " · ". Every
+   selector carries :not(.cn-look-nextcloud *) to outrank the cards' scoped
+   rules, which tie with a two-class selector and load later.
    @spec openspec/changes/board-task-cards-rows/specs/task-cards/spec.md#requirement-board-appointment-and-note-rows-carry-a-tile-and-a-meta-line */
-.cn-look-board .cn-events-card__list {
+.cn-look-board .cn-events-card__list:not(.cn-look-nextcloud *) {
 	gap: 0;
 }
 
-.cn-look-board .cn-events-card__event,
-.cn-look-board .cn-events-card__event:last-child,
-.cn-look-board .cn-notes-card__note,
-.cn-look-board .cn-notes-card__note:last-child {
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child,
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
 	padding: 12px 0;
 	border-top: 1px solid var(--cn-board-hairline);
 	border-bottom: none;
 }
 
-.cn-look-board .cn-events-card__day,
-.cn-look-board .cn-notes-card__initials {
+.cn-look-board .cn-events-card__day:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
 	display: inline-flex;
 	flex: 0 0 32px;
 	align-items: center;
@@ -1866,60 +2006,60 @@
 	font-weight: 700;
 }
 
-.cn-look-board .cn-events-card__text {
+.cn-look-board .cn-events-card__text:not(.cn-look-nextcloud *) {
 	flex-flow: row wrap;
 	row-gap: 2px;
 }
 
-.cn-look-board .cn-events-card__summary,
-.cn-look-board .cn-notes-card__body {
+.cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.35;
 }
 
-.cn-look-board .cn-events-card__summary {
+.cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *) {
 	flex-basis: 100%;
 }
 
-.cn-look-board .cn-events-card__when,
-.cn-look-board .cn-events-card__where,
-.cn-look-board .cn-notes-card__author,
-.cn-look-board .cn-notes-card__time {
+.cn-look-board .cn-events-card__when:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__author:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	font-weight: 400;
 }
 
-.cn-look-board .cn-events-card__where::before,
-.cn-look-board .cn-notes-card__time::before {
+.cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *)::before {
 	content: ' · ';
 	white-space: pre;
 }
 
-.cn-look-board .cn-notes-card__note {
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	padding-inline-start: 44px;
 }
 
-.cn-look-board .cn-notes-card__initials {
+.cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
 	position: absolute;
 	top: 12px;
 	inset-inline-start: 0;
 }
 
-.cn-look-board .cn-notes-card__body {
+.cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	order: -1;
 }
 
-.cn-look-board .cn-notes-card__note-header {
+.cn-look-board .cn-notes-card__note-header:not(.cn-look-nextcloud *) {
 	justify-content: flex-start;
 	margin-bottom: 0;
 }
 
-.cn-look-board .cn-notes-card__time {
+.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	margin-inline-start: 0;
 }
 
@@ -1928,6 +2068,10 @@
    that names the role, the pills at the end. The role headings stay for
    assistive tech only.
    @spec openspec/changes/board-parties-rows/specs/parties/spec.md */
+.cn-look-board .cn-object-parties--board {
+	gap: 8px;
+}
+
 .cn-look-board .cn-object-parties--board .cn-object-parties__role-label {
 	position: absolute;
 	width: 1px;
@@ -2038,4 +2182,56 @@
 	font-size: 14px;
 	font-weight: 600;
 	text-decoration: underline;
+}
+
+/* Two-column facts (`columns: 2`, DqContact "Contact", DqOrganisatie
+   "Organisatie"): the boards draw the label 2px above a regular-weight
+   value, with no hairline under the fact; the 14px row gap separates them.
+   @spec openspec/changes/board-facts-columns-plain/specs/board-facts-columns-plain/spec.md#requirement-board-two-column-facts-are-plain-label-over-value-pairs */
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__row {
+	gap: 2px;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 400;
+	line-height: normal;
+}
+
+.cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__label.cn-facts-widget__label {
+	line-height: normal;
+}
+
+/* A ruled list in a page card (`ruleAbove`, DqContact and DqOrganisatie
+   "Zaken", "Tickets"): the rule sits 12px under the title and each row has
+   12px above and below its text, so the first row's text is 25px under the
+   title.
+   @spec openspec/changes/board-ruled-list-card-start/specs/board-ruled-list-card-start/spec.md#requirement-a-board-ruled-list-in-a-page-card-starts-12px-under-the-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *),
+.cn-look-board .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-record-list--rows.cn-record-list--rule-above:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 12px 0;
+}
+
+/* A side list row with initials stays one line: a 28px circle 8px before
+   the regular-weight text (DqSociaalDomein "Wie"). The library stacks side
+   rows into a column, which put the initials above the name.
+   @spec openspec/changes/board-side-person-rows/specs/board-side-person-rows/spec.md#requirement-a-board-side-row-with-initials-keeps-them-beside-the-text */
+.cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {
+	width: 28px;
+	height: 28px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
+	font-weight: 400;
 }

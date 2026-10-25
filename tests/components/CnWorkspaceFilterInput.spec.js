@@ -44,6 +44,25 @@ describe('CnWorkspaceFilterWidget as an input with a load button', () => {
 		expect(w.find('[data-testid="cn-workspace-filter-submit"]').text()).toBe('T(Load report)')
 	})
 
+	it('seeds the last complete quarter or year with default "previous"', () => {
+		jest.useFakeTimers().setSystemTime(new Date(2026, 9, 25))
+		try {
+			const workspace = reactive({})
+			const w = mountInput({ ...QUARTER, default: 'previous' }, workspace)
+			expect(w.find('input').element.value).toBe('2026-Q3')
+			expect(workspace.quarter).toBe('2026-Q3')
+			const january = reactive({})
+			jest.setSystemTime(new Date(2027, 0, 10))
+			mountInput({ ...QUARTER, default: 'previous' }, january)
+			expect(january.quarter).toBe('2026-Q4')
+			const year = reactive({})
+			mountInput({ style: 'input', inputType: 'year', writes: '@workspace.year', default: 'previous' }, year)
+			expect(year.year).toBe('2026')
+		} finally {
+			jest.useRealTimers()
+		}
+	})
+
 	it('keeps a value the workspace already holds', () => {
 		const workspace = reactive({ quarter: '2026-Q2' })
 		const w = mountInput(QUARTER, workspace)

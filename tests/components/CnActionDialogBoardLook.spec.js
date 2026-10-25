@@ -54,6 +54,8 @@ describe('CnActionDialog in the board look', () => {
 		await flushPromises()
 		expect(w.find('.cn-action-dialog__summary-icon .icon').attributes('data-name')).toBe('FolderOutline')
 		expect(w.find('[data-testid="cn-action-dialog-note"] .icon').attributes('data-name')).toBe('LockOutline')
+		expect(w.find('[data-testid="cn-action-dialog-note"] .icon').classes()).toContain('cn-action-dialog__note-icon')
+		expect(rule(sfc, '.cn-action-dialog__note-icon')).toContain('align-self: flex-start')
 	})
 
 	it('reads a fact through a named formatter (Bewaartermijn "5 jaar")', async () => {

@@ -50,3 +50,20 @@ describe('CnSettingsField input types', () => {
 		expect(wrapper.find('[data-testid="cn-settings-field-error-f"]').text()).toBe('This value does not fit this field.')
 	})
 })
+
+/**
+ * A decimal setting (DqBeheerGeavanceerd "Identificatiescoredrempel", 0.8)
+ * was invalid to the browser, whose number input steps by 1, and drew red.
+ *
+ * @spec openspec/changes/settings-number-decimal-step/specs/settings-fields/spec.md#requirement-a-number-setting-steps-as-it-is-declared
+ */
+describe('CnSettingsField number step', () => {
+	it('lets a decimal number take any step, and a whole number step by 1', () => {
+		const decimal = make({ key: 'score', label: 'Score', type: 'number', min: 0, max: 1 }).findComponent({ name: 'NcTextField' })
+		expect(decimal.attributes('step')).toBe('any')
+		const whole = make({ key: 'days', label: 'Days', type: 'number', integer: true }).findComponent({ name: 'NcTextField' })
+		expect(whole.attributes('step')).toBe('1')
+		const own = make({ key: 'rate', label: 'Rate', type: 'number', step: 0.05 }).findComponent({ name: 'NcTextField' })
+		expect(own.attributes('step')).toBe('0.05')
+	})
+})

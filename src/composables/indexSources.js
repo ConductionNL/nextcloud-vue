@@ -1109,7 +1109,9 @@ function fillRowTemplate(template, row) {
  * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
  * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
- * result, else `subtitleField`.
+ * result, else `subtitleField`; `subtitleResolve` (`{ field, schema, labelField,
+ * as }`) names a referenced object for it as `{as}`. `sourceConfig.titleWrap`
+ * wraps a long result title instead of cutting it.
  * `linkedUser: true` reads that value as a user id and shows the user's
  * display name. `sourceConfig.columnWidths` sets a width per column key.
  * The page's title and count line can name the term as `{term}`, and the
@@ -1226,9 +1228,32 @@ function searchSource(config = {}, context = {}) {
 		return ''
 	}
 
-	const subtitleOf = (kind, object) => {
+	// `subtitleResolve`: `{ field, schema, register?, labelField?, as }` names
+	// the object a reference points at, for the subtitle template as `{as}`.
+	const subtitleLabels = async (kind) => {
+		const resolve = kind.subtitleResolve
+		if (!resolve || !resolve.schema || !resolve.field) {
+			return null
+		}
+		const objects = await fetchReferenceObjects({ register: resolve.register || kind.register, schema: resolve.schema }).catch(() => [])
+		const labels = new Map()
+		for (const object of objects) {
+			const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+			const label = readPath(object, resolve.labelField || 'title') ?? object.name
+			if (id !== undefined && label !== undefined && label !== null) {
+				labels.set(String(id), String(label))
+			}
+		}
+		return labels
+	}
+
+	const subtitleOf = (kind, object, labels = null) => {
 		if (kind.subtitleTemplate) {
-			return fillTemplate(translate(kind.subtitleTemplate), object)
+			const resolve = kind.subtitleResolve
+			const data = labels && resolve
+				? { ...object, [resolve.as || resolve.field]: labels.get(String(readPath(object, resolve.field) ?? '')) ?? '' }
+				: object
+			return fillTemplate(translate(kind.subtitleTemplate), data)
 		}
 		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
 	}
@@ -1247,6 +1272,7 @@ function searchSource(config = {}, context = {}) {
 		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
 		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
 		const userNames = kind.linkedUser === true ? await linkedUserNames(kind, results) : null
+		const subtitleNames = await subtitleLabels(kind)
 		return {
 			total: typeof body.total === 'number' ? body.total : results.length,
 			rows: results.map((object) => {
@@ -1261,7 +1287,7 @@ function searchSource(config = {}, context = {}) {
 					kindLabel: kind.label,
 					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
-					subtitle: subtitleOf(kind, object),
+					subtitle: subtitleOf(kind, object, subtitleNames),
 					status,
 					linked: userNames ? (userNames.get(linkedOf(kind, object)) || linkedOf(kind, object)) : linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
@@ -1372,7 +1398,7 @@ function searchSource(config = {}, context = {}) {
 		loading: () => state.loading,
 
 		columns: withColumnWidths([
-			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true, ...(config && config.titleWrap === true ? { cellClass: 'cn-cell--wrap' } : {}) },
 			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
 			// DqZoekresultaten), instead of the plural kind as a pill.
 			config && config.kindAsText === true
@@ -1619,10 +1645,10 @@ function usersSource() {
 		loading: () => state.loading,
 
 		columns: [
-			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function' },
-			{ key: 'roles', label: t('nextcloud-vue', 'Roles') },
-			{ key: 'email', label: t('nextcloud-vue', 'E-mail') },
-			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'warning' } },
+			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function', sortable: true, cellClass: 'cn-cell--lead' },
+			{ key: 'roles', label: t('nextcloud-vue', 'Roles'), sortable: true },
+			{ key: 'email', label: t('nextcloud-vue', 'E-mail'), sortable: true },
+			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'warning' }, sortable: true },
 		],
 
 		searchFields: {

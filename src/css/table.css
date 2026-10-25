@@ -310,7 +310,7 @@
 .cn-data-table--fit td.cn-table-col--grow.cn-cell--wrap {
 	min-width: 8em;
 	max-width: none;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 	white-space: normal;
 }
 
@@ -357,6 +357,13 @@
    list widgets (name + trailing status) that use `hideHeader`. */
 .cn-data-table td.cn-cell--strong {
 	font-weight: 500;
+}
+
+/* A lead cell's value reads 15px, a person's name over their function
+   (DqAfdelingen). */
+.cn-data-table td.cn-cell--lead > .cn-cell-renderer,
+.cn-data-table td.cn-cell--lead .cn-table-row__link > .cn-cell-renderer {
+	font-size: 15px;
 }
 
 .cn-data-table td.cn-cell--muted {

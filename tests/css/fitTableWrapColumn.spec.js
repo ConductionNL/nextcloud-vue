@@ -27,5 +27,7 @@ describe('table.css: a wrapping growing column in a fitted table', () => {
 		expect(body).toMatch(/white-space:\s*normal/)
 		expect(body).toMatch(/max-width:\s*none/)
 		expect(body).toMatch(/min-width:\s*8em/)
+		// Words stay whole: "Omgevingsvergunning" is not split (DqDoorlooptijd Prestaties rows 44px, as the board).
+		expect(body).toMatch(/overflow-wrap:\s*break-word/)
 	})
 })

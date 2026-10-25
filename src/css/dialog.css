@@ -177,11 +177,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	color: var(--color-text-maxcontrast);
 }
 
-/* The saved-view edit and share forms start 22px under the subtitle, as
-   the Dq dialog boards draw a first field: the body's 16px gap and 6px. */
+/* A body starts 22px under the subtitle, as the Dq dialog boards draw a
+   first field: the header's foot and the body gap alone, so the saved-view
+   edit and share forms and the confirm sentence pad nothing on top
+   (r29 on :8080: 28, 28 and 26px with their own padding). */
 .cn-dialog-board .dialog__content .cn-edit-view,
-.cn-dialog-board .dialog__content .cn-share-view {
-	padding-top: 6px;
+.cn-dialog-board .dialog__content .cn-share-view,
+.cn-dialog-board .dialog__content .cn-confirm__confirm {
+	padding-top: 0;
 }
 
 /* The close button is a 36px circle. NcButton sizes an icon-only button by
@@ -218,7 +221,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    10px 14px padding, the checkbox row at the 24px minimum target instead of
    NcCheckboxRadioSwitch's 34px, the note at 1.2 line height; the card's
    corners 8px and the label on an 18px line, as the board draws them. */
-.cn-dialog-board .cn-assign-dialog__toggle {
+/* `.dialog` outranks the component's scoped rule (class + attribute), which
+   loads after this sheet and kept 12px 14px and 12px corners on :8080 (r29). */
+.cn-dialog-board .dialog .cn-assign-dialog__toggle {
 	padding: 10px 14px;
 	border-radius: 8px;
 }
@@ -347,10 +352,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    border and radius 8 (PlanItemDialog, DqWerkvoorraad). NcInputField draws
    its border as a 65%-transparent shadow, which on the white dialog read as
    an empty band, and floats its label inside the border. A field with
-   `labelOutside` keeps the app's own label and takes the same control. */
+   `labelOutside` keeps the app's own label and takes the same control. The
+   label's box starts where the field starts and the control 23px under it,
+   as on every dialog board (72 fields on 11 boards): the label at the font's
+   normal line, 21px of room plus the control's 2px focus inset, the label
+   4px above that room's end. */
 .cn-dialog-board .dialog__content .input-field:has(.input-field__label),
 .cn-dialog-board .dialog__content .textarea:has(.textarea__label) {
-	margin-block-start: 26px;
+	margin-block-start: 21px;
 }
 
 /* NcSelect's search is an NcInputField inside the select, and the select's
@@ -359,7 +368,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    select makes the label's room instead.
    @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
 .cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
-	margin-block-start: 26px;
+	margin-block-start: 21px;
 }
 
 /* A select in a form dialog sits under its label and over its help line
@@ -420,7 +429,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	color: var(--color-main-text);
 	font-size: var(--cn-field-label-size, 14px);
 	font-weight: 600;
-	line-height: 20px;
+	line-height: normal;
 	pointer-events: auto;
 	transition: none;
 }

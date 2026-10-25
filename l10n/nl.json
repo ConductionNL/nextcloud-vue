@@ -1946,6 +1946,8 @@
     "Absent today": "Vandaag afwezig",
     "{message} until {time}": "{message} tot {time}",
     "Away": "Afwezig",
+    "Present": "Aanwezig",
+    "Absent until {date}": "Afwezig tot {date}",
     "Busy": "Bezet",
     "No one in the team": "Niemand in het team",
     "Also replace the criteria with the current filters": "Vervang ook de criteria door de huidige filters",
