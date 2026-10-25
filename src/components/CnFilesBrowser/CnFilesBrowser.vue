@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-files-browser"
-		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetail !== '' }"
+		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetailTemplate !== '' }"
 		data-testid="cn-files-browser"
 		@dragenter.prevent="onDragEnter"
 		@dragover.prevent="onDragOver"
@@ -1094,8 +1094,20 @@ export default {
 		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
 		 */
 		dropDetail: {
-			type: String,
+			type: [String, Array],
 			default: '',
+		},
+
+		/**
+		 * Named values filled into `dropDetail` as `{name}`, such as the case
+		 * number (`{ "case": "@object.identifier" }` in a detail page's props).
+		 * While a value is unknown the line is left out.
+		 *
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailValues: {
+			type: Object,
+			default: null,
 		},
 
 		/** Show a line under the list saying files can be dropped on it. */
@@ -1391,6 +1403,22 @@ export default {
 
 	computed: {
 		/**
+		 * The `dropDetail` text: the string, or the text of the first variant
+		 * `{ when, text }` whose `when` is `true` or that has none.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailTemplate() {
+			if (typeof this.dropDetail === 'string') {
+				return this.dropDetail
+			}
+			const variants = Array.isArray(this.dropDetail) ? this.dropDetail : []
+			const chosen = variants.find((item) => item && typeof item.text === 'string' && (!('when' in item) || item.when === true))
+			return chosen ? chosen.text : ''
+		},
+
+		/**
 		 * `dropDetail` through the host translate with `{count}` filled, '' when
 		 * there is none or the count it needs is unknown.
 		 *
@@ -1398,10 +1426,22 @@ export default {
 		 * @return {string}
 		 */
 		dropDetailText() {
-			if (!this.dropDetail) {
+			const template = this.dropDetailTemplate
+			if (!template) {
 				return ''
 			}
-			const text = this.cnTranslate(this.dropDetail)
+			let text = this.cnTranslate(template)
+			// `dropDetailValues`: named values such as the case number; a value
+			// still unknown (an unresolved `@` token, or empty) leaves the line out.
+			// @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+			const values = this.dropDetailValues && typeof this.dropDetailValues === 'object' ? this.dropDetailValues : {}
+			for (const [name, value] of Object.entries(values)) {
+				const shown = value === null || value === undefined ? '' : String(value)
+				if (shown === '' || shown.startsWith('@')) {
+					return ''
+				}
+				text = text.split(`{${name}}`).join(shown)
+			}
 			if (!text.includes('{count}')) {
 				return text
 			}
