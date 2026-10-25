@@ -1470,6 +1470,14 @@
 
 .cn-look-board .cn-grouped-cards__group-title.cn-grouped-cards__group-title {
 	font-weight: 700;
+	line-height: 1.2;
+}
+
+/* The buttons above the groups are the card's 34px controls ("Bekijken als
+   flow", "Taak toevoegen"), not the page's 40px ones. */
+.cn-look-board .cn-grouped-cards__actions:not(.cn-look-nextcloud *) .button-vue {
+	min-height: 34px;
+	height: 34px;
 }
 
 .cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item {
@@ -1479,6 +1487,7 @@
 
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
+	line-height: 1.2;
 }
 
 /* A card with actions holds them at its end, beside the title and meta (the
