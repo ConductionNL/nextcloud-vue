@@ -36,7 +36,7 @@ describe('look-board-detail.css: the notes tab in a page card', () => {
 		const toggle = bodyOf('.cn-look-board .cn-detail-widget-host .cn-widget-wrapper .cn-sidebar-tab__composer-toggle:not(.cn-look-nextcloud *)')
 		expect(toggle).toMatch(/position:\s*absolute/)
 		expect(toggle).toMatch(/top:\s*20px/)
-		expect(toggle).toMatch(/right:\s*var\(--cn-board-card-inline-padding\)/)
+		expect(toggle).toMatch(/inset-inline-end:\s*var\(--cn-board-card-inline-padding\)/)
 	})
 
 	it('opens every note thread with a hairline, 12px 0', () => {

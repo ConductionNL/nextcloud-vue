@@ -1527,7 +1527,7 @@
 .cn-look-board .cn-detail-widget-host .cn-widget-wrapper .cn-sidebar-tab__composer-toggle:not(.cn-look-nextcloud *) {
 	position: absolute;
 	top: 20px;
-	right: var(--cn-board-card-inline-padding);
+	inset-inline-end: var(--cn-board-card-inline-padding);
 }
 
 .cn-look-board .cn-detail-widget-host .cn-sidebar-tab__action:has(> .cn-sidebar-tab__composer-toggle):not(:has(.cn-sidebar-tab__composer)):not(.cn-look-nextcloud *) {
