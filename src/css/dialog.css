@@ -168,10 +168,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
 .cn-dialog-header__subtitle {
 	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.5;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 4px 0 0;
 	font-size: 14px;
+	line-height: 1.5;
 	color: var(--color-text-maxcontrast);
 }
 
