@@ -1498,6 +1498,25 @@
 	gap: 14px 16px;
 }
 
+/* In a page card the mail tab is the card's body: no padding of its own, 12px
+   between its parts, the heading at the card title's 17px/700 and the
+   description at 14px (DqZaakEmail "E-mail").
+   @spec openspec/changes/board-mail-tab-in-card/specs/board-mail-tab-in-card/spec.md#requirement-a-mail-tab-in-a-page-card-reads-as-the-card */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab:not(.cn-look-nextcloud *) {
+	gap: 12px;
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__title:not(.cn-look-nextcloud *) {
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__subtitle:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
