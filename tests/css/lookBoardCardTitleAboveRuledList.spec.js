@@ -26,5 +26,6 @@ describe('look-board: a card title over a ruled list', () => {
 		expect(found).not.toBeNull()
 		expect(found).toContain('.cn-tasks-widget__list')
 		expect(found).toContain('.cn-decision-list__rows')
+		expect(found).toContain('.cn-nc-widget-widget__body--vertical')
 	})
 })
