@@ -1702,6 +1702,36 @@
 	margin-bottom: 16px;
 }
 
+/* The heading sits above the list card, not inside it (DqAfdelingen: "Vergunningen"
+   and its line, then the card): with a heading the list area is unframed and
+   its table and footer carry the card.
+   @spec openspec/changes/board-folder-scope-outside-card/specs/index-page/spec.md#requirement-the-selected-folder-heads-the-list-from-outside-its-card */
+.cn-look-board .cn-index-page__main.cn-index-page__main--table:has(> .cn-index-page__scope-heading) {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	overflow: visible;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading) > .cn-table-container.cn-table-container--board {
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+	overflow: hidden;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading):has(> .cn-index-page__pagination) > .cn-table-container.cn-table-container--board {
+	border-bottom: 0;
+	border-radius: var(--cn-board-card-radius, 12px) var(--cn-board-card-radius, 12px) 0 0;
+}
+
+.cn-look-board .cn-index-page__main--table:has(> .cn-index-page__scope-heading) > .cn-index-page__pagination {
+	border: 1px solid var(--color-border);
+	border-top: 0;
+	border-radius: 0 0 var(--cn-board-card-radius, 12px) var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
 .cn-look-board .cn-index-page__scope-title {
 	font-size: 20px;
 	font-weight: 700;
