@@ -3623,6 +3623,19 @@ export default {
 	width: auto;
 }
 
+/* The row button and the row menu stand side by side on one line, not
+   stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
+   @spec openspec/changes/files-row-button-beside-menu/specs/files-row-button-beside-menu/spec.md#requirement-a-files-row-button-stands-beside-the-row-menu */
+.cn-files-browser__col-actions > .cn-files-browser__row-button,
+.cn-files-browser__col-actions > .cn-files-browser__row-menu {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
+.cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu {
+	margin-inline-start: 14px;
+}
+
 .cn-files-browser__col-name {
 	min-width: 0;
 }
