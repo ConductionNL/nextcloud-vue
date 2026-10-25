@@ -135,3 +135,4 @@ The `dataSource` OBJECT-form `aggregate` (Wave 3, #91) — `{ groupBy, metric?: 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events; on a matching id the chart re-queries its `dataSource`. Also exposes a ref-callable `refresh()`. |
+| `barValueAtEnd` | Boolean | `false` | A `bar-list` without a track: each bar as long as its share and its value right after the bar's end (DqProcesanalyse "Doorlooptijd per status"). False keeps the track and the value column. |
