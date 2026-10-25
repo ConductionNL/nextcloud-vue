@@ -1195,18 +1195,25 @@ export default {
 }
 
 .cn-checklist-run__legend {
+	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 	padding: 0 4px;
 }
 
 .cn-checklist-run__help {
 	color: var(--color-text-maxcontrast);
+	font-size: 14px;
 	margin: 0;
 }
 
+/* An option reads as text, not as a field label (a theme makes every label
+   bold); 15px as the board draws it (DqInspectie). */
 .cn-checklist-run__choice {
 	align-items: center;
 	display: flex;
+	font-size: 15px;
+	font-weight: 400;
 	gap: 10px;
 	min-height: 34px;
 }
@@ -1225,6 +1232,7 @@ export default {
 }
 
 .cn-checklist-run__group {
+	font-size: 14px;
 	font-weight: 600;
 	margin: 0;
 }
