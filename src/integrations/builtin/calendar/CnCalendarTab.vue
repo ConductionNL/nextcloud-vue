@@ -242,6 +242,7 @@ import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
 import { linkCalendarEvent } from './calendarEventLink.js'
+import { eventStatusLabel, eventStatusVariant } from './eventStatus.js'
 
 const MAX_AVATARS = 3
 
@@ -542,31 +543,11 @@ export default {
 		},
 
 		statusLabel(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return t('nextcloud-vue', 'Confirmed')
-			}
-			if (status === 'tentative') {
-				return t('nextcloud-vue', 'Tentative')
-			}
-			if (status === 'cancelled') {
-				return t('nextcloud-vue', 'Cancelled')
-			}
-			return ''
+			return eventStatusLabel(ev)
 		},
 
 		statusVariant(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return 'success'
-			}
-			if (status === 'tentative') {
-				return 'warning'
-			}
-			if (status === 'cancelled') {
-				return 'error'
-			}
-			return 'default'
+			return eventStatusVariant(ev)
 		},
 
 		attendeeList(ev) {

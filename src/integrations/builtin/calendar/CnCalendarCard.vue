@@ -83,22 +83,42 @@
 				v-for="ev in displayedEvents"
 				:key="rowKey(ev)"
 				class="cn-calendar-card__row">
-				<div class="cn-calendar-card__row-icon">
-					<CalendarClock v-if="isUpcoming(ev)" :size="20" class="cn-calendar-card__icon--upcoming" />
-					<CalendarCheck v-else :size="20" class="cn-calendar-card__icon--past" />
-				</div>
-				<div class="cn-calendar-card__row-main">
-					<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
-					<div class="cn-calendar-card__meta">
-						<span v-if="ev.dtstart" class="cn-calendar-card__when">{{ formatShort(ev.dtstart) }}</span>
-						<span v-if="ev.location" class="cn-calendar-card__location">· {{ ev.location }}</span>
+				<!-- The board look draws a meeting as a ruled row: its title, one
+				     meta line (when, where, who) and its status at the end. -->
+				<template v-if="boardRows">
+					<div class="cn-calendar-card__row-main">
+						<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
+						<span class="cn-calendar-card__meta" data-testid="cn-calendar-card-meta">{{ boardMetaOf(ev) }}</span>
 					</div>
-				</div>
+					<span v-if="statusOf(ev)"
+						class="cn-status-badge"
+						:class="`cn-status-badge--${statusVariantOf(ev)}`"
+						data-testid="cn-calendar-card-status">{{ statusOf(ev) }}</span>
+				</template>
+				<template v-else>
+					<div class="cn-calendar-card__row-icon">
+						<CalendarClock v-if="isUpcoming(ev)" :size="20" class="cn-calendar-card__icon--upcoming" />
+						<CalendarCheck v-else :size="20" class="cn-calendar-card__icon--past" />
+					</div>
+					<div class="cn-calendar-card__row-main">
+						<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
+						<div class="cn-calendar-card__meta">
+							<span v-if="ev.dtstart" class="cn-calendar-card__when">{{ formatShort(ev.dtstart) }}</span>
+							<span v-if="ev.location" class="cn-calendar-card__location">· {{ ev.location }}</span>
+						</div>
+					</div>
+				</template>
 			</div>
+			<a v-if="boardRows"
+				class="cn-calendar-card__open"
+				:href="calendarAppUrl"
+				target="_blank"
+				rel="noopener"
+				data-testid="cn-calendar-card-open">{{ openInCalendarLabel }}</a>
 		</div>
 
 		<!-- Footer: detail surface gets "Open in NC Calendar" CTA -->
-		<template v-if="surface === 'detail-page'" #footer>
+		<template v-if="surface === 'detail-page' && !isBoard" #footer>
 			<a
 				class="cn-calendar-card__cta"
 				:href="calendarAppUrl"
@@ -144,9 +164,12 @@ import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnC
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import CnIcon from '../../../components/CnIcon/CnIcon.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
+import { formatBoardDate, formatTimeOfDay } from '../../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
 import { linkCalendarEvent } from './calendarEventLink.js'
+import { eventAttendeeNames, eventStatusLabel, eventStatusVariant } from './eventStatus.js'
 
 /**
  * CnCalendarCard — surface-aware compact widget for the calendar
@@ -157,6 +180,10 @@ export default {
 	name: 'CnCalendarCard',
 
 	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnDetailCard, CnIcon, LinkVariant, NcButton, NcLoadingIcon, Plus, CalendarClock, CalendarCheck },
+
+	inject: {
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/** OpenRegister register id (slug or uuid). Optional for user-dashboard. */
@@ -233,6 +260,16 @@ export default {
 		 *
 		 * @return {Array<string>}
 		 */
+		/** @return {boolean} The board look draws ruled rows. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/** @return {boolean} The meetings are ruled rows: the board look on a detail page. */
+		boardRows() {
+			return this.isBoard && this.surface === 'detail-page'
+		},
+
 		shownHeaderActions() {
 			if (this.surface !== 'detail-page' || !this.objectId || !Array.isArray(this.headerActions)) {
 				return []
@@ -292,6 +329,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A meeting's meta line in the board look: "14 okt, 10:00 tot 10:30",
+		 * its place and its attendees, separated by middots.
+		 *
+		 * @param {object} ev The event.
+		 * @return {string}
+		 */
+		boardMetaOf(ev) {
+			const start = ev.dtstart ? new Date(ev.dtstart) : null
+			const end = ev.dtend ? new Date(ev.dtend) : null
+			let when = ''
+			if (start && !Number.isNaN(start.getTime())) {
+				when = `${formatBoardDate(start)}, ${formatTimeOfDay(start)}`
+				if (end && !Number.isNaN(end.getTime())) {
+					when = t('nextcloud-vue', '{start} until {end}', { start: when, end: formatTimeOfDay(end) })
+				}
+			}
+			return [when, ev.location, ...eventAttendeeNames(ev)].filter(Boolean).join(' · ')
+		},
+
+		statusOf(ev) {
+			return eventStatusLabel(ev)
+		},
+
+		statusVariantOf(ev) {
+			return eventStatusVariant(ev)
+		},
+
 		/**
 		 * A meeting was made on this object: close the form, read the list again.
 		 *
