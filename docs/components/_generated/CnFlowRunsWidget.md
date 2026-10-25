@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 3 direct references, 7 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 3 direct references, 8 files reached through imports.
 
 Through: `CnActionDialog`, `CnFlowRunsWidgetForm`, `CnIndexPage`.
 

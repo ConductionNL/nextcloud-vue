@@ -65,7 +65,7 @@
 		     share of `barMax` (default the largest value), the value at the
 		     end. Rows navigate when the source declares a drilldown. -->
 		<div v-else-if="type === 'bar-list'" class="cn-chart-widget__html" data-testid="cn-chart-widget-bar-list">
-			<ul class="cn-chart-widget__bar-list">
+			<ul class="cn-chart-widget__bar-list" :class="{ 'cn-chart-widget__bar-list--value-at-end': barValueAtEnd }">
 				<li v-for="row in barListRows" :key="row.index" class="cn-chart-widget__bar-row">
 					<component
 						:is="row.drill ? 'button' : 'div'"
@@ -75,10 +75,16 @@
 						data-testid="cn-chart-widget-bar-row"
 						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
 						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
-						<span class="cn-chart-widget__bar-track" aria-hidden="true">
-							<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+						<span v-if="barValueAtEnd" class="cn-chart-widget__bar-track">
+							<span class="cn-chart-widget__bar-fill" aria-hidden="true" :style="{ flexBasis: `${row.share}%` }" />
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
 						</span>
-						<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						<template v-else>
+							<span class="cn-chart-widget__bar-track" aria-hidden="true">
+								<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+							</span>
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						</template>
 					</component>
 				</li>
 			</ul>
@@ -148,12 +154,25 @@
 			data-testid="cn-chart-widget-footnote">
 			{{ hostTranslate(footnote) }}
 		</p>
+		<!-- `notice`: a toned note card under the chart whose words carry
+		     values from the page record (DqHandhaving "Advies: ..."). -->
+		<NcNoteCard
+			v-if="noticeParts"
+			:type="noticeParts.type"
+			:data-tone="noticeParts.type"
+			class="cn-chart-widget__notice"
+			data-testid="cn-chart-widget-notice">
+			<p class="cn-chart-widget__notice-text">
+				<strong v-if="noticeParts.lead">{{ noticeParts.lead }}</strong>{{ noticeParts.lead && noticeParts.text ? ' ' : '' }}{{ noticeParts.text }}
+			</p>
+		</NcNoteCard>
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -405,7 +424,7 @@ function formatterFor(vf) {
 export default {
 	name: 'CnChartWidget',
 
-	components: { CnEndpointNotice },
+	components: { CnEndpointNotice, NcNoteCard },
 
 	inject: {
 		/**
@@ -456,6 +475,18 @@ export default {
 		},
 
 		/**
+		 * A `bar-list` without a track: each bar as long as its share and its
+		 * value right after the bar's end (DqProcesanalyse "Doorlooptijd per
+		 * status"). False, the default, keeps the track and the value column.
+		 *
+		 * @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end
+		 */
+		barValueAtEnd: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * A `matrix`'s row-label column width in px. Null, the default, sizes
 		 * the column to its longest label (at least 120px); a width wraps a
 		 * long label instead (DqProcesanalyse "Dagen per fase": 240).
@@ -464,6 +495,24 @@ export default {
 		 */
 		matrixLabelWidth: {
 			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A toned note card under the chart whose words carry values from the
+		 * page record: `{ lead?, text?, values?, labels?, tone? }`. `lead`
+		 * (bold) and `text` go through the host's translate, then each
+		 * `{name}` is filled from `values[name]`, a literal or a token such as
+		 * `@object.recommendedIntervention`. `labels[name]` turns a key into
+		 * words: `"rows"`, `"columns"` or `"values"` read the matrix's
+		 * cellSource label maps, an object is its own map. `tone` is info
+		 * (default), success, warning or error. Hidden while a value is
+		 * missing, so a half-filled sentence never shows.
+		 *
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		notice: {
+			type: Object,
 			default: null,
 		},
 
@@ -1599,6 +1648,38 @@ export default {
 					}),
 				})),
 			}
+		},
+
+		/**
+		 * The notice's bold lead, text and note-card type, values filled in;
+		 * null when there is none or a value is missing.
+		 *
+		 * @return {{lead: string, text: string, type: string}|null} The notice.
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		noticeParts() {
+			const def = this.notice
+			if (!def || typeof def !== 'object' || (!def.lead && !def.text)) {
+				return null
+			}
+			const declared = def.values && typeof def.values === 'object' ? def.values : {}
+			const resolved = resolveFilterTokens(declared, this.chartTokenCtx())
+			const source = this.cellSource && typeof this.cellSource === 'object' ? this.cellSource : {}
+			const maps = { rows: source.rowLabels, columns: source.columnLabels, values: source.valueLabels }
+			const words = {}
+			for (const name of Object.keys(declared)) {
+				const raw = resolved[name]
+				if (raw === null || raw === undefined || raw === '' || (typeof raw === 'string' && raw.charAt(0) === '@')) {
+					return null
+				}
+				const ref = def.labels && def.labels[name]
+				const map = typeof ref === 'string' ? maps[ref] : ref
+				const label = map && typeof map === 'object' && typeof map[String(raw)] === 'string' ? map[String(raw)] : null
+				words[name] = label ? this.hostTranslate(label) : String(raw)
+			}
+			const fill = (key) => (key ? this.hostTranslate(key).replace(/\{(\w+)\}/g, (match, name) => (name in words ? words[name] : match)) : '')
+			const type = ['info', 'success', 'warning', 'error'].includes(def.tone) ? def.tone : 'info'
+			return { lead: fill(def.lead), text: fill(def.text), type }
 		},
 
 		/**
@@ -2943,8 +3024,43 @@ export default {
 	white-space: nowrap;
 }
 
+/* `barValueAtEnd`: no track; the bar takes its share of the row and gives way
+   to the value right after its end, so the longest bar still fits. */
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-line {
+	grid-template-columns: minmax(80px, 130px) minmax(0, 1fr);
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-track {
+	align-items: center;
+	background: none;
+	display: flex;
+	gap: 6px;
+	height: auto;
+	overflow: visible;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-fill {
+	border-radius: 4px;
+	flex: 0 1 auto;
+	height: 18px;
+	min-width: 2px;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-value {
+	flex: none;
+	text-align: start;
+}
+
 .cn-chart-widget__footnote {
 	color: var(--color-text-maxcontrast);
+	margin: 0;
+}
+
+.cn-chart-widget__notice {
+	margin: 12px 0 0;
+}
+
+.cn-chart-widget__notice-text {
 	margin: 0;
 }
 

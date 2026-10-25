@@ -37,15 +37,20 @@
 					data-testid="cn-record-list-due">{{ item.due.text }}</span>
 			</div>
 			<div class="cn-record-notes__fields">
-				<NcTextField
-					class="cn-record-notes__field"
-					:modelValue="drafts[item.key] || ''"
-					:label="fieldLabel"
-					:labelOutside="false"
-					:placeholder="placeholder"
-					:disabled="busy"
-					:data-testid="`cn-record-list-note-${item.key}`"
-					@update:modelValue="setDraft(item.key, $event)" />
+				<!-- The label stands above the field, as the leaf's own beside it
+				     (humaniq "Uren"), so both fields share one line. -->
+				<div class="cn-record-notes__field">
+					<label :for="fieldId(item.key)" class="cn-record-notes__field-label">{{ fieldLabel }}</label>
+					<NcTextField
+						:id="fieldId(item.key)"
+						:modelValue="drafts[item.key] || ''"
+						:label="fieldLabel"
+						labelOutside
+						:placeholder="placeholder"
+						:disabled="busy"
+						:data-testid="`cn-record-list-note-${item.key}`"
+						@update:modelValue="setDraft(item.key, $event)" />
+				</div>
 				<div v-if="leaf && leafProvider" class="cn-record-notes__leaf" :data-testid="`cn-record-list-leaf-${item.key}`">
 					<CnLeafMountHost
 						v-if="leafIsMount"
@@ -116,6 +121,13 @@ import { readPath } from '../../utils/readPath.js'
 
 /** The bus channel every endpoint-bound widget on the page refetches on. */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/**
+ * The document event a recorded note sends, so a row's leaf (humaniq's
+ * hours) can record what it holds for the same object at the same moment.
+ * `detail` is the row's leaf props plus `note`.
+ */
+const NOTE_RECORDED_EVENT = 'cn-record-notes:recorded'
 
 /**
  * The rows of a record list drawn as notes to record (`presentation:
@@ -295,6 +307,16 @@ export default {
 		},
 
 		/**
+		 * The id of a row's note field, for its label.
+		 *
+		 * @param {string} key The row key.
+		 * @return {string} The id.
+		 */
+		fieldId(key) {
+			return `cn-record-notes-${this.$.uid}-${String(key).replace(/[^A-Za-z0-9_-]/g, '-')}`
+		},
+
+		/**
 		 * @param {string} key The row key.
 		 * @return {boolean} Whether the row has a note typed.
 		 */
@@ -351,6 +373,9 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				await axios.post(prefixUrl(url), { [this.action.bodyField || 'message']: text })
+				if (this.leaf) {
+					document.dispatchEvent(new CustomEvent(NOTE_RECORDED_EVENT, { detail: { ...this.leafProps(item.row), note: text } }))
+				}
 				const { [item.key]: done, ...rest } = this.drafts
 				this.drafts = rest
 				if (refresh) {
@@ -462,7 +487,16 @@ export default {
 }
 
 .cn-record-notes__field {
+	display: flex;
 	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-record-notes__field-label {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-record-notes__leaf {

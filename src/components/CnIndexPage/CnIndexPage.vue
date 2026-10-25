@@ -875,6 +875,7 @@
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
+					:rowIconTone="rowIconTone"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
@@ -3185,6 +3186,17 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The leading icon's tile tone in the board look (`primary`, `teal`,
+		 * `neutral`), from `pages[].config.rowIconTone`. Forwarded to CnDataTable.
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
+		},
+
 		/** Columns to exclude in schema mode */
 		excludeColumns: {
 			type: Array,
@@ -4670,6 +4682,8 @@ export default {
 			savedViews: [],
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
+			/** Whether the reader changed the view since it was opened or saved. */
+			viewChanged: false,
 			viewPendingDelete: null,
 			/** An `api-call` header action waiting on its confirmation, or null. */
 			headerApiCallPending: null,
@@ -6420,6 +6434,7 @@ export default {
 				r: this.register,
 				s: this.exportSchemaSlug,
 				f: this.filter || null,
+				a: this.effectiveActiveFilters || null,
 				e: this.countEntries,
 				// The store's total, not the error override in effectivePagination,
 				// so a failed fetch and its recovery do not refetch the counts.
@@ -8706,12 +8721,20 @@ export default {
 
 		/**
 		 * Whether the toolbar draws Save view: not when the page switches it
-		 * off (`savedViewSave: false`) or its header carries one.
+		 * off (`savedViewSave: false`) or its header carries one, and in the
+		 * board look only once the view has changed.
 		 *
+		 * @spec openspec/changes/board-save-view-only-when-changed/specs/saved-views/spec.md#requirement-the-board-look-offers-save-view-once-the-view-has-changed
 		 * @return {boolean}
 		 */
 		toolbarSavesView() {
-			return this.savedViewSave !== false && !this.headerSavesView
+			if (this.savedViewSave === false || this.headerSavesView) {
+				return false
+			}
+			// The board look offers it once the view differs from the one
+			// opened: changed by the reader, or, with no saved view open,
+			// filtered by the address.
+			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
 		},
 
 		/**
@@ -10002,7 +10025,15 @@ export default {
 			const counts = await fetchFilterCounts({
 				register: this.register,
 				schema,
-				entries: this.countEntries.map((entry) => ({ key: entry.key, filter: resolveFilterMap(entry.filter, params, ctx) })),
+				// A quick filter counts within the list as filtered (the
+				// active filters, its own field its own); a saved view counts
+				// its own query.
+				entries: this.countEntries.map((entry) => ({
+					key: entry.key,
+					filter: entry.key.startsWith('tab:')
+						? { ...(this.effectiveActiveFilters || {}), ...resolveFilterMap(entry.filter, params, ctx) }
+						: resolveFilterMap(entry.filter, params, ctx),
+				})),
 				baseFilter: resolveFilterMap(this.filter, params, ctx),
 				ctx,
 			})
@@ -10849,6 +10880,7 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
+			this.viewChanged = true
 			if (this.namedSourceSearches) {
 				this.namedSearchTerm = value || ''
 			}
@@ -10868,6 +10900,7 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterChange(index) {
+			this.viewChanged = true
 			// `activeQuickFilterIndex` is a setup-returned ref; the
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
@@ -10884,6 +10917,7 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterMultiChange(indices) {
+			this.viewChanged = true
 			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
 			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
@@ -10899,6 +10933,7 @@ export default {
 		 * @return {void}
 		 */
 		onSidebarSortChange(keys, value) {
+			this.viewChanged = true
 			if (value !== undefined && this.selectSortOption(value)) {
 				return
 			}
@@ -10978,6 +11013,7 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
+			this.viewChanged = true
 			// An order by keys (a column header, a field in the Sort section)
 			// leaves an endpoint-ranked order.
 			if (this.sortSource.value) {
@@ -11181,6 +11217,7 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			this.viewChanged = true
 			// "Clear all" on the Active line also undoes the quick filters it
 			// listed (a tab without an `activeLabel` is not a filter there).
 			for (const chip of this.quickFilterActiveChips) {
@@ -11289,6 +11326,7 @@ export default {
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
 		 */
 		onBoardColumnFieldChange(field) {
+			this.viewChanged = true
 			this.boardColumnFieldChoice = field
 			/**
 			 * @event board-column-field-change The board's column switch picked another field. Payload: the field name.
@@ -11304,6 +11342,7 @@ export default {
 		 * @return {void}
 		 */
 		onBoardNarrowChange(value) {
+			this.viewChanged = true
 			this.onFilterEvent({ key: this.boardNarrow.field, values: value === '' ? [] : [value] })
 		},
 
@@ -11366,6 +11405,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -11388,6 +11428,7 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			this.viewChanged = true
 			if (chip && chip.searchTerm === true) {
 				this.onSearchEvent('')
 				return
@@ -12356,6 +12397,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsEvent(columns) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && this.list.visibleColumns) {
 				this.list.visibleColumns.value = columns
 			}
@@ -12403,6 +12445,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsReorder(columns) {
+			this.viewChanged = true
 			this.onColumnsEvent(columns)
 		},
 
@@ -12413,6 +12456,7 @@ export default {
 		 * @return {void}
 		 */
 		onPinChange(count) {
+			this.viewChanged = true
 			if (!this.personalColumns || Array.isArray(this.appliedViewColumns)) {
 				return
 			}
@@ -13316,6 +13360,10 @@ export default {
 				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
 				return
 			}
+			// An opened view is unchanged until the reader changes it.
+			this.$nextTick(() => {
+				this.viewChanged = false
+			})
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
@@ -13441,6 +13489,7 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.viewChanged = false
 				this.sidebarActiveTab = 'filters-tab'
 				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
