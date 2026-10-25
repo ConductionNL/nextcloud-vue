@@ -1703,8 +1703,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	max-width: none;
 }
 
-.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name,
-.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__desc {
+/* A board card's title and subtitle run the card's width, wide or not
+   (DqBeheerGeavanceerd "Eerste keer", "StUF-ZKN-endpoints": the subtitle
+   wrapped at NcSettingsSection's 900px measure, the board's does not).
+   @spec openspec/changes/board-settings-desc-full-width/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__desc {
 	max-width: none;
 }
 
