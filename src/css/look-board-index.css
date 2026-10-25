@@ -77,7 +77,7 @@
 	grid-column: 1 / -1;
 	grid-row: 2;
 	justify-self: start;
-	margin-block: 6px 3px;
+	margin-block: 6px 0;
 }
 
 .cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-header-trail,
@@ -88,6 +88,13 @@
 .cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description,
 .cn-look-board .cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description {
 	grid-row: 4;
+}
+
+/* Without a breadcrumb trail the count line takes the trail's row, so no
+   empty row adds a second gap (DqZakenSorteren: 58px under the title). */
+.cn-look-board.cn-index-page--sidebar-open .cn-page-header:not(:has(.cn-header-trail)) .cn-page-header__text > .cn-page-header__description,
+.cn-look-board .cn-index-page--sidebar-open .cn-page-header:not(:has(.cn-header-trail)) .cn-page-header__text > .cn-page-header__description {
+	grid-row: 3;
 }
 
 /* The header buttons keep the board's button under a theme that styles every
