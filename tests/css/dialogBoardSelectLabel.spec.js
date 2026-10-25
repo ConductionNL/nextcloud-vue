@@ -21,6 +21,6 @@ describe('dialog.css: a select with a raised label', () => {
 	it('reserves the label\'s room above the select, as a text field does', () => {
 		const at = css.indexOf('.cn-dialog-board .dialog__content .v-select:has(.input-field__label) {')
 		expect(at).toBeGreaterThan(-1)
-		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-block-start: 26px;')
+		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-block-start: 21px;')
 	})
 })
