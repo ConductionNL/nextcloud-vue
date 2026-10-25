@@ -1564,7 +1564,8 @@
 	font-size: 14px;
 }
 
-/* ...on the normal line height: thematiq's board paragraph token (1.5) gave
+/* The mail card's description runs on the normal line height: thematiq's
+   board paragraph token (1.5) gave
    it 21px lines (probed on :8080 after REFRESH-4b: 14px/21 vs the board's
    normal; DqZaakEmail r29 E-mail gapBelowTitle 44.4 vs 49).
    @spec openspec/changes/board-mail-subtitle-line-height/specs/board-mail-subtitle-line-height/spec.md#requirement-the-mail-cards-description-runs-on-the-normal-line-height */
