@@ -25,4 +25,8 @@ registerDashboardWidget('mail', {
 	displayName: 'Mail',
 	icon: 'EmailOutline',
 	surfaces: ['detail-page'],
+	// Draws its own title row; on a card surface it stands in an untitled card.
+	// @spec openspec/changes/mail-widget-card/specs/mail-widget-card/spec.md#requirement-the-mail-widget-stands-in-a-card-on-a-card-surface
+	ownsTitle: true,
+	chrome: 'card',
 })

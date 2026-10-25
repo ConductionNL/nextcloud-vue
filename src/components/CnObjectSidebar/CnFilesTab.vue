@@ -24,6 +24,7 @@
 			:reviewSummary="reviewSummary"
 			:footnote="footnote"
 			:nameSecondary="nameSecondary"
+			:secondLine="secondLine"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
@@ -450,6 +451,8 @@ export default {
 		footnote: { type: String, default: '' },
 		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
 		nameSecondary: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line as a list of fields, or variants. */
+		secondLine: { type: Array, default: null },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */
