@@ -8940,7 +8940,7 @@ export default {
 				// through the app's label lookup.
 				const countText = this.presentedCountText
 				// The note after the breadcrumb already says how many there are.
-				if (!countText && !this.countSubtitle && this.headerMetaCarriesCount) {
+				if (!countText && !this.countSubtitle && (this.headerMetaCarriesCount || this.showCount === false)) {
 					return this.description
 				}
 				if (!countText && !this.countSubtitle) {
