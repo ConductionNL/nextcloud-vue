@@ -26,20 +26,33 @@ function ocsData(res) {
 	return (res && res.data && res.data.ocs && res.data.ocs.data) || null
 }
 
+/** The most groups read, so a server that ignores the offset cannot loop forever. */
+const MAX_GROUPS = 5000
+
 /**
  * The groups, with their member counts.
  *
  * @param {object} axios The axios instance.
- * @param {{search?: string, limit?: number}} [options] Narrowing.
+ * @param {{search?: string, limit?: number}} [options] Narrowing; `limit` is the page size.
  * @return {Promise<Array<{id: string, name: string, count: number}>>}
  * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
  */
 export async function fetchGroups(axios, options = {}) {
-	const res = await axios.get(generateOcsUrl('cloud/groups/details'), {
-		params: { search: options.search || '', limit: options.limit || 200, format: 'json' },
-		headers: OCS_HEADERS,
-	})
-	const groups = (ocsData(res) && ocsData(res).groups) || []
+	const limit = options.limit || 200
+	// Every page, while a page comes back full: one page cut an instance with
+	// more groups than the limit off before its last ones (DqAfdelingen).
+	const groups = []
+	for (let offset = 0; offset < MAX_GROUPS; offset += limit) {
+		const res = await axios.get(generateOcsUrl('cloud/groups/details'), {
+			params: { search: options.search || '', limit, offset, format: 'json' },
+			headers: OCS_HEADERS,
+		})
+		const batch = (ocsData(res) && ocsData(res).groups) || []
+		groups.push(...batch)
+		if (batch.length < limit) {
+			break
+		}
+	}
 	return groups.map((group) => ({
 		id: String(group.id),
 		name: group.displayname || String(group.id),
