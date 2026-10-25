@@ -2208,3 +2208,22 @@
 .cn-look-board .cn-detail-page .cn-record-list--rows.cn-record-list--rule-above:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) .cn-record-list__row {
 	padding: 12px 0;
 }
+
+/* A side list row with initials stays one line: a 28px circle 8px before
+   the regular-weight text (DqSociaalDomein "Wie"). The library stacks side
+   rows into a column, which put the initials above the name.
+   @spec openspec/changes/board-side-person-rows/specs/board-side-person-rows/spec.md#requirement-a-board-side-row-with-initials-keeps-them-beside-the-text */
+.cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {
+	width: 28px;
+	height: 28px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
+	font-weight: 400;
+}
