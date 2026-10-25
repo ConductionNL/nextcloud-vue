@@ -1319,6 +1319,26 @@
 	line-height: 1.2;
 }
 
+/* The task name takes the spare width, so it wraps only when long; the
+   handler stays on one line. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table th:first-child,
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-task {
+	width: 100%;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-handler {
+	white-space: nowrap;
+}
+
+/* A head's filter is a 22px button, so a head is 42px high as drawn. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__head-filter .button-vue {
+	--button-size: 22px;
+	min-width: 22px;
+	min-height: 22px;
+	width: 22px;
+	height: 22px;
+}
+
 /* A long task name wraps under itself, as the board draws it, rather than
    widening the table past the card. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table :is(.cn-tasks-widget__name, .cn-tasks-widget__meta) {
