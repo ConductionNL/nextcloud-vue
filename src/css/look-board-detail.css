@@ -1596,3 +1596,19 @@
 .cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
 	justify-content: flex-start;
 }
+
+/* A body card's subtitle as the Dq boards draw it: 14px muted at line
+   height 1.2, 3px under the title, and the content 12px under it.
+   @spec openspec/changes/board-card-subtitle-gaps/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__title-stack:has(> .cn-widget-wrapper__subtitle) {
+	gap: 3px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__subtitle {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content {
+	padding-top: 12px;
+}
