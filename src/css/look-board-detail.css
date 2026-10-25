@@ -1853,7 +1853,12 @@
 }
 
 .cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
+	display: inline-flex;
 	justify-content: flex-start;
+}
+
+.cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header .button-vue {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* A body card's subtitle as the Dq boards draw it: 14px muted at line
