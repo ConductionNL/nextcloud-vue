@@ -2635,7 +2635,12 @@
     "Save as draft": "Opslaan als concept",
     "Draft saved at {time}": "Concept opgeslagen om {time}",
     "The draft could not be saved": "Het concept kon niet worden opgeslagen",
-    "No value": "Geen waarde"
+    "No value": "Geen waarde",
+    "Link an existing card": "Bestaande kaart koppelen",
+    "New card": "Nieuwe kaart",
+    "Could not link card.": "De kaart kon niet worden gekoppeld.",
+    "Could not create card.": "De kaart kon niet worden gemaakt.",
+    "This card is already linked.": "Deze kaart is al gekoppeld."
   },
   "plurals": {
     "{count} member": [
