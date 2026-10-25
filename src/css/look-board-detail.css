@@ -1691,3 +1691,54 @@
 .cn-look-board .cn-checklist-widget__item .checkbox-content__text {
 	font-weight: 600;
 }
+
+/* The calendar and Deck cards' rows as DqZaakTaken "Afspraken" and "Kaarten"
+   draw them: ruled rows, the title over a muted meta line, the pill at the
+   end, and the link to the app under the rows.
+   @spec openspec/changes/board-deck-calendar-rows/specs/integrations/spec.md */
+.cn-look-board .cn-detail-page .cn-calendar-card__row,
+.cn-look-board .cn-detail-page .cn-deck-card__row {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__row-main,
+.cn-look-board .cn-detail-page .cn-deck-card__row-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__title,
+.cn-look-board .cn-detail-page .cn-deck-card__row-title {
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__meta,
+.cn-look-board .cn-detail-page .cn-deck-card__row-meta {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-detail-page .cn-deck-card__row-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-detail-page .cn-calendar-card__open,
+.cn-look-board .cn-detail-page .cn-deck-card__open {
+	display: inline-block;
+	margin-top: 12px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+}
