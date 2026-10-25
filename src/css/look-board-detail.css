@@ -2039,3 +2039,17 @@
 	font-weight: 600;
 	text-decoration: underline;
 }
+
+/* A ruled list in a page card (`ruleAbove`, DqContact and DqOrganisatie
+   "Zaken", "Tickets"): the rule sits 12px under the title and each row has
+   12px above and below its text, so the first row's text is 25px under the
+   title.
+   @spec openspec/changes/board-ruled-list-card-start/specs/board-ruled-list-card-start/spec.md#requirement-a-board-ruled-list-in-a-page-card-starts-12px-under-the-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *),
+.cn-look-board .cn-detail-page .cn-detail-card__content:has(> .cn-record-list--rows.cn-record-list--rule-above):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-record-list--rows.cn-record-list--rule-above:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) .cn-record-list__row {
+	padding: 12px 0;
+}
