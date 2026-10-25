@@ -1680,6 +1680,15 @@
 	font-size: 14px;
 }
 
+/* The mail card's description runs on the normal line height: thematiq's
+   board paragraph token (1.5) gave
+   it 21px lines (probed on :8080 after REFRESH-4b: 14px/21 vs the board's
+   normal; DqZaakEmail r29 E-mail gapBelowTitle 44.4 vs 49).
+   @spec openspec/changes/board-mail-subtitle-line-height/specs/board-mail-subtitle-line-height/spec.md#requirement-the-mail-cards-description-runs-on-the-normal-line-height */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__subtitle.cn-mail-tab__subtitle:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
