@@ -99,7 +99,8 @@ export default {
 
 		/**
 		 * The crumbs for CnBreadcrumbs: each declared crumb as a link, then the
-		 * current page. Empty without a declared crumb.
+		 * current page, once (a last crumb that names the page is dropped).
+		 * Empty without a declared crumb.
 		 *
 		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
 		 * @return {Array<object>}
@@ -121,6 +122,10 @@ export default {
 				return entry
 			})
 			if (this.current) {
+				// A last crumb naming the page itself is the current one, drawn once.
+				if (out.length > 0 && out[out.length - 1].label === this.current) {
+					out.pop()
+				}
 				out.push({ label: this.current })
 			}
 			return out

@@ -65,6 +65,17 @@ describe('hostActionApplies', () => {
 		expect(hostActionApplies({ id: 'a', visibleIf: null }, pdf)).toBe(true)
 	})
 
+	it('offers an action by a field of the file\'s row, strictly, and never without a row reader', () => {
+		const action = { visibleIf: { row: { canChangeAccess: true } } }
+		const row = (values) => (key) => values[key]
+		expect(hostActionApplies(action, pdf, row({ canChangeAccess: true }))).toBe(true)
+		expect(hostActionApplies(action, pdf, row({ canChangeAccess: false }))).toBe(false)
+		expect(hostActionApplies(action, pdf, row({ canChangeAccess: 'true' }))).toBe(false)
+		expect(hostActionApplies(action, pdf, row({}))).toBe(false)
+		expect(hostActionApplies(action, pdf)).toBe(false)
+		expect(hostActionApplies({ visibleIf: { mime: ['application/pdf'], row: { canChangeAccess: true } } }, pdf, row({ canChangeAccess: true }))).toBe(true)
+	})
+
 	it('matches extensions without regard to case or a leading dot', () => {
 		const action = { id: 'read', visibleIf: { extension: ['eml', '.msg'] } }
 		expect(hostActionApplies(action, mail)).toBe(true)

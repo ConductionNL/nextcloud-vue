@@ -100,6 +100,22 @@ describe('the note form as its own card', () => {
 		list.unmount()
 	})
 
+	it('labels the template picker above it, as the note is labelled', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.endsWith('/timeline/text-blocks')) {
+				return Promise.resolve({ data: { results: [{ id: 'b1', title: 'Standaardnotitie', text: 'x' }] } })
+			}
+			if (url.endsWith('/timeline/kinds')) {
+				return Promise.resolve({ data: { results: [] } })
+			}
+			return Promise.resolve({ data: { canManage: true, results: [] } })
+		})
+		const form = await mountManage({ composer: 'only' })
+		const labels = form.findAll('.cn-timeline-manage__draft-label').map((label) => label.text())
+		expect(labels).toEqual(['Template', 'Note'])
+		form.unmount()
+	})
+
 	it('keeps "Add note" on the list without a form, and focuses the form card', async () => {
 		const list = await mountManage({ composer: 'separate' })
 		const form = await mountManage({ composer: 'only' })
