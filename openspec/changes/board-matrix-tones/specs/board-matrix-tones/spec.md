@@ -8,17 +8,16 @@
 
 ## Purpose
 
-A matrix chart draws the boards' four tones, each with an ink that reaches 4.5:1.
+A board matrix's tones are the theme's status grounds.
 
 ## ADDED Requirements
 
-### Requirement: A matrix draws the board's four tones
+### Requirement: A board matrix cell takes the theme's status grounds
 
-A `matrix` chart SHALL draw level 1 on the light primary, level 2 on the primary at 35% and level 3 on the primary at
-70% over the main background, both in the main ink, and level 4 on the light primary text in the light primary. Every
-level's ink SHALL reach 4.5:1 on its ground in Nextcloud's default light and dark themes.
+In the board look, a matrix cell toned success, warning or error SHALL take the theme's status badge background of that
+tone, and a danger cell its own token or the error ground deepened.
 
-#### Scenario: DqProcesanalyse days per phase
+#### Scenario: DqHandhaving
 
-- **GIVEN** the Zuiddrecht set and a matrix whose largest value is 18
-- **THEN** a 9 cell is drawn on about #b9cde3, a 14 cell on about #6f95c4 in the dark ink and the 18 cell on #234a78
+- **WHEN** a handler opens an LHS advice under the Zuiddrecht theme
+- **THEN** the cells read #E7F3EA, #FFF4DE, #FCEDEC and about #F6D6D3 as the board
