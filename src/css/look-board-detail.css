@@ -721,6 +721,13 @@
 	padding-top: calc(14px - var(--cn-board-first-line-leading));
 }
 
+/* A table (an object list) starts 12px below the title's box: its head has
+   a fill and no leading, so the glyph-to-glyph gap above left it 2px short
+   (DqZaaktypeStatussen "Statussen", "Resultaten"). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-list-widget):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
 /* Running text (DqZaak "Het verzoek") sits 12px below the title's box and
    keeps its own half-leading, at 1.6 as drawn.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
