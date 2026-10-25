@@ -67,7 +67,7 @@ describe('CnFieldListWidget add in the card title row', () => {
 		await w.vm.$nextTick()
 		const header = lastHeader(w)
 		expect(header.actions).toHaveLength(1)
-		expect(header.actions[0]).toMatchObject({ label: 'Add a variant', icon: 'Plus' })
+		expect(header.actions[0]).toMatchObject({ label: 'Add a variant', icon: 'Plus', add: true })
 		expect(w.find('[data-testid="cn-field-list-open-add"]').exists()).toBe(false)
 		expect(w.find('[data-testid="cn-field-list-add"]').exists()).toBe(false)
 	})
