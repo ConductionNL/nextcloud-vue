@@ -65,6 +65,21 @@ describe('CnIndexPage quickFiltersFrom', () => {
 		expect(w.vm.effectiveQuickFilters[0]).toMatchObject({ filter: {}, default: true })
 	})
 
+	// DqTeamwachtrij r29: "Alle typen 19" over a team queue of 3. The grouped
+	// numbers count the page filter only; each tab asks to be counted, so the
+	// page counts it as the list (within the active filters, via the list).
+	it('asks the page to count every tab as the list, the grouped number only a fallback', async () => {
+		const w = mountPage()
+		await flushPromises()
+		expect(w.vm.effectiveQuickFilters.every((tab) => tab.showCount === true)).toBe(true)
+		expect(w.vm.countEntries.filter((entry) => entry.key.startsWith('tab:')).map((entry) => entry.filter)).toEqual([
+			{},
+			{ caseType: 'ct-woo' },
+			{ caseType: 'ct-omgeving' },
+			{ caseType: 'ct-bezwaar' },
+		])
+	})
+
 	it('labels the tabs by a record matched on valueField, not on its id', async () => {
 		mockGrouped.mockResolvedValue([{ key: 'zuiddrecht', count: 24 }, { key: 'mijn-zuiddrecht', count: 7 }])
 		mockByField.mockReset()
