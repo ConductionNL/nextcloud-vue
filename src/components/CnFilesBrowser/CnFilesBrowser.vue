@@ -2178,7 +2178,8 @@ export default {
 			const object = {
 				...entry,
 				name: node.basename,
-				modified: node.mtime,
+				// A template drops an object value, so the Date is handed over as ISO text.
+				modified: node.mtime instanceof Date ? node.mtime.toISOString() : node.mtime,
 				size: this.formatSize(node.size),
 				type: this.typeLabelOf(node),
 				...(owner ? { owner } : {}),
