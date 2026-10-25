@@ -2627,7 +2627,8 @@
     "Talk to {agent}": "Praten met {agent}",
     "Search a person or group": "Zoek een persoon of groep",
     "Now: by {order}.": "Nu: op {order}.",
-    "You save the order along with a view.": "De sortering bewaart u mee in een weergave."
+    "You save the order along with a view.": "De sortering bewaart u mee in een weergave.",
+    "me": "ik"
   },
   "plurals": {
     "{count} member": [
@@ -2845,6 +2846,14 @@
     "within %n day": [
       "binnen %n dag",
       "binnen %n dagen"
+    ],
+    "%n other": [
+      "%n andere",
+      "%n andere"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} heeft geen locatie, dus staat niet op de kaart.",
+      "{names} hebben geen locatie, dus staan ze niet op de kaart."
     ]
   }
 }

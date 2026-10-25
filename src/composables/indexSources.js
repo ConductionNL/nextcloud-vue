@@ -1088,7 +1088,7 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
@@ -1102,6 +1102,8 @@ function fillRowTemplate(template, row) {
  * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
  * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
+ * result, else `subtitleField`.
  * The page's title and count line can name the term as `{term}`, and the
  * count is the active kind's total. Kind, link and status are filterable.
  *
@@ -1199,6 +1201,13 @@ function searchSource(config = {}, context = {}) {
 		return ''
 	}
 
+	const subtitleOf = (kind, object) => {
+		if (kind.subtitleTemplate) {
+			return fillTemplate(translate(kind.subtitleTemplate), object)
+		}
+		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
+	}
+
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
@@ -1219,7 +1228,7 @@ function searchSource(config = {}, context = {}) {
 					kindLabel: kind.label,
 					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
-					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
+					subtitle: subtitleOf(kind, object),
 					status,
 					linked: linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
@@ -1406,14 +1415,24 @@ function searchSource(config = {}, context = {}) {
  * the pager asks for.
  *
  * @param {Array<object>} members The members, by name.
- * @param {object} config `search`, `sortKey`, `sortOrder`, `limit`, `offset`.
+ * @param {object} config `search`, `nameLike`, `rolesLike`, `emailLike`, `today`, `sortKey`, `sortOrder`, `limit`, `offset`.
  * @return {{rows: Array<object>, total: number}} The page and how many match.
  */
 function membersPage(members, config = {}) {
+	const has = (member, fields, text) => fields.some((field) => String(member[field] || '').toLowerCase().includes(text))
 	const term = String(config.search || '').trim().toLowerCase()
-	let rows = term === ''
-		? members.slice()
-		: members.filter((member) => ['displayname', 'function', 'roles', 'email'].some((field) => String(member[field] || '').toLowerCase().includes(term)))
+	let rows = term === '' ? members.slice() : members.filter((member) => has(member, ['displayname', 'function', 'roles', 'email'], term))
+	// The table heads' filters: text contains, and the Today values picked.
+	for (const [param, fields] of [['nameLike', ['displayname', 'function']], ['rolesLike', ['roles']], ['emailLike', ['email']]]) {
+		const text = String(config[param] || '').trim().toLowerCase()
+		if (text !== '') {
+			rows = rows.filter((member) => has(member, fields, text))
+		}
+	}
+	const today = (Array.isArray(config.today) ? config.today : (config.today ? [config.today] : [])).map(String)
+	if (today.length > 0) {
+		rows = rows.filter((member) => today.includes(member.today))
+	}
 	if (config.sortKey) {
 		const sign = config.sortOrder === 'desc' ? -1 : 1
 		rows = rows.sort((a, b) => sign * String(a[config.sortKey] ?? '').localeCompare(String(b[config.sortKey] ?? '')))
@@ -1475,10 +1494,11 @@ function usersSource() {
 		 */
 		load: async (config) => {
 			const group = String((config && (config.group || config.defaultGroup)) || '')
-			const { search, sortKey, sortOrder, limit, offset, ...request } = config || {}
+			const { search, sortKey, sortOrder, limit, offset, nameLike, rolesLike, emailLike, today, ...request } = config || {}
 			const key = JSON.stringify({ ...request, group })
-			// A new page, term or order of the members already read: no request.
-			if (key === membersKey && (offset !== undefined || search !== undefined || sortKey !== undefined)) {
+			const narrows = [offset, search, sortKey, nameLike, rolesLike, emailLike, today].some((value) => value !== undefined)
+			// A new page, term, order or head filter of the members already read: no request.
+			if (key === membersKey && narrows) {
 				const page = membersPage(readMembers, config)
 				state.rows = page.rows
 				state.total = page.total
@@ -1574,7 +1594,14 @@ function usersSource() {
 
 		searchFields: {
 			group: { param: 'group', single: true },
+			'displayname[like]': { param: 'nameLike', single: true },
+			'roles[like]': { param: 'rolesLike', single: true },
+			'email[like]': { param: 'emailLike', single: true },
+			today: { param: 'today' },
 		},
+
+		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
+		headerFilters: true,
 
 		showAdd: false,
 	}
