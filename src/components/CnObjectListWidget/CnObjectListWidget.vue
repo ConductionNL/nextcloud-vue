@@ -669,14 +669,14 @@ export default {
 		},
 
 		/**
-		 * How the table draws its title column (`content.rowTitle`: link, plain
-		 * or text), link when unset or unknown.
+		 * How the table draws its title column (`content.rowTitle`: link, plain,
+		 * text or strong), link when unset or unknown.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle() {
-			return ['plain', 'text'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
+			return ['plain', 'text', 'strong'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
 		},
 
 		/**

@@ -1,0 +1,4 @@
+- [x] normaliseFileColumns drops a column whose when is not true
+- [x] hostActionApplies refuses an action whose when is not true
+- [x] runHostAction rowProps from the row data
+- [x] Spec tests/components/CnFilesBrowserWhen.spec.js

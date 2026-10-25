@@ -5,7 +5,9 @@ import { useObjectStore } from '../../store/index.js'
 // Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
 // the same two grammars (route-param interpolation + `?key=value` deep links)
 // without pulling in this composable's index-only sidebar/subscription wiring.
+import { loadMyTeam } from '../../utils/myTeam.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 
@@ -392,6 +394,18 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// a reactive getter so a runtime flip attaches/detaches accordingly.
 	// Stores without live-updates support (no `subscribe` action) are a
 	// silent no-op inside the composable, keeping this fully inert.
+	// An address carrying `@myTeam` (a shared link) waits for the team, as a
+	// saved view on it does: once read, the token becomes the team, or goes
+	// for a reader in none.
+	const carriesMyTeam = Object.values(initialActiveFilters || {})
+		.some((value) => value === MY_TEAM_TOKEN || (Array.isArray(value) && value.includes(MY_TEAM_TOKEN)))
+	if (carriesMyTeam) {
+		loadMyTeam().then(() => {
+			list.activeFilters.value = dropOptionalUnresolved(resolveFilterTokens(list.activeFilters.value, tokenCtx()))
+			list.refresh(1)
+		})
+	}
+
 	useObjectSubscription(objectStore, () => objectType.value, null, {
 		enabled: () => props.subscribe !== false,
 	})

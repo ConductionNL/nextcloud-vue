@@ -39,3 +39,26 @@ describe('@myTeam', () => {
 		expect(loader).toHaveBeenCalledTimes(1)
 	})
 })
+
+describe('@myTeam answered as several teams', () => {
+	it('resolves to every team as one IN list', async () => {
+		registerMyTeamSource(() => Promise.resolve(['zuiddrecht-woo-en-informatie', 'zuiddrecht-vergunningen']))
+		await loadMyTeam()
+		expect(resolveFilterTokens({ assignedGroup: '@myTeam' })).toEqual({ assignedGroup: ['zuiddrecht-woo-en-informatie', 'zuiddrecht-vergunningen'] })
+	})
+
+	it('reads one team as a single value and none as no team', async () => {
+		registerMyTeamSource(() => Promise.resolve(['zuiddrecht-woo-en-informatie']))
+		await loadMyTeam()
+		expect(resolveFilterTokens({ assignedGroup: '@myTeam' })).toEqual({ assignedGroup: 'zuiddrecht-woo-en-informatie' })
+		registerMyTeamSource(() => Promise.resolve([]))
+		await loadMyTeam()
+		expect(dropOptionalUnresolved(resolveFilterTokens({ assignedGroup: '@myTeam' }))).toEqual({})
+	})
+
+	it('drops blank entries', async () => {
+		registerMyTeamSource(() => Promise.resolve([' a ', '', null, 'b']))
+		await loadMyTeam()
+		expect(resolveFilterTokens({ g: '@myTeam' })).toEqual({ g: ['a', 'b'] })
+	})
+})

@@ -770,9 +770,10 @@ import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { loadMyTeam } from '../../utils/myTeam.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -4475,7 +4476,13 @@ export default {
 		async _fetchMenuItemCount(item) {
 			try {
 				const { register, schema, filter } = item.count
-				const resolved = resolveFilterTokens(filter && typeof filter === 'object' ? filter : {}, {})
+				const raw = filter && typeof filter === 'object' ? filter : {}
+				// `@myTeam` counts as the list filters: once the team is read,
+				// every team the app answers, and without one no team at all.
+				if (Object.values(raw).some((value) => value === MY_TEAM_TOKEN || (Array.isArray(value) && value.includes(MY_TEAM_TOKEN)))) {
+					await loadMyTeam()
+				}
+				const resolved = dropOptionalUnresolved(resolveFilterTokens(raw, {}))
 				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`)
 				const { data } = await axios.get(url, { params: { _limit: 1, ...resolved } })
 				const total = data?.total
