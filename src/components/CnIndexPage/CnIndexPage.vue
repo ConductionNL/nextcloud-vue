@@ -9979,7 +9979,7 @@ export default {
 			]
 			let counts
 			try {
-				counts = await fetchFilterCounts({ register: this.register, schema, entries, baseFilter: base, ctx })
+				counts = await fetchFilterCounts({ register: this.register, schema, entries, baseFilter: base, ctx, via: 'list' })
 			} catch {
 				counts = {}
 			}
@@ -10036,6 +10036,8 @@ export default {
 				})),
 				baseFilter: resolveFilterMap(this.filter, params, ctx),
 				ctx,
+				// The chips count what the list shows: the list's own request.
+				via: 'list',
 			})
 			if (requestKey !== this.countRequestKey) {
 				return
