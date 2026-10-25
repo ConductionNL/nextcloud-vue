@@ -1467,6 +1467,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-decoration: underline;
 }
 
+/* The working calendar's month reads as the board draws it: the month name
+   first, at the content edge, with the previous and next month buttons after
+   it, and the buttons add no height to the line, so the month sits 20px under
+   the card title (DqInstellingenAlgemeen "Werkdagen en feestdagen": the
+   arrow put the month 30px in and 28px down).
+   @spec openspec/changes/working-calendar-board-head/specs/settings-board-look/spec.md */
+.cn-look-board .cn-working-calendar__title:not(.cn-look-nextcloud *) {
+	order: -1;
+	min-width: 0;
+	margin-inline-end: 4px;
+	line-height: 1.2;
+	text-align: start;
+}
+
+.cn-look-board .cn-working-calendar__head:not(.cn-look-nextcloud *) > .button-vue:not(.cn-working-calendar__add) {
+	margin-block: -8px;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
