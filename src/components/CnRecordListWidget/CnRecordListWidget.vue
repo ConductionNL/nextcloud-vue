@@ -714,6 +714,8 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * On `cards` it draws the small framed card: 12px 14px in, the title
+		 * 15px/700 with the pill at its end (DqInspectie).
 		 * `density: "stacked"` stands the rows 10px apart with no rule and no
 		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
@@ -3381,6 +3383,24 @@ export default {
 	gap: 8px;
 	padding: 16px 18px;
 	text-decoration: none;
+}
+
+/* `density: "compact"` on cards: the boards' small framed rows (DqInspectie
+   "Molenweg 4" and the outbox): 12px 14px in, the title 15px/700 on an
+   18px line with the pill at its end, the meta 6px under it. */
+.cn-record-list--compact .cn-record-list__card {
+	gap: 6px;
+	padding: 12px 14px;
+}
+
+.cn-record-list--compact .cn-record-list__card-head {
+	align-items: flex-start;
+}
+
+.cn-record-list--compact .cn-record-list__card .cn-record-list__title {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-record-list__card--link:hover,
