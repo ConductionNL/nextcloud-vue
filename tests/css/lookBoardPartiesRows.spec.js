@@ -43,4 +43,8 @@ describe('look-board-detail.css: parties rows', () => {
 	it('hides the role headings visually, keeping them for assistive tech', () => {
 		expect(rule(B + ' .cn-object-parties__role-label')).toContain('clip-path: inset(50%)')
 	})
+
+	it('stands the rows 8px under the accepted kinds strip (r29: 12)', () => {
+		expect(rule(B)).toContain('gap: 8px')
+	})
 })
