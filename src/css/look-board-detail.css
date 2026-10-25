@@ -1377,6 +1377,15 @@
 	margin: 0;
 }
 
+/* ---- A sidebar tab standing in a page card --------------------------------- */
+/* The Files, Notes, Tasks... tabs pad themselves 12px for the sidebar. On a
+   detail page the card around them already pads, and the boards draw their
+   toolbar, table and rows flush with the card title (DqZaakDocumenten, DqZaakEmail).
+   @spec openspec/changes/board-sidebar-tab-flush-in-card/specs/board-sidebar-tab-flush-in-card/spec.md#requirement-a-sidebar-tab-in-a-page-card-adds-no-padding-of-its-own */
+.cn-look-board .cn-detail-widget-host .cn-sidebar-tab:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
 /* ---- A file's side card (CnFilesBrowser) --------------------------------- */
 /* The board's side card: radius 12, 20px 22px of padding, the title a 15px
    muted heading at 600, the facts 8px 16px apart with the values at 500
