@@ -12,6 +12,7 @@
 			:modelValue="values"
 			:options="options"
 			:label="t('nextcloud-vue', 'Views in my menu')"
+			:hideLabel="true"
 			:addLabel="t('nextcloud-vue', 'Add view')"
 			:addPlaceholder="t('nextcloud-vue', 'Pick a saved view')"
 			:addHint="t('nextcloud-vue', 'You see your own views, the views shared with you and the default views. A new view goes to the bottom.')"

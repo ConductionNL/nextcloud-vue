@@ -72,6 +72,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 `rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
+- `variant: "outlined"` draws it, in the board look on a dashboard, as an outlined button sized to its label, with the row title in the main ink (DqMijnTeam "Oppakken"). Without it the action keeps the pill.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
 - `endpoint` (with `method`, default POST) makes it a button that calls that app URL for the row, as a `rowActions` endpoint entry does: `@objectId` and the row's `{field}` tokens filled in, the list read again afterwards, a refusal shown in the server's words (else `errorText`). A row whose `labels` entry is an empty string has no action, so DqZaakBesluiten shows "Herinneren" on an open advice request only.
 

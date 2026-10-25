@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -20,9 +20,11 @@
 		<div v-else-if="loading && rows.length === 0" class="cn-record-list__loading">
 			<NcLoadingIcon :size="20" :name="loadingLabel" />
 		</div>
-		<p v-else-if="rows.length === 0" class="cn-record-list__empty" data-testid="cn-record-list-empty">
-			{{ emptyLabel }}
-		</p>
+		<template v-else-if="rows.length === 0">
+			<p v-if="emptyLabel !== ''" class="cn-record-list__empty" data-testid="cn-record-list-empty">
+				{{ emptyLabel }}
+			</p>
+		</template>
 		<!-- notice: the rows as sentences in one toned box ("2 waarschuwingen: ..."). -->
 		<div
 			v-else-if="presentation === 'notice'"
@@ -251,6 +253,7 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
@@ -710,6 +713,8 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * `density: "stacked"` stands the rows 10px apart with no rule and no
+		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -1469,6 +1474,18 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
 		 */
+		/**
+		 * Whether the row action is drawn as an outlined button sized to its
+		 * label (`rowAction.variant: "outlined"`, DqMijnTeam "Oppakken") instead
+		 * of the 150px pill (DcMijnActies "Stem uitbrengen").
+		 *
+		 * @return {boolean} True for the outlined variant.
+		 * @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button
+		 */
+		rowActionOutlined() {
+			return this.content?.rowAction?.variant === 'outlined'
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
@@ -1510,6 +1527,10 @@ export default {
 			}
 			if (this.conditionalEmptyText !== '') {
 				return this.conditionalEmptyText
+			}
+			// `emptyText: ""` says nothing on an empty list.
+			if (this.content?.emptyText === '') {
+				return ''
 			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
@@ -3082,6 +3103,23 @@ export default {
 
 .cn-record-list--compact .cn-record-list__title {
 	font-weight: 500;
+}
+
+/* `density: "stacked"`: the rows stand 10px apart with no rule and no row
+   padding, a short side list (DqDagAfsluiten "Morgen eerst"). */
+.cn-record-list--stacked .cn-record-list__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-record-list--stacked .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
 }
 
 .cn-record-list__meta {

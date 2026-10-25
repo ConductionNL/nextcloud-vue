@@ -78,6 +78,11 @@ export function normaliseFileColumns(columns) {
 		if (!entry || typeof entry !== 'object' || typeof entry.key !== 'string' || entry.key === '') {
 			return
 		}
+		// `when`: the column applies only while it is true (a case type flag).
+		// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+		if ('when' in entry && entry.when !== true) {
+			return
+		}
 		if (isBuiltInFileColumn(entry.key) && entry.source === undefined) {
 			out.push({ ...BUILT_IN_FILE_COLUMNS[entry.key], ...entry, builtIn: true })
 			return
