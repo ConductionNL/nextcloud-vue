@@ -8418,7 +8418,9 @@ export default {
 			return [
 				...this.searchTermChips,
 				...this.quickFilterActiveChips,
-				...this.filterChipsOf(this.effectiveActiveFilters, (key, value) => this.isFixedFilter(key, value) || ownToView(key, value)),
+				// The folder pane's own filter is not a chip: the selected folder
+				// shows in the pane and as the heading above the list (DqAfdelingen).
+				...this.filterChipsOf(this.effectiveActiveFilters, (key, value) => this.isFixedFilter(key, value) || ownToView(key, value) || this.isFolderFilter(key)),
 			]
 		},
 
@@ -9560,6 +9562,18 @@ export default {
 		 * @return {boolean}
 		 * @spec openspec/changes/index-scope-presentation/specs/index-page/spec.md#requirement-the-query-that-chose-a-preset-is-not-a-removable-filter
 		 */
+		/**
+		 * Whether a filter key is the folder pane's (`folderSidebar.filterField`).
+		 *
+		 * @param {string} key The filter key.
+		 * @return {boolean}
+		 * @spec openspec/changes/board-folder-scope-outside-card/specs/index-page/spec.md#requirement-the-selected-folder-heads-the-list-from-outside-its-card
+		 */
+		isFolderFilter(key) {
+			const field = this.folderSidebar && this.folderSidebar.filterField
+			return typeof field === 'string' && field !== '' && key === field
+		},
+
 		isFixedFilter(key, value) {
 			const fixed = this.fixedFilters
 			if (!fixed || !Object.hasOwn(fixed, key)) {
