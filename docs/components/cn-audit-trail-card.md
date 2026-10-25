@@ -45,6 +45,7 @@ Pass pre-translated labels when your app handles i18n:
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
 | `refusedLabel` (`refused-label`) | String | `t('nextcloud-vue', '(refused)')` | Shown on an entry the server refused (`authorized: false`). |
 | `failedLabel` (`failed-label`) | String | `t('nextcloud-vue', 'The history could not be loaded')` | Shown when a `source` or `endpoint` read failed. |
+| `footnote` | String | `''` | A muted line under the trail, inside the card ("Kenmerk ZT-OMV-REG"). |
 
 ## A flow task, or another source
 

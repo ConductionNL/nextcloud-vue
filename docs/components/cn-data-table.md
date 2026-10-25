@@ -69,6 +69,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
 | `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, grow?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `op:"max"` with `field` instead shows the highest `field` among them, one `_limit=1` request sorted descending, through the column's formatter, and `zeroLabel` or `—` when there is none; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure; `aggregate.zeroLabel` names a zero count, translated through `cnTranslate`; `{ endpoint, key, requiresApp? }` reads the values from the host app instead, one GET of `endpoint` with `keys[]` (each visible row's `key` field) answered by `{ available, values: { key: value } }`, a row it does not name counting 0; the column is not drawn while `requiresApp` is not installed or after the endpoint answers `available: false`) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `rowIcon` | String \| Function | `null` | Optional leading icon at the start of every row. A static MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all rows, or `(row) => iconName` to vary it per row. Resolved through the shared `CnIcon` registry. Unset = no icon column. |
+| `rowIconTone` | String | `'primary'` | The tone of the leading icon's tile in the board look: `primary`, `teal` or `neutral` (DqOrganisaties draws a teal tile). |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
 | `includeColumns` | Array | `null` | Whitelist of column keys to show; all others hidden (takes precedence over `excludeColumns`) |
@@ -90,7 +91,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
-| `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board). The row stays clickable. |
+| `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board); `text` draws it as an ordinary 14px cell, weight 400, no underline (a log table such as DqZaakContact's contact moments). The row stays clickable. |
 | `reorderable` | Boolean | `false` | Lets the reader drag rows into another order. A drop emits `row-move`; the host stores the order. |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways. |
@@ -174,6 +175,14 @@ filters, fetches once and writes it into the route query. A reference panel
 searches `/apps/openregister/api/objects/{register}/{schema}`, with the
 register from the column (`widgetProps.register`, `x-external-register`) or
 the `filterRegister` prop.
+
+A page that filters through other fields than the rows' own (a named
+source's search fields) passes them as `filterSchema`; the header filters
+then read that schema instead of `schema`.
+
+The active header filters show as removable chips above the table. A host
+that lists them itself sets `filterChips` to false; `CnIndexPage` does so in
+the board look, where its Active line shows them.
 
 Every sortable header shows a chevron after its label: pale while the
 column is unsorted, dark and pointing in the sort direction once it is

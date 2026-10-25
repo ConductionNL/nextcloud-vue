@@ -155,4 +155,26 @@ describe('CnPartyPicker', () => {
 		expect(notes).toHaveLength(1)
 		expect(notes[0].text()).toBe('Contact could not be searched, so this list may be incomplete.')
 	})
+
+	it('sends a term the source looks up exactly to its lookup as a POST, not as free text', async () => {
+		const sources = [{ ...SOURCES[0], lookup: { url: '/apps/dossiq/api/people/lookup', when: '^[0-9]{9}$' } }]
+		axios.post.mockResolvedValue({ data: { results: [{ id: 'p9', firstName: 'Sanne', lastName: 'de Vries', residence: { street: 'Lindelaan', houseNumber: '14' } }] } })
+		const w = mountPicker({ sources })
+		w.findComponent(SearchSelect).vm.$emit('search', '999990627')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(axios.post).toHaveBeenCalledWith('/nc/apps/dossiq/api/people/lookup', { term: '999990627' })
+		expect(axios.get.mock.calls.find(([url]) => url.endsWith('/brpPerson'))).toBeUndefined()
+		expect(w.findComponent(SearchSelect).props('options').map((o) => o.label)).toEqual(['Sanne de Vries'])
+	})
+
+	it('searches a term the lookup does not match as free text', async () => {
+		const sources = [{ ...SOURCES[0], lookup: { url: '/apps/dossiq/api/people/lookup', when: '^[0-9]{9}$' } }]
+		const w = mountPicker({ sources })
+		w.findComponent(SearchSelect).vm.$emit('search', 'Visser')
+		jest.advanceTimersByTime(300)
+		await flushPromises()
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(axios.get.mock.calls.find(([url]) => url.endsWith('/brpPerson'))).toBeDefined()
+	})
 })

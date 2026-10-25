@@ -5,6 +5,8 @@
 		:class="{
 			'cn-table-container--board': isBoardLook,
 			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
+			'cn-table-container--title-text': isBoardLook && rowTitle === 'text',
+			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -23,7 +25,7 @@
 
 		<!-- Active header filters, one removable chip each. -->
 		<ul
-			v-if="!isLoading && activeColumnFilterChips.length > 0"
+			v-if="filterChips && !isLoading && activeColumnFilterChips.length > 0"
 			class="cn-data-table__filter-chips"
 			:aria-label="activeFiltersLabel"
 			data-testid="cn-table-filter-chips">
@@ -274,7 +276,7 @@
 							<td
 								v-if="rowIcon"
 								class="cn-table-col--icon"
-								:class="pinClass(selectable ? 1 : 0)"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + iconTone]"
 								:style="pinStyle(selectable ? 1 : 0)">
 								<CnIcon :name="getRowIcon(row)" :size="20" />
 							</td>
@@ -345,7 +347,12 @@
 								     falls back to formatValue(). Columns with `aggregate` get a
 								     count of related objects (see cellValue/loadAggregates). The
 								     #column-{key} slot still wins. -->
+									<span
+										v-if="isTextZero(row, col)"
+										class="cn-table-cell__zero"
+										data-testid="cn-cell-zero">{{ cellValue(row, col) }}</span>
 									<CnCellRenderer
+										v-else
 										:value="cellValue(row, col)"
 										:property="columnProperty(col)"
 										:formatter="col.formatter || null"
@@ -644,6 +651,17 @@ export default {
 		},
 
 		/**
+		 * The tone of the leading icon's tile in the board look: `primary`
+		 * (default), `teal` or `neutral` (DqOrganisaties draws a teal tile).
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
+		},
+
+		/**
 		 * State indicators a page declares for its rows. Each entry is
 		 * `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a
 		 * dotted path on the row, the condition is `equals`, `in`, or plain
@@ -848,15 +866,20 @@ export default {
 		 * How the board look draws the title column: `link` (the default) is
 		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
 		 * the 15px bold title without an underline and a 13px muted secondary
-		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
-		 * clickable either way. The Nextcloud look ignores it.
+		 * line, as the PqTickets and OcPublicaties boards draw it; `text` is an
+		 * ordinary cell, for a log table whose first column is a date
+		 * (DqZaakContact); `strong` is the cell's own size at weight 600 in the
+		 * main ink without an underline, the name column of a card's list
+		 * (DqZaaktypeStatussen). The row stays clickable either way. The
+		 * Nextcloud look ignores it.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/**
@@ -1066,6 +1089,30 @@ export default {
 		},
 
 		/**
+		 * The schema the header filters read instead of `schema`: a page that
+		 * filters through other fields than the rows' own (a named source's
+		 * search fields) hands them here. Null: the header filters read `schema`.
+		 *
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		filterSchema: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Draw the active header filters as removable chips above the table.
+		 * A host that lists them itself (the index page's board Active line)
+		 * turns this off, so a filter is not shown twice.
+		 *
+		 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+		 */
+		filterChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * The active filter map, `{ paramKey: values[] }`: the same map the
 		 * facet sidebar writes, so a header filter and a sidebar filter on one
 		 * field show the same state.
@@ -1140,6 +1187,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The leading icon tile's tone, one the board look draws.
+		 *
+		 * @return {string} `primary`, `teal` or `neutral`.
+		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
+		 */
+		iconTone() {
+			return ['primary', 'teal', 'neutral'].includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+		},
+
 		/**
 		 * Whether the table is drawn as the board look's white card.
 		 *
@@ -2172,6 +2229,26 @@ export default {
 		},
 
 		/**
+		 * Whether an aggregate cell shows its `zeroLabel` as muted text instead
+		 * of through the column's widget (`aggregate.zeroAs: "text"`): a count
+		 * of zero, or a max with nothing to read.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/aggregate-zero-as-text/specs/index-page/spec.md#requirement-a-count-column-can-show-its-zero-label-as-text
+		 */
+		isTextZero(row, col) {
+			const aggregate = col && col.aggregate
+			if (!aggregate || aggregate.zeroAs !== 'text' || typeof aggregate.zeroLabel !== 'string' || aggregate.zeroLabel === '') {
+				return false
+			}
+			const cached = this.aggregateValues[String(row[this.rowKey])]
+			const v = cached ? cached[col.key] : undefined
+			return v === 0 || v === '0' || v === null
+		},
+
+		/**
 		 * The row field a column's cell shows: `col.valueField` when set, else
 		 * `col.key`. The key stays what the header sorts and filters on, so a
 		 * column can sort on a stored order and show the word it orders.
@@ -2521,7 +2598,7 @@ export default {
 			if (!this.filterable || !col) {
 				return null
 			}
-			return columnFilterDef(col, this.schema)
+			return columnFilterDef(col, this.filterSchema || this.schema)
 		},
 
 		columnFilterStateFor(col) {

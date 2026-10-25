@@ -84,6 +84,7 @@ With footer slot:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `icon` | Object\|Function | `null` | Optional MDI icon component rendered in the card header |
+| `subtitle` | String | `''` | A muted line under the title, as given (translate before passing). No line when empty. |
 
 | Slot | Description |
 |------|-------------|

@@ -1,0 +1,2 @@
+- [x] emptyText "" draws no empty line (CnRecordListWidget emptyLabel + template)
+- [x] CnRecordListWidgetEmptyNone spec

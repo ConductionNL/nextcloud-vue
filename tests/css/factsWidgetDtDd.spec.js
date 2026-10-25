@@ -37,3 +37,9 @@ describe.each([
 		expect(body).toMatch(/margin:\s*0\s*;/)
 	})
 })
+
+describe('facts widget label column', () => {
+	it('takes the label its own width, not core\'s 130px dt (DqZaak "Prioriteit", r25b: values 44px right of the board)', () => {
+		expect(rule('.cn-facts-widget__label.cn-facts-widget__label')).toMatch(/width:\s*auto/)
+	})
+})

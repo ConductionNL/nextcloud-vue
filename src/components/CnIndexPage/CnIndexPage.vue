@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -172,7 +172,7 @@
 				:maxVisible="quickFilterMaxVisible"
 				:fit="false"
 				:multiple="quickFilterMultiple"
-				:activeIndex="activeQuickFilterIndex"
+				:activeIndex="shownQuickFilterIndex"
 				:selectedIndices="selectedQuickFilterIndices"
 				:counts="effectiveTabCounts"
 				@update:activeIndex="onQuickFilterChange"
@@ -408,8 +408,11 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="tabStripEntries && tabStripEntries.length > 0 && effectiveQuickFilterPlacement !== 'row'" #filters>
+			<template v-if="$slots['toolbar-start'] || quickFilterTabsInToolbar" #filters>
+				<!-- @slot toolbar-start The page's own controls at the start of the toolbar row, before the quick-filter chips (DqAanMijToegewezen: the team's name chips). -->
+				<slot name="toolbar-start" />
 				<CnQuickFilterBar
+					v-if="quickFilterTabsInToolbar"
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
@@ -868,9 +871,11 @@
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
+					:filterChips="!isBoardLook"
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
+					:rowIconTone="rowIconTone"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
@@ -891,6 +896,7 @@
 					:rowTitle="rowTitle"
 					:showUnread="marksUnreadRows"
 					:filterable="tableHeaderFilters"
+					:filterSchema="headerFilterSchema"
 					:activeFilters="tableActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
@@ -921,7 +927,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								:actions="rowActionsFor(row)"
+								:actions="rowMenuActionsFor(row)"
 								:row="row"
 								:rowLabel="rowTitleFor(row)"
 								@action="onRowAction" />
@@ -1029,6 +1035,7 @@
 						</ol>
 						<div v-if="mapList.missing.length > 0" class="cn-index-page__map-missing" data-testid="cn-index-map-missing">
 							<strong>{{ mapMissingTitle }}</strong>
+							<span v-if="mapMissingNote" class="cn-index-page__map-missing-note" data-testid="cn-index-map-missing-note">{{ mapMissingNote }}</span>
 							<NcButton variant="tertiary-no-background" data-testid="cn-index-map-missing-table" @click="onViewModeChange('table')">
 								{{ mapMissingLink }}
 							</NcButton>
@@ -1168,7 +1175,7 @@
 					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="rowActionsFor(object)"
+								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								@action="onRowAction" />
@@ -1220,7 +1227,7 @@
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="rowActionsFor(object)"
+								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
@@ -1232,7 +1239,7 @@
 				<!-- Right-click context menu (positioned at cursor via CSS). Same per-row list as the row actions menu, so the two never drift. -->
 				<CnContextMenu
 					v-model:open="contextMenuOpen"
-					:actions="rowActionsFor(contextMenuShownRow)"
+					:actions="rowMenuActionsFor(contextMenuShownRow)"
 					:targetItem="contextMenuShownRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
@@ -1454,6 +1461,7 @@ import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
@@ -1530,7 +1538,7 @@ import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './pe
 import { rowsToCsv } from './rowsToCsv.js'
 import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
-import { useNamedSource } from './useNamedSource.js'
+import { declaredSearchFields, useNamedSource } from './useNamedSource.js'
 import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
 
 /** Rows fetched for one month in calendar mode. */
@@ -1715,6 +1723,56 @@ function namedFilterToQuery(values) {
 		.map((entry) => ((entry && typeof entry === 'object' && 'id' in entry) ? entry.id : entry))
 		.filter((entry) => entry !== undefined && entry !== null && String(entry) !== '')
 	return list.join(',')
+}
+
+/**
+ * Active filters with each `{ from, to }` window spelled as the header range
+ * keys `<key>[gte]` and `<key>[lte]`.
+ *
+ * @param {object} filters The active filters.
+ * @return {object} The filters as a header filter reads them.
+ * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+ */
+function rangesAsBounds(filters) {
+	const out = {}
+	for (const [key, value] of Object.entries(filters || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value) && ('from' in value || 'to' in value)) {
+			if (value.from) {
+				out[`${key}[gte]`] = value.from
+			}
+			if (value.to) {
+				out[`${key}[lte]`] = value.to
+			}
+		} else {
+			out[key] = value
+		}
+	}
+	return out
+}
+
+/**
+ * Header filter params with each `<key>[gte]` / `<key>[lte]` pair folded into
+ * one `{ from, to }` window (an empty list clears the window, `[]` for others).
+ *
+ * @param {object} params The header filter's params, `{ key: values[] }`.
+ * @return {object} `{ key: values[] | { from, to } }`.
+ * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+ */
+function boundsAsRanges(params) {
+	const out = {}
+	for (const [key, values] of Object.entries(params || {})) {
+		const list = Array.isArray(values) ? values : []
+		const bound = key.match(/^(.+)\[(gte|lte)\]$/)
+		if (!bound) {
+			out[key] = list
+			continue
+		}
+		const window = (out[bound[1]] && typeof out[bound[1]] === 'object' && !Array.isArray(out[bound[1]])) ? out[bound[1]] : { from: '', to: '' }
+		const value = list.length > 0 ? String(list[0]).slice(0, 10) : ''
+		window[bound[2] === 'gte' ? 'from' : 'to'] = value
+		out[bound[1]] = window
+	}
+	return out
 }
 
 /**
@@ -2184,6 +2242,21 @@ export default {
 		},
 
 		/**
+		 * Board look: the count line while a saved view is applied (manifest
+		 * `config.savedViewCountText`), a template as `countText` that may name
+		 * the view's conditions as `{view}`: its description, else its filters
+		 * in words (DqFilterInMenu "3 van 48 lopende zaken · termijn binnen 7
+		 * dagen, van mij · gesorteerd op termijn"). A view's own `countText`
+		 * override and a scope's come first.
+		 *
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		savedViewCountText: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Board look: a count line per view (manifest `config.countTextByView`),
 		 * `{ table?, cards?, list?, board?, map? }`, each a template as
 		 * `countText`: the board view says "bordweergave per status" where the
@@ -2540,19 +2613,22 @@ export default {
 		 * buttons leave, and those that do not fit move into the overflow chip.
 		 * `'row'` puts them on a row of their own above the toolbar, wrapping
 		 * onto more lines instead of folding into the overflow chip.
+		 * `'active'` draws no tabs: a chosen tab with an `activeLabel` shows
+		 * only on the Active line, where it can be removed
+		 * (DqAanMijToegewezen).
 		 *
-		 * @type {''|'toolbar'|'row'}
+		 * @type {''|'toolbar'|'row'|'active'}
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar', 'row'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row', 'active'].includes(v),
 		},
 
 		/**
 		 * The quick-filter placement per view mode (manifest
 		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
-		 * each `''`, `'toolbar'` or `'row'`. A view it does not name keeps
+		 * each `''`, `'toolbar'`, `'row'` or `'active'`. A view it does not name keeps
 		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
 		 * its board and map views, on their own row in its table view).
 		 *
@@ -3108,6 +3184,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The leading icon's tile tone in the board look (`primary`, `teal`,
+		 * `neutral`), from `pages[].config.rowIconTone`. Forwarded to CnDataTable.
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/** Columns to exclude in schema mode */
@@ -4520,6 +4607,8 @@ export default {
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
 			appliedSavedViewId: '',
+			/** Whether the reader picked a lens chip after the applied view (then their chip shows). */
+			lensChosenByHand: false,
 			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
 			viewSortOption: '',
 			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
@@ -4593,6 +4682,8 @@ export default {
 			savedViews: [],
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
+			/** Whether the reader changed the view since it was opened or saved. */
+			viewChanged: false,
 			viewPendingDelete: null,
 			/** An `api-call` header action waiting on its confirmation, or null. */
 			headerApiCallPending: null,
@@ -4630,12 +4721,24 @@ export default {
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
 		 *
 		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
-		 * @return {''|'toolbar'|'row'} The placement.
+		 * @return {''|'toolbar'|'row'|'active'} The placement.
 		 */
 		effectiveQuickFilterPlacement() {
 			const byView = this.quickFilterPlacementByView
 			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
-			return ['', 'toolbar', 'row'].includes(own) ? own : this.quickFilterPlacement
+			return ['', 'toolbar', 'row', 'active'].includes(own) ? own : this.quickFilterPlacement
+		},
+
+		/**
+		 * Whether the quick-filter tabs are drawn in the toolbar row: there are
+		 * tabs, and the placement is neither a row of their own nor the Active
+		 * line only.
+		 *
+		 * @spec openspec/changes/index-toolbar-start-and-active-only-quick-filters/specs/index-page/spec.md#requirement-quick-filters-can-show-only-on-the-active-line
+		 * @return {boolean} True when the toolbar draws the tabs.
+		 */
+		quickFilterTabsInToolbar() {
+			return Boolean(this.tabStripEntries && this.tabStripEntries.length > 0) && !['row', 'active'].includes(this.effectiveQuickFilterPlacement)
 		},
 
 		/**
@@ -6331,6 +6434,7 @@ export default {
 				r: this.register,
 				s: this.exportSchemaSlug,
 				f: this.filter || null,
+				a: this.effectiveActiveFilters || null,
 				e: this.countEntries,
 				// The store's total, not the error override in effectivePagination,
 				// so a failed fetch and its recovery do not refetch the counts.
@@ -6347,13 +6451,53 @@ export default {
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
 		/**
-		 * The chip the strip lights: the active tab, else the default tab of
-		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
-		 * one the fetch applies.
+		 * The lens chip an applied saved view narrows within: the non-default
+		 * tab whose every condition the view's own conditions (its filters
+		 * over its locked filters, tokens as written) hold, the most specific
+		 * first (DqFilterInMenu: "Termijn deze week" lit for the view of that
+		 * name). Null without an applied view or a fitting tab.
+		 *
+		 * @return {number|null} The tab index.
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewLensIndex() {
+			const view = this.appliedSavedView
+			const tabs = Array.isArray(this.tabStripEntries) ? this.tabStripEntries : []
+			if (!view || tabs.length === 0) {
+				return null
+			}
+			const query = view.query && typeof view.query === 'object' ? view.query : {}
+			const locked = query.overrides && typeof query.overrides.lockedFilters === 'object' ? query.overrides.lockedFilters : {}
+			const conditions = { ...(locked || {}), ...(query.filters || view.filters || {}) }
+			const same = (a, b) => JSON.stringify(Array.isArray(a) ? a.map(String) : String(a)) === JSON.stringify(Array.isArray(b) ? b.map(String) : String(b))
+			let best = null
+			let bestSize = 0
+			tabs.forEach((tab, index) => {
+				const filter = tab && tab.filter && typeof tab.filter === 'object' ? tab.filter : {}
+				const keys = Object.keys(filter)
+				if (tab.default === true || keys.length === 0 || keys.length <= bestSize) {
+					return
+				}
+				if (keys.every((key) => Object.hasOwn(conditions, key) && same(conditions[key], filter[key]))) {
+					best = index
+					bestSize = keys.length
+				}
+			})
+			return best
+		},
+
+		/**
+		 * The chip the strip lights: the lens an applied saved view narrows
+		 * within (until the reader picks a chip), else the active tab, else
+		 * the default tab of tabs that arrived after setup
+		 * (`quickFiltersFrom`), which is the one the fetch applies.
 		 *
 		 * @return {number|null} The tab index, or null without tabs.
 		 */
 		shownQuickFilterIndex() {
+			if (!this.quickFilterMultiple && !this.lensChosenByHand && this.appliedViewLensIndex !== null) {
+				return this.appliedViewLensIndex
+			}
 			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
 				return this.activeQuickFilterIndex
 			}
@@ -6672,7 +6816,47 @@ export default {
 			if (this.followColumnOn && this.favouriteSchemaSlug !== '') {
 				cols = [{ key: FOLLOW_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
 			}
+			// Filtering through search fields: a column with no field behind it
+			// draws no funnel, because nothing could answer it.
+			const filterFields = this.headerFilterSchema && this.headerFilterSchema.properties
+			if (filterFields) {
+				cols = cols.map((col) => {
+					if (!col || typeof col !== 'object') {
+						return col
+					}
+					const field = typeof col.filterField === 'string' && col.filterField !== '' ? col.filterField : col.key
+					return Object.hasOwn(filterFields, field) ? col : { ...col, filterable: false }
+				})
+			}
 			return cols
+		},
+
+		/**
+		 * The schema the column header filters read on a named source that
+		 * filters through its search fields (`headerFilters: "searchFields"`):
+		 * the sidebar fields the source declares as search fields, a reference
+		 * field pointed at its `optionsSource`. Null otherwise.
+		 *
+		 * @return {{properties: object}|null}
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		headerFilterSchema() {
+			if (!this.isNamedSource || !this.namedSource || this.namedSource.headerFilters !== 'searchFields') {
+				return null
+			}
+			const sidebarFields = (this.resolvedSidebar && this.resolvedSidebar.fields) || {}
+			const declared = declaredSearchFields(this.namedSource, this.sourceConfig && this.sourceConfig.searchFields) || {}
+			const properties = {}
+			for (const [key, field] of Object.entries(sidebarFields)) {
+				if (!field || typeof field !== 'object' || !Object.hasOwn(declared, key)) {
+					continue
+				}
+				const options = field.optionsSource
+				properties[key] = (field.inputControl === 'reference' && options && typeof options.schema === 'string')
+					? { ...field, $ref: options.schema, 'x-external-register': options.register || '' }
+					: field
+			}
+			return { properties }
 		},
 
 		/**
@@ -7107,6 +7291,31 @@ export default {
 			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
 		},
 
+		/**
+		 * The sentence on that card naming the rows without a place by the
+		 * list's title template, three at most and the rest counted: "A, B and
+		 * C have no location, so they are not on the map." Empty without a
+		 * title template.
+		 *
+		 * @spec openspec/changes/map-missing-card-names-the-cases/specs/map-missing-card-names-the-cases/spec.md#requirement-the-missing-address-card-names-the-cases-it-counts
+		 * @return {string} The sentence.
+		 */
+		mapMissingNote() {
+			const list = this.mapConfig && this.mapConfig.list
+			const template = list && typeof list.title === 'string' ? this.cnTranslate(list.title) : ''
+			const missing = this.mapList.missing
+			if (template === '' || missing.length === 0) {
+				return ''
+			}
+			const shown = missing.slice(0, 3).map((row) => fillTemplate(template, row, undefined, this.cnFormatters ? { formatters: this.cnFormatters } : null)).filter((title) => title !== '')
+			if (shown.length === 0) {
+				return ''
+			}
+			const rest = missing.length - shown.length
+			const names = listText(rest > 0 ? [...shown, n('nextcloud-vue', '%n other', '%n others', rest)] : shown, getCanonicalLocale() || undefined)
+			return n('nextcloud-vue', '{names} has no location, so it is not on the map.', '{names} have no location, so they are not on the map.', missing.length, { names })
+		},
+
 		/** @return {string} The link from that card to the table. */
 		mapMissingLink() {
 			return t('nextcloud-vue', 'Show them in the table')
@@ -7324,8 +7533,10 @@ export default {
 			if (!this.headerFilters) {
 				return false
 			}
-			// A named source that narrows its own rows asks for the buttons.
-			if (this.isNamedSource && this.namedSource && this.namedSource.headerFilters === true) {
+			// A named source that narrows its own rows asks for the buttons, and
+			// one that filters through its search fields gets them where a field
+			// stands behind the column.
+			if (this.isNamedSource && this.namedSource && (this.namedSource.headerFilters === true || Boolean(this.headerFilterSchema))) {
 				return true
 			}
 			if (this.effectiveSchema || this.isSelfFetchMode) {
@@ -7905,7 +8116,26 @@ export default {
 		},
 
 		hasRowActions() {
-			return this.$slots['row-actions'] || this.mergedActions.length > 0
+			const refs = this.columnActionRefs
+			return this.$slots['row-actions'] || this.mergedActions.some((action) => action && !refs.has(String(action.id || action.label)) && !refs.has(String(action.label)))
+		},
+
+		/**
+		 * The row actions an `actions` column already shows as buttons, by the
+		 * ids (or labels) its `widgetProps.actions` names. The row menu leaves
+		 * them out, so a row does not offer the same action twice (DqPostvak).
+		 *
+		 * @return {Set<string>}
+		 * @spec openspec/changes/column-actions-leave-the-row-menu/specs/column-actions-leave-the-row-menu/spec.md
+		 */
+		columnActionRefs() {
+			const refs = new Set()
+			for (const col of Array.isArray(this.columns) ? this.columns : []) {
+				if (col && typeof col === 'object' && col.widget === 'actions' && Array.isArray(col.widgetProps?.actions)) {
+					col.widgetProps.actions.forEach((ref) => refs.add(String(ref)))
+				}
+			}
+			return refs
 		},
 
 		/**
@@ -8249,7 +8479,11 @@ export default {
 		 * @return {object} The filters.
 		 */
 		tableActiveFilters() {
-			const filters = this.effectiveActiveFilters || {}
+			let filters = this.effectiveActiveFilters || {}
+			// A window held as one `{ from, to }` value reads as the header's range.
+			if (this.headerFilterSchema) {
+				filters = rangesAsBounds(filters)
+			}
 			const key = this.folderFilterKey
 			if (!key || this.selectedFolderId === null || this.selectedFolderId === undefined || !Object.hasOwn(filters, key)) {
 				return filters
@@ -8487,12 +8721,20 @@ export default {
 
 		/**
 		 * Whether the toolbar draws Save view: not when the page switches it
-		 * off (`savedViewSave: false`) or its header carries one.
+		 * off (`savedViewSave: false`) or its header carries one, and in the
+		 * board look only once the view has changed.
 		 *
+		 * @spec openspec/changes/board-save-view-only-when-changed/specs/saved-views/spec.md#requirement-the-board-look-offers-save-view-once-the-view-has-changed
 		 * @return {boolean}
 		 */
 		toolbarSavesView() {
-			return this.savedViewSave !== false && !this.headerSavesView
+			if (this.savedViewSave === false || this.headerSavesView) {
+				return false
+			}
+			// The board look offers it once the view differs from the one
+			// opened: changed by the reader, or, with no saved view open,
+			// filtered by the address.
+			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
 		},
 
 		/**
@@ -8653,6 +8895,11 @@ export default {
 		 * @return {string}
 		 */
 		presentedCountText() {
+			const viewLine = this.savedViewCountText
+			const view = this.appliedSavedView
+			if (view && typeof viewLine === 'string' && viewLine !== '' && this.activeScopePresentation.countText === undefined && !savedViewOverrides(view)?.countText) {
+				return viewLine
+			}
 			if (this.activeScopePresentation.countText === undefined) {
 				const byView = this.countTextByView
 				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
@@ -8661,6 +8908,23 @@ export default {
 				}
 			}
 			return this.presented('countText')
+		},
+
+		/**
+		 * The applied saved view's conditions for the count line's `{view}`:
+		 * its description, else its filters in words, starting lower case.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewConditionsText() {
+			const view = this.appliedSavedView
+			if (!view) {
+				return ''
+			}
+			const own = typeof view.description === 'string' ? view.description.trim() : ''
+			const text = own !== '' ? own : String(this.viewFilterSummary(view) || '')
+			return text.charAt(0).toLowerCase() + text.slice(1)
 		},
 
 		headerDescriptionBase() {
@@ -8686,6 +8950,7 @@ export default {
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
+						.replace(/\{view\}/g, this.appliedViewConditionsText)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -8752,6 +9017,17 @@ export default {
 		},
 
 		/**
+		 * Whether the page's side panel is open now; the board look then lays
+		 * the header out narrower (DqZakenSorteren).
+		 *
+		 * @spec openspec/changes/board-header-buttons-under-title-beside-side-panel/specs/board-header-buttons-under-title-beside-side-panel/spec.md#requirement-the-header-buttons-sit-under-the-title-while-the-side-panel-is-open
+		 * @return {boolean}
+		 */
+		sidebarPanelOpen() {
+			return Boolean(this.sidebarOpen && this.hasSidebar)
+		},
+
+		/**
 		 * Whether the board toolbar draws the Filter button as a menu: the
 		 * board look, `filterMenu` on, something to filter by, and no filter
 		 * sidebar (whose toggle is that button otherwise).
@@ -8793,7 +9069,9 @@ export default {
 
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
-			return (this.sidebar && this.sidebar.search) || {}
+			// The page's own search hint, unless `sidebar.search` names one.
+			const own = this.shownSearchPlaceholder ? { searchPlaceholder: this.shownSearchPlaceholder } : {}
+			return { ...own, ...((this.sidebar && this.sidebar.search) || {}) }
 		},
 
 		/**
@@ -9747,7 +10025,15 @@ export default {
 			const counts = await fetchFilterCounts({
 				register: this.register,
 				schema,
-				entries: this.countEntries.map((entry) => ({ key: entry.key, filter: resolveFilterMap(entry.filter, params, ctx) })),
+				// A quick filter counts within the list as filtered (the
+				// active filters, its own field its own); a saved view counts
+				// its own query.
+				entries: this.countEntries.map((entry) => ({
+					key: entry.key,
+					filter: entry.key.startsWith('tab:')
+						? { ...(this.effectiveActiveFilters || {}), ...resolveFilterMap(entry.filter, params, ctx) }
+						: resolveFilterMap(entry.filter, params, ctx),
+				})),
 				baseFilter: resolveFilterMap(this.filter, params, ctx),
 				ctx,
 			})
@@ -10594,6 +10880,7 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
+			this.viewChanged = true
 			if (this.namedSourceSearches) {
 				this.namedSearchTerm = value || ''
 			}
@@ -10613,9 +10900,11 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterChange(index) {
+			this.viewChanged = true
 			// `activeQuickFilterIndex` is a setup-returned ref; the
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
+			this.lensChosenByHand = true
 			this.$emit('quick-filter-change', index)
 		},
 
@@ -10628,6 +10917,7 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterMultiChange(indices) {
+			this.viewChanged = true
 			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
 			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
@@ -10643,6 +10933,7 @@ export default {
 		 * @return {void}
 		 */
 		onSidebarSortChange(keys, value) {
+			this.viewChanged = true
 			if (value !== undefined && this.selectSortOption(value)) {
 				return
 			}
@@ -10722,6 +11013,7 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
+			this.viewChanged = true
 			// An order by keys (a column header, a field in the Sort section)
 			// leaves an endpoint-ranked order.
 			if (this.sortSource.value) {
@@ -10748,7 +11040,8 @@ export default {
 		/**
 		 * A view's state as the edit dialog shows it under a criteria choice:
 		 * its filters, search term and sort in sentences, read against the
-		 * page schema's titles.
+		 * page schema's titles and the page's `filterLabels` (a `hidden`
+		 * filter is left out).
 		 *
 		 * @param {object} state A view state (`extractViewState` or `currentViewState`).
 		 * @return {string} The sentences.
@@ -10758,6 +11051,7 @@ export default {
 			const schema = this.effectiveSchema
 			return viewCriteriaSummary(state, {
 				properties: (schema && schema.properties) || {},
+				filterLabels: this.filterLabels || {},
 				translate: (text) => this.cnTranslate(text),
 			})
 		},
@@ -10923,6 +11217,7 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			this.viewChanged = true
 			// "Clear all" on the Active line also undoes the quick filters it
 			// listed (a tab without an `activeLabel` is not a filter there).
 			for (const chip of this.quickFilterActiveChips) {
@@ -11031,6 +11326,7 @@ export default {
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
 		 */
 		onBoardColumnFieldChange(field) {
+			this.viewChanged = true
 			this.boardColumnFieldChoice = field
 			/**
 			 * @event board-column-field-change The board's column switch picked another field. Payload: the field name.
@@ -11046,6 +11342,7 @@ export default {
 		 * @return {void}
 		 */
 		onBoardNarrowChange(value) {
+			this.viewChanged = true
 			this.onFilterEvent({ key: this.boardNarrow.field, values: value === '' ? [] : [value] })
 		},
 
@@ -11108,6 +11405,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -11130,6 +11428,7 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			this.viewChanged = true
 			if (chip && chip.searchTerm === true) {
 				this.onSearchEvent('')
 				return
@@ -11382,10 +11681,16 @@ export default {
 			const bucket = facet && Array.isArray(facet.values)
 				? facet.values.find((fv) => fv && typeof fv === 'object' && String(fv.value) === id)
 				: null
-			if (bucket && typeof bucket.label === 'string' && bucket.label !== '') {
+			// A facet that only echoes the value names nothing; a group or an
+			// option below may.
+			if (bucket && typeof bucket.label === 'string' && bucket.label !== '' && bucket.label !== id) {
 				return this.cnTranslate(bucket.label)
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
+			// The reader on a user filter is "me" (DqFilterInMenu "Behandelaar: ik").
+			if (prop && prop.referenceType === 'nextcloud-user' && id === (getCurrentUser()?.uid ?? '')) {
+				return t('nextcloud-vue', 'me')
+			}
 			if (prop && prop.referenceType === 'nextcloud-group') {
 				const name = groupDisplayName(id)
 				if (name === null) {
@@ -11423,6 +11728,14 @@ export default {
 		 */
 		onColumnFilterEvent(payload) {
 			const params = (payload && payload.params) || {}
+			if (this.headerFilterSchema) {
+				// The header's range is the sidebar's window: one `{ from, to }` value.
+				for (const [key, value] of Object.entries(boundsAsRanges(params))) {
+					this.setNamedFilter(key, value)
+					this.$emit('filter-change', { key, values: value })
+				}
+				return
+			}
 			const entries = Object.entries(params).map(([key, values]) => [key, Array.isArray(values) ? values : []])
 			if (this.isSelfFetchMode) {
 				const next = { ...this.list.activeFilters.value }
@@ -11736,6 +12049,22 @@ export default {
 				availableRowActions(this.mergedActions, row, this.rowActionField),
 				this.rowOpensDetailFor(row),
 			)
+		},
+
+		/**
+		 * The row menu's actions: the row's actions less those an `actions`
+		 * column already shows as buttons.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/column-actions-leave-the-row-menu/specs/column-actions-leave-the-row-menu/spec.md
+		 */
+		rowMenuActionsFor(row) {
+			const refs = this.columnActionRefs
+			if (refs.size === 0) {
+				return this.rowActionsFor(row)
+			}
+			return this.rowActionsFor(row).filter((action) => !refs.has(String(action.id || action.label)) && !refs.has(String(action.label)))
 		},
 
 		/**
@@ -12068,6 +12397,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsEvent(columns) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && this.list.visibleColumns) {
 				this.list.visibleColumns.value = columns
 			}
@@ -12115,6 +12445,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsReorder(columns) {
+			this.viewChanged = true
 			this.onColumnsEvent(columns)
 		},
 
@@ -12125,6 +12456,7 @@ export default {
 		 * @return {void}
 		 */
 		onPinChange(count) {
+			this.viewChanged = true
 			if (!this.personalColumns || Array.isArray(this.appliedViewColumns)) {
 				return
 			}
@@ -13019,6 +13351,7 @@ export default {
 		 */
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
+			this.lensChosenByHand = false
 			const state = extractViewState(view)
 			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
 			// and an optional one that answers nothing (no team) is dropped. A
@@ -13027,6 +13360,10 @@ export default {
 				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
 				return
 			}
+			// An opened view is unchanged until the reader changes it.
+			this.$nextTick(() => {
+				this.viewChanged = false
+			})
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
@@ -13152,6 +13489,7 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.viewChanged = false
 				this.sidebarActiveTab = 'filters-tab'
 				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))

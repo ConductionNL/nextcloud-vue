@@ -1,0 +1,2 @@
+- [x] look-board.css section chart inset
+- [x] tests/css/lookBoardSectionsChartInset.spec.js

@@ -6,9 +6,11 @@
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -19,6 +21,7 @@ import { fillTemplate } from '../utils/fillTemplate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
+import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
 import { useFlowStore } from './useFlowStore.js'
 import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
@@ -699,12 +702,15 @@ function tasksSource() {
 		 *
 		 * @param {string} key The column key.
 		 * @param {string} order `asc` or `desc`.
-		 * @return {{sort: string}|null} The parameter, or null for a column the inbox cannot sort by.
+		 * Open tasks come before finished ones (`openFirst`), each in that order.
+		 *
+		 * @return {{sort: string, openFirst: boolean}|null} The parameters, or null for a column the inbox cannot sort by.
 		 * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+		 * @spec openspec/changes/tasks-source-open-first/specs/index-sources/spec.md#requirement-a-sorted-task-list-puts-open-tasks-first
 		 */
 		sortParam: (key, order) => {
 			const field = TASK_SORT_FIELDS[key]
-			return field ? { sort: (order === 'desc' ? '-' : '') + field } : null
+			return field ? { sort: (order === 'desc' ? '-' : '') + field, openFirst: true } : null
 		},
 
 		// The scope tabs. Each tab's filter is merged over the page's
@@ -770,6 +776,10 @@ function tasksSource() {
 			kind: { param: 'kind', single: true },
 			dueAt: { range: ['dueAfter', 'dueBefore'] },
 		},
+
+		// The column headers filter through these same search fields: a column
+		// with a field behind it gets a funnel, the others none.
+		headerFilters: 'searchFields',
 
 		// A task is created by a flow, never by a person clicking Add. Without
 		// this the index falls back to its OpenRegister form dialog, which
@@ -1084,7 +1094,7 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, linkedUser?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
@@ -1098,6 +1108,10 @@ function fillRowTemplate(template, row) {
  * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
  * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
+ * result, else `subtitleField`.
+ * `linkedUser: true` reads that value as a user id and shows the user's
+ * display name. `sourceConfig.columnWidths` sets a width per column key.
  * The page's title and count line can name the term as `{term}`, and the
  * count is the active kind's total. Kind, link and status are filterable.
  *
@@ -1107,6 +1121,23 @@ function fillRowTemplate(template, row) {
  * @return {object} The source adapter.
  * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
  */
+/**
+ * Columns with the widths a page names per column key
+ * (`sourceConfig.columnWidths`, `{ title: '250px' }`); a column it does not
+ * name keeps none.
+ *
+ * @param {Array<object>} columns The columns.
+ * @param {object|undefined} widths The widths by key.
+ * @return {Array<object>} The columns.
+ * @spec openspec/changes/search-linked-user-and-widths/specs/search-linked-user-and-widths/spec.md
+ */
+function withColumnWidths(columns, widths) {
+	if (!widths || typeof widths !== 'object') {
+		return columns
+	}
+	return columns.map((col) => (typeof widths[col.key] === 'string' && widths[col.key] !== '' ? { ...col, width: widths[col.key] } : col))
+}
+
 function searchSource(config = {}, context = {}) {
 	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
@@ -1195,12 +1226,27 @@ function searchSource(config = {}, context = {}) {
 		return ''
 	}
 
+	const subtitleOf = (kind, object) => {
+		if (kind.subtitleTemplate) {
+			return fillTemplate(translate(kind.subtitleTemplate), object)
+		}
+		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
+	}
+
+	// `linkedUser`: the Linked cell holds a user id; name the user instead.
+	const linkedUserNames = async (kind, objects) => {
+		const ids = [...new Set(objects.map((object) => linkedOf(kind, object)).filter((id) => id !== ''))]
+		const options = await Promise.all(ids.map((id) => resolveNextcloudUser(id).catch(() => null)))
+		return new Map(ids.map((id, index) => [id, (options[index] && options[index].label) || id]))
+	}
+
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
 		const body = (res && res.data) || {}
 		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
 		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
+		const userNames = kind.linkedUser === true ? await linkedUserNames(kind, results) : null
 		return {
 			total: typeof body.total === 'number' ? body.total : results.length,
 			rows: results.map((object) => {
@@ -1215,9 +1261,9 @@ function searchSource(config = {}, context = {}) {
 					kindLabel: kind.label,
 					kindText: kindTextOf(kind, object),
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
-					subtitle: kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : '',
+					subtitle: subtitleOf(kind, object),
 					status,
-					linked: linkedOf(kind, object),
+					linked: userNames ? (userNames.get(linkedOf(kind, object)) || linkedOf(kind, object)) : linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
 					object,
 				}
@@ -1325,7 +1371,7 @@ function searchSource(config = {}, context = {}) {
 		 */
 		loading: () => state.loading,
 
-		columns: [
+		columns: withColumnWidths([
 			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
 			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
 			// DqZoekresultaten), instead of the plural kind as a pill.
@@ -1340,7 +1386,7 @@ function searchSource(config = {}, context = {}) {
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
 				sortable: true,
 			},
-		],
+		], config && config.columnWidths),
 
 		/**
 		 * Every column header carries a filter button (DqZoekresultaten); the
@@ -1398,6 +1444,42 @@ function searchSource(config = {}, context = {}) {
 }
 
 /**
+ * The members that match a search, in the asked order, and the page of them
+ * the pager asks for.
+ *
+ * @param {Array<object>} members The members, by name.
+ * @param {object} config `search`, `nameLike`, `rolesLike`, `emailLike`, `today`, `sortKey`, `sortOrder`, `limit`, `offset`.
+ * @return {{rows: Array<object>, total: number}} The page and how many match.
+ */
+function membersPage(members, config = {}) {
+	const has = (member, fields, text) => fields.some((field) => String(member[field] || '').toLowerCase().includes(text))
+	const term = String(config.search || '').trim().toLowerCase()
+	let rows = term === '' ? members.slice() : members.filter((member) => has(member, ['displayname', 'function', 'roles', 'email'], term))
+	// The table heads' filters: text contains, and the Today values picked.
+	for (const [param, fields] of [['nameLike', ['displayname', 'function']], ['rolesLike', ['roles']], ['emailLike', ['email']]]) {
+		const text = String(config[param] || '').trim().toLowerCase()
+		if (text !== '') {
+			rows = rows.filter((member) => has(member, fields, text))
+		}
+	}
+	const today = (Array.isArray(config.today) ? config.today : (config.today ? [config.today] : [])).map(String)
+	if (today.length > 0) {
+		rows = rows.filter((member) => today.includes(member.today))
+	}
+	if (config.sortKey) {
+		const sign = config.sortOrder === 'desc' ? -1 : 1
+		rows = rows.sort((a, b) => sign * String(a[config.sortKey] ?? '').localeCompare(String(b[config.sortKey] ?? '')))
+	}
+	const total = rows.length
+	const limit = Number(config.limit) || 0
+	if (limit > 0) {
+		const offset = Number(config.offset) || 0
+		rows = rows.slice(offset, offset + limit)
+	}
+	return { rows, total }
+}
+
+/**
  * The users source: the members of a Nextcloud group, with their function,
  * roles, e-mail and whether they are in today (`entitySource: "users"`,
  * DqAfdelingen). Pair it with `folderSidebar: { source: 'groups',
@@ -1413,12 +1495,20 @@ function searchSource(config = {}, context = {}) {
  * Listing a group needs an admin or the group's sub-admin; a refused request
  * leaves the list empty.
  *
+ * The page gets a pager (`pages`), and the search term and the header's order
+ * come as `search` and `sortKey` / `sortOrder`: the group's members are read
+ * once and searched, sorted and paged here, so a new page, term or order does
+ * not read every member's presence again.
+ *
  * @return {object} The source adapter.
  * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
  */
 function usersSource() {
-	const state = reactive({ rows: [], loading: false })
+	const state = reactive({ rows: [], loading: false, total: 0 })
 	let seq = 0
+	// The members last read, for the group and request they were read for.
+	let readMembers = []
+	let membersKey = null
 	const presenceLabels = {
 		present: t('nextcloud-vue', 'Present'),
 		away: t('nextcloud-vue', 'Away'),
@@ -1437,6 +1527,16 @@ function usersSource() {
 		 */
 		load: async (config) => {
 			const group = String((config && (config.group || config.defaultGroup)) || '')
+			const { search, sortKey, sortOrder, limit, offset, nameLike, rolesLike, emailLike, today, ...request } = config || {}
+			const key = JSON.stringify({ ...request, group })
+			const narrows = [offset, search, sortKey, nameLike, rolesLike, emailLike, today].some((value) => value !== undefined)
+			// A new page, term, order or head filter of the members already read: no request.
+			if (key === membersKey && narrows) {
+				const page = membersPage(readMembers, config)
+				state.rows = page.rows
+				state.total = page.total
+				return
+			}
 			const mine = ++seq
 			state.loading = true
 			try {
@@ -1471,11 +1571,18 @@ function usersSource() {
 					}
 				}))
 				if (mine === seq) {
-					state.rows = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+					readMembers = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+					membersKey = key
+					const page = membersPage(readMembers, config)
+					state.rows = page.rows
+					state.total = page.total
 				}
 			} catch (error) {
 				if (mine === seq) {
+					readMembers = []
+					membersKey = null
 					state.rows = []
+					state.total = 0
 				}
 				throw error
 			} finally {
@@ -1486,9 +1593,25 @@ function usersSource() {
 		},
 
 		/**
-		 * @return {Array<object>} The members.
+		 * @return {Array<object>} The members on this page.
 		 */
 		rows: () => state.rows,
+
+		pages: true,
+
+		/**
+		 * @return {number} The members that match, on every page.
+		 */
+		total: () => state.total,
+
+		searchParam: 'search',
+
+		/**
+		 * @param {string} key The column.
+		 * @param {string} order `asc` or `desc`.
+		 * @return {object} The load arguments.
+		 */
+		sortParam: (key, order) => ({ sortKey: key, sortOrder: order }),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
@@ -1504,7 +1627,23 @@ function usersSource() {
 
 		searchFields: {
 			group: { param: 'group', single: true },
+			'displayname[like]': { param: 'nameLike', single: true },
+			'roles[like]': { param: 'rolesLike', single: true },
+			'email[like]': { param: 'emailLike', single: true },
+			today: { param: 'today' },
 		},
+
+		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
+		headerFilters: true,
+
+		/**
+		 * A member's row menu (DqAfdelingen): their Nextcloud profile, and an
+		 * e-mail when they have an address. Both are links.
+		 */
+		rowActions: [
+			{ id: 'open-profile', label: t('nextcloud-vue', 'Open profile'), icon: AccountOutline, href: (row) => generateUrl(`/u/${encodeURIComponent(row.id)}`) },
+			{ id: 'send-email', label: t('nextcloud-vue', 'Send email'), icon: EmailOutline, href: (row) => `mailto:${row.email}`, visible: (row) => Boolean(row && row.email) },
+		],
 
 		showAdd: false,
 	}
