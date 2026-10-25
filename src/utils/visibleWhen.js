@@ -249,6 +249,12 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 		}
 		return readVisibleWhenPath(first, cond.field)
 	}
+	// `@context.<name>.<path>` reads the records the page's conditions name
+	// (a detail page's case type), which the object context carries apart
+	// from the record.
+	if (cond.field && String(cond.field).startsWith('@context.') && ctx && ctx.context && typeof ctx.context === 'object') {
+		return readVisibleWhenPath({ '@context': ctx.context }, cond.field)
+	}
 	// Local mode (Wave 3): evaluate against the caller's object context.
 	if (cond.field && ctx && ctx.object && typeof ctx.object === 'object') {
 		return readVisibleWhenPath(ctx.object, cond.field)
