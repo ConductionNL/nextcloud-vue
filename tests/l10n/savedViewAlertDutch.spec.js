@@ -25,7 +25,7 @@ describe('CnSavedViewAlertWidget strings in Dutch', () => {
 		registerTranslations()
 
 		expect(t('nextcloud-vue', 'Tell me above a number')).toBe('Melden vanaf een aantal')
-		expect(t('nextcloud-vue', 'A message to you when there are {threshold} or more', { threshold: 12 })).toBe('Bericht aan u als er 12 of meer zijn')
+		expect(t('nextcloud-vue', 'A message to you when there are {threshold} or more', { threshold: 12 })).toBe('Bericht aan u als er 12 of meer open zijn')
 		expect(t('nextcloud-vue', 'Threshold')).toBe('Grens')
 	})
 })

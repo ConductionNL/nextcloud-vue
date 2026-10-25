@@ -38,3 +38,13 @@ describe.each([
 		expect(body).toMatch(/margin:\s*0\s*;/)
 	})
 })
+
+describe('saved view alert card rhythm (DqZoekresultaten r26b)', () => {
+	it('gives the facts list no padding of its own, so Naam sits 10px under the title', () => {
+		expect(rule('.cn-saved-view-alert__facts')).toMatch(/padding:\s*0\s*;/)
+	})
+
+	it('draws the alert switch flush with the card edge, as the board does', () => {
+		expect(rule('.cn-saved-view-alert :deep(.checkbox-radio-switch__content)')).toMatch(/padding:\s*0\s*;/)
+	})
+})
