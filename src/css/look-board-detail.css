@@ -1431,6 +1431,14 @@
 	display: none;
 }
 
+/* ---- A file list's trail at its root (CnFilesBrowser) ------------------- */
+/* At the browser's root the boards draw the bar's buttons only, no trail of
+   one crumb naming the case (DqZaakDocumenten); in a subfolder the trail shows.
+   @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root */
+.cn-look-board .cn-files-browser__crumbs--at-root:not(.cn-look-nextcloud *) {
+	display: none;
+}
+
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */
 /* The board's compact card table (DqDocumentenBeheer): a near-white header at
    14px/600 in the muted ink, 10px 12px; 14px cells, 11px 12px, a hairline
