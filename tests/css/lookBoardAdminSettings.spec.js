@@ -37,7 +37,7 @@ describe('look-board.css: admin settings', () => {
 		const rule = rulesFor('.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/width: auto/)
 		expect(rule).toMatch(/max-width: none/)
-		expect(rulesFor('.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name')).toMatch(/max-width: none/)
+		expect(rulesFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name')).toMatch(/max-width: none/)
 	})
 
 	it('starts the card title at the left edge at 17px, not centred as NcSettingsSection draws it', () => {

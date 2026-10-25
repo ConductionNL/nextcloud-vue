@@ -39,7 +39,7 @@ describe('dialog.css: text fields in a board dialog', () => {
 		expect(label).toContain('inset-block-start: auto')
 		expect(label).toContain('inset-block-end: calc(100% + 4px)')
 		expect(label).toContain('font-weight: 600')
-		expect(rulesFor(`${content} .input-field:has(.input-field__label)`)).toContain('margin-block-start: 26px')
+		expect(rulesFor(`${content} .input-field:has(.input-field__label)`)).toContain('margin-block-start: 21px')
 	})
 
 	it('draws the control 40px with a solid 1px grey border and radius 8, label outside or not', () => {

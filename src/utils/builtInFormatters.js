@@ -2,6 +2,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { formatRelativeDate } from './boardDate.js'
 import { formatMoney } from './formatMetric.js'
 import { parseDuration } from './isoDuration.js'
+import { userDisplayName } from './userDisplayName.js'
 
 /**
  * @file Built-in formatters merged into the `cnFormatters` registry
@@ -523,6 +524,21 @@ export function formatIsoDuration(value) {
 	return words[period.unit] ? words[period.unit]() : String(value)
 }
 
+/**
+ * A Nextcloud user id as its display name (`userName` registry key): the id
+ * while the name is looked up, and for a user nobody answers for.
+ *
+ * @spec openspec/changes/user-name-formatter/specs/user-name-formatter/spec.md#requirement-a-user-id-can-read-as-its-display-name
+ * @param {unknown} value The user id.
+ * @return {string} The display name, the id, or ''.
+ */
+export function formatUserName(value) {
+	if (value === null || value === undefined || value === '' || typeof value === 'object') {
+		return ''
+	}
+	return userDisplayName(value) || String(value)
+}
+
 export const BUILT_IN_FORMATTERS = {
 	date: formatDate,
 	datetime: formatDateTime,
@@ -538,4 +554,5 @@ export const BUILT_IN_FORMATTERS = {
 	masked: formatMasked,
 	isoDuration: formatIsoDuration,
 	valueMap: formatValueMap,
+	userName: formatUserName,
 }

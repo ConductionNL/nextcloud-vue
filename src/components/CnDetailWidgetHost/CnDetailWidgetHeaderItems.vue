@@ -31,6 +31,7 @@
 				v-else
 				type="button"
 				class="cn-detail-page__catalog-action"
+				:class="{ 'cn-detail-page__catalog-action--add': action.add === true }"
 				data-testid="cn-detail-widget-header-action"
 				@click="action.run()">
 				<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
@@ -56,7 +57,7 @@ export default {
 	components: { CnIcon, CnStatusBadge, NcButton },
 
 	props: {
-		/** The reported header: `{ pill, note, actions: [{ label, icon?, variant?, run }] }`. */
+		/** The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, run }] }`; `add: true` marks a list's Add. */
 		header: {
 			type: Object,
 			required: true,

@@ -880,15 +880,23 @@ export default {
 		 */
 		/**
 		 * The value an input starts with: `content.default`, else the current
-		 * quarter or year for those types, else empty.
+		 * quarter or year for those types, else empty. For a quarter or year
+		 * input, `default: "previous"` is the last complete one (DqTermijnen
+		 * opens on the last complete quarter).
 		 *
 		 * @return {string}
 		 */
 		inputDefault() {
+			const today = new Date()
+			if (this.content.default === 'previous' && this.inputType === 'quarter') {
+				return quarterKey(new Date(today.getFullYear(), today.getMonth() - 3, 1))
+			}
+			if (this.content.default === 'previous' && this.inputType === 'year') {
+				return String(today.getFullYear() - 1)
+			}
 			if (this.content.default !== undefined && this.content.default !== null) {
 				return String(this.content.default)
 			}
-			const today = new Date()
 			if (this.inputType === 'quarter') {
 				return quarterKey(today)
 			}

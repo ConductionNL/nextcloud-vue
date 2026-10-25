@@ -53,15 +53,37 @@
 						scope="col"
 						:aria-sort="col.sortable ? sortStateOf(col.key) : undefined"
 						:class="{ 'cn-record-list__cell--end': col.align === 'end' }">
-						<button
-							v-if="col.sortable"
-							type="button"
-							class="cn-record-list__sort"
-							:data-testid="`cn-record-list-sort-${col.key}`"
-							@click="toggleTableSort(col.key)">
-							{{ col.label }}
-							<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
-						</button>
+						<span v-if="col.sortable || tableFilterable" class="cn-record-list__head">
+							<button
+								v-if="col.sortable"
+								type="button"
+								class="cn-record-list__sort"
+								:data-testid="`cn-record-list-sort-${col.key}`"
+								@click="toggleTableSort(col.key)">
+								{{ col.label }}
+								<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
+							</button>
+							<template v-else>
+								{{ col.label }}
+							</template>
+							<!-- `content.filterable`: the head offers the values the column holds and keeps the rows with a chosen one. -->
+							<NcActions
+								v-if="tableFilterable"
+								class="cn-record-list__head-filter"
+								:aria-label="filterLabelOf(col.label)"
+								:data-testid="`cn-record-list-filter-${col.key}`">
+								<template #icon>
+									<FilterOutline :size="14" />
+								</template>
+								<NcActionCheckbox
+									v-for="option in tableFilterOptions(col.key)"
+									:key="option"
+									:modelValue="(tableFilters[col.key] || []).includes(option)"
+									@update:modelValue="toggleTableFilter(col.key, option)">
+									{{ option }}
+								</NcActionCheckbox>
+							</NcActions>
+						</span>
 						<template v-else>
 							{{ col.label }}
 						</template>
@@ -550,10 +572,11 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRecordNoteRows from './CnRecordNoteRows.vue'
@@ -649,7 +672,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -714,6 +737,8 @@ export default {
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * On `cards` it draws the small framed card: 12px 14px in, the title
+		 * 15px/700 with the pill at its end (DqInspectie).
 		 * `density: "stacked"` stands the rows 10px apart with no rule and no
 		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
@@ -809,6 +834,8 @@ export default {
 		return {
 			/** The reader's sort of a `table`: the column key and `ascending` or `descending`. */
 			tableSort: { key: '', dir: '' },
+			/** The reader's head filters of a `table`: `{ [columnKey]: cellTexts[] }`. */
+			tableFilters: {},
 			rows: [],
 			/** The `aggregates` figures per row id: `{ [rowId]: { [key]: value } }`. */
 			aggregateValues: {},
@@ -1183,7 +1210,16 @@ export default {
 			const isTemplate = (value) => typeof value === 'string' || (Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string'))
 			return columns
 				.filter((col) => col && typeof col === 'object' && isTemplate(col.value))
-				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '' }))
+				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '', sortable: col.sortable === true || this.content?.sortable === true }))
+		},
+
+		/**
+		 * Whether the `table` heads filter (`content.filterable`).
+		 *
+		 * @return {boolean}
+		 */
+		tableFilterable() {
+			return this.content?.filterable === true
 		},
 
 		/**
@@ -1193,8 +1229,27 @@ export default {
 		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
 		 */
 		tableRows() {
+			const rows = this.tableAllRows.filter((row) => Object.entries(this.tableFilters).every(([key, values]) => {
+				const index = this.tableColumns.findIndex((col) => col.key === key)
+				return values.length === 0 || index < 0 || values.includes(row.cells[index].text)
+			}))
+			const { key, dir } = this.tableSort
+			const index = this.tableColumns.findIndex((col) => col.key === key)
+			if (index < 0 || !dir) {
+				return rows
+			}
+			const sign = dir === 'descending' ? -1 : 1
+			return [...rows].sort((a, b) => sign * compareCells(a.cells[index].text, b.cells[index].text))
+		},
+
+		/**
+		 * Every `table` row, before the reader's head filters and sort.
+		 *
+		 * @return {Array<object>} `{ key, cells: [{ key, text, align, alert }] }`.
+		 */
+		tableAllRows() {
 			const indentPath = this.content?.indentPath
-			const rows = this.items.map((item) => ({
+			return this.items.map((item) => ({
 				key: item.key,
 				row: item.row,
 				rowActions: this.rowActions.length > 0 ? this.rowActionsOf(item.row) : [],
@@ -1215,13 +1270,6 @@ export default {
 					}
 				}),
 			}))
-			const { key, dir } = this.tableSort
-			const index = this.tableColumns.findIndex((col) => col.key === key)
-			if (index < 0 || !dir) {
-				return rows
-			}
-			const sign = dir === 'descending' ? -1 : 1
-			return [...rows].sort((a, b) => sign * compareCells(a.cells[index].text, b.cells[index].text))
 		},
 
 		/**
@@ -2247,6 +2295,41 @@ export default {
 		},
 
 		/**
+		 * The values a `table` column's head filter offers: each text the column holds, once.
+		 *
+		 * @param {string} key The column key.
+		 * @return {Array<string>} The texts, in row order.
+		 */
+		tableFilterOptions(key) {
+			const index = this.tableColumns.findIndex((col) => col.key === key)
+			if (index < 0) {
+				return []
+			}
+			return [...new Set(this.tableAllRows.map((row) => row.cells[index].text).filter((text) => text !== ''))]
+		},
+
+		/**
+		 * Keep or drop one value of a `table` column's head filter.
+		 *
+		 * @param {string} key The column key.
+		 * @param {string} value The cell text.
+		 */
+		toggleTableFilter(key, value) {
+			const current = this.tableFilters[key] || []
+			this.tableFilters = { ...this.tableFilters, [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value] }
+		},
+
+		/**
+		 * The accessible name of a column's head filter.
+		 *
+		 * @param {string} label The column label.
+		 * @return {string}
+		 */
+		filterLabelOf(label) {
+			return t('nextcloud-vue', 'Filter by {column}', { column: label })
+		},
+
+		/**
 		 * The rows of a read with `flattenPath` set: each entry of the list at
 		 * that path on a record becomes a row, with the record at `@parent`.
 		 * A record without the list adds no row. Without `flattenPath` the
@@ -3232,6 +3315,16 @@ export default {
 	font-size: 10px;
 }
 
+.cn-record-list__head {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.cn-record-list__head-filter {
+	--button-size: 22px;
+}
+
 .cn-record-list__table .cn-record-list__cell--end {
 	padding-inline-start: 12px;
 	text-align: end;
@@ -3381,6 +3474,24 @@ export default {
 	gap: 8px;
 	padding: 16px 18px;
 	text-decoration: none;
+}
+
+/* `density: "compact"` on cards: the boards' small framed rows (DqInspectie
+   "Molenweg 4" and the outbox): 12px 14px in, the title 15px/700 on an
+   18px line with the pill at its end, the meta 6px under it. */
+.cn-record-list--compact .cn-record-list__card {
+	gap: 6px;
+	padding: 12px 14px;
+}
+
+.cn-record-list--compact .cn-record-list__card-head {
+	align-items: flex-start;
+}
+
+.cn-record-list--compact .cn-record-list__card .cn-record-list__title {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-record-list__card--link:hover,

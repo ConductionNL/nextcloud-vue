@@ -77,7 +77,7 @@
 	grid-column: 1 / -1;
 	grid-row: 2;
 	justify-self: start;
-	margin-block: 6px 3px;
+	margin-block: 6px 0;
 }
 
 .cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-header-trail,
@@ -88,6 +88,13 @@
 .cn-look-board.cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description,
 .cn-look-board .cn-index-page--sidebar-open .cn-page-header .cn-page-header__text > .cn-page-header__description {
 	grid-row: 4;
+}
+
+/* Without a breadcrumb trail the count line takes the trail's row, so no
+   empty row adds a second gap (DqZakenSorteren: 58px under the title). */
+.cn-look-board.cn-index-page--sidebar-open .cn-page-header:not(:has(.cn-header-trail)) .cn-page-header__text > .cn-page-header__description,
+.cn-look-board .cn-index-page--sidebar-open .cn-page-header:not(:has(.cn-header-trail)) .cn-page-header__text > .cn-page-header__description {
+	grid-row: 3;
 }
 
 /* The header buttons keep the board's button under a theme that styles every
@@ -188,6 +195,15 @@
 	flex-wrap: nowrap;
 	align-items: center;
 	gap: 8px;
+}
+
+/* With the side panel open the boards keep Filter on row 1 after Save view
+   and wrap the view switch alone to row 2 (DqFilterBeheren, DqZakenSorteren):
+   the unit dissolves into the bar's flex row.
+   @spec openspec/changes/board-filter-row-one-beside-side-panel/specs/board-filter-row-one-beside-side-panel/spec.md */
+.cn-look-board.cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-controls,
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-controls {
+	display: contents;
 }
 
 /* `quickFilterPlacement: "toolbar"` (DqTeamwachtrij): the chips take the room
@@ -909,14 +925,19 @@
    `#content[class*="app-"]`, an id selector no class rule outranks, so a plain
    `content-box` here was ignored and the cell left 12px for the checkbox (the
    header's checkbox showed as a stray bracket). */
-/* The checkbox starts 20px in, as the boards draw a native checkbox (16px of
-   cell padding and its 4px margin; DqZoekresultaten), in the same 60px. */
+/* The cell pads 16px as the boards do and the checkbox starts 4px further in,
+   a native checkbox's margin (DqZoekresultaten, DqPostvak, DqContracten), in
+   the same 60px. */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox {
 	box-sizing: border-box !important;
 	width: 60px;
 	min-width: 60px;
-	padding-inline: 20px 12px;
+	padding-inline: 16px;
 	text-align: start;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--checkbox .checkbox-radio-switch {
+	margin-inline-start: 4px;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .checkbox-radio-switch {
@@ -1426,6 +1447,19 @@
    @spec openspec/changes/board-record-card-select-in-head/specs/board-record-card-select-in-head/spec.md#requirement-a-selectable-board-record-card-heads-with-its-checkbox-and-its-pill-on-one-row */
 .cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox {
 	padding-top: 0;
+}
+
+/* The selection box sits flush where the boards draw it: NcCheckbox pads its
+   content 7px on each side (DqAanMijToegewezen card head, DqTeamwachtrij rows,
+   whose box starts 18px in).
+   @spec openspec/changes/board-selection-box-flush/specs/board-selection-box-flush/spec.md#requirement-a-cards-and-a-rows-selection-box-sits-where-the-board-draws-it */
+.cn-look-board .cn-object-card__record-head > .cn-object-card__checkbox .checkbox-radio-switch__content,
+.cn-look-board .cn-object-row__checkbox .checkbox-radio-switch__content {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-object-row__checkbox {
+	margin-inline-start: 6px;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-head > .cn-object-card__checkbox ~ .cn-object-card__record-pill {

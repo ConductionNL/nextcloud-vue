@@ -145,7 +145,7 @@
 				:heading="text(config.note.title)"
 				data-testid="cn-action-dialog-note">
 				<template v-if="config.note.icon" #icon>
-					<CnIcon :name="config.note.icon" :size="20" />
+					<CnIcon class="cn-action-dialog__note-icon" :name="config.note.icon" :size="20" />
 				</template>
 				{{ text(config.note.text) }}
 			</NcNoteCard>
@@ -951,6 +951,13 @@ export default {
 
 /* A checkbox field is a tinted box with a 2px edge, its label bold and its
    hint under it (DqArchiveren). */
+/* A note's own icon stands on the heading's line, as the variant's icon
+   does (NcNoteCard centres a slotted icon on the whole note). */
+.cn-action-dialog__note-icon {
+	align-self: flex-start;
+	margin-top: 1px;
+}
+
 .cn-action-dialog__checkbox {
 	padding: 12px 14px;
 	border: 2px solid var(--color-primary-element);

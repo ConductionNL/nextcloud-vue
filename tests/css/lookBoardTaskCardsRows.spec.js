@@ -28,23 +28,32 @@ function rule(selector) {
 
 describe('look-board-detail.css: task card rows', () => {
 	it('draws a hairline above every row, 12px 0, none below the last', () => {
-		const row = rule('.cn-look-board .cn-notes-card__note:last-child')
-		expect(rule('.cn-look-board .cn-events-card__event:last-child')).toContain('border-top: 1px solid var(--cn-board-hairline);')
+		const row = rule('.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child')
+		expect(rule('.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child')).toContain('border-top: 1px solid var(--cn-board-hairline);')
 		expect(row).toContain('padding: 12px 0;')
 		expect(row).toContain('border-top: 1px solid var(--cn-board-hairline);')
 		expect(row).toContain('border-bottom: none;')
 	})
 
 	it('shows a 32px round tile', () => {
-		const tile = rule('.cn-look-board .cn-notes-card__initials')
-		expect(rule('.cn-look-board .cn-events-card__day')).toContain('width: 32px;')
+		const tile = rule('.cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *)')
+		expect(rule('.cn-look-board .cn-events-card__day:not(.cn-look-nextcloud *)')).toContain('width: 32px;')
 		expect(tile).toContain('display: inline-flex;')
 		expect(tile).toContain('width: 32px;')
 		expect(tile).toContain('border-radius: 50%;')
 	})
 
 	it('writes the title 15/600 and joins the meta with a dot', () => {
-		expect(rule('.cn-look-board .cn-notes-card__body')).toContain('font-size: 15px;')
-		expect(rule('.cn-look-board .cn-notes-card__time::before')).toContain('content: \' · \';')
+		expect(rule('.cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *)')).toContain('font-size: 15px;')
+		expect(rule('.cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *)::before')).toContain('content: \' · \';')
+	})
+
+	it('outranks the cards\' scoped rules: every row selector carries a third class', () => {
+		const selectors = [...css.matchAll(/([^{}]+)\{/g)]
+			.flatMap(([, list]) => list.split(','))
+			.map((one) => one.trim())
+			.filter((one) => /^\.cn-look-board \.cn-(events|notes)-card__/.test(one))
+		expect(selectors.length).toBeGreaterThan(20)
+		selectors.forEach((one) => expect(one).toContain(':not(.cn-look-nextcloud *)'))
 	})
 })
