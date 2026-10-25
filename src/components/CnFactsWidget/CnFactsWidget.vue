@@ -249,7 +249,7 @@ import { formatBoardDate } from '../../utils/boardDate.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, formatLongDate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -416,6 +416,8 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The page's object sidebar channel; a `link.sidebarTab` opens one of its tabs. */
 		objectSidebarState: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a `labelPath`. */
+		cnDetailVisibilityRows: { default: null },
 	},
 
 	props: {
@@ -432,13 +434,14 @@ export default {
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
@@ -722,7 +725,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.tr(field.label || ''), value, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -1407,6 +1410,30 @@ export default {
 		},
 
 		/**
+		 * A row's label: the value at `labelPath` (the record, or the page's
+		 * `@context.<name>` records) when it holds text, else `label`, both
+		 * through the host translate. A case type can name its handler
+		 * ("Regisseur") while another keeps "Behandelaar".
+		 *
+		 * @param {object} record The record shown.
+		 * @param {object} field The entry.
+		 * @return {string}
+		 * @spec openspec/changes/facts-label-from-path/specs/facts-widget/spec.md#requirement-a-facts-row-can-take-its-label-from-the-record-or-its-context
+		 */
+		labelOf(record, field) {
+			if (typeof field.labelPath === 'string' && field.labelPath !== '') {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ ...(record || {}), '@context': rows || {} }, field.labelPath)
+				if (typeof named === 'string' && named.trim() !== '') {
+					return this.tr(named.trim())
+				}
+			}
+			return this.tr(field.label || '')
+		},
+
+		/**
 		 * Copy a row's value to the clipboard.
 		 *
 		 * @param {object} row The row.
@@ -1774,6 +1801,10 @@ export default {
 					.map((item) => this.format(item, { ...spec, format: 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
+			}
+			// The month written out, the year only outside this year: "3 oktober".
+			if (format === 'longdate') {
+				return formatLongDate(raw)
 			}
 			if (format === 'date' || format === 'date-long') {
 				const date = parseDateValue(raw)

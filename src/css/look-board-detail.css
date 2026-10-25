@@ -1585,6 +1585,49 @@
 	line-height: 1.2;
 }
 
+/* The contacts tab's rows as DqZaakBetrokkenen "Partijen" draws them: the
+   role heading 15px bold ink in sentence case, each person on a row 12px
+   high-padded under a hairline, the details and the period 13px muted.
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group-title {
+	margin: 6px 0 0;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item {
+	align-items: center;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item:first-child {
+	margin-top: 8px;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__meta,
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	flex: none;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
+	margin-bottom: 8px;
+}
+
 /* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
    the card's padding instead of its own, and its buttons start at the card's
    edge under the subtitle.
@@ -1595,4 +1638,56 @@
 
 .cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
 	justify-content: flex-start;
+}
+
+/* A body card's subtitle as the Dq boards draw it: 14px muted at line
+   height 1.2, 3px under the title, and the content 12px under it.
+   @spec openspec/changes/board-card-subtitle-gaps/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__title-stack:has(> .cn-widget-wrapper__subtitle) {
+	gap: 3px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__subtitle {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content {
+	padding-top: 12px;
+}
+
+/* A checklist (DqTaak): each item an 18-20px box at the card's own inset, the
+   label 10px after it in weight 600, 12px between items, the list 2px below
+   the title block. Nextcloud's checkbox pads its box 7px in and makes every row
+   34px tall, which put the list 7px right and 2px apart too far per item.
+   @spec openspec/changes/board-checklist-rows/specs/checklist-widget/spec.md#requirement-a-board-checklist-sits-at-the-card-inset */
+.cn-look-board .cn-checklist-widget__items {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content {
+	padding: 0;
+	gap: 10px;
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content.checkbox-content .checkbox-content__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch__input {
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__wrapper,
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	line-height: 18px;
+	min-height: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	font-weight: 600;
 }

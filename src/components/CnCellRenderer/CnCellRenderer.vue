@@ -175,7 +175,7 @@
 		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
-				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
+				<span v-if="avatarUserId && !isBoardLook" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
 					<NcAvatar
 						:user="avatarUserId"
 						:displayName="avatarName || avatarUserId"
@@ -186,6 +186,7 @@
 				<span
 					v-else
 					class="cn-cell-renderer__avatar-initials"
+					:class="avatarToneClass"
 					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
 					aria-hidden="true">{{ avatarInitials }}</span>
 				<span class="cn-cell-renderer__avatar-text">
@@ -942,6 +943,19 @@ export default {
 		 * @return {number}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
+		/**
+		 * `avatar` widget: the chip's tone class in the board look,
+		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
+		 * default light primary.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
+		 */
+		avatarToneClass() {
+			const tone = this.widgetProps && this.widgetProps.tone
+			return tone === 'neutral' ? 'cn-cell-renderer__avatar-initials--neutral' : ''
+		},
+
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
 			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)

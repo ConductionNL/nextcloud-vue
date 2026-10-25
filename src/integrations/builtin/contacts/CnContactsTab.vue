@@ -87,7 +87,7 @@
 				class="cn-contacts-tab__group">
 				<h3 class="cn-contacts-tab__group-title">
 					{{ group.label }}
-					<span class="cn-contacts-tab__group-count">{{ group.items.length }}</span>
+					<span v-if="!isBoard" class="cn-contacts-tab__group-count">{{ group.items.length }}</span>
 				</h3>
 				<ul class="cn-contacts-tab__list">
 					<li
@@ -97,7 +97,7 @@
 						@click="openReverseLookup(contact)">
 						<div class="cn-contacts-tab__avatar">
 							<NcAvatar
-								:size="40"
+								:size="isBoard ? 32 : 40"
 								:displayName="contact.displayName || unknownLabel"
 								:user="avatarSeed(contact)"
 								:url="contact.avatarUrl || undefined"
@@ -112,7 +112,7 @@
 									{{ contact.displayName || unknownLabel }}
 								</span>
 								<CnStatusBadge
-									v-if="contact.role"
+									v-if="contact.role && !isBoard"
 									:label="roleLabel(contact)"
 									:variant="roleVariant(contact)"
 									size="small" />
@@ -123,30 +123,54 @@
 									size="small"
 									data-testid="cn-contacts-tab-inactive" />
 							</div>
-							<div v-if="contact.email" class="cn-contacts-tab__sub">
-								<Email :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.email }}</span>
-							</div>
-							<div v-if="contact.phone" class="cn-contacts-tab__sub">
-								<Phone :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.phone }}</span>
-							</div>
-							<div v-if="contact.org" class="cn-contacts-tab__sub">
-								<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
-							</div>
-							<div
-								v-if="periodOf(contact)"
-								class="cn-contacts-tab__sub"
-								data-testid="cn-contacts-tab-period">
-								<CalendarRange :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ periodOf(contact) }}</span>
-							</div>
-							<div v-if="contact.note" class="cn-contacts-tab__sub">
-								<span class="cn-contacts-tab__sub-text">{{ contact.note }}</span>
-							</div>
+							<!-- The board look sets the details on one line (DqZaakBetrokkenen). -->
+							<span v-if="isBoard && boardMetaOf(contact)"
+								class="cn-contacts-tab__meta"
+								data-testid="cn-contacts-tab-meta">{{ boardMetaOf(contact) }}</span>
+							<template v-if="!isBoard">
+								<div v-if="contact.email" class="cn-contacts-tab__sub">
+									<Email :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.email }}</span>
+								</div>
+								<div v-if="contact.phone" class="cn-contacts-tab__sub">
+									<Phone :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.phone }}</span>
+								</div>
+								<div v-if="contact.org" class="cn-contacts-tab__sub">
+									<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
+								</div>
+								<div
+									v-if="periodOf(contact)"
+									class="cn-contacts-tab__sub"
+									data-testid="cn-contacts-tab-period">
+									<CalendarRange :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ periodOf(contact) }}</span>
+								</div>
+								<div v-if="contact.note" class="cn-contacts-tab__sub">
+									<span class="cn-contacts-tab__sub-text">{{ contact.note }}</span>
+								</div>
+							</template>
 						</div>
+						<template v-if="isBoard">
+							<span v-if="boardPeriodOf(contact)"
+								class="cn-contacts-tab__period"
+								data-testid="cn-contacts-tab-board-period">{{ boardPeriodOf(contact) }}</span>
+							<NcActions class="cn-contacts-tab__menu"
+								variant="secondary"
+								:aria-label="moreActionsLabel(contact)"
+								data-testid="cn-contacts-tab-menu"
+								@click.stop>
+								<NcActionButton :closeAfterClick="true" @click="unlink(contact)">
+									<template #icon>
+										<Close :size="20" />
+									</template>
+									{{ unlinkLabel }}
+								</NcActionButton>
+							</NcActions>
+						</template>
 						<button
+							v-else
 							type="button"
 							class="cn-contacts-tab__unlink"
 							:aria-label="unlinkLabel"
@@ -178,7 +202,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
 import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -193,6 +217,7 @@ import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetHeaderActionButtons from '../../../components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../../composables/useLook.js'
+import { formatBoardDate } from '../../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { WIDGET_BODY_ACTIONS } from '../../../utils/widgetHeaderActions.js'
 
@@ -223,6 +248,8 @@ export default {
 	name: 'CnContactsTab',
 
 	components: {
+		NcActionButton,
+		NcActions,
 		NcAvatar,
 		NcButton,
 		NcEmptyContent,
@@ -313,6 +340,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} The board look draws the rows as DqZaakBetrokkenen does. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * The two header buttons in the order and weight of the look: the
 		 * board look draws Link contact then New contact, both outlined; the
@@ -605,6 +637,49 @@ export default {
 		 *
 		 * @return {string} The window.
 		 */
+		/**
+		 * A person's details on one line for the board look: e-mail, phone,
+		 * organisation and note, separated by middots.
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 */
+		boardMetaOf(contact) {
+			return [contact?.email, contact?.phone, contact?.org, contact?.note].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
+		/**
+		 * The validity window in the board's short dates: "Vanaf 3 okt",
+		 * "Tot 31 okt" or "3 okt – 31 okt".
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 */
+		boardPeriodOf(contact) {
+			const from = formatBoardDate(contact?.validFrom || '')
+			const until = formatBoardDate(contact?.validUntil || '')
+			if (from === '' && until === '') {
+				return ''
+			}
+			if (until === '') {
+				return t('nextcloud-vue', 'From {date}', { date: from })
+			}
+			if (from === '') {
+				return t('nextcloud-vue', 'Until {date}', { date: until })
+			}
+			return `${from} – ${until}`
+		},
+
+		/**
+		 * The label of a person's actions menu.
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 */
+		moreActionsLabel(contact) {
+			return t('nextcloud-vue', 'More actions for {name}', { name: contact?.displayName || this.unknownLabel })
+		},
+
 		periodOf(contact) {
 			const from = contact?.validFrom || ''
 			const until = contact?.validUntil || ''
