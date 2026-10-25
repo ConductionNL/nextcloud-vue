@@ -731,6 +731,14 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A history card with stacked rows (DqTaak "Historie") opens on the first
+   row's hairline 6px under the title, the row's own 12px padding above its
+   text, as drawn: 19px from the title to the first action.
+   @spec openspec/changes/board-history-card-ruled-start/specs/board-history-card-ruled-start/spec.md#requirement-a-board-history-card-with-stacked-rows-opens-on-its-first-rule */
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-audit-card__list > .cn-audit-card__row--stacked:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 6px;
+}
+
 /* A data card (labels over values) starts 14px below its title (DqZaak
    "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
    @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
