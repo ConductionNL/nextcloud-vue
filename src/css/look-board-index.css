@@ -982,6 +982,17 @@
 	text-decoration: none;
 }
 
+/* `rowTitle: "strong"` (DqZaaktypeStatussen "Statussen", "Resultaten"): the
+   name column of a card's list, the cell's 14px at weight 600 in the main
+   ink, no underline; the row stays a link.
+   @spec openspec/changes/table-strong-title/specs/table-strong-title/spec.md#requirement-a-tables-title-column-can-read-as-a-strong-name */
+.cn-look-board .cn-table-container--board.cn-table-container--title-strong .cn-data-table td.cn-table-col--title {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
 /* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
    the name, the e-mail under the name beside it. The name keeps the title's
    weight and size, and its underline: an inline-flex box is atomic, so the
