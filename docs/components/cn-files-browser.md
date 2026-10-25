@@ -103,7 +103,7 @@ A row action that only means something for some files says which, with `visibleI
   "visibleIf": { "extension": ["eml", "msg"] } }
 ```
 
-`extension` lists extensions (case does not matter, a leading dot is allowed). `mime` lists mime types, and one ending in `/` or `/*` names the whole family (`image/*`). When both are named, both must hold. An action without `visibleIf` is on every file, as before. It decides what is offered, not what is allowed: the act itself still checks what it was handed.
+`extension` lists extensions (case does not matter, a leading dot is allowed). `mime` lists mime types, and one ending in `/` or `/*` names the whole family (`image/*`). `row` maps fields of the host's row for the file (`rowData`) to the value each must have, compared strictly (`{ "row": { "canChangeAccess": true } }`); a file without a row does not meet it. When several are named, all must hold. Side card actions honour `visibleIf` the same way. An action without `visibleIf` is on every file, as before. It decides what is offered, not what is allowed: the act itself still checks what it was handed.
 
 ## Columns the host declares
 
