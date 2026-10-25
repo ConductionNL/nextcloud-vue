@@ -52,7 +52,9 @@ const SEARCH_DELAY = 250
  * Organisatie · KvK …"). Built on CnSearchSelect.
  *
  * `sources`: each `{ id, register, schema, label?, title?, secondary?,
- * limit?, icon? }` searches OpenRegister with `_search`; `title` and
+ * limit?, icon?, lookup? }` searches OpenRegister with `_search`; `lookup`
+ * (`{ url, when }`) sends a term matching `when` to the app's exact lookup
+ * instead (a POST of `{ term }` answering `{ results }`); `title` and
  * `secondary` are templates filled from the row (default `{name}` / none),
  * `label` names the kind ("Resident") and starts the second line; `label`
  * and `secondary` go through the host translate, so a manifest can write
@@ -284,6 +286,10 @@ export default {
 						const { data } = await axios.post(generateUrl('/contactsmenu/contacts'), { filter: term })
 						return (data && Array.isArray(data.contacts) ? data.contacts : []).map((c) => this.contactOptionOf(source, c))
 					}
+					if (this.isExactLookup(source, term) === true) {
+						const { data } = await axios.post(generateUrl(source.lookup.url), { term })
+						return (data && Array.isArray(data.results) ? data.results : []).map((row) => this.optionOf(source, row))
+					}
 					if (!source.register || !source.schema) {
 						return []
 					}
@@ -309,6 +315,30 @@ export default {
 			this.refusal = refusal
 			this.unavailable = unavailable.filter(Boolean)
 			this.searching = false
+		},
+
+		/**
+		 * Whether a typed term goes to the source's exact lookup instead of the
+		 * free-text search: `source.lookup` is `{ url, when }`, `when` a regular
+		 * expression the whole term must match ("^[0-9]{9}$" for a BSN). The
+		 * lookup is a POST, so the term never sits in a URL or a server log line,
+		 * and the app behind it may check and record who looked whom up.
+		 *
+		 * @param {object} source The source.
+		 * @param {string} term The typed term.
+		 * @return {boolean}
+		 * @spec openspec/changes/party-picker-exact-lookup/specs/party-picker/spec.md#requirement-a-party-source-can-look-a-term-up-exactly
+		 */
+		isExactLookup(source, term) {
+			const lookup = source && source.lookup
+			if (!lookup || typeof lookup.url !== 'string' || lookup.url === '' || typeof lookup.when !== 'string') {
+				return false
+			}
+			try {
+				return new RegExp(lookup.when).test(term)
+			} catch {
+				return false
+			}
 		},
 
 		/**

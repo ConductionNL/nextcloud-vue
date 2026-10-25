@@ -45,6 +45,15 @@ describe('look-board.css: choice cards', () => {
 		expect(refused).toContain('background: var(--cn-board-sunken-ground)')
 	})
 
+	it('sets an option\'s title and description at line height 1.2, its icon at the top (DqVolgendeStap r26a: rows 70 vs 60)', () => {
+		expect(rule(`${cards} .cn-choice-cards__row-title${guard},\n${cards} .cn-choice-cards__row-description${guard}`)).toContain('line-height: 1.2')
+		expect(rule(`${cards} .cn-choice-cards__row-icon${guard}`)).toContain('align-self: flex-start')
+	})
+
+	it('indents the chosen option\'s fields to its text when the option has an icon (r26a: 44 vs 76)', () => {
+		expect(rule(`${cards} .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details${guard}`)).toContain('padding-inline-start: 76px')
+	})
+
 	it('keeps a chosen option and its details frame white (design-system #371)', () => {
 		const chosen = rule(`${cards} .cn-choice-cards__row--selected${guard},\n${cards} .cn-choice-cards__row--selected:hover${guard},\n${cards} .cn-choice-cards__cell--with-details${guard}`)
 		expect(chosen).toContain('background: var(--color-main-background)')
