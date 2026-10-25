@@ -2145,6 +2145,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A stacked audit row (DqTaak "Historie", `content.layout: "stacked"`): 12px
+   above and below, the action 15px weight 600, the moment and who under it
+   13px muted, 2px apart.
+   @spec openspec/changes/audit-card-stacked-rows/specs/audit-trail/spec.md#requirement-an-audit-row-can-put-its-moment-under-the-action */
+.cn-look-board .cn-audit-card__row--stacked:not(.cn-look-nextcloud *) {
+	padding: 12px 0;
+}
+
+.cn-look-board .cn-audit-card__row--stacked .cn-audit-card__action:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-audit-card__row--stacked .cn-audit-card__when:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast);
+}
+
 /* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
 /* The board draws a timeline entry as a rail row: a 34px circle on a 2px
    line, the message first at 15px weight 600, the kind, author and moment
