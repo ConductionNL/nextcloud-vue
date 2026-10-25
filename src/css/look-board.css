@@ -1523,6 +1523,24 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	align-self: center;
 }
 
+/* A switch or radio in a board settings card starts at the card's content
+   edge, its label 12px (switch) or 10px (radio) after the control, as the
+   boards draw them (DqBeheerinstellingen "AI-ondersteunde verwerking").
+   NcCheckboxRadioSwitch pads its content 9px on each side, which set the
+   control 9px in from the fields above and below it.
+   @spec openspec/changes/board-settings-switch-radio-flush/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content-switch {
+	gap: 12px;
+}
+
+.cn-look-board .cn-settings-fields:not(.cn-look-nextcloud *) .checkbox-content-radio {
+	gap: 10px;
+}
+
 /* The "Uitleg tonen" toggle is a text link flush with the card's right edge
    (DqBeheerinstellingen Zaak-e-mail), not a padded tertiary button.
    @spec openspec/changes/board-settings-title-centred-and-link-flush/specs/settings-board-look/spec.md */
