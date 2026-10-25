@@ -201,3 +201,14 @@ describe('users index source row menu', () => {
 		expect(mail.visible({ id: 'lars', email: 'l.dekoning@zuiddrecht.nl' })).toBe(true)
 	})
 })
+
+/**
+ * @spec openspec/changes/users-source-sortable-columns/specs/index-page/spec.md#requirement-a-members-list-sorts-on-every-column
+ */
+describe('users index source columns', () => {
+	it('sorts on every column, as the board draws a chevron on each head', () => {
+		const source = resolveIndexSource('users')
+		expect(source.columns.map((column) => column.sortable)).toEqual([true, true, true, true])
+		expect(source.sortParam('email', 'desc')).toEqual({ sortKey: 'email', sortOrder: 'desc' })
+	})
+})
