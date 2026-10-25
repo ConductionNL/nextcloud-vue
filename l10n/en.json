@@ -2377,7 +2377,8 @@
     "Talk to {agent}": "Talk to {agent}",
     "Search a person or group": "Search a person or group",
     "Now: by {order}.": "Now: by {order}.",
-    "You save the order along with a view.": "You save the order along with a view."
+    "You save the order along with a view.": "You save the order along with a view.",
+    "me": "me"
   },
   "plurals": {
     "{count} member": [
@@ -2578,6 +2579,14 @@
     "within %n day": [
       "within %n day",
       "within %n days"
+    ],
+    "%n other": [
+      "%n other",
+      "%n others"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} has no location, so it is not on the map.",
+      "{names} have no location, so they are not on the map."
     ]
   }
 }

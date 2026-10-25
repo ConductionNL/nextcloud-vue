@@ -93,3 +93,16 @@ describe('CnOrderedListField', () => {
 		ro.unmount()
 	})
 })
+
+/**
+ * @spec openspec/changes/user-settings-dialog-board-sections/specs/user-settings-dialog-board-sections/spec.md#requirement-the-dialogs-sections-read-as-the-board-draws-them
+ */
+describe('CnOrderedListField hideLabel', () => {
+	it('keeps the label for assistive technology and out of sight', () => {
+		const w = mountList({ hideLabel: true })
+		const label = w.find('.cn-ordered-list-field__label')
+		expect(label.classes()).toContain('hidden-visually')
+		expect(w.find('ol').attributes('aria-labelledby')).toBe(label.attributes('id'))
+		w.unmount()
+	})
+})
