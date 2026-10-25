@@ -3132,6 +3132,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A bar list in a framed section of a sections card is the board's small
+   list: 13px rows 8px apart, a 150px label column, a 10px bar and a 48px
+   value column (DqDoorlooptijd "Naleving per zaaktype").
+   @spec openspec/changes/board-section-bar-list-compact/specs/board-section-bar-list-compact/spec.md#requirement-a-bar-list-in-a-sections-card-section-is-compact */
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-line {
+	grid-template-columns: 150px minmax(0, 1fr) 48px;
+	gap: 10px;
+	font-size: 13px;
+}
+
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-track {
+	height: 10px;
+	border-radius: 5px;
+}
+
 /* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd
    per status") sets its rows in 13px, the label in the secondary text, the
    value in the main ink at 600, rows 34px apart.
