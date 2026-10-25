@@ -73,6 +73,10 @@ describe('dialog.css: the board dialog', () => {
 		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content')).toContain('gap: 18px;')
 	})
 
+	it('sets a form dialog select level with the text fields beside it (DqNieuweZaak)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label))')).toContain('margin-block: 0;')
+	})
+
 	it('sets a dialog checkbox flush with the fields, its label 10px after the box (DqBerichtVersturen)', () => {
 		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
 		expect(content).toContain('padding-inline: 0;')

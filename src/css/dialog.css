@@ -347,6 +347,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-start: 26px;
 }
 
+/* A select in a form dialog sits under its label and over its help line
+   as a text field does (DqNieuweZaak "Zaaktype", "Intakekanaal"): the
+   form's label stands outside the select, so NcSelect's own 6px/4px margins
+   only pushed the control 6px below the text fields beside it and its help
+   line 4px further down. */
+.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
+}
+
 /* A multiple select is the board's 40px field too (DqFilterDelen "Delen
    met"). The edge goes on the toggle, which holds the chips and the search,
    so the chosen people and groups sit inside the field; the search inside it
