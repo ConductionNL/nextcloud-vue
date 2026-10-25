@@ -30,13 +30,15 @@
 			<li
 				v-for="entry in displayedEntries"
 				:key="entry.id"
-				class="cn-audit-card__row">
+				class="cn-audit-card__row"
+				:class="{ 'cn-audit-card__row--stacked': layout === 'stacked' }">
 				<div class="cn-audit-card__row-head">
 					<strong class="cn-audit-card__action">{{ formatAction(entry) }}</strong>
-					<span class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
+					<span v-if="layout !== 'stacked'" class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
 				</div>
 				<div class="cn-audit-card__row-body">
-					<span class="cn-audit-card__actor">{{ formatActor(entry) }}</span>
+					<span v-if="layout === 'stacked'" class="cn-audit-card__when" data-testid="cn-audit-card-when-below">{{ stackedLine(entry) }}</span>
+					<span v-else class="cn-audit-card__actor">{{ formatActor(entry) }}</span>
 					<span
 						v-if="entry.authorized === false"
 						class="cn-audit-card__refused"
@@ -64,8 +66,10 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 /**
@@ -154,6 +158,12 @@ export default {
 
 		/** Maximum rows to render. */
 		maxDisplay: { type: Number, default: 5 },
+		/**
+		 * `stacked` (DqTaak "Historie"): the action, then one muted line under
+		 * it with the moment ("6 okt 09:05") and who, when the action does not
+		 * already name them. Default: the moment beside the action, who under it.
+		 */
+		layout: { type: String, default: '' },
 		/**
 		 * Actions the card leaves out (case-insensitive), such as `['read']`
 		 * for a history of what changed. It then reads more entries than it
@@ -440,7 +450,27 @@ export default {
 		 * @return {string} Who did it, by name where the entry carries one.
 		 */
 		actorName(entry) {
-			return entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
+			if (entry.actorDisplayName) {
+				return entry.actorDisplayName
+			}
+			const id = entry.actor || entry.userId || entry.user || ''
+			// A person's user id reads as their display name once it is known.
+			return (id && (!entry.performerType || entry.performerType === 'user') && userDisplayName(String(id))) || id
+		},
+
+		/**
+		 * The muted line of a stacked row: the moment in the board's short
+		 * form ("6 okt 09:05") and who, unless the action names them already.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The line.
+		 * @spec openspec/changes/audit-card-stacked-rows/specs/audit-trail/spec.md#requirement-an-audit-row-can-put-its-moment-under-the-action
+		 */
+		stackedLine(entry) {
+			const raw = entry.creationDateTime || entry.created || entry.timestamp
+			const date = raw ? new Date(raw) : null
+			const when = date && !Number.isNaN(date.getTime()) ? `${formatBoardDate(date)} ${formatTimeOfDay(date)}` : ''
+			return [when, this.formatActor(entry)].filter((part) => part !== '').join(' · ')
 		},
 
 		/**

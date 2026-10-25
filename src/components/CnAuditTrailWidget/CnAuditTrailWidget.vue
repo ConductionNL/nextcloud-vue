@@ -16,6 +16,7 @@
 			:scope="resolvedScope"
 			:title="resolvedTitle"
 			:maxDisplay="resolvedMaxDisplay"
+			:layout="content && typeof content.layout === 'string' ? content.layout : ''"
 			:excludeActions="resolvedExcludeActions"
 			:actionLabels="actionLabels"
 			:valueLabels="valueLabels"
