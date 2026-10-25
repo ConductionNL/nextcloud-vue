@@ -53,13 +53,13 @@ describe('look-board.css: admin settings', () => {
 	/**
 	 * @spec openspec/changes/board-settings-desc-spacing/specs/settings-board-look/spec.md
 	 */
-	it('gives a shell card the board padding, its description 6px under the title and 16px above the content, and a note card no margin', () => {
+	it('gives a shell card the board padding, its description 4px under the title and 14px above the content unless the shell sets a gap, and a note card no margin', () => {
 		const card = '.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section'
 		const wrapped = '.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section'
 		for (const section of [card, wrapped]) {
 			expect(rulesFor(section)).toMatch(/padding: 20px 22px/)
-			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-top: -8px/)
-			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-bottom: 2px/)
+			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-top: calc\(var\(--cn-board-settings-desc-gap, 4px\) - 14px\)/)
+			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-bottom: calc\(var\(--cn-board-settings-desc-gap, 4px\) - 4px\)/)
 			expect(rulesFor(`${section} > .notecard`)).toMatch(/margin-block: 0/)
 		}
 	})

@@ -1545,11 +1545,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc,
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section > .settings-section__desc {
-	/* 6px under the title and 16px above the content, as the admin boards
-	   drawn from NcBeheerInstellingen space them (the card's gap is 14px).
+	/* 4px under the title and 14px above the content (PtBeheerinstellingen);
+	   the shell's `descGap` sets another gap, the content 10px further, as
+	   the boards drawn from NcBeheerInstellingen space them (6 and 16:
+	   DqBeheerinstellingen, LrBeheerinstellingen). The card's gap is 14px.
 	   @spec openspec/changes/board-settings-desc-spacing/specs/settings-board-look/spec.md */
-	margin-top: -8px;
-	margin-bottom: 2px;
+	margin-top: calc(var(--cn-board-settings-desc-gap, 4px) - 14px);
+	margin-bottom: calc(var(--cn-board-settings-desc-gap, 4px) - 4px);
 }
 
 .cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > .settings-section > .notecard,
