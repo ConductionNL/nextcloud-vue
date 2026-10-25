@@ -1135,7 +1135,10 @@ export default {
 		min-inline-size: 20px;
 		block-size: 20px;
 		min-block-size: 20px;
-		margin: 0;
+		/* A block box, so the line's baseline adds no height: the row is
+		   42px as on the board (10px, the 1px-low checkbox, 10px, the rule). */
+		display: block;
+		margin: 1px auto 0;
 	}
 
 	.cn-notification-matrix__group {
