@@ -9877,9 +9877,12 @@ export default {
 			}
 			const sorted = [...groups].sort((a, b) => b.count - a.count)
 			const total = sorted.reduce((sum, g) => sum + g.count, 0)
+			// Each tab asks to be counted as the list counts it (within the
+			// active filters, through the list endpoint); the grouped number,
+			// over the page filter only, stands until that count arrives.
 			this.generatedQuickFilters = [
-				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total },
-				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count })),
+				{ label: from.allLabel || t('nextcloud-vue', 'All'), filter: {}, default: true, count: total, showCount: true },
+				...sorted.map((g) => ({ label: (labels && labels[g.key]) || g.key, filter: { [from.field]: g.key }, count: g.count, showCount: true })),
 			]
 		},
 
