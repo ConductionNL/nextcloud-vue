@@ -3177,6 +3177,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.2;
 }
 
+/* An option's title bold, as the dialog boards draw it (a <strong>). */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-icon:not(.cn-look-nextcloud *) {
 	align-self: flex-start;
 }
