@@ -1,0 +1,2 @@
+- [x] look-board-detail.css rule
+- [x] tests/css/lookBoardSidebarTabFlushInCard.spec.js (red first)
