@@ -199,13 +199,18 @@
 					{{ t('nextcloud-vue', 'Goes on the timeline above, internal unless you make it visible') }}
 				</p>
 			</template>
+			<label v-if="textBlocks.length" class="cn-timeline-manage__draft-label" :for="blockId">
+				{{ t('nextcloud-vue', 'Template') }}
+			</label>
 			<NcSelect v-if="textBlocks.length"
 				v-model="chosenBlock"
 				class="cn-timeline-manage__filter"
 				:options="blockOptions"
 				:clearable="true"
 				label="label"
-				:inputLabel="t('nextcloud-vue', 'Template')"
+				:inputId="blockId"
+				:labelOutside="true"
+				:ariaLabelCombobox="t('nextcloud-vue', 'Template')"
 				:placeholder="t('nextcloud-vue', 'Write your own')"
 				data-testid="cn-timeline-block"
 				@update:modelValue="pickBlock" />
@@ -435,6 +440,10 @@ export default {
 
 		draftId() {
 			return `cn-timeline-draft-${this.uid}`
+		},
+
+		blockId() {
+			return `cn-timeline-block-${this.uid}`
 		},
 
 		/**
