@@ -32,11 +32,17 @@
 				</div>
 
 				<div class="cn-index-sidebar__section">
+					<!-- The board look names the field by its hint, as the list's
+					     own search field, with the magnifier (DqZakenSorteren). -->
 					<NcTextField
 						:modelValue="searchValue || ''"
 						:placeholder="searchPlaceholder"
-						:label="searchLabel"
-						@update:modelValue="$emit('search', $event)" />
+						:label="isBoardLook ? searchPlaceholder : searchLabel"
+						@update:modelValue="$emit('search', $event)">
+						<template v-if="isBoardLook" #icon>
+							<Magnify :size="18" />
+						</template>
+					</NcTextField>
 				</div>
 
 				<!-- Sort (list, card and map views; the table sorts by its headers):
@@ -97,7 +103,7 @@
 					</p>
 				</div>
 
-				<div v-if="hasActiveFilters" class="cn-index-sidebar__section">
+				<div v-if="hasActiveFilters && !isBoardLook" class="cn-index-sidebar__section">
 					<NcButton variant="tertiary" @click="onClearAll">
 						<template #icon>
 							<FilterRemoveOutline :size="20" />
@@ -107,7 +113,20 @@
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
-					<h3>{{ filtersLabel }}</h3>
+					<!-- The board look: "Alles wissen" beside the heading (DqZakenSorteren). -->
+					<div v-if="isBoardLook" class="cn-index-sidebar__filters-head" data-testid="cn-index-sidebar-filters-head">
+						<h3>{{ filtersLabel }}</h3>
+						<button
+							v-if="hasActiveFilters"
+							type="button"
+							class="cn-index-sidebar__filters-clear"
+							@click="onClearAll">
+							{{ clearAllLabel }}
+						</button>
+					</div>
+					<h3 v-else>
+						{{ filtersLabel }}
+					</h3>
 					<div
 						v-for="filter in schemaFilters"
 						:key="filter.key"
@@ -149,6 +168,27 @@
 							:label="filter.label"
 							:placeholder="filter.label"
 							@update:modelValue="onTextChange(filter.key, $event)" />
+						<!-- The board look: a short field as checkbox rows with counts. -->
+						<fieldset
+							v-else-if="checklistOptions(filter)"
+							class="cn-index-sidebar__checklist"
+							:data-testid="`cn-index-sidebar-checklist-${filter.key}`">
+							<legend class="hidden-visually">
+								{{ filter.label }}
+							</legend>
+							<label
+								v-for="option in checklistOptions(filter)"
+								:key="`${filter.key}-${option.id}`"
+								class="cn-index-sidebar__checklist-row"
+								data-testid="cn-index-sidebar-checklist-row">
+								<input
+									type="checkbox"
+									:checked="isChecked(filter, option.id)"
+									@change="onChecklistToggle(filter, option.id, $event.target.checked)">
+								<span class="cn-index-sidebar__checklist-label">{{ option.label }}</span>
+								<span v-if="option.count !== null" class="cn-index-sidebar__checklist-count">{{ option.count }}</span>
+							</label>
+						</fieldset>
 						<NcSelect
 							v-else
 							class="cn-index-sidebar__select"
@@ -355,6 +395,7 @@ import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import FilterRemoveOutline from 'vue-material-design-icons/FilterRemoveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
@@ -362,7 +403,7 @@ import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
-import { facetOptions } from '../../utils/facets.js'
+import { facetOptions, MISSING_VALUE } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
 /**
@@ -382,6 +423,9 @@ import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
 import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+/** The most values a filter shows as checkbox rows in the board look; a longer field keeps its picker. */
+const CHECKLIST_MAX = 12
+
 export default {
 	name: 'CnIndexSidebar',
 
@@ -410,6 +454,7 @@ export default {
 		Pin,
 		PinOutline,
 		InformationOutline,
+		Magnify,
 	},
 
 	inject: {
@@ -1401,6 +1446,67 @@ export default {
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })
+		},
+
+		/**
+		 * A field's values as checkbox rows, in the board look and for a short
+		 * list only: label and count apart, from the facet when there is one,
+		 * else the field's own options. Null where the picker stays (the
+		 * Nextcloud look, a single choice, a reference, more than
+		 * CHECKLIST_MAX values).
+		 *
+		 * @spec openspec/changes/board-sidebar-filters-as-checkbox-lists/specs/index-sidebar/spec.md#requirement-the-board-look-draws-a-short-filter-as-a-checkbox-list-with-counts
+		 * @param {object} filter The filter definition.
+		 * @return {Array<{id: (string|number|boolean), label: string, count: (number|null)}>|null} The rows, or null.
+		 */
+		checklistOptions(filter) {
+			if (!this.isBoardLook || filter.multiple === false || filter.type === 'reference') {
+				return null
+			}
+			const facet = this.facetData[filter.key]
+			let rows
+			if (facet && Array.isArray(facet.values) && facet.values.length > 0) {
+				rows = facet.values.map((bucket) => ({
+					id: bucket.value,
+					label: String(bucket.label !== undefined && bucket.label !== null ? bucket.label : bucket.value),
+					count: typeof bucket.count === 'number' ? bucket.count : null,
+				}))
+				if (typeof facet.missing === 'number' && facet.missing > 0) {
+					rows.push({ id: MISSING_VALUE, label: t('nextcloud-vue', 'No value'), count: facet.missing })
+				}
+			} else {
+				rows = (filter.options || []).map((option) => ({ id: option.id, label: String(option.label), count: null }))
+			}
+			return rows.length > 0 && rows.length <= CHECKLIST_MAX ? rows : null
+		},
+
+		/**
+		 * Whether a value of a field is among its active filter values.
+		 *
+		 * @param {object} filter The filter definition.
+		 * @param {string|number|boolean} id The value.
+		 * @return {boolean}
+		 */
+		isChecked(filter, id) {
+			const value = this.activeFilters[filter.key]
+			const values = Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])
+			return values.map(String).includes(String(id))
+		},
+
+		/**
+		 * A checkbox row was toggled: the field's values with it added or taken out.
+		 *
+		 * @spec openspec/changes/board-sidebar-filters-as-checkbox-lists/specs/index-sidebar/spec.md#requirement-the-board-look-draws-a-short-filter-as-a-checkbox-list-with-counts
+		 * @param {object} filter The filter definition.
+		 * @param {string|number|boolean} id The value.
+		 * @param {boolean} checked Whether it is now ticked.
+		 * @return {void}
+		 */
+		onChecklistToggle(filter, id, checked) {
+			const value = this.activeFilters[filter.key]
+			const current = Array.isArray(value) ? [...value] : (value === undefined || value === null || value === '' ? [] : [value])
+			const rest = current.filter((v) => String(v) !== String(id))
+			this.$emit('filter-change', { key: filter.key, values: checked ? [...rest, id] : rest })
 		},
 
 		/**

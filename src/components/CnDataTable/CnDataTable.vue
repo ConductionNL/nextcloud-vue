@@ -6,6 +6,7 @@
 			'cn-table-container--board': isBoardLook,
 			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
 			'cn-table-container--title-text': isBoardLook && rowTitle === 'text',
+			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -275,7 +276,7 @@
 							<td
 								v-if="rowIcon"
 								class="cn-table-col--icon"
-								:class="pinClass(selectable ? 1 : 0)"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + iconTone]"
 								:style="pinStyle(selectable ? 1 : 0)">
 								<CnIcon :name="getRowIcon(row)" :size="20" />
 							</td>
@@ -650,6 +651,17 @@ export default {
 		},
 
 		/**
+		 * The tone of the leading icon's tile in the board look: `primary`
+		 * (default), `teal` or `neutral` (DqOrganisaties draws a teal tile).
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
+		},
+
+		/**
 		 * State indicators a page declares for its rows. Each entry is
 		 * `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a
 		 * dotted path on the row, the condition is `equals`, `in`, or plain
@@ -856,8 +868,10 @@ export default {
 		 * the 15px bold title without an underline and a 13px muted secondary
 		 * line, as the PqTickets and OcPublicaties boards draw it; `text` is an
 		 * ordinary cell, for a log table whose first column is a date
-		 * (DqZaakContact). The row stays clickable either way. The Nextcloud
-		 * look ignores it.
+		 * (DqZaakContact); `strong` is the cell's own size at weight 600 in the
+		 * main ink without an underline, the name column of a card's list
+		 * (DqZaaktypeStatussen). The row stays clickable either way. The
+		 * Nextcloud look ignores it.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
 		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
@@ -865,7 +879,7 @@ export default {
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain', 'text'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/**
@@ -1173,6 +1187,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The leading icon tile's tone, one the board look draws.
+		 *
+		 * @return {string} `primary`, `teal` or `neutral`.
+		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
+		 */
+		iconTone() {
+			return ['primary', 'teal', 'neutral'].includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+		},
+
 		/**
 		 * Whether the table is drawn as the board look's white card.
 		 *

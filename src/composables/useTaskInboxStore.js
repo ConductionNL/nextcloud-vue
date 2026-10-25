@@ -41,7 +41,8 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 // creating app named it, so it is the one filter that lets a Tasks page say
 // "the reminders" without the engine learning what a reminder is. It widens
 // nothing: it narrows within the inbox the session already decides.
-const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
+// `openFirst` asks open tasks before finished ones, a sort the engine applies.
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'openFirst', 'limit', 'offset']
 
 /**
  * The flat body `POST /api/flow-tasks` takes for a task on a record.
@@ -178,7 +179,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				if (value === undefined || value === null || value === '') {
 					continue
 				}
-				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
 			}
 			const response = await axios.get(generateUrl(FLOW_TASKS_URL), { params })
 			const results = response.data?.results || []
@@ -358,7 +359,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				}
 				// The endpoint reads `overdue` as a boolean-ish string; a quick
 				// filter authors it as `true` for legibility.
-				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
 			}
 
 			this.loading = true
