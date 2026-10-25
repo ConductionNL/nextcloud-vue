@@ -69,8 +69,20 @@ import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
+import { readPath } from '../../utils/readPath.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 import { userLocale } from '../../utils/userLocale.js'
+
+/**
+ * A changed value as an entry records it: OpenRegister writes `{ old, new }`,
+ * other sources the value itself.
+ *
+ * @param {unknown} value The recorded change.
+ * @return {unknown} The value it changed to.
+ */
+function newValueOf(value) {
+	return value !== null && typeof value === 'object' && Object.hasOwn(value, 'new') ? value.new : value
+}
 
 /**
  * @param {object} entry An audit entry.
@@ -202,6 +214,18 @@ export default {
 		 * @type {{[key: string]: {[value: string]: string}}|null}
 		 */
 		valueLabels: { type: Object, default: null },
+		/**
+		 * What happened, in words, by the field an entry changed: rules
+		 * `[{ action?, field, to?, label }]`, the first whose `field` the entry
+		 * changed (to `to`, when given) wins over `actionLabels`. A label fills
+		 * the same tokens, plus `{object.<path>}` from `object`
+		 * ("Version {object.version} published" for `isDraft` set to false).
+		 *
+		 * @type {Array<{action?: string, field: string, to?: unknown, label: string}>}
+		 */
+		changeLabels: { type: Array, default: () => [] },
+		/** The audited record, for `{object.<path>}` in a label; null without one. */
+		object: { type: Object, default: null },
 		/**
 		 * Records beside the object whose events belong in its history:
 		 * `[{ as, register, schema, filter, limit? }]`. The card lists the
@@ -394,12 +418,16 @@ export default {
 		 * @return {string} The line.
 		 */
 		formatAction(entry) {
-			const label = this.labelFor(entry)
+			const label = this.changeLabelFor(entry) ?? this.labelFor(entry)
 			if (label !== null) {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
 					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
+					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
+						const value = this.object ? readPath(this.object, path) : undefined
+						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
+					})
 			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
@@ -416,12 +444,37 @@ export default {
 		 */
 		changedValue(entry, key) {
 			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			const value = changed[key]
+			const value = newValueOf(changed[key])
 			if (value === null || value === undefined || typeof value === 'object') {
 				return ''
 			}
 			const words = this.valueLabels && this.valueLabels[key]
 			return words && typeof words[value] === 'string' ? words[value] : String(value)
+		},
+
+		/**
+		 * The `changeLabels` rule an entry matches: the first whose field the
+		 * entry changed, for its action and to its value when the rule names them.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string|null} The label, or null when no rule matches.
+		 */
+		changeLabelFor(entry) {
+			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
+			const action = entry.action || entry.event || ''
+			for (const rule of Array.isArray(this.changeLabels) ? this.changeLabels : []) {
+				if (!rule || typeof rule.label !== 'string' || rule.label === '' || typeof rule.field !== 'string' || !Object.hasOwn(changed, rule.field)) {
+					continue
+				}
+				if (rule.action && rule.action !== action) {
+					continue
+				}
+				if (Object.hasOwn(rule, 'to') && String(newValueOf(changed[rule.field])) !== String(rule.to)) {
+					continue
+				}
+				return rule.label
+			}
+			return null
 		},
 
 		/**
