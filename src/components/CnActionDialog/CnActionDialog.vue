@@ -955,7 +955,25 @@ export default {
 	padding: 12px 14px;
 	border: 2px solid var(--color-primary-element);
 	border-radius: var(--border-radius-element, 8px);
-	background: var(--color-primary-element-light);
+	background: var(--color-main-background);
+}
+
+/* The box sits at the card's inset, 12px before the label, the label on
+   its first line (DqArchiveren "Sanne de Vries laten weten ..."):
+   NcCheckboxRadioSwitch pads its row and centres a 34px target. */
+.cn-action-dialog__checkbox :deep(.checkbox-content) {
+	padding: 0;
+	gap: 12px;
+	align-items: flex-start;
+	min-height: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-content__icon) {
+	margin: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-radio-switch__input) {
+	min-height: 0;
 }
 
 .cn-action-dialog__checkbox-text {
@@ -967,6 +985,7 @@ export default {
 .cn-action-dialog__checkbox-label {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 .cn-action-dialog__checkbox .cn-action-dialog__muted {
