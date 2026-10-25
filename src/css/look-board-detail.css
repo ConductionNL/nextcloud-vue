@@ -828,6 +828,29 @@
 	display: flex;
 }
 
+/* The assistant in the side column (DqZaakAssistent "Assistent") is a panel,
+   not a label card: a 17px title over a hairline, 16px 18px in, its pill at
+   the row's end, the chat flush under it. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) > .cn-widget-wrapper__header {
+	padding: 16px 18px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__title {
+	color: var(--color-main-text) !important;
+	font-size: var(--cn-board-heading-size, 17px);
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items) {
+	display: flex;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) > .cn-widget-wrapper__content {
+	padding: 0;
+}
+
 /* A widget-reported card header action in the main column is a neutral 40px
    control: the main background, the control border, the main text at
    14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document

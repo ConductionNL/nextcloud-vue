@@ -161,3 +161,28 @@ describe('the ai-chat widget in a titled card (DqZaakAssistent "Assistent")', ()
 		expect(wrapper.emitted('menu')).toBeUndefined()
 	})
 })
+
+describe('the assistant as a board side card (DqZaakAssistent r25e)', () => {
+	const fs = require('fs')
+	const path = require('path')
+	const streamState = { messages: [], currentText: '', isStreaming: false, conversationUuid: null, error: null }
+	const detail = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+	it('stacks the input in a titled panel: box and send on a line, tools under it', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, titled: true, sendLabel: 'Ask', streamState }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-ai-input"]').classes()).toContain('cn-ai-input--stacked')
+	})
+
+	it('keeps the one-line input outside a card', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, streamState }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-ai-input"]').classes()).not.toContain('cn-ai-input--stacked')
+	})
+
+	it('titles the side card as a panel and shows its pill', () => {
+		expect(detail).toContain('.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items) {\n\tdisplay: flex;')
+		expect(detail).toMatch(/:has\(\.cn-ai-chat-widget\) \.cn-widget-wrapper__title \{[^}]*font-weight: 700;/)
+		expect(detail).toMatch(/:has\(\.cn-ai-chat-widget\) > \.cn-widget-wrapper__header \{[^}]*padding: 16px 18px;/)
+	})
+})
