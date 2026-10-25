@@ -721,6 +721,13 @@
 	padding-top: calc(14px - var(--cn-board-first-line-leading));
 }
 
+/* A table (an object list) starts 12px below the title's box: its head has
+   a fill and no leading, so the glyph-to-glyph gap above left it 2px short
+   (DqZaaktypeStatussen "Statussen", "Resultaten"). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-list-widget):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
 /* Running text (DqZaak "Het verzoek") sits 12px below the title's box and
    keeps its own half-leading, at 1.6 as drawn.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
@@ -1527,12 +1534,12 @@
 }
 
 /* ---- A card's Add ------------------------------------------------------ */
-/* The board draws a list card's Add as the neutral secondary at the 40px
-   control height, right-aligned in the title row (DqZaakGerelateerd
-   "Deelzaak aanmaken", DqZaakTaken "Toevoegen"). CnDetailWidgetHost renders
+/* The board draws a list card's Add as the neutral secondary right-aligned
+   in the title row, at the title row's 34px (DqZaaktypeStatussen "Status
+   toevoegen", DqZaaktype "Taak toevoegen", DqCatalogus "Objecttype
+   toevoegen": 13 of the 15 boards that draw one). CnDetailWidgetHost renders
    that button in the board look, so the list's footer Add bar, which ADR-062
-   draws in the Nextcloud look, is hidden in the card. The size outranks a
-   card title row's 34px buttons.
+   draws in the Nextcloud look, is hidden in the card.
    @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button */
 .cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-object-list-widget__add {
 	display: none;
@@ -1542,10 +1549,6 @@
    empty state's own Add. A filter's "clear" action stays. */
 .cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add) {
 	display: none;
-}
-
-.cn-look-board .cn-widget-wrapper__actions .button-vue.cn-detail-page__catalog-add:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
-	--button-size: var(--cn-board-control-height);
 }
 
 /* A map in a board card has the board's control corners (DqZaak, DqZaakMeer
@@ -1582,6 +1585,49 @@
 	line-height: 1.2;
 }
 
+/* The contacts tab's rows as DqZaakBetrokkenen "Partijen" draws them: the
+   role heading 15px bold ink in sentence case, each person on a row 12px
+   high-padded under a hairline, the details and the period 13px muted.
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group-title {
+	margin: 6px 0 0;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item {
+	align-items: center;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item:first-child {
+	margin-top: 8px;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__meta,
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	flex: none;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
+	margin-bottom: 8px;
+}
+
 /* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
    the card's padding instead of its own, and its buttons start at the card's
    edge under the subtitle.
@@ -1592,4 +1638,56 @@
 
 .cn-look-board .cn-detail-page__leaf-card .cn-contacts-tab .cn-contacts-tab__header {
 	justify-content: flex-start;
+}
+
+/* A body card's subtitle as the Dq boards draw it: 14px muted at line
+   height 1.2, 3px under the title, and the content 12px under it.
+   @spec openspec/changes/board-card-subtitle-gaps/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__title-stack:has(> .cn-widget-wrapper__subtitle) {
+	gap: 3px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) .cn-widget-wrapper__subtitle {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content {
+	padding-top: 12px;
+}
+
+/* A checklist (DqTaak): each item an 18-20px box at the card's own inset, the
+   label 10px after it in weight 600, 12px between items, the list 2px below
+   the title block. Nextcloud's checkbox pads its box 7px in and makes every row
+   34px tall, which put the list 7px right and 2px apart too far per item.
+   @spec openspec/changes/board-checklist-rows/specs/checklist-widget/spec.md#requirement-a-board-checklist-sits-at-the-card-inset */
+.cn-look-board .cn-checklist-widget__items {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content {
+	padding: 0;
+	gap: 10px;
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content.checkbox-content .checkbox-content__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch__input {
+	min-height: 20px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__wrapper,
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	line-height: 18px;
+	min-height: 0;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-content__text {
+	font-weight: 600;
 }
