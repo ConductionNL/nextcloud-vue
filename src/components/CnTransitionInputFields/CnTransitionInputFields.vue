@@ -162,6 +162,26 @@
 				</p>
 			</div>
 
+			<!-- A days input set as a date (`dateField`): today plus the days,
+			     and a chosen date sets the days. -->
+			<div v-if="field.input.dateField"
+				:key="`${field.key}-date`"
+				class="cn-transition-input-fields__field cn-transition-input-fields__wide"
+				:data-testid="field.input.dateField.testid || `cn-transition-input-date-${field.key}`">
+				<label class="cn-transition-input-fields__label"
+					:for="`${inputId(field)}-date`">{{ dateFieldLabel(field) }}</label>
+				<NcTextField :id="`${inputId(field)}-date`"
+					:modelValue="field.dateValue"
+					type="date"
+					:label="dateFieldLabel(field)"
+					:labelOutside="true"
+					:disabled="disabled"
+					@update:modelValue="setValue(field.key, daysUntilIso($event))" />
+				<span v-if="field.input.dateField.note" class="cn-transition-input-fields__muted">
+					{{ field.input.dateField.note }}
+				</span>
+			</div>
+
 			<!-- What the input means once filled in, such as the day a paused
 			     term comes back. Shown only once it can be worked out. -->
 			<div v-if="field.previewText"
@@ -209,7 +229,7 @@ import { NcCheckboxRadioSwitch, NcSelect, NcTextArea, NcTextField } from '@nextc
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
 import { readPath } from '../../utils/readPath.js'
-import { applyTemplateText, isInputFilled, resolveInputFields } from '../../utils/transitionInputs.js'
+import { applyTemplateText, daysUntilIso, isInputFilled, resolveInputFields } from '../../utils/transitionInputs.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 let uid = 0
@@ -503,6 +523,28 @@ export default {
 				return `${field.label} *`
 			}
 			return this.markOptional && !field.required ? `${field.label} (${t('nextcloud-vue', 'optional')})` : field.label
+		},
+
+		/**
+		 * The label of a days input's date field (`dateField`), with the
+		 * optional marker when asked for: the date is never required.
+		 *
+		 * @param {object} field The descriptor.
+		 * @return {string}
+		 */
+		dateFieldLabel(field) {
+			const label = String(field.input.dateField.label || '')
+			return this.markOptional ? `${label} (${t('nextcloud-vue', 'optional')})` : label
+		},
+
+		/**
+		 * The days a chosen date stands for.
+		 *
+		 * @param {string} iso The date input's value.
+		 * @return {string} The days, '' without a date.
+		 */
+		daysUntilIso(iso) {
+			return daysUntilIso(iso)
 		},
 
 		/**
