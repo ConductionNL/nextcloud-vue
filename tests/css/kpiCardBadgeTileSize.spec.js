@@ -35,6 +35,10 @@ describe('kpi-card.css: the board tile with its badge at the end', () => {
 		expect(rule).toContain('--cn-kpi-stacked-gap: 8px;')
 	})
 
+	it('sets its label at 600, as the boards draw this tile', () => {
+		expect(body(TILE)).toContain('--cn-kpi-stacked-title-weight: 600;')
+	})
+
 	it('sets its figure at the normal line height, over the theme\'s', () => {
 		expect(body(`${TILE} .cn-kpi-card__value`)).toContain('line-height: normal !important;')
 	})

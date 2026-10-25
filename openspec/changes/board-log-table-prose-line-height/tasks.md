@@ -1,0 +1,2 @@
+- [x] look-board-index.css rule (probed on :8080)
+- [x] tests/css/lookBoardLogProseLineHeight.spec.js (red first)

@@ -2178,7 +2178,8 @@ export default {
 			const object = {
 				...entry,
 				name: node.basename,
-				modified: node.mtime,
+				// A template drops an object value, so the Date is handed over as ISO text.
+				modified: node.mtime instanceof Date ? node.mtime.toISOString() : node.mtime,
 				size: this.formatSize(node.size),
 				type: this.typeLabelOf(node),
 				...(owner ? { owner } : {}),
@@ -3646,6 +3647,19 @@ export default {
 
 .cn-files-browser__col-actions:has(.cn-files-browser__row-button) {
 	width: auto;
+}
+
+/* The row button and the row menu stand side by side on one line, not
+   stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
+   @spec openspec/changes/files-row-button-beside-menu/specs/files-row-button-beside-menu/spec.md#requirement-a-files-row-button-stands-beside-the-row-menu */
+.cn-files-browser__col-actions > .cn-files-browser__row-button,
+.cn-files-browser__col-actions > .cn-files-browser__row-menu {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
+.cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu {
+	margin-inline-start: 14px;
 }
 
 .cn-files-browser__col-name {

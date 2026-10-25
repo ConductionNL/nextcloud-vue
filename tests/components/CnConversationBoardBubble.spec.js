@@ -90,6 +90,8 @@ describe('the conversation bubble on the board', () => {
 		const w = mountWidget(CONTENT)
 		await flushPromises()
 		expect(w.find('[data-testid="cn-conversation-subtitle"]').text()).toBe('Oldest first, with the channel of each message')
+		// @spec openspec/changes/conversation-subtitle-not-a-paragraph/specs/conversation-subtitle-not-a-paragraph/spec.md#requirement-the-conversation-subtitle-keeps-its-14px-under-a-paragraph-theme
+		expect(w.find('[data-testid="cn-conversation-subtitle"]').element.tagName).toBe('DIV')
 	})
 
 	it('keeps the direction for screen readers only without showDirection', async () => {
