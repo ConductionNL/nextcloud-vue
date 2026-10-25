@@ -991,6 +991,13 @@
 	text-decoration: none;
 }
 
+/* In such a plain log an icon-and-name cell is regular too (DqZaakContact
+   Kanaal "Mijn Zuiddrecht"); elsewhere the icon label stays 600.
+   @spec openspec/changes/board-log-table-icon-label-regular/specs/board-log-table-icon-label-regular/spec.md#requirement-a-plain-logs-icon-label-cell-is-regular */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-cell-renderer__icon-label:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
 /* `rowTitle: "strong"` (DqZaaktypeStatussen "Statussen", "Resultaten"): the
    name column of a card's list, the cell's 14px at weight 600 in the main
    ink, no underline; the row stays a link.
