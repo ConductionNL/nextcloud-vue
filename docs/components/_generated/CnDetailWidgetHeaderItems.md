@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                                        |
-| -------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------- |
-| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, variant?, run }] }`. |
+| Name     | Type     | Required | Default | Description                                                                                                              |
+| -------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, run }] }`; `add: true` marks a list's Add. |
