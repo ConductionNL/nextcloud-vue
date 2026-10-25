@@ -21,6 +21,22 @@
 -->
 <template>
 	<CnDetailCard :title="cardHeaderTitle" :icon="cardIcon" :collapsible="collapsible">
+		<!-- `headerActions`: the Deck tab's link and create flows in the title row (detail page). -->
+		<template v-if="shownHeaderActions.length > 0" #actions>
+			<NcButton
+				v-for="action in shownHeaderActions"
+				:key="action"
+				variant="secondary"
+				:data-testid="`cn-deck-card-${action}`"
+				@click.stop="action === 'create' ? (createOpen = true) : (pickerOpen = true)">
+				<template #icon>
+					<Plus v-if="action === 'create'" :size="20" />
+					<LinkVariant v-else :size="20" />
+				</template>
+				{{ action === 'create' ? createLabel : linkLabel }}
+			</NcButton>
+		</template>
+
 		<NcLoadingIcon v-if="loading" />
 
 		<!-- single-entity surface: chip -->
@@ -102,13 +118,33 @@
 				</section>
 			</div>
 		</template>
+
+		<p v-if="actionError" class="cn-deck-card__action-error" role="alert">
+			{{ actionError }}
+		</p>
+
+		<CnDeckCardPicker
+			v-if="pickerOpen"
+			:apiBase="apiBase"
+			@close="pickerOpen = false"
+			@link="onLink" />
+
+		<CnDeckCardCreate
+			v-if="createOpen"
+			:apiBase="apiBase"
+			@close="createOpen = false"
+			@create="onCreate" />
 	</CnDetailCard>
 </template>
 
 <script>
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
+import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
@@ -123,7 +159,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
 export default {
 	name: 'CnDeckCard',
 
-	components: { CnDetailCard, NcLoadingIcon, ViewColumnOutline },
+	components: { CnDeckCardCreate, CnDeckCardPicker, CnDetailCard, LinkVariant, NcButton, NcLoadingIcon, Plus, ViewColumnOutline },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'deck'`). */
@@ -157,6 +193,16 @@ export default {
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Deck is currently unavailable.') },
 		/** URL of the NC Deck app entry. */
 		deckAppUrl: { type: String, default: '/index.php/apps/deck' },
+		/**
+		 * Buttons in the card's title row on a detail page: `link` links an
+		 * existing Deck card, `create` makes a new one linked to the object.
+		 * In the order given; none by default.
+		 */
+		headerActions: { type: Array, default: () => [] },
+		/** Label of the `link` button. */
+		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link an existing card') },
+		/** Label of the `create` button. */
+		createLabel: { type: String, default: () => t('nextcloud-vue', 'New card') },
 	},
 
 	data() {
@@ -165,10 +211,26 @@ export default {
 			entity: null,
 			loading: false,
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
+			actionError: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * The title-row buttons to draw: only on a detail page with an
+		 * object, only the known ones, in the order given.
+		 *
+		 * @return {Array<string>}
+		 */
+		shownHeaderActions() {
+			if (this.surface !== 'detail-page' || !this.objectId || !Array.isArray(this.headerActions)) {
+				return []
+			}
+			return this.headerActions.filter((action, index, all) => ['create', 'link'].includes(action) && all.indexOf(action) === index)
+		},
+
 		cardHeaderTitle() {
 			return this.title || this.integrationId
 		},
@@ -263,6 +325,58 @@ export default {
 	},
 
 	methods: {
+		/** @return {string} The object's Deck endpoint the link and create flows post to. */
+		deckEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/deck`
+		},
+
+		/**
+		 * Link the picked card, then read the list again.
+		 *
+		 * @param {object} payload `{ cardId }` from the picker.
+		 */
+		async onLink(payload) {
+			this.pickerOpen = false
+			await this.post(this.deckEndpoint(), payload, t('nextcloud-vue', 'Could not link card.'))
+		},
+
+		/**
+		 * Create the card linked to the object, then read the list again.
+		 *
+		 * @param {object} payload `{ boardId, stackId, title, ... }` from the form.
+		 */
+		async onCreate(payload) {
+			this.createOpen = false
+			await this.post(`${this.deckEndpoint()}/new`, payload, t('nextcloud-vue', 'Could not create card.'))
+		},
+
+		/**
+		 * POST one flow's payload and reload on success.
+		 *
+		 * @param {string} url The endpoint.
+		 * @param {object} payload The body.
+		 * @param {string} failure The sentence shown when it fails.
+		 */
+		async post(url, payload, failure) {
+			this.actionError = ''
+			try {
+				const response = await fetch(prefixUrl(url), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchList()
+				} else if (response.status === 409) {
+					this.actionError = t('nextcloud-vue', 'This card is already linked.')
+				} else {
+					this.actionError = failure
+				}
+			} catch {
+				this.actionError = failure
+			}
+		},
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},
@@ -366,6 +480,11 @@ export default {
 </script>
 
 <style scoped>
+.cn-deck-card__action-error {
+	margin: 8px 0 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
 .cn-deck-card__empty {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;

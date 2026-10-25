@@ -6,9 +6,11 @@
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -19,6 +21,7 @@ import { fillTemplate } from '../utils/fillTemplate.js'
 import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
+import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
 import { useFlowStore } from './useFlowStore.js'
 import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
@@ -699,12 +702,15 @@ function tasksSource() {
 		 *
 		 * @param {string} key The column key.
 		 * @param {string} order `asc` or `desc`.
-		 * @return {{sort: string}|null} The parameter, or null for a column the inbox cannot sort by.
+		 * Open tasks come before finished ones (`openFirst`), each in that order.
+		 *
+		 * @return {{sort: string, openFirst: boolean}|null} The parameters, or null for a column the inbox cannot sort by.
 		 * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+		 * @spec openspec/changes/tasks-source-open-first/specs/index-sources/spec.md#requirement-a-sorted-task-list-puts-open-tasks-first
 		 */
 		sortParam: (key, order) => {
 			const field = TASK_SORT_FIELDS[key]
-			return field ? { sort: (order === 'desc' ? '-' : '') + field } : null
+			return field ? { sort: (order === 'desc' ? '-' : '') + field, openFirst: true } : null
 		},
 
 		// The scope tabs. Each tab's filter is merged over the page's
@@ -1088,7 +1094,7 @@ function fillRowTemplate(template, row) {
  * and its count (DqZoekresultaten).
  *
  * `sourceConfig.kinds` lists what is searched:
- * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, href?, limit? }`
+ * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, linkedUser?, href?, limit? }`
  * for objects (OpenRegister's `_search`, so the reader sees what they may
  * read), or `{ id, label, files: true, limit? }` for the reader's files
  * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
@@ -1104,6 +1110,8 @@ function fillRowTemplate(template, row) {
  * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
  * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
  * result, else `subtitleField`.
+ * `linkedUser: true` reads that value as a user id and shows the user's
+ * display name. `sourceConfig.columnWidths` sets a width per column key.
  * The page's title and count line can name the term as `{term}`, and the
  * count is the active kind's total. Kind, link and status are filterable.
  *
@@ -1113,6 +1121,23 @@ function fillRowTemplate(template, row) {
  * @return {object} The source adapter.
  * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
  */
+/**
+ * Columns with the widths a page names per column key
+ * (`sourceConfig.columnWidths`, `{ title: '250px' }`); a column it does not
+ * name keeps none.
+ *
+ * @param {Array<object>} columns The columns.
+ * @param {object|undefined} widths The widths by key.
+ * @return {Array<object>} The columns.
+ * @spec openspec/changes/search-linked-user-and-widths/specs/search-linked-user-and-widths/spec.md
+ */
+function withColumnWidths(columns, widths) {
+	if (!widths || typeof widths !== 'object') {
+		return columns
+	}
+	return columns.map((col) => (typeof widths[col.key] === 'string' && widths[col.key] !== '' ? { ...col, width: widths[col.key] } : col))
+}
+
 function searchSource(config = {}, context = {}) {
 	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
 	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
@@ -1208,12 +1233,20 @@ function searchSource(config = {}, context = {}) {
 		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
 	}
 
+	// `linkedUser`: the Linked cell holds a user id; name the user instead.
+	const linkedUserNames = async (kind, objects) => {
+		const ids = [...new Set(objects.map((object) => linkedOf(kind, object)).filter((id) => id !== ''))]
+		const options = await Promise.all(ids.map((id) => resolveNextcloudUser(id).catch(() => null)))
+		return new Map(ids.map((id, index) => [id, (options[index] && options[index].label) || id]))
+	}
+
 	const searchObjects = async (axios, kind, term) => {
 		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
 		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
 		const body = (res && res.data) || {}
 		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
 		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
+		const userNames = kind.linkedUser === true ? await linkedUserNames(kind, results) : null
 		return {
 			total: typeof body.total === 'number' ? body.total : results.length,
 			rows: results.map((object) => {
@@ -1230,7 +1263,7 @@ function searchSource(config = {}, context = {}) {
 					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
 					subtitle: subtitleOf(kind, object),
 					status,
-					linked: linkedOf(kind, object),
+					linked: userNames ? (userNames.get(linkedOf(kind, object)) || linkedOf(kind, object)) : linkedOf(kind, object),
 					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
 					object,
 				}
@@ -1338,7 +1371,7 @@ function searchSource(config = {}, context = {}) {
 		 */
 		loading: () => state.loading,
 
-		columns: [
+		columns: withColumnWidths([
 			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true },
 			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
 			// DqZoekresultaten), instead of the plural kind as a pill.
@@ -1353,7 +1386,7 @@ function searchSource(config = {}, context = {}) {
 				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
 				sortable: true,
 			},
-		],
+		], config && config.columnWidths),
 
 		/**
 		 * Every column header carries a filter button (DqZoekresultaten); the
@@ -1602,6 +1635,15 @@ function usersSource() {
 
 		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
 		headerFilters: true,
+
+		/**
+		 * A member's row menu (DqAfdelingen): their Nextcloud profile, and an
+		 * e-mail when they have an address. Both are links.
+		 */
+		rowActions: [
+			{ id: 'open-profile', label: t('nextcloud-vue', 'Open profile'), icon: AccountOutline, href: (row) => generateUrl(`/u/${encodeURIComponent(row.id)}`) },
+			{ id: 'send-email', label: t('nextcloud-vue', 'Send email'), icon: EmailOutline, href: (row) => `mailto:${row.email}`, visible: (row) => Boolean(row && row.email) },
+		],
 
 		showAdd: false,
 	}

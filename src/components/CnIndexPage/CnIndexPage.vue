@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -172,7 +172,7 @@
 				:maxVisible="quickFilterMaxVisible"
 				:fit="false"
 				:multiple="quickFilterMultiple"
-				:activeIndex="activeQuickFilterIndex"
+				:activeIndex="shownQuickFilterIndex"
 				:selectedIndices="selectedQuickFilterIndices"
 				:counts="effectiveTabCounts"
 				@update:activeIndex="onQuickFilterChange"
@@ -875,6 +875,7 @@
 					:columns="renderedColumns"
 					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
+					:rowIconTone="rowIconTone"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
@@ -2241,6 +2242,21 @@ export default {
 		},
 
 		/**
+		 * Board look: the count line while a saved view is applied (manifest
+		 * `config.savedViewCountText`), a template as `countText` that may name
+		 * the view's conditions as `{view}`: its description, else its filters
+		 * in words (DqFilterInMenu "3 van 48 lopende zaken · termijn binnen 7
+		 * dagen, van mij · gesorteerd op termijn"). A view's own `countText`
+		 * override and a scope's come first.
+		 *
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		savedViewCountText: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Board look: a count line per view (manifest `config.countTextByView`),
 		 * `{ table?, cards?, list?, board?, map? }`, each a template as
 		 * `countText`: the board view says "bordweergave per status" where the
@@ -3168,6 +3184,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The leading icon's tile tone in the board look (`primary`, `teal`,
+		 * `neutral`), from `pages[].config.rowIconTone`. Forwarded to CnDataTable.
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/** Columns to exclude in schema mode */
@@ -4580,6 +4607,8 @@ export default {
 			savedViewCounts: null,
 			// The id (or slug) of the saved view that is applied; its chip shows selected under the board look.
 			appliedSavedViewId: '',
+			/** Whether the reader picked a lens chip after the applied view (then their chip shows). */
+			lensChosenByHand: false,
 			// The sort option the applied view's `overrides.sortOption` selected, so leaving the view can undo it.
 			viewSortOption: '',
 			// The applied view's filters as one comparable key, so the address keeps naming the view until they change.
@@ -4653,6 +4682,8 @@ export default {
 			savedViews: [],
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
+			/** Whether the reader changed the view since it was opened or saved. */
+			viewChanged: false,
 			viewPendingDelete: null,
 			/** An `api-call` header action waiting on its confirmation, or null. */
 			headerApiCallPending: null,
@@ -6403,6 +6434,7 @@ export default {
 				r: this.register,
 				s: this.exportSchemaSlug,
 				f: this.filter || null,
+				a: this.effectiveActiveFilters || null,
 				e: this.countEntries,
 				// The store's total, not the error override in effectivePagination,
 				// so a failed fetch and its recovery do not refetch the counts.
@@ -6419,13 +6451,53 @@ export default {
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
 		/**
-		 * The chip the strip lights: the active tab, else the default tab of
-		 * tabs that arrived after setup (`quickFiltersFrom`), which is the
-		 * one the fetch applies.
+		 * The lens chip an applied saved view narrows within: the non-default
+		 * tab whose every condition the view's own conditions (its filters
+		 * over its locked filters, tokens as written) hold, the most specific
+		 * first (DqFilterInMenu: "Termijn deze week" lit for the view of that
+		 * name). Null without an applied view or a fitting tab.
+		 *
+		 * @return {number|null} The tab index.
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewLensIndex() {
+			const view = this.appliedSavedView
+			const tabs = Array.isArray(this.tabStripEntries) ? this.tabStripEntries : []
+			if (!view || tabs.length === 0) {
+				return null
+			}
+			const query = view.query && typeof view.query === 'object' ? view.query : {}
+			const locked = query.overrides && typeof query.overrides.lockedFilters === 'object' ? query.overrides.lockedFilters : {}
+			const conditions = { ...(locked || {}), ...(query.filters || view.filters || {}) }
+			const same = (a, b) => JSON.stringify(Array.isArray(a) ? a.map(String) : String(a)) === JSON.stringify(Array.isArray(b) ? b.map(String) : String(b))
+			let best = null
+			let bestSize = 0
+			tabs.forEach((tab, index) => {
+				const filter = tab && tab.filter && typeof tab.filter === 'object' ? tab.filter : {}
+				const keys = Object.keys(filter)
+				if (tab.default === true || keys.length === 0 || keys.length <= bestSize) {
+					return
+				}
+				if (keys.every((key) => Object.hasOwn(conditions, key) && same(conditions[key], filter[key]))) {
+					best = index
+					bestSize = keys.length
+				}
+			})
+			return best
+		},
+
+		/**
+		 * The chip the strip lights: the lens an applied saved view narrows
+		 * within (until the reader picks a chip), else the active tab, else
+		 * the default tab of tabs that arrived after setup
+		 * (`quickFiltersFrom`), which is the one the fetch applies.
 		 *
 		 * @return {number|null} The tab index, or null without tabs.
 		 */
 		shownQuickFilterIndex() {
+			if (!this.quickFilterMultiple && !this.lensChosenByHand && this.appliedViewLensIndex !== null) {
+				return this.appliedViewLensIndex
+			}
 			if (this.activeQuickFilterIndex !== null && this.activeQuickFilterIndex !== undefined) {
 				return this.activeQuickFilterIndex
 			}
@@ -8649,12 +8721,20 @@ export default {
 
 		/**
 		 * Whether the toolbar draws Save view: not when the page switches it
-		 * off (`savedViewSave: false`) or its header carries one.
+		 * off (`savedViewSave: false`) or its header carries one, and in the
+		 * board look only once the view has changed.
 		 *
+		 * @spec openspec/changes/board-save-view-only-when-changed/specs/saved-views/spec.md#requirement-the-board-look-offers-save-view-once-the-view-has-changed
 		 * @return {boolean}
 		 */
 		toolbarSavesView() {
-			return this.savedViewSave !== false && !this.headerSavesView
+			if (this.savedViewSave === false || this.headerSavesView) {
+				return false
+			}
+			// The board look offers it once the view differs from the one
+			// opened: changed by the reader, or, with no saved view open,
+			// filtered by the address.
+			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
 		},
 
 		/**
@@ -8815,6 +8895,11 @@ export default {
 		 * @return {string}
 		 */
 		presentedCountText() {
+			const viewLine = this.savedViewCountText
+			const view = this.appliedSavedView
+			if (view && typeof viewLine === 'string' && viewLine !== '' && this.activeScopePresentation.countText === undefined && !savedViewOverrides(view)?.countText) {
+				return viewLine
+			}
 			if (this.activeScopePresentation.countText === undefined) {
 				const byView = this.countTextByView
 				const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
@@ -8823,6 +8908,23 @@ export default {
 				}
 			}
 			return this.presented('countText')
+		},
+
+		/**
+		 * The applied saved view's conditions for the count line's `{view}`:
+		 * its description, else its filters in words, starting lower case.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/applied-view-lights-its-lens/specs/applied-view-lights-its-lens/spec.md
+		 */
+		appliedViewConditionsText() {
+			const view = this.appliedSavedView
+			if (!view) {
+				return ''
+			}
+			const own = typeof view.description === 'string' ? view.description.trim() : ''
+			const text = own !== '' ? own : String(this.viewFilterSummary(view) || '')
+			return text.charAt(0).toLowerCase() + text.slice(1)
 		},
 
 		headerDescriptionBase() {
@@ -8848,6 +8950,7 @@ export default {
 						.replace('{shown}', String(shown))
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
+						.replace(/\{view\}/g, this.appliedViewConditionsText)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -8914,6 +9017,17 @@ export default {
 		},
 
 		/**
+		 * Whether the page's side panel is open now; the board look then lays
+		 * the header out narrower (DqZakenSorteren).
+		 *
+		 * @spec openspec/changes/board-header-buttons-under-title-beside-side-panel/specs/board-header-buttons-under-title-beside-side-panel/spec.md#requirement-the-header-buttons-sit-under-the-title-while-the-side-panel-is-open
+		 * @return {boolean}
+		 */
+		sidebarPanelOpen() {
+			return Boolean(this.sidebarOpen && this.hasSidebar)
+		},
+
+		/**
 		 * Whether the board toolbar draws the Filter button as a menu: the
 		 * board look, `filterMenu` on, something to filter by, and no filter
 		 * sidebar (whose toggle is that button otherwise).
@@ -8955,7 +9069,9 @@ export default {
 
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
-			return (this.sidebar && this.sidebar.search) || {}
+			// The page's own search hint, unless `sidebar.search` names one.
+			const own = this.shownSearchPlaceholder ? { searchPlaceholder: this.shownSearchPlaceholder } : {}
+			return { ...own, ...((this.sidebar && this.sidebar.search) || {}) }
 		},
 
 		/**
@@ -9909,7 +10025,15 @@ export default {
 			const counts = await fetchFilterCounts({
 				register: this.register,
 				schema,
-				entries: this.countEntries.map((entry) => ({ key: entry.key, filter: resolveFilterMap(entry.filter, params, ctx) })),
+				// A quick filter counts within the list as filtered (the
+				// active filters, its own field its own); a saved view counts
+				// its own query.
+				entries: this.countEntries.map((entry) => ({
+					key: entry.key,
+					filter: entry.key.startsWith('tab:')
+						? { ...(this.effectiveActiveFilters || {}), ...resolveFilterMap(entry.filter, params, ctx) }
+						: resolveFilterMap(entry.filter, params, ctx),
+				})),
 				baseFilter: resolveFilterMap(this.filter, params, ctx),
 				ctx,
 			})
@@ -10756,6 +10880,7 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
+			this.viewChanged = true
 			if (this.namedSourceSearches) {
 				this.namedSearchTerm = value || ''
 			}
@@ -10775,9 +10900,11 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterChange(index) {
+			this.viewChanged = true
 			// `activeQuickFilterIndex` is a setup-returned ref; the
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
+			this.lensChosenByHand = true
 			this.$emit('quick-filter-change', index)
 		},
 
@@ -10790,6 +10917,7 @@ export default {
 		 * @return {void}
 		 */
 		onQuickFilterMultiChange(indices) {
+			this.viewChanged = true
 			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
 			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
@@ -10805,6 +10933,7 @@ export default {
 		 * @return {void}
 		 */
 		onSidebarSortChange(keys, value) {
+			this.viewChanged = true
 			if (value !== undefined && this.selectSortOption(value)) {
 				return
 			}
@@ -10884,6 +11013,7 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
+			this.viewChanged = true
 			// An order by keys (a column header, a field in the Sort section)
 			// leaves an endpoint-ranked order.
 			if (this.sortSource.value) {
@@ -11087,6 +11217,7 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			this.viewChanged = true
 			// "Clear all" on the Active line also undoes the quick filters it
 			// listed (a tab without an `activeLabel` is not a filter there).
 			for (const chip of this.quickFilterActiveChips) {
@@ -11195,6 +11326,7 @@ export default {
 		 * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-a-board-can-switch-the-field-its-columns-come-from
 		 */
 		onBoardColumnFieldChange(field) {
+			this.viewChanged = true
 			this.boardColumnFieldChoice = field
 			/**
 			 * @event board-column-field-change The board's column switch picked another field. Payload: the field name.
@@ -11210,6 +11342,7 @@ export default {
 		 * @return {void}
 		 */
 		onBoardNarrowChange(value) {
+			this.viewChanged = true
 			this.onFilterEvent({ key: this.boardNarrow.field, values: value === '' ? [] : [value] })
 		},
 
@@ -11272,6 +11405,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
 				this.persistViewStateToRoute(this.currentViewState())
@@ -11294,6 +11428,7 @@ export default {
 		 * @spec openspec/changes/screens-index-list-parity/specs/index-list-board-look/spec.md#requirement-the-toolbar-sits-on-the-ground-in-two-rows
 		 */
 		onRemoveActiveFilter(chip) {
+			this.viewChanged = true
 			if (chip && chip.searchTerm === true) {
 				this.onSearchEvent('')
 				return
@@ -12262,6 +12397,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsEvent(columns) {
+			this.viewChanged = true
 			if (this.isSelfFetchMode && this.list.visibleColumns) {
 				this.list.visibleColumns.value = columns
 			}
@@ -12309,6 +12445,7 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsReorder(columns) {
+			this.viewChanged = true
 			this.onColumnsEvent(columns)
 		},
 
@@ -12319,6 +12456,7 @@ export default {
 		 * @return {void}
 		 */
 		onPinChange(count) {
+			this.viewChanged = true
 			if (!this.personalColumns || Array.isArray(this.appliedViewColumns)) {
 				return
 			}
@@ -13213,6 +13351,7 @@ export default {
 		 */
 		onApplySavedView(view, { keepSavedViewKey = false } = {}) {
 			this.appliedSavedViewId = view && (view.id || view.slug) ? String(view.id || view.slug) : ''
+			this.lensChosenByHand = false
 			const state = extractViewState(view)
 			// A view's filters may carry tokens (`@me`, `@myTeam`): resolved here,
 			// and an optional one that answers nothing (no team) is dropped. A
@@ -13221,6 +13360,10 @@ export default {
 				loadMyTeam().then(() => this.onApplySavedView(view, { keepSavedViewKey }))
 				return
 			}
+			// An opened view is unchanged until the reader changes it.
+			this.$nextTick(() => {
+				this.viewChanged = false
+			})
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			state.filters = dropOptionalUnresolved(resolveFilterTokens(state.filters, ctx))
 			this.appliedViewFiltersKey = this.viewFiltersKey(state.filters)
@@ -13346,6 +13489,7 @@ export default {
 				}
 				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.viewChanged = false
 				this.sidebarActiveTab = 'filters-tab'
 				this.sidebarOpen = true
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))

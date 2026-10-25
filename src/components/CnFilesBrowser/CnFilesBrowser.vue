@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-files-browser"
-		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetail !== '' }"
+		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetailTemplate !== '' }"
 		data-testid="cn-files-browser"
 		@dragenter.prevent="onDragEnter"
 		@dragover.prevent="onDragOver"
@@ -775,6 +775,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
@@ -1093,8 +1094,20 @@ export default {
 		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
 		 */
 		dropDetail: {
-			type: String,
+			type: [String, Array],
 			default: '',
+		},
+
+		/**
+		 * Named values filled into `dropDetail` as `{name}`, such as the case
+		 * number (`{ "case": "@object.identifier" }` in a detail page's props).
+		 * While a value is unknown the line is left out.
+		 *
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailValues: {
+			type: Object,
+			default: null,
 		},
 
 		/** Show a line under the list saying files can be dropped on it. */
@@ -1390,6 +1403,22 @@ export default {
 
 	computed: {
 		/**
+		 * The `dropDetail` text: the string, or the text of the first variant
+		 * `{ when, text }` whose `when` is `true` or that has none.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailTemplate() {
+			if (typeof this.dropDetail === 'string') {
+				return this.dropDetail
+			}
+			const variants = Array.isArray(this.dropDetail) ? this.dropDetail : []
+			const chosen = variants.find((item) => item && typeof item.text === 'string' && (!('when' in item) || item.when === true))
+			return chosen ? chosen.text : ''
+		},
+
+		/**
 		 * `dropDetail` through the host translate with `{count}` filled, '' when
 		 * there is none or the count it needs is unknown.
 		 *
@@ -1397,10 +1426,22 @@ export default {
 		 * @return {string}
 		 */
 		dropDetailText() {
-			if (!this.dropDetail) {
+			const template = this.dropDetailTemplate
+			if (!template) {
 				return ''
 			}
-			const text = this.cnTranslate(this.dropDetail)
+			let text = this.cnTranslate(template)
+			// `dropDetailValues`: named values such as the case number; a value
+			// still unknown (an unresolved `@` token, or empty) leaves the line out.
+			// @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+			const values = this.dropDetailValues && typeof this.dropDetailValues === 'object' ? this.dropDetailValues : {}
+			for (const [name, value] of Object.entries(values)) {
+				const shown = value === null || value === undefined ? '' : String(value)
+				if (shown === '' || shown.startsWith('@')) {
+					return ''
+				}
+				text = text.split(`{${name}}`).join(shown)
+			}
 			if (!text.includes('{count}')) {
 				return text
 			}
@@ -3049,7 +3090,7 @@ export default {
 				? { path: this.currentPath }
 				: { fileId: node.fileid, fileName: node.basename, path: node.path }
 			if (type === 'open-modal') {
-				wrapped = { ...action, props: { ...(action.props || {}), ...context } }
+				wrapped = { ...action, props: { ...(action.props || {}), ...context, ...this.rowPropsOf(action, node) } }
 			} else if (type === 'handler') {
 				wrapped = { ...action, args: [...(action.args || []), node ?? this.folder] }
 			}
@@ -3058,6 +3099,32 @@ export default {
 				return
 			}
 			dispatchAction(wrapped, { router: this.$router || null })
+		},
+
+		/**
+		 * The clicked file's row-data fields an action asks for as modal props
+		 * (`rowProps: { prop: field }`), or none.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {object|null} node The file, or null for a New-menu entry.
+		 * @return {object} The props.
+		 * @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-modal-action-can-carry-fields-of-the-clicked-files-row-data
+		 */
+		rowPropsOf(action, node) {
+			const wanted = action && action.rowProps
+			if (node === null || !wanted || typeof wanted !== 'object') {
+				return {}
+			}
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const out = {}
+			for (const [prop, field] of Object.entries(wanted)) {
+				const value = readPath(entry, String(field))
+				if (value !== undefined && value !== null && value !== '') {
+					out[prop] = value
+				}
+			}
+			return out
 		},
 
 		/**
@@ -3276,6 +3343,17 @@ export default {
 	gap: 6px 12px;
 	margin: 0;
 	font-size: 14px;
+}
+
+/* Core's apps.css draws every dt/dd inline-block with a fixed, end-aligned dt.
+   @spec openspec/changes/files-side-facts-core-dl/specs/files-side-facts-core-dl/spec.md#requirement-a-file-side-cards-facts-are-not-drawn-by-cores-dl-rules */
+.cn-files-browser__side-facts dt,
+.cn-files-browser__side-facts dd {
+	display: block;
+	width: auto;
+	padding: 0;
+	text-align: start;
+	white-space: normal;
 }
 
 .cn-files-browser__side-facts dt {

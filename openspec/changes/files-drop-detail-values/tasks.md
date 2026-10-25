@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser dropDetailValues + CnFilesTab forward
+- [x] Spec tests/components/CnFilesBrowserDropPanel.spec.js

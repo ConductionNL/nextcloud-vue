@@ -669,14 +669,14 @@ export default {
 		},
 
 		/**
-		 * How the table draws its title column (`content.rowTitle`: link, plain
-		 * or text), link when unset or unknown.
+		 * How the table draws its title column (`content.rowTitle`: link, plain,
+		 * text or strong), link when unset or unknown.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle() {
-			return ['plain', 'text'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
+			return ['plain', 'text', 'strong'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
 		},
 
 		/**
@@ -860,7 +860,7 @@ export default {
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}

@@ -41,3 +41,19 @@ describe('CnMapWidget header count', () => {
 		expect(CnMapWidget.emits).toContain('header')
 	})
 })
+
+describe('CnMapWidget header count as a note', () => {
+	const note = (ctx) => CnMapWidget.computed.headerNoteText.call({ cnTranslate: (k) => NL[k] ?? k, ...ctx })
+
+	it('says the count at the right of the title row with content.headerNote (DqZaak "Locaties ... 1 locatie")', () => {
+		expect(note({ content: { headerNote: SUB }, markersLoaded: true, markersFailed: false, markerCount: 1 })).toBe('1 locatie')
+		expect(note({ content: { headerNote: SUB }, markersLoaded: true, markersFailed: false, markerCount: 0 })).toBe('')
+		expect(note({ content: { headerSubtitle: SUB }, markersLoaded: true, markersFailed: false, markerCount: 1 })).toBe('')
+	})
+
+	it('reports it as the header note', () => {
+		const emit = jest.fn()
+		CnMapWidget.watch.headerNoteText.call({ $emit: emit, content: { headerNote: SUB } }, '1 locatie')
+		expect(emit).toHaveBeenCalledWith('header', { note: '1 locatie' })
+	})
+})
