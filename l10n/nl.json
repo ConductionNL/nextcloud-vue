@@ -2640,7 +2640,11 @@
     "New card": "Nieuwe kaart",
     "Could not link card.": "De kaart kon niet worden gekoppeld.",
     "Could not create card.": "De kaart kon niet worden gemaakt.",
-    "This card is already linked.": "Deze kaart is al gekoppeld."
+    "This card is already linked.": "Deze kaart is al gekoppeld.",
+    "From {date}": "Vanaf {date}",
+    "Until {date}": "Tot {date}",
+    "More actions for {name}": "Meer acties voor {name}",
+    "Unlink contact": "Contact ontkoppelen"
   },
   "plurals": {
     "{count} member": [

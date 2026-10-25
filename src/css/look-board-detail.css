@@ -1585,6 +1585,49 @@
 	line-height: 1.2;
 }
 
+/* The contacts tab's rows as DqZaakBetrokkenen "Partijen" draws them: the
+   role heading 15px bold ink in sentence case, each person on a row 12px
+   high-padded under a hairline, the details and the period 13px muted.
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group-title {
+	margin: 6px 0 0;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item {
+	align-items: center;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__item:first-child {
+	margin-top: 8px;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__meta,
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__period {
+	flex: none;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
+	margin-bottom: 8px;
+}
+
 /* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
    the card's padding instead of its own, and its buttons start at the card's
    edge under the subtitle.
