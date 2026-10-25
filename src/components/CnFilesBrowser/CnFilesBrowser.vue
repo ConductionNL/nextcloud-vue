@@ -775,6 +775,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
@@ -3049,7 +3050,7 @@ export default {
 				? { path: this.currentPath }
 				: { fileId: node.fileid, fileName: node.basename, path: node.path }
 			if (type === 'open-modal') {
-				wrapped = { ...action, props: { ...(action.props || {}), ...context } }
+				wrapped = { ...action, props: { ...(action.props || {}), ...context, ...this.rowPropsOf(action, node) } }
 			} else if (type === 'handler') {
 				wrapped = { ...action, args: [...(action.args || []), node ?? this.folder] }
 			}
@@ -3058,6 +3059,32 @@ export default {
 				return
 			}
 			dispatchAction(wrapped, { router: this.$router || null })
+		},
+
+		/**
+		 * The clicked file's row-data fields an action asks for as modal props
+		 * (`rowProps: { prop: field }`), or none.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {object|null} node The file, or null for a New-menu entry.
+		 * @return {object} The props.
+		 * @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-modal-action-can-carry-fields-of-the-clicked-files-row-data
+		 */
+		rowPropsOf(action, node) {
+			const wanted = action && action.rowProps
+			if (node === null || !wanted || typeof wanted !== 'object') {
+				return {}
+			}
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const out = {}
+			for (const [prop, field] of Object.entries(wanted)) {
+				const value = readPath(entry, String(field))
+				if (value !== undefined && value !== null && value !== '') {
+					out[prop] = value
+				}
+			}
+			return out
 		},
 
 		/**
