@@ -1467,6 +1467,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-decoration: underline;
 }
 
+/* A strong cell's name in a settings card reads 15px bold over its muted
+   second line, as the boards draw a connection's name (DqInstellingen
+   "Koppelingen": <strong> 15px), not the index tables' 14px 500.
+   @spec openspec/changes/board-settings-strong-cell-name/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section .cn-data-table td.cn-cell--strong:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
+.cn-look-board .settings-section .cn-data-table td.cn-cell--strong:not(.cn-look-nextcloud *) > .cn-cell-renderer {
+	font-size: 15px;
+	font-weight: 700;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
