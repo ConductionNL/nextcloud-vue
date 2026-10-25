@@ -177,11 +177,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	color: var(--color-text-maxcontrast);
 }
 
-/* The saved-view edit and share forms start 22px under the subtitle, as
-   the Dq dialog boards draw a first field: the body's 16px gap and 6px. */
+/* A body starts 22px under the subtitle, as the Dq dialog boards draw a
+   first field: the header's foot and the body gap alone, so the saved-view
+   edit and share forms and the confirm sentence pad nothing on top
+   (r29 on :8080: 28, 28 and 26px with their own padding). */
 .cn-dialog-board .dialog__content .cn-edit-view,
-.cn-dialog-board .dialog__content .cn-share-view {
-	padding-top: 6px;
+.cn-dialog-board .dialog__content .cn-share-view,
+.cn-dialog-board .dialog__content .cn-confirm__confirm {
+	padding-top: 0;
 }
 
 /* The close button is a 36px circle. NcButton sizes an icon-only button by
