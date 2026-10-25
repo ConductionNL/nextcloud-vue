@@ -1467,6 +1467,42 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-decoration: underline;
 }
 
+/* A plain table an app draws in a settings card (dossiq's ZGW mapping, StUF
+   endpoints and audit log, AWB terms) reads as the board's settings tables:
+   14px, a near-white head with muted 600 labels, 10px 12px cells, soft rules.
+   The theme paints every th through its table header tokens, so the head
+   hands those tokens the board's values too.
+   @spec openspec/changes/board-settings-plain-tables/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) th {
+	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
+	--nldesign-component-table-header-font-weight: 600;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--color-border);
+	background: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: start;
+}
+
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 14px;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
 /* Section actions sit at the end of the title row. The row is a grid, so a
    long title wraps beside the buttons instead of running under them. A
    half-width card keeps them there (DqVthInstellingen "Inspectiechecklists",
