@@ -1,8 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { MISSING_VALUE } from './facets.js'
+import { relativeRangeText } from './filterRangeLabel.js'
+
+/** Marks a filter entry built from `field[gte]` / `field[lt]` keys. */
+const RANGE = Symbol('range')
 
 /**
  * A saved view's filters as one readable line: "Case type Woo request,
@@ -26,7 +30,7 @@ import { MISSING_VALUE } from './facets.js'
  * @param {object} [options] Options.
  * @param {object} [options.properties] The page schema's `properties`.
  * @param {{[key: string]: {[value: string]: string}}} [options.valueLabels] Display names per filter key and value.
- * @param {{[key: string]: {label?: string, values?: object, hidden?: boolean}}} [options.filterLabels] The page's `config.filterLabels`.
+ * @param {{[key: string]: {label?: string, values?: object, hidden?: boolean, valuesAlone?: boolean}}} [options.filterLabels] The page's `config.filterLabels`; with `valuesAlone` a named value reads as the whole part.
  * @param {(text: string) => string} [options.translate] The app's translate, for titles and labels the schema declares.
  * @return {string} The line, or '' for a view without filters or search.
  * @spec openspec/changes/saved-view-summary-reads-like-the-chips/specs/saved-view-menu-settings/spec.md
@@ -37,9 +41,19 @@ export function summarizeViewFilters(state, options = {}) {
 	const valueLabels = (options.valueLabels && typeof options.valueLabels === 'object') ? options.valueLabels : {}
 	const filterLabels = (options.filterLabels && typeof options.filterLabels === 'object') ? options.filterLabels : {}
 	const tr = typeof options.translate === 'function' ? options.translate : (text) => text
-	const filters = (state && state.filters && typeof state.filters === 'object') ? state.filters : {}
+	const filters = groupRanges((state && state.filters && typeof state.filters === 'object') ? state.filters : {})
 	const parts = []
 	for (const [key, raw] of Object.entries(filters)) {
+		if (raw && typeof raw === 'object' && raw[RANGE] === true) {
+			const named = (filterLabels[key] && typeof filterLabels[key] === 'object') ? filterLabels[key] : {}
+			if (named.hidden === true) {
+				continue
+			}
+			const prop = properties[key] || {}
+			const title = typeof named.label === 'string' && named.label !== '' ? named.label : (typeof prop.title === 'string' && prop.title !== '' ? prop.title : key)
+			parts.push(`${tr(title)} ${rangeWords(raw.from, raw.to)}`)
+			continue
+		}
 		const named = (filterLabels[key] && typeof filterLabels[key] === 'object') ? filterLabels[key] : {}
 		if (named.hidden === true) {
 			continue
@@ -59,7 +73,11 @@ export function summarizeViewFilters(state, options = {}) {
 			? named.label
 			: (typeof prop.title === 'string' && prop.title !== '' ? prop.title : key)
 		const field = tr(title)
-		parts.push(`${field} ${values.join(` ${t('nextcloud-vue', 'or')} `)}`)
+		// `valuesAlone: true`: a value the page names reads as the whole part
+		// ("My cases" for assignee @me), not after the field's title.
+		const raws = (Array.isArray(raw) ? raw : [raw]).filter((value) => value !== undefined && value !== '')
+		const alone = named.valuesAlone === true && raws.length === 1 && typeof namedValues[String(raws[0])] === 'string' && namedValues[String(raws[0])] !== ''
+		parts.push(alone ? values[0] : `${field} ${values.join(` ${t('nextcloud-vue', 'or')} `)}`)
 	}
 	if (state && typeof state.search === 'string' && state.search.trim() !== '') {
 		parts.push(`"${state.search.trim()}"`)
@@ -130,6 +148,10 @@ function valueText(value, prop, labels, tr) {
 			.join(' ')
 	}
 	const id = String(value)
+	const token = tokenWords(id)
+	if (token !== null) {
+		return token
+	}
 	if (typeof labels[id] === 'string' && labels[id] !== '') {
 		return labels[id]
 	}
@@ -142,6 +164,89 @@ function valueText(value, prop, labels, tr) {
 		return tr(enumLabels[id])
 	}
 	return id
+}
+
+/**
+ * The filters with each `field[op]` pair folded into one range entry under
+ * `field`, in the place of its first part, so "deadline[gte] @today,
+ * deadline[lt] @today+7d" reads as one deadline range.
+ *
+ * @param {object} filters The view's filters.
+ * @return {object} The filters, ranges folded.
+ */
+function groupRanges(filters) {
+	const out = {}
+	for (const [key, value] of Object.entries(filters)) {
+		const match = /^(.+)\[(gte|gt|lte|lt)\]$/.exec(key)
+		if (!match) {
+			out[key] = value
+			continue
+		}
+		const field = match[1]
+		const range = out[field] && out[field][RANGE] === true ? out[field] : { [RANGE]: true }
+		if (match[2] === 'gte' || match[2] === 'gt') {
+			range.from = value
+		} else {
+			range.to = value
+		}
+		out[field] = range
+	}
+	return out
+}
+
+/**
+ * A range in words: "within 7 days", "today" or "this week" when it starts
+ * today, else "from {from} up to {to}" with each end in words.
+ *
+ * @param {unknown} from The lower end, or undefined.
+ * @param {unknown} to The upper end, or undefined.
+ * @return {string} The words.
+ */
+function rangeWords(from, to) {
+	if (from !== undefined && to !== undefined) {
+		const relative = relativeRangeText(from, to, {
+			translate: (text, vars) => t('nextcloud-vue', text, vars),
+			translatePlural: (one, many, count) => n('nextcloud-vue', one, many, count),
+		})
+		if (relative) {
+			return relative
+		}
+	}
+	const words = (value) => tokenWords(String(value)) ?? String(value)
+	if (from !== undefined && to !== undefined) {
+		return `${t('nextcloud-vue', 'from {value}', { value: words(from) })} ${t('nextcloud-vue', 'up to {value}', { value: words(to) })}`
+	}
+	return from !== undefined
+		? t('nextcloud-vue', 'from {value}', { value: words(from) })
+		: t('nextcloud-vue', 'up to {value}', { value: words(to) })
+}
+
+/**
+ * A filter token in words: `@me` "you", `@myTeam` "my team", `@today`
+ * "today", `@today+7d` "in 7 days", `@today-7d` "7 days ago". Null for a
+ * value that is not a token.
+ *
+ * @param {string} value The stored value.
+ * @return {string|null} The words, or null.
+ */
+function tokenWords(value) {
+	if (value === '@me') {
+		return t('nextcloud-vue', 'you')
+	}
+	if (value === '@myTeam') {
+		return t('nextcloud-vue', 'my team')
+	}
+	const day = /^@today(?:([+-])(\d+)d)?$/.exec(value)
+	if (!day) {
+		return null
+	}
+	if (!day[1] || Number(day[2]) === 0) {
+		return t('nextcloud-vue', 'today')
+	}
+	const count = Number(day[2])
+	return day[1] === '+'
+		? n('nextcloud-vue', 'in %n day', 'in %n days', count)
+		: n('nextcloud-vue', '%n day ago', '%n days ago', count)
 }
 
 /**

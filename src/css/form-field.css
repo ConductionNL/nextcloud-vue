@@ -101,6 +101,17 @@
 	padding: 10px 12px;
 }
 
+/* The boards draw a form's text area three lines tall on the font's own
+   leading (DqNieuweZaak "Omschrijving": 76px); the field's 80px minimum, its
+   four rows and the server's 3px margin made it 84px in a 90px wrapper. It
+   still resizes. */
+.cn-look-board .cn-form-dialog__field .cn-form-dialog__textarea {
+	min-height: 0;
+	height: calc(3 * 1.2em + 22px);
+	margin: 0;
+	line-height: normal;
+}
+
 /* An invalid field: 2px error border on the control, 4px edge on the group. */
 .cn-look-board .cn-form-field--invalid input:not([type='checkbox']):not([type='radio']),
 .cn-look-board .cn-form-field--invalid textarea,
