@@ -2428,3 +2428,33 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
 }
+
+/* Buttons in a side card stand as the boards draw them in a column: the full
+   width of the card with their label at the start (DqSociaalDomein
+   "Toestemming intrekken" and "Markeer voor aandacht"), a facts action at the
+   34px control height.
+   @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-side-cards-button-spans-the-card-with-its-label-at-the-start */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__actions:not(.cn-look-nextcloud *) > .button-vue {
+	--button-size: 34px;
+	--default-clickable-area: 34px;
+	flex: 1 1 100%;
+	height: 34px;
+	min-height: 34px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__actions:not(.cn-look-nextcloud *) > .button-vue .button-vue__wrapper,
+.cn-look-board .cn-attention-flag:not(.cn-look-nextcloud *) .button-vue .button-vue__wrapper {
+	justify-content: flex-start;
+}
+
+/* A checklist's boxes are the boards' 18px, an open one in the control
+   border grey and a ticked one in the primary colour (DqTaak "Checklist").
+   @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-board-checklist-box-is-18px-and-grey-while-open */
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon {
+	color: var(--color-border-maxcontrast);
+}
