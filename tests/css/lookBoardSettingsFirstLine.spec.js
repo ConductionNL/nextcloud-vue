@@ -23,7 +23,9 @@ function body(selector) {
 
 describe('look-board.css: a settings card first line', () => {
 	it('takes the hints link and a switch out of the line height', () => {
-		expect(body('.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *)')).toContain('margin-block: -8px;')
+		const link = body('.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue,\n.cn-look-board .cn-settings-fields__advanced:not(.cn-look-nextcloud *) > .button-vue')
+		expect(link).toContain('height: 25px;')
+		expect(link).toContain('border-radius: 0;')
 		expect(body('.cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch')).toContain('margin-block: -8px;')
 	})
 
