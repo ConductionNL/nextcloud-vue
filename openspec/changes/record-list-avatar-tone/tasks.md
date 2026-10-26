@@ -1,0 +1,2 @@
+- [x] 1.1 avatar tone (CnRecordListWidget)
+- [x] 1.2 tests (CnRecordListWidgetAvatarTone.spec.js) and docs

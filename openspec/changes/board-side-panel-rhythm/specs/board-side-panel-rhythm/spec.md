@@ -17,7 +17,8 @@ view boards.
 
 In the board look, on an index page, the side panel section SHALL have a 10px
 padding, and the header subtitle SHALL have a 2px top margin, a 14px size and
-a normal line height. The saved view name and the share row SHALL use a normal
+a normal line height. A saved view row's name
+SHALL have no margin, so its text sits 8px from the row top. The saved view name and the share row SHALL use a normal
 line height. The saved-view manage menu SHALL be 278px wide. The Nextcloud look
 SHALL be unchanged.
 

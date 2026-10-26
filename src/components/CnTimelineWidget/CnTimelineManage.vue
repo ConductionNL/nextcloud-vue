@@ -97,6 +97,10 @@
 					:class="{ 'cn-timeline-manage__entry--pinned': entry.pinned }"
 					:data-kind="entry.kind || 'note'"
 					data-testid="cn-timeline-entry">
+					<p class="cn-timeline-manage__message">
+						{{ entry.message }}
+					</p>
+
 					<div class="cn-timeline-manage__head">
 						<span class="cn-timeline-manage__kind">{{ kindLabel(entry) }}</span>
 						<span class="cn-timeline-manage__author">{{ entry.author }}</span>
@@ -112,10 +116,6 @@
 							{{ t('nextcloud-vue', 'Needs an answer') }}
 						</span>
 					</div>
-
-					<p class="cn-timeline-manage__message">
-						{{ entry.message }}
-					</p>
 
 					<p v-if="entry.siblings && entry.siblings.length"
 						class="cn-timeline-manage__siblings"
@@ -1054,6 +1054,8 @@ export default {
 }
 
 .cn-timeline-manage__entry {
+	display: flex;
+	flex-direction: column;
 	border-block-end: 1px solid var(--color-border);
 	padding-block: 12px;
 }
@@ -1063,7 +1065,10 @@ export default {
 	padding-inline-start: 8px;
 }
 
+/* The message comes first in the markup (a reader hears what happened
+   before who and when); this look shows the head above it. */
 .cn-timeline-manage__head {
+	order: -1;
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;

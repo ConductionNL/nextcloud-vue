@@ -181,8 +181,9 @@
 					:aria-describedby="describedBy"
 					:data-testid="`cn-settings-field-upload-${field.key}`"
 					@click="$refs.file && $refs.file.click()">
-					<template v-if="uploading" #icon>
-						<NcLoadingIcon :size="20" />
+					<template #icon>
+						<NcLoadingIcon v-if="uploading" :size="20" />
+						<Upload v-else :size="16" />
 					</template>
 					{{ field.uploadLabel || t('nextcloud-vue', 'Upload {name}', { name: label }) }}
 				</NcButton>
@@ -310,6 +311,7 @@ import { getDayNames, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
@@ -360,7 +362,7 @@ const INPUT_TYPES = ['password', 'date', 'datetime-local', 'email', 'url']
 export default {
 	name: 'CnSettingsField',
 
-	components: { Close, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField, Plus },
+	components: { Close, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField, Plus, Upload },
 
 	props: {
 		/**

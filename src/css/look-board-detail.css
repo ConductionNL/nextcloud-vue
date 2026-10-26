@@ -48,6 +48,13 @@
 	row-gap: 6px;
 }
 
+/* The boards pad the header 8px under its last row (DqZaaktype*, DqContact,
+   DqTaak, DqOrganisatie: tabs 20px under that). A header with a widget
+   row (a case) lays its rows out as its own boards draw them. */
+.cn-look-board .cn-detail-page__header--board:not(.cn-detail-page__header--with-widget) {
+	padding-bottom: 8px;
+}
+
 /* Row 1: the title takes what the buttons leave, from a zero basis, and the
    buttons sit at the row's top beside it (DqZaak: both at 96). From a 320px
    basis the title and its follow control claimed the row first, so on a 960px
@@ -999,6 +1006,16 @@
    adres") draws the lead row 12px below the title, its two lines at their
    normal height so they centre on the 40px tile.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+/* A side facts card (DqZaaktypeOverzicht "Gegevens") sets its rows at the
+   font's normal line height, 25px apart, the first 10px under the title. */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns) .cn-facts-widget__row {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child) {
+	padding-top: 10px;
+}
+
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__lead:first-child) {
 	padding-top: 12px;
 }
@@ -1648,6 +1665,12 @@
 .cn-look-board .cn-grouped-cards__item-title.cn-grouped-cards__item-title {
 	font-size: 15px;
 	line-height: 1.2;
+}
+
+/* The meta line under a task (its role and term) at the font's normal line
+   height, as DqZaaktype draws it, not the page's 1.5. */
+.cn-look-board .cn-grouped-cards__item-meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 /* A card with actions holds them at its end, beside the title and meta (the
@@ -2351,6 +2374,15 @@
 	text-decoration: underline;
 }
 
+/* Facts and their lines sit on the font's own leading, as the boards draw
+   them: a 14px fact 17px tall and 25px apart, a 13px line 15.6px (DqHandhaving
+   Classificatie 225 against 202, Afwijking en definitief 406 against 355). The
+   body's 1.5 made each fact 21px and each line 19.5px. */
+.cn-look-board .cn-facts-widget__rows:not(.cn-look-nextcloud *),
+.cn-look-board .cn-facts-widget__line:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* Two-column facts (`columns: 2`, DqContact "Contact", DqOrganisatie
    "Organisatie"): the boards draw the label 2px above a regular-weight
    value, with no hairline under the fact; the 14px row gap separates them.
@@ -2382,6 +2414,20 @@
 
 .cn-look-board .cn-detail-page .cn-record-list--rows.cn-record-list--rule-above:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) .cn-record-list__row {
 	padding: 12px 0;
+}
+
+/* A card that opens on a grid of framed tiles (DqZaaktypeOverzicht
+   "Statussen") sets them 14px under its header, the boards' card gap: no
+   first line of text carries the half-leading the card content takes off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--tiles):not(.cn-look-nextcloud *) {
+	padding-top: 14px;
+}
+
+/* A tile's text at 14px on the font's normal line height: a one-line tile
+   is 35px, as drawn. */
+.cn-look-board .cn-record-list--tiles:not(.cn-look-nextcloud *) .cn-record-list__row {
+	font-size: 14px;
+	line-height: normal;
 }
 
 /* Under a title with a subtitle the rule sits 8px below the subtitle
@@ -2564,4 +2610,54 @@
 	color: var(--cn-board-teal-ink);
 	font-size: 12px;
 	font-weight: 600;
+}
+
+/* Grouped cards that open on their buttons set them 10px under the
+   subtitle (DqZaaktype "Fasen en taken": subtitle 329, buttons 339).
+   @spec openspec/changes/board-grouped-cards/specs/board-grouped-cards/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-grouped-cards > .cn-grouped-cards__actions:first-child) {
+	padding-top: 10px;
+}
+
+/* A page card's field list (DqZaaktype "Varianten") draws its rows at the
+   font's normal line height, title and meta 2px apart, and its first row
+   10px in like the others. Option lists keep their framed rows. */
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row:first-child {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__main {
+	gap: 2px;
+}
+
+/* An option in a choice list (DqZaaktypeVelden Keuzelijst) is plain 14px
+   text beside its code, not a 600 title. */
+.cn-look-board .cn-field-list-widget__rows--options:not(.cn-look-nextcloud *) .cn-field-list-widget__title {
+	font-size: 14px;
+	font-weight: 400;
+}
+
+/* The history card's checkboxes ("Ook wie de zaak las", "Zichtbaar voor de
+   verzoeker") as DqZaakHistorie draws them: a plain box with 14px text 8px
+   after it, no 34px padded hit row (r31: 34 high, 15px/500). The entry's
+   message stays above its head in the board look.
+   @spec openspec/changes/board-history-toggles-and-entries/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage .checkbox-radio-switch.checkbox-radio-switch .checkbox-content:not(.cn-look-nextcloud *) {
+	gap: 8px;
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-timeline-manage .checkbox-radio-switch.checkbox-radio-switch .checkbox-content__text:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
+	order: 0;
 }
