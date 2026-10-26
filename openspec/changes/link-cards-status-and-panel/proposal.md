@@ -19,6 +19,7 @@ menu structure an administrator set, in a panel at the end.
 - `card.statusValues`: per placeholder, either an OpenRegister aggregate descriptor or `{ url, path?, params? }`. The
   second is a GET whose JSON holds the number at `path`, or a list whose items it counts (those matching `where`). A status that waits on a value, or whose value could not be
   read, is not shown.
+- `status.plural` and `status.zero`: the text when the counted value is not 1, and the status when it is 0 ("Alle koppelingen werken" in the success tone). A list source can `sumOf` a field, so "3 pipelines, 16 fases" counts the stages.
 - `config.panel`: `{ label?, badge?, text?, link?, title?, subtitle?, facts?, permission?, visibleIf? }`. A fact is
   `{ label, value?, note?, visibleIf? }`. Every string is translated, then `{runtime.<path>}` is filled.
 - Schema 2.158.0.

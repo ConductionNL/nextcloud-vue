@@ -1949,7 +1949,16 @@
 							"additionalProperties": false,
 							"properties": {
 								"text": { "type": "string", "minLength": 1 },
-								"tone": { "type": "string", "enum": ["neutral", "error", "warning", "success"] }
+								"tone": { "type": "string", "enum": ["neutral", "error", "warning", "success"] },
+								"plural": { "type": "string", "minLength": 1, "description": "The text when the counted value is not 1." },
+								"zero": {
+									"description": "The status when the counted value is 0: a string, or { text, tone }.",
+									"oneOf": [
+										{ "type": "string", "minLength": 1 },
+										{ "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string", "minLength": 1 }, "tone": { "type": "string", "enum": ["neutral", "error", "warning", "success"] } } }
+									]
+								},
+								"countOf": { "type": "string", "description": "The statusValues name that picks zero or plural. Defaults to the first." }
 							}
 						}
 					]
@@ -1968,7 +1977,8 @@
 							"url": { "type": "string", "minLength": 1 },
 							"path": { "type": "string" },
 							"params": { "type": "object" },
-							"where": { "type": "object", "description": "Count only the list items whose fields equal these values." }
+							"where": { "type": "object", "description": "Count only the list items whose fields equal these values." },
+							"sumOf": { "type": "string", "description": "Add up this field of each list item (an array field by its length) instead of counting the items." }
 						},
 						"anyOf": [{ "required": ["url"] }, { "required": ["register", "schema"] }]
 					}

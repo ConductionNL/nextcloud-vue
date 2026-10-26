@@ -64,6 +64,22 @@ describe('CnLinkCardsPage status and panel', () => {
 		expect(wrapper.find('[data-testid="cn-link-card-status"]').text()).toBe('2 on, 1 off')
 	})
 
+	it('sums a field over the list, and picks the plural and zero forms by the count', async () => {
+		mockGet.mockImplementation((url) => Promise.resolve({ data: url.includes('pipelines')
+			? { results: [{ stages: [1, 2, 3] }, { stages: [1, 2] }] }
+			: { total: url.includes('none') ? 0 : 2 } }))
+		const wrapper = mountPage({ cards: [
+			{ id: 'Pipelines', label: 'Pipelines', route: 'Pipelines', status: '{count} pipelines, {stages} stages', statusValues: { count: { url: '/apps/x/pipelines', path: 'results' }, stages: { url: '/apps/x/pipelines', path: 'results', sumOf: 'stages' } } },
+			{ id: 'Broken', label: 'Broken', route: 'Broken', status: { text: '{count} connection has an error', plural: '{count} connections have an error', tone: 'error', zero: 'All connections work' }, statusValues: { count: { url: '/apps/x/broken' } } },
+			{ id: 'None', label: 'None', route: 'None', status: { text: '{count} connection has an error', tone: 'error', zero: { text: 'All connections work', tone: 'success' } }, statusValues: { count: { url: '/apps/x/none' } } },
+		] })
+		await flushPromises()
+		const pills = wrapper.findAll('[data-testid="cn-link-card-status"]')
+		expect(pills.map((pill) => pill.text())).toEqual(['2 pipelines, 5 stages', '2 connections have an error', 'All connections work'])
+		expect(pills[1].classes()).toContain('cn-link-cards-page__status--error')
+		expect(pills[2].classes()).toContain('cn-link-cards-page__status--success')
+	})
+
 	it('leaves a status out while a value it names has not come, or could not be read', async () => {
 		mockGet.mockImplementation(() => Promise.reject(new Error('down')))
 		const wrapper = mountPage({ cards: cards.slice(1, 3) })

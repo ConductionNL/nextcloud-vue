@@ -124,7 +124,7 @@
 							<span
 								v-if="statusOf(card)"
 								class="cn-link-cards-page__status"
-								:class="`cn-link-cards-page__status--${card.statusTone}`"
+								:class="`cn-link-cards-page__status--${statusVariant(card).tone}`"
 								data-testid="cn-link-card-status">
 								{{ statusOf(card) }}
 							</span>
@@ -245,7 +245,7 @@ function fillRuntime(text, runtime) {
 /**
  * One number for a card's status line.
  *
- * @param {object} source An aggregate descriptor or `{ url, path?, params?, where? }`; `where` counts only the list items whose fields equal its values.
+ * @param {object} source An aggregate descriptor or `{ url, path?, params?, where?, sumOf? }`; `where` keeps only the list items whose fields equal its values, `sumOf` adds up a field of each (an array field by its length) instead of counting them.
  * @return {Promise<number|null>} The number, or null.
  */
 async function fetchStatusValue(source) {
@@ -263,7 +263,14 @@ async function fetchStatusValue(source) {
 		const list = Array.isArray(picked) ? picked : (picked === undefined && Array.isArray(data) ? data : null)
 		if (list !== null) {
 			const where = source.where && typeof source.where === 'object' ? Object.entries(source.where) : []
-			return list.filter((item) => where.every(([key, wanted]) => readPath(item, key) === wanted)).length
+			const matching = list.filter((item) => where.every(([key, wanted]) => readPath(item, key) === wanted))
+			if (typeof source.sumOf === 'string' && source.sumOf !== '') {
+				return matching.reduce((sum, item) => {
+					const value = readPath(item, source.sumOf)
+					return sum + (Array.isArray(value) ? value.length : (typeof value === 'number' ? value : 0))
+				}, 0)
+			}
+			return matching.length
 		}
 		return typeof picked === 'number' ? picked : null
 	}
@@ -489,7 +496,6 @@ export default {
 						icon: card.icon || '',
 						category: card.category || '',
 						status: card.status ?? null,
-						statusTone: statusToneOf(card.status),
 						statusValues: card.statusValues && typeof card.statusValues === 'object' ? card.statusValues : null,
 						external: target.external,
 						location: target.location,
@@ -666,8 +672,7 @@ export default {
 		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-link-card-can-carry-a-status
 		 */
 		statusOf(card) {
-			const declared = card.status
-			const text = typeof declared === 'string' ? declared : (declared && typeof declared === 'object' ? declared.text : '')
+			const { text } = this.statusVariant(card)
 			if (typeof text !== 'string' || text === '') {
 				return ''
 			}
@@ -684,6 +689,33 @@ export default {
 				return String(values[name])
 			})
 			return waiting ? '' : fillRuntime(filled, this.cnManifest?.runtime ?? null)
+		},
+
+		/**
+		 * Which form of a card's status applies: `zero` when the counted value
+		 * (`status.countOf`, else the first of `statusValues`) is 0, `plural`
+		 * when it is not 1, else the status itself.
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {{text: string, tone: string}} The text and its tone.
+		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-link-card-can-carry-a-status
+		 */
+		statusVariant(card) {
+			const declared = card.status
+			if (typeof declared === 'string') {
+				return { text: declared, tone: 'neutral' }
+			}
+			if (!declared || typeof declared !== 'object') {
+				return { text: '', tone: 'neutral' }
+			}
+			const names = card.statusValues ? Object.keys(card.statusValues) : []
+			const counted = (this.statusData[card.id] || {})[declared.countOf || names[0]]
+			const zero = declared.zero
+			if (counted === 0 && zero) {
+				return typeof zero === 'string' ? { text: zero, tone: 'neutral' } : { text: zero.text, tone: statusToneOf(zero) }
+			}
+			const text = typeof counted === 'number' && counted !== 1 && declared.plural ? declared.plural : declared.text
+			return { text, tone: statusToneOf(declared) }
 		},
 
 		/**
