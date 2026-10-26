@@ -184,6 +184,14 @@ export default {
 		 * @spec openspec/changes/audit-trail-exclude-actions/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-events-by-action
 		 */
 		excludeActions: { type: Array, default: () => [] },
+		/**
+		 * Actors the card leaves out by user id (case-insensitive), such as
+		 * `['System']` for a history of what people did: the bookkeeping a
+		 * background job writes is not shown.
+		 *
+		 * @spec openspec/changes/audit-card-exclude-actors/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-entries-by-actor
+		 */
+		excludeActors: { type: Array, default: () => [] },
 		/** Whether the card collapses. */
 		collapsible: { type: Boolean, default: false },
 		/** Override the card title (defaults to the translated label). */
@@ -199,7 +207,8 @@ export default {
 		/**
 		 * What happened, in words, by action (`claim`) or by action and the
 		 * state it led to (`complete:completed`, tried first). `{actor}`,
-		 * `{state}` and `{changed.<key>}` (a value the entry recorded, in the
+		 * `{state}` and `{changed.<key>}` (a value the entry recorded, a dotted key
+		 * reading into it such as `{changed.data.fileName}`, in the
 		 * words of `valueLabels`) are filled in; a label that names the actor leaves it off
 		 * the line under it. An action without a label shows as written.
 		 *
@@ -262,10 +271,17 @@ export default {
 		/** @return {Array<object>} The entries without the excluded actions. */
 		shownEntries() {
 			const excluded = this.excludeActions.map((action) => String(action).toLowerCase())
-			if (excluded.length === 0) {
+			const actors = this.excludeActors.map((actor) => String(actor).toLowerCase())
+			if (excluded.length === 0 && actors.length === 0) {
 				return this.entries
 			}
-			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase()))
+			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase())
+				&& !actors.includes(String(entry.user || '').toLowerCase()))
+		},
+
+		/** @return {boolean} Whether the card leaves entries out, and so reads more than it shows. */
+		filtersEntries() {
+			return this.excludeActions.length > 0 || this.excludeActors.length > 0
 		},
 
 		displayedEntries() {
@@ -301,7 +317,7 @@ export default {
 			if (this.sourceUrl !== null) {
 				return this.sourceUrl
 			}
-			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const limit = this.filtersEntries ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
 			const params = new URLSearchParams({ limit: String(limit) })
 			if (this.scope === 'app') {
 				if (this.register) {
@@ -381,7 +397,7 @@ export default {
 			if (this.scope !== 'object' || this.sourceUrl !== null || !this.objectId || !Array.isArray(this.relatedSources)) {
 				return []
 			}
-			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const limit = this.filtersEntries ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
 			const read = async (url) => {
 				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (!response.ok) {
@@ -423,7 +439,7 @@ export default {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
-					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
+					.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => this.changedValue(entry, key))
 					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
 						const value = this.object ? readPath(this.object, path) : undefined
 						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
@@ -444,7 +460,8 @@ export default {
 		 */
 		changedValue(entry, key) {
 			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			const value = newValueOf(changed[key])
+			// A dotted key reads into what the entry recorded (`data.fileName` on a file action).
+			const value = String(key).split('.').reduce((at, part) => newValueOf(at !== null && typeof at === 'object' ? at[part] : undefined), changed)
 			if (value === null || value === undefined || typeof value === 'object') {
 				return ''
 			}

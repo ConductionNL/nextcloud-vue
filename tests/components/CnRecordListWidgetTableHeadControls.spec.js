@@ -57,6 +57,24 @@ beforeEach(() => {
 })
 
 describe('CnRecordListWidget table head controls', () => {
+	it('marks a sortable head with a chevron, up while it sorts ascending', async () => {
+		const w = await mountTable({ sortable: true })
+		const head = w.find('[data-testid="cn-record-list-sort-col-0"]')
+		expect(head.find('.cn-record-list__sort-mark').exists()).toBe(true)
+		await head.trigger('click')
+		expect(w.vm.sortStateOf('col-0')).toBe('ascending')
+		expect(w.find('[data-testid="cn-record-list-sort-col-0"] .chevron-up-icon').exists()).toBe(true)
+	})
+
+	it('sizes the head funnel at 22px in its style', () => {
+		const fs = require('fs')
+		const path = require('path')
+		const src = fs.readFileSync(path.join(__dirname, '../../src/components/CnRecordListWidget/CnRecordListWidget.vue'), 'utf8')
+		const at = src.indexOf('.cn-record-list__head-filter :deep(.button-vue) {')
+		expect(at).toBeGreaterThan(-1)
+		expect(src.slice(at, src.indexOf('}', at))).toContain('height: 22px;')
+	})
+
 	it('keeps plain heads without the opt-ins', async () => {
 		const w = await mountTable({})
 		expect(w.find('[data-testid="cn-record-list-sort-col-0"]').exists()).toBe(false)

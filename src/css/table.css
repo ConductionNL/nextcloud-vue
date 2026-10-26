@@ -616,10 +616,13 @@
 	cursor: grab;
 }
 
-/* The handle before a reorderable row's name: a muted 16px grip 10px before it. */
+/* The handle before a reorderable row's name: a muted 16px grip 10px before
+   it. It floats, so a name that wraps in a narrow cell wraps beside the grip
+   instead of dropping under it. */
 .cn-table-row__handle {
 	display: inline-flex;
-	vertical-align: middle;
+	float: inline-start;
+	margin-block-start: 1px;
 	margin-inline-end: 10px;
 	color: var(--color-text-maxcontrast);
 	cursor: grab;

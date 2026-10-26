@@ -53,6 +53,19 @@ describe('a side card that follows a row', () => {
 		expect(host.props('widget').title).toBe('Choice list: Soort bouwwerk')
 	})
 
+	it('fills a title token through an app formatter, given the row', () => {
+		const selection = createWidgetSelection()
+		selection.publishRows('fields', [{ id: 'b', name: 'soortBouwwerk', title: { nl: 'Soort bouwwerk' }, enumValues: ['Woning'] }])
+		const wrapper = mount(CnFollowingWidgetHost, {
+			props: { widget: { ...WIDGET, title: 'Choice list: {name|fieldTitle}' }, object: { id: 'case-type-1' }, objectId: 'case-type-1', register: 'dossiq', schema: 'caseType' },
+			global: {
+				provide: { [WIDGET_SELECTION]: selection, cnFormatters: { fieldTitle: (value, row) => (row.title && row.title.nl) || value } },
+				stubs: { CnDetailWidgetHost: HostStub },
+			},
+		})
+		expect(wrapper.findComponent(HostStub).props('widget').title).toBe('Choice list: Soort bouwwerk')
+	})
+
 	it('draws nothing while there is no row to follow', () => {
 		const wrapper = mountFollower(createWidgetSelection())
 		expect(wrapper.find('.host-stub').exists()).toBe(false)

@@ -61,7 +61,8 @@
 								:data-testid="`cn-record-list-sort-${col.key}`"
 								@click="toggleTableSort(col.key)">
 								{{ col.label }}
-								<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
+								<ChevronUp v-if="sortStateOf(col.key) === 'ascending'" class="cn-record-list__sort-mark" :size="14" />
+								<ChevronDown v-else class="cn-record-list__sort-mark" :size="14" />
 							</button>
 							<template v-else>
 								{{ col.label }}
@@ -575,7 +576,9 @@ import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -672,7 +675,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronDown, ChevronRight, ChevronUp, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -2270,20 +2273,6 @@ export default {
 		},
 
 		/**
-		 * The arrow after a sortable column's label.
-		 *
-		 * @param {string} key The column key.
-		 * @return {string} An up or down arrow, or '' while the column is not the sort.
-		 */
-		sortMarkOf(key) {
-			const state = this.sortStateOf(key)
-			if (state === 'ascending') {
-				return '▲'
-			}
-			return state === 'descending' ? '▼' : ''
-		},
-
-		/**
 		 * Sort the `table` by a column: ascending first, then descending.
 		 *
 		 * @param {string} key The column key.
@@ -3312,7 +3301,7 @@ export default {
 }
 
 .cn-record-list__sort-mark {
-	font-size: 10px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-record-list__head {
@@ -3321,8 +3310,14 @@ export default {
 	align-items: center;
 }
 
-.cn-record-list__head-filter {
+/* The funnel is a 22px control, as the boards draw it beside a head, not
+   NcActions' 34px trigger that made the head row 54px. */
+.cn-record-list__head-filter :deep(.button-vue) {
 	--button-size: 22px;
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
 }
 
 .cn-record-list__table .cn-record-list__cell--end {
@@ -3413,9 +3408,14 @@ export default {
 	font-weight: 600;
 	height: 34px;
 	justify-content: center;
-	margin: 0;
 	padding: 0 14px;
 	text-decoration: none;
+}
+
+/* server.css gives every button `margin: 3px 3px 3px 0` at (0,2,1); the
+   doubled class outranks it. */
+.cn-record-list__action.cn-record-list__action {
+	margin: 0;
 }
 
 .cn-record-list__action:hover,

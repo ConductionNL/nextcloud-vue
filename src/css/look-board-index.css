@@ -1079,8 +1079,9 @@
    @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral {
 	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {
@@ -1705,10 +1706,9 @@
 
 /* The subtitle 2px under the title at a normal line height, and the tab's
    content 20px in from the panel edge (the tab's 10px and 10px here), as
-   DqFilterBeheren draws the side panel. The subtitle rule repeats
-   NcAppSidebar's chain to outrank it.
+   DqFilterBeheren draws the side panel.
    @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
-.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container p.app-sidebar-header__subname {
+.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname {
 	margin-top: 2px;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
@@ -1906,13 +1906,6 @@
 	min-height: 0;
 }
 
-/* The title's row is as tall as the title, not a 34px clickable row with
-   the title centred in it, so the subtitle sits 2px under it.
-   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
-.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container .app-sidebar-header__mainname-container {
-	min-height: 0;
-}
-
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-header__figure:has(> .cn-index-sidebar__header-icon) {
 	display: none;
 }
@@ -1935,16 +1928,38 @@
 	min-height: var(--cn-field-height);
 }
 
-/* The title sits 20px in from the panel's edge and 20px from its top, and
-   the tab row starts right under the subtitle (DqZakenSorteren,
-   DqFilterBeheren). With the icon hidden NcAppSidebar pads it 0 at the start
-   and 8px on top, which put it against the panel's edge.
+/* The title sits 20px in from the panel's edge and 20px from its top
+   (DqZakenSorteren, DqFilterBeheren). With the icon hidden NcAppSidebar pads
+   it 0 at the start and 8px on top, which put it against the panel's edge.
    The doubled classes outrank NcAppSidebar's compact-with-figure chain.
-   @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it
-   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
+   @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it */
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc {
-	padding-block: 20px 0;
+	padding-block-start: 15px;
+	padding-block-end: 0;
 	padding-inline-start: 20px;
+}
+
+/* The line under the title is a paragraph the theme sets with `!important`
+   (15px, its own leading): 14px muted at its normal leading, 2px under the
+   title, so the tab row starts 14px under it and the first field 20px under
+   the tabs (DqZakenSorteren, DqFilterBeheren: title 20, line 46, tabs 77,
+   search field 137).
+   @spec openspec/changes/board-side-panel-header-rhythm/specs/board-side-panel-header-rhythm/spec.md#requirement-the-side-panel-header-and-first-field-sit-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__subname {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: normal;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	font-size: 14px !important;
+	line-height: normal !important;
+	margin-block-start: -3px !important;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child {
+	padding-top: 8px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child > .input-field {
+	margin-top: 0;
 }
 
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {

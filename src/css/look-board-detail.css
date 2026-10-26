@@ -751,6 +751,14 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A card that opens on a record-list table starts 12px under its title: the
+   table's head row sets its own padding and line height, so no first line
+   carries the half-leading the rule above takes off (r31 DqZaaktype
+   "Berichten aan de aanvrager" sat 2.2px high). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list > .cn-record-list__table:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+}
+
 /* A history card with stacked rows (DqTaak "Historie") opens on the first
    row's hairline 6px under the title, the row's own 12px padding above its
    text, as drawn: 19px from the title to the first action.
@@ -839,6 +847,15 @@
 
 .cn-look-board .cn-object-data-widget__value {
 	font-weight: 500;
+}
+
+/* The files table's checkbox column is the board's 42px (12px either side
+   of the 18px box): DqZaakDocumenten and DqDocumentenBeheer both draw it so.
+   The component's 36px pushed the file icon and name 6px left (r31: name 96
+   vs 100; probed with the rule: icon 54 as drawn, name 102).
+   @spec openspec/changes/board-files-select-column-42/specs/board-files-select-column-42/spec.md#requirement-the-files-tables-checkbox-column-is-42px */
+.cn-look-board .cn-files-browser__col-select:not(.cn-look-nextcloud *) {
+	width: 42px;
 }
 
 /* A labelled select in a page card is the board's field, as in a board
@@ -1584,10 +1601,10 @@
 
 /* The buttons above the groups are the card's 34px controls ("Bekijken als
    flow", "Taak toevoegen"), not the page's 40px ones. */
-/* The buttons sit 14px under the subtitle and 14px above the groups, the
-   card's gap (the content's own 12px top padding plus 2px). */
+/* The buttons sit 14px above the groups, the card's gap; above them the
+   content's own top padding is the space under the subtitle. */
 .cn-look-board .cn-grouped-cards__actions.cn-grouped-cards__actions:not(.cn-look-nextcloud *) {
-	margin-block: 2px 14px;
+	margin-block: 0 14px;
 }
 
 .cn-look-board .cn-grouped-cards__actions:not(.cn-look-nextcloud *) .button-vue {
@@ -2378,4 +2395,36 @@
 
 .cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
+}
+
+/* A facts card's link with an icon (Werkinstructie) sets the icon beside its
+   text, 10px apart, the text on the normal line starting 10px under the
+   title, as the Dq boards draw it. The anchor was a block, so the icon stood
+   on its own line above the text (r31).
+   @spec openspec/changes/board-facts-link-icon-beside-text/specs/facts-widget/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__link:has(> .material-design-icon):not(.cn-look-nextcloud *) {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: var(--cn-board-first-line-leading);
+	line-height: normal;
+}
+
+/* A table in a detail page card names each row in the link colour at 14px,
+   as DqZaakGerelateerd draws "Deelzaken" and "Objecten" (r31: 15px in the
+   body ink). The row opens the record, so its name reads as the link.
+   @spec openspec/changes/board-detail-table-title-cells/specs/board-tables/spec.md */
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: 1.2;
+	color: var(--color-primary-element);
+}
+
+/* A data card keeps its 14px under a subtitle too (DqZaakBetrokkenen
+   "Zetels"): the subtitle rule's 12px won over the data card's 14px, so the
+   labels sat 2.2px high (r31).
+   @spec openspec/changes/board-data-card-under-subtitle/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
+	padding-top: 14px;
 }

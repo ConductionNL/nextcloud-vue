@@ -598,3 +598,20 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
 	}
 }
+
+/* The chosen option's fields start 12px under its description, the label on
+   the normal line, as DqVolgendeStap draws "Opschorten": the row's 12px
+   bottom padding plus the cell's 8px gap and a 21px label line put them
+   11.6px lower (r31).
+   @spec openspec/changes/board-choice-card-fields-under-the-text/specs/dialog/spec.md */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details {
+	gap: 12px;
+}
+
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details .cn-choice-cards__row {
+	padding-bottom: 0;
+}
+
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__label {
+	line-height: normal;
+}

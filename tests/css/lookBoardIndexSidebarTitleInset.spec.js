@@ -34,9 +34,9 @@ function bodiesOf(selector) {
 }
 
 describe('look-board-index.css: index side panel title inset', () => {
-	it('pads the title 20px from the start and the top, and nothing under the subtitle', () => {
+	it('pads the title 20px from the start and 15px from the top of the header', () => {
 		const body = bodiesOf('.cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc')
 		expect(body).toContain('padding-inline-start: 20px;')
-		expect(body).toContain('padding-block: 20px 0;')
+		expect(body).toContain('padding-block-start: 15px;')
 	})
 })

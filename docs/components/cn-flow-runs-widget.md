@@ -39,7 +39,7 @@ Set `subject` and the widget becomes a case page's view of the engine: the live 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config blob (`limit`, `pollSeconds`, `rowRoute`, `runRoute`, `subject`, `emptyText`). |
+| `content` | `object` | `{}` | The widget config blob (`limit`, `pollSeconds`, `rowRoute`, `runRoute`, `subject`, `emptyText`, and for a ruled list with status pills: `statusPill`, `statusLabels`, `triggerLabels`, `age: 'datetime'`, `historyTitle: false`, `quietLineWithHistory: false`). |
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
 
