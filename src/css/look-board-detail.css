@@ -1593,10 +1593,10 @@
 
 /* The buttons above the groups are the card's 34px controls ("Bekijken als
    flow", "Taak toevoegen"), not the page's 40px ones. */
-/* The buttons sit 14px under the subtitle and 14px above the groups, the
-   card's gap (the content's own 12px top padding plus 2px). */
+/* The buttons sit 14px above the groups, the card's gap; above them the
+   content's own top padding is the space under the subtitle. */
 .cn-look-board .cn-grouped-cards__actions.cn-grouped-cards__actions:not(.cn-look-nextcloud *) {
-	margin-block: 2px 14px;
+	margin-block: 0 14px;
 }
 
 .cn-look-board .cn-grouped-cards__actions:not(.cn-look-nextcloud *) .button-vue {
