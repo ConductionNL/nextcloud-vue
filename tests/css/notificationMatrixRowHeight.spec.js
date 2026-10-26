@@ -26,7 +26,7 @@ describe('CnNotificationMatrix board checkbox', () => {
 		const rule = sfc.slice(at, sfc.indexOf('}', at))
 		expect(rule).toContain('appearance: none;')
 		expect(rule).toMatch(/mask: url\("data:image\/svg\+xml/)
-		const checked = sfc.slice(sfc.indexOf(":checked {", at), sfc.indexOf('}', sfc.indexOf(':checked {', at)))
+		const checked = sfc.slice(sfc.indexOf(':checked {', at), sfc.indexOf('}', sfc.indexOf(':checked {', at)))
 		expect(checked).toContain('background-color: var(--color-primary-element);')
 	})
 })
