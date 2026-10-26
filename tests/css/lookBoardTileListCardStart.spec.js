@@ -16,4 +16,13 @@ describe('look-board-detail.css: a card that opens on tiles', () => {
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toContain('padding-top: 14px;')
 	})
+
+	it('sets a tile at 14px on normal line height', () => {
+		const at = css.indexOf('.cn-look-board .cn-record-list--tiles:not(.cn-look-nextcloud *) .cn-record-list__row {')
+		expect(at).toBeGreaterThan(-1)
+		const body = css.slice(at, css.indexOf('}', at))
+		expect(body).toContain('font-size: 14px;')
+		expect(body).toContain('line-height: normal;')
+	})
 })
+

@@ -2363,6 +2363,13 @@
 	padding-top: 14px;
 }
 
+/* A tile's text at 14px on the font's normal line height: a one-line tile
+   is 35px, as drawn. */
+.cn-look-board .cn-record-list--tiles:not(.cn-look-nextcloud *) .cn-record-list__row {
+	font-size: 14px;
+	line-height: normal;
+}
+
 /* Under a title with a subtitle the rule sits 8px below the subtitle
    (DqZaakBesluiten "Adviezen", DqZaakArchivering "Bewaring"). A custom
    widget that opens on a ruled list opts in with `cn-rule-above` on its root. */
