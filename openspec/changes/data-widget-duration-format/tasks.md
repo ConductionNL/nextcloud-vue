@@ -1,0 +1,3 @@
+- [x] 1.1 formatTermDuration (builtInFormatters)
+- [x] 1.2 data widget override and facts entry format duration + extendBy
+- [x] 1.3 tests (termDuration.spec.js, CnObjectDataWidgetDuration.spec.js) and docs

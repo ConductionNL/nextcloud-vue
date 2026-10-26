@@ -2397,7 +2397,8 @@
     "From {date}": "From {date}",
     "Until {date}": "Until {date}",
     "More actions for {name}": "More actions for {name}",
-    "Unlink contact": "Unlink contact"
+    "Unlink contact": "Unlink contact",
+    "{term}, extendable by {extension}": "{term}, extendable by {extension}"
   },
   "plurals": {
     "{count} member": [
