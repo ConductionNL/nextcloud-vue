@@ -37,7 +37,7 @@ describe('look-board.css: a plain settings table', () => {
 		expect(cell).toContain('padding: 10px 12px;')
 		expect(cell).toContain('color: var(--color-main-text);')
 		expect(cell).toContain('font-size: 14px;')
-		expect(cell).toContain('line-height: 1.5;')
+		expect(cell).toContain('line-height: 1.2;')
 	})
 
 	it('draws a row header as a strong cell, not a head', () => {

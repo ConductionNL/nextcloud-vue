@@ -1520,8 +1520,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-align: start;
 }
 
-/* Body rows are 42px as on the boards (10px, a 21px line, 10px, the rule).
-   A row header (dossiq's prerequisites) reads as a strong cell, not as a
+/* Body cells read 14px at 1.2, as the boards' settings tables do; a row's
+   height comes from its content (a pill or a 34px button). A row header (dossiq's prerequisites) reads as a strong cell, not as a
    head: the theme paints every th, so its tokens are handed the cell's. */
 .cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td,
 .cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) tbody th {
@@ -1529,7 +1529,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-bottom: 1px solid var(--color-background-dark);
 	color: var(--color-main-text);
 	font-size: 14px;
-	line-height: 1.5;
+	line-height: 1.2;
 	vertical-align: middle;
 }
 
