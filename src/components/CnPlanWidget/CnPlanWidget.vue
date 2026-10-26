@@ -18,12 +18,14 @@
 		<ul v-else-if="roots.length > 0" class="cn-plan__tree">
 			<li v-for="node in roots" :key="node.uuid" class="cn-plan__node">
 				<CnPlanWidgetRow :item="node"
+					:labels="stateLabels"
 					:busy="busy"
 					@enable="enable"
 					@transition="transition" />
 				<ul v-if="node.children.length > 0" class="cn-plan__children">
 					<li v-for="child in node.children" :key="child.uuid" class="cn-plan__node">
 						<CnPlanWidgetRow :item="child"
+							:labels="stateLabels"
 							:busy="busy"
 							@enable="enable"
 							@transition="transition" />
@@ -59,7 +61,8 @@ const PAGE_REFRESH = 'cn:page:refresh'
  * retry, never an empty plan. Any app whose records run on OpenRegister's
  * case layer uses it; dossiq's case plan is the first.
  *
- * `content`: `emptyText`, through the host translate.
+ * `content`: `emptyText`, and `stateLabels` (`{ active: 'Active' }`, the word
+ * for a state), both through the host translate.
  *
  * The record's id comes from `objectId`, else the bound record.
  */
@@ -111,6 +114,22 @@ export default {
 	},
 
 	computed: {
+		/** @return {object} The configured word per state, translated. */
+		stateLabels() {
+			const map = this.content?.stateLabels
+			if (!map || typeof map !== 'object') {
+				return {}
+			}
+			const out = {}
+			for (const [state, label] of Object.entries(map)) {
+				const text = this.text(label)
+				if (text !== '') {
+					out[state] = text
+				}
+			}
+			return out
+		},
+
 		/** @return {string} The record id. */
 		id() {
 			const bound = this.objectData || {}

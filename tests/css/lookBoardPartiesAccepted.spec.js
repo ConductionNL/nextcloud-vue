@@ -38,10 +38,11 @@ describe('look-board-detail.css: the accepted kinds strip', () => {
 		expect(body).toContain('line-height: 1.2')
 	})
 
-	it('draws the kinds as outlined 13px chips', () => {
-		const body = rule(P + ' .cn-object-parties__accepted-kind')
+	it('draws the kinds as outlined 13px chips on the strip\'s own ground (r31: the badge\'s #f0f1f3 on the #f5f6f8 strip)', () => {
+		const body = rule(P + ' .cn-object-parties__accepted-kind.cn-status-badge:not(.cn-look-nextcloud *)')
 		expect(body).toContain('border: 1px solid var(--color-border-maxcontrast)')
 		expect(body).toContain('font-size: 13px')
+		expect(body).toContain('background-color: transparent')
 	})
 
 	it('sets the source line 13px at line height 1.2 (r30: 15px at 22.5, the strip 66 vs 58)', () => {
