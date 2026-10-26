@@ -34,7 +34,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `path` | Dot-path into the object (`domains`, `@self.updated`). |
 | `label` | Row label, translated. An entry with a label and no `as` is a row. |
 | `as` | `row`, `title`, `line`, `pill` or `meter`. Without `as` and without `label` an entry is a `line`. |
-| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `list` (an array joined by ", "), `bytes` (a size, "1.5 MB"), `number` (in the reader's language), `currency` (money, see the currency entry) or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
+| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `year` ("2026"), `list` (an array joined by ", "), `bytes` (a size, "1.5 MB"), `number` (in the reader's language), `currency` (money, see the currency entry) or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
@@ -43,7 +43,7 @@ The object is the current detail-page object, or one other object named by `sour
 | `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`); a boolean is looked up as `"true"` / `"false"`. An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
-| `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. The entry is empty when every placeholder is. |
+| `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. A placeholder may name a format, `{path:format}` (`"Periode {from:year} tot en met {to:year}"`). The entry is empty when every placeholder is. |
 | `suffix` | Text added after a value that is not empty (`" kg"`). |
 | `emptyValue` | Text shown (translated) when the entry has no value; the entry is then drawn whatever `hideEmpty` says (`"No"` for an override that was never set). |
 | `decimals` | With `number` or `currency`: the fraction digits. `number` shows the value in the reader's language. |
@@ -151,6 +151,7 @@ without `emptyText` says nothing when its link does not resolve.
 | `source` by query | `{ register, schema, filter, sort? }` without `id`: the first object that matches `filter` (shared tokens) in `sort` order (`{ field, dir }`), such as the latest count of a cash shift. No match shows the empty text. |
 | `endpointSource` | `{ url, method?, params?, responsePath? }`, the block a stat or chart tile takes: the facts read an app endpoint (tokens inside the url and the params), shared and cached like the tiles. |
 | `emptyWhen` | A path. When the value there is truthy the card shows `emptyText`, for an endpoint that answers `{ "empty": true }`. |
+| `fieldsFrom` | `@context.<name>.<path>`: a list of entries on a record the detail page reads beside this one (a case type's `requestFields`). When it holds entries they are drawn instead of `fields`; otherwise `fields` stand. |
 | `rowsPath` | A path to a list of `{ label, value, format? }` the object holds, drawn as rows after `fields`: a preview the server builds, with labels the server chose. |
 | `actions` | Buttons under the facts in the `headerActions` shape (see below). |
 | `hideEmpty` | Drop an entry whose value is empty (default `true`). |

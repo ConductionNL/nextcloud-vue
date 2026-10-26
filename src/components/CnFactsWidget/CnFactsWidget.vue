@@ -433,15 +433,16 @@ export default {
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
-		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
+		 * - `fieldsFrom` — `@context.<name>.<path>`, a list of entries on a record the page reads beside this one (a case type's `requestFields`); when it holds entries they are drawn instead of `fields`.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
@@ -501,6 +502,29 @@ export default {
 
 	computed: {
 		/**
+		 * The entries to draw: the list `fieldsFrom` names on the page's
+		 * `@context` records when it holds entries (a case type's
+		 * `requestFields`), else `fields`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+		 */
+		entries() {
+			const from = this.content?.fieldsFrom
+			if (typeof from === 'string' && from.startsWith('@context.')) {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ '@context': rows || {} }, from)
+				const list = Array.isArray(named) ? named.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry)) : []
+				if (list.length > 0) {
+					return list
+				}
+			}
+			return Array.isArray(this.content?.fields) ? this.content.fields : []
+		},
+
+		/**
 		 * Whether the rows sit in two columns, label above value.
 		 *
 		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
@@ -535,7 +559,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		countJobsKey() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const keys = fields
 				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
 				.map((field) => this.countKey(field.countFrom))
@@ -696,7 +720,7 @@ export default {
 		 */
 		blocks() {
 			const sourceRecord = this.record
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			// A source that finds nothing still leaves the entries that read the
 			// page's own object (`from: "object"`).
 			const ownEntries = Boolean(this.objectData) && fields.some((field) => field && field.from === 'object')
@@ -1104,7 +1128,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		async loadCounts() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const seen = new Set()
 			for (const field of fields) {
 				const countFrom = field && field.countFrom
@@ -1176,8 +1200,8 @@ export default {
 		 */
 		templateValue(record, template) {
 			let filled = false
-			const text = this.tr(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
-				const value = this.format(readPath(record, path), {}, record)
+			const text = this.tr(template).replace(/\{([\w.@]+)(?::([\w-]+))?\}/g, (match, path, format) => {
+				const value = this.format(readPath(record, path), format ? { format } : {}, record)
 				filled = filled || value !== ''
 				return value
 			})
@@ -1569,7 +1593,7 @@ export default {
 		 * @return {Array<{spec: object, raw: unknown}>}
 		 */
 		refSpecs(record) {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const specs = []
 			const visit = (spec) => {
 				if (!spec || typeof spec !== 'object') {
@@ -1801,6 +1825,10 @@ export default {
 					.map((item) => this.format(item, { ...spec, format: 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
+			}
+			if (format === 'year') {
+				const date = parseDateValue(raw)
+				return date === null ? '' : String(date.getFullYear())
 			}
 			// The month written out, the year only outside this year: "3 oktober".
 			if (format === 'longdate') {
