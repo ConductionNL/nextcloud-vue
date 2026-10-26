@@ -907,6 +907,16 @@
 	max-width: calc(100% - 26px);
 }
 
+/* A plain (unsortable) label wraps by word beside its funnel, as a sort
+   button does, instead of the funnel dropping onto a line of its own
+   ("Lopende / zaken", DqOrganisaties: head 64 -> 59, board 58.5).
+   @spec openspec/changes/board-head-label-beside-funnel/specs/data-table/spec.md#requirement-a-board-heads-plain-label-wraps-beside-its-filter */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th > span:first-child:has(~ .cn-table-header__filter) {
+	display: inline-block;
+	max-width: calc(100% - 26px);
+	vertical-align: middle;
+}
+
 /* The board's funnel: a 22px button 4px after the sort chevron. */
 .cn-look-board .cn-table-container--board .cn-data-table th .cn-table-header__filter {
 	width: 22px;
