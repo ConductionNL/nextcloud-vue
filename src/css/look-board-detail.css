@@ -2379,3 +2379,16 @@
 .cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
 }
+
+/* A facts card's link with an icon (Werkinstructie) sets the icon beside its
+   text, 10px apart, the text on the normal line starting 10px under the
+   title, as the Dq boards draw it. The anchor was a block, so the icon stood
+   on its own line above the text (r31).
+   @spec openspec/changes/board-facts-link-icon-beside-text/specs/facts-widget/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__link:has(> .material-design-icon):not(.cn-look-nextcloud *) {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: var(--cn-board-first-line-leading);
+	line-height: normal;
+}
