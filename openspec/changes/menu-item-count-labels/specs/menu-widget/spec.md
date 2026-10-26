@@ -12,3 +12,14 @@ context; while a token is unresolved, no count is asked and the declared label s
 - **GIVEN** a campaign page with an item `countFrom { register: pipelinq, schema: blast, filter: { campaign: '@objectId' } }` and `countLabel { one: '{count} newsletter', other: '{count} newsletters' }`
 - **WHEN** the campaign has two newsletters
 - **THEN** the item SHALL read "2 nieuwsbrieven" in Dutch, with no badge
+
+### Requirement: A menu item can depend on the record
+
+A menu item's `visibleIf` SHALL be evaluated against `{ object }`, the detail page's record, and the item SHALL be left
+out while it fails or while no record is known.
+
+#### Scenario: A campaign without page content
+
+- **GIVEN** an item with `visibleIf { "object.articleBody": { truthy: true } }`
+- **WHEN** the campaign's `articleBody` is empty
+- **THEN** the item SHALL NOT render

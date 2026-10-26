@@ -209,6 +209,7 @@ import { cnFetchJson } from '../../utils/cnFetch.js'
 import { normalizeFacets } from '../../utils/facets.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
@@ -355,9 +356,15 @@ export default {
 			// An item with `childrenFrom` adds the children read for it after
 			// its declared ones; those are data, not manifest strings.
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			// An item's `visibleIf` reads the detail page's record as `object.<field>`
+			// (PqCampagne's article line only while the campaign has page content).
+			const record = { object: this.objectContext().object ?? null }
 			const translated = (list, prefix) => list.map((item, idx) => {
 				if (!item || typeof item !== 'object') {
 					return item
+				}
+				if (item.visibleIf && typeof item.visibleIf === 'object' && !passesContextPredicates(item.visibleIf, record)) {
+					return null
 				}
 				const out = { ...item }
 				if (typeof item.label === 'string' && item.label !== '') {
@@ -380,7 +387,7 @@ export default {
 					out.children = declared
 				}
 				return out
-			})
+			}).filter((item) => item !== null)
 			return translated(arr, '')
 		},
 

@@ -57,6 +57,21 @@ describe('CnMenuWidget countLabel', () => {
 		expect(mockFetchJson.mock.calls[0][1].query).toEqual({ campaign: 'camp-1', _limit: 1 })
 	})
 
+	it('shows an item whose visibleIf reads the record only while it holds', async () => {
+		const page = { label: '1 article, the content of the page', url: '/articles', visibleIf: { 'object.articleBody': { truthy: true } } }
+		const mountWith = async (object) => {
+			const w = mount(CnMenuWidget, {
+				props: { content: { style: 'tree', expandedByDefault: true, items: [page] } },
+				global: { provide: { cnObjectContext: { objectId: 'camp-1', object } } },
+			})
+			await flushPromises()
+			return w
+		}
+		expect((await mountWith({ articleBody: 'Text' })).text()).toContain('1 article, the content of the page')
+		expect((await mountWith({ articleBody: '' })).text()).not.toContain('1 article')
+		expect((await mountWith(null)).text()).not.toContain('1 article')
+	})
+
 	it('keeps the plain label while the record is not known', async () => {
 		const w = await mountMenu(null)
 		expect(mockFetchJson).not.toHaveBeenCalled()
