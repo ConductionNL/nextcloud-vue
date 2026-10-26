@@ -177,6 +177,16 @@
 	margin-top: 0;
 }
 
+/* A description that is a line of text sits at the font's normal line height
+   and ends the header 8px under it, as the boards pad their header (DqDashboard,
+   DqMijnWerk, DqMijnTeam: 76, live 72.5). A description that holds the page's
+   filters keeps its own height: the controls already set it.
+   @spec openspec/changes/board-text-description-ends-8px/specs/board-text-description-ends-8px/spec.md#requirement-a-text-description-ends-the-board-header-8px-under-it */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__description:not(:has(.v-select, .cn-segmented-control)) {
+	padding-bottom: 8px;
+	line-height: normal;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
