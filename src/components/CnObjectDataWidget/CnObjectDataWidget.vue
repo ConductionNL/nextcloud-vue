@@ -438,7 +438,9 @@ import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
 import { formatTermDuration } from '../../utils/builtInFormatters.js'
+import { parseDateValue } from '../../utils/dateVariant.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
@@ -1105,6 +1107,16 @@ export default {
 				// label, beside a list that already read "Ingediend".
 				const enumLabel = this.enumDisplayLabel(field, raw)
 				const empty = this.emptyValueFor(field, raw)
+				if (empty === null && (field.format === 'date' || field.format === 'date-long') && raw !== null && raw !== undefined && raw !== '') {
+					// The board's short date ("3 okt"), or with the year always ("3 okt 2026").
+					const date = parseDateValue(raw)
+					if (date !== null) {
+						values[field.key] = field.format === 'date-long'
+							? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
+							: formatBoardDate(date)
+						continue
+					}
+				}
 				if (empty === null && field.format === 'duration' && raw !== null && raw !== undefined && raw !== '') {
 					// A term in words, with the extension at `extendBy` when the object holds one.
 					const extension = typeof field.extendBy === 'string' ? readPath(this.objectData || {}, field.extendBy) : null
