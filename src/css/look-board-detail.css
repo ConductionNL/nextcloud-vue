@@ -2379,3 +2379,14 @@
 .cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
 }
+
+/* A table in a detail page card names each row in the link colour at 14px,
+   as DqZaakGerelateerd draws "Deelzaken" and "Objecten" (r31: 15px in the
+   body ink). The row opens the record, so its name reads as the link.
+   @spec openspec/changes/board-detail-table-title-cells/specs/board-tables/spec.md */
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: 1.2;
+	color: var(--color-primary-element);
+}
