@@ -524,6 +524,57 @@ export function formatIsoDuration(value) {
 	return words[period.unit] ? words[period.unit]() : String(value)
 }
 
+/** The ISO designator of each date unit a term is written in. */
+const UNIT_DESIGNATOR = { years: 'Y', months: 'M', weeks: 'W', days: 'D' }
+
+/**
+ * A one-unit ISO-8601 period, a day count that is whole weeks read as weeks
+ * (a term of `P28D` is "4 weeks"); null when it is not a one-unit period.
+ *
+ * @param {unknown} value The stored period.
+ * @return {{amount: number, unit: string}|null}
+ */
+function termPeriod(value) {
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	const period = parseDuration(String(value))
+	if (period === null || !UNIT_DESIGNATOR[period.unit]) {
+		return null
+	}
+	if (period.unit === 'days' && period.amount > 0 && period.amount % 7 === 0) {
+		return { amount: period.amount / 7, unit: 'weeks' }
+	}
+	return period
+}
+
+/**
+ * A term in words, with the extension it may get (`format: 'duration'`):
+ * `P28D` reads "4 weeks", and with an extension of `P14D` "4 weeks,
+ * extendable by 2" (the unit is said once when both share it). A value that
+ * is not a one-unit period is returned as written, '' for null or empty.
+ *
+ * @spec openspec/changes/data-widget-duration-format/specs/data-widget/spec.md#requirement-a-term-reads-in-words-with-its-extension
+ * @param {unknown} value The stored term.
+ * @param {unknown} [extension] The stored extension period, if any.
+ * @return {string}
+ */
+export function formatTermDuration(value, extension = null) {
+	const term = termPeriod(value)
+	if (term === null) {
+		return value === null || value === undefined ? '' : String(value)
+	}
+	const words = formatIsoDuration(`P${term.amount}${UNIT_DESIGNATOR[term.unit]}`)
+	const extra = termPeriod(extension)
+	if (extra === null || extra.amount === 0) {
+		return words
+	}
+	const extraWords = extra.unit === term.unit
+		? String(extra.amount)
+		: formatIsoDuration(`P${extra.amount}${UNIT_DESIGNATOR[extra.unit]}`)
+	return t('nextcloud-vue', '{term}, extendable by {extension}', { term: words, extension: extraWords })
+}
+
 /**
  * A Nextcloud user id as its display name (`userName` registry key): the id
  * while the name is looked up, and for a user nobody answers for.
@@ -553,6 +604,7 @@ export const BUILT_IN_FORMATTERS = {
 	connectionSettingsLabel: formatConnectionSettingsLabel,
 	masked: formatMasked,
 	isoDuration: formatIsoDuration,
+	termDuration: formatTermDuration,
 	valueMap: formatValueMap,
 	userName: formatUserName,
 }

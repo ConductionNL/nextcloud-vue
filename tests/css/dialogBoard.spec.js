@@ -74,6 +74,7 @@ describe('dialog.css', () => {
 	it('draws the body and footer: 18px gap, 16px 24px with a 1px hairline, 10px between buttons', () => {
 		expect(css).toMatch(/\.dialog__content\s*\{[^}]*gap:\s*18px/)
 		expect(css).toMatch(/\.dialog__actions\s*\{[^}]*gap:\s*10px;[^}]*padding:\s*16px 24px;[^}]*border-top:\s*1px solid var\(--color-border\)/)
+		expect(css).toMatch(/\.cn-dialog-board \.dialog \.dialog__actions\s*\{[^}]*margin:\s*0;/)
 	})
 
 	it('puts the tertiary region at the far left and fills a destructive primary with the danger token', () => {

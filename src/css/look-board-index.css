@@ -2363,6 +2363,20 @@
 	padding-inline-start: 12px;
 }
 
+/* The boards draw the leading icon inside the title cell, so the title's
+   heading starts over the icon (DqOrganisaties "Naam" at 76, the icon's x),
+   as an avatar shares its column's heading (DqContacten). The blank icon
+   heading stays for the column count; the title heading reaches back over it.
+   @spec openspec/changes/board-head-over-row-icon/specs/data-table/spec.md#requirement-a-board-title-heading-starts-over-the-row-icon */
+.cn-look-board .cn-table-container--board .cn-data-table th.cn-table-col--icon + th:not(.cn-look-nextcloud *) {
+	padding-inline-start: 0;
+	overflow: visible;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table th.cn-table-col--icon + th:not(.cn-look-nextcloud *) > :first-child {
+	margin-inline-start: -32px;
+}
+
 /* ---- The table beside the open side panel (DqZakenSorteren, DqFilterBeheren) */
 /* The table takes its column's width: its configured column widths make way
    for the content, titles and names wrap (a long word hyphenated, an
