@@ -1,0 +1,2 @@
+- [x] 1.1 rows icon tile (CnRecordListWidget)
+- [x] 1.2 tests (CnRecordListWidgetIconTile.spec.js)

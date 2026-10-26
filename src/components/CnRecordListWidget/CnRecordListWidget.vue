@@ -309,6 +309,12 @@
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
+						<span v-if="iconTiles"
+							class="cn-record-list__icon-tile"
+							aria-hidden="true"
+							data-testid="cn-record-list-icon-tile">
+							<CnIcon :name="item.icon" :size="18" />
+						</span>
 						<span class="cn-record-list__main">
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
@@ -999,6 +1005,17 @@ export default {
 		presentation() {
 			const value = this.content?.presentation
 			return PRESENTATIONS.includes(value) ? value : 'rows'
+		},
+
+		/**
+		 * Whether a `rows` row leads with its icon in a round tile
+		 * (`iconTile: true` beside `icon`), as DqZaakTaken draws "Wat hierna komt".
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-row-icon-tile/specs/record-list/spec.md#requirement-a-record-list-row-can-lead-with-an-icon-tile
+		 */
+		iconTiles() {
+			return this.content?.iconTile === true && this.cardIcons
 		},
 
 		/**
@@ -3590,6 +3607,20 @@ export default {
 a.cn-record-list__inline-title {
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+/* A row's icon in a 36px round tile on the sunken ground, before the text
+   (`iconTile`, DqZaakTaken "Wat hierna komt"). */
+.cn-record-list__icon-tile {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 18px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
 }
 </style>
 
