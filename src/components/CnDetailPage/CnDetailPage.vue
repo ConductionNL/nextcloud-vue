@@ -5745,6 +5745,15 @@ export default {
 			},
 		},
 
+		// Header actions gate on `@context.<name>` through the object context.
+		visibilityRows() {
+			this.syncObjectContext()
+		},
+
+		visibilityRowsPending() {
+			this.syncObjectContext()
+		},
+
 		// Endpoint and source conditions on grid widgets are asked once per record.
 		remoteWidgetConditionsKey: {
 			immediate: true,
@@ -7887,6 +7896,7 @@ export default {
 				object: this.currentObject || null,
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				context: this.visibilityRowsPending ? null : (this.visibilityRows || null),
 				setObject: (object) => this.setCurrentObject(object),
 			}
 		},

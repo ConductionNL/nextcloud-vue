@@ -47,8 +47,10 @@ function unwrap(v) {
  *
  * @param {object|null} objectCtx The `cnObjectContext` inject (ref or plain object).
  * @param {object|null} detailCtx The `cnDetailObjectContext` inject (`{ value }` holder).
- * @return {{objectId: (string|number|null), object: (object|null), register: string, schema: (string|object)}|null}
- *   The merged context, or null when neither inject resolves.
+ * @return {{objectId: (string|number|null), object: (object|null), register: string, schema: (string|object), context?: object}|null}
+ *   The merged context, or null when neither inject resolves. `context` is the
+ *   records the page's conditions name (`@context.<name>`), when the primary
+ *   inject carries them.
  */
 export function resolveObjectTokenContext(objectCtx, detailCtx) {
 	const primary = unwrap(objectCtx)
@@ -80,6 +82,9 @@ export function resolveObjectTokenContext(objectCtx, detailCtx) {
 		}
 		if (primary.schema) {
 			out.schema = primary.schema
+		}
+		if (primary.context && typeof primary.context === 'object') {
+			out.context = primary.context
 		}
 	}
 	return out
