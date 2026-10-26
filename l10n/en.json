@@ -913,6 +913,7 @@
     "Select a project": "Select a project",
     "Project": "Project",
     "Project id": "Project id",
+    "Subject: {subject}": "Subject: {subject}",
     "Subject": "Subject",
     "Type (optional)": "Type (optional)",
     "e.g. Task, Bug, Feature": "e.g. Task, Bug, Feature",
@@ -2416,6 +2417,10 @@
     "%n year": [
       "%n year",
       "%n years"
+    ],
+    "%n attachment": [
+      "%n attachment",
+      "%n attachments"
     ],
     "%n month": [
       "%n month",

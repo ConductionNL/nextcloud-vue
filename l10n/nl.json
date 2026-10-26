@@ -939,6 +939,7 @@
     "Select a project": "Selecteer een project",
     "Project": "Project",
     "Project id": "Project-id",
+    "Subject: {subject}": "Onderwerp: {subject}",
     "Subject": "Onderwerp",
     "Type (optional)": "Type (optioneel)",
     "e.g. Task, Bug, Feature": "bijv. Taak, Bug, Functie",
@@ -2671,6 +2672,10 @@
     "%n year": [
       "%n jaar",
       "%n jaar"
+    ],
+    "%n attachment": [
+      "%n bijlage",
+      "%n bijlagen"
     ],
     "%n month": [
       "%n maand",
