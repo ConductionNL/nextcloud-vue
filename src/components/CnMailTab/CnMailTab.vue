@@ -64,20 +64,26 @@
 					:trackBy="templateIdField"
 					:placeholder="templatePlaceholder"
 					:clearable="true" />
-				<NcButton
-					v-if="templatesEnabled"
-					:disabled="closed || drafting || !selectedTemplate"
-					data-testid="cn-mail-tab-draft-template"
-					@click="draftFromTemplate">
-					{{ t('nextcloud-vue', 'Open draft from template') }}
-				</NcButton>
-				<NcButton
-					v-if="!showComposeAction || draftSource.blankButton === true"
-					:disabled="closed || drafting"
-					data-testid="cn-mail-tab-draft-blank"
-					@click="draftBlank">
-					{{ t('nextcloud-vue', 'Empty draft') }}
-				</NcButton>
+				<!-- The draft buttons stand together, 8px apart, beside the field. -->
+				<div class="cn-mail-tab__template-actions">
+					<NcButton
+						v-if="templatesEnabled"
+						:disabled="closed || drafting || !selectedTemplate"
+						data-testid="cn-mail-tab-draft-template"
+						@click="draftFromTemplate">
+						<template #icon>
+							<OpenInNew :size="16" />
+						</template>
+						{{ t('nextcloud-vue', 'Open draft from template') }}
+					</NcButton>
+					<NcButton
+						v-if="!showComposeAction || draftSource.blankButton === true"
+						:disabled="closed || drafting"
+						data-testid="cn-mail-tab-draft-blank"
+						@click="draftBlank">
+						{{ t('nextcloud-vue', 'Empty draft') }}
+					</NcButton>
+				</div>
 			</div>
 			<div v-if="hint" class="cn-mail-tab__hint">
 				{{ hint }}
@@ -121,6 +127,7 @@ import { NcButton, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import EmailOffOutline from 'vue-material-design-icons/EmailOffOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnEmailTab from '../../integrations/builtin/email/CnEmailTab.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
@@ -197,6 +204,7 @@ export default {
 		NcButton,
 		NcNoteCard,
 		NcSelect,
+		OpenInNew,
 	},
 
 	inject: {
@@ -582,6 +590,12 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-end;
+	gap: 8px;
+}
+
+.cn-mail-tab__template-actions {
+	display: flex;
+	flex-wrap: wrap;
 	gap: 8px;
 }
 
