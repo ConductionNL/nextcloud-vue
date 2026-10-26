@@ -9,7 +9,8 @@
 		placement="bottom-end"
 		popupRole="menu"
 		:setReturnFocus="returnFocus"
-		data-testid="cn-grouped-menu">
+		data-testid="cn-grouped-menu"
+		@afterShow="focusItem(0)">
 		<template #trigger="{ attrs }">
 			<NcButton
 				ref="trigger"
@@ -62,7 +63,7 @@
 						:role="item.checked === undefined ? 'menuitem' : 'menuitemradio'"
 						:aria-checked="item.checked === undefined ? undefined : String(item.checked === true)"
 						:aria-disabled="item.disabled === true ? 'true' : undefined"
-						tabindex="-1"
+						:tabindex="item.id === firstItemId ? 0 : -1"
 						:data-testid="`cn-grouped-menu-item-${item.id}`"
 						@click="onItemClick($event, item)">
 						<span class="cn-grouped-menu__icon" aria-hidden="true">
@@ -181,13 +182,22 @@ export default {
 		visibleColumns() {
 			return visibleColumns(this.columns)
 		},
+
+		/**
+		 * The first item's id: the one tab stop in the menu, so focus can
+		 * enter it; the arrow keys move from there.
+		 *
+		 * @return {string|undefined}
+		 */
+		firstItemId() {
+			return this.visibleColumns[0]?.[0]?.items?.[0]?.id
+		},
 	},
 
 	watch: {
 		open(isOpen) {
 			if (isOpen) {
 				this.$emit('open')
-				this.$nextTick(() => this.focusItem(0))
 			}
 		},
 	},
@@ -278,6 +288,13 @@ export default {
 		 * @return {void}
 		 */
 		onKeydown(event) {
+			if (event.key === 'Escape') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.open = false
+				this.$refs.trigger?.$el?.focus?.()
+				return
+			}
 			const items = this.itemElements()
 			const current = items.indexOf(document.activeElement)
 			const moves = {
@@ -375,6 +392,25 @@ export function visibleColumns(columns) {
 	text-align: start;
 	text-decoration: none;
 	cursor: pointer;
+}
+
+/* A theme that underlines, colours and bolds every link and button with
+   `!important` and an id in its selector (thematiq's `a:not(#header a)`)
+   made the link items look different from the button items. The two
+   `:not(#…)` raise this rule above it. */
+.cn-grouped-menu__item:not(#cn-grouped-menu-a):not(#cn-grouped-menu-b) {
+	color: var(--color-main-text) !important;
+	font-weight: 400 !important;
+	text-decoration: none !important;
+}
+
+.cn-grouped-menu__item--checked:not(#cn-grouped-menu-a):not(#cn-grouped-menu-b) {
+	color: var(--color-primary-element-light-text) !important;
+	font-weight: 600 !important;
+}
+
+.cn-grouped-menu__item--destructive:not(#cn-grouped-menu-a):not(#cn-grouped-menu-b) {
+	color: var(--color-error-text, var(--color-error)) !important;
 }
 
 .cn-grouped-menu__item:hover,

@@ -544,6 +544,15 @@ export function mostUsedApps(apps, uses, limit) {
 	font-weight: 600;
 }
 
+/* A theme that underlines and colours every link with `!important` and an id
+   in its selector (thematiq's `a:not(#header a)`) underlined the tile and chip
+   names. The two `:not(#…)` raise this rule above it. */
+.cn-app-tiles__tile:not(#cn-app-tiles-a):not(#cn-app-tiles-b),
+.cn-app-tiles__chip:not(#cn-app-tiles-a):not(#cn-app-tiles-b) {
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+}
+
 .cn-app-tiles__sr-only {
 	position: absolute;
 	width: 1px;

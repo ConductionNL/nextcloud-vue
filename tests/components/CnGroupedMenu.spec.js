@@ -18,7 +18,14 @@ jest.mock('@nextcloud/l10n', () => ({
 const NcPopover = {
 	name: 'NcPopover',
 	props: ['shown'],
-	emits: ['update:shown'],
+	emits: ['update:shown', 'afterShow'],
+	watch: {
+		shown(value) {
+			if (value) {
+				this.$nextTick(() => this.$emit('afterShow'))
+			}
+		},
+	},
 	template: '<div class="popover-stub"><slot name="trigger" :attrs="{ \'aria-expanded\': String(shown) }" /><div v-if="shown"><slot /></div></div>',
 }
 
@@ -152,6 +159,10 @@ describe('CnGroupedMenu', () => {
 		expect(document.activeElement).toBe(items[items.length - 1].element)
 		await panel.trigger('keydown', { key: 'Home' })
 		expect(document.activeElement).toBe(items[0].element)
+		expect(items[0].attributes('tabindex')).toBe('0')
+		expect(items[1].attributes('tabindex')).toBe('-1')
+		await panel.trigger('keydown', { key: 'Escape' })
+		expect(wrapper.vm.open).toBe(false)
 		wrapper.unmount()
 	})
 
