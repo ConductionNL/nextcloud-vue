@@ -1012,7 +1012,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-weight: 400;
-	line-height: 16px;
+	line-height: normal;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__text {
+	line-height: normal;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
@@ -3610,7 +3614,66 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    and large radius.
    @spec openspec/changes/board-share-rows-ground/specs/board-share-rows-ground/spec.md */
 .cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
+	min-height: 56px;
 	border-radius: 8px;
 	background: var(--cn-board-sunken-ground);
 	line-height: normal;
+}
+
+/* The rights select is the board's 36px field, the hint and the "Shared
+   with" caption run at a normal line height, and the person field keeps no
+   margin under it, so the list starts 60px under the field (DqFilterDelen). */
+.cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
+	--default-clickable-area: 36px;
+}
+
+.cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
+.cn-look-board .cn-saved-view-share__caption:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *) {
+	margin-bottom: 0;
+}
+
+/* The edit view dialog (DqFilterBewerken): field labels at a normal line
+   height, the sharing note 16px under the choices at 13px, the
+   description's hint 6px under its field, the icon group 16px
+   under the hint with its label at 14px, and the icons 7px apart without
+   the core button margin, the unchosen ones in the field line.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
+.cn-look-board .cn-edit-view__label:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-edit-view__note:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .input-field__helper-text-message {
+	padding-top: 2px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icons {
+	gap: 7px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__label {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon:not(.cn-saved-view-look__icon--chosen) {
+	border-color: var(--cn-board-control-border);
 }
