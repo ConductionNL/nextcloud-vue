@@ -2458,3 +2458,11 @@
 .cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon {
 	color: var(--color-border-maxcontrast);
 }
+
+/* In a side card the pill and its date stand 8px apart, as the boards draw
+   them (DqOrganisatie "Lopende zaken", "Open tickets"); the row's own 16px
+   is for a full-width list.
+   @spec openspec/changes/record-list-pill-variant-when/specs/record-list/spec.md#requirement-a-side-rows-pill-and-date-stand-8px-apart */
+.cn-look-board .cn-detail-page__side .cn-record-list__aside:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}

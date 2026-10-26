@@ -2627,7 +2627,8 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, variant?, hideValues? }`.
+		 * The row's pill: `{ field, labels?, colorMap?, variant?, variantWhen?, hideValues? }`.
+		 * `variantWhen` (`[{ when, variant }]`, the first whose condition holds for the row) wins over `colorMap`.
 		 *
 		 * @param {object} row The row.
 		 * @param {object} [config] A pill config; the widget's `pill` by default.
@@ -2652,7 +2653,12 @@ export default {
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
-			const variant = found ? map[found] : pill.variant
+			// `variantWhen` colours the pill by the row rather than the value: a
+			// finished case is green whatever its case type calls the final status.
+			const rule = Array.isArray(pill.variantWhen)
+				? pill.variantWhen.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+				: null
+			const variant = rule ? rule.variant : (found ? map[found] : pill.variant)
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
