@@ -21,7 +21,10 @@
 					<strong>{{ summary.title }}</strong>
 					<span v-if="summary.meta" class="cn-action-dialog__muted">{{ summary.meta }}</span>
 				</span>
-				<span v-if="summary.badge" class="cn-action-dialog__badge">{{ summary.badge }}</span>
+				<span
+					v-if="summary.badge"
+					class="cn-action-dialog__badge"
+					:class="summary.badgeVariant ? 'cn-status-badge--' + summary.badgeVariant : ''">{{ summary.badge }}</span>
 			</div>
 
 			<!-- Facts about the record, in titled groups ("Retention under the case type"). -->
@@ -218,7 +221,7 @@ let reasonSeq = 0
  * `config`:
  * - `title`, `subtitle`, `doneText`: texts, through the host translate;
  *   `eyebrow` a template filled from the record ("Close off · {identifier}").
- * - `summary`: `{ source?, title, meta?, badge?, icon? }`: templates filled from
+ * - `summary`: `{ source?, title, meta?, badge?, badgeVariant?, badgeColorMap?, icon? }`: templates filled from
  *   the record (`source` an endpointSource to read it from, else `object`).
  * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template; a
  *   `{path|<formatter>}` token reads through the built-in and app formatters.
@@ -355,7 +358,12 @@ export default {
 				return null
 			}
 			const title = this.fill(def.title)
-			return title ? { title, meta: this.fill(def.meta), badge: this.fill(def.badge) } : null
+			const badge = this.fill(def.badge)
+			const variants = ['default', 'success', 'warning', 'error', 'info', 'purple', 'teal']
+			const mapped = def.badgeColorMap && typeof def.badgeColorMap === 'object' ? def.badgeColorMap[badge] : undefined
+			const wanted = mapped || def.badgeVariant
+			const badgeVariant = variants.includes(wanted) ? wanted : ''
+			return title ? { title, meta: this.fill(def.meta), badge, badgeVariant } : null
 		},
 
 		/** @return {Array<{title: string, facts: Array<{label: string, value: string}>}>} The fact groups. */
@@ -858,10 +866,15 @@ export default {
 .cn-action-dialog__badge {
 	padding: 3px 10px;
 	border-radius: 12px;
-	background: var(--color-background-dark);
 	font-size: 13px;
 	font-weight: 600;
+	line-height: normal;
 	white-space: nowrap;
+}
+
+/* Without a tone (`badgeVariant`, `badgeColorMap`) the badge is neutral. */
+.cn-action-dialog__badge:not([class*='cn-status-badge--']) {
+	background: var(--color-background-dark);
 }
 
 .cn-action-dialog__title {

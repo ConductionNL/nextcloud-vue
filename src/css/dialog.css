@@ -463,6 +463,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	font-size: var(--cn-field-text-size, 15px);
 }
 
+/* A board textarea's lines sit on the normal line height, as the boards'
+   `font` shorthand sets it: two rows are 58px, not 68 (DqArchiveren Reden). */
+.cn-dialog-board .dialog__content .textarea__input {
+	line-height: normal;
+}
+
 /* A plain input an app puts in a board dialog (a date, a number) is the same
    40px control; Nextcloud's core stylesheet makes it 34px. */
 .cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input) {
