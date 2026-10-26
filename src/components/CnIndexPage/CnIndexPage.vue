@@ -6373,7 +6373,24 @@ export default {
 			if (declared || !from || typeof from.field !== 'string' || from.field === '') {
 				return ''
 			}
-			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
+			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, a: this.quickFiltersFromScope, q: from })
+		},
+
+		/**
+		 * The active filters the `quickFiltersFrom` values are counted within,
+		 * without the field's own: a saved view's or default filters narrow the
+		 * tabs as they narrow the list, and picking a tab keeps the others.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/quick-filters-from-active-scope/specs/quick-filters-from-active-scope/spec.md#requirement-generated-quick-filters-count-within-the-active-filters
+		 */
+		quickFiltersFromScope() {
+			const field = this.quickFiltersFrom && this.quickFiltersFrom.field
+			const scope = { ...(this.effectiveActiveFilters || {}) }
+			if (field) {
+				delete scope[field]
+			}
+			return scope
 		},
 
 		filterStripCountKey() {
@@ -9830,7 +9847,8 @@ export default {
 
 		/**
 		 * Build the `quickFiltersFrom` tabs: the field's distinct values with
-		 * their counts in one grouped request, labelled through the
+		 * their counts within the page filter and the active filters (not the
+		 * field's own) in one grouped request, labelled through the
 		 * reference-label resolver when the values are record ids. A failed
 		 * request draws no tabs.
 		 *
@@ -9849,7 +9867,7 @@ export default {
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			let groups
 			try {
-				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: resolveFilterMap(this.filter, params, ctx) }, ctx)
+				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: { ...resolveFilterMap(this.filter, params, ctx), ...resolveFilterMap(this.quickFiltersFromScope, params, ctx) } }, ctx)
 			} catch {
 				groups = []
 			}
