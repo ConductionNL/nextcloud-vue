@@ -2,8 +2,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * In the board look the buildiq square is the boards' orange (#e2611a, the
- * white icon on it 3.52:1); the Nextcloud look keeps the brand orange.
+ * In the board look the buildiq square is the brand orange darkened to AA
+ * (#c64d0b, the white icon on it 4.70:1); the Nextcloud look keeps the brand
+ * orange.
  * Read from the stylesheet text.
  *
  * @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange
@@ -33,9 +34,9 @@ function rulesFor(css, selector) {
 }
 
 describe('the board buildiq square', () => {
-	it('fills the board square with the boards\' orange', () => {
+	it('fills the board square with the brand orange darkened to AA', () => {
 		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue')
-		expect(rule).toMatch(/--cn-buildiq-color:\s*#e2611a;/)
+		expect(rule).toMatch(/--cn-buildiq-color:\s*#c64d0b;/)
 	})
 
 	it('keeps the brand orange outside the board look', () => {

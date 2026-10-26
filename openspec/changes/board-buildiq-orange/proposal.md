@@ -1,12 +1,39 @@
+---
+kind: code
+---
+
 # Proposal: board-buildiq-orange
 
 ## Why
 
-Every board draws the buildiq square in #e2611a (962 squares on the boards in design-system main, Dq and Pt alike). Live it was the brand orange #f36c21 (COMPDIFF pq1, the buildiq button on the Pt index boards). The board's orange also reads better: the white icon on it is 3.52:1 where the brand orange is 3.01:1, and its edge on the page ground #f5f6f8 is 3.26:1 where the brand orange is 2.78:1.
+The buildiq square carries a white icon on orange. The brand orange #f36c21
+gives that icon 3.01:1, and the boards' #e2611a 3.52:1; neither reaches the
+4.5:1 Ruben asked for on 26 Oct ("fix the contrast properly": a WCAG-AA
+primary, white at 4.5:1 or more, or dark text on the orange, whichever keeps
+the brand closest). The boards were also split: the Dq boards drew #f36c21,
+every other board #e2611a.
+
+## Choice
+
+#c64d0b: the brand orange (hue 21.4 degrees) darkened in lightness only
+(hue 21.2), the lightest step with a margin over 4.5:1.
+
+| fill | white icon | edge on page ground #f5f6f8 | dark ink #1b1c1d |
+|---|---|---|---|
+| #f36c21 (brand) | 3.01:1 | 2.78:1 | 5.67:1 |
+| #e2611a (old boards) | 3.52:1 | 3.26:1 | 4.84:1 |
+| #c64d0b (chosen) | 4.70:1 | 4.35:1 | 3.66:1 |
+
+Dark ink on the brand orange (5.67:1) keeps the fill but turns the white
+mark dark, and its edge on the page ground stays 2.78:1, under the 3:1 a
+control's boundary needs; the darker orange keeps the white mark, the hue,
+and both ratios.
 
 ## What changes
 
-In the board look the buildiq square sets `--cn-buildiq-color: #e2611a`. The Nextcloud look keeps the brand orange.
+In the board look the buildiq square sets `--cn-buildiq-color: #c64d0b`.
+The Nextcloud look keeps the brand orange. The boards draw the same value
+(design-system).
 
 ## Rollback
 
