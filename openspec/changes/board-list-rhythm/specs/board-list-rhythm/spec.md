@@ -10,7 +10,7 @@
 
 ### Requirement: A board list page keeps the board's vertical rhythm
 
-In the board look an index page's header SHALL end 8px under its count line, which reads at its normal leading; the toolbar's rows SHALL stand 20px apart; the bulk band SHALL add no margin to the page's 20px gap; and a map list page SHALL keep the height of its content around a 533px map, 18px in.
+In the board look an index page's header SHALL end 8px under its count line, which reads at its normal leading; the bulk band SHALL add no margin to the page's 20px gap; and a map list page SHALL keep the height of its content around a 533px map, 18px in.
 
 #### Scenario: DqZaken
 

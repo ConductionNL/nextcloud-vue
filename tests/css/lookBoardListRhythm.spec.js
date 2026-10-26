@@ -2,9 +2,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The Dq list boards stack header, toolbar rows, bulk band and card 20px
- * apart, the header ending 8px under a count line at its normal leading, and
- * the map card as tall as its 533px map (DqZaken, DqWerkbord, DqZakenKaart).
+ * The Dq list boards stack header, toolbar, bulk band and card 20px apart,
+ * the header ending 8px under a count line at its normal leading, and the
+ * map card as tall as its 533px map (DqZaken, DqWerkbord, DqZakenKaart).
  * Read from the stylesheet text.
  *
  * @spec openspec/changes/board-list-rhythm/specs/board-list-rhythm/spec.md#requirement-a-board-list-page-keeps-the-boards-vertical-rhythm
@@ -34,10 +34,6 @@ describe('look-board-index.css: list page rhythm', () => {
 		const rule = ruleEndingWith('.cn-look-board .cn-index-page .cn-page-header .cn-page-header__description')
 		expect(rule).toMatch(/--nldesign-component-paragraph-line-height: normal;/)
 		expect(rule).toMatch(/\tline-height: normal;/)
-	})
-
-	it('puts the toolbar rows 20px apart', () => {
-		expect(ruleEndingWith('.cn-look-board .cn-actions-bar.cn-actions-bar--board')).toMatch(/gap: 20px 8px;/)
 	})
 
 	it('gives the bulk band no margin of its own in the index page', () => {

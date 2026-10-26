@@ -145,14 +145,13 @@
 
 /* No band, no padding, no radius. The DOM is already in reading order (row 1,
    the act cluster, row 2), so the rows only need laying out: the two row
-   wrappers dissolve into the bar's flex row, and row 2 takes a full line,
-   20px under row 1 as the boards' sections stand apart. */
+   wrappers dissolve into the bar's flex row, and row 2 takes a full line. */
 .cn-look-board .cn-actions-bar.cn-actions-bar--board {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	gap: 20px 8px;
+	gap: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
