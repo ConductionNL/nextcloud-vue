@@ -12,8 +12,7 @@
 
 /* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
    the count line, 6px under. The header starts 4px under the content's top
-   (DqZaken: the title at 96, the count line at 142) and ends 8px under the
-   count line, which reads at its normal leading (header 76px).
+   (DqZaken: the title at 96, the count line at 142).
    @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top
    @spec openspec/changes/board-list-rhythm/specs/board-list-rhythm/spec.md#requirement-a-board-list-page-keeps-the-boards-vertical-rhythm */
 .cn-look-board .cn-index-page .cn-page-header {
@@ -22,8 +21,12 @@
 	align-items: start;
 	row-gap: 6px;
 	padding-top: 4px;
-	padding-bottom: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
+}
+
+/* Under a count line (no breadcrumb row) the header ends 8px lower. */
+.cn-look-board .cn-index-page .cn-page-header:not(:has(.cn-header-trail)) {
+	padding-bottom: 8px;
 }
 
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__text {

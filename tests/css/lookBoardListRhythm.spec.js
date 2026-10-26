@@ -26,8 +26,8 @@ function ruleEndingWith(selector) {
 }
 
 describe('look-board-index.css: list page rhythm', () => {
-	it('ends the header 8px under the count line', () => {
-		expect(ruleEndingWith('.cn-look-board .cn-index-page .cn-page-header')).toMatch(/padding-bottom: 8px;/)
+	it('ends a header without a breadcrumb row 8px under the count line', () => {
+		expect(ruleEndingWith('.cn-look-board .cn-index-page .cn-page-header:not(:has(.cn-header-trail))')).toMatch(/padding-bottom: 8px;/)
 	})
 
 	it('sets the count line at its normal leading, also under a theme', () => {
