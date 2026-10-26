@@ -121,6 +121,14 @@
 	padding-top: 4px;
 }
 
+/* A detail page's header is a section padded 4px 0 8px on the boards: the
+   8px under its second row belongs to the header (r31: 79 on every detail
+   board, 71 live, and the page under it 8px high: DqContact, DqTaak,
+   DqOrganisatie, DqHandhaving, DqZaaktype*). */
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header {
+	padding-bottom: 8px;
+}
+
 /* The 56px inset clears the navigation toggle, which overlays the content
    only while the navigation is closed. The store page's own header too: it
    kept the inset with the navigation open, 56px right of the board's title. */
