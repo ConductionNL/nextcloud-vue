@@ -1679,7 +1679,15 @@
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	column-gap: 12px;
+	row-gap: 0;
 	align-items: center;
+}
+
+/* The actions span the card's rows, so a 2px row gap left an empty third
+   row; the meta line takes its 2px under the title itself (task card 55px,
+   DqZaaktype "Fasen en taken"). */
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > .cn-grouped-cards__item-meta:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
 }
 
 .cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > :not(.cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
@@ -2687,4 +2695,11 @@
 
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
+}
+
+/* A page card's facts (DqZaaktype "Termijnen", DqZaaktypeOverzicht
+   "Privacy") start 12px into the content, their rows at normal line height
+   carrying no half-leading to take off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child) {
+	padding-top: 12px;
 }

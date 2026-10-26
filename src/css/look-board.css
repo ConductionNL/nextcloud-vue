@@ -2483,6 +2483,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-record-list__footer-note:not(.cn-look-nextcloud *) {
 	--nldesign-component-paragraph-font-size: 13px;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	--nldesign-component-paragraph-line-height: normal;
+	line-height: normal;
 }
 
 /* An audit row is a board list row (DqHandhaving, DqTenant "Historie"): 10px
