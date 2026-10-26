@@ -1048,12 +1048,16 @@ a.cn-flow-runs-widget__row-content:hover .cn-flow-runs-widget__name {
 .cn-flow-runs-widget--pills .cn-flow-runs-widget__row--terminal .cn-flow-runs-widget__name {
 	font-size: 15px;
 	font-weight: 500;
+	line-height: normal;
 	color: var(--color-main-text);
 	white-space: normal;
 }
 
+/* The name and the meta on the font's own leading: a row 58px high, as the
+   boards draw it (r32: 67). */
 .cn-flow-runs-widget--pills .cn-flow-runs-widget__meta {
 	font-size: 13px;
+	line-height: normal;
 	white-space: normal;
 }
 
