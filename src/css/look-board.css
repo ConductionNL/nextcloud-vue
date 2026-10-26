@@ -3608,6 +3608,51 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	margin-block-start: 0;
 }
 
+/* ---- A saved search's side cards (DqZoekresultaten) --------------------- */
+/* "Opgeslagen zoekopdracht": its facts 8px apart at a normal line height and
+   the values at 500, the switch's words at 15px, the parts 10px apart.
+   "Uw exports": a line above every export, the name at 15px/500 over its
+   meta, and the 34px Download button on its own line under a narrow card's
+   text.
+   @spec openspec/changes/board-saved-search-cards/specs/board-saved-search-cards/spec.md */
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) {
+	gap: 10px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__facts {
+	gap: 8px 16px;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__facts dd {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__switch-text {
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__row {
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	border-top: 1px solid var(--color-border);
+	line-height: normal;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__text {
+	flex: 1 1 240px;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__name {
+	font-size: 15px;
+	font-weight: 500;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: 34px;
+}
+
 /* ---- The share dialog's audience rows ----------------------------------- */
 /* A person or group the view is shared with sits on the page's own ground at
    radius 8, as DqFilterDelen draws it; Nextcloud's look keeps its hover grey
