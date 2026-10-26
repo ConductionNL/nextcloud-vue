@@ -2428,3 +2428,32 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
 }
+
+/* The history card's note composer and entries as DqZaakHistorie draws them
+   (r31 strict verdict): the note field three lines high on a 1.5 line with
+   10px 12px inside, the add button at the board's 40px, the title-row
+   buttons 12px apart, and an entry the requester sees marked with a 12px
+   teal pill.
+   @spec openspec/changes/board-history-composer/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__draft:not(.cn-look-nextcloud *) {
+	min-height: calc(3 * 1.5em + 22px);
+	padding: 10px 12px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__composer-foot .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__header-actions:not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__badge--public:not(.cn-look-nextcloud *) {
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: var(--nldesign-color-teal-light, #e3f1f3);
+	color: var(--nldesign-color-teal-dark, #1d5e66);
+	font-size: 12px;
+	font-weight: 600;
+}
