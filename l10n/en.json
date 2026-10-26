@@ -1515,6 +1515,8 @@
     "Queued": "Queued",
     "Running": "Running",
     "Waiting": "Waiting",
+    "Optional": "Optional",
+    "Reached": "Reached",
     "Awaiting consent": "Awaiting consent",
     "Not run yet": "Not run yet",
     "On a schedule": "On a schedule",

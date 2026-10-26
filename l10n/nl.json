@@ -1701,6 +1701,8 @@
     "Queued": "In de wachtrij",
     "Running": "Bezig",
     "Waiting": "Wacht",
+    "Optional": "Optioneel",
+    "Reached": "Bereikt",
     "Awaiting consent": "Wacht op toestemming",
     "Not run yet": "Nog niet uitgevoerd",
     "On a schedule": "Volgens schema",
