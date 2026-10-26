@@ -104,6 +104,22 @@ describe('CnSettingsFieldsSection', () => {
 		expect(input(wrapper, 'brk').element.value).toBe('https://brk.example')
 	})
 
+	/**
+	 * @spec openspec/changes/board-settings-save-ready/specs/settings-board-look/spec.md
+	 */
+	it('keeps Save ready in the board look, as the boards draw it, and sends nothing unchanged', async () => {
+		const wrapper = mount(CnSettingsFieldsSection, {
+			props: { appId: 'myapp', name: 'Connection', fields: FIELDS, columns: 2 },
+			global: { stubs: STUBS, provide: { cnLook: 'board' } },
+		})
+		await flushPromises()
+		expect(save(wrapper).attributes('disabled')).toBeUndefined()
+		const before = axios.request ? axios.request.mock.calls.length : 0
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		expect(axios.request ? axios.request.mock.calls.length : 0).toBe(before)
+	})
+
 	it('enables Save only while something changed, and says so', async () => {
 		const wrapper = await mountSection()
 		expect(save(wrapper).attributes('disabled')).toBeDefined()
