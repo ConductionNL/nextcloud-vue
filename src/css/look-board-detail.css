@@ -2640,3 +2640,24 @@
 	font-size: 14px;
 	font-weight: 400;
 }
+
+/* The history card's checkboxes ("Ook wie de zaak las", "Zichtbaar voor de
+   verzoeker") as DqZaakHistorie draws them: a plain box with 14px text 8px
+   after it, no 34px padded hit row (r31: 34 high, 15px/500). The entry's
+   message stays above its head in the board look.
+   @spec openspec/changes/board-history-toggles-and-entries/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage .checkbox-radio-switch.checkbox-radio-switch .checkbox-content:not(.cn-look-nextcloud *) {
+	gap: 8px;
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-look-board .cn-timeline-manage .checkbox-radio-switch.checkbox-radio-switch .checkbox-content__text:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
+	order: 0;
+}
