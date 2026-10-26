@@ -10518,10 +10518,16 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
 			}
+			const props = { selectedIds, count, ...own }
+			// The app root opens the modal, as a row action's open-modal does;
+			// without one the host gets the event and opens it itself.
+			if (typeof this.cnOpenModal === 'function') {
+				this.cnOpenModal(target, props)
+			}
 			/**
-			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props.
+			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props. With an app root that provides `cnOpenModal` the modal is already open.
 			 */
-			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
+			this.$emit('open-modal', { target, props })
 		},
 
 		/**
