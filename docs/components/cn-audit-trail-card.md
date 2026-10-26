@@ -41,6 +41,7 @@ Pass pre-translated labels when your app handles i18n:
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
 | `layout` | String | `''` | `stacked` (DqTaak "Historie"): the action, then one muted line under it with the moment ("6 okt 09:05") and who, when the action does not already name them. Empty: the moment beside the action, who under it. |
 | `excludeActions` (`exclude-actions`) | Array | `[]` | Actions left out, case-insensitive (`['read']` for a history of what changed). The card then reads up to ten times `maxDisplay` entries (at most 100), so the rows it leaves out do not crowd the rest away. |
+| `excludeActors` (`exclude-actors`) | Array | `[]` | Actors left out by user id, case-insensitive (`['System']` for a history of what people did): the bookkeeping a background job writes is not shown. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `actionLabel` (`action-label`) | String | `t('nextcloud-vue', 'Change')` | Pre-translated fallback action label. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |

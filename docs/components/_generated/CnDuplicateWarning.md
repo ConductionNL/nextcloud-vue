@@ -8,21 +8,25 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name            | Type            | Required | Default            | Description                                                                                   |
-| --------------- | --------------- | -------- | ------------------ | --------------------------------------------------------------------------------------------- |
-| `matches`       | `Array<object>` |          | `[]`               | The scored matches, as OpenRegister answered: `{ uuid, score, matchedOn }`.                   |
-| `records`       | `Array<object>` |          | `[]`               | The matched records the user may read, matched by `id`, `uuid` or `@self.id`.                 |
-| `policy`        | `string`        |          | `'warn'`           | `warn` lets anyone file it anyway; `block` only a user who `mayOverride`.                     |
-| `mayOverride`   | `boolean`       |          | `false`            | Whether this user may file over a block (and must say why).                                   |
-| `rowTitle`      | `string`        |          | `'\{title\}'`      | A record's title, a template filled from it.                                                  |
-| `rowMeta`       | `string`        |          | `'\{identifier\}'` | A record's meta line, a template filled from it.                                              |
-| `recordUrl`     | `string`        |          | `''`               | A record's page, a template with `{uuid}`; empty draws no link.                               |
-| `fieldLabels`   | `object`        |          | `\{\}`             | Words for the matched fields (`{ requester: "Requester" }`), through the host translate.      |
-| `title`         | `string`        |          | `''`               | The dialog title; defaults to "This may already exist".                                       |
-| `headline`      | `string`        |          | `''`               | The note's sentence, `{count}` filled; defaults to "%n existing record looks like this one.". |
-| `blockedText`   | `string`        |          | `''`               | The sentence under a block the user may not pass.                                             |
-| `reasonLabel`   | `string`        |          | `''`               | The reason field's label.                                                                     |
-| `continueLabel` | `string`        |          | `''`               | The continue button's label; defaults to "File it anyway".                                    |
+| Name            | Type            | Required | Default            | Description                                                                                                                                                                                 |
+| --------------- | --------------- | -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matches`       | `Array<object>` |          | `[]`               | The scored matches, as OpenRegister answered: `{ uuid, score, matchedOn }`.                                                                                                                 |
+| `records`       | `Array<object>` |          | `[]`               | The matched records the user may read, matched by `id`, `uuid` or `@self.id`.                                                                                                               |
+| `policy`        | `string`        |          | `'warn'`           | `warn` lets anyone file it anyway; `block` only a user who `mayOverride`.                                                                                                                   |
+| `mayOverride`   | `boolean`       |          | `false`            | Whether this user may file over a block (and must say why).                                                                                                                                 |
+| `rowTitle`      | `string`        |          | `'\{title\}'`      | A record's title, a template filled from it.                                                                                                                                                |
+| `rowMeta`       | `union`         |          | `'\{identifier\}'` | A record's meta line, a template filled from it, or several: the first that fills is shown ("\{identifier\} · \{caseType.title\}", then "\{identifier\}" for a record that lacks the type). |
+| `matchedText`   | `string`        |          | `''`               | What a match was found on, `{fields}` (joined as a list: "Aanvrager en Onderwerp") and `{percentage}` filled, through the host translate. Empty: "Aanvrager, Onderwerp (82%)".              |
+| `eyebrow`       | `string`        |          | `''`               | A line above the title, as the board dialogs draw one.                                                                                                                                      |
+| `reasonHint`    | `string`        |          | `''`               | The help line under the reason field.                                                                                                                                                       |
+| `footnote`      | `string`        |          | `''`               | A muted note under the matches and the reason, for what Cancel and a block mean.                                                                                                            |
+| `recordUrl`     | `string`        |          | `''`               | A record's page, a template with `{uuid}`; empty draws no link.                                                                                                                             |
+| `fieldLabels`   | `object`        |          | `\{\}`             | Words for the matched fields (`{ requester: "Requester" }`), through the host translate.                                                                                                    |
+| `title`         | `string`        |          | `''`               | The dialog title; defaults to "This may already exist".                                                                                                                                     |
+| `headline`      | `string`        |          | `''`               | The note's sentence, `{count}` filled; defaults to "%n existing record looks like this one.".                                                                                               |
+| `blockedText`   | `string`        |          | `''`               | The sentence under a block the user may not pass.                                                                                                                                           |
+| `reasonLabel`   | `string`        |          | `''`               | The reason field's label.                                                                                                                                                                   |
+| `continueLabel` | `string`        |          | `''`               | The continue button's label; defaults to "File it anyway".                                                                                                                                  |
 
 ### Events
 

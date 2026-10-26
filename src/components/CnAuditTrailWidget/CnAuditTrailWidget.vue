@@ -18,6 +18,7 @@
 			:maxDisplay="resolvedMaxDisplay"
 			:layout="content && typeof content.layout === 'string' ? content.layout : ''"
 			:excludeActions="resolvedExcludeActions"
+			:excludeActors="resolvedExcludeActors"
 			:actionLabels="actionLabels"
 			:valueLabels="valueLabels"
 			:changeLabels="changeLabels"
@@ -105,7 +106,7 @@ export default {
 		excludeActions: { type: Array, default: () => [] },
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources?, excludeActors? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -277,6 +278,17 @@ export default {
 			}
 			const fromContent = this.content.excludeActions
 			return Array.isArray(fromContent) ? fromContent.filter((action) => typeof action === 'string' && action !== '') : []
+		},
+
+		/**
+		 * The actors to leave out, from `content.excludeActors`.
+		 *
+		 * @spec openspec/changes/audit-card-exclude-actors/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-entries-by-actor
+		 * @return {Array<string>}
+		 */
+		resolvedExcludeActors() {
+			const fromContent = this.content.excludeActors
+			return Array.isArray(fromContent) ? fromContent.filter((actor) => typeof actor === 'string' && actor !== '') : []
 		},
 
 		resolvedTitle() {

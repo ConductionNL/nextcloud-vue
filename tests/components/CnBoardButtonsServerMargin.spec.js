@@ -2,10 +2,11 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Nextcloud's server.css gives every button a 3px 3px 3px 0 margin. A
- * widget header action and a record-list row action reset it, so the
- * header row and the row are as tall as the control (DqZaakBesluiten
- * Beschikking "Document genereren", Adviezen "Herinneren").
+ * Nextcloud's server.css gives every button a 3px 3px 3px 0 margin, at
+ * specificity (0,2,1), so a single scoped class (0,2,0) loses to it. A
+ * widget header action and a record-list row action reset it with a doubled
+ * class, so the header row and the row are as tall as the control
+ * (DqZaakBesluiten Beschikking "Document genereren", Adviezen "Herinneren").
  */
 import fs from 'fs'
 import path from 'path'
@@ -25,10 +26,10 @@ function rule(file, selector) {
 
 describe('board buttons without the server margin', () => {
 	it('resets the margin on a widget header action', () => {
-		expect(rule('CnDetailWidgetHost/CnDetailWidgetHeaderItems.vue', '.cn-detail-page__catalog-action')).toContain('margin: 0;')
+		expect(rule('CnDetailWidgetHost/CnDetailWidgetHeaderItems.vue', '.cn-detail-page__catalog-action.cn-detail-page__catalog-action')).toContain('margin: 0;')
 	})
 
 	it('resets the margin on a record-list row action', () => {
-		expect(rule('CnRecordListWidget/CnRecordListWidget.vue', '.cn-record-list__action')).toContain('margin: 0;')
+		expect(rule('CnRecordListWidget/CnRecordListWidget.vue', '.cn-record-list__action.cn-record-list__action')).toContain('margin: 0;')
 	})
 })

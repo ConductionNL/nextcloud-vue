@@ -42,6 +42,8 @@ export default {
 		cnWidgetSelection: { from: WIDGET_SELECTION, default: null },
 		/** The host's translate (CnAppRoot provides `cnTranslate`), applied to the title before it is filled. */
 		cnTranslate: { default: () => (key) => key },
+		/** The app's named formatters (CnAppRoot provides `cnFormatters`), for a `{field|formatter}` token in the title. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	inheritAttrs: false,
@@ -93,7 +95,7 @@ export default {
 				return this.widget
 			}
 			const translated = this.cnTranslate(title)
-			return { ...this.widget, title: fillTemplate(translated, this.row) || translated.replace(/\s*\{[^}]*\}/g, '') }
+			return { ...this.widget, title: fillTemplate(translated, this.row, new Date(), { formatters: this.cnFormatters }) || translated.replace(/\s*\{[^}]*\}/g, '') }
 		},
 	},
 }
