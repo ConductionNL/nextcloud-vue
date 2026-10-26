@@ -1079,8 +1079,9 @@
    @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral {
 	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {

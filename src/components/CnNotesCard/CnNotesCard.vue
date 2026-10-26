@@ -176,6 +176,8 @@ import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import CnVisibilityChip from '../CnVisibilityChip/CnVisibilityChip.vue'
 import { useFileComments } from '../../composables/useFileComments.js'
+import { normalizeLook } from '../../composables/useLook.js'
+import { formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { initialsOf } from '../../utils/initials.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
@@ -246,6 +248,10 @@ export default {
 		NotePlusOutline,
 		Send,
 		Delete,
+	},
+
+	inject: {
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -794,6 +800,10 @@ export default {
 		formatDate(dateStr) {
 			if (!dateStr) {
 				return ''
+			}
+			// The board look writes a note's moment as the boards do: "6 okt 11:10", the year only outside this year.
+			if (normalizeLook(this.cnLook) === 'board') {
+				return formatBoardDateTime(dateStr) || dateStr
 			}
 			try {
 				return new Date(dateStr).toLocaleString(userLocale(), {
