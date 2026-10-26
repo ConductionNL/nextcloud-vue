@@ -235,6 +235,7 @@
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -281,6 +282,7 @@
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+							<CnIcon v-if="item.action.icon" :name="item.action.icon" :size="16" />
 							{{ item.action.label }}
 						</component>
 					</div>
@@ -302,6 +304,7 @@
 						</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -1122,6 +1125,7 @@ export default {
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
+					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
@@ -1841,6 +1845,23 @@ export default {
 		},
 
 		/**
+		 * The tone of a row's initials, from `avatar.tone: { field, map }`
+		 * (`{ field: "status", map: { requested: "warning" } }`: an open advice
+		 * request's initials on the warning tint, DqZaakBesluiten); '' without.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} A status variant, or ''.
+		 */
+		avatarToneFor(row) {
+			const tone = this.content?.avatar?.tone
+			if (!tone || typeof tone !== 'object' || typeof tone.field !== 'string' || !tone.map || typeof tone.map !== 'object') {
+				return ''
+			}
+			const variant = tone.map[String(readPath(row, tone.field) ?? '')]
+			return ['default', 'success', 'warning', 'error', 'info', 'purple', 'teal'].includes(variant) ? variant : ''
+		},
+
+		/**
 		 * The initials of the row's avatar (`avatar`: a name template such as
 		 * `"{client.name}"`, or `{ text }`), or '' without one.
 		 *
@@ -1989,7 +2010,7 @@ export default {
 					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
 					: { label, tag: 'router-link', attrs: { to: link.to } }
 			}
-			return { label, tag: 'button', attrs: { type: 'button' } }
+			return { label, tag: 'button', attrs: { type: 'button' }, icon: typeof action.icon === 'string' ? action.icon : '' }
 		},
 
 		/**
@@ -3160,11 +3181,15 @@ export default {
 	margin-inline-end: -4px;
 }
 
+/* Without a tone (`avatar.tone`) the initials sit on the hover ground. */
+.cn-record-list__avatar:not([class*='cn-status-badge--']) {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
 .cn-record-list__avatar {
 	align-items: center;
-	background: var(--color-background-hover);
 	border-radius: 50%;
-	color: var(--color-main-text);
 	display: flex;
 	flex: none;
 	font-size: 12px;
