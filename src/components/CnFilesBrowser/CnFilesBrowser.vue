@@ -3588,7 +3588,6 @@ export default {
 
 .cn-files-browser__row-button {
 	display: inline-flex;
-	margin-inline-end: 8px;
 	vertical-align: middle;
 }
 
