@@ -76,6 +76,12 @@ describe('board side panel rhythm', () => {
 		expect(body(index, '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__read-only')).toMatch(/color: var\(--cn-board-text-soft\);/)
 	})
 
+	it('lets a view\'s description wrap under its name', () => {
+		const panel = '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) '
+		expect(body(index, panel + '.cn-saved-views-panel__subline')).toMatch(/white-space: normal;/)
+		expect(body(index, panel + '.cn-saved-views-panel__name')).toMatch(/white-space: normal;/)
+	})
+
 	it('lays the edit view dialog out as DqFilterBewerken draws it', () => {
 		const look = '.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *)'
 		expect(body(board, '.cn-look-board .cn-edit-view__label:not(.cn-look-nextcloud *)')).toMatch(/line-height: normal;/)

@@ -2135,6 +2135,8 @@
 	margin: 0;
 	padding: 6px 0;
 	gap: 2px;
+	border-radius: 0;
+	white-space: normal;
 }
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
@@ -2187,10 +2189,13 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* A long description wraps under the name, as DqFilterBeheren draws "Wacht
+   op inwoner" and "Termijn verstreken", instead of being cut off. */
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__subline {
 	font-size: 13px;
 	font-weight: 400;
 	color: var(--color-text-maxcontrast);
+	white-space: normal;
 }
 
 /* ---- A saved view row's menu ------------------------------------------- */
