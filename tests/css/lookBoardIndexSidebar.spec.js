@@ -39,7 +39,7 @@ describe('look-board-index.css: the board index sidebar', () => {
 	})
 
 	it('sets the line under the title 14px muted', () => {
-		const sub = bodyOf(`${SIDEBAR} .app-sidebar-header__subname`)
+		const sub = bodyOf('.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container p.app-sidebar-header__subname')
 		expect(sub).toMatch(/color: var\(--color-text-maxcontrast\);/)
 		expect(sub).toMatch(/font-size: 14px;/)
 	})

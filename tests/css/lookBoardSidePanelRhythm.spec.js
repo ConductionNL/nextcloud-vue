@@ -9,7 +9,11 @@
  * saved-view rows' text at a normal line height (row text 3px lower), the
  * manage menu 278px outside (264 of content, 6px in, a 1px line), and the
  * share dialog's audience names at a normal line height (DqFilterDelen 21 vs
- * 16.8). Read from the stylesheet text.
+ * 16.8). The subtitle rule repeats NcAppSidebar's chain, since a shorter one
+ * lost to it; the title row drops its 34px clickable height and the header
+ * its 4px under the subtitle, so the tabs start where the board draws them;
+ * a saved view's name drops the core button's 3px margin (row 56 vs 50).
+ * Read from the stylesheet text.
  *
  * @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md
  */
@@ -32,9 +36,18 @@ describe('board side panel rhythm', () => {
 	})
 
 	it('sets the subtitle 2px under the title at a normal line height', () => {
-		const b = body(index, '.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname')
+		const b = body(index, '.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container p.app-sidebar-header__subname')
 		expect(b).toMatch(/margin-top: 2px;/)
+		expect(b).toMatch(/font-size: 14px;/)
 		expect(b).toMatch(/line-height: normal;/)
+	})
+
+	it('makes the title row as tall as the title', () => {
+		expect(body(index, '.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__desc .app-sidebar-header__name-container .app-sidebar-header__mainname-container')).toMatch(/min-height: 0;/)
+	})
+
+	it('drops the core button margin on a saved view row\'s name, so its text sits 8px from the row top', () => {
+		expect(body(index, '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name')).toMatch(/margin: 0;/)
 	})
 
 	it('runs a saved view row\'s name and description at a normal line height', () => {
