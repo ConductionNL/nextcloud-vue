@@ -2153,8 +2153,14 @@
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
+	line-height: normal;
 	text-align: center;
 	box-sizing: border-box;
+}
+
+/* A shared view's "Read only" label in the soft ink (DqFilterBeheren). */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__read-only {
+	color: var(--cn-board-text-soft);
 }
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {

@@ -975,7 +975,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-weight: 400;
-	line-height: 16px;
+	line-height: normal;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__text {
+	line-height: normal;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
@@ -3471,7 +3475,24 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    and large radius.
    @spec openspec/changes/board-share-rows-ground/specs/board-share-rows-ground/spec.md */
 .cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
+	min-height: 56px;
 	border-radius: 8px;
 	background: var(--cn-board-sunken-ground);
 	line-height: normal;
+}
+
+/* The rights select is the board's 36px field, the hint and the "Shared
+   with" caption run at a normal line height, and the person field keeps no
+   margin under it, so the list starts 60px under the field (DqFilterDelen). */
+.cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
+	--default-clickable-area: 36px;
+}
+
+.cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
+.cn-look-board .cn-saved-view-share__caption:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *) {
+	margin-bottom: 0;
 }
