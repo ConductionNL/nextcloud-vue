@@ -248,6 +248,7 @@ export default {
 				...this.propertyOptions.map((property) => ({ id: property, label: property })),
 			]
 		},
+
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
