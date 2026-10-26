@@ -280,6 +280,20 @@
 			],
 			"page": "cn-app-root"
 		},
+		"CnAppTilesWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
+		"CnAppTilesWidgetForm": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
+		},
 		"CnAssignDialog": {
 			"direct": 0,
 			"transitive": 4,
@@ -1993,6 +2007,13 @@
 				"CnXwikiPagePicker"
 			],
 			"page": "cn-grouped-cards-widget"
+		},
+		"CnGroupedMenu": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
 		},
 		"CnGuardianHome": {
 			"direct": 0,
