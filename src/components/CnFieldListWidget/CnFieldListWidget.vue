@@ -11,7 +11,10 @@
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-open-add"
 				@click="adding = !adding">
-				+ {{ addLabel }}
+				<template #icon>
+					<Plus :size="16" />
+				</template>
+				{{ addLabel }}
 			</NcButton>
 		</div>
 		<form
@@ -258,7 +261,10 @@
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-open-add"
 				@click="adding = true">
-				+ {{ addLabel }}
+				<template #icon>
+					<Plus :size="16" />
+				</template>
+				{{ addLabel }}
 			</NcButton>
 		</div>
 		<form
@@ -326,6 +332,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
@@ -386,7 +393,7 @@ function rowHref(entry, spec) {
 export default {
 	name: 'CnFieldListWidget',
 
-	components: { CnStatusBadge, DragVertical, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField },
+	components: { CnStatusBadge, DragVertical, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField, Plus },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
