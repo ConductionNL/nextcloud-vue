@@ -582,6 +582,20 @@
 	font-size: 13px;
 }
 
+/* The initials beside a message: the resident's in the soft ink on the chip
+   ground, ours in the primary tint's ink on its light ground, as
+   DqZaakContact draws SV and PJ (r31: the initials read main ink).
+   @spec openspec/changes/board-conversation-avatar-tones/specs/board-conversation-avatar-tones/spec.md#requirement-a-messages-initials-take-their-sides-tone */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__avatar:not(.cn-look-nextcloud *) {
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__avatar:not(.cn-look-nextcloud *) {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
 /* A message keeps 64px free on the side away from its avatar, so the two
    sides read as two columns; the line above it is 13px in the soft ink at the
    normal line height, and our bubble's text is in the main ink. Each names
