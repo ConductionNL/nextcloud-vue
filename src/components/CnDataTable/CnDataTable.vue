@@ -307,6 +307,13 @@
 								     customising their own data, not opting out of being told
 								     the record is locked. It renders nothing when unlocked,
 								     so an unlocked table is byte-for-byte what it was. -->
+								<!-- A reorderable row shows where to take hold of it, before its name. -->
+								<span v-if="reorderable && colIndex === 0"
+									class="cn-table-row__handle"
+									aria-hidden="true"
+									data-testid="cn-row-reorder-handle">
+									<DragVertical :size="16" />
+								</span>
 								<CnUnreadMarker
 									v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
 								<CnLockIndicator
@@ -475,6 +482,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
@@ -585,6 +593,7 @@ export default {
 		CnPagination,
 		CnUnreadMarker,
 		ChevronDown,
+		DragVertical,
 		ChevronUp,
 		FilterOutline,
 	},
