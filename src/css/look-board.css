@@ -1485,7 +1485,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.2;
 }
 
-.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) th {
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) thead th {
 	--nldesign-component-table-header-background-color: var(--cn-board-table-head-bg, color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background)));
 	--nldesign-component-table-header-color: var(--color-text-maxcontrast);
 	--nldesign-component-table-header-font-weight: 600;
@@ -1513,13 +1513,26 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-align: start;
 }
 
-.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td {
+/* Body rows are 42px as on the boards (10px, a 21px line, 10px, the rule).
+   A row header (dossiq's prerequisites) reads as a strong cell, not as a
+   head: the theme paints every th, so its tokens are handed the cell's. */
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td,
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) tbody th {
 	padding: 10px 12px;
 	border-bottom: 1px solid var(--color-background-dark);
 	color: var(--color-main-text);
 	font-size: 14px;
-	line-height: 1.2;
+	line-height: 1.5;
 	vertical-align: middle;
+}
+
+.cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) tbody th {
+	--nldesign-component-table-header-background-color: transparent;
+	--nldesign-component-table-header-color: var(--color-main-text);
+	--nldesign-component-table-header-font-weight: 600;
+	background: transparent;
+	font-weight: 600;
+	text-align: start;
 }
 
 /* A strong cell's name in a settings card reads 15px bold over its muted
