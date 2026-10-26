@@ -2694,6 +2694,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-top: 1px solid var(--color-border);
 }
 
+/* Note rows (DqDagAfsluiten "Nog open van vandaag"): the kind pill 12px
+   from the title, the record button and the closing buttons at the board's
+   40px, and the closing pair at the two ends of their line (Annuleren left,
+   Dag afsluiten right).
+   @spec openspec/changes/board-record-notes-controls/specs/board-record-notes-controls/spec.md#requirement-board-note-rows-draw-the-boards-controls */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__head {
+	gap: 8px 12px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__fields .button-vue,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions {
+	flex: 1 1 100%;
+	justify-content: space-between;
+}
+
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
    text does not move. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--link {
