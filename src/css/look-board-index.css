@@ -1107,6 +1107,22 @@
 	line-height: 16px;
 }
 
+/* The grey person chip with a second line (DqContacten): 14px above and
+   under, the name 2px above a 14px address on its normal line, a 66px row.
+   @spec openspec/changes/board-person-chip-row-height/specs/data-table/spec.md#requirement-a-board-person-chip-row-is-66px */
+.cn-look-board .cn-table-container--board .cn-data-table td:has(.cn-cell-renderer__avatar-initials--neutral + .cn-cell-renderer__avatar-text .cn-cell-renderer__avatar-secondary) {
+	padding-block: 14px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral + .cn-cell-renderer__avatar-text:has(.cn-cell-renderer__avatar-secondary) {
+	gap: 2px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral + .cn-cell-renderer__avatar-text .cn-cell-renderer__avatar-secondary {
+	font-size: 14px;
+	line-height: normal;
+}
+
 /* A status pill: 3px 10px, radius 12, 13px weight 600, 21px tall on a
    normal line (a 1.4 line made it 24.2). The colours stay the status colour
    map's.
