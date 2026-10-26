@@ -143,7 +143,10 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	gap: 8px;
+	/* The view row and the search row are two of the board's sections, 20px
+	   apart (DqZaken, DqContracten: the search row sat 12px high, and the
+	   table with it). Items on one row keep 8px between them. */
+	gap: var(--cn-board-section-gap, 20px) 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
