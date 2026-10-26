@@ -34,9 +34,14 @@
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }
 
-/* The board look keeps the app's own orange, #f36c21, as the boards do
-   (Ruben, 22 Oct 2026: the boards follow the app; design-system 4db25d04).
+/* In the board look the square is the brand orange darkened to WCAG AA
+   (Ruben, 26 Oct): #c64e0b, the Conduction accent, keeps the brand hue and
+   puts the white icon at 4.67:1 and the square's edge at 4.32:1 on the
+   page ground; the brand orange #f36c21 gives 3.01:1 and 2.78:1.
    @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange */
+.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
+	--cn-buildiq-color: #c64e0b;
+}
 
 .cn-buildiq-edit__actions .button-vue__wrapper {
 	justify-content: center;
