@@ -2703,3 +2703,18 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child) {
 	padding-top: 12px;
 }
+
+/* The group of acts that are always available (DqZaaktype "Altijd
+   beschikbaar") is not a phase: the boards draw it as a dashed outline
+   with a muted 14px line of acts, not on the phases' grey ground. */
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group--extra:not(.cn-look-nextcloud *) {
+	background: transparent;
+	border: 1px dashed var(--color-border-maxcontrast);
+}
+
+.cn-look-board .cn-grouped-cards__extra-text:not(.cn-look-nextcloud *) {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: normal;
+}

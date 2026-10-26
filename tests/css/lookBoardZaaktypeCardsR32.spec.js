@@ -38,4 +38,12 @@ describe('DqZaaktype cards in the board look', () => {
 	it('starts a page card facts list 12px in', () => {
 		expect(rule(detail, '.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child)')).toContain('padding-top: 12px;')
 	})
+
+	it('outlines the always-available group dashed on no ground', () => {
+		const body = rule(detail, '.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group--extra:not(.cn-look-nextcloud *)')
+		expect(body).toContain('background: transparent;')
+		expect(body).toContain('border: 1px dashed var(--color-border-maxcontrast);')
+		expect(rule(detail, '.cn-look-board .cn-grouped-cards__extra-text:not(.cn-look-nextcloud *)')).toContain('font-size: 14px;')
+	})
 })
+
