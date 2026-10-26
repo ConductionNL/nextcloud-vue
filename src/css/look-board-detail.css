@@ -2356,6 +2356,13 @@
 	padding: 12px 0;
 }
 
+/* A card that opens on a grid of framed tiles (DqZaaktypeOverzicht
+   "Statussen") sets them 14px under its header, the boards' card gap: no
+   first line of text carries the half-leading the card content takes off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--tiles):not(.cn-look-nextcloud *) {
+	padding-top: 14px;
+}
+
 /* Under a title with a subtitle the rule sits 8px below the subtitle
    (DqZaakBesluiten "Adviezen", DqZaakArchivering "Bewaring"). A custom
    widget that opens on a ruled list opts in with `cn-rule-above` on its root. */
