@@ -177,6 +177,35 @@ export function kindCode(kind) {
 }
 
 /**
+ * Whether a party's kind is among the kinds a record accepts. Two
+ * vocabularies meet here: the party's kind is its schema's (`person`,
+ * `organisation`, `colleague`), while the accepted kinds may be role kinds
+ * that name the identity shapes they take (pipelinq's `aanvrager` with
+ * `identityShapes: ["naturalPerson", "organization"]`). When the accepted
+ * kinds name shapes, the party's own kind is matched by the shapes the
+ * listing gives it; a kind that names none cannot be judged and passes.
+ * Otherwise the codes are compared.
+ *
+ * @param {string} partyKind The party's kind key.
+ * @param {Array<object>} accepted The accepted kinds.
+ * @param {Array<object>} own The listing's own kinds (`{ key, identityShapes? }`).
+ * @return {boolean} False only when the party is known not to fit.
+ * @spec openspec/changes/parties-accepted-kinds-by-shape/specs/object-parties/spec.md#requirement-a-party-is-checked-against-the-accepted-kinds-in-one-vocabulary
+ */
+export function partyKindAccepted(partyKind, accepted, own) {
+	const kinds = Array.isArray(accepted) ? accepted : []
+	const shapes = new Set(kinds.flatMap((kind) => (Array.isArray(kind?.identityShapes) ? kind.identityShapes : [])))
+	if (shapes.size === 0) {
+		return kinds.some((kind) => kindCode(kind) === partyKind)
+	}
+	const mine = (Array.isArray(own) ? own : []).find((kind) => kindCode(kind) === partyKind)?.identityShapes
+	if (!Array.isArray(mine) || mine.length === 0) {
+		return true
+	}
+	return mine.some((shape) => shapes.has(shape))
+}
+
+/**
  * Write a value at a dotted path, creating the objects on the way.
  *
  * @param {object} target The object written into.
