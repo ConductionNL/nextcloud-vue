@@ -760,6 +760,10 @@
 .cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *) {
 	flex: 3 1 520px;
 	min-height: 533px;
+	/* CnIndexPage gives the widget an inline 100% height, which an auto-height
+	   card resolves to nothing: the Leaflet pane inside it then stood 0px tall.
+	   @spec openspec/changes/board-map-pane-height/specs/board-map-pane-height/spec.md#requirement-the-board-map-pane-is-533px-tall */
+	height: 533px !important;
 }
 
 /* The list rows' number line and date read at their normal leading. */
