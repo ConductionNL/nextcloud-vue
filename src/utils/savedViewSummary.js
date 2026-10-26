@@ -30,7 +30,7 @@ const RANGE = Symbol('range')
  * @param {object} [options] Options.
  * @param {object} [options.properties] The page schema's `properties`.
  * @param {{[key: string]: {[value: string]: string}}} [options.valueLabels] Display names per filter key and value.
- * @param {{[key: string]: {label?: string, values?: object, hidden?: boolean}}} [options.filterLabels] The page's `config.filterLabels`.
+ * @param {{[key: string]: {label?: string, values?: object, hidden?: boolean, valuesAlone?: boolean}}} [options.filterLabels] The page's `config.filterLabels`; with `valuesAlone` a named value reads as the whole part.
  * @param {(text: string) => string} [options.translate] The app's translate, for titles and labels the schema declares.
  * @return {string} The line, or '' for a view without filters or search.
  * @spec openspec/changes/saved-view-summary-reads-like-the-chips/specs/saved-view-menu-settings/spec.md
@@ -73,7 +73,11 @@ export function summarizeViewFilters(state, options = {}) {
 			? named.label
 			: (typeof prop.title === 'string' && prop.title !== '' ? prop.title : key)
 		const field = tr(title)
-		parts.push(`${field} ${values.join(` ${t('nextcloud-vue', 'or')} `)}`)
+		// `valuesAlone: true`: a value the page names reads as the whole part
+		// ("My cases" for assignee @me), not after the field's title.
+		const raws = (Array.isArray(raw) ? raw : [raw]).filter((value) => value !== undefined && value !== '')
+		const alone = named.valuesAlone === true && raws.length === 1 && typeof namedValues[String(raws[0])] === 'string' && namedValues[String(raws[0])] !== ''
+		parts.push(alone ? values[0] : `${field} ${values.join(` ${t('nextcloud-vue', 'or')} `)}`)
 	}
 	if (state && typeof state.search === 'string' && state.search.trim() !== '') {
 		parts.push(`"${state.search.trim()}"`)

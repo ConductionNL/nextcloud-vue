@@ -126,4 +126,13 @@ describe('summarizeViewFilters with tokens and range keys', () => {
 		expect(summarizeViewFilters({ filters: { 'deadline[lt]': '@today-3d' } }, { properties: PROPERTIES })).toBe('Deadline up to 3 days ago')
 		expect(summarizeViewFilters({ filters: { 'deadline[gte]': '@today+2d' } }, { properties: PROPERTIES })).toBe('Deadline from in 2 days')
 	})
+
+	it('lets a page name @me as a whole phrase, "My cases"', () => {
+		const line = summarizeViewFilters(
+			{ filters: { assignee: '@me', 'deadline[gte]': '@today', 'deadline[lt]': '@today+7d' } },
+			{ properties: { ...PROPERTIES, assignee: { type: 'string', title: 'Handler' } }, filterLabels: { assignee: { label: 'Handler', values: { '@me': 'My cases' }, valuesAlone: true } } },
+		)
+		expect(line).toBe('My cases, deadline within 7 days')
+		expect(summarizeViewFilters({ filters: { assignee: 'jan' } }, { properties: { assignee: { title: 'Handler' } }, filterLabels: { assignee: { values: { '@me': 'My cases' }, valuesAlone: true } } })).toBe('Handler jan')
+	})
 })

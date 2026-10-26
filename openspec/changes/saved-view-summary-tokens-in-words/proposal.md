@@ -11,3 +11,5 @@ A saved view's summary line printed its stored tokens: "Behandelaar @me, status 
 ## Scope
 
 - `src/utils/savedViewSummary.js`, l10n (en, nl), a jest test.
+
+Also: a `filterLabels` entry with `valuesAlone: true` lets a value the page names read as the whole part, so dossiq's `assignee: { values: { "@me": "My cases" }, valuesAlone: true }` reads "Mijn zaken, deadline binnen 7 dagen".
