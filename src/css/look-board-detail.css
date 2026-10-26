@@ -2235,3 +2235,16 @@
 .cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
 	font-weight: 400;
 }
+
+/* The history card's kind chips sit on the header's 16px gap, 8px apart, as
+   DqZaakHistorie draws them: the server's 3px button margin pushed the row
+   3px down and made it 42px tall. The composer's field labels run on a 1.2
+   line, so "Sjabloon" starts 12px under the subtitle as drawn.
+   @spec openspec/changes/board-history-chips-and-labels/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage__chips .cn-timeline-manage__chip:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
+	line-height: 1.2;
+}
