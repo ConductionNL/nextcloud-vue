@@ -1158,6 +1158,29 @@ export default {
 		   42px as on the board (10px, the 1px-low checkbox, 10px, the rule). */
 		display: block;
 		margin: 1px auto 0;
+		/* Drawn as Nextcloud's checkbox (NcCheckboxRadioSwitch's
+		   checkbox-blank-outline / checkbox-marked icons at 20px), as the
+		   boards draw it: the native box differs per browser. */
+		appearance: none;
+		border: 0;
+		background-color: var(--color-text-maxcontrast);
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z'/%3E%3C/svg%3E") center / 20px no-repeat;
+		cursor: pointer;
+	}
+
+	.cn-notification-matrix__table tbody td input[type='checkbox']:checked {
+		background-color: var(--color-primary-element);
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z'/%3E%3C/svg%3E");
+	}
+
+	.cn-notification-matrix__table tbody td input[type='checkbox']:focus-visible {
+		outline: 2px solid var(--color-primary-element);
+		outline-offset: 2px;
+	}
+
+	.cn-notification-matrix__table tbody td input[type='checkbox']:disabled {
+		cursor: default;
+		opacity: .5;
 	}
 
 	.cn-notification-matrix__group {
