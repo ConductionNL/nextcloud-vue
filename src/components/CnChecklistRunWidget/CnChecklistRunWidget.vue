@@ -1204,6 +1204,7 @@ export default {
 .cn-checklist-run__help {
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: 1.2;
 	margin: 0;
 }
 
@@ -1215,13 +1216,14 @@ export default {
 	font-size: 15px;
 	font-weight: 400;
 	gap: 10px;
-	min-height: 34px;
+	min-height: 24px;
 }
 
+/* The board draws the radio with the browser's own 3px 3px 0 5px margin. */
 .cn-checklist-run__choice input {
 	accent-color: var(--color-primary-element);
 	height: 20px;
-	margin: 0;
+	margin: 3px 3px 0 5px;
 	width: 20px;
 }
 
