@@ -604,6 +604,7 @@ export default {
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 12px 24px;
 	margin: 0;
+	padding: 0;
 }
 
 /* The server draws every dt as a 130px right-aligned inline block and pads
@@ -621,6 +622,7 @@ export default {
 	padding: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	line-height: 1.2;
 }
 
 .cn-retention__fact dd {

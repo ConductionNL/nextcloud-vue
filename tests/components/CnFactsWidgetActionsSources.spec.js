@@ -242,6 +242,19 @@ describe('CnFactsWidget: template and suffix', () => {
 		expect(w.find('[data-testid="cn-fact-weight"] dd').text()).toBe('2.5 kg')
 		expect(w.find('[data-testid="cn-fact-missing"]').exists()).toBe(false)
 	})
+
+	it('translates the words of a suffix and keeps its leading space', async () => {
+		const w = mountFacts({ objectData: { lawfulPurposeRetention: 240 }, content: { fields: [{ path: 'lawfulPurposeRetention', label: 'Retention', format: 'months', suffix: ' after closing' }] } }, { cnTranslate: (key) => ({ 'after closing': 'na afhandeling' }[key] || key) })
+		expect(w.find('[data-testid="cn-fact-lawfulPurposeRetention"] dd').text()).toBe('20 years na afhandeling')
+	})
+})
+
+describe('CnFactsWidget: format months', () => {
+	it('writes whole years as years and other numbers as months', () => {
+		const fields = [{ path: 'a', label: 'A', format: 'months' }, { path: 'b', label: 'B', format: 'months' }, { path: 'c', label: 'C', format: 'months' }]
+		const w = mountFacts({ objectData: { a: 240, b: 18, c: 12 }, content: { fields } })
+		expect(['a', 'b', 'c'].map((key) => w.find(`[data-testid="cn-fact-${key}"] dd`).text())).toEqual(['20 years', '18 months', '1 year'])
+	})
 })
 
 describe('CnFactsWidget: a pill over a boolean', () => {

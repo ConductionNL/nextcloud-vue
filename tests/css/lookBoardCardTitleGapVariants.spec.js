@@ -39,7 +39,7 @@ describe('look-board-detail.css: card title gap per body kind', () => {
 
 	it('starts a body card whose facts open on the column grid 14px below its title', () => {
 		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *)'))
-			.toContain('padding-top: calc(14px - var(--cn-board-first-line-leading))')
+			.toContain('padding-top: 14px')
 	})
 
 	it('starts a body card that opens on running text 12px below its title, the text at 1.6', () => {

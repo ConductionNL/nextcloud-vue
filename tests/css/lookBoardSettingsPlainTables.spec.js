@@ -25,7 +25,7 @@ function body(selector) {
 
 describe('look-board.css: a plain settings table', () => {
 	it('draws the board head', () => {
-		const head = body(`${T} th`)
+		const head = body(`${T} thead th`)
 		expect(head).toContain('padding: 10px 12px;')
 		expect(head).toContain('font-size: 14px;')
 		expect(head).toContain('font-weight: 600;')
@@ -33,9 +33,17 @@ describe('look-board.css: a plain settings table', () => {
 	})
 
 	it('draws the board cells', () => {
-		const cell = body(`${T} td`)
+		const cell = css.slice(css.indexOf(`${T} td,`), css.indexOf('}', css.indexOf(`${T} td,`)))
 		expect(cell).toContain('padding: 10px 12px;')
 		expect(cell).toContain('color: var(--color-main-text);')
 		expect(cell).toContain('font-size: 14px;')
+		expect(cell).toContain('line-height: 1.5;')
+	})
+
+	it('draws a row header as a strong cell, not a head', () => {
+		const at = css.lastIndexOf(`${T} tbody th {`)
+		const row = css.slice(at, css.indexOf('}', at))
+		expect(row).toContain('font-weight: 600;')
+		expect(row).toContain('--nldesign-component-table-header-background-color: transparent;')
 	})
 })
