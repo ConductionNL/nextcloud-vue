@@ -44,6 +44,6 @@ describe('look-board-detail.css: grouped cards toolbar spacing', () => {
 	it('sets the buttons 14px above the groups, nothing added above them', () => {
 		const at = css.indexOf('.cn-look-board .cn-grouped-cards__actions.cn-grouped-cards__actions:not(.cn-look-nextcloud *) {')
 		expect(at).toBeGreaterThan(-1)
-		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-block: 0 14px;')
+		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-block: 0 12px;')
 	})
 })
