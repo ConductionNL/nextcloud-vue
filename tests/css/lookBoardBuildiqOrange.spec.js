@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * In the board look the buildiq square is the brand orange darkened to AA
- * (#c64d0b, the white icon on it 4.70:1); the Nextcloud look keeps the brand
+ * (#c64e0b, the white icon on it 4.67:1); the Nextcloud look keeps the brand
  * orange.
  * Read from the stylesheet text.
  *
@@ -36,7 +36,7 @@ function rulesFor(css, selector) {
 describe('the board buildiq square', () => {
 	it('fills the board square with the brand orange darkened to AA', () => {
 		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue')
-		expect(rule).toMatch(/--cn-buildiq-color:\s*#c64d0b;/)
+		expect(rule).toMatch(/--cn-buildiq-color:\s*#c64e0b;/)
 	})
 
 	it('keeps the brand orange outside the board look', () => {

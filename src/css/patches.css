@@ -35,12 +35,12 @@
 }
 
 /* In the board look the square is the brand orange darkened to WCAG AA
-   (Ruben, 26 Oct): #c64d0b keeps the brand hue (21 degrees) and puts the
-   white icon at 4.70:1 and the square's edge at 4.35:1 on the page ground;
-   the brand orange #f36c21 gives 3.01:1 and 2.78:1.
+   (Ruben, 26 Oct): #c64e0b, the Conduction accent, keeps the brand hue and
+   puts the white icon at 4.67:1 and the square's edge at 4.32:1 on the
+   page ground; the brand orange #f36c21 gives 3.01:1 and 2.78:1.
    @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange */
 .cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
-	--cn-buildiq-color: #c64d0b;
+	--cn-buildiq-color: #c64e0b;
 }
 
 .cn-buildiq-edit__actions .button-vue__wrapper {
