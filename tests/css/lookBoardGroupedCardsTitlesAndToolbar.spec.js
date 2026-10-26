@@ -39,3 +39,11 @@ describe('look-board-detail.css: grouped cards', () => {
 		expect(body).toContain('height: 34px;')
 	})
 })
+
+describe('look-board-detail.css: grouped cards toolbar spacing', () => {
+	it('sets the buttons 14px under the subtitle and 14px above the groups', () => {
+		const at = css.indexOf('.cn-look-board .cn-grouped-cards__actions.cn-grouped-cards__actions:not(.cn-look-nextcloud *) {')
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-block: 2px 14px;')
+	})
+})
