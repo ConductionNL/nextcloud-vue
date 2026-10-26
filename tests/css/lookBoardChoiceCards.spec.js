@@ -46,7 +46,7 @@ describe('look-board.css: choice cards', () => {
 	})
 
 	it('sets an option\'s title and description at line height 1.2, its icon at the top (DqVolgendeStap r26a: rows 70 vs 60)', () => {
-		expect(rule(`${cards} .cn-choice-cards__row-title${guard},\n${cards} .cn-choice-cards__row-description${guard}`)).toContain('line-height: 1.2')
+		expect(rule(`${cards} .cn-choice-cards__row-title${guard},\n${cards} .cn-choice-cards__row-description${guard},\n${cards} .cn-choice-cards__reason${guard}`)).toContain('line-height: 1.2')
 		expect(rule(`${cards} .cn-choice-cards__row-icon${guard}`)).toContain('align-self: flex-start')
 	})
 
@@ -100,5 +100,9 @@ describe('look-board.css: a setup step\'s choices (DqInstellen)', () => {
 
 	it('draws no option icon, as the board draws only the radio and the words', () => {
 		expect(rule(`${step} .cn-choice-cards__row-icon${guard}`)).toContain('display: none')
+	})
+
+	it('sets a refused option\'s reason at 1.2 too, and keeps the radio bare under the pointer (r32 DqVolgendeStap: refused rows 65.5 vs 61, a 2px hover ring on Opschorten)', () => {
+		expect(rule(`${cards} .cn-choice-cards__row-input:not(#cn-choice-cards-radio)${guard}`)).toContain('border: 0')
 	})
 })

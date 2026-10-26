@@ -3492,9 +3492,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* An option's two lines at line height 1.2 and its icon at the top of the
-   row, as DqVolgendeStap draws them (rows 60 high, not 70). */
+   row, as DqVolgendeStap draws them (rows 60 high, not 70). A refused
+   option's reason takes the description's place on the same line height. */
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *),
-.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__reason:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
 }
 
@@ -3525,6 +3527,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
 	width: 18px;
 	height: 18px;
+}
+
+/* The radio keeps no border under the pointer: the server's input hover
+   rule drew a 2px ring on it while the board draws the bare radio. The id
+   in :not() outranks that rule's :not() list. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(#cn-choice-cards-radio):not(.cn-look-nextcloud *) {
+	border: 0;
 }
 
 /* ---- A dashboard card's count chip -------------------------------------- */
