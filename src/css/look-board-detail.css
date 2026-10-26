@@ -849,6 +849,13 @@
 	font-weight: 500;
 }
 
+/* The mail card's header buttons (Mail koppelen, Mail opstellen) are the
+   board's 40px control (DqZaakEmail; probed on :8080: 34 live).
+   @spec openspec/changes/board-mail-header-buttons-40/specs/board-mail-header-buttons-40/spec.md#requirement-the-mail-cards-header-buttons-are-40px */
+.cn-look-board .cn-mail-tab__header-actions .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
 /* The files table's checkbox column is the board's 42px (12px either side
    of the 18px box): DqZaakDocumenten and DqDocumentenBeheer both draw it so.
    The component's 36px pushed the file icon and name 6px left (r31: name 96
