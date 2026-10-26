@@ -4,7 +4,10 @@
 -->
 <template>
 	<div class="cn-plan-row" :data-testid="`cn-plan-row-${item.key || item.uuid}`">
-		<span class="cn-plan-row__name">{{ item.name }}</span>
+		<span class="cn-plan-row__text">
+			<span class="cn-plan-row__name">{{ item.name }}</span>
+			<span v-if="item.description" class="cn-plan-row__meta" data-testid="cn-plan-row-meta">{{ item.description }}</span>
+		</span>
 		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item.state) }}</span>
 		<NcButton v-if="item.state === 'enabled' && item.discretionary"
 			:disabled="busy"
@@ -95,9 +98,21 @@ export default {
 	padding-block: 6px;
 }
 
-.cn-plan-row__name {
+.cn-plan-row__text {
+	display: flex;
 	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-plan-row__name {
 	font-weight: 600;
+}
+
+.cn-plan-row__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-plan-row__state {

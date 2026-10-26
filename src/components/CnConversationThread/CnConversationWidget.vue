@@ -109,7 +109,8 @@ import { userDisplayName } from '../../utils/userDisplayName.js'
  * `bodyField`), `timeField` (alias `timestampField`), `authorField` (alias
  * `senderField`), `sideField` (alias `directionField`) with `usValue` (alias
  * `outValue`) for the messages the organisation sent, and `channelField` with
- * an optional `channelMap` from stored value to label ("email" to "E-mail").
+ * an optional `channelMap` from stored value to label ("email" to "E-mail")
+ * and `channelIcons` from stored value to an icon name, drawn before the label.
  *
  * The reply box posts to `endpoint` (`@objectId` filled in), or runs
  * `replyAction`, an action descriptor the app decides the meaning of: it is
@@ -294,6 +295,7 @@ export default {
 			const c = this.content || {}
 			const usValue = String(c.outValue ?? c.usValue ?? 'us')
 			const channelMap = c.channelMap && typeof c.channelMap === 'object' ? c.channelMap : {}
+			const channelIcons = c.channelIcons && typeof c.channelIcons === 'object' ? c.channelIcons : {}
 			const statusMap = c.statusMap && typeof c.statusMap === 'object' ? c.statusMap : {}
 			const stored = this.rawMessages()
 				.map(({ message, side, key }, index) => {
@@ -310,6 +312,8 @@ export default {
 						text: readPath(message, c.bodyField || c.textField || 'text'),
 						side: sideOf,
 						channel: channelKey === '' ? '' : this.tr(Object.hasOwn(channelMap, channelKey) ? channelMap[channelKey] : channelKey),
+						// @spec openspec/changes/conversation-channel-icons/specs/conversation-channel-icons/spec.md#requirement-a-messages-channel-can-carry-its-icon
+						channelIcon: Object.hasOwn(channelIcons, channelKey) && typeof channelIcons[channelKey] === 'string' ? channelIcons[channelKey] : '',
 						status: statusKey === '' ? '' : this.tr(Object.hasOwn(statusMap, statusKey) ? statusMap[statusKey] : statusKey),
 						actions: this.messageActions
 							.filter((action) => this.actionApplies(action, message))

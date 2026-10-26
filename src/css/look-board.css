@@ -317,6 +317,17 @@
 	font-size: 14px;
 }
 
+/* A link action is drawn as a button action: the board's 40px, no outer
+   margin (DqMijnWerk "Vandaag eerst": live links grew to the theme's 44px
+   link target and the button kept Nextcloud's 3px margin, 46px tall and
+   13px apart where the board draws 40 to 42 and 10).
+   @spec openspec/changes/board-banner-actions-as-drawn/specs/board-banner-actions-as-drawn/spec.md#requirement-a-board-banners-actions-are-drawn-alike */
+.cn-look-board .cn-banner-widget__action.cn-banner-widget__action:not(.cn-look-nextcloud *) {
+	height: var(--cn-board-control-height);
+	min-height: 0;
+	margin: 0;
+}
+
 .cn-look-board .cn-banner-widget__action--primary:not(.cn-look-nextcloud *) {
 	border: 0;
 }
@@ -346,7 +357,10 @@
 	min-height: var(--cn-board-control-height);
 }
 
-.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue {
+/* `.button-vue.button-vue`: NcButton sets its own padding on a button
+   without an icon (`.button-vue:has(.button-vue__icon:empty)`), as strong as
+   a single class here, and loads later. */
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue.button-vue {
 	--button-size: var(--cn-board-control-height);
 	--button-padding: 16px;
 }
@@ -760,7 +774,7 @@
 /* "CSV exporteren" beside "Rapport laden" is the neutral secondary at the
    40px control height, 14px in (DqTermijnen).
    @spec openspec/changes/workspace-filter-export-table/specs/workspace-filter-export-table/spec.md#requirement-a-workspace-filter-input-can-export-the-table-it-loads */
-.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue.cn-workspace-filter-widget__export {
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .button-vue.button-vue.cn-workspace-filter-widget__export {
 	--button-size: var(--cn-board-control-height);
 	--button-padding: 14px;
 }
@@ -811,6 +825,29 @@
 .cn-look-board .cn-action-buttons .button-vue--secondary:not(.cn-look-nextcloud *):hover,
 .cn-look-board .cn-action-buttons .button-vue--vue-secondary:not(.cn-look-nextcloud *):hover {
 	background: var(--color-background-hover);
+}
+
+/* ---- A card table's head controls -------------------------------------- */
+/* The head of a card's table (CnTasksWidget, CnRecordListWidget) draws its
+   sort control as the bare label, square, and the funnel after it 4px on as a
+   22px button with a 4px radius, as CnDataTable's board head does
+   (DqZaakTaken). Nextcloud's `button` rule gave the label an 8px radius and a
+   3px end margin (7px to the funnel) and NcActions its 8px trigger radius;
+   the extra class outranks both. */
+.cn-look-board .cn-tasks-widget__head .cn-tasks-widget__head-sort:not(.cn-look-nextcloud *),
+.cn-look-board .cn-record-list__head .cn-record-list__sort:not(.cn-look-nextcloud *) {
+	margin: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-tasks-widget__head .cn-tasks-widget__head-filter .button-vue:not(.cn-look-nextcloud *),
+.cn-look-board .cn-record-list__head .cn-record-list__head-filter .button-vue:not(.cn-look-nextcloud *) {
+	--button-size: 22px;
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
+	border-radius: 4px;
 }
 
 /* ---- The buildiq square ------------------------------------------------ */
@@ -2593,6 +2630,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-main-text);
 	font-size: 15px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 /* A row whose one action is outlined (`rowAction.variant: "outlined"`,
@@ -2621,9 +2659,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	background: var(--color-background-hover);
 }
 
+/* Title and meta lines at the font's normal line height: a two-line row is
+   60px, as every Dq dashboard board draws it (r31: 69 at Nextcloud's 1.5).
+   @spec openspec/changes/board-dashboard-rows-normal-leading/specs/board-dashboard-rows-normal-leading/spec.md#requirement-a-board-dashboard-row-is-set-at-the-normal-line-height */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__meta {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__trailing {
@@ -2678,6 +2720,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-decision-list__row {
 	border-block-end: 0;
 	border-top: 1px solid var(--color-border);
+}
+
+/* Note rows (DqDagAfsluiten "Nog open van vandaag"): the kind pill 12px
+   from the title, the record button and the closing buttons at the board's
+   40px, and the closing pair at the two ends of their line (Annuleren left,
+   Dag afsluiten right).
+   @spec openspec/changes/board-record-notes-controls/specs/board-record-notes-controls/spec.md#requirement-board-note-rows-draw-the-boards-controls */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__head {
+	gap: 8px 12px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__fields .button-vue,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions {
+	flex: 1 1 100%;
+	justify-content: space-between;
 }
 
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
@@ -2764,6 +2825,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-tasks-widget {
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
+}
+
+/* The stacked bar's legend in the board's type: the label 14px and the
+   count 22px, both at the font's normal line height, 2px apart: a 46px item
+   (DqMijnWerk "Mijn 14 zaken per stap"; live drew 14.25/22.5px at 1.5 and
+   1.2, a 50.4px item).
+   @spec openspec/changes/board-stacked-bar-legend-type/specs/board-stacked-bar-legend-type/spec.md#requirement-a-board-stacked-bar-legend-is-set-in-the-boards-type */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stacked-bar:not(.cn-stacked-bar--compact) .cn-stacked-bar__label {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stacked-bar:not(.cn-stacked-bar--compact) .cn-stacked-bar__count {
+	font-size: 22px;
+	line-height: normal;
 }
 
 /* DqMijnWerk "Mijn archiefbeoordelingen": its rows and its empty line. */

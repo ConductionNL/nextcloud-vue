@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser row button without end margin
+- [x] tests/css/filesRowButtonBesideMenu (red first)

@@ -19,6 +19,13 @@
 	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
+	/* The ink on that tint: a completed plan row's state. */
+	--cn-board-success-ink: var(--color-success-text, #1e6b2a);
+	/* The ink on the light primary fill: an active plan row's state. */
+	--cn-board-primary-light-ink: var(--color-primary-element-light-text, #234a78);
+	/* The teal badge of a public history entry. */
+	--cn-board-teal-tint: var(--nldesign-color-teal-light, #e3f1f3);
+	--cn-board-teal-ink: var(--nldesign-color-teal-dark, #1d5e66);
 	/* Card h2 and side heading. */
 	--cn-board-heading-size: 17px;
 	--cn-board-side-heading-size: 15px;
@@ -582,6 +589,20 @@
 	font-size: 13px;
 }
 
+/* The initials beside a message: the resident's in the soft ink on the chip
+   ground, ours in the primary tint's ink on its light ground, as
+   DqZaakContact draws SV and PJ (r31: the initials read main ink).
+   @spec openspec/changes/board-conversation-avatar-tones/specs/board-conversation-avatar-tones/spec.md#requirement-a-messages-initials-take-their-sides-tone */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__avatar:not(.cn-look-nextcloud *) {
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__avatar:not(.cn-look-nextcloud *) {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
 /* A message keeps 64px free on the side away from its avatar, so the two
    sides read as two columns; the line above it is 13px in the soft ink at the
    normal line height, and our bubble's text is in the main ink. Each names
@@ -847,6 +868,13 @@
 
 .cn-look-board .cn-object-data-widget__value {
 	font-weight: 500;
+}
+
+/* The mail card's header buttons (Mail koppelen, Mail opstellen) are the
+   board's 40px control (DqZaakEmail; probed on :8080: 34 live).
+   @spec openspec/changes/board-mail-header-buttons-40/specs/board-mail-header-buttons-40/spec.md#requirement-the-mail-cards-header-buttons-are-40px */
+.cn-look-board .cn-mail-tab__header-actions .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* The files table's checkbox column is the board's 42px (12px either side
@@ -2427,4 +2455,113 @@
    @spec openspec/changes/board-data-card-under-subtitle/specs/board-card/spec.md */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
+}
+
+/* Buttons in a side card stand as the boards draw them in a column: the full
+   width of the card with their label at the start (DqSociaalDomein
+   "Toestemming intrekken" and "Markeer voor aandacht"), a facts action at the
+   34px control height.
+   @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-side-cards-button-spans-the-card-with-its-label-at-the-start */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__actions:not(.cn-look-nextcloud *) > .button-vue {
+	--button-size: 34px;
+	--default-clickable-area: 34px;
+	flex: 1 1 100%;
+	height: 34px;
+	min-height: 34px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__actions:not(.cn-look-nextcloud *) > .button-vue .button-vue__wrapper,
+.cn-look-board .cn-attention-flag:not(.cn-look-nextcloud *) .button-vue .button-vue__wrapper {
+	justify-content: flex-start;
+}
+
+/* A checklist's boxes are the boards' 18px, an open one in the control
+   border grey and a ticked one in the primary colour (DqTaak "Checklist").
+   @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-board-checklist-box-is-18px-and-grey-while-open */
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon {
+	color: var(--color-border-maxcontrast);
+}
+
+/* In a side card the pill and its date stand 8px apart, as the boards draw
+   them (DqOrganisatie "Lopende zaken", "Open tickets"); the row's own 16px
+   is for a full-width list.
+   @spec openspec/changes/record-list-pill-variant-when/specs/record-list/spec.md#requirement-a-side-rows-pill-and-date-stand-8px-apart */
+.cn-look-board .cn-detail-page__side .cn-record-list__aside:not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
+/* A plan in the board look, as DqZaak draws "Zaakplan": ruled rows 10px
+   high on each side, the name at 15px/500 over its muted line, the state a
+   13px/600 pill toned by state (r31: grey rows, 600 names, 400 pills).
+   @spec openspec/changes/board-plan-rows/specs/plan-widget/spec.md */
+.cn-look-board .cn-plan .cn-plan-row:not(.cn-look-nextcloud *) {
+	gap: 6px 16px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-border);
+	background: transparent;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__name:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	font-weight: 500;
+	line-height: normal;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state:not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+	line-height: normal;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='completed']:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-success-tint);
+	color: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='active']:not(.cn-look-nextcloud *) {
+	background: var(--color-primary-element-light);
+	color: var(--cn-board-primary-light-ink);
+}
+
+/* The history card's note composer and entries as DqZaakHistorie draws them
+   (r31 strict verdict): the note field three lines high on a 1.5 line with
+   10px 12px inside, the add button at the board's 40px, the title-row
+   buttons 12px apart, and an entry the requester sees marked with a 12px
+   teal pill.
+   @spec openspec/changes/board-history-composer/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__draft:not(.cn-look-nextcloud *) {
+	min-height: calc(3 * 1.5em + 22px);
+	padding: 10px 12px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__composer-foot .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__header-actions:not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__badge--public:not(.cn-look-nextcloud *) {
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: var(--cn-board-teal-tint);
+	color: var(--cn-board-teal-ink);
+	font-size: 12px;
+	font-weight: 600;
 }

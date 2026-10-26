@@ -70,6 +70,16 @@ describe('CnConversationWidget: messages from a list', () => {
 		expect(w.find('[data-testid="cn-conversation-loading"]').exists()).toBe(false)
 	})
 
+	// @spec openspec/changes/conversation-channel-icons/specs/conversation-channel-icons/spec.md#requirement-a-messages-channel-can-carry-its-icon
+	it('draws the channel icon before its name when channelIcons names one', async () => {
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: ROWS }) }))
+		const w = mountWidget({ ...CONTENT, channelIcons: { phone: 'PhoneOutline', email: 'EmailOutline' } })
+		await flushPromises()
+		const chips = w.findAll('[data-testid="cn-conversation-channel"]')
+		expect(chips.map((chip) => chip.find('.cn-conversation-thread__channel-icon').exists())).toEqual([false, true, true])
+		expect(chips[1].text()).toBe('E-mail')
+	})
+
 	it('sends no request while the record id is unknown, and says the thread is empty', async () => {
 		global.fetch = jest.fn()
 		const w = mountWidget(CONTENT, {}, '')
