@@ -821,6 +821,47 @@
 	font-weight: 500;
 }
 
+/* A labelled select in a page card is the board's field, as in a board
+   dialog (dialog.css): its label above the control at 14px/600 on the normal
+   line (the theme's label weight token set to 600 here), the control 40px,
+   21px of room above it so the raised label does not rise over what stands
+   above (DqZaakEmail "E-mailsjabloon": NcSelect drew
+   the label inside a 44px field, 15px/700). The quick filter bar's dropdown
+   keeps NcSelect's own look.
+   @spec openspec/changes/board-page-select-label-above/specs/board-page-select-label-above/spec.md#requirement-a-labelled-select-in-a-board-page-card-carries-its-label-above */
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *) {
+	--nldesign-component-form-field-label-font-weight: 600;
+	margin-block: 21px 0;
+}
+
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select) .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .nc-select.v-select.select:not(.cn-quick-filter-bar__select) .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *) {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: var(--cn-field-label-size, 14px);
+	font-weight: 600;
+	line-height: normal;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *) {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+/* The mail card's template buttons stand beside the field at its 40px
+   height, their bottom on the field's edge (inside its 2px focus inset). */
+.cn-look-board .cn-mail-tab__template-row .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+	margin-block-end: var(--border-width-input-focused, 2px);
+}
+
 /* A data card's label and value sit 3px apart on the normal line height, as
    the boards draw their facts (194 of 212 dt/dd pairs: gap 3px, no line
    height); live ran them at 1.5 with a 2px gap (DqZaakContact
