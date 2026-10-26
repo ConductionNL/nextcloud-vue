@@ -23,3 +23,21 @@ export function libraryTranslate(text, vars) {
 	ensureTranslations()
 	return t('nextcloud-vue', text, vars)
 }
+
+/**
+ * Translate a library string through the host app's catalogue, falling back
+ * to the library's own when the host has no translation for it. An app's
+ * `cnTranslate` answers the English string back for a string its catalogue
+ * lacks, so library chrome (the AI button's "Open AI chat") read English in
+ * an app that never copied the string.
+ *
+ * @param {Function} hostTranslate The injected `cnTranslate`.
+ * @param {string} text The English string.
+ * @param {object} [vars] Placeholder values.
+ * @return {string} The string in the user's language.
+ * @spec openspec/changes/library-string-host-fallback/specs/i18n/spec.md
+ */
+export function translateLibraryString(hostTranslate, text, vars) {
+	const viaHost = typeof hostTranslate === 'function' ? hostTranslate(text, vars) : text
+	return viaHost !== text ? viaHost : libraryTranslate(text, vars)
+}

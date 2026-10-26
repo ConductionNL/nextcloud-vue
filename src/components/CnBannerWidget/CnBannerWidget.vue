@@ -406,6 +406,8 @@ export default {
 			conditionFailed: false,
 			/** Why it failed, as the request reported it. */
 			conditionFailureReason: '',
+			/** Whether the browser says it is online, for `content.connection`. */
+			online: typeof navigator === 'undefined' || navigator.onLine !== false,
 		}
 	},
 
@@ -459,6 +461,24 @@ export default {
 		 */
 		noteActions() {
 			return normalizeLook(this.cnLook) === 'board' ? this.resolvedActions.slice(0, 1) : []
+		},
+
+		/**
+		 * `content.connection`: `offline` shows the banner only while the
+		 * device is offline, `online` only while it is online (DqInspectie
+		 * "3 wijzigingen wachten op bereik"); unset shows it either way.
+		 *
+		 * @return {boolean}
+		 */
+		connectionAllows() {
+			const connection = this.content && this.content.connection
+			if (connection === 'offline') {
+				return !this.online
+			}
+			if (connection === 'online') {
+				return this.online
+			}
+			return true
 		},
 
 		/** The effective visibleWhen condition (prop → content → null). */
@@ -634,6 +654,9 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		visible() {
+			if (!this.connectionAllows) {
+				return false
+			}
 			const title = this.title || (this.content && this.content.title) || ''
 			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
 				return false
@@ -736,7 +759,22 @@ export default {
 		},
 	},
 
+	mounted() {
+		window.addEventListener('online', this.onConnection)
+		window.addEventListener('offline', this.onConnection)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('online', this.onConnection)
+		window.removeEventListener('offline', this.onConnection)
+	},
+
 	methods: {
+		/** Follow the browser's connection, for `content.connection`. */
+		onConnection() {
+			this.online = typeof navigator === 'undefined' || navigator.onLine !== false
+		},
+
 		/**
 		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
 		 * such as "Mine" reads in the user's language.

@@ -28,6 +28,9 @@
 				<NcButton v-else-if="run.href"
 					:href="run.href"
 					data-testid="cn-exports-download">
+					<template #icon>
+						<DownloadOutline :size="16" />
+					</template>
 					{{ t('nextcloud-vue', 'Download') }}
 				</NcButton>
 			</li>
@@ -41,6 +44,7 @@ import axios from '@nextcloud/axios'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
+import DownloadOutline from 'vue-material-design-icons/DownloadOutline.vue'
 import { formatBoardDate } from '../../utils/boardDate.js'
 
 /**
@@ -62,7 +66,7 @@ import { formatBoardDate } from '../../utils/boardDate.js'
 export default {
 	name: 'CnExportsWidget',
 
-	components: { NcButton },
+	components: { DownloadOutline, NcButton },
 
 	inject: {
 		/** Host translate function provided by CnAppRoot. */

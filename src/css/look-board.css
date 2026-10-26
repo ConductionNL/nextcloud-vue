@@ -121,6 +121,14 @@
 	padding-top: 4px;
 }
 
+/* A detail page's header is a section padded 4px 0 8px on the boards: the
+   8px under its second row belongs to the header (r31: 79 on every detail
+   board, 71 live, and the page under it 8px high: DqContact, DqTaak,
+   DqOrganisatie, DqHandhaving, DqZaaktype*). */
+.cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header {
+	padding-bottom: 8px;
+}
+
 /* The 56px inset clears the navigation toggle, which overlays the content
    only while the navigation is closed. The store page's own header too: it
    kept the inset with the navigation open, 56px right of the board's title. */
@@ -455,6 +463,22 @@
 .cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select {
 	min-width: 0;
 	width: auto;
+}
+
+/* Its search box sizes to the placeholder or choice instead of the input's 20
+   characters, in the board's 14px/500 select type: "Alle zaaktypen" is 141px,
+   the board's select 135 (r31 DqDoorlooptijd: 246). The end padding keeps
+   the open indicator clear of the text.
+   @spec openspec/changes/board-description-select-sized-to-choice/specs/board-description-select-sized-to-choice/spec.md#requirement-a-description-select-is-sized-to-its-choice */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .input-field__input,
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .vs__selected {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .input-field__input {
+	field-sizing: content;
+	padding-inline: 10px 30px;
 }
 
 /* ---- A text field and a multiple select --------------------------------- */
@@ -1012,7 +1036,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-weight: 400;
-	line-height: 16px;
+	line-height: normal;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__text {
+	line-height: normal;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
@@ -1698,17 +1726,42 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	min-width: 0;
 }
 
+/* "Uitleg tonen" and "Geavanceerd" are text links on the boards: 25px high,
+   no padding, no rounding (r31 DqBeheerinstellingen: 40px tertiary buttons
+   with 14px padding). 25px stays above the 24px target size (WCAG 2.5.8).
+   @spec openspec/changes/board-settings-text-buttons/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-settings-fields__advanced:not(.cn-look-nextcloud *) > .button-vue {
+	--default-clickable-area: 25px;
+	--button-padding: 0px;
+	--button-padding-default: 0px;
+	--button-radius: 0px;
+	min-height: 25px;
+	height: 25px;
+	padding-inline: 0;
+	border-radius: 0;
+}
+
+/* A card's footer link ends the card 16px under its content, one 14px line,
+   as the boards draw "Koppelingen beheren in integriq" (r31
+   DqVthInstellingen: Activiteiten and Legesregels each 20px taller, the
+   section's 14px gap plus the link's own 16px margin and a 15px line).
+   @spec openspec/changes/board-settings-text-buttons/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-section__footer-link {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.2;
+	margin: 2px 0 0;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
 /* A settings card's first line sits where the boards draw it: an
    "Uitleg tonen" link, a switch or a note adds no height beyond its text, so
    the first text is 16px under the subtitle (DqBeheerinstellingen
    "Zaak-e-mail" and "AI-ondersteunde verwerking", DqBeheerGeavanceerd "KCC"
-   and "Storeregister": 7px and 29px lower live). The controls keep their full
+   and "Storeregister": 7px and 29px lower live). The switch keeps its full
    hit area; the negative margin only takes it out of the line.
    @spec openspec/changes/board-settings-first-line/specs/settings-board-look/spec.md */
-.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) {
-	margin-block: -8px;
-}
-
 .cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
 	margin-block: -8px;
 }
@@ -3579,13 +3632,176 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	margin-block-start: 0;
 }
 
+/* ---- A saved search's side cards (DqZoekresultaten) --------------------- */
+/* "Opgeslagen zoekopdracht": its facts 8px apart at a normal line height and
+   the values at 500, the switch's words at 15px, the parts 10px apart.
+   "Uw exports": a line above every export, the name at 15px/500 over its
+   meta, and the 34px Download button on its own line under a narrow card's
+   text.
+   @spec openspec/changes/board-saved-search-cards/specs/board-saved-search-cards/spec.md */
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) {
+	gap: 10px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__facts {
+	gap: 8px 16px;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__facts dd {
+	font-weight: 500;
+}
+
+.cn-look-board .cn-saved-view-alert:not(.cn-look-nextcloud *) .cn-saved-view-alert__switch-text {
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__row {
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	border-top: 1px solid var(--color-border);
+	line-height: normal;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__text {
+	flex: 1 1 240px;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .cn-exports-widget__name {
+	font-size: 15px;
+	font-weight: 500;
+}
+
+.cn-look-board .cn-exports-widget:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: 34px;
+}
+
 /* ---- The share dialog's audience rows ----------------------------------- */
 /* A person or group the view is shared with sits on the page's own ground at
    radius 8, as DqFilterDelen draws it; Nextcloud's look keeps its hover grey
    and large radius.
    @spec openspec/changes/board-share-rows-ground/specs/board-share-rows-ground/spec.md */
 .cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
+	min-height: 56px;
 	border-radius: 8px;
 	background: var(--cn-board-sunken-ground);
 	line-height: normal;
+}
+
+/* The rights select is the board's 36px field, the hint and the "Shared
+   with" caption run at a normal line height, and the person field keeps no
+   margin under it, so the list starts 60px under the field (DqFilterDelen). */
+.cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
+	--default-clickable-area: 36px;
+}
+
+.cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
+.cn-look-board .cn-saved-view-share__caption:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *) {
+	margin-bottom: 0;
+}
+
+/* The edit view dialog (DqFilterBewerken): field labels at a normal line
+   height, the sharing note 16px under the choices at 13px, the
+   description's hint 6px under its field, the icon group 16px
+   under the hint with its label at 14px, and the icons 7px apart without
+   the core button margin, the unchosen ones in the field line.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
+.cn-look-board .cn-edit-view__label:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-edit-view__note:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .input-field__helper-text-message {
+	padding-top: 2px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icons {
+	gap: 7px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__label {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon:not(.cn-saved-view-look__icon--chosen) {
+	border-color: var(--cn-board-control-border);
+}
+
+/* ---- Switches (NcCheckboxRadioSwitch type="switch") --------------------- */
+/* The boards draw a switch as a 38x22 pill with an 18px white knob 2px in,
+   the primary fill when on and the field grey when off (NcBeheerInstellingen
+   and most boards; DqZoekresultaten amended to the same). Nextcloud draws a
+   36x18 toggle icon. The icon's svg is hidden and its box drawn instead; the
+   input, its label and its focus ring are Nextcloud's.
+   @spec openspec/changes/board-switch-38x22/specs/settings-board-look/spec.md */
+.cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon {
+	position: relative;
+	flex: none;
+	box-sizing: border-box;
+	width: 38px;
+	height: 22px;
+	margin: 0;
+	border-radius: 11px;
+	background: var(--color-border-maxcontrast);
+}
+
+.cn-look-board .checkbox-radio-switch-switch.checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon {
+	background: var(--color-primary-element);
+}
+
+.cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon > * {
+	display: none;
+}
+
+.cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon::after {
+	position: absolute;
+	inset-block-start: 2px;
+	inset-inline-start: 2px;
+	width: 18px;
+	height: 18px;
+	border-radius: 9px;
+	background: var(--color-primary-element-text);
+	content: '';
+}
+
+.cn-look-board .checkbox-radio-switch-switch.checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::after {
+	inset-inline-start: 18px;
+}
+
+/* A record list's tonal pill ("Vervolg plannen") keeps the primary tint in
+   the board look: NcButton redefines the primary light colour inside the
+   button, so the tint is read on the list and handed down (r31: grey, ink).
+   @spec openspec/changes/board-record-list-tonal-pill/specs/record-list/spec.md */
+.cn-look-board .cn-record-list:not(.cn-look-nextcloud *) {
+	--cn-record-list-tonal-bg: var(--color-primary-element-light);
+	--cn-record-list-tonal-ink: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) {
+	background-color: var(--cn-record-list-tonal-bg);
+	color: var(--cn-record-list-tonal-ink);
+}
+
+.cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
+	color: var(--cn-record-list-tonal-ink);
 }

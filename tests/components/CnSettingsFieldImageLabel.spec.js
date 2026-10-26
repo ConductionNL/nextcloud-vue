@@ -11,7 +11,7 @@ import CnSettingsField from '../../src/components/CnSettingsField/CnSettingsFiel
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), request: jest.fn() } }))
 
-const STUBS = { NcButton: { template: '<button><slot /></button>' }, NcLoadingIcon: true }
+const STUBS = { NcButton: { template: '<button><slot name="icon" /><slot /></button>' }, NcLoadingIcon: true, Upload: { name: 'Upload', template: '<i class="upload-icon" />' } }
 const FIELD = { key: 'logo', label: 'Logo', type: 'image', uploadUrl: '/upload', initials: 'GZ' }
 
 /**
@@ -35,5 +35,10 @@ describe('CnSettingsField image label', () => {
 		expect(label.text()).toBe('Logo')
 		expect(label.classes()).toContain('hidden-visually')
 		expect(w.find('[role="group"]').attributes('aria-labelledby')).toBe(label.attributes('id'))
+	})
+
+	it('draws an upload icon on the upload button, as the boards do', () => {
+		const w = mountField({ uploadUrl: '/upload' })
+		expect(w.find('[data-testid^="cn-settings-field-upload-"] .upload-icon').exists()).toBe(true)
 	})
 })

@@ -1397,6 +1397,25 @@ export default {
 	white-space: nowrap;
 }
 
+/* server.css styles every button at (0,2,1) (grey ground, 15px, its own
+   margin); the doubled class keeps the send button's primary look and the
+   labelled one's 40px/14px (DqZaakAssistent "Vragen"). */
+.cn-ai-input__send-button.cn-ai-input__send-button {
+	margin: 0;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+.cn-ai-input__send-button--labelled.cn-ai-input__send-button--labelled {
+	height: 40px;
+	min-height: 40px;
+	font-size: 14px;
+}
+
+.cn-ai-input__send-button.cn-ai-input__send-button:hover:not(:disabled) {
+	background: var(--color-primary-element-hover, var(--color-primary-element));
+}
+
 .cn-ai-input__send-button:hover:not(:disabled) {
 	background: var(--color-primary-element-hover, var(--color-primary-element));
 }

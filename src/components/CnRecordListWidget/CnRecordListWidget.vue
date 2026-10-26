@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -217,7 +217,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-primary': avatarPrimary }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -235,6 +235,7 @@
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -281,6 +282,7 @@
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+							<CnIcon v-if="item.action.icon" :name="item.action.icon" :size="16" />
 							{{ item.action.label }}
 						</component>
 					</div>
@@ -302,6 +304,7 @@
 						</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -880,6 +883,18 @@ export default {
 			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
 		},
 
+		/**
+		 * Whether the avatar is tinted with the primary colour (`avatar.tone:
+		 * "primary"`), as DqZaakGerelateerd draws a related case's type initials.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-avatar-tone/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-carry-the-primary-tint
+		 */
+		avatarPrimary() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && avatar.tone === 'primary')
+		},
+
 		/** @return {boolean} Whether a row's pill comes before its title (`pillAt: "start"`). */
 		pillFirst() {
 			return this.content?.pillAt === 'start'
@@ -1140,6 +1155,7 @@ export default {
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
+					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
@@ -1859,6 +1875,23 @@ export default {
 		},
 
 		/**
+		 * The tone of a row's initials, from `avatar.tone: { field, map }`
+		 * (`{ field: "status", map: { requested: "warning" } }`: an open advice
+		 * request's initials on the warning tint, DqZaakBesluiten); '' without.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} A status variant, or ''.
+		 */
+		avatarToneFor(row) {
+			const tone = this.content?.avatar?.tone
+			if (!tone || typeof tone !== 'object' || typeof tone.field !== 'string' || !tone.map || typeof tone.map !== 'object') {
+				return ''
+			}
+			const variant = tone.map[String(readPath(row, tone.field) ?? '')]
+			return ['default', 'success', 'warning', 'error', 'info', 'purple', 'teal'].includes(variant) ? variant : ''
+		},
+
+		/**
 		 * The initials of the row's avatar (`avatar`: a name template such as
 		 * `"{client.name}"`, or `{ text }`), or '' without one.
 		 *
@@ -2007,7 +2040,7 @@ export default {
 					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
 					: { label, tag: 'router-link', attrs: { to: link.to } }
 			}
-			return { label, tag: 'button', attrs: { type: 'button' } }
+			return { label, tag: 'button', attrs: { type: 'button' }, icon: typeof action.icon === 'string' ? action.icon : '' }
 		},
 
 		/**
@@ -3189,11 +3222,15 @@ export default {
 	margin-inline-end: -4px;
 }
 
+/* Without a tone (`avatar.tone`) the initials sit on the hover ground. */
+.cn-record-list__avatar:not([class*='cn-status-badge--']) {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
 .cn-record-list__avatar {
 	align-items: center;
-	background: var(--color-background-hover);
 	border-radius: 50%;
-	color: var(--color-main-text);
 	display: flex;
 	flex: none;
 	font-size: 12px;
@@ -3524,6 +3561,32 @@ export default {
 	line-height: 1.2;
 }
 
+.cn-record-list--compact .cn-record-list__card .cn-record-list__meta {
+	line-height: normal;
+}
+
+/* `cardPillAside: true`: the title over its meta line on the left, 2px
+   apart, the pill beside both at the card's end (DqInspectie outbox). */
+.cn-record-list--pill-aside .cn-record-list__card {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 2px 8px;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-head {
+	display: contents;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-pills {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card .cn-record-list__meta {
+	grid-column: 1;
+}
+
 .cn-record-list__card--link:hover,
 .cn-record-list__card--link:focus-visible {
 	border-color: var(--color-border-dark, var(--color-border));
@@ -3627,6 +3690,11 @@ a.cn-record-list__inline-title {
 	border-radius: 18px;
 	background: var(--color-background-dark);
 	color: var(--color-main-text);
+}
+
+.cn-record-list__list--avatar-primary .cn-record-list__avatar {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 </style>
 
