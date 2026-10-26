@@ -2674,7 +2674,16 @@
     "my team": "mijn team",
     "Subject: {subject}": "Onderwerp: {subject}",
     "Optional": "Optioneel",
-    "Reached": "Bereikt"
+    "Reached": "Bereikt",
+    "Download template": "Sjabloon downloaden",
+    "How the columns are read": "Hoe de kolommen worden gelezen",
+    "Column in the file": "Kolom in het bestand",
+    "Not used": "Niet gebruikt",
+    "Check first, import nothing yet": "Eerst controleren, nog niets importeren",
+    "Shows which rows would fail and why.": "Laat zien welke rijen zouden mislukken en waarom.",
+    "Checked. Nothing is imported yet.": "Gecontroleerd. Er is nog niets geïmporteerd.",
+    "{rows} rows · {columns} columns · {size}": "{rows} rijen · {columns} kolommen · {size}",
+    "Field for column {column}": "Veld voor kolom {column}"
   },
   "plurals": {
     "{count} member": [

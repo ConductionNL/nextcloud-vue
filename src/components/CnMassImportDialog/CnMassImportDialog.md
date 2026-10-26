@@ -37,6 +37,9 @@ export default {
 | `options` | `[]` | Import option definitions rendered as toggle switches. Each entry: `{ key, label, description?, default? }`. |
 | `fileTypeHelp` | JSON/Excel/CSV entries | Array of `{ label, description }` explaining the supported file types. Pass an empty array to hide the help section. |
 | `canSubmit` | `true` | Whether the Import button is enabled. Use this when a required slot field (e.g., schema selector) has not yet been filled in. |
+| `templateUrl` | `''` | Address of an empty file with the right columns. When set, a "Download template" button sits beside the file picker. |
+| `fields` | `[]` | The fields a row can fill, `[{ key, label }]`. With fields, a picked CSV or JSON file shows its rows and columns and a table that maps each column to a field or "Not used" (matched by key or label first). The file is uploaded with its columns renamed and the unused ones left out; the confirm payload carries the `mapping`. Excel files are uploaded as they are. |
+| `checkFirst` | `false` | Offers "Check first, import nothing yet". On, the confirm options carry `dryRun: true`; pass the server's report to `setResult({ success, dryRun: true, summary })` and the dialog shows it with an Import button that sends the same file for real. |
 
 ### Label customization
 

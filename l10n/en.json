@@ -2419,7 +2419,16 @@
     "my team": "my team",
     "Subject: {subject}": "Subject: {subject}",
     "Optional": "Optional",
-    "Reached": "Reached"
+    "Reached": "Reached",
+    "Download template": "Download template",
+    "How the columns are read": "How the columns are read",
+    "Column in the file": "Column in the file",
+    "Not used": "Not used",
+    "Check first, import nothing yet": "Check first, import nothing yet",
+    "Shows which rows would fail and why.": "Shows which rows would fail and why.",
+    "Checked. Nothing is imported yet.": "Checked. Nothing is imported yet.",
+    "{rows} rows · {columns} columns · {size}": "{rows} rows · {columns} columns · {size}",
+    "Field for column {column}": "Field for column {column}"
   },
   "plurals": {
     "{count} member": [
