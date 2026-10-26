@@ -2780,6 +2780,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
+/* The stacked bar's legend in the board's type: the label 14px and the
+   count 22px, both at the font's normal line height, 2px apart: a 46px item
+   (DqMijnWerk "Mijn 14 zaken per stap"; live drew 14.25/22.5px at 1.5 and
+   1.2, a 50.4px item).
+   @spec openspec/changes/board-stacked-bar-legend-type/specs/board-stacked-bar-legend-type/spec.md#requirement-a-board-stacked-bar-legend-is-set-in-the-boards-type */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stacked-bar:not(.cn-stacked-bar--compact) .cn-stacked-bar__label {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stacked-bar:not(.cn-stacked-bar--compact) .cn-stacked-bar__count {
+	font-size: 22px;
+	line-height: normal;
+}
+
 /* DqMijnWerk "Mijn archiefbeoordelingen": its rows and its empty line. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-decision-list {
 	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
