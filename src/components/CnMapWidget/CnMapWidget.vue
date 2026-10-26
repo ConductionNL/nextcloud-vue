@@ -1269,7 +1269,27 @@ export default {
 				// The board look keeps the top right for its control column.
 				this.layersControl = L.control.layers(baseLayers, {}, { position: this.isBoardLook ? 'topleft' : 'topright' })
 				this.layersControl.addTo(this.map)
+				this.labelLayersToggle()
 			}
+		},
+
+		/**
+		 * Name the base-map switch in the user's language: Leaflet titles its
+		 * toggle "Layers" and gives it no accessible name of its own.
+		 *
+		 * @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button
+		 */
+		labelLayersToggle() {
+			const container = this.layersControl && typeof this.layersControl.getContainer === 'function'
+				? this.layersControl.getContainer()
+				: null
+			const toggle = container ? container.querySelector('.leaflet-control-layers-toggle') : null
+			if (!toggle) {
+				return
+			}
+			const label = t('nextcloud-vue', 'Map layers')
+			toggle.setAttribute('title', label)
+			toggle.setAttribute('aria-label', label)
 		},
 
 		/**

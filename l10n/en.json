@@ -2413,7 +2413,8 @@
     "Briefcase": "Briefcase",
     "Eye": "Eye",
     "Euro": "Euro",
-    "Ready": "Ready"
+    "Ready": "Ready",
+    "Map layers": "Map layers"
   },
   "plurals": {
     "{count} member": [
