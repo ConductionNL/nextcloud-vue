@@ -2551,13 +2551,33 @@
 /* A checklist's boxes are the boards' 18px, an open one in the control
    border grey and a ticked one in the primary colour (DqTaak "Checklist").
    @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-board-checklist-box-is-18px-and-grey-while-open */
-.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon {
+	position: relative;
+	flex: none;
 	width: 18px;
 	height: 18px;
 }
 
-.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon {
-	color: var(--color-border-maxcontrast);
+/* The box is drawn as the boards' native checkbox: an 18px square with a 2px
+   corner, a grey 1px edge while open, filled in the primary colour with a
+   white tick once checked. The icon glyph stays for its size but is hidden. */
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+	visibility: hidden;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 2px;
+	background: var(--color-main-background);
+	content: '';
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 /* In a side card the pill and its date stand 8px apart, as the boards draw
@@ -2687,4 +2707,12 @@
 
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
+}
+
+/* A main contact's initials on its 40px grey tile in the boards' soft ink,
+   16px bold (DqOrganisatie "Hoofdcontact").
+   @spec openspec/changes/board-r32-tiles-and-boxes/specs/board-r32-tiles-and-boxes/spec.md#requirement-a-main-contacts-initials-are-in-the-soft-ink */
+.cn-look-board .cn-object-parties__main-initials:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	font-size: 16px;
 }
