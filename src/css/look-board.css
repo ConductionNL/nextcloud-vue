@@ -2593,6 +2593,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-main-text);
 	font-size: 15px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 /* A row whose one action is outlined (`rowAction.variant: "outlined"`,
@@ -2621,9 +2622,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	background: var(--color-background-hover);
 }
 
+/* Title and meta lines at the font's normal line height: a two-line row is
+   60px, as every Dq dashboard board draws it (r31: 69 at Nextcloud's 1.5).
+   @spec openspec/changes/board-dashboard-rows-normal-leading/specs/board-dashboard-rows-normal-leading/spec.md#requirement-a-board-dashboard-row-is-set-at-the-normal-line-height */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__meta {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__trailing {
