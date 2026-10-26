@@ -942,14 +942,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* A saved view's manage menu (DqFilterBeheren, DqFilterInMenu "Beheer
-   <view>"): 264px wide, rows of at least 40px, 6px 10px in, 8px rounded,
+   <view>"): 278px wide outside (the board's 264px of content, 6px in and a
+   1px line), rows of at least 40px, 6px 10px in, 8px rounded,
    the icon 12px before a 14px label at 600 with its explanation under it in
    12px muted text at 400; the separator in the soft line, and Delete in the
    error red. Its rows carry the panel's `cn-saved-views-` test ids.
    @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-a-saved-views-manage-menu-is-the-boards-menu */
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
 	box-sizing: border-box;
-	width: 264px;
+	width: 278px;
 	max-width: calc(100vw - 32px);
 }
 
@@ -3472,4 +3473,5 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
 	border-radius: 8px;
 	background: var(--cn-board-sunken-ground);
+	line-height: normal;
 }
