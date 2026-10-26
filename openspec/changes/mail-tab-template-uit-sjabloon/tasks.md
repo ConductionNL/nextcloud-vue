@@ -1,0 +1,2 @@
+- [x] l10n/nl.json
+- [x] tests/l10n/mailTabTemplateDutch.spec.js (red first)

@@ -1,0 +1,2 @@
+- [x] look-board.css banner actions
+- [x] spec
