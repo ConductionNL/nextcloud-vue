@@ -35,9 +35,19 @@ describe('look-board-detail.css: r31 side buttons and checklist boxes', () => {
 		expect(rule('.cn-look-board .cn-attention-flag:not(.cn-look-nextcloud *) .button-vue .button-vue__wrapper')).toContain('justify-content: flex-start;')
 	})
 
-	/** @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-board-checklist-box-is-18px-and-grey-while-open */
-	it('draws the checklist boxes at 18px, grey while open', () => {
-		expect(rule('.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg')).toContain('width: 18px;')
-		expect(rule('.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon')).toContain('color: var(--color-border-maxcontrast);')
+	/** @spec openspec/changes/board-r32-tiles-and-boxes/specs/board-r32-tiles-and-boxes/spec.md#requirement-a-board-checklist-box-is-drawn-as-the-native-checkbox */
+	it('draws the checklist boxes as the native checkbox: 18px, grey edge open, primary fill ticked', () => {
+		const icon = '.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon'
+		expect(rule(icon)).toContain('width: 18px;')
+		expect(rule(`${icon} svg`)).toContain('visibility: hidden;')
+		expect(rule(`${icon}::before`)).toContain('border: 1px solid var(--color-border-maxcontrast);')
+		expect(rule('.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::before')).toContain('background: var(--color-primary-element)')
+	})
+
+	/** @spec openspec/changes/board-r32-tiles-and-boxes/specs/board-r32-tiles-and-boxes/spec.md#requirement-a-main-contacts-initials-are-in-the-soft-ink */
+	it('writes a main contact\'s initials in the soft ink at 16px', () => {
+		const tile = rule('.cn-look-board .cn-object-parties__main-initials:not(.cn-look-nextcloud *)')
+		expect(tile).toContain('color: var(--cn-board-text-soft);')
+		expect(tile).toContain('font-size: 16px;')
 	})
 })
