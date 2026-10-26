@@ -2398,7 +2398,10 @@
     "Until {date}": "Until {date}",
     "More actions for {name}": "More actions for {name}",
     "Unlink contact": "Unlink contact",
-    "{term}, extendable by {extension}": "{term}, extendable by {extension}"
+    "{term}, extendable by {extension}": "{term}, extendable by {extension}",
+    "Invited": "Invited",
+    "Accepted": "Accepted",
+    "Declined": "Declined"
   },
   "plurals": {
     "{count} member": [
