@@ -2565,3 +2565,18 @@
 	font-size: 12px;
 	font-weight: 600;
 }
+
+/* A page card's field list (DqZaaktype "Varianten") draws its rows at the
+   font's normal line height, title and meta 2px apart, and its first row
+   10px in like the others. Option lists keep their framed rows. */
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row:first-child {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__main {
+	gap: 2px;
+}
