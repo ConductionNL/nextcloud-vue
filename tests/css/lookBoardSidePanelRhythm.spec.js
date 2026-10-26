@@ -54,6 +54,7 @@ describe('board side panel rhythm', () => {
 	it('draws a share row 56px tall, its rights select 36px, and the hint and caption at a normal line height', () => {
 		expect(body(board, '.cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *)')).toMatch(/min-height: 56px;/)
 		expect(body(board, '.cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *)')).toMatch(/--default-clickable-area: 36px;/)
+		expect(body(board, '.cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *)')).toMatch(/--cn-field-height: 36px;/)
 		expect(body(board, '.cn-look-board .cn-saved-view-share__caption:not(.cn-look-nextcloud *)')).toMatch(/line-height: normal;/)
 		expect(body(board, '.cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *)')).toMatch(/margin-bottom: 0;/)
 	})

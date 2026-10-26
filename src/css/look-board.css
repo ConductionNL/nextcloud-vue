@@ -3717,6 +3717,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    margin under it, so the list starts 60px under the field (DqFilterDelen). */
 .cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
 	--default-clickable-area: 36px;
+	--cn-field-height: 36px;
 }
 
 .cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
