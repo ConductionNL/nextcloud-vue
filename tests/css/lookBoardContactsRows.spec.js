@@ -50,4 +50,9 @@ describe('look-board-detail.css: contacts rows', () => {
 		expect(initials).toContain('font-size: 12px')
 		expect(initials).toContain('font-weight: 700')
 	})
+
+	it('sets the name and the details at line height 1.2 without a top inset, so a two-line row is 60px (r31: 71)', () => {
+		expect(rule(TAB + ' .cn-contacts-tab__details')).toContain('padding-top: 0')
+		expect(rule(TAB + ' .cn-contacts-tab__name,\n' + TAB + ' .cn-contacts-tab__meta')).toContain('line-height: 1.2')
+	})
 })

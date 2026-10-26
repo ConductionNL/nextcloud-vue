@@ -1990,6 +1990,18 @@
 	margin-bottom: 8px;
 }
 
+/* The name and the details line at line height 1.2 with no top inset, so a
+   two-line row is 60px high as drawn (r31: 71).
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__details {
+	padding-top: 0;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__name,
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__meta {
+	line-height: 1.2;
+}
+
 /* The board draws every party's initials on the same grey ground in the
    soft ink, 12px bold, where NcAvatar tints each one from a hash of the name
    (inline styles, hence the !important).
@@ -2095,9 +2107,10 @@
 	line-height: 1.2;
 }
 
-.cn-look-board .cn-object-parties .cn-object-parties__accepted-kind {
+.cn-look-board .cn-object-parties .cn-object-parties__accepted-kind.cn-status-badge:not(.cn-look-nextcloud *) {
 	padding: 2px 8px;
 	border: 1px solid var(--color-border-maxcontrast);
+	background-color: transparent;
 	border-radius: 12px;
 	font-size: 13px;
 	font-weight: 600;
