@@ -20,4 +20,13 @@ describe('CnNotificationMatrix board checkbox', () => {
 		expect(rule).toContain('display: block;')
 		expect(rule).toContain('margin: 1px auto 0;')
 	})
+
+	it('draws the checkbox as Nextcloud\'s checkbox icon, primary when checked', () => {
+		const at = sfc.indexOf(".cn-notification-matrix__table tbody td input[type='checkbox'] {")
+		const rule = sfc.slice(at, sfc.indexOf('}', at))
+		expect(rule).toContain('appearance: none;')
+		expect(rule).toMatch(/mask: url\("data:image\/svg\+xml/)
+		const checked = sfc.slice(sfc.indexOf(":checked {", at), sfc.indexOf('}', sfc.indexOf(':checked {', at)))
+		expect(checked).toContain('background-color: var(--color-primary-element);')
+	})
 })
