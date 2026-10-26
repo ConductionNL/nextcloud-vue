@@ -2669,7 +2669,9 @@
     "Eye": "Oog",
     "Euro": "Euro",
     "Ready": "Gereed",
-    "Map layers": "Kaartlagen"
+    "Map layers": "Kaartlagen",
+    "you": "jij",
+    "my team": "mijn team"
   },
   "plurals": {
     "{count} member": [
@@ -2895,6 +2897,14 @@
     "{names} has no location, so it is not on the map.": [
       "{names} heeft geen locatie, dus staat niet op de kaart.",
       "{names} hebben geen locatie, dus staan ze niet op de kaart."
+    ],
+    "in %n day": [
+      "over %n dag",
+      "over %n dagen"
+    ],
+    "%n day ago": [
+      "%n dag geleden",
+      "%n dagen geleden"
     ]
   }
 }

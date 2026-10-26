@@ -2414,7 +2414,9 @@
     "Eye": "Eye",
     "Euro": "Euro",
     "Ready": "Ready",
-    "Map layers": "Map layers"
+    "Map layers": "Map layers",
+    "you": "you",
+    "my team": "my team"
   },
   "plurals": {
     "{count} member": [
@@ -2623,6 +2625,14 @@
     "{names} has no location, so it is not on the map.": [
       "{names} has no location, so it is not on the map.",
       "{names} have no location, so they are not on the map."
+    ],
+    "in %n day": [
+      "in %n day",
+      "in %n days"
+    ],
+    "%n day ago": [
+      "%n day ago",
+      "%n days ago"
     ]
   }
 }
