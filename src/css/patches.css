@@ -34,14 +34,9 @@
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }
 
-/* In the board look the square is the boards' deeper orange: the white icon
-   on it is 3.52:1, where the brand orange #f36c21 is 3.01:1, and the
-   square's edge is 3.26:1 on the page ground, where the brand orange is
-   2.78:1.
+/* The board look keeps the app's own orange, #f36c21, as the boards do
+   (Ruben, 22 Oct 2026: the boards follow the app; design-system 4db25d04).
    @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange */
-.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
-	--cn-buildiq-color: #e2611a;
-}
 
 .cn-buildiq-edit__actions .button-vue__wrapper {
 	justify-content: center;
