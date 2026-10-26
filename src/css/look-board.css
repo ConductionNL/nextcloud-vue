@@ -1698,17 +1698,42 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	min-width: 0;
 }
 
+/* "Uitleg tonen" and "Geavanceerd" are text links on the boards: 25px high,
+   no padding, no rounding (r31 DqBeheerinstellingen: 40px tertiary buttons
+   with 14px padding). 25px stays above the 24px target size (WCAG 2.5.8).
+   @spec openspec/changes/board-settings-text-buttons/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue,
+.cn-look-board .cn-settings-fields__advanced:not(.cn-look-nextcloud *) > .button-vue {
+	--default-clickable-area: 25px;
+	--button-padding: 0px;
+	--button-padding-default: 0px;
+	--button-radius: 0px;
+	min-height: 25px;
+	height: 25px;
+	padding-inline: 0;
+	border-radius: 0;
+}
+
+/* A card's footer link ends the card 16px under its content, one 14px line,
+   as the boards draw "Koppelingen beheren in integriq" (r31
+   DqVthInstellingen: Activiteiten and Legesregels each 20px taller, the
+   section's 14px gap plus the link's own 16px margin and a 15px line).
+   @spec openspec/changes/board-settings-text-buttons/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-section__footer-link {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.2;
+	margin: 2px 0 0;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
 /* A settings card's first line sits where the boards draw it: an
    "Uitleg tonen" link, a switch or a note adds no height beyond its text, so
    the first text is 16px under the subtitle (DqBeheerinstellingen
    "Zaak-e-mail" and "AI-ondersteunde verwerking", DqBeheerGeavanceerd "KCC"
-   and "Storeregister": 7px and 29px lower live). The controls keep their full
+   and "Storeregister": 7px and 29px lower live). The switch keeps its full
    hit area; the negative margin only takes it out of the line.
    @spec openspec/changes/board-settings-first-line/specs/settings-board-look/spec.md */
-.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) {
-	margin-block: -8px;
-}
-
 .cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
 	margin-block: -8px;
 }

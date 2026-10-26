@@ -23,7 +23,9 @@ function body(selector) {
 
 describe('look-board.css: a settings card first line', () => {
 	it('takes the hints link and a switch out of the line height', () => {
-		expect(body('.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *)')).toContain('margin-block: -8px;')
+		const link = body('.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue,\n.cn-look-board .cn-settings-fields__advanced:not(.cn-look-nextcloud *) > .button-vue')
+		expect(link).toContain('height: 25px;')
+		expect(link).toContain('border-radius: 0;')
 		expect(body('.cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch')).toContain('margin-block: -8px;')
 	})
 
@@ -35,5 +37,10 @@ describe('look-board.css: a settings card first line', () => {
 		const text = body('.cn-look-board .cn-settings-section__description-text:not(.cn-look-nextcloud *)')
 		expect(text).toContain('--nldesign-component-paragraph-font-size: 14px;')
 		expect(text).toContain('margin: 0;')
+	})
+	it('ends a card with its footer link 16px under the content', () => {
+		const link = body('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-section__footer-link')
+		expect(link).toContain('margin: 2px 0 0;')
+		expect(link).toContain('line-height: 1.2;')
 	})
 })
