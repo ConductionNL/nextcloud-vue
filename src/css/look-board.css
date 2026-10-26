@@ -3547,7 +3547,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	width: 18px;
 	height: 18px;
 	border-radius: 9px;
-	background: #fff;
+	background: var(--color-primary-element-text);
 	content: '';
 }
 
