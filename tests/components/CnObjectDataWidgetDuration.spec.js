@@ -51,6 +51,15 @@ describe('format duration', () => {
 		expect(w.vm.displayValues.receivedAt).not.toContain('09:12')
 	})
 
+	it('leaves a schema format alone without the override', () => {
+		const w = shallowMount(CnObjectDataWidget, {
+			propsData: { schema: { properties: { startDate: { type: 'string', format: 'date' } } }, objectData: { startDate: '2026-10-03' } },
+			mocks: { t: (app, s) => s },
+		})
+		expect(w.vm.displayValues.startDate).toContain('2026')
+		expect(w.vm.displayValues.startDate).toMatch(/\d{1,2}\D\d{1,2}\D2026|2026\D\d{2}\D\d{2}/)
+	})
+
 	it('reads the term in words in a facts row', () => {
 		const w = mount(CnFactsWidget, {
 			props: {

@@ -1107,17 +1107,19 @@ export default {
 				// label, beside a list that already read "Ingediend".
 				const enumLabel = this.enumDisplayLabel(field, raw)
 				const empty = this.emptyValueFor(field, raw)
-				if (empty === null && (field.format === 'date' || field.format === 'date-long') && raw !== null && raw !== undefined && raw !== '') {
+				// Only a format the page's override asks for: a schema `format` keeps its own rendering.
+				const shown = this.resolvedOverrides[field.key]?.format
+				if (empty === null && (shown === 'date' || shown === 'date-long') && raw !== null && raw !== undefined && raw !== '') {
 					// The board's short date ("3 okt"), or with the year always ("3 okt 2026").
 					const date = parseDateValue(raw)
 					if (date !== null) {
-						values[field.key] = field.format === 'date-long'
+						values[field.key] = shown === 'date-long'
 							? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 							: formatBoardDate(date)
 						continue
 					}
 				}
-				if (empty === null && field.format === 'duration' && raw !== null && raw !== undefined && raw !== '') {
+				if (empty === null && shown === 'duration' && raw !== null && raw !== undefined && raw !== '') {
 					// A term in words, with the extension at `extendBy` when the object holds one.
 					const extension = typeof field.extendBy === 'string' ? readPath(this.objectData || {}, field.extendBy) : null
 					values[field.key] = formatTermDuration(raw, extension)
