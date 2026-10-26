@@ -248,6 +248,7 @@ import {
 	indicatorVerdict,
 	kindCode,
 	newPartyRecord,
+	partyKindAccepted,
 	representedByMap,
 	roleLabel,
 	rolesInOrder,
@@ -892,7 +893,7 @@ export default {
 			if (!party?.partyKind || !this.kinds || (enforce && this.kinds.source !== enforce)) {
 				return false
 			}
-			return !this.kinds.kinds.some((kind) => kindCode(kind) === party.partyKind)
+			return !partyKindAccepted(party.partyKind, this.kinds.kinds, this.listing?.kinds)
 		},
 
 		/**
