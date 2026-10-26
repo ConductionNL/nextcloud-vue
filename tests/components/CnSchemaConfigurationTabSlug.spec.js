@@ -67,11 +67,13 @@ function suffixSwitch(wrapper) {
 }
 
 describe('CnSchemaConfigurationTab — object slug controls', () => {
-	it('offers the schema properties as the slug field', () => {
+	it('offers the schema name source first, then the schema properties, as the slug field', () => {
 		const select = slugSelect(mountTab())
 
 		expect(select).toBeDefined()
-		expect(select.vm.$attrs.options).toEqual(['title', 'kenmerk'])
+		expect(select.vm.$attrs.options.map((option) => option.id)).toEqual(['@schema.name', 'title', 'kenmerk'])
+		expect(select.vm.$attrs.options[0].label).toBe('Schema name + object name')
+		expect(select.vm.$attrs.reduce({ id: '@schema.name', label: 'x' })).toBe('@schema.name')
 	})
 
 	it('disables the suffix switch while no slug field is chosen', () => {
@@ -94,6 +96,14 @@ describe('CnSchemaConfigurationTab — object slug controls', () => {
 
 		expect(notes(mountTab({ objectSlugField: '' }))).toHaveLength(0)
 		expect(notes(mountTab({ objectSlugField: 'kenmerk' }))).toHaveLength(1)
+	})
+
+	it('writes the schema name source back as its id', async () => {
+		const wrapper = mountTab()
+
+		await slugSelect(wrapper).vm.$emit('update:modelValue', '@schema.name')
+
+		expect(wrapper.props('schemaItem').configuration.objectSlugField).toBe('@schema.name')
 	})
 
 	it('writes the picked property back to the configuration', async () => {

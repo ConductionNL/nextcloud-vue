@@ -630,6 +630,7 @@
     "Object summary field": "Objectsamenvattingsveld",
     "Object slug field": "Objectslugveld",
     "Select a property to build object slugs from": "Selecteer een eigenschap waaruit objectslugs worden opgebouwd",
+    "Schema name + object name": "Schemanaam + objectnaam",
     "Append a date-time suffix when a slug is already taken": "Een datum-tijd-achtervoegsel toevoegen als een slug al in gebruik is",
     "A slug is unique within the register and schema and does not change once it is set, also not after the slug field is switched. Objects without a slug get one from the new field on their next save or with occ openregister:backfill-slugs <register> <schema>.": "Een slug is uniek binnen het register en schema en verandert niet meer zodra hij is gezet, ook niet na het wisselen van het slugveld. Objecten zonder slug krijgen er een uit het nieuwe veld bij hun volgende opslag of met occ openregister:backfill-slugs <register> <schema>.",
     "Objects": "Objecten",

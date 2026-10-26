@@ -126,7 +126,9 @@
 		<NcSelect
 			v-model="schema.configuration.objectSlugField"
 			:disabled="loading"
-			:options="propertyOptions"
+			:options="slugFieldOptions"
+			:reduce="option => option.id"
+			label="label"
 			:clearable="true"
 			:inputLabel="t('nextcloud-vue', 'Object slug field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to build object slugs from')" />
@@ -232,6 +234,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The choices for the object slug field: every schema property, and first the
+		 * reserved source `@schema.name` that OpenRegister turns into
+		 * `<schema slug>-<object name>` (the second choice Robert Zondervan asked for
+		 * next to a property, 2026-10-26). Stored as the id, shown by its label.
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		slugFieldOptions() {
+			return [
+				{ id: '@schema.name', label: t('nextcloud-vue', 'Schema name + object name') },
+				...this.propertyOptions.map((property) => ({ id: property, label: property })),
+			]
+		},
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem

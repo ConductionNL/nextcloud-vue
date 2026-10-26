@@ -608,6 +608,7 @@
     "Object summary field": "Object summary field",
     "Object slug field": "Object slug field",
     "Select a property to build object slugs from": "Select a property to build object slugs from",
+    "Schema name + object name": "Schema name + object name",
     "Append a date-time suffix when a slug is already taken": "Append a date-time suffix when a slug is already taken",
     "A slug is unique within the register and schema and does not change once it is set, also not after the slug field is switched. Objects without a slug get one from the new field on their next save or with occ openregister:backfill-slugs <register> <schema>.": "A slug is unique within the register and schema and does not change once it is set, also not after the slug field is switched. Objects without a slug get one from the new field on their next save or with occ openregister:backfill-slugs <register> <schema>.",
     "Objects": "Objects",
