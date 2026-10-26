@@ -727,6 +727,7 @@ export default {
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -1002,6 +1003,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	line-height: normal;
 }
 
 .cn-features-board__row-title {
