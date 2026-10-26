@@ -15,4 +15,7 @@ Two index list differences that every dossiq list board shows (r31 audit):
 2. A row's action buttons ("Aan zaak koppelen", "Nieuwe zaak" on DqPostvak)
    are 34px on the board; live drew NcButton's small 24px button.
 
+3. The header's count line ran at a 1.5 line height with nothing under it
+   (72.5px headers against the boards' 76 on 20 list boards).
+
 CSS in the board look only. The Nextcloud look is unchanged.

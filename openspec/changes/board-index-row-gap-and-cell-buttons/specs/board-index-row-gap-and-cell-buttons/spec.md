@@ -16,8 +16,9 @@ dossiq list boards.
 ### Requirement: The board index bar and row buttons match the boards
 
 In the board look the actions bar SHALL put 20px between its rows and 8px
-between the items in a row, and an action button in a table cell SHALL be
-34px tall. The Nextcloud look SHALL be unchanged.
+between the items in a row, an action button in a table cell SHALL be
+34px tall, and the header's count line SHALL run at a normal line height
+with 8px under it. The Nextcloud look SHALL be unchanged.
 
 #### Scenario: Search row under the views row
 

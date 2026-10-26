@@ -36,10 +36,15 @@
 	line-height: 1.2;
 }
 
+/* The count line runs at a normal line height with the header's 8px under
+   it, as every Dq list board draws the header (76px; live 72.5).
+   @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md */
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__description {
 	grid-column: 1;
 	grid-row: 2;
+	padding-bottom: 8px;
 	font-size: 15px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
