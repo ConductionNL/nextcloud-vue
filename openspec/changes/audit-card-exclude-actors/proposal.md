@@ -20,6 +20,10 @@ The audit card and widget take `excludeActors`, a list of user ids left out case
 `content.excludeActors`. As with `excludeActions`, the card then reads more rows than it shows, so the rows it leaves out
 do not crowd the others away.
 
+An action label's `{changed.<key>}` also reads a dotted key (`{changed.data.fileName}`). OpenRegister records a file's name
+under `data` on its `file.downloaded` row (openregister feat/file-download-audit-names-the-file), so a history can say
+"Inzage medisch verslag".
+
 ## Scope
 
 `src/components/CnAuditTrailCard/CnAuditTrailCard.vue`, `src/components/CnAuditTrailWidget/CnAuditTrailWidget.vue`.

@@ -207,7 +207,8 @@ export default {
 		/**
 		 * What happened, in words, by action (`claim`) or by action and the
 		 * state it led to (`complete:completed`, tried first). `{actor}`,
-		 * `{state}` and `{changed.<key>}` (a value the entry recorded, in the
+		 * `{state}` and `{changed.<key>}` (a value the entry recorded, a dotted key
+		 * reading into it such as `{changed.data.fileName}`, in the
 		 * words of `valueLabels`) are filled in; a label that names the actor leaves it off
 		 * the line under it. An action without a label shows as written.
 		 *
@@ -438,7 +439,7 @@ export default {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
-					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
+					.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => this.changedValue(entry, key))
 					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
 						const value = this.object ? readPath(this.object, path) : undefined
 						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
@@ -459,7 +460,8 @@ export default {
 		 */
 		changedValue(entry, key) {
 			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			const value = newValueOf(changed[key])
+			// A dotted key reads into what the entry recorded (`data.fileName` on a file action).
+			const value = String(key).split('.').reduce((at, part) => newValueOf(at !== null && typeof at === 'object' ? at[part] : undefined), changed)
 			if (value === null || value === undefined || typeof value === 'object') {
 				return ''
 			}

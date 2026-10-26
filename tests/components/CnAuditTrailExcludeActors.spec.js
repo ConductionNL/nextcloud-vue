@@ -47,3 +47,20 @@ describe('audit trail excludeActors', () => {
 		expect(wrapper.findComponent({ name: 'CnAuditTrailCard' }).props('excludeActors')).toEqual(['System'])
 	})
 })
+
+describe('audit trail label from a nested recorded value', () => {
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	/** @spec openspec/changes/audit-card-exclude-actors/specs/audit-trail/spec.md#requirement-a-label-can-quote-a-nested-recorded-value */
+	it('fills {changed.data.fileName} from a file action', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: [
+			{ id: '1', action: 'file.downloaded', user: 'fatma', userName: 'Fatma Kaya', changed: { fileId: 7, data: { fileId: 7, fileName: 'Medisch verslag.pdf' } }, creationDateTime: '2026-10-06T10:00:00Z' },
+		] }) })
+		const wrapper = mount(CnAuditTrailCard, { propsData: { register: 'r', schema: 'case', objectId: 'c-1', maxDisplay: 3, actionLabels: { 'file.downloaded': 'Viewed {changed.data.fileName}' } } })
+		await flushPromises()
+		expect(wrapper.find('.cn-audit-card__action').text()).toBe('Viewed Medisch verslag.pdf')
+		wrapper.unmount()
+	})
+})
