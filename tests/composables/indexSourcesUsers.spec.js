@@ -74,6 +74,20 @@ describe('users index source', () => {
 		expect(source.searchFields.group).toEqual({ param: 'group', single: true })
 	})
 
+	/**
+	 * @spec openspec/changes/users-presence-message-tone/specs/index-page/spec.md
+	 */
+	it('tones a status message as information and an absence as a warning, as the board does', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen' })
+		const today = source.columns.find((column) => column.key === 'today')
+		const absent = source.rows().find((row) => row.displayname === 'Sanne Bakker').today
+		expect(today.widgetProps.variant).toBe('info')
+		expect(today.widgetProps.colorMap.Buiten).toBeUndefined()
+		expect(today.widgetProps.colorMap[absent]).toBe('warning')
+		expect(today.widgetProps.colorMap.Present).toBe('success')
+	})
+
 	it('lists every user the reader may see on All, before a group is picked', async () => {
 		const source = resolveIndexSource('users')
 		await source.load({})

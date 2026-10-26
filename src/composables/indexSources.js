@@ -1581,6 +1581,9 @@ function usersSource() {
 						today = until
 							? t('nextcloud-vue', 'Absent until {date}', { date: until.toLocaleDateString(getCanonicalLocale() || undefined, { day: 'numeric', month: 'short' }) })
 							: t('nextcloud-vue', 'Absent')
+						// An absence reads as a warning; any other line (a status
+						// message such as "Buiten") as information, as the boards draw it.
+						presenceColors[today] = 'warning'
 					} else if (presence.message) {
 						today = presence.message
 					} else if (presenceLabels[presence.state]) {
@@ -1648,7 +1651,7 @@ function usersSource() {
 			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function', sortable: true, cellClass: 'cn-cell--lead' },
 			{ key: 'roles', label: t('nextcloud-vue', 'Roles'), sortable: true },
 			{ key: 'email', label: t('nextcloud-vue', 'E-mail'), sortable: true },
-			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'warning' }, sortable: true },
+			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'info' }, sortable: true },
 		],
 
 		searchFields: {

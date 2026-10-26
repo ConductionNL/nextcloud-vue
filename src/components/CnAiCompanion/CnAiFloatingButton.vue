@@ -25,7 +25,7 @@
 		:class="[
 			`cn-ai-floating-button--${position}`,
 		]"
-		:aria-label="cnTranslate('Open AI chat')"
+		:aria-label="label"
 		type="button"
 		data-testid="cn-ai-fab"
 		@click="$emit('click')">
@@ -40,7 +40,7 @@
 
 <script>
 import Creation from 'vue-material-design-icons/Creation.vue'
-import { libraryTranslate } from '../../utils/libraryTranslate.js'
+import { libraryTranslate, translateLibraryString } from '../../utils/libraryTranslate.js'
 
 export default {
 	name: 'CnAiFloatingButton',
@@ -76,6 +76,18 @@ export default {
 	},
 
 	emits: ['click'],
+
+	computed: {
+		/**
+		 * The button's name: the app's translation, else the library's.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/library-string-host-fallback/specs/i18n/spec.md
+		 */
+		label() {
+			return translateLibraryString(this.cnTranslate, 'Open AI chat')
+		},
+	},
 }
 </script>
 

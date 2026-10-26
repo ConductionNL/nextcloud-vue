@@ -152,6 +152,7 @@ fields: [
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `saveVariant` | String | `'primary'` | The Save button's variant: `primary`, or `secondary` for a card whose Save is one choice among others, as a board draws it (DqBeheerinstellingen "Dit account gebruiken"). |
 | `name` | String | required | The section title. |
 | `description` | String | `''` | The line under the title. |
 | `detailedDescription` | String | `''` | A longer explanation in its own block under the title. |

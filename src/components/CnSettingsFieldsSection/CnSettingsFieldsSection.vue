@@ -48,9 +48,9 @@
 				</div>
 				<div class="cn-settings-fields__inline-save">
 					<NcButton
-						variant="primary"
+						:variant="saveVariant"
 						type="submit"
-						:disabled="saving || !dirty"
+						:disabled="saveDisabled"
 						data-testid="cn-settings-fields-save">
 						<template v-if="saving" #icon>
 							<NcLoadingIcon :size="20" />
@@ -122,9 +122,9 @@
 					{{ t('nextcloud-vue', 'Unsaved changes') }}
 				</span>
 				<NcButton
-					variant="primary"
+					:variant="saveVariant"
 					type="submit"
-					:disabled="saving || !dirty"
+					:disabled="saveDisabled"
 					data-testid="cn-settings-fields-save">
 					<template v-if="saving" #icon>
 						<NcLoadingIcon :size="20" />
@@ -143,6 +143,7 @@ import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
@@ -394,9 +395,21 @@ export default {
 	inject: {
 		/** The app's translate function; identity outside CnAppRoot. */
 		cnTranslate: { default: () => (key) => key },
+		/** The look the page is drawn in (a string or a ref). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
+		/**
+		 * The Save button's variant: `primary`, or `secondary` for a card
+		 * whose Save is one choice among others, as a board draws it
+		 * (DqBeheerinstellingen "Dit account gebruiken").
+		 */
+		saveVariant: {
+			type: String,
+			default: 'primary',
+		},
+
 		/** The section title. */
 		name: {
 			type: String,
@@ -627,6 +640,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether Save is unavailable: while saving, and, in the Nextcloud
+		 * look, while nothing changed. The boards draw a settings card's Save
+		 * ready to press (r31: every board settings card's "Opslaan" read
+		 * grey on live); pressing it with nothing changed sends nothing.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/board-settings-save-ready/specs/settings-board-look/spec.md
+		 */
+		saveDisabled() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return this.saving || (!this.dirty && normalizeLook(look) !== 'board')
+		},
+
 		/** @return {number} The column count, 1 to 4. */
 		columnCount() {
 			return [1, 2, 3, 4].includes(this.columns) ? this.columns : 1

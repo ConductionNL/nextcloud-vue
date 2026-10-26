@@ -2657,7 +2657,18 @@
     "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen",
     "Invited": "Uitgenodigd",
     "Accepted": "Geaccepteerd",
-    "Declined": "Afgewezen"
+    "Declined": "Afgewezen",
+    "Clock": "Klok",
+    "Clock with warning": "Klok met waarschuwing",
+    "Calendar with clock": "Agenda met klok",
+    "Attention": "Let op",
+    "Label": "Label",
+    "Bell": "Bel",
+    "Scales": "Weegschaal",
+    "Briefcase": "Koffer",
+    "Eye": "Oog",
+    "Euro": "Euro",
+    "Ready": "Gereed"
   },
   "plurals": {
     "{count} member": [

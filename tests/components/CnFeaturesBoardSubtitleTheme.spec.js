@@ -35,4 +35,9 @@ describe('CnFeaturesBoard subtitle under a theme', () => {
 		expect(body).toMatch(/--nldesign-component-paragraph-font-size:\s*14px/)
 		expect(body).toMatch(/--nldesign-component-paragraph-color:\s*var\(--color-text-maxcontrast\)/)
 	})
+
+	it('sets the meta line and the feature rows at the font\'s normal line height, as the board', () => {
+		expect(rule('.cn-features-board__subtitle')).toMatch(/line-height:\s*normal/)
+		expect(rule('.cn-features-board__row-text')).toMatch(/line-height:\s*normal/)
+	})
 })
