@@ -2671,7 +2671,8 @@
     "Ready": "Gereed",
     "Map layers": "Kaartlagen",
     "you": "jij",
-    "my team": "mijn team"
+    "my team": "mijn team",
+    "Subject: {subject}": "Onderwerp: {subject}"
   },
   "plurals": {
     "{count} member": [
@@ -2905,6 +2906,10 @@
     "%n day ago": [
       "%n dag geleden",
       "%n dagen geleden"
+    ],
+    "%n attachment": [
+      "%n bijlage",
+      "%n bijlagen"
     ]
   }
 }

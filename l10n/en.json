@@ -2416,7 +2416,8 @@
     "Ready": "Ready",
     "Map layers": "Map layers",
     "you": "you",
-    "my team": "my team"
+    "my team": "my team",
+    "Subject: {subject}": "Subject: {subject}"
   },
   "plurals": {
     "{count} member": [
@@ -2633,6 +2634,10 @@
     "%n day ago": [
       "%n day ago",
       "%n days ago"
+    ],
+    "%n attachment": [
+      "%n attachment",
+      "%n attachments"
     ]
   }
 }
