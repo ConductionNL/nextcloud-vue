@@ -5467,6 +5467,23 @@ export default {
 	margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
 }
 
+/* Board look, a grid right under the header (DqCatalogus): GridStack's top
+   margin set the first card 12px below the header's 20px; the grid reaches
+   up by that margin too, so the card stands 20px under the header. */
+.cn-dashboard-page--board .cn-dashboard-page__header + :deep(.cn-dashboard-grid) {
+	margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
+}
+
+/* A header with a breadcrumb trail ends 8px under it, as the boards pad
+   their header (DqCatalogus: 167). */
+.cn-dashboard-page--board .cn-dashboard-page__header:has(.cn-header-trail) {
+	padding-bottom: 8px;
+}
+
+.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail) {
+	margin-bottom: 0;
+}
+
 .cn-dashboard-page__kpi-cell {
 	display: flex;
 	min-width: 0;
