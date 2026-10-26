@@ -3408,9 +3408,14 @@ export default {
 	font-weight: 600;
 	height: 34px;
 	justify-content: center;
-	margin: 0;
 	padding: 0 14px;
 	text-decoration: none;
+}
+
+/* server.css gives every button `margin: 3px 3px 3px 0` at (0,2,1); the
+   doubled class outranks it. */
+.cn-record-list__action.cn-record-list__action {
+	margin: 0;
 }
 
 .cn-record-list__action:hover,
