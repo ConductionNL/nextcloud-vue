@@ -2618,3 +2618,25 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-grouped-cards > .cn-grouped-cards__actions:first-child) {
 	padding-top: 10px;
 }
+
+/* A page card's field list (DqZaaktype "Varianten") draws its rows at the
+   font's normal line height, title and meta 2px apart, and its first row
+   10px in like the others. Option lists keep their framed rows. */
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__row:first-child {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__main {
+	gap: 2px;
+}
+
+/* An option in a choice list (DqZaaktypeVelden Keuzelijst) is plain 14px
+   text beside its code, not a 600 title. */
+.cn-look-board .cn-field-list-widget__rows--options:not(.cn-look-nextcloud *) .cn-field-list-widget__title {
+	font-size: 14px;
+	font-weight: 400;
+}
