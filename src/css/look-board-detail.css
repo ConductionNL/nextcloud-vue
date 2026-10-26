@@ -841,6 +841,15 @@
 	font-weight: 500;
 }
 
+/* The files table's checkbox column is the board's 42px (12px either side
+   of the 18px box): DqZaakDocumenten and DqDocumentenBeheer both draw it so.
+   The component's 36px pushed the file icon and name 6px left (r31: name 96
+   vs 100; probed with the rule: icon 54 as drawn, name 102).
+   @spec openspec/changes/board-files-select-column-42/specs/board-files-select-column-42/spec.md#requirement-the-files-tables-checkbox-column-is-42px */
+.cn-look-board .cn-files-browser__col-select:not(.cn-look-nextcloud *) {
+	width: 42px;
+}
+
 /* A labelled select in a page card is the board's field, as in a board
    dialog (dialog.css): its label above the control at 14px/600 on the normal
    line (the theme's label weight token set to 600 here), the control 40px,
