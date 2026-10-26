@@ -41,4 +41,10 @@ describe('CnChecklistRunWidget type', () => {
 		expect(rule('.cn-checklist-run__help')).toContain('font-size: 14px')
 		expect(rule('.cn-checklist-run__group')).toContain('font-size: 14px')
 	})
+
+	it('sets the help on a 1.2 line and an option as tall as its radio', () => {
+		expect(rule('.cn-checklist-run__help')).toContain('line-height: 1.2')
+		expect(rule('.cn-checklist-run__choice')).toContain('min-height: 24px')
+		expect(rule('.cn-checklist-run__choice input')).toContain('margin: 3px 3px 0 5px')
+	})
 })

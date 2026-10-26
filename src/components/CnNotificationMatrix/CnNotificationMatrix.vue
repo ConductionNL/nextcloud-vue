@@ -331,6 +331,23 @@ import {
  * @event {object} digest-change — A channel's digest was set. Payload: `{ channelId, mode, timeOfDay }`.
  * @event {object} test-send — A test was asked for. Payload: `{ channelId }`.
  */
+/**
+ * An event's shipped default in one channel: one boolean for every channel,
+ * or the channel's own entry when the default differs per channel.
+ *
+ * @param {object} event The event.
+ * @param {object} channel The channel.
+ * @return {boolean} The default.
+ * @spec openspec/changes/notification-matrix-default-per-channel/specs/notification-matrix/spec.md
+ */
+function appDefaultFor(event, channel) {
+	const value = event?.appDefault
+	if (value !== null && typeof value === 'object') {
+		return value[channel?.id] === true
+	}
+	return value === true
+}
+
 export default {
 	name: 'CnNotificationMatrix',
 
@@ -342,7 +359,9 @@ export default {
 	props: {
 		/**
 		 * The events, each `{ id, label, group, groupLabel, immediate,
-		 * appDefault }`. From the host's catalogue.
+		 * appDefault }`. From the host's catalogue. `appDefault` is one
+		 * boolean for every channel, or `{ [channelId]: boolean }` when the
+		 * default differs per channel (an opt-in e-mail is off by default).
 		 */
 		events: {
 			type: Array,
@@ -607,7 +626,7 @@ export default {
 			})
 
 			return resolvePreference({
-				appDefault: event?.appDefault === true,
+				appDefault: appDefaultFor(event, channel),
 				groupValue: this.at(this.groupValues, event, channel),
 				personalValue: narrow.value === null
 					? this.at(this.personalValues, event, channel)

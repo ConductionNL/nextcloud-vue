@@ -1566,10 +1566,15 @@ export default {
 
 .cn-tabs-widget__panel-heading-text {
 	display: flex;
-	flex: 1 1 260px;
 	flex-direction: column;
 	gap: 4px;
 	min-width: 0;
+}
+
+/* The 260px basis is a width in the actions row; in the column heading it
+   would be a height. */
+.cn-tabs-widget__panel-heading--actions > .cn-tabs-widget__panel-heading-text {
+	flex: 1 1 260px;
 }
 
 .cn-tabs-widget__panel-actions {

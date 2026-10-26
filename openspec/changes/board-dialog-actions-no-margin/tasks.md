@@ -1,0 +1,1 @@
+- [x] 1.1 board dialog CSS (tests/css/dialogBoardActionsNoMargin.spec.js)

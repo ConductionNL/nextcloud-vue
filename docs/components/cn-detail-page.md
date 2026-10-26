@@ -21,6 +21,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
 | `cardButtons` | String | `'compact'` | How tall the labelled buttons in the page's card title rows stand in the board look: `compact` (34px, setting and case-type pages) or `regular` (the 40px control height, as the case page's tab cards draw them, DqZaakContact "Live gesprek"). Manifest `config.cardButtons`. |
+| `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). True keeps every widget on its authored row; false packs widgets upward, so a size-to-content widget ends at its content and the one below closes up (DqHandhaving: the violation card sits 20px under the matrix). |
 | `description` | String | `''` | Optional subtitle shown below the title |
 | `icon` | String | `''` | MDI icon name (rendered via CnIcon) |
 | `iconSize` | Number | `28` | Icon size in pixels |

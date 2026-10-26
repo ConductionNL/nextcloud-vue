@@ -128,6 +128,7 @@
 						</p>
 						<NcButton
 							v-if="canReply"
+							class="cn-notes-card__reply-btn"
 							variant="tertiary"
 							size="small"
 							:aria-label="replyAria(row.note)"
@@ -915,7 +916,10 @@ export default {
 	padding-right: 32px;
 }
 
-.cn-notes-card__delete-btn {
+/* The note's own class leads so the position outranks NcButton's
+   `position: relative`, which loads later at the same weight and put the
+   button in the flow under the note. */
+.cn-notes-card__note > .cn-notes-card__delete-btn {
 	position: absolute;
 	top: 8px;
 	right: -4px;
@@ -923,7 +927,8 @@ export default {
 	transition: opacity 0.15s ease;
 }
 
-.cn-notes-card__note:hover .cn-notes-card__delete-btn {
+.cn-notes-card__note:hover > .cn-notes-card__delete-btn,
+.cn-notes-card__note:focus-within > .cn-notes-card__delete-btn {
 	opacity: 1;
 }
 

@@ -33,8 +33,8 @@ function bodyOf(selector) {
 const DATA = '.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *)'
 
 describe('look-board-detail.css: a data card\'s body', () => {
-	it('starts 14px below the title, less the first line\'s leading', () => {
-		expect(bodyOf(DATA)).toContain('padding-top: calc(14px - var(--cn-board-first-line-leading));')
+	it('starts 14px below the title; the first label carries no leading (r30: 11.8 vs 14 on DqZaak, DqContact, DqOrganisatie)', () => {
+		expect(bodyOf(DATA)).toContain('padding-top: 14px;')
 	})
 
 	it('leaves the other body cards at 12px', () => {

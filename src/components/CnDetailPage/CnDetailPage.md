@@ -181,6 +181,7 @@ export default {
 |------|------|---------|-------------|
 | `icon` | String | `''` | Optional MDI icon name rendered in the header via `CnIcon` |
 | `iconSize` | Number | `28` | Icon size in pixels |
+| `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). False packs widgets upward, so a size-to-content widget ends at its content (DqHandhaving). |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
 | `band` | Array | `[]` | A row of widgets across the whole page, above the body and the side column (manifest `config.band`). Each entry is a widget id from `widgets`, a widget definition, or `{ widgetId, span, chrome }`: `span` is the entry's share of the row in twelfths (default 12), and `chrome` is `card` or `bare` (a banner defaults to bare). Each entry follows its `visibleWhen`. |
 | `recordLastChange` | Boolean | `false` | Read who changed the record last (as `headerMetaLastChange` does) for the widgets on the page: a facts card reads it as `_lastChange.userName` / `_lastChange.created` (DqContact "Historie"). |

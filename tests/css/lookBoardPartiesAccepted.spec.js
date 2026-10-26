@@ -43,4 +43,10 @@ describe('look-board-detail.css: the accepted kinds strip', () => {
 		expect(body).toContain('border: 1px solid var(--color-border-maxcontrast)')
 		expect(body).toContain('font-size: 13px')
 	})
+
+	it('sets the source line 13px at line height 1.2 (r30: 15px at 22.5, the strip 66 vs 58)', () => {
+		const body = rule(P + ' .cn-object-parties__accepted .cn-object-parties__muted')
+		expect(body).toContain('font-size: 13px')
+		expect(body).toContain('line-height: 1.2')
+	})
 })

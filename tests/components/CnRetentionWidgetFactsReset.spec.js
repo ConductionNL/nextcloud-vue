@@ -35,6 +35,11 @@ describe('CnRetentionWidget facts and sections', () => {
 		expect(rule(sfc, '\n\n.cn-retention__fact dd')).toContain('padding: 0')
 	})
 
+	it('starts the facts right under the head, without the server\'s dl padding', () => {
+		expect(rule(sfc, '.cn-retention__facts')).toContain('padding: 0')
+		expect(rule(sfc, '\n\n.cn-retention__fact dt')).toContain('line-height: 1.2')
+	})
+
 	it('sets the board\'s section titles at 15px/600', () => {
 		const heading = rule(detail, '.cn-look-board .cn-retention .cn-retention__section > .cn-inner-heading,\n.cn-look-board .cn-retention .cn-retention__outcome > .cn-inner-heading')
 		expect(heading).toContain('font-size: 15px')

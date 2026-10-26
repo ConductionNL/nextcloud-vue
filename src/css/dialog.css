@@ -277,6 +277,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	border-top: 1px solid var(--color-border);
 }
 
+/* NcDialog's scoped `.dialog__actions[data-v-…]` margin (6px 0 12px) has the
+   rule above's specificity and, loaded later, put the footer 6px low under the
+   body (DqVolgendeStap). This one outranks it. */
+.cn-dialog-board .dialog .dialog__actions {
+	margin: 0;
+}
+
 .cn-dialog-board .dialog__actions .button-vue,
 .cn-dialog-board .dialog__actions button {
 	min-height: var(--cn-board-control-height, 40px);
