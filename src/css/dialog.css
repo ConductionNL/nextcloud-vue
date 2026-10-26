@@ -265,8 +265,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-bottom: 4px;
 }
 
-/* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
-.cn-dialog-board .dialog__actions {
+/* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap,
+   flush with the dialog's bottom. NcDialog's own footer rule (6px 0 12px
+   margin, 12px end padding) ties a two-class selector and wins when its
+   stylesheet loads later, so `.dialog` is added to outrank it. */
+.cn-dialog-board .dialog .dialog__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;

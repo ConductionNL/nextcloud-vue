@@ -17,17 +17,23 @@
 			<legend class="cn-access-purpose__legend">
 				{{ t('nextcloud-vue', 'Purpose') }}
 			</legend>
-			<NcCheckboxRadioSwitch
-				v-for="option in choices"
-				:key="option.value"
-				v-model="purpose"
-				type="radio"
-				name="cn-access-purpose"
-				:value="option.value"
-				:disabled="loading"
-				:data-testid="`cn-access-purpose-option-${option.value}`">
-				{{ option.label }}
-			</NcCheckboxRadioSwitch>
+			<template v-for="option in choices" :key="option.value">
+				<NcCheckboxRadioSwitch
+					v-model="purpose"
+					type="radio"
+					name="cn-access-purpose"
+					:value="option.value"
+					:disabled="loading"
+					:data-testid="`cn-access-purpose-option-${option.value}`">
+					{{ option.label }}
+				</NcCheckboxRadioSwitch>
+				<!-- What choosing this purpose does besides recording it ("you become this case's handler"). -->
+				<p v-if="option.hint"
+					class="cn-access-purpose__hint"
+					:data-testid="`cn-access-purpose-hint-${option.value}`">
+					{{ option.hint }}
+				</p>
+			</template>
 		</fieldset>
 		<NcTextArea
 			v-if="purpose === OTHER"
@@ -94,8 +100,10 @@ export default {
 
 		/**
 		 * The purposes offered, already translated. "Other" is added at the end.
+		 * A `hint` is a line under the option that says what choosing it does
+		 * besides recording it.
 		 *
-		 * @type {Array<{value: string, label: string}>}
+		 * @type {Array<{value: string, label: string, hint?: string}>}
 		 */
 		options: {
 			type: Array,
@@ -174,6 +182,13 @@ export default {
 	margin: 0 0 12px;
 	padding: 0;
 	border: 0;
+}
+
+.cn-access-purpose__hint {
+	margin: 0 0 6px;
+	padding-inline-start: 36px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-access-purpose__legend {

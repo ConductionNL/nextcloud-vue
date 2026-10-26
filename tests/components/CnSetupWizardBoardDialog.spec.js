@@ -2,8 +2,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The setup wizard in the board look (board DqInstellen): 20px between the
- * stepper and the step, and no second heading over a choice whose title is
+ * The setup wizard in the board look (board DqInstellen): 16px between the
+ * stepper and the step, a done step as tall as its 28px circle, and no second heading over a choice whose title is
  * already the dialog's heading (the legend stays for assistive tech).
  *
  * @spec openspec/changes/board-setup-wizard/specs/board-setup-wizard/spec.md#requirement-the-board-setup-wizard-reads-as-the-board-draws-it
@@ -17,8 +17,12 @@ function styleOf(file) {
 }
 
 describe('the board setup wizard', () => {
-	it('leaves 20px under the board stepper', () => {
-		expect(styleOf('CnStepper/CnStepper.vue')).toMatch(/\.cn-stepper--board\s*\{[^}]*margin: 0 0 20px;/)
+	it('leaves 16px under the board stepper', () => {
+		expect(styleOf('CnStepper/CnStepper.vue')).toMatch(/\.cn-stepper--board\s*\{[^}]*margin: 0 0 16px;/)
+	})
+
+	it('keeps a done step clear of the server button margin and height', () => {
+		expect(styleOf('CnStepper/CnStepper.vue')).toMatch(/\.cn-stepper button\.cn-stepper__step\s*\{\s*margin: 0;\s*min-height: 0;/)
 	})
 
 	it('keeps a titled choice legend for assistive tech only', () => {
