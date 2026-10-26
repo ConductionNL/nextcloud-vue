@@ -217,7 +217,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-primary': avatarPrimary }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -878,6 +878,18 @@ export default {
 		avatarSmall() {
 			const avatar = this.content?.avatar
 			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
+		},
+
+		/**
+		 * Whether the avatar is tinted with the primary colour (`avatar.tone:
+		 * "primary"`), as DqZaakGerelateerd draws a related case's type initials.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-avatar-tone/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-carry-the-primary-tint
+		 */
+		avatarPrimary() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && avatar.tone === 'primary')
 		},
 
 		/** @return {boolean} Whether a row's pill comes before its title (`pillAt: "start"`). */
@@ -3627,6 +3639,11 @@ a.cn-record-list__inline-title {
 	border-radius: 18px;
 	background: var(--color-background-dark);
 	color: var(--color-main-text);
+}
+
+.cn-record-list__list--avatar-primary .cn-record-list__avatar {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 </style>
 
