@@ -658,6 +658,12 @@ export default {
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+	line-height: normal;
+}
+
+/* A row's second line is 13px, as the boards draw it (DqZaakArchivering). */
+.cn-retention__row-text .cn-retention__muted {
+	font-size: 13px;
 }
 
 /* A round mark before a hold or transfer row: LH (legal hold) on the error
@@ -671,7 +677,7 @@ export default {
 	height: 32px;
 	border-radius: 16px;
 	background: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
+	color: var(--cn-board-text-soft, var(--color-text-maxcontrast));
 	font-size: 12px;
 	font-weight: 700;
 }
@@ -682,6 +688,7 @@ export default {
 }
 
 .cn-retention__row-title {
+	font-size: 15px;
 	font-weight: 600;
 }
 
