@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0, 'cn-header-widget--with-emblem': emblem !== null }" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0, 'cn-header-widget--with-emblem': emblem !== null, 'cn-header-widget--greeting-line': isGreetingLine }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
@@ -25,7 +25,7 @@
 			data-testid="cn-header-widget-emblem" />
 		<div class="cn-header-widget__content" :style="contentStyle">
 			<p
-				v-if="dateLine"
+				v-if="dateLine && !isGreetingLine"
 				class="cn-header-widget__date"
 				:style="dateStyle"
 				data-testid="cn-header-widget-date">
@@ -34,7 +34,14 @@
 			<h2 v-if="hasTitle" class="cn-header-widget__title" :style="textStyle">
 				{{ headingText }}
 			</h2>
-			<p v-if="hasSubtitle" class="cn-header-widget__subtitle" :style="textStyle">
+			<p
+				v-if="isGreetingLine && greetingLineText"
+				class="cn-header-widget__subtitle cn-header-widget__line"
+				:style="dateStyle"
+				data-testid="cn-header-widget-line">
+				{{ greetingLineText }}
+			</p>
+			<p v-else-if="hasSubtitle" class="cn-header-widget__subtitle" :style="textStyle">
 				{{ subtitle }}
 			</p>
 			<a
@@ -84,6 +91,21 @@ const ALLOWED_CTA_STYLES = ['primary', 'secondary', 'ghost']
 
 /** Marks a switch option that selects a page view rather than a route. */
 const VIEW_OPTION_PREFIX = 'view:'
+
+/**
+ * The ISO 8601 week number of a date: weeks start on Monday and week 1 holds
+ * the year's first Thursday.
+ *
+ * @param {Date} date The date.
+ * @return {number} The week number, 1 to 53.
+ */
+export function isoWeek(date) {
+	const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+	const weekday = day.getUTCDay() || 7
+	day.setUTCDate(day.getUTCDate() + 4 - weekday)
+	const yearStart = new Date(Date.UTC(day.getUTCFullYear(), 0, 1))
+	return Math.ceil(((day - yearStart) / 86400000 + 1) / 7)
+}
 
 const HEIGHT_PIXELS = Object.freeze({
 	small: 120,
@@ -153,7 +175,7 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, kicker, emblem, plain, ground, views}`. All fields are optional except
+		 * greeting, showDate, kicker, emblem, plain, ground, views, greetingLine, showWeek}`. All fields are optional except
 		 * `title` (or `greeting`); unknown enum values collapse to documented
 		 * defaults and the renderer never throws. `views` is
 		 * `{ ariaLabel?, options: [{ label, route, params? } | { label, view }] }`:
@@ -170,6 +192,9 @@ export default {
 		 * "Customer contact · Tuesday 6 October". `emblem` (a URL, or `true`
 		 * for the theme's `--nldesign-emblem-url`) draws the emblem beside the
 		 * date line and heading, 52px high (`--cn-header-emblem-size`).
+		 * `greetingLine: true` keeps `title` as the heading and puts the
+		 * greeting, the date and (`showWeek: true`) the ISO week on one line
+		 * under it.
 		 *
 		 * @type {object}
 		 */
@@ -410,7 +435,37 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		headingText() {
+			if (this.isGreetingLine) {
+				return this.title
+			}
 			return this.greetingText || this.title
+		},
+
+		/**
+		 * Whether the greeting moves under the heading (`content.greetingLine`):
+		 * the heading is the title ("Today") and the line under it reads
+		 * greeting, date and week, as "Good afternoon, Pieter · Monday 5
+		 * October 2026 · week 41".
+		 *
+		 * @spec openspec/changes/header-greeting-line/specs/header-widget/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
+		 * @return {boolean}
+		 */
+		isGreetingLine() {
+			return Boolean(this.content && this.content.greetingLine === true && this.title !== '')
+		},
+
+		/**
+		 * The line under the title in greeting-line mode: the greeting, the
+		 * date (`showDate`) and the ISO week (`showWeek`), joined by " · ".
+		 *
+		 * @spec openspec/changes/header-greeting-line/specs/header-widget/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
+		 * @return {string}
+		 */
+		greetingLineText() {
+			const week = this.content && this.content.showWeek === true
+				? t('nextcloud-vue', 'week {number}', { number: isoWeek(this.reference) })
+				: ''
+			return [this.greetingText, this.dateText, week].filter((part) => part !== '').join(' · ')
 		},
 
 		/**
@@ -937,6 +992,17 @@ export default {
 .cn-header-widget--ground .cn-header-widget__title {
 	font-size: var(--cn-header-ground-title-size, 32px);
 	letter-spacing: -0.01em;
+}
+
+.cn-header-widget--greeting-line .cn-header-widget__title {
+	font-size: var(--cn-header-line-title-size, 26px);
+	line-height: 1.15;
+}
+
+.cn-header-widget__line {
+	margin-top: 2px;
+	font-size: 14px;
+	opacity: 1;
 }
 
 .cn-header-widget__date {
