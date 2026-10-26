@@ -17,7 +17,7 @@ menu structure an administrator set, in a panel at the end.
 - `card.status`: a string or `{ text, tone }`, with the tone neutral, error, warning or success. The text is translated.
   `{name}` placeholders are then filled from `card.statusValues`, and `{runtime.<path>}` from the manifest's `runtime`.
 - `card.statusValues`: per placeholder, either an OpenRegister aggregate descriptor or `{ url, path?, params? }`. The
-  second is a GET whose JSON holds the number at `path`. A status that waits on a value, or whose value could not be
+  second is a GET whose JSON holds the number at `path`, or a list whose items it counts (those matching `where`). A status that waits on a value, or whose value could not be
   read, is not shown.
 - `config.panel`: `{ label?, badge?, text?, link?, title?, subtitle?, facts?, permission?, visibleIf? }`. A fact is
   `{ label, value?, note?, visibleIf? }`. Every string is translated, then `{runtime.<path>}` is filled.

@@ -57,6 +57,13 @@ describe('CnLinkCardsPage status and panel', () => {
 		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/openregister/api/flows', { params: {} })
 	})
 
+	it('counts the list items a where names', async () => {
+		mockGet.mockImplementation(() => Promise.resolve({ data: { results: [{ enabled: true }, { enabled: false }, { enabled: true }] } }))
+		const wrapper = mountPage({ cards: [{ id: 'Flows', label: 'Flows', route: 'Flows', status: '{on} on, {off} off', statusValues: { on: { url: '/apps/openregister/api/flows', path: 'results', where: { enabled: true } }, off: { url: '/apps/openregister/api/flows', path: 'results', where: { enabled: false } } } }] })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-link-card-status"]').text()).toBe('2 on, 1 off')
+	})
+
 	it('leaves a status out while a value it names has not come, or could not be read', async () => {
 		mockGet.mockImplementation(() => Promise.reject(new Error('down')))
 		const wrapper = mountPage({ cards: cards.slice(1, 3) })

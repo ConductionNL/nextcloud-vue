@@ -245,7 +245,7 @@ function fillRuntime(text, runtime) {
 /**
  * One number for a card's status line.
  *
- * @param {object} source An aggregate descriptor or `{ url, path? }`.
+ * @param {object} source An aggregate descriptor or `{ url, path?, params?, where? }`; `where` counts only the list items whose fields equal its values.
  * @return {Promise<number|null>} The number, or null.
  */
 async function fetchStatusValue(source) {
@@ -260,11 +260,10 @@ async function fetchStatusValue(source) {
 		const url = source.url.startsWith('/apps/') ? generateUrl(source.url) : source.url
 		const { data } = await axios.get(url, { params: source.params || {} })
 		const picked = readPath(data, source.path || 'total')
-		if (Array.isArray(picked)) {
-			return picked.length
-		}
-		if (picked === undefined && Array.isArray(data)) {
-			return data.length
+		const list = Array.isArray(picked) ? picked : (picked === undefined && Array.isArray(data) ? data : null)
+		if (list !== null) {
+			const where = source.where && typeof source.where === 'object' ? Object.entries(source.where) : []
+			return list.filter((item) => where.every(([key, wanted]) => readPath(item, key) === wanted)).length
 		}
 		return typeof picked === 'number' ? picked : null
 	}
@@ -691,7 +690,8 @@ export default {
 		 * Fetch the numbers the cards' status lines name. A source is an
 		 * aggregate descriptor (`{ register, schema, metric?, field?, filter? }`)
 		 * or `{ url, path? }`, a GET whose JSON holds the number at `path`
-		 * (default `total`; an array response counts its items). A failed
+		 * (default `total`; a list counts its items, those matching `where`
+		 * when given). A failed
 		 * fetch leaves that status out.
 		 *
 		 * @return {Promise<void>}
