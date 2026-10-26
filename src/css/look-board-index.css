@@ -2329,7 +2329,8 @@
 
 /* ---- The table beside the open side panel (DqZakenSorteren, DqFilterBeheren) */
 /* The table takes its column's width: its configured column widths make way
-   for the content, titles and names wrap (a long token anywhere), a pill
+   for the content, titles and names wrap (a long word hyphenated, an
+   unbreakable token such as an id anywhere), a pill
    wraps before the row scrolls, and each header keeps its label and icons on
    one line. No sideways scroll.
    @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel */
@@ -2351,6 +2352,7 @@
 	min-width: 0 !important;
 	max-width: none !important;
 	white-space: normal;
+	hyphens: auto;
 	overflow-wrap: anywhere;
 }
 

@@ -39,6 +39,9 @@ describe('the board table beside the open side panel', () => {
 		expect(cells).toContain('width: auto !important;')
 		expect(cells).toContain('max-width: none !important;')
 		expect(cells).toContain('white-space: normal;')
+		// Hyphenate a long word first ("Parkeer-/vergunningen", the page is
+		// lang nl); break anywhere only as the last resort (ids).
+		expect(cells).toContain('hyphens: auto;')
 		expect(cells).toContain('overflow-wrap: anywhere;')
 		expect(body(' td .cn-status-badge')).toContain('white-space: normal;')
 	})
