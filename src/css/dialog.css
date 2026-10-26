@@ -464,8 +464,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* A board textarea's lines sit on the normal line height, as the boards'
-   `font` shorthand sets it: two rows are 58px, not 68 (DqArchiveren Reden). */
+   `font` shorthand sets it: two rows are 58px, not 68 (DqArchiveren Reden).
+   Its padding is the boards' 10px 12px. The Calendar app injects
+   `textarea { padding: 5px 12px !important }` on every page, which made three
+   rows 68px against the board's 76 (DqOverdragen "Waarom de zaak verhuist"),
+   so the padding has to be important too. */
 .cn-dialog-board .dialog__content .textarea__input {
+	padding: 10px 12px !important;
 	line-height: normal;
 }
 

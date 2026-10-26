@@ -96,9 +96,11 @@
 	height: calc(var(--cn-field-height) + 2 * var(--border-width-input-focused, 2px));
 }
 
+/* Important against the Calendar app's `textarea { padding: 5px 12px
+   !important }`, which it injects on every page. */
 .cn-look-board .cn-form-dialog__field textarea,
 .cn-look-board .cn-form-page__field textarea {
-	padding: 10px 12px;
+	padding: 10px 12px !important;
 }
 
 /* An invalid field: 2px error border on the control, 4px edge on the group. */
