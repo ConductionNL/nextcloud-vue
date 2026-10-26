@@ -2362,3 +2362,43 @@
 .cn-look-board .cn-data-table th.cn-table-col--icon + th {
 	padding-inline-start: 12px;
 }
+
+/* ---- The table beside the open side panel (DqZakenSorteren, DqFilterBeheren) */
+/* The table takes its column's width: its configured column widths make way
+   for the content, titles and names wrap (a long token anywhere), a pill
+   wraps before the row scrolls, and each header keeps its label and icons on
+   one line. No sideways scroll.
+   @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel */
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table {
+	table-layout: auto;
+	width: 100% !important;
+	min-width: 0 !important;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table th:not(.cn-table-col--checkbox):not(.cn-table-col--actions) {
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: none !important;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table td:not(.cn-table-col--checkbox):not(.cn-table-col--actions) {
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: none !important;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table td :is(.cn-cell-renderer, .cn-cell-renderer__avatar-text, .cn-cell-renderer__avatar-name, .cn-table-row__link) {
+	min-width: 0;
+	white-space: normal;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table td .cn-status-badge {
+	white-space: normal;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table th .cn-table-header__sort {
+	min-width: max-content;
+}
