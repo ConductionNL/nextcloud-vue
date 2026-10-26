@@ -2308,7 +2308,12 @@ export default {
 	line-height: 1.2;
 }
 
+/* One row: the icon font's spans are flex boxes, which inside an inline
+   link broke the line and put the icon after a wrapped label. */
 .cn-facts-widget__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
 	font-size: 14px;
 	font-weight: 600;
 	color: var(--color-primary-element);

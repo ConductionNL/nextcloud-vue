@@ -958,6 +958,13 @@
 	padding-top: 12px;
 }
 
+/* A side card that opens on its link row (DqZaakBesluiten "Werkinstructie")
+   has no first text line to take the leading off: the row starts 10px under
+   the title. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__link:first-child) {
+	padding-top: 10px;
+}
+
 .cn-look-board .cn-detail-page__side .cn-facts-widget__lead-text {
 	line-height: normal;
 }
