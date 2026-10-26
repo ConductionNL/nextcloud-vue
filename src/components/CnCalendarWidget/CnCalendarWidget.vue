@@ -669,7 +669,7 @@ export default {
 
 .cn-calendar-widget__mode-btn.is-active {
 	background: var(--color-primary-element-light, var(--color-primary-element));
-	color: var(--color-primary-element-text);
+	color: var(--color-primary-element-light-text, var(--color-primary-element-text));
 }
 
 .cn-calendar-widget__body {
