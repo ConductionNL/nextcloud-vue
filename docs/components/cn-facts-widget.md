@@ -149,6 +149,7 @@ without `emptyText` says nothing when its link does not resolve.
 |-----|---------|
 | `source` | `{ register, schema, id }` or `{ url }`. Omitted: the current object. `id` takes the shared tokens (`@object.<field>`, `@objectId`, `@workspace.<key>`, `@me`); `url` takes them inside the string (`/apps/x/api/summary/@objectId`). While a token does not resolve the widget sends no request and shows the empty text. |
 | `link` | `{ label, route }` or `{ label, href }` at the foot. Routes and hrefs take `@source.<field>` (`@source.id` reads `id`, else `@self.id`). A link whose token does not resolve is left out. |
+| `link.note` | A muted line under the link. The link's `label` and its `note` fill `{path}` / `{path:format}` placeholders from the record; `first-segment` / `last-segment` read one part of a path ("{page:last-segment}"). |
 | `source` by query | `{ register, schema, filter, sort? }` without `id`: the first object that matches `filter` (shared tokens) in `sort` order (`{ field, dir }`), such as the latest count of a cash shift. No match shows the empty text. |
 | `endpointSource` | `{ url, method?, params?, responsePath? }`, the block a stat or chart tile takes: the facts read an app endpoint (tokens inside the url and the params), shared and cached like the tiles. |
 | `emptyWhen` | A path. When the value there is truthy the card shows `emptyText`, for an endpoint that answers `{ "empty": true }`. |
