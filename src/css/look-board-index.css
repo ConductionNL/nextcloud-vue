@@ -1750,8 +1750,10 @@
 	padding: 0 6px;
 	box-sizing: border-box;
 	border-radius: 10px;
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	/* The board's count pill: the hairline grey with the secondary ink
+	   (DqAfdelingen 228,230,234 / 61,64,71), not the hover grey and the main ink. */
+	background: var(--cn-board-hairline);
+	color: color-mix(in srgb, var(--color-text-maxcontrast) 50%, var(--color-main-text));
 	font-size: 12px;
 	font-weight: 600;
 }
@@ -1791,9 +1793,24 @@
 	padding-inline-start: 64px;
 }
 
-.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item > :not(.cn-folder-tree__name):not(.cn-folder-tree__count),
-.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item > :not(.cn-folder-tree__name):not(.cn-folder-tree__count) {
 	display: none;
+}
+
+/* "Alle" keeps its 18px all-inclusive icon, 8px before the label, as the
+   board draws it (DqAfdelingen "∞ Alle"); the folder rows draw no icon.
+   @spec openspec/changes/board-folder-pane-rows/specs/board-folder-pane-rows/spec.md#requirement-a-board-folder-pane-draws-the-boards-folder-rows */
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {
+	display: inline-flex;
+	flex: none;
+	width: 18px;
+	height: 18px;
 }
 
 .cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item--active,
