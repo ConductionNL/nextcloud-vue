@@ -156,7 +156,6 @@
 						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
 						:filterable="content.filterable === true"
-						:rowTitle="rowTitle"
 						:activeFilters="headerFilters"
 						@rowClick="onRowClick"
 						@rowAuxClick="onRowAuxClick"
@@ -187,7 +186,6 @@
 					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
 					:filterable="content.filterable === true"
-					:rowTitle="rowTitle"
 					:activeFilters="headerFilters"
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
@@ -541,9 +539,6 @@ export default {
 		 * With `url` (and `params`, tokens such as `@objectId`) the button
 		 * downloads that app endpoint instead of OpenRegister's export.
 		 *
-		 * `rowTitle` (`link` default, `plain`, `text` or `strong`) is how the
-		 * table draws its title column, as CnDataTable's prop: `text` draws a
-		 * log whose first column is plain text (DqZaakAssistent AI log).
 		 * `endpointSource` (`{ url, params?, responsePath? }`) reads the rows
 		 * from an app endpoint instead of OpenRegister, for a list without
 		 * `register`/`schema`: rows at `responsePath` (default `results`),
@@ -821,16 +816,6 @@ export default {
 		 * schema property's `x-enum-labels`, completed here for the
 		 * manifest-column path rather than special-cased per column.
 		 */
-		/**
-		 * How the table's title column draws its title (`content.rowTitle`,
-		 * CnDataTable's `link` / `plain` / `text` / `strong`); `link` otherwise.
-		 *
-		 * @return {string}
-		 */
-		rowTitle() {
-			return ['link', 'plain', 'text', 'strong'].includes(this.content?.rowTitle) ? this.content.rowTitle : 'link'
-		},
-
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			const sortableConfig = this.content.sortable
