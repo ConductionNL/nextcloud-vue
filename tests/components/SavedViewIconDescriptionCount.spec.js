@@ -72,6 +72,17 @@ describe('the icon and description fields', () => {
 		expect(w.emitted('update:icon')).toEqual([['FolderOutline'], ['']])
 	})
 
+	it('names every icon option in words, not by its icon name', () => {
+		const w = mount(CnSavedViewLookFields, { props: { icon: '', description: '' } })
+		const labels = w.findAll('[role="radio"]').map((b) => b.attributes('aria-label'))
+		expect(labels).toHaveLength(SAVED_VIEW_ICONS.length)
+		expect(w.get(`[data-icon="${SAVED_VIEW_MENU_DEFAULT_ICON}"]`).attributes('aria-label')).toBe('Filter')
+		expect(w.get('[data-icon="ClockOutline"]').attributes('aria-label')).toBe('Clock')
+		for (const name of SAVED_VIEW_ICONS) {
+			expect(labels).not.toContain(name)
+		}
+	})
+
 	it('the edit dialog starts from the view and emits description and icon', async () => {
 		const w = mount(CnSavedViewEditDialog, { props: { view: own } })
 		expect(w.vm.description).toBe('My open cases')
