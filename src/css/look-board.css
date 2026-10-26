@@ -813,6 +813,29 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- A card table's head controls -------------------------------------- */
+/* The head of a card's table (CnTasksWidget, CnRecordListWidget) draws its
+   sort control as the bare label, square, and the funnel after it 4px on as a
+   22px button with a 4px radius, as CnDataTable's board head does
+   (DqZaakTaken). Nextcloud's `button` rule gave the label an 8px radius and a
+   3px end margin (7px to the funnel) and NcActions its 8px trigger radius;
+   the extra class outranks both. */
+.cn-look-board .cn-tasks-widget__head .cn-tasks-widget__head-sort:not(.cn-look-nextcloud *),
+.cn-look-board .cn-record-list__head .cn-record-list__sort:not(.cn-look-nextcloud *) {
+	margin: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-tasks-widget__head .cn-tasks-widget__head-filter .button-vue:not(.cn-look-nextcloud *),
+.cn-look-board .cn-record-list__head .cn-record-list__head-filter .button-vue:not(.cn-look-nextcloud *) {
+	--button-size: 22px;
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
+	border-radius: 4px;
+}
+
 /* ---- The buildiq square ------------------------------------------------ */
 /* The board square's size. Its orange is set in patches.css, beside the
    brand orange it replaces, since this sheet names no colour literal. */
