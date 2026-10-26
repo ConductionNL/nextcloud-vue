@@ -1986,9 +1986,14 @@
 .cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child,
 .cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
-	padding: 12px 0;
+	padding-block: 12px;
 	border-top: 1px solid var(--cn-board-hairline);
 	border-bottom: none;
+}
+
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child {
+	padding-inline: 0;
 }
 
 .cn-look-board .cn-events-card__day:not(.cn-look-nextcloud *),
@@ -2015,7 +2020,7 @@
 .cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	font-size: 15px;
 	font-weight: 600;
-	line-height: 1.35;
+	line-height: normal;
 }
 
 .cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *) {
@@ -2037,11 +2042,29 @@
 	white-space: pre;
 }
 
-.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) {
+/* Each note sits alone in its thread, so it is also a :last-child; the
+   padding above is set per side so the 44px room for the tile holds. */
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	padding-inline-start: 44px;
+	padding-inline: 44px 0;
+}
+
+/* Reply stays on the row as Delete does: at its end, shown on hover and on
+   keyboard focus, so the row keeps the board's two lines.
+   @spec openspec/changes/board-note-rows-tile-room/specs/task-cards/spec.md#requirement-a-board-note-row-keeps-its-tile-room-and-two-lines */
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) > .cn-notes-card__reply-btn {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 32px;
+	opacity: 0;
+}
+
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):hover > .cn-notes-card__reply-btn,
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):focus-within > .cn-notes-card__reply-btn {
+	opacity: 1;
 }
 
 .cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
@@ -2057,6 +2080,7 @@
 .cn-look-board .cn-notes-card__note-header:not(.cn-look-nextcloud *) {
 	justify-content: flex-start;
 	margin-bottom: 0;
+	line-height: normal;
 }
 
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
