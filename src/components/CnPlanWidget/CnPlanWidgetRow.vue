@@ -9,25 +9,34 @@
 			<span v-if="item.description" class="cn-plan-row__meta" data-testid="cn-plan-row-meta">{{ item.description }}</span>
 		</span>
 		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item) }}</span>
-		<NcButton v-if="item.state === 'enabled' && item.discretionary"
+		<!-- The moves OpenRegister offers sit in the row's menu, so a row reads
+		     as its name, its line and its state (DqZaak "Zaakplan"). -->
+		<NcActions v-if="hasMoves"
+			:ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })"
 			:disabled="busy"
-			:data-testid="`cn-plan-enable-${item.key || item.uuid}`"
-			@click="$emit('enable', item)">
-			{{ t('nextcloud-vue', 'Start') }}
-		</NcButton>
-		<NcButton v-for="target in targets"
-			:key="target"
-			:disabled="busy"
-			:data-testid="`cn-plan-${target}-${item.key || item.uuid}`"
-			@click="$emit('transition', item, target)">
-			{{ target === 'completed' ? t('nextcloud-vue', 'Complete') : t('nextcloud-vue', 'Stop') }}
-		</NcButton>
+			:data-testid="`cn-plan-menu-${item.key || item.uuid}`">
+			<NcActionButton v-if="canStart"
+				:disabled="busy"
+				closeAfterClick
+				:data-testid="`cn-plan-enable-${item.key || item.uuid}`"
+				@click="$emit('enable', item)">
+				{{ t('nextcloud-vue', 'Start') }}
+			</NcActionButton>
+			<NcActionButton v-for="target in targets"
+				:key="target"
+				:disabled="busy"
+				closeAfterClick
+				:data-testid="`cn-plan-${target}-${item.key || item.uuid}`"
+				@click="$emit('transition', item, target)">
+				{{ target === 'completed' ? t('nextcloud-vue', 'Complete') : t('nextcloud-vue', 'Stop') }}
+			</NcActionButton>
+		</NcActions>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 import { offeredTransitions } from '../../utils/planTree.js'
 
 /**
@@ -36,7 +45,7 @@ import { offeredTransitions } from '../../utils/planTree.js'
 export default {
 	name: 'CnPlanWidgetRow',
 
-	components: { NcButton },
+	components: { NcActionButton, NcActions },
 
 	props: {
 		/**
@@ -72,6 +81,16 @@ export default {
 		/** @return {string[]} The moves offered. */
 		targets() {
 			return offeredTransitions(this.item)
+		},
+
+		/** @return {boolean} A discretionary item that may be started. */
+		canStart() {
+			return this.item.state === 'enabled' && Boolean(this.item.discretionary)
+		},
+
+		/** @return {boolean} Whether the row offers any move. */
+		hasMoves() {
+			return this.canStart || this.targets.length > 0
 		},
 	},
 
