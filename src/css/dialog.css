@@ -467,8 +467,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* A board textarea's lines sit on the normal line height, as the boards'
-   `font` shorthand sets it: two rows are 58px, not 68 (DqArchiveren Reden). */
+   `font` shorthand sets it, 10px 12px in, and its rows set its height (NcTextArea
+   holds a 68px minimum): two rows are 58px (DqArchiveren Reden). */
 .cn-dialog-board .dialog__content .textarea__input {
+	min-height: 0;
+	padding: 10px 12px;
 	line-height: normal;
 }
 
