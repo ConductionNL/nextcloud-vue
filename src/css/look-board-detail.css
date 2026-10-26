@@ -1024,6 +1024,16 @@
 	line-height: normal;
 }
 
+/* A person's initials in a lead (DqZaak "Aanvrager": SV) are 16px bold in
+   the soft ink on the grey ground, as the case boards draw them (r32: 14px
+   in the main ink).
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead-tile--initials:not(.cn-look-nextcloud *) {
+	background: var(--color-background-hover);
+	color: var(--cn-board-text-soft);
+	font-size: 16px;
+}
+
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
    the board draws it. The card-fit wrapper is flush, and the wrapper's own
    flush rule loads after this sheet and outranked the side card's padding,

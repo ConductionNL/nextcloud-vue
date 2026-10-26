@@ -56,3 +56,15 @@ describe('look-board-detail.css: contacts rows', () => {
 		expect(rule(TAB + ' .cn-contacts-tab__name,\n' + TAB + ' .cn-contacts-tab__meta')).toContain('line-height: 1.2')
 	})
 })
+
+describe('board lead initials', () => {
+	const detail = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+	it('sets a lead\'s initials 16px in the soft ink on the grey ground (DqZaak Aanvrager SV)', () => {
+		const sel = '.cn-look-board .cn-facts-widget .cn-facts-widget__lead-tile--initials:not(.cn-look-nextcloud *) {'
+		const at = detail.indexOf(sel)
+		const body = at < 0 ? '' : detail.slice(at, detail.indexOf('}', at))
+		expect(body).toContain('font-size: 16px')
+		expect(body).toContain('color: var(--cn-board-text-soft)')
+		expect(body).toContain('background: var(--color-background-hover)')
+	})
+})
