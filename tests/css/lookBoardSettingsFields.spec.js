@@ -46,7 +46,7 @@ describe('look-board.css: fields in a settings card', () => {
 		expect(label).toMatch(/font-weight: 600/)
 		expect(label).toMatch(/background: none/)
 		expect(label).toMatch(/line-height: normal/)
-		expect(rulesFor(`${card} .input-field:has(.input-field__label):not(.v-select *)`)).toMatch(/margin-block-start: 22px/)
+		expect(rulesFor(`${card} .input-field:has(.input-field__label):not(.v-select *)`)).toMatch(/margin-block: 22px -3px/)
 	})
 
 	it('hands the theme the label weight and ink, which it sets with !important', () => {
