@@ -612,3 +612,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 .cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__label {
 	line-height: normal;
 }
+
+/* A setup step's parts are 16px apart, as the boards draw them (DqInstellen:
+   intro, choices and note sat 11 to 26px apart), and a note inside it adds no
+   margin of its own.
+   @spec openspec/changes/board-wizard-step/specs/setup-wizard/spec.md */
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step {
+	gap: 16px;
+}
+
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step .notecard.notecard {
+	margin: 0;
+}
