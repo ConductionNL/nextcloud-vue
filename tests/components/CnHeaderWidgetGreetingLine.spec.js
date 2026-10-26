@@ -10,7 +10,8 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { mount } from '@vue/test-utils'
-import CnHeaderWidget, { isoWeek } from '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'
+import { nextTick } from 'vue'
+import CnHeaderWidget, { isoWeek, themeEmblemMissing } from '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'
 
 jest.mock('@nextcloud/auth', () => ({ getCurrentUser: jest.fn() }))
 
@@ -70,5 +71,28 @@ describe('CnHeaderWidget greetingLine', () => {
 		expect(wrapper.find('h2').text()).toBe('Good afternoon, Pieter')
 		expect(wrapper.find('.cn-header-widget__subtitle').text()).toBe('Welcome')
 		expect(wrapper.find(LINE).exists()).toBe(false)
+	})
+})
+
+describe('CnHeaderWidget emblem: true without a theme emblem', () => {
+	it('reads whether the theme defines an emblem', () => {
+		const el = document.createElement('div')
+		document.body.appendChild(el)
+		expect(themeEmblemMissing(el)).toBe(true)
+		el.style.setProperty('--nldesign-emblem-url', 'url(/emblem.svg)')
+		expect(themeEmblemMissing(el)).toBe(false)
+		el.remove()
+		expect(themeEmblemMissing(null)).toBe(false)
+	})
+
+	it('draws no empty emblem box when the theme has none', async () => {
+		const wrapper = mount(CnHeaderWidget, {
+			propsData: { content: { title: 'Today', greetingLine: true, emblem: true }, now: MONDAY },
+			attachTo: document.body,
+		})
+		await nextTick()
+		expect(wrapper.find('[data-testid="cn-header-widget-emblem"]').exists()).toBe(false)
+		expect(wrapper.classes()).not.toContain('cn-header-widget--with-emblem')
+		wrapper.unmount()
 	})
 })

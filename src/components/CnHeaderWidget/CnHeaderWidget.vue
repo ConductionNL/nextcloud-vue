@@ -93,6 +93,21 @@ const ALLOWED_CTA_STYLES = ['primary', 'secondary', 'ghost']
 const VIEW_OPTION_PREFIX = 'view:'
 
 /**
+ * Whether the theme leaves `--nldesign-emblem-url` empty where an element
+ * sits, so `emblem: true` has no emblem to draw.
+ *
+ * @param {Element} el The element.
+ * @return {boolean} True when the theme defines no emblem.
+ */
+export function themeEmblemMissing(el) {
+	if (!el || typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
+		return false
+	}
+	const value = window.getComputedStyle(el).getPropertyValue('--nldesign-emblem-url').trim()
+	return value === '' || value === 'none'
+}
+
+/**
  * The ISO 8601 week number of a date: weeks start on Monday and week 1 holds
  * the year's first Thursday.
  *
@@ -234,6 +249,9 @@ export default {
 			// probe `<img>` is invisible — its only job is load-failure
 			// detection for the CSS background.
 			imageFailed: false,
+			// Set true when `emblem: true` asks for the theme's emblem and the
+			// theme defines none, so no empty emblem box is drawn.
+			themeEmblemMissing: false,
 		}
 	},
 
@@ -534,7 +552,7 @@ export default {
 		emblem() {
 			const value = this.content && this.content.emblem
 			if (value === true) {
-				return true
+				return this.themeEmblemMissing ? null : true
 			}
 			return typeof value === 'string' && value !== '' ? resolveImageUrl(value) : null
 		},
@@ -853,6 +871,12 @@ export default {
 			// the user edits the placement.
 			this.imageFailed = false
 		},
+	},
+
+	mounted() {
+		if (this.content && this.content.emblem === true) {
+			this.themeEmblemMissing = themeEmblemMissing(this.$el)
+		}
 	},
 
 	methods: {

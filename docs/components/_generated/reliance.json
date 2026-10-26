@@ -285,14 +285,14 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-app-tiles-widget"
 		},
 		"CnAppTilesWidgetForm": {
 			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-app-tiles-widget-form"
 		},
 		"CnAssignDialog": {
 			"direct": 0,
@@ -2013,7 +2013,7 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-grouped-menu"
 		},
 		"CnGuardianHome": {
 			"direct": 0,
