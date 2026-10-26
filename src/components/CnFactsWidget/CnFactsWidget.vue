@@ -252,6 +252,7 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, formatLongDate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
@@ -444,6 +445,7 @@ export default {
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
@@ -1814,7 +1816,7 @@ export default {
 			if (format === 'list' || Array.isArray(raw)) {
 				const items = (Array.isArray(raw) ? raw : [raw])
 					.map((item) => (spec.itemPath && item && typeof item === 'object' ? readPath(item, spec.itemPath) : item))
-					.map((item) => this.format(item, { ...spec, format: 'text' }))
+					.map((item) => this.format(item, { ...spec, format: spec.itemFormat || 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
 			}
@@ -1848,6 +1850,18 @@ export default {
 			}
 			if (format === 'user') {
 				return userDisplayName(raw)
+			}
+			// A Nextcloud group by its display name; the id until the name is known.
+			if (format === 'group') {
+				if (typeof raw === 'object') {
+					return ''
+				}
+				const name = groupDisplayName(String(raw))
+				if (name === null) {
+					loadGroupDisplayName(String(raw))
+					return String(raw)
+				}
+				return name
 			}
 			if (format === 'number') {
 				const number = Number(raw)
