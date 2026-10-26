@@ -146,6 +146,15 @@
 	font-size: 13px;
 }
 
+/* A case header (with its phase strip) sets the pills and the breadcrumb
+   22px under the title row, as every Dq case board draws it; the header's
+   own 6px row gap stays between the breadcrumb and the Follow row (r32: the
+   whole case page 16px high on DqZaak and its tabs).
+   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
+.cn-look-board .cn-detail-page__header--with-widget .cn-detail-page__header-row2 {
+	margin-top: 16px;
+}
+
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
 .cn-look-board .cn-detail-page__header-row2 {
 	align-items: center;
