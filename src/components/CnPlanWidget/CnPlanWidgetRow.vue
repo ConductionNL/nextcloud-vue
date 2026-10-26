@@ -50,8 +50,7 @@ export default {
 		},
 
 		/**
-		 * Words that replace the default for a state (`{ active: 'Active' }`),
-		 * already translated.
+		 * The word per state that replaces the default, already translated.
 		 *
 		 * @type {object}
 		 */
