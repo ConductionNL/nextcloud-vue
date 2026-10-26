@@ -465,6 +465,22 @@
 	width: auto;
 }
 
+/* Its search box sizes to the placeholder or choice instead of the input's 20
+   characters, in the board's 14px/500 select type: "Alle zaaktypen" is 141px,
+   the board's select 135 (r31 DqDoorlooptijd: 246). The end padding keeps
+   the open indicator clear of the text.
+   @spec openspec/changes/board-description-select-sized-to-choice/specs/board-description-select-sized-to-choice/spec.md#requirement-a-description-select-is-sized-to-its-choice */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .input-field__input,
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .vs__selected {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .input-field__input {
+	field-sizing: content;
+	padding-inline: 10px 30px;
+}
+
 /* ---- A text field and a multiple select --------------------------------- */
 /* A text field and a textarea are the same control as the board select: a 1px
    edge in the 3:1 control colour (DqZakenSorteren "Zoek op zaak, nummer of
