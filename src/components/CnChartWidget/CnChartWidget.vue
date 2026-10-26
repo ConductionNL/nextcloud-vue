@@ -1020,6 +1020,9 @@ export default {
 			aggregateData: null,
 			// The `cellSource` matrix, laid out (`{ series, categories, columnKeys }`), or null.
 			cellData: null,
+			// The record a `cellSource` with `cellsPath` read its cells from, for
+			// `@source.<field>` in the notice.
+			cellRecord: null,
 			// Active `views[]` switcher key (null = the first view). Local
 			// UI state only — never persisted.
 			activeViewKey: null,
@@ -1664,6 +1667,14 @@ export default {
 			}
 			const declared = def.values && typeof def.values === 'object' ? def.values : {}
 			const resolved = resolveFilterTokens(declared, this.chartTokenCtx())
+			// `@source.<field>`: a field of the record the matrix read its cells
+			// from (the matrix's name and version on an enforcement advice).
+			for (const [name, token] of Object.entries(declared)) {
+				if (typeof token === 'string' && token.startsWith('@source.')) {
+					const value = token.slice('@source.'.length).split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), this.cellRecord)
+					resolved[name] = value === undefined ? null : value
+				}
+			}
 			const source = this.cellSource && typeof this.cellSource === 'object' ? this.cellSource : {}
 			const maps = { rows: source.rowLabels, columns: source.columnLabels, values: source.valueLabels }
 			const words = {}
@@ -2392,6 +2403,7 @@ export default {
 			if (this._cellRequest !== key) {
 				return
 			}
+			this.cellRecord = this.cellSource.cellsPath ? (records[0] || null) : null
 			if (this.cellSource.cellsPath) {
 				const { cells, config } = cellsFromRecord(records[0] || null, this.cellSource, cellFilter)
 				this.cellData = pivotCells(cells, config)
