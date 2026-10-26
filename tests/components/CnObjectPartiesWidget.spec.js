@@ -136,6 +136,22 @@ describe('CnObjectPartiesWidget', () => {
 		expect(other.find('[data-testid="cn-object-parties-not-accepted"]').exists()).toBe(false)
 	})
 
+	/** @spec openspec/changes/parties-accepted-kinds-by-shape/specs/object-parties/spec.md#requirement-a-party-is-checked-against-the-accepted-kinds-in-one-vocabulary */
+	it('checks a person against role kinds by identity shape, not by code', async () => {
+		serve({
+			'/apps/openregister/api/objects/x/item/r-1/parties': { ...LISTING, kinds: [{ key: 'person', label: 'Person', identityShapes: ['naturalPerson'] }] },
+			'/apps/x/api/items/r-1/party-kinds': { source: 'crm', kinds: [{ code: 'aanvrager', identityShapes: ['naturalPerson', 'organization'] }] },
+		})
+		const w = await mountParties()
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-not-accepted"]').exists()).toBe(false)
+		serve({
+			'/apps/openregister/api/objects/x/item/r-1/parties': { ...LISTING, kinds: [{ key: 'person', label: 'Person', identityShapes: ['naturalPerson'] }] },
+			'/apps/x/api/items/r-1/party-kinds': { source: 'crm', kinds: [{ code: 'bedrijf', identityShapes: ['organization'] }] },
+		})
+		const refused = await mountParties()
+		expect(refused.find('[data-party="p-jan"] [data-testid="cn-object-parties-not-accepted"]').exists()).toBe(true)
+	})
+
 	it('draws the extra line that applies, with the coded value labelled', async () => {
 		serve()
 		const w = await mountParties()
