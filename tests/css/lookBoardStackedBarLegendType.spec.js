@@ -14,7 +14,13 @@ const path = require('path')
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 const P = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-stacked-bar:not(.cn-stacked-bar--compact)'
 
-const body = (sel) => {
+/**
+ * The rule written exactly with this selector, from the selector to its closing brace.
+ *
+ * @param {string} sel The selector.
+ * @return {string} The rule, or '' when there is none.
+ */
+function body(sel) {
 	const at = css.indexOf(`${sel} {`)
 	return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
 }
