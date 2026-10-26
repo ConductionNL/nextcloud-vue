@@ -82,6 +82,11 @@ describe('CnAppTilesWidget', () => {
 		expect(getWidgetTypeEntry('app-tiles').renderer).toBe(CnAppTilesWidget)
 	})
 
+	it('is registered by the library entry point, not only by its own index', () => {
+		const source = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'), 'utf8')
+		expect(source).toContain("import '../CnAppTilesWidget/index.js'")
+	})
+
 	it('draws a tile per app of the navigation, with its name, link, icon and status', async () => {
 		const wrapper = await mountTiles()
 		expect(wrapper.find('h2').text()).toBe('Apps')
