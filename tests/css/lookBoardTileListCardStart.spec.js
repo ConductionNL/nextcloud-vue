@@ -25,4 +25,3 @@ describe('look-board-detail.css: a card that opens on tiles', () => {
 		expect(body).toContain('line-height: normal;')
 	})
 })
-

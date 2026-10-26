@@ -23,4 +23,3 @@ describe('look-board-detail.css: a grouped card meta line', () => {
 		expect(css.slice(at, css.indexOf('}', at))).toContain('padding-top: 10px;')
 	})
 })
-
