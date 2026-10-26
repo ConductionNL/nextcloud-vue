@@ -5,7 +5,7 @@
  * CnHeaderWidget `greetingLine`: the title stays the heading ("Vandaag") and
  * the greeting, the date and the week sit on one line under it (LpVandaag).
  *
- * @spec openspec/changes/header-greeting-line/specs/header-widget/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
+ * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
  */
 
 import { getCurrentUser } from '@nextcloud/auth'

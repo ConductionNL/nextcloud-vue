@@ -6,7 +6,7 @@
  * layout rows divide that height, a row of `fitRows` items takes its
  * content's height, and the page around the grid does not scroll.
  *
- * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+ * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
  */
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
@@ -23,7 +23,11 @@ const LAYOUT = [
 describe('fillRowTracks', () => {
 	it('sizes the fitRows rows to their content and shares the rest', () => {
 		expect(fillRowTracks(LAYOUT)).toEqual([
-			'auto', 'auto', 'auto', 'auto', 'auto',
+			'auto',
+			'auto',
+			'auto',
+			'auto',
+			'auto',
 			...Array(8).fill('minmax(0, 1fr)'),
 		])
 	})

@@ -447,7 +447,7 @@ export default {
 		 * greeting, date and week, as "Good afternoon, Pieter · Monday 5
 		 * October 2026 · week 41".
 		 *
-		 * @spec openspec/changes/header-greeting-line/specs/header-widget/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
 		 * @return {boolean}
 		 */
 		isGreetingLine() {
@@ -458,7 +458,7 @@ export default {
 		 * The line under the title in greeting-line mode: the greeting, the
 		 * date (`showDate`) and the ISO week (`showWeek`), joined by " · ".
 		 *
-		 * @spec openspec/changes/header-greeting-line/specs/header-widget/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-header-can-carry-the-greeting-under-its-title
 		 * @return {string}
 		 */
 		greetingLineText() {

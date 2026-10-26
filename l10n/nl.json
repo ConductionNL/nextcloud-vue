@@ -2668,7 +2668,14 @@
     "Briefcase": "Koffer",
     "Eye": "Oog",
     "Euro": "Euro",
-    "Ready": "Gereed"
+    "Ready": "Gereed",
+    "Most used": "Meest gebruikt",
+    "No tile matches the filter": "Geen tegel past bij het filter",
+    "No apps to show": "Geen apps om te tonen",
+    "Pinned": "Vastgezet",
+    "Outage": "Storing",
+    "Filter tiles": "Filter tegels",
+    "week {number}": "week {number}"
   },
   "plurals": {
     "{count} member": [
@@ -2894,6 +2901,10 @@
     "{names} has no location, so it is not on the map.": [
       "{names} heeft geen locatie, dus staat niet op de kaart.",
       "{names} hebben geen locatie, dus staan ze niet op de kaart."
+    ],
+    "%n time": [
+      "%n keer",
+      "%n keer"
     ]
   }
 }

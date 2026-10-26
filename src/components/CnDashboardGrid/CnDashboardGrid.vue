@@ -129,7 +129,7 @@ function hasFitCell(layout) {
  * a row whose items all set `fitRows`, or that no item covers, and an equal
  * share of the free height (`minmax(0, 1fr)`) for every other row.
  *
- * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+ * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
  * @param {Array<object>} layout The layout items.
  * @return {string[]} One track per layout row.
  */
@@ -347,7 +347,7 @@ export default {
 		 * Edit mode, and a grid narrower than `fillMinWidth`, keep the
 		 * GridStack grid of `cellHeight` rows.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 */
 		fillHeight: {
 			type: Boolean,
@@ -359,7 +359,7 @@ export default {
 		 * Narrower, the cards take their `cellHeight` rows (and GridStack's
 		 * `columnOpts` reflow) and the page scrolls.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 */
 		fillMinWidth: {
 			type: Number,
@@ -438,7 +438,7 @@ export default {
 		 * Whether the grid fills its height now (`fillHeight`): in view mode,
 		 * on a grid at least `fillMinWidth` wide.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 * @return {boolean}
 		 */
 		filling() {
@@ -448,7 +448,7 @@ export default {
 		/**
 		 * The inline style of the grid element while it fills its height.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 * @return {object|null}
 		 */
 		fillGridStyle() {
@@ -759,7 +759,7 @@ export default {
 		/**
 		 * Follow the grid's width, which decides whether `fillHeight` fills.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 * @return {void}
 		 */
 		observeContainerWidth() {
@@ -780,7 +780,7 @@ export default {
 		/**
 		 * The inline style that places an item on the filled grid.
 		 *
-		 * @spec openspec/changes/dashboard-fill-height/specs/dashboard-grid/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
 		 * @param {object} item The layout item.
 		 * @return {object}
 		 */
