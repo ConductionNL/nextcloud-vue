@@ -740,17 +740,18 @@
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
-   "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
+   "Zaakgegevens", DqContact "Contact"); its first label sits at the top of
+   its line box, so no leading comes off. A side card keeps its 10px.
    @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
-	padding-top: calc(14px - var(--cn-board-first-line-leading));
+	padding-top: 14px;
 }
 
 /* Facts that open on the column grid are a data card too (DqContact
    "Contact", DqOrganisatie "Organisatie").
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
-	padding-top: calc(14px - var(--cn-board-first-line-leading));
+	padding-top: 14px;
 }
 
 /* A table (an object list) starts 12px below the title's box: its head has
