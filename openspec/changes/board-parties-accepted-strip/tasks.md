@@ -1,1 +1,2 @@
 - [x] 1.1 board CSS (tests/css/lookBoardPartiesAccepted.spec.js)
+- [x] 1.2 the source line 13px at 1.2 (r30: strip 66 vs 58)
