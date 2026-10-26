@@ -942,14 +942,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* A saved view's manage menu (DqFilterBeheren, DqFilterInMenu "Beheer
-   <view>"): 264px wide, rows of at least 40px, 6px 10px in, 8px rounded,
+   <view>"): 278px wide outside (the board's 264px of content, 6px in and a
+   1px line), rows of at least 40px, 6px 10px in, 8px rounded,
    the icon 12px before a 14px label at 600 with its explanation under it in
    12px muted text at 400; the separator in the soft line, and Delete in the
    error red. Its rows carry the panel's `cn-saved-views-` test ids.
    @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-a-saved-views-manage-menu-is-the-boards-menu */
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
 	box-sizing: border-box;
-	width: 264px;
+	width: 278px;
 	max-width: calc(100vw - 32px);
 }
 
@@ -1520,8 +1521,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-align: start;
 }
 
-/* Body rows are 42px as on the boards (10px, a 21px line, 10px, the rule).
-   A row header (dossiq's prerequisites) reads as a strong cell, not as a
+/* Body cells read 14px at 1.2, as the boards' settings tables do; a row's
+   height comes from its content (a pill or a 34px button). A row header (dossiq's prerequisites) reads as a strong cell, not as a
    head: the theme paints every th, so its tokens are handed the cell's. */
 .cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) td,
 .cn-look-board .settings-section table:not(.cn-data-table):not(.cn-look-nextcloud *) tbody th {
@@ -1529,7 +1530,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-bottom: 1px solid var(--color-background-dark);
 	color: var(--color-main-text);
 	font-size: 14px;
-	line-height: 1.5;
+	line-height: 1.2;
 	vertical-align: middle;
 }
 
@@ -1658,6 +1659,38 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--button-padding-default: 0px;
 	padding-inline: 0;
 	min-width: 0;
+}
+
+/* A settings card's first line sits where the boards draw it: an
+   "Uitleg tonen" link, a switch or a note adds no height beyond its text, so
+   the first text is 16px under the subtitle (DqBeheerinstellingen
+   "Zaak-e-mail" and "AI-ondersteunde verwerking", DqBeheerGeavanceerd "KCC"
+   and "Storeregister": 7px and 29px lower live). The controls keep their full
+   hit area; the negative margin only takes it out of the line.
+   @spec openspec/changes/board-settings-first-line/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) {
+	margin-block: -8px;
+}
+
+.cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
+	margin-block: -8px;
+}
+
+.cn-look-board .cn-settings-field--status:not(.cn-look-nextcloud *) > .notecard {
+	margin: 0;
+}
+
+/* A card's longer explanation reads as the boards' second paragraph: 14px
+   muted at 1.5, the fields 14px under it (DqBeheerGeavanceerd "Urgentie in de
+   werkvoorraad": 15px and 30px live). The theme sizes every paragraph through
+   its tokens. */
+.cn-look-board .cn-settings-section__description-text:not(.cn-look-nextcloud *) {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.5;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
 }
 
 @container (max-width: 400px) {
@@ -2614,6 +2647,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 500;
 }
 
+/* A compact card keeps its 15px/700 title on a dashboard page too (DqInspectie). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__card .cn-record-list__title {
+	font-weight: 700;
+	line-height: 1.2;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__main {
 	gap: 2px;
 }
@@ -3472,4 +3511,5 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
 	border-radius: 8px;
 	background: var(--cn-board-sunken-ground);
+	line-height: normal;
 }

@@ -86,9 +86,14 @@ export default {
 	font-size: 13px;
 	font-weight: 700;
 	gap: 6px;
-	margin: 0;
 	min-height: 32px;
 	padding: 0 14px;
 	white-space: nowrap;
+}
+
+/* server.css gives every button `margin: 3px 3px 3px 0` at (0,2,1); the
+   doubled class outranks it. */
+.cn-detail-page__catalog-action.cn-detail-page__catalog-action {
+	margin: 0;
 }
 </style>
