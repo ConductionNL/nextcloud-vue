@@ -317,6 +317,17 @@
 	font-size: 14px;
 }
 
+/* A link action is drawn as a button action: the board's 40px, no outer
+   margin (DqMijnWerk "Vandaag eerst": live links grew to the theme's 44px
+   link target and the button kept Nextcloud's 3px margin, 46px tall and
+   13px apart where the board draws 40 to 42 and 10).
+   @spec openspec/changes/board-banner-actions-as-drawn/specs/board-banner-actions-as-drawn/spec.md#requirement-a-board-banners-actions-are-drawn-alike */
+.cn-look-board .cn-banner-widget__action.cn-banner-widget__action:not(.cn-look-nextcloud *) {
+	height: var(--cn-board-control-height);
+	min-height: 0;
+	margin: 0;
+}
+
 .cn-look-board .cn-banner-widget__action--primary:not(.cn-look-nextcloud *) {
 	border: 0;
 }
