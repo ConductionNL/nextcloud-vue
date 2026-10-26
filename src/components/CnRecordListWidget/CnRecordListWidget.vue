@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -20,9 +20,11 @@
 		<div v-else-if="loading && rows.length === 0" class="cn-record-list__loading">
 			<NcLoadingIcon :size="20" :name="loadingLabel" />
 		</div>
-		<p v-else-if="rows.length === 0" class="cn-record-list__empty" data-testid="cn-record-list-empty">
-			{{ emptyLabel }}
-		</p>
+		<template v-else-if="rows.length === 0">
+			<p v-if="emptyLabel !== ''" class="cn-record-list__empty" data-testid="cn-record-list-empty">
+				{{ emptyLabel }}
+			</p>
+		</template>
 		<!-- notice: the rows as sentences in one toned box ("2 waarschuwingen: ..."). -->
 		<div
 			v-else-if="presentation === 'notice'"
@@ -51,15 +53,37 @@
 						scope="col"
 						:aria-sort="col.sortable ? sortStateOf(col.key) : undefined"
 						:class="{ 'cn-record-list__cell--end': col.align === 'end' }">
-						<button
-							v-if="col.sortable"
-							type="button"
-							class="cn-record-list__sort"
-							:data-testid="`cn-record-list-sort-${col.key}`"
-							@click="toggleTableSort(col.key)">
-							{{ col.label }}
-							<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
-						</button>
+						<span v-if="col.sortable || tableFilterable" class="cn-record-list__head">
+							<button
+								v-if="col.sortable"
+								type="button"
+								class="cn-record-list__sort"
+								:data-testid="`cn-record-list-sort-${col.key}`"
+								@click="toggleTableSort(col.key)">
+								{{ col.label }}
+								<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
+							</button>
+							<template v-else>
+								{{ col.label }}
+							</template>
+							<!-- `content.filterable`: the head offers the values the column holds and keeps the rows with a chosen one. -->
+							<NcActions
+								v-if="tableFilterable"
+								class="cn-record-list__head-filter"
+								:aria-label="filterLabelOf(col.label)"
+								:data-testid="`cn-record-list-filter-${col.key}`">
+								<template #icon>
+									<FilterOutline :size="14" />
+								</template>
+								<NcActionCheckbox
+									v-for="option in tableFilterOptions(col.key)"
+									:key="option"
+									:modelValue="(tableFilters[col.key] || []).includes(option)"
+									@update:modelValue="toggleTableFilter(col.key, option)">
+									{{ option }}
+								</NcActionCheckbox>
+							</NcActions>
+						</span>
 						<template v-else>
 							{{ col.label }}
 						</template>
@@ -192,6 +216,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -251,6 +276,7 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
@@ -267,6 +293,12 @@
 						<span v-if="item.leading"
 							class="cn-record-list__leading"
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
+						<span v-if="pillFirst && item.pill" class="cn-record-list__pill-start">
+							<CnStatusBadge
+								:label="item.pill.label"
+								:variant="item.pill.variant"
+								size="small" />
+						</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
 							aria-hidden="true"
@@ -280,6 +312,12 @@
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
 							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
+							<!-- `duePlacement: "below"`: the due text as a line under the title (DqDagAfsluiten "Morgen eerst"). -->
+							<span
+								v-if="item.due && dueBelow"
+								class="cn-record-list__due cn-record-list__due--below"
+								:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
+								data-testid="cn-record-list-due">{{ item.due.text }}</span>
 							<span v-if="item.links.length > 0" class="cn-record-list__meta" data-testid="cn-record-list-links">
 								{{ linksLabel }}
 								<template v-for="(link, linkIndex) in item.links" :key="link.id">
@@ -288,10 +326,10 @@
 								</template>
 							</span>
 						</span>
-						<span v-if="item.pill || item.badges.length > 0 || item.due || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="(item.pill && !pillFirst) || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
 							<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 							<CnStatusBadge
-								v-if="item.pill"
+								v-if="item.pill && !pillFirst"
 								:label="item.pill.label"
 								:variant="item.pill.variant"
 								size="small" />
@@ -303,7 +341,7 @@
 								size="small"
 								:data-testid="`cn-record-list-badge-${badge.kind}`" />
 							<span
-								v-if="item.due"
+								v-if="item.due && !dueBelow"
 								class="cn-record-list__due"
 								:class="[`cn-record-list__due--${item.due.tone}`, { 'cn-record-list__due--soon': item.due.soon }]"
 								data-testid="cn-record-list-due">{{ item.due.text }}</span>
@@ -436,9 +474,36 @@
 			data-testid="cn-record-list-action-error">
 			{{ actionError }}
 		</p>
-		<p v-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
+		<div
+			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
+			class="cn-record-list__notice cn-record-list__notice--footnote"
+			:class="`cn-record-list__notice--${footnoteTone}`"
+			data-testid="cn-record-list-footnote">
+			<CnIcon
+				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
+				:size="16"
+				class="cn-record-list__notice-icon"
+				aria-hidden="true" />
+			<p class="cn-record-list__notice-text">
+				{{ footnote }}
+			</p>
+		</div>
+		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
+		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
+		<router-link
+			v-if="footerLink && footerLink.to"
+			class="cn-record-list__footer-link"
+			:to="footerLink.to"
+			data-testid="cn-record-list-footer-link">
+			{{ footerLink.label }}
+		</router-link>
+		<a
+			v-else-if="footerLink"
+			class="cn-record-list__footer-link"
+			:href="footerLink.href"
+			data-testid="cn-record-list-footer-link">{{ footerLink.label }}</a>
 		<!-- `footerAction`: one action under the list, also under the empty
 		     text ("Beroep registreren"). With `disabledWhen` it greys out and
 		     says why (`disabledReason`: "Kan zodra de beslissing is
@@ -473,10 +538,18 @@
 		<div
 			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
+			:class="{ 'cn-record-list__footer--wide': footerAction.wide }"
 			data-testid="cn-record-list-footer">
+			<p
+				v-if="footerAction.note"
+				class="cn-record-list__footer-note"
+				data-testid="cn-record-list-footer-note">
+				{{ footerAction.note }}
+			</p>
 			<NcButton
 				variant="secondary"
 				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:wide="footerAction.wide"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -498,10 +571,12 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRecordNoteRows from './CnRecordNoteRows.vue'
@@ -516,6 +591,7 @@ import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
+import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -581,8 +657,9 @@ function unwrap(value) {
  * `object-list` (`register`, `schema`, `filter` with the `@objectId` /
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
  * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
- * payload, after `responsePath`, is the array of rows, as on the object table); `avatar` puts a circle with the initials of a name
- * template before the title; what differs is the drawing: `presentation` is `rows`, `feed`
+ * payload, after `responsePath`, is the array of rows, as on the object table), or `objectRows`
+ * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
+ * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten); what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
  * grid, with `trailing` as the large figure (board ShBank's accounts).
@@ -595,7 +672,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, NcActionButton, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -621,7 +698,8 @@ export default {
 		 * with `overVariant: "error"`), or without `maxField` against the
 		 * largest row. `endpointSource` (`{ url, method?,
 		 * params?, responsePath? }`) reads the rows from an app endpoint instead
-		 * of `register` / `schema`. `valueLabels` maps a field's stored values to the labels
+		 * of `register` / `schema`. `objectRows` (`{ path, where?, valuePath? }`)
+		 * lists rows the page record holds, with no request. `valueLabels` maps a field's stored values to the labels
 		 * the templates show. `headerNote` and `headerLink.label` fill `{total}`
 		 * and `{count:<field>=<value>}`, the loaded rows with that value.
 		 * A row that is a plain string or number (an endpoint
@@ -635,16 +713,34 @@ export default {
 		 * of the flags a row has ("Start", "End") at its end.
 		 * `tiles: true` (rows only) draws each row as a framed tile in a grid
 		 * of 260px at the least.
+		 * `footerLink` (the shape of `headerLink`) ends the card with a text
+		 * link under the rows.
 		 * `footerAction` (`{ label, icon?, type, ..., disabledWhen?,
 		 * disabledReason? }`) ends the card with one action, also under the
 		 * empty text; while the visibleWhen condition `disabledWhen` holds the
-		 * button is disabled and `disabledReason` shows under it.
+		 * button is disabled and `disabledReason` shows under it. `note` is a
+		 * line above it and `wide: true` stretches it across the card. A list
+		 * of such actions draws the first whose `visibleWhen` (a local
+		 * condition over the page's record) holds (DqZaaktype Versies:
+		 * "Publiceren" on a draft, "Nieuwe versie maken" otherwise).
+		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
+		 * first case whose `when` holds on it, else by the pill's own `label`
+		 * and `variant` (Concept, Vastgezet, Actief).
+		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
+		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * `tableLook: "data"` marks a `table` as a data table, which the board
+		 * look draws as its card table (header band, 40px rows, hairlines)
+		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
 		 * `groupBy` (a field path) draws the rows in groups under a heading
 		 * per value, headed by the field's `valueLabels` entry; `groupOrder`
 		 * (values) orders the groups and `groupEmptyLabel` heads the rows
 		 * without a value.
 		 * `density: "compact"` draws the rows 10px above and below, at least
 		 * 56px tall, with the title at 500 (DqProcesanalyse).
+		 * On `cards` it draws the small framed card: 12px 14px in, the title
+		 * 15px/700 with the pill at its end (DqInspectie).
+		 * `density: "stacked"` stands the rows 10px apart with no rule and no
+		 * row padding (DqDagAfsluiten "Morgen eerst").
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -659,6 +755,9 @@ export default {
 		 * `{key}`; `text` (`{ zero?, one?, other }` with `{count}`) offers a
 		 * count as words (DqZaaktype Versies "31 lopende zaken", "geen
 		 * lopende zaken").
+		 * In `rows`, `ruleAbove: true` rules above the first row too, and
+		 * `pillAt: "start"` draws the pill before the title (DqZaakDocumenten
+		 * "Weigeringsgronden tot nu toe").
 		 *
 		 * @type {object}
 		 */
@@ -735,6 +834,8 @@ export default {
 		return {
 			/** The reader's sort of a `table`: the column key and `ascending` or `descending`. */
 			tableSort: { key: '', dir: '' },
+			/** The reader's head filters of a `table`: `{ [columnKey]: cellTexts[] }`. */
+			tableFilters: {},
 			rows: [],
 			/** The `aggregates` figures per row id: `{ [rowId]: { [key]: value } }`. */
 			aggregateValues: {},
@@ -759,6 +860,22 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the avatar is the 32px circle (`avatar.size: 32`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-avatar-size/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-be-the-small-circle
+		 */
+		avatarSmall() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
+		},
+
+		/** @return {boolean} Whether a row's pill comes before its title (`pillAt: "start"`). */
+		pillFirst() {
+			return this.content?.pillAt === 'start'
+		},
+
+		/**
 		 * The action under the list (`footerAction`: `{ label, icon?, type,
 		 * ..., disabledWhen?, disabledReason? }`), labels through the host
 		 * translate, or null without a label.
@@ -767,16 +884,33 @@ export default {
 		 * @return {{label: string, icon: string, reason: string, action: object}|null}
 		 */
 		footerAction() {
-			const action = this.content?.footerAction
-			if (!action || typeof action !== 'object' || typeof action.label !== 'string' || action.label === '') {
+			const action = this.footerActionConfig
+			if (!action || typeof action.label !== 'string' || action.label === '') {
 				return null
 			}
 			return {
 				label: this.translate(action.label),
 				icon: typeof action.icon === 'string' ? action.icon : '',
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
+				note: typeof action.note === 'string' && action.note !== '' ? this.translate(action.note) : '',
+				wide: action.wide === true,
 				action,
 			}
+		},
+
+		/**
+		 * The `footerAction` entry in force. A list of entries draws the first
+		 * whose `visibleWhen` (a local condition over the page's record) holds;
+		 * an entry without one always holds.
+		 *
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-lists-footer-action-can-depend-on-the-record
+		 * @return {object|null} The entry, or null when none holds.
+		 */
+		footerActionConfig() {
+			const declared = this.content?.footerAction
+			const entries = Array.isArray(declared) ? declared : [declared]
+			const record = this.tokenCtx.object || {}
+			return entries.find((entry) => entry && typeof entry === 'object' && (!entry.visibleWhen || evaluateVisibleWhenLocal(entry.visibleWhen, record))) || null
 		},
 
 		/**
@@ -787,7 +921,7 @@ export default {
 		 * @return {string}
 		 */
 		footerGroup() {
-			const group = this.content?.footerAction?.group
+			const group = this.footerActionConfig?.group
 			if (!this.footerAction || !this.isGrouped || group === null || group === undefined || group === '') {
 				return ''
 			}
@@ -811,7 +945,7 @@ export default {
 
 		/** @return {boolean} Whether the action is drawn as a tonal pill (`footerAction.variant: "tonal"`). */
 		footerTonal() {
-			return this.content?.footerAction?.variant === 'tonal'
+			return this.footerActionConfig?.variant === 'tonal'
 		},
 
 		/**
@@ -821,7 +955,7 @@ export default {
 		 * @return {string}
 		 */
 		footerDisabledKey() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				return ''
 			}
@@ -922,6 +1056,30 @@ export default {
 		endpointActive() {
 			const source = this.content?.endpointSource
 			return Boolean(source && typeof source === 'object' && source.url)
+		},
+
+		/**
+		 * Whether the rows come from the page's own record (`objectRows`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-object-rows/specs/record-list/spec.md#requirement-a-record-list-can-list-rows-the-page-record-holds
+		 */
+		objectRowsActive() {
+			return isObjectRowsSpec(this.content?.objectRows)
+		},
+
+		/**
+		 * The rows `objectRows` names on the page record (see utils/objectRows.js).
+		 *
+		 * @return {Array<object>}
+		 */
+		objectRowsList() {
+			return this.objectRowsActive ? objectRowsOf(this.objectData, this.content.objectRows) : []
+		},
+
+		/** @return {string} The page record's rows, to copy into the list when they change. */
+		objectRowsKey() {
+			return this.objectRowsActive ? JSON.stringify(this.objectRowsList) : ''
 		},
 
 		/** @return {string} The endpoint read's state, to copy into the list when it changes. */
@@ -1040,16 +1198,28 @@ export default {
 
 		/**
 		 * The `table` presentation's columns: `{ label, value, align?, alertAbove? }`,
-		 * `value` a template over the row.
+		 * `value` a template over the row, or a list of templates of which the
+		 * first that fills is shown (a row that holds only some fields).
 		 *
 		 * @return {Array<object>} The columns with a key and a translated label.
 		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
+		 * @spec openspec/changes/record-list-table-column-candidates/specs/record-list-table/spec.md#requirement-a-table-column-can-name-candidate-templates
 		 */
 		tableColumns() {
 			const columns = Array.isArray(this.content?.columns) ? this.content.columns : []
+			const isTemplate = (value) => typeof value === 'string' || (Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string'))
 			return columns
-				.filter((col) => col && typeof col === 'object' && typeof col.value === 'string')
-				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '' }))
+				.filter((col) => col && typeof col === 'object' && isTemplate(col.value))
+				.map((col, index) => ({ ...col, key: `col-${index}`, label: typeof col.label === 'string' ? this.translate(col.label) : '', sortable: col.sortable === true || this.content?.sortable === true }))
+		},
+
+		/**
+		 * Whether the `table` heads filter (`content.filterable`).
+		 *
+		 * @return {boolean}
+		 */
+		tableFilterable() {
+			return this.content?.filterable === true
 		},
 
 		/**
@@ -1059,8 +1229,27 @@ export default {
 		 * @spec openspec/changes/record-list-table/specs/record-list-table/spec.md#requirement-a-record-list-can-draw-its-rows-as-a-small-table
 		 */
 		tableRows() {
+			const rows = this.tableAllRows.filter((row) => Object.entries(this.tableFilters).every(([key, values]) => {
+				const index = this.tableColumns.findIndex((col) => col.key === key)
+				return values.length === 0 || index < 0 || values.includes(row.cells[index].text)
+			}))
+			const { key, dir } = this.tableSort
+			const index = this.tableColumns.findIndex((col) => col.key === key)
+			if (index < 0 || !dir) {
+				return rows
+			}
+			const sign = dir === 'descending' ? -1 : 1
+			return [...rows].sort((a, b) => sign * compareCells(a.cells[index].text, b.cells[index].text))
+		},
+
+		/**
+		 * Every `table` row, before the reader's head filters and sort.
+		 *
+		 * @return {Array<object>} `{ key, cells: [{ key, text, align, alert }] }`.
+		 */
+		tableAllRows() {
 			const indentPath = this.content?.indentPath
-			const rows = this.items.map((item) => ({
+			return this.items.map((item) => ({
 				key: item.key,
 				row: item.row,
 				rowActions: this.rowActions.length > 0 ? this.rowActionsOf(item.row) : [],
@@ -1076,17 +1265,22 @@ export default {
 						sub: typeof col.sub === 'string' ? this.fill(col.sub, item.row) : '',
 						align: col.align,
 						alert: col.alertAbove !== undefined && Number.isFinite(limit) && text !== '' && Number.isFinite(value) && value > limit,
-						tone: this.cellToneOf(col, item.row, text),
+						// An empty cell draws no coloured label.
+						tone: text === '' ? '' : this.cellToneOf(col, item.row, text),
 					}
 				}),
 			}))
-			const { key, dir } = this.tableSort
-			const index = this.tableColumns.findIndex((col) => col.key === key)
-			if (index < 0 || !dir) {
-				return rows
-			}
-			const sign = dir === 'descending' ? -1 : 1
-			return [...rows].sort((a, b) => sign * compareCells(a.cells[index].text, b.cells[index].text))
+		},
+
+		/**
+		 * Whether a row draws its due text under its title (`duePlacement:
+		 * "below"`) instead of at its end.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-due-below/specs/record-list-due-below/spec.md#requirement-a-rows-due-text-can-sit-under-its-title
+		 */
+		dueBelow() {
+			return this.content?.duePlacement === 'below'
 		},
 
 		/** @return {string} The note under the list (`footnote`), translated. */
@@ -1100,6 +1294,19 @@ export default {
 				return this.translate(note.text).replace(/\{value\}/g, String(value))
 			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * The tone the footnote is drawn in as a notice box
+		 * (`content.footnoteVariant`: info, warning or error); '' for a plain
+		 * muted line.
+		 *
+		 * @return {string} The tone, or ''.
+		 * @spec openspec/changes/record-list-data-table-and-notice-footnote/specs/record-list/spec.md#requirement-a-record-list-footnote-can-be-a-toned-notice
+		 */
+		footnoteTone() {
+			const tone = this.content?.footnoteVariant
+			return NOTICE_VARIANTS.includes(tone) ? tone : ''
 		},
 
 		/**
@@ -1127,25 +1334,34 @@ export default {
 			return Math.max(0, ...this.rows.slice(0, this.limit).map((row) => Number(readPath(row, field)) || 0))
 		},
 
-		/** @return {object|null} The header link with `{total}` filled and tokens resolved. */
+		/** @return {object|null} The header link with `{total}` filled and tokens resolved; null while an href param is unresolved. */
 		headerLink() {
-			const link = this.content?.headerLink
-			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+			return this.resolveLink(this.content?.headerLink)
+		},
+
+		/**
+		 * The text link under the rows (`footerLink`), resolved as the header
+		 * link is, as a router location or an href; null without rows.
+		 *
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 * @spec openspec/changes/record-list-footer-link/specs/record-list-footer-link/spec.md#requirement-a-record-list-can-end-with-a-text-link
+		 */
+		footerLink() {
+			const link = this.resolveLink(this.content?.footerLink)
+			if (!link || this.error || this.rows.length === 0) {
 				return null
 			}
-			const resolved = { label: this.withTotal(link.label) }
 			if (link.route) {
-				resolved.route = link.route
-				if (link.params && typeof link.params === 'object') {
-					resolved.params = resolveFilterTokens(link.params, this.tokenCtx)
+				const to = { name: link.route }
+				if (link.params) {
+					to.params = link.params
 				}
-				if (link.query && typeof link.query === 'object') {
-					resolved.query = resolveFilterTokens(link.query, this.tokenCtx)
+				if (link.query) {
+					to.query = link.query
 				}
-			} else if (typeof link.href === 'string') {
-				resolved.href = link.href
+				return { label: link.label, to }
 			}
-			return resolved
+			return link.href ? { label: link.label, href: link.href } : null
 		},
 
 		/**
@@ -1318,6 +1534,18 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/record-list-table-row-actions/specs/record-list-table/spec.md#requirement-a-table-row-can-carry-a-second-line-and-an-actions-menu
 		 */
+		/**
+		 * Whether the row action is drawn as an outlined button sized to its
+		 * label (`rowAction.variant: "outlined"`, DqMijnTeam "Oppakken") instead
+		 * of the 150px pill (DcMijnActies "Stem uitbrengen").
+		 *
+		 * @return {boolean} True for the outlined variant.
+		 * @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button
+		 */
+		rowActionOutlined() {
+			return this.content?.rowAction?.variant === 'outlined'
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
@@ -1359,6 +1587,10 @@ export default {
 			}
 			if (this.conditionalEmptyText !== '') {
 				return this.conditionalEmptyText
+			}
+			// `emptyText: ""` says nothing on an empty list.
+			if (this.content?.emptyText === '') {
+				return ''
 			}
 			return this.content?.emptyText ? this.translate(this.content.emptyText) : t('nextcloud-vue', 'Nothing here yet')
 		},
@@ -1404,6 +1636,10 @@ export default {
 			this.fetchRows()
 		},
 
+		objectRowsKey() {
+			this.fetchRows()
+		},
+
 		linkIdsKey() {
 			this.loadLinkLabels()
 		},
@@ -1420,6 +1656,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * An href with its `{name}` placeholders filled from `params` (tokens
+		 * such as `@object.masterEntityRef` resolved, each value URL-encoded)
+		 * and made a Nextcloud URL; null while a value is missing, so the link
+		 * is left out rather than pointing nowhere.
+		 *
+		 * @param {string} href The href, `/apps/<app>/...` with placeholders.
+		 * @param {object} params The placeholder values or tokens.
+		 * @return {string|null} The URL, or null.
+		 * @spec openspec/changes/record-list-header-href-params/specs/record-widgets/spec.md#requirement-a-record-list-header-link-can-fill-its-url-from-the-record
+		 */
+		filledHref(href, params) {
+			const values = resolveFilterTokens(params, this.tokenCtx)
+			let missing = false
+			const path = href.replace(/\{(\w+)\}/g, (match, name) => {
+				const value = values[name]
+				if (value === null || value === undefined || value === '' || typeof value === 'object' || (typeof value === 'string' && value.startsWith('@'))) {
+					missing = true
+					return ''
+				}
+				return encodeURIComponent(String(value))
+			})
+			if (missing) {
+				return null
+			}
+			return path.startsWith('/') && !path.startsWith('//') ? generateUrl(path) : path
+		},
+
 		/**
 		 * Translate a manifest string through the host app.
 		 *
@@ -1515,7 +1779,7 @@ export default {
 		},
 
 		async evaluateFooterDisabled() {
-			const cond = this.content?.footerAction?.disabledWhen
+			const cond = this.footerActionConfig?.disabledWhen
 			if (!cond) {
 				this.footerDisabled = false
 				return
@@ -1540,7 +1804,7 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
-			const { disabledWhen, disabledReason, group, variant, ...action } = declared
+			const { disabledWhen, disabledReason, group, variant, visibleWhen, note, wide, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
@@ -1645,6 +1909,40 @@ export default {
 		 * @param {string} label The label.
 		 * @return {string} The text.
 		 */
+		/**
+		 * A `{ label, route, params?, query? }` or `{ label, href }` link with
+		 * `{total}` filled and tokens resolved, or null.
+		 *
+		 * @param {object|undefined} link The declared link.
+		 * @return {object|null} The resolved link.
+		 */
+		resolveLink(link) {
+			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+				return null
+			}
+			const resolved = { label: this.withTotal(link.label) }
+			if (link.route) {
+				resolved.route = link.route
+				if (link.params && typeof link.params === 'object') {
+					resolved.params = resolveFilterTokens(link.params, this.tokenCtx)
+				}
+				if (link.query && typeof link.query === 'object') {
+					resolved.query = resolveFilterTokens(link.query, this.tokenCtx)
+				}
+			} else if (typeof link.href === 'string') {
+				if (link.params && typeof link.params === 'object') {
+					const href = this.filledHref(link.href, link.params)
+					if (href === null) {
+						return null
+					}
+					resolved.href = href
+				} else {
+					resolved.href = link.href
+				}
+			}
+			return resolved
+		},
+
 		withTotal(label) {
 			return fillCountLabel(this.translate(label), this.total, this.rows)
 		},
@@ -1997,6 +2295,41 @@ export default {
 		},
 
 		/**
+		 * The values a `table` column's head filter offers: each text the column holds, once.
+		 *
+		 * @param {string} key The column key.
+		 * @return {Array<string>} The texts, in row order.
+		 */
+		tableFilterOptions(key) {
+			const index = this.tableColumns.findIndex((col) => col.key === key)
+			if (index < 0) {
+				return []
+			}
+			return [...new Set(this.tableAllRows.map((row) => row.cells[index].text).filter((text) => text !== ''))]
+		},
+
+		/**
+		 * Keep or drop one value of a `table` column's head filter.
+		 *
+		 * @param {string} key The column key.
+		 * @param {string} value The cell text.
+		 */
+		toggleTableFilter(key, value) {
+			const current = this.tableFilters[key] || []
+			this.tableFilters = { ...this.tableFilters, [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value] }
+		},
+
+		/**
+		 * The accessible name of a column's head filter.
+		 *
+		 * @param {string} label The column label.
+		 * @return {string}
+		 */
+		filterLabelOf(label) {
+			return t('nextcloud-vue', 'Filter by {column}', { column: label })
+		},
+
+		/**
 		 * The rows of a read with `flattenPath` set: each entry of the list at
 		 * that path on a record becomes a row, with the record at `@parent`.
 		 * A record without the list adds no row. Without `flattenPath` the
@@ -2313,6 +2646,9 @@ export default {
 		 */
 		pillOf(row, config) {
 			const pill = config || this.content?.pill
+			if (pill && typeof pill === 'object' && Array.isArray(pill.cases)) {
+				return this.pillCaseOf(row, pill)
+			}
 			if (!pill || typeof pill !== 'object' || !pill.field) {
 				return null
 			}
@@ -2331,6 +2667,29 @@ export default {
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
+			}
+		},
+
+		/**
+		 * The pill of `{ cases: [{ when, label, variant? }], label?, variant? }`:
+		 * the first case whose `when` (a local condition over the row) holds,
+		 * else the pill's own `label` and `variant`, else none. For a state that
+		 * reads more than one field (Concept, Actief, Vastgezet).
+		 *
+		 * @param {object} row The row.
+		 * @param {object} pill The pill config.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
+		 */
+		pillCaseOf(row, pill) {
+			const found = pill.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+			const chosen = found || pill
+			if (typeof chosen.label !== 'string' || chosen.label === '') {
+				return null
+			}
+			return {
+				label: this.translate(chosen.label),
+				variant: isBadgeVariant(chosen.variant) ? chosen.variant : 'default',
 			}
 		},
 
@@ -2485,6 +2844,15 @@ export default {
 			}
 			if (this.endpointActive) {
 				this.takeEndpointRows()
+				return
+			}
+			if (this.objectRowsActive) {
+				this.rows = this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row)))
+				this.total = this.rows.length
+				this.loading = false
+				this.error = false
+				this.lenses = {}
+				this.emitHeader()
 				return
 			}
 			if (!c.register || !c.schema || this.waiting) {
@@ -2677,6 +3045,16 @@ export default {
 	margin-top: 10px;
 }
 
+.cn-record-list__footer--wide {
+	align-items: stretch;
+}
+
+.cn-record-list__footer-note {
+	margin: 0 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 .cn-record-list__footer-reason {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
@@ -2708,6 +3086,10 @@ export default {
 	color: var(--color-error-text, var(--color-main-text));
 }
 
+.cn-record-list__notice--footnote {
+	margin-top: 12px;
+}
+
 .cn-record-list__notice-icon {
 	flex: 0 0 auto;
 	margin-top: 1px;
@@ -2725,8 +3107,14 @@ export default {
 }
 
 /* rows */
-.cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
+.cn-record-list--rows .cn-record-list__item + .cn-record-list__item,
+.cn-record-list--rule-above .cn-record-list__item:first-child {
 	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-list__pill-start {
+	display: flex;
+	flex: none;
 }
 
 .cn-record-list__bar {
@@ -2775,6 +3163,14 @@ export default {
 	white-space: nowrap;
 }
 
+/* `avatar.size: 32`: the smaller circle, 12px from the title where the row
+   keeps 16px between its other parts (DqZaakBesluiten Adviezen). */
+.cn-record-list__list--avatar-small .cn-record-list__avatar {
+	width: 32px;
+	height: 32px;
+	margin-inline-end: -4px;
+}
+
 .cn-record-list__avatar {
 	align-items: center;
 	background: var(--color-background-hover);
@@ -2810,6 +3206,23 @@ export default {
 
 .cn-record-list--compact .cn-record-list__title {
 	font-weight: 500;
+}
+
+/* `density: "stacked"`: the rows stand 10px apart with no rule and no row
+   padding, a short side list (DqDagAfsluiten "Morgen eerst"). */
+.cn-record-list--stacked .cn-record-list__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-record-list--stacked .cn-record-list__row {
+	min-height: 0;
+	padding: 0;
+}
+
+.cn-record-list--stacked .cn-record-list__item + .cn-record-list__item {
+	border-top: 0;
 }
 
 .cn-record-list__meta {
@@ -2902,6 +3315,16 @@ export default {
 	font-size: 10px;
 }
 
+.cn-record-list__head {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.cn-record-list__head-filter {
+	--button-size: 22px;
+}
+
 .cn-record-list__table .cn-record-list__cell--end {
 	padding-inline-start: 12px;
 	text-align: end;
@@ -2956,6 +3379,20 @@ export default {
 	justify-content: flex-end;
 }
 
+.cn-record-list__due--below {
+	font-size: 13px;
+	font-weight: 600;
+	white-space: normal;
+}
+
+.cn-record-list__footer-link {
+	align-self: flex-start;
+	padding-top: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+}
+
 .cn-record-list__due--column {
 	flex: 0 0 96px;
 	font-size: 13px;
@@ -2976,6 +3413,7 @@ export default {
 	font-weight: 600;
 	height: 34px;
 	justify-content: center;
+	margin: 0;
 	padding: 0 14px;
 	text-decoration: none;
 }
@@ -3037,6 +3475,24 @@ export default {
 	gap: 8px;
 	padding: 16px 18px;
 	text-decoration: none;
+}
+
+/* `density: "compact"` on cards: the boards' small framed rows (DqInspectie
+   "Molenweg 4" and the outbox): 12px 14px in, the title 15px/700 on an
+   18px line with the pill at its end, the meta 6px under it. */
+.cn-record-list--compact .cn-record-list__card {
+	gap: 6px;
+	padding: 12px 14px;
+}
+
+.cn-record-list--compact .cn-record-list__card-head {
+	align-items: flex-start;
+}
+
+.cn-record-list--compact .cn-record-list__card .cn-record-list__title {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-record-list__card--link:hover,

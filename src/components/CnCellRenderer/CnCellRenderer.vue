@@ -53,12 +53,19 @@
 			</span>
 		</template>
 
+		<!-- Built-in "label" widget: the value's label (an enum's translated
+		     label) as plain text, where a list wants words and no pill. -->
+		<template v-else-if="widget === 'label'">
+			<span v-if="hasValue" :title="rawTitle">{{ shownLabel }}</span>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "badge" widget: renders the value as a status pill. An enum
 		     value shows its label (x-enum-labels, translated) unless a formatter
 		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
 			<CnStatusBadge v-if="hasValue"
-				:label="labelledValue"
+				:label="shownLabel"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
 				:colorKey="badgeColorKey"
@@ -126,8 +133,8 @@
 			<a
 				v-else-if="linkHref"
 				:href="linkHref"
-				target="_blank"
-				rel="noopener"
+				:target="linkTarget"
+				:rel="linkTarget ? 'noopener' : null"
 				class="cn-cell-renderer__link">
 				{{ labelledValue }}
 			</a>
@@ -168,7 +175,7 @@
 		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
-				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
+				<span v-if="avatarUserId && !isBoardLook" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
 					<NcAvatar
 						:user="avatarUserId"
 						:displayName="avatarName || avatarUserId"
@@ -179,6 +186,7 @@
 				<span
 					v-else
 					class="cn-cell-renderer__avatar-initials"
+					:class="avatarToneClass"
 					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
 					aria-hidden="true">{{ avatarInitials }}</span>
 				<span class="cn-cell-renderer__avatar-text">
@@ -382,7 +390,12 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
-		<!-- Boolean: icon -->
+		<!-- Boolean: words when `widgetProps.trueLabel` / `falseLabel` name
+		     them (the value `widgetProps.pill` names as a pill), else an icon -->
+		<template v-else-if="propertyType === 'boolean' && booleanWord !== ''">
+			<CnStatusBadge v-if="booleanPilled" :label="booleanWord" />
+			<span v-else>{{ booleanWord }}</span>
+		</template>
 		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
@@ -426,6 +439,7 @@ import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeD
 import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillTemplate, formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -477,11 +491,16 @@ export default {
 	inject: {
 		/**
 		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
-		 * Map of formatter-id → `(value, row, property) => string|number`.
+		 * Map of formatter-id → `(value, row, property, options, context) => string|number`;
+		 * `context` is the page record, `{ objectId, object }`.
 		 * Defaults to an empty object so standalone use (no CnAppRoot
 		 * ancestor) is unaffected.
 		 */
 		cnFormatters: { default: () => ({}) },
+		/** The detail page's record context (`{ objectId, object }`), for a formatter's fifth argument. */
+		cnObjectContext: { default: null },
+		/** The v2 grid's record holder (`{ value: { objectId, objectData } }`), the same. */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Cell-widget registry, provided by CnAppRoot (`cnCellWidgets`).
 		 * Map of widget-id → Vue component. Resolves a column's `widget` id;
@@ -580,7 +599,8 @@ export default {
 		 * Extra props spread onto the resolved cell-widget component. The
 		 * built-in `"link"` reads its target from here: `route` (a manifest
 		 * page id), `params` (route param to row field), `href` (URL with
-		 * `{field}` placeholders), and `routeField` + `routeMap` to pick the
+		 * `{field}` placeholders; a new tab unless `target: "_self"` or a `#`
+		 * anchor), and `routeField` + `routeMap` to pick the
 		 * page per row from a sibling field (`{ person: 'ContactDetail' }`),
 		 * with `route` as the fallback for a value the map does not hold.
 		 */
@@ -620,7 +640,7 @@ export default {
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
 		 *
-		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 * @type {{style?: 'currency'|'number'|'decimal'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
@@ -730,13 +750,42 @@ export default {
 		 * @return {object|string|null} A component, an icon name, or null.
 		 */
 		iconLabelIcon() {
-			const icon = this.widgetProps && this.widgetProps.icon
+			const props = this.widgetProps || {}
+			// `widgetProps.icons`: an icon per stored value, `icon` for the rest.
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-an-icon-label-cell-can-pick-its-icon-by-value
+			if (props.icons && typeof props.icons === 'object' && this.hasValue && typeof this.value !== 'object' && Object.hasOwn(props.icons, String(this.value))) {
+				return props.icons[String(this.value)] || null
+			}
+			const icon = props.icon
 			const resolved = typeof icon === 'function' ? icon(this.row) : icon
 			return resolved || null
 		},
 
 		propertyType() {
 			return this.property?.type || (typeof this.value)
+		},
+
+		/**
+		 * A boolean's word from `widgetProps.trueLabel` / `falseLabel`,
+		 * translated, or '' when the column names none.
+		 *
+		 * @return {string}
+		 */
+		booleanWord() {
+			const props = this.widgetProps || {}
+			const word = this.value === true ? props.trueLabel : (this.value === false ? props.falseLabel : '')
+			return typeof word === 'string' && word !== '' ? this.cnTranslate(word) : ''
+		},
+
+		/**
+		 * Whether this boolean's word is drawn as a pill: `widgetProps.pill`
+		 * names the value that is.
+		 *
+		 * @return {boolean}
+		 */
+		booleanPilled() {
+			const pill = (this.widgetProps || {}).pill
+			return typeof pill === 'boolean' && pill === this.value
 		},
 
 		isEnum() {
@@ -894,6 +943,19 @@ export default {
 		 * @return {number}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
+		/**
+		 * `avatar` widget: the chip's tone class in the board look,
+		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
+		 * default light primary.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
+		 */
+		avatarToneClass() {
+			const tone = this.widgetProps && this.widgetProps.tone
+			return tone === 'neutral' ? 'cn-cell-renderer__avatar-initials--neutral' : ''
+		},
+
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
 			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)
@@ -1190,6 +1252,12 @@ export default {
 			if (props.relative === true) {
 				return formatRelativeDate(date, { withTime: props.showTime === true })
 			}
+			// `widgetProps.short: true` writes the board's short date in any
+			// look, with `showTime` followed by the time ("5 okt, 09:15").
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-date-cell-can-write-the-boards-short-date-with-its-time
+			if (props.short === true && props.timeOnly !== true) {
+				return props.showTime === true ? formatBoardDateTime(date) : formatBoardDate(date)
+			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.
 			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
@@ -1401,6 +1469,22 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
 		 */
+		/**
+		 * What a `label` or `badge` cell shows: its label, worded by
+		 * `widgetProps.textTemplate` when given (translated, filled from the
+		 * row, `{value}` the label; DqPostvak "Lijkt op 2026-0079").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-text-template/specs/cell-text-template/spec.md
+		 */
+		shownLabel() {
+			const template = this.widgetProps && this.widgetProps.textTemplate
+			if (typeof template !== 'string' || template === '') {
+				return this.labelledValue
+			}
+			return fillTemplate(this.cnTranslate(template), { ...(this.row || {}), value: this.labelledValue })
+		},
+
 		labelledValue() {
 			if (!this.hasFormatter && this.isEnum && this.hasValue && typeof this.value !== 'object') {
 				return this.enumLabel
@@ -1598,6 +1682,23 @@ export default {
 		},
 
 		/**
+		 * Where a `widgetProps.href` link opens: a new tab, unless
+		 * `widgetProps.target` is `_self` or the href is an anchor on this
+		 * page (`#…`), so a row can open a card on the same page
+		 * (DqInstellingen: a connection row opens its settings card).
+		 *
+		 * @return {string|null} `_blank`, or null for the same tab.
+		 * @spec openspec/changes/cell-link-same-tab/specs/cell-link-same-tab/spec.md
+		 */
+		linkTarget() {
+			const target = this.widgetProps && this.widgetProps.target
+			if (target === '_self' || (typeof this.linkHref === 'string' && this.linkHref.startsWith('#'))) {
+				return null
+			}
+			return '_blank'
+		},
+
+		/**
 		 * Resolved formatter function for this cell, or `null`. A column's
 		 * `formatter` id resolves against the injected `cnFormatters` registry.
 		 *
@@ -1606,6 +1707,19 @@ export default {
 		formatterFn() {
 			const fn = this.formatter && this.cnFormatters && this.cnFormatters[this.formatter]
 			return typeof fn === 'function' ? fn : null
+		},
+
+		/**
+		 * The record of the page the table sits on, for a formatter that needs
+		 * more than its row: `{ objectId, object }`, both null outside a detail page.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null)}}
+		 * @spec openspec/changes/cell-formatter-page-record/specs/cell-renderer/spec.md#requirement-a-cell-formatter-can-read-the-page-record
+		 */
+		formatterContext() {
+			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+			const ctx = unwrap(this.cnObjectContext) || unwrap(this.cnDetailObjectContext) || {}
+			return { objectId: ctx.objectId ?? null, object: ctx.object || ctx.objectData || null }
 		},
 
 		/** True when an explicit formatter is in play for this cell. */
@@ -1625,9 +1739,9 @@ export default {
 			return typeof s === 'string' ? s : null
 		},
 
-		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		/** True when a built-in NUMERIC format (currency/number/decimal/percent/duration) applies. */
 		hasBuiltinFormat() {
-			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+			return ['currency', 'number', 'decimal', 'percent', 'duration'].includes(this.formatStyle)
 		},
 
 		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
@@ -1637,8 +1751,9 @@ export default {
 
 		/**
 		 * The swatch colour — read from the sibling row field named by
-		 * `format.colorField` (default `'color'`). Returns null when no usable
-		 * colour string is present (the dot is then omitted).
+		 * `format.colorField` (default `'color'`), through `format.colorMap`
+		 * when given (a stored name such as `blue` to a CSS colour). Returns
+		 * null when no usable colour is present (the dot is then omitted).
 		 *
 		 * @return {string|null}
 		 */
@@ -1648,13 +1763,20 @@ export default {
 			}
 			const field = (this.format && this.format.colorField) || 'color'
 			const c = this.row && this.row[field]
-			return (typeof c === 'string' && c.trim() !== '') ? c : null
+			if (typeof c !== 'string' || c.trim() === '') {
+				return null
+			}
+			const map = this.format && this.format.colorMap
+			if (map && typeof map === 'object') {
+				return typeof map[c] === 'string' && map[c] !== '' ? map[c] : null
+			}
+			return c
 		},
 
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
-					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined)
+					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined, this.formatterContext)
 				} catch (e) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
@@ -1832,9 +1954,11 @@ export default {
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
+			// `decimal` defaults to one fraction digit, as formatMetricValue does.
+			const defaultDecimals = { currency: 2, decimal: 1 }
 			const decimals = Number.isFinite(fmt.decimals)
 				? fmt.decimals
-				: (fmt.style === 'currency' ? 2 : 0)
+				: (defaultDecimals[fmt.style] ?? 0)
 			let body
 			if (fmt.style === 'currency') {
 				// `format.currencyField` reads the code from the row's own field.

@@ -41,11 +41,12 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--stacked': stacked }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
 						class="cn-facts-widget__row"
+						:class="{ 'cn-facts-widget__row--inline': row.inline }"
 						:data-testid="`cn-fact-${row.key}`">
 						<dt class="cn-facts-widget__label" :class="{ 'cn-facts-widget__label--icon': row.icon }">
 							<CnIcon
@@ -66,19 +67,25 @@
 								v-else-if="row.to"
 								:to="row.to"
 								class="cn-facts-widget__value-link">
-								{{ row.masked && !revealed[row.key] ? row.masked : row.value }}
+								{{ shownValue(row) }}
 							</router-link>
-							<span v-else>{{ row.masked && !revealed[row.key] ? row.masked : row.value }}</span>
+							<span v-else>{{ shownValue(row) }}</span>
 							<button
 								v-if="row.reveal && !revealed[row.key]"
 								type="button"
 								class="cn-facts-widget__inline-button"
 								:aria-label="revealLabel(row)"
 								:data-testid="`cn-fact-reveal-${row.key}`"
+								:disabled="revealing === row.key"
 								@click="reveal(row)">
 								<EyeOutline :size="16" aria-hidden="true" />
 								{{ showLabel }}
 							</button>
+							<span
+								v-if="revealErrors[row.key]"
+								class="cn-facts-widget__reveal-error"
+								role="alert"
+								:data-testid="`cn-fact-reveal-error-${row.key}`">{{ revealErrors[row.key] }}</span>
 							<button
 								v-if="row.copy"
 								type="button"
@@ -168,6 +175,15 @@
 					</span>
 					<span class="cn-facts-widget__line">{{ block.value }}</span>
 				</div>
+				<div v-else-if="block.kind === 'pills'" class="cn-facts-widget__pills">
+					<CnStatusBadge
+						v-for="pill in block.pills"
+						:key="pill.key"
+						:label="pill.value"
+						:variant="pill.variant"
+						size="small"
+						:data-testid="`cn-fact-${pill.key}`" />
+				</div>
 				<div v-else-if="block.kind === 'pill'">
 					<CnStatusBadge
 						:label="block.value"
@@ -184,6 +200,12 @@
 			data-testid="cn-facts-notice">
 			{{ notice.text }}
 		</NcNoteCard>
+		<div
+			v-if="footnote && record"
+			class="cn-facts-widget__footnote"
+			data-testid="cn-facts-footnote">
+			{{ footnote }}
+		</div>
 		<button
 			v-if="link && link.sidebarTab && record"
 			type="button"
@@ -226,7 +248,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { formatFileSize } from '@nextcloud/files'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -240,11 +262,13 @@ import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
+import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, formatLongDate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
@@ -288,6 +312,30 @@ function resolveSourceTokens(value, record) {
 }
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
+/**
+ * Two or more pills in a row become one `pills` block, drawn on one line.
+ *
+ * @param {Array<object>} blocks The blocks in order.
+ * @return {Array<object>}
+ * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+ */
+function groupPills(blocks) {
+	const out = []
+	blocks.forEach((block) => {
+		const last = out[out.length - 1]
+		if (block.kind !== 'pill') {
+			out.push(block)
+		} else if (last && last.kind === 'pills') {
+			last.pills.push(block)
+		} else if (last && last.kind === 'pill') {
+			out[out.length - 1] = { kind: 'pills', key: `pills-${last.key}`, pills: [last, block] }
+		} else {
+			out.push(block)
+		}
+	})
+	return out
+}
+
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter', 'progress'])
 
 /** The schemes a facts link opens, besides a path on this server. */
@@ -410,36 +458,42 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The page's object sidebar channel; a `link.sidebarTab` opens one of its tabs. */
 		objectSidebarState: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a `labelPath`. */
+		cnDetailVisibilityRows: { default: null },
 	},
 
 	props: {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
+		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
-		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show). `copy: true` adds a copy button; `icon` replaces the label.
+		 *   A row with `inline: true` spans both columns as one line, the label, the value and its buttons side by side (a masked BSN with Show).
+		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show, which unmasks the record's value; `reveal: { url, path? }` makes Show ask the server for the value at `url` (tokens resolved), read at `path` (else the entry's path), so a server that answers the mask can check and record the reveal). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
-		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
+		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
+		 * - `fieldsFrom` — `@context.<name>.<path>`, a list of entries on a record the page reads beside this one (a case type's `requestFields`); when it holds entries they are drawn instead of `fields`.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 * - `footnote` — a plain muted line under the facts, without a band (DqZaakBesluiten "Na het ondertekenen ..."); the text is translated.
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
-		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
+		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -474,6 +528,9 @@ export default {
 			error: false,
 			/** Keys of the masked rows the reader chose to show. */
 			revealed: {},
+			revealedValues: {},
+			revealErrors: {},
+			revealing: '',
 			/** Key of the row whose value was just copied. */
 			copied: '',
 			/** Labels of the referenced objects read so far, by `refKey`. */
@@ -489,6 +546,29 @@ export default {
 
 	computed: {
 		/**
+		 * The entries to draw: the list `fieldsFrom` names on the page's
+		 * `@context` records when it holds entries (a case type's
+		 * `requestFields`), else `fields`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+		 */
+		entries() {
+			const from = this.content?.fieldsFrom
+			if (typeof from === 'string' && from.startsWith('@context.')) {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ '@context': rows || {} }, from)
+				const list = Array.isArray(named) ? named.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry)) : []
+				if (list.length > 0) {
+					return list
+				}
+			}
+			return Array.isArray(this.content?.fields) ? this.content.fields : []
+		},
+
+		/**
 		 * Whether the rows sit in two columns, label above value.
 		 *
 		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
@@ -496,6 +576,15 @@ export default {
 		 */
 		twoColumns() {
 			return Number(this.content?.columns) === 2
+		},
+
+		/**
+		 * Whether the rows stack in one column, label above value.
+		 *
+		 * @return {boolean}
+		 */
+		stacked() {
+			return Number(this.content?.columns) === 1
 		},
 
 		/**
@@ -523,7 +612,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		countJobsKey() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const keys = fields
 				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
 				.map((field) => this.countKey(field.countFrom))
@@ -684,7 +773,7 @@ export default {
 		 */
 		blocks() {
 			const sourceRecord = this.record
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			// A source that finds nothing still leaves the entries that read the
 			// page's own object (`from: "object"`).
 			const ownEntries = Boolean(this.objectData) && fields.some((field) => field && field.from === 'object')
@@ -713,7 +802,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.tr(field.label || ''), value, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -763,7 +852,7 @@ export default {
 					out.push({ kind: 'rows', key: 'rows-answered', rows: [row] })
 				}
 			})
-			return out
+			return groupPills(out)
 		},
 
 		/**
@@ -853,6 +942,12 @@ export default {
 				return null
 			}
 			return { text, type: ['success', 'warning', 'error'].includes(notice.variant) ? notice.variant : 'info' }
+		},
+
+		/** @return {string} The translated footnote, or '' when none is set. */
+		footnote() {
+			const footnote = this.content?.footnote
+			return typeof footnote === 'string' && footnote.trim() !== '' ? this.tr(footnote) : ''
 		},
 
 		/** @return {string} The reveal button's text. */
@@ -1092,7 +1187,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		async loadCounts() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const seen = new Set()
 			for (const field of fields) {
 				const countFrom = field && field.countFrom
@@ -1118,7 +1213,12 @@ export default {
 			if (value === '') {
 				return typeof field.emptyValue === 'string' && field.emptyValue !== '' ? this.tr(field.emptyValue) : ''
 			}
-			return typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
+			if (typeof field.suffix !== 'string') {
+				return value
+			}
+			// The words of a suffix are translated; its leading space stays as written.
+			const lead = field.suffix.match(/^\s*/)[0]
+			return `${value}${lead}${this.tr(field.suffix.slice(lead.length))}`
 		},
 
 		/**
@@ -1164,8 +1264,8 @@ export default {
 		 */
 		templateValue(record, template) {
 			let filled = false
-			const text = this.tr(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
-				const value = this.format(readPath(record, path), {}, record)
+			const text = this.tr(template).replace(/\{([\w.@]+)(?::([\w-]+))?\}/g, (match, path, format) => {
+				const value = this.format(readPath(record, path), format ? { format } : {}, record)
 				filled = filled || value !== ''
 				return value
 			})
@@ -1321,7 +1421,12 @@ export default {
 				extras.external = true
 			} else if (field.format === 'masked') {
 				extras.masked = value.length > 4 ? '*'.repeat(Math.min(value.length - 4, 5)) + value.slice(-4) : value
-				extras.reveal = field.reveal === true && value.length > 4
+				const server = field.reveal && typeof field.reveal === 'object' && typeof field.reveal.url === 'string' && field.reveal.url !== ''
+				extras.reveal = (field.reveal === true || server) && value.length > 4
+				if (server) {
+					extras.revealUrl = field.reveal.url
+					extras.revealPath = typeof field.reveal.path === 'string' && field.reveal.path !== '' ? field.reveal.path : (field.path || '')
+				}
 			}
 			return extras
 		},
@@ -1333,7 +1438,14 @@ export default {
 		 * @param {object} row The row.
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-the-facts-card-draws-contact-details-identity-and-a-lead
 		 */
-		reveal(row) {
+		async reveal(row) {
+			if (row.revealUrl) {
+				const value = await this.fetchRevealed(row)
+				if (value === null) {
+					return
+				}
+				this.revealedValues = { ...this.revealedValues, [row.key]: value }
+			}
 			this.revealed = { ...this.revealed, [row.key]: true }
 			const detail = { path: row.path }
 			/**
@@ -1342,6 +1454,71 @@ export default {
 			 */
 			this.$emit('reveal', detail)
 			emit(FACTS_REVEAL_CHANNEL, { ...detail, objectId: this.tokenCtx.objectId, register: this.tokenCtx.register || null, schema: this.tokenCtx.schema || null })
+		},
+
+		/**
+		 * The text a row shows: its mask until revealed, then the value the
+		 * server answered (a server reveal) or the value the record holds.
+		 *
+		 * @param {object} row The row.
+		 * @return {string}
+		 * @spec openspec/changes/facts-reveal-from-server/specs/facts-widget/spec.md#requirement-a-masked-fact-can-be-revealed-by-the-server
+		 */
+		shownValue(row) {
+			if (!row.masked || !this.revealed[row.key]) {
+				return row.masked || row.value
+			}
+			return Object.hasOwn(this.revealedValues, row.key) ? this.revealedValues[row.key] : row.value
+		},
+
+		/**
+		 * Ask the server for a masked value (`reveal.url`, tokens resolved,
+		 * read at `reveal.path`), never from a cache: each show is a request
+		 * the server can check and record.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<string|null>} The value, or null when it could not be read.
+		 * @spec openspec/changes/facts-reveal-from-server/specs/facts-widget/spec.md#requirement-a-masked-fact-can-be-revealed-by-the-server
+		 */
+		async fetchRevealed(row) {
+			this.revealing = row.key
+			this.revealErrors = { ...this.revealErrors, [row.key]: '' }
+			try {
+				const payload = await fetchEndpointSource({ url: row.revealUrl, responsePath: row.revealPath }, this.tokenCtx, { force: true })
+				if (payload === null || payload === undefined || payload === '' || typeof payload === 'object') {
+					throw new Error('no value')
+				}
+				return String(payload)
+			} catch {
+				this.revealErrors = { ...this.revealErrors, [row.key]: t('nextcloud-vue', 'The value could not be shown.') }
+				return null
+			} finally {
+				this.revealing = ''
+			}
+		},
+
+		/**
+		 * A row's label: the value at `labelPath` (the record, or the page's
+		 * `@context.<name>` records) when it holds text, else `label`, both
+		 * through the host translate. A case type can name its handler
+		 * ("Regisseur") while another keeps "Behandelaar".
+		 *
+		 * @param {object} record The record shown.
+		 * @param {object} field The entry.
+		 * @return {string}
+		 * @spec openspec/changes/facts-label-from-path/specs/facts-widget/spec.md#requirement-a-facts-row-can-take-its-label-from-the-record-or-its-context
+		 */
+		labelOf(record, field) {
+			if (typeof field.labelPath === 'string' && field.labelPath !== '') {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ ...(record || {}), '@context': rows || {} }, field.labelPath)
+				if (typeof named === 'string' && named.trim() !== '') {
+					return this.tr(named.trim())
+				}
+			}
+			return this.tr(field.label || '')
 		},
 
 		/**
@@ -1480,7 +1657,7 @@ export default {
 		 * @return {Array<{spec: object, raw: unknown}>}
 		 */
 		refSpecs(record) {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const specs = []
 			const visit = (spec) => {
 				if (!spec || typeof spec !== 'object') {
@@ -1709,9 +1886,21 @@ export default {
 			if (format === 'list' || Array.isArray(raw)) {
 				const items = (Array.isArray(raw) ? raw : [raw])
 					.map((item) => (spec.itemPath && item && typeof item === 'object' ? readPath(item, spec.itemPath) : item))
-					.map((item) => this.format(item, { ...spec, format: 'text' }))
+					.map((item) => this.format(item, { ...spec, format: spec.itemFormat || 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
+			}
+			if (format === 'year') {
+				const date = parseDateValue(raw)
+				return date === null ? '' : String(date.getFullYear())
+			}
+			// A term in words, with the extension at `extendBy` on the record: "4 weken, te verdagen met 2".
+			if (format === 'duration') {
+				return formatTermDuration(raw, typeof spec.extendBy === 'string' && record ? readPath(record, spec.extendBy) : null)
+			}
+			// The month written out, the year only outside this year: "3 oktober".
+			if (format === 'longdate') {
+				return formatLongDate(raw)
 			}
 			if (format === 'date' || format === 'date-long') {
 				const date = parseDateValue(raw)
@@ -1723,12 +1912,34 @@ export default {
 					? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 					: formatBoardDate(date)
 			}
+			// A number of months in words: whole years as years ("20 jaar"), else months.
+			if (format === 'months') {
+				const months = Number(raw)
+				if (typeof raw === 'object' || !Number.isInteger(months) || months < 0) {
+					return typeof raw === 'object' ? '' : String(raw)
+				}
+				return months > 0 && months % 12 === 0
+					? n('nextcloud-vue', '%n year', '%n years', months / 12)
+					: n('nextcloud-vue', '%n month', '%n months', months)
+			}
 			if (format === 'bytes') {
 				const bytes = Number(raw)
 				return Number.isFinite(bytes) && bytes >= 0 ? formatFileSize(bytes) : ''
 			}
 			if (format === 'user') {
 				return userDisplayName(raw)
+			}
+			// A Nextcloud group by its display name; the id until the name is known.
+			if (format === 'group') {
+				if (typeof raw === 'object') {
+					return ''
+				}
+				const name = groupDisplayName(String(raw))
+				if (name === null) {
+					loadGroupDisplayName(String(raw))
+					return String(raw)
+				}
+				return name
 			}
 			if (format === 'number') {
 				const number = Number(raw)
@@ -1828,6 +2039,12 @@ export default {
 	min-width: 0;
 }
 
+.cn-facts-widget__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 /* `padding: 0`: Nextcloud's core stylesheet pads every `dl` 12px at the top
    and bottom, which put a side card's facts 24px under its title, against
    the board's 12 (DqZaak "Behandeling", DqZaakDocumenten). */
@@ -1845,11 +2062,28 @@ export default {
 	display: contents;
 }
 
-/* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding), which
-   pushed the label to the right of its column and added 12px around both. The
-   class is doubled so these resets outrank that rule, and a dossiq-style
-   `:deep()` override in an app is not needed. */
+.cn-facts-widget__row--inline {
+	display: flex;
+	grid-column: 1 / -1;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.cn-facts-widget__row--inline .cn-facts-widget__value {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+/* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding, a
+   130px-wide `dt`), which pushed the label to the right of its column, added
+   12px around both and widened the label column to 130px. The class is
+   doubled so these resets outrank that rule, and a dossiq-style `:deep()`
+   override in an app is not needed. */
 .cn-facts-widget__label.cn-facts-widget__label {
+	width: auto;
 	margin: 0;
 	padding: 0;
 	text-align: start;
@@ -1951,6 +2185,11 @@ export default {
 	cursor: pointer;
 	display: inline-flex;
 	font: inherit;
+}
+
+.cn-facts-widget__reveal-error {
+	font-size: 13px;
+	color: var(--color-text-error, var(--color-error));
 }
 
 .cn-facts-widget__inline-button {
@@ -2062,6 +2301,13 @@ export default {
 	margin: 4px 0 0;
 }
 
+/* A div, not a p: a theme sets every paragraph's size with !important. */
+.cn-facts-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	line-height: 1.2;
+}
+
 .cn-facts-widget__link {
 	font-size: 14px;
 	font-weight: 600;
@@ -2101,6 +2347,17 @@ export default {
 
 .cn-facts-widget__rows--columns .cn-facts-widget__label.cn-facts-widget__label {
 	font-size: 13px;
+}
+
+/* One column, label above value: 2px under its label, 10px to the next
+   label, so a long label never squeezes its value (DqHandhaving). */
+.cn-facts-widget__rows--stacked {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 2px 0;
+}
+
+.cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
+	margin-bottom: 8px;
 }
 
 @media (max-width: 640px) {

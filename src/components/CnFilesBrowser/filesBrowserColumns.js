@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { isAppInstalled } from '../../utils/appInstalled.js'
+
 /**
  * The built-in columns a host may name by string, and what each one reads.
  *
@@ -54,11 +56,25 @@ export function isBuiltInFileColumn(name) {
 }
 
 /**
+ * Whether the app a column leans on is enabled: one app id, or a list of which
+ * any one will do. A column without `requiredApp` always applies.
+ *
+ * @param {(string|string[]|undefined)} requiredApp The app id(s).
+ * @return {boolean} True when the column applies.
+ * @spec openspec/changes/files-column-required-app/specs/files-column-required-app/spec.md#requirement-a-file-column-can-require-another-app
+ */
+function requiredAppPresent(requiredApp) {
+	const ids = (Array.isArray(requiredApp) ? requiredApp : [requiredApp]).filter((id) => typeof id === 'string' && id !== '')
+	return ids.length === 0 || ids.some((id) => isAppInstalled(id))
+}
+
+/**
  * Resolve a host's `columns` declaration into column objects.
  *
  * A string names a built-in. An object declares its own: `key`, `label`,
  * `source` (`node`, `attribute` or `row`), `attribute`, `formatter` and
- * `sortable`. An entry naming an unknown built-in is dropped here and refused
+ * `sortable`, and `requiredApp` (an app id, or a list of which any one will
+ * do; without it the column is left out). An entry naming an unknown built-in is dropped here and refused
  * by the manifest validator, so an author hears about it at authoring time
  * rather than finding a column missing at runtime.
  *
@@ -76,6 +92,14 @@ export function normaliseFileColumns(columns) {
 			return
 		}
 		if (!entry || typeof entry !== 'object' || typeof entry.key !== 'string' || entry.key === '') {
+			return
+		}
+		// `when`: the column applies only while it is true (a case type flag).
+		// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+		if ('when' in entry && entry.when !== true) {
+			return
+		}
+		if (!requiredAppPresent(entry.requiredApp)) {
 			return
 		}
 		if (isBuiltInFileColumn(entry.key) && entry.source === undefined) {

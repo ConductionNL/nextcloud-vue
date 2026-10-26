@@ -32,6 +32,11 @@
 						data-testid="cn-saved-view-edit-name"
 						@update:modelValue="(v) => name = v" />
 				</div>
+				<CnSavedViewLookFields
+					:description="description"
+					:icon="icon"
+					@update:description="(v) => description = v"
+					@update:icon="(v) => icon = v" />
 				<CnChoiceCards
 					:label="t('nextcloud-vue', 'Criteria')"
 					layout="rows"
@@ -47,6 +52,12 @@
 				:labelVisible="true"
 				data-testid="cn-saved-view-edit-name"
 				@update:modelValue="(v) => name = v" />
+			<CnSavedViewLookFields
+				v-if="!isBoardLook"
+				:description="description"
+				:icon="icon"
+				@update:description="(v) => description = v"
+				@update:icon="(v) => icon = v" />
 			<fieldset v-if="!isBoardLook" class="cn-edit-view__criteria" data-testid="cn-saved-view-edit-replace">
 				<legend>{{ t('nextcloud-vue', 'Criteria') }}</legend>
 				<NcCheckboxRadioSwitch
@@ -95,13 +106,15 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
+import CnSavedViewLookFields from '../CnSavedViewLookFields/CnSavedViewLookFields.vue'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { savedViewIcon } from '../../utils/savedViewMenu.js'
 
 /**
  * CnSavedViewEditDialog — rename an own saved view and, when asked, replace
  * its criteria with the filters, search and sort the list shows now. Opened by
  * `CnIndexPage` from the Edit entry of `CnSavedViewsControl`. Emits
- * `confirm({ name, replaceCriteria })`; the parent saves and either closes the
+ * `confirm({ name, replaceCriteria, description, icon })`; the parent saves and either closes the
  * dialog or reports a failure through `setError()`, which keeps the form open.
  *
  * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-3
@@ -109,7 +122,7 @@ import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 export default {
 	name: 'CnSavedViewEditDialog',
 
-	components: { CnChoiceCards, CnDialog, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField },
+	components: { CnChoiceCards, CnDialog, CnSavedViewLookFields, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField },
 
 	mixins: [dialogBoardMixin],
 
@@ -144,6 +157,8 @@ export default {
 	data() {
 		return {
 			name: (this.view && typeof this.view.name === 'string') ? this.view.name : '',
+			description: (this.view && typeof this.view.description === 'string') ? this.view.description : '',
+			icon: savedViewIcon(this.view),
 			replaceCriteria: false,
 			loading: false,
 			error: '',
@@ -215,10 +230,10 @@ export default {
 			this.loading = true
 			this.error = ''
 			/**
-			 * @event confirm Save clicked. Payload: `{ name, replaceCriteria }`.
+			 * @event confirm Save clicked. Payload: `{ name, replaceCriteria, description, icon }`.
 			 * @type {object}
 			 */
-			this.$emit('confirm', { name: this.name.trim(), replaceCriteria: this.replaceCriteria })
+			this.$emit('confirm', { name: this.name.trim(), replaceCriteria: this.replaceCriteria, description: this.description.trim(), icon: this.icon })
 		},
 
 		onClose() {

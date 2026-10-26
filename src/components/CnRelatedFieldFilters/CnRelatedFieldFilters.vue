@@ -72,6 +72,9 @@ const ROUTE_QUERY = '$route.query.'
  * }
  * ```
  *
+ * Values kept on the row itself, as `properties: [{ propertyDefinition, value }]`:
+ * `"related": { "element": "properties" }` (OpenRegister `_element`).
+ *
  * @spec openspec/changes/dq-abstract-forms/specs/related-field-filters/spec.md
  */
 export default {
@@ -93,7 +96,9 @@ export default {
 
 		/**
 		 * Where the values live: `{ schema, backref, definitionKey?, valueKey? }`
-		 * (defaults `propertyDefinition` and `value`).
+		 * (defaults `propertyDefinition` and `value`) for rows of a related
+		 * schema, or `{ element, definitionKey?, valueKey? }` for entries of
+		 * the searched row's own array property (`properties[]` on a case).
 		 */
 		related: { type: Object, required: true },
 

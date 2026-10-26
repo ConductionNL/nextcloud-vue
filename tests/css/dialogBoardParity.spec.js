@@ -50,10 +50,48 @@ describe('dialog.css: the board dialog', () => {
 		expect(close).not.toContain('--button-radius')
 	})
 
+	it('starts the body 22px under the subtitle, the header foot and the gap alone (r29: Bewerken, Delen, Verwijderen read 28/28/26)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-confirm__confirm')).toContain('padding-top: 0;')
+	})
+
 	it('hands the subtitle\'s 14px muted line to the theme\'s paragraph tokens', () => {
 		const subtitle = bodyOf(dialog, '.cn-dialog-header__subtitle')
 		expect(subtitle).toContain('--nldesign-component-paragraph-font-size: 14px;')
 		expect(subtitle).toContain('--nldesign-component-paragraph-color: var(--color-text-maxcontrast);')
+	})
+
+	it('keeps the body 24px from the end edge over NcDialog\'s own 12px (DqInstellen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .dialog__content')).toContain('padding-inline-end: 24px;')
+	})
+
+	it('draws a checkbox choice card as tight as the board, the row at the 24px target (DqOverdragen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('border-radius: 8px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text')).toContain('line-height: 18px;')
+		const row = bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content')
+		expect(row).toContain('min-height: 24px;')
+		expect(row).toContain('padding-block: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle-note')).toContain('line-height: 1.2;')
+	})
+
+	it('starts the body 22px under the header, as most dialog boards do (DqBerichtVersturen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content > .cn-dialog-header')).toContain('margin-bottom: 4px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content')).toContain('gap: 18px;')
+	})
+
+	it('sets a form dialog select level with the text fields beside it (DqNieuweZaak)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label))')).toContain('margin-block: 0;')
+	})
+
+	it('sets a dialog checkbox flush with the fields, its label 10px after the box (DqBerichtVersturen)', () => {
+		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
+		expect(content).toContain('padding-inline: 0;')
+		expect(content).toContain('gap: 10px;')
+		expect(bodyOf(dialog, '.cn-dialog-board')).toContain('--cn-dialog-check-label-inset: 30px;')
+		const assign = fs.readFileSync(path.join(__dirname, '../../src/components/CnAssignDialog/CnAssignDialog.vue'), 'utf8')
+		expect(assign).toMatch(/\.cn-assign-dialog__toggle-note \{\s*padding-inline-start: var\(--cn-dialog-check-label-inset, 44px\);/)
 	})
 
 	it('inks the eyebrow in a text colour, never the text on a primary fill', () => {

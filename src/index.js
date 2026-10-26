@@ -74,6 +74,7 @@ export {
 	CnChoicePickerWidget,
 	CnColorPicker,
 	CnCommandPalette,
+	CnConditionListEditor,
 	CnConfigurationCard,
 	CnContactCreate,
 	CnContactPicker,
@@ -599,6 +600,7 @@ export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
+export { conditionSentence, formatConditionValue, operatorLabel, operatorsForType, operatorTakesValue } from './components/CnConditionListEditor/conditionOperators.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
 
@@ -655,7 +657,7 @@ export {
 	warnIfDeprecated,
 } from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
-export { loadMyTeam, peekMyTeam, registerMyTeamSource } from './utils/index.js'
+export { fillMyTeamToken, loadMyTeam, loadMyTeamName, peekMyTeam, peekMyTeamName, registerMyTeamNameSource, registerMyTeamSource } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
 export { resolveImageUrl } from './utils/index.js'

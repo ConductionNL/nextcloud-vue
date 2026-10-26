@@ -57,6 +57,7 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	row: 'CnFieldListWidget (rowActions request)',
 	subject: 'CnBannerWidget (action route)',
 	context: 'detailWidgetVisible (utils/detailWidgetVisibility.js)',
+	source: 'CnFactsWidget (a fact row\'s route params)',
 })
 
 /**

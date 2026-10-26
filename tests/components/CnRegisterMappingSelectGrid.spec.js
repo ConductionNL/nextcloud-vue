@@ -28,7 +28,7 @@ const GROUPS = [{ name: 'Configuration', registerConfigKey: 'register', types: T
 
 const NcSelect = {
 	name: 'NcSelect',
-	props: ['modelValue', 'options', 'inputLabel', 'placeholder'],
+	props: ['modelValue', 'options', 'inputLabel', 'placeholder', 'clearable'],
 	emits: ['update:modelValue'],
 	template: '<div class="nc-select-stub" :data-label="inputLabel" />',
 }
@@ -67,6 +67,22 @@ describe('CnRegisterMapping select grid', () => {
 		expect(wrapper.find('[data-testid="cn-register-mapping-board-group"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-register-mapping-board-status"]').exists()).toBe(false)
 		expect(wrapper.find('table').exists()).toBe(false)
+	})
+
+	/**
+	 * @spec openspec/changes/board-register-mapping-selects/specs/board-register-mapping-selects/spec.md#requirement-the-board-register-selects-are-as-wide-as-the-board-and-carry-no-clear-button
+	 */
+	it('draws the schema selects without a clear button, as the board does', async () => {
+		const wrapper = await make({ boardLayout: 'selects' })
+		const selects = wrapper.find('[data-testid="cn-register-mapping-select-grid"]').findAllComponents({ name: 'NcSelect' })
+		expect(selects.every((select) => select.props('clearable') === false)).toBe(true)
+	})
+
+	it('stretches the register select over its half of the card', () => {
+		const source = require('fs').readFileSync(require('path').resolve(__dirname, '../../src/components/CnRegisterMapping/CnRegisterMapping.vue'), 'utf8')
+		const at = source.indexOf('.cn-register-mapping__selects-register :deep(.v-select) {')
+		expect(at).toBeGreaterThan(-1)
+		expect(source.slice(at, source.indexOf('}', at))).toContain('width: 100%;')
 	})
 
 	it('saves a schema picked in the grid', async () => {

@@ -35,9 +35,9 @@ const page = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *)'
 const item = `${page} .cn-nc-widget-widget__item--vertical`
 
 describe('look-board.css: a dashboard NC widget as activity rows', () => {
-	it('insets the vertical body at the card inset, 2px under the header', () => {
+	it('insets the vertical body at the card inset, its first hairline 6px under the title', () => {
 		const body = rulesFor(`${page} .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-nc-widget-widget__body--vertical`)
-		expect(body).toContain('padding: 2px var(--cn-board-dashboard-card-inset) 10px')
+		expect(body).toContain('padding: 0 var(--cn-board-dashboard-card-inset) 10px')
 		expect(body).toContain('gap: 0')
 	})
 

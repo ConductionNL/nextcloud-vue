@@ -1,0 +1,3 @@
+- [x] 1. CnFieldListWidget: `multiselect` fields, `optionsSource`, list cells with `labelsFrom`.
+- [x] 2. `tests/components/CnFieldListWidgetMultiselect.spec.js`.
+- [x] 3. `docs/components/cn-field-list-widget.md`.

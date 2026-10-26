@@ -1487,18 +1487,6 @@
     "Pages": "Pages",
     "Open {module}": "Open {module}",
     "{list} and {last}": "{list} and {last}",
-    "%n page: {pages}": [
-      "%n page: {pages}",
-      "%n pages: {pages}"
-    ],
-    "%n page, including {pages}": [
-      "%n page, including {pages}",
-      "%n pages, including {pages}"
-    ],
-    "{on} of %n is in the menu": [
-      "{on} of %n is in the menu",
-      "{on} of %n are in the menu"
-    ],
     "Put it in the menu:": "Put it in the menu:",
     "Admin settings": "Admin settings",
     "Support this app": "Support this app",
@@ -1516,10 +1504,6 @@
     "{status}, {expected}": "{status}, {expected}",
     "Build on this app": "Build on this app",
     "AI skills": "AI skills",
-    "%n feature": [
-      "%n feature",
-      "%n features"
-    ],
     "Your account": "Your account",
     "Only for you. Colleagues keep their own settings.": "Only for you. Colleagues keep their own settings.",
     "Sections of the settings": "Sections of the settings",
@@ -2258,10 +2242,6 @@
     "from {from}": "from {from}",
     "up to {to}": "up to {to}",
     "this week": "this week",
-    "within %n day": [
-      "within %n day",
-      "within %n days"
-    ],
     "Search term: {term}": "Search term: {term}",
     "New contact": "New contact",
     "Template": "Template",
@@ -2357,7 +2337,72 @@
     "Week {week}": "Week {week}",
     "More default views": "More default views",
     "Fewer default views": "Fewer default views",
-    "More steps": "More steps"
+    "More steps": "More steps",
+    "Board {name}": "Board {name}",
+    "list {name}": "list {name}",
+    "Tentative": "Tentative",
+    "Confirmed": "Confirmed",
+    "Cancelled": "Cancelled",
+    "{start} until {end}": "{start} until {end}",
+    "More views": "More views",
+    "{type} from {app}": "{type} from {app}",
+    "Start step": "Start step",
+    "Also who read it": "Also who read it",
+    "{shown} of {total} events, changes only": "{shown} of {total} events, changes only",
+    "Opened the record": "Opened the record",
+    "Viewed": "Viewed",
+    "w{week}": "w{week}",
+    "Icon": "Icon",
+    "Shown when you point at the view in the menu.": "Shown when you point at the view in the menu.",
+    "No main contact yet": "No main contact yet",
+    "is": "is",
+    "is not": "is not",
+    "greater than": "greater than",
+    "at least": "at least",
+    "less than": "less than",
+    "at most": "at most",
+    "is filled in": "is filled in",
+    "{field} is {value}": "{field} is {value}",
+    "{field} is not {value}": "{field} is not {value}",
+    "{field} is greater than {value}": "{field} is greater than {value}",
+    "{field} is at least {value}": "{field} is at least {value}",
+    "{field} is less than {value}": "{field} is less than {value}",
+    "{field} is at most {value}": "{field} is at most {value}",
+    "{field} is filled in": "{field} is filled in",
+    "No conditions: the rule always applies.": "No conditions: the rule always applies.",
+    "Add a party": "Add a party",
+    "Remove party": "Remove party",
+    "Remove {name} as {role}": "Remove {name} as {role}",
+    "Remove {name} as {role}?": "Remove {name} as {role}?",
+    "Someone already known": "Someone already known",
+    "Someone new": "Someone new",
+    "The change could not be saved. Nothing was changed.": "The change could not be saved. Nothing was changed.",
+    "The new person was not saved.": "The new person was not saved.",
+    "The party could not be added.": "The party could not be added.",
+    "You may not change who is on this record.": "You may not change who is on this record.",
+    "Stop reading replies aloud": "Stop reading replies aloud",
+    "Read replies aloud": "Read replies aloud",
+    "View all conversations": "View all conversations",
+    "Back to the chat": "Back to the chat",
+    "Talk to {agent}": "Talk to {agent}",
+    "Search a person or group": "Search a person or group",
+    "Now: by {order}.": "Now: by {order}.",
+    "You save the order along with a view.": "You save the order along with a view.",
+    "me": "me",
+    "Open profile": "Open profile",
+    "Link a contact from your address book.": "Link a contact from your address book.",
+    "The value could not be shown.": "The value could not be shown.",
+    "No value": "No value",
+    "Link an existing card": "Link an existing card",
+    "New card": "New card",
+    "Could not link card.": "Could not link card.",
+    "Could not create card.": "Could not create card.",
+    "This card is already linked.": "This card is already linked.",
+    "From {date}": "From {date}",
+    "Until {date}": "Until {date}",
+    "More actions for {name}": "More actions for {name}",
+    "Unlink contact": "Unlink contact",
+    "{term}, extendable by {extension}": "{term}, extendable by {extension}"
   },
   "plurals": {
     "{count} member": [
@@ -2534,6 +2579,38 @@
     "%n week": [
       "%n week",
       "%n weeks"
+    ],
+    "%n minute": [
+      "%n minute",
+      "%n minutes"
+    ],
+    "%n page: {pages}": [
+      "%n page: {pages}",
+      "%n pages: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n page, including {pages}",
+      "%n pages, including {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} of %n is in the menu",
+      "{on} of %n are in the menu"
+    ],
+    "%n feature": [
+      "%n feature",
+      "%n features"
+    ],
+    "within %n day": [
+      "within %n day",
+      "within %n days"
+    ],
+    "%n other": [
+      "%n other",
+      "%n others"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} has no location, so it is not on the map.",
+      "{names} have no location, so they are not on the map."
     ]
   }
 }

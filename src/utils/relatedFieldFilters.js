@@ -18,6 +18,14 @@
  * comes back empty with no reason. A malformed block is refused with a
  * sentence, which `readRelatedRefusal` turns back into the field's name.
  *
+ * When the values live on the searched row itself, as an array of
+ * `{ <definitionKey>, <valueKey> }` entries (`related.element`, the array
+ * property), the grammar is OpenRegister's `_element` filter instead, with
+ * the same blocks: one block is one element of the array.
+ *
+ *     _element[<property>][<definitionKey>]=pd-7
+ *     _element[<property>][<valueKey>][gte]=100
+ *
  * Internal helper of CnRelatedFieldFilters.
  *
  * @module utils/relatedFieldFilters
@@ -96,26 +104,35 @@ export function isFilled(value) {
 
 /**
  * Compile the entered values into one `_related` block per filled field,
- * numbered when there is more than one.
+ * numbered when there is more than one; with `element`, one `_element` block.
  *
  * @param {Array<{definitionId: string, value: object}>} [entries] In bar order.
  * @param {object} related Where the values live.
- * @param {string} related.schema The related schema.
- * @param {string} related.backref Its property pointing back at the searched row.
+ * @param {string} [related.element] The searched row's array property holding them, instead of a related schema.
+ * @param {string} [related.schema] The related schema.
+ * @param {string} [related.backref] Its property pointing back at the searched row.
  * @param {string} [related.definitionKey] Its property naming the definition.
  * @param {string} [related.valueKey] Its property holding the value.
  * @return {object} The query keys.
  */
-export function buildRelatedFilters(entries, { schema, backref, definitionKey = 'propertyDefinition', valueKey = 'value' }) {
+export function buildRelatedFilters(entries, { element, schema, backref, definitionKey = 'propertyDefinition', valueKey = 'value' }) {
 	const filled = (Array.isArray(entries) ? entries : []).filter((entry) => entry && entry.definitionId && isFilled(entry.value))
+	const onElement = typeof element === 'string' && element !== ''
 	const query = {}
 	filled.forEach((entry, index) => {
 		const block = filled.length === 1 ? '' : `[${index}]`
-		const prefix = `_related[${schema}][${backref}]${block}`
+		const prefix = onElement ? `_element[${element}]${block}` : `_related[${schema}][${backref}]${block}`
 		query[`${prefix}[${definitionKey}]`] = entry.definitionId
 		const value = entry.value
 		if (Array.isArray(value.in) && value.in.length > 0) {
-			query[`${prefix}[${valueKey}][in]`] = value.in.join(',')
+			// `_element` takes the list as a list; `_related` as one comma-separated value.
+			if (onElement) {
+				value.in.forEach((item, at) => {
+					query[`${prefix}[${valueKey}][in][${at}]`] = String(item)
+				})
+			} else {
+				query[`${prefix}[${valueKey}][in]`] = value.in.join(',')
+			}
 		}
 		['eq', 'gte', 'lte'].forEach((operator) => {
 			const operand = value[operator]
@@ -130,13 +147,13 @@ export function buildRelatedFilters(entries, { schema, backref, definitionKey = 
 }
 
 /**
- * The `_related` keys a query carries.
+ * The `_related` and `_element` keys a query carries.
  *
  * @param {object} [query] A route query.
  * @return {Array<string>} The keys.
  */
 export function relatedKeysIn(query) {
-	return Object.keys(query || {}).filter((key) => key.startsWith('_related['))
+	return Object.keys(query || {}).filter((key) => key.startsWith('_related[') || key.startsWith('_element['))
 }
 
 /**
@@ -154,7 +171,7 @@ export function readRelatedRefusal({ error, definitions } = {}) {
 		return null
 	}
 	const message = String(error?.response?.data?.error || error?.response?.data?.message || error?.message || '')
-	if (message === '' || !message.includes('_related')) {
+	if (message === '' || (!message.includes('_related') && !message.includes('_element'))) {
 		return null
 	}
 	const named = (Array.isArray(definitions) ? definitions : []).find((definition) => {

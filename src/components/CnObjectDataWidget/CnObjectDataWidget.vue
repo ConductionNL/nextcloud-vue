@@ -396,6 +396,10 @@
 			</NcButton>
 		</div>
 
+		<p v-if="footnote" class="cn-object-data-widget__footnote" data-testid="cn-object-data-widget-footnote">
+			{{ cnTranslate(footnote) }}
+		</p>
+
 		<!-- Read-only @self metadata, surfaced on demand from the
 		     Metadata action item rather than as a permanent page widget. -->
 		<CnObjectMetadataModal
@@ -434,10 +438,12 @@ import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
@@ -716,6 +722,7 @@ export default {
 		 * - `hidden` (boolean) — Hide this property
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
+		 * - `emptyValue` (string) — Words shown, translated, for an empty or false value instead of a dash
 		 * - `widget` (string) — Override the widget type for editing
 		 * - `formatter` (string) — Display the value through the formatter
 		 *   registered under this id on CnAppRoot (`cnFormatters`), called as
@@ -735,7 +742,8 @@ export default {
 		},
 
 		/**
-		 * Number of grid columns.
+		 * Number of grid columns. The board look fits 200px columns instead,
+		 * except for one column, which it keeps.
 		 */
 		columns: {
 			type: Number,
@@ -835,6 +843,17 @@ export default {
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
+		},
+
+		/**
+		 * A muted line under the fields, through the host translate
+		 * (DqZaakContact "Ontvangstbevestiging").
+		 *
+		 * @spec openspec/changes/data-widget-footnote/specs/data-widget-footnote/spec.md#requirement-a-data-card-can-end-with-a-footnote
+		 */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/** Label for the Metadata item in the overflow Actions menu. */
@@ -1085,7 +1104,14 @@ export default {
 				// still showing the stored code — `submitted` under a Dutch
 				// label, beside a list that already read "Ingediend".
 				const enumLabel = this.enumDisplayLabel(field, raw)
-				values[field.key] = enumLabel !== null ? enumLabel : formatValue(raw, prop || {})
+				const empty = this.emptyValueFor(field, raw)
+				if (empty === null && field.format === 'duration' && raw !== null && raw !== undefined && raw !== '') {
+					// A term in words, with the extension at `extendBy` when the object holds one.
+					const extension = typeof field.extendBy === 'string' ? readPath(this.objectData || {}, field.extendBy) : null
+					values[field.key] = formatTermDuration(raw, extension)
+					continue
+				}
+				values[field.key] = empty !== null ? empty : (enumLabel !== null ? enumLabel : formatValue(raw, prop || {}))
 			}
 			return values
 		},
@@ -1101,8 +1127,12 @@ export default {
 		 * CSS grid template for the container.
 		 */
 		gridStyle() {
-			// The board look: as many 200px columns as the card has room for.
+			// The board look: as many 200px columns as the card has room for,
+			// unless the config asks for one column (a stacked list of pairs).
 			if (normalizeLook(this.cnLook) === 'board') {
+				if (this.columns === 1) {
+					return { 'grid-template-columns': 'minmax(0, 1fr)' }
+				}
 				return {
 					'grid-template-columns': 'repeat(auto-fit, minmax(200px, 1fr))',
 				}
@@ -1828,6 +1858,24 @@ export default {
 		},
 
 		/**
+		 * The words an override gives an empty or false value
+		 * (`overrides[key].emptyValue`, translated), or null to format it as usual.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @param {*} raw - The field's value
+		 * @return {string|null}
+		 * @spec openspec/changes/data-widget-empty-value-one-column/specs/data-widget/spec.md
+		 */
+		emptyValueFor(field, raw) {
+			const override = this.resolvedOverrides[field.key]
+			const words = override && typeof override.emptyValue === 'string' ? override.emptyValue : ''
+			if (words === '' || !(raw === null || raw === undefined || raw === '' || raw === false)) {
+				return null
+			}
+			return this.cnTranslate(words)
+		},
+
+		/**
 		 * Check if a field is editable.
 		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
@@ -2533,6 +2581,12 @@ export default {
 .cn-object-data-widget__textarea:focus {
 	border-color: var(--color-primary-element);
 	outline: none;
+}
+
+.cn-object-data-widget__footnote {
+	margin: calc(var(--default-grid-baseline, 4px) * 3) 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-object-data-widget__empty {

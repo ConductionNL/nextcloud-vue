@@ -106,7 +106,8 @@ describe('CnIndexPage and the applied view\'s overrides', () => {
 			badge: { count: { register: 'dossiq', schema: 'case', filter: { isFinalStatus: false, assignee: '@me' } }, counterVariant: 'attention' },
 		})
 		w.vm.onToggleSavedViewInMenu(w.vm.defaultFilterViews[1])
-		expect(menu.toggle.mock.calls[1][0].badge).toBeUndefined()
+		// A view without its own badge still counts what it matches.
+		expect(menu.toggle.mock.calls[1][0].badge).toEqual({ count: { register: 'dossiq', schema: 'case', filter: { isFinalStatus: false } } })
 	})
 })
 

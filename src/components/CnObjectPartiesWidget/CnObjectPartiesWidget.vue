@@ -4,7 +4,24 @@
 -->
 
 <template>
-	<div class="cn-object-parties" data-testid="cn-object-parties">
+	<div class="cn-object-parties" :class="{ 'cn-object-parties--board': isBoard }" data-testid="cn-object-parties">
+		<div v-if="canAdd" class="cn-object-parties__manage">
+			<NcButton data-testid="cn-object-parties-add" @click="adding = true">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ manageWord('add', 'label', t('nextcloud-vue', 'Add a party')) }}
+			</NcButton>
+		</div>
+
+		<NcNoteCard
+			v-if="manageError"
+			type="error"
+			role="alert"
+			data-testid="cn-object-parties-manage-error">
+			{{ manageError }}
+		</NcNoteCard>
+
 		<NcLoadingIcon v-if="loading" :size="24" />
 
 		<NcEmptyContent
@@ -12,6 +29,35 @@
 			:name="label('failed')"
 			:description="label('failedDetail')"
 			data-testid="cn-object-parties-failed" />
+
+		<div
+			v-else-if="isPrimaryPresentation"
+			class="cn-object-parties__main-card"
+			data-testid="cn-object-parties-main-card">
+			<div
+				v-if="mainParty"
+				class="cn-object-parties__main"
+				:data-party="mainParty.partyUuid"
+				data-testid="cn-object-parties-main">
+				<span class="cn-object-parties__main-initials" aria-hidden="true" data-testid="cn-object-parties-main-initials">{{ initialsOf(nameOf(mainParty)) }}</span>
+				<span class="cn-object-parties__main-text">
+					<strong class="cn-object-parties__main-name" data-testid="cn-object-parties-main-name">{{ nameOf(mainParty) }}</strong>
+					<span v-if="mainRole" class="cn-object-parties__muted cn-object-parties__main-role" data-testid="cn-object-parties-main-role">{{ mainRole }}</span>
+				</span>
+			</div>
+			<span v-else class="cn-object-parties__muted" data-testid="cn-object-parties-main-none">{{ label('noPrimary') }}</span>
+			<a
+				v-if="mainParty && mainParty.email"
+				class="cn-object-parties__main-email"
+				:href="`mailto:${mainParty.email}`"
+				data-testid="cn-object-parties-main-email">
+				<EmailOutline :size="16" aria-hidden="true" />{{ mainParty.email }}</a>
+			<a
+				v-if="footLink"
+				class="cn-object-parties__main-link"
+				:href="footLink.href"
+				data-testid="cn-object-parties-main-link">{{ footLink.label }}</a>
+		</div>
 
 		<NcEmptyContent
 			v-else-if="groups.length === 0"
@@ -66,62 +112,149 @@
 						class="cn-object-parties__party"
 						:data-party="party.partyUuid || party.contactUid"
 						data-testid="cn-object-parties-party">
-						<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
-						<span
-							v-if="primary && party.partyUuid === primary"
-							class="cn-status-badge cn-status-badge--primary"
-							data-testid="cn-object-parties-primary">{{ label('primary') }}</span>
-						<span v-if="kindOf(party)" class="cn-object-parties__muted">{{ kindOf(party) }}</span>
-						<span
-							v-if="notAccepted(party)"
-							class="cn-status-badge cn-status-badge--warning"
-							data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
-						<span
-							v-for="(line, index) in extraLinesOf(party)"
-							:key="`line-${index}`"
-							class="cn-object-parties__muted"
-							data-testid="cn-object-parties-extra-line">{{ line }}</span>
-						<span v-if="party.email" class="cn-object-parties__muted">{{ party.email }}</span>
-						<span
-							v-if="representedBy(party)"
-							class="cn-object-parties__muted"
-							data-testid="cn-object-parties-represented">{{ label('representedBy') }}: {{ representedBy(party) }}</span>
-						<span
-							v-if="correspondenceOf(party)"
-							class="cn-object-parties__muted"
-							:data-party-documents="party.partyUuid || party.contactUid"
-							data-testid="cn-object-parties-documents">{{ correspondenceOf(party) }}</span>
-						<span
-							v-for="indicator in indicatorsFor(party)"
-							:key="`${party.partyUuid}-${indicator.key}`"
-							class="cn-status-badge cn-status-badge--default"
-							:class="`cn-object-parties__indicator--${indicator.severity}`"
-							:data-effect="indicator.effect"
-							:title="indicator.verdict"
-							data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
+						<!-- The board look draws a party as one ruled row (DqZaakBetrokkenen
+						     "Rollen"): an initials tile, the name over one meta line that
+						     names the role, the pills at the end. -->
+						<template v-if="isBoard">
+							<span class="cn-object-parties__tile" aria-hidden="true">{{ initialsOf(nameOf(party)) }}</span>
+							<span class="cn-object-parties__text">
+								<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
+								<span class="cn-object-parties__meta" data-testid="cn-object-parties-meta">{{ boardMetaOf(party, group) }}</span>
+							</span>
+							<span class="cn-object-parties__end">
+								<span
+									v-if="notAccepted(party)"
+									class="cn-status-badge cn-status-badge--warning"
+									data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
+								<span
+									v-for="indicator in indicatorsFor(party)"
+									:key="`${party.partyUuid}-${indicator.key}`"
+									class="cn-status-badge cn-status-badge--default"
+									:class="`cn-object-parties__indicator--${indicator.severity}`"
+									:data-effect="indicator.effect"
+									:title="indicator.verdict"
+									data-testid="cn-object-parties-indicator">{{ indicator.label }}</span>
+								<NcButton
+									v-if="canRemove && party.partyUuid"
+									class="cn-object-parties__remove"
+									variant="tertiary"
+									:aria-label="removeLabel(party, group)"
+									:title="removeLabel(party, group)"
+									data-testid="cn-object-parties-remove"
+									@click="removing = { party, group }">
+									<template #icon>
+										<TrashCanOutline :size="20" />
+									</template>
+								</NcButton>
+							</span>
+						</template>
+						<template v-else>
+							<span class="cn-object-parties__name">{{ nameOf(party) }}</span>
+							<span
+								v-if="primary && party.partyUuid === primary"
+								class="cn-status-badge cn-status-badge--primary"
+								data-testid="cn-object-parties-primary">{{ label('primary') }}</span>
+							<span v-if="kindOf(party)" class="cn-object-parties__muted">{{ kindOf(party) }}</span>
+							<span
+								v-if="notAccepted(party)"
+								class="cn-status-badge cn-status-badge--warning"
+								data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
+							<span
+								v-for="(line, index) in extraLinesOf(party)"
+								:key="`line-${index}`"
+								class="cn-object-parties__muted"
+								data-testid="cn-object-parties-extra-line">{{ line }}</span>
+							<span v-if="party.email" class="cn-object-parties__muted">{{ party.email }}</span>
+							<span
+								v-if="representedBy(party)"
+								class="cn-object-parties__muted"
+								data-testid="cn-object-parties-represented">{{ label('representedBy') }}: {{ representedBy(party) }}</span>
+							<span
+								v-if="correspondenceOf(party)"
+								class="cn-object-parties__muted"
+								:data-party-documents="party.partyUuid || party.contactUid"
+								data-testid="cn-object-parties-documents">{{ correspondenceOf(party) }}</span>
+							<span
+								v-for="indicator in indicatorsFor(party)"
+								:key="`${party.partyUuid}-${indicator.key}`"
+								class="cn-status-badge cn-status-badge--default"
+								:class="`cn-object-parties__indicator--${indicator.severity}`"
+								:data-effect="indicator.effect"
+								:title="indicator.verdict"
+								data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
+							<NcButton
+								v-if="canRemove && party.partyUuid"
+								class="cn-object-parties__remove"
+								variant="tertiary"
+								:aria-label="removeLabel(party, group)"
+								:title="removeLabel(party, group)"
+								data-testid="cn-object-parties-remove"
+								@click="removing = { party, group }">
+								<template #icon>
+									<TrashCanOutline :size="20" />
+								</template>
+							</NcButton>
+						</template>
 					</li>
 				</ul>
 			</section>
 		</template>
+
+		<CnPartyAddDialog
+			v-if="adding"
+			ref="addDialog"
+			:dialogTitle="manageWord('add', 'dialogTitle', t('nextcloud-vue', 'Add a party'))"
+			:roles="addRoles"
+			:sources="addSources"
+			:createFields="createFields"
+			:createLabel="manageWord('add', 'createLabel', t('nextcloud-vue', 'Someone new'))"
+			:allowPrimary="content.manage.add.primary === true"
+			:primaryLabel="label('primary')"
+			:confirmLabel="manageWord('add', 'confirmLabel', t('nextcloud-vue', 'Add'))"
+			@close="adding = false"
+			@confirm="addParty" />
+
+		<CnConfirmDialog
+			v-if="removing"
+			ref="removeDialog"
+			:dialogTitle="manageWord('remove', 'title', t('nextcloud-vue', 'Remove party'))"
+			:message="removeMessage"
+			:confirmLabel="manageWord('remove', 'confirmLabel', t('nextcloud-vue', 'Remove'))"
+			variant="error"
+			@close="removing = null"
+			@confirm="removeParty" />
 	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnPartyAddDialog from '../../dialogs/CnPartyAddDialog.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
+import { initialsOf } from '../../utils/initials.js'
 import {
 	documentsOfParty,
 	indicatorsOf,
 	indicatorVerdict,
 	kindCode,
+	newPartyRecord,
+	partyKindAccepted,
 	representedByMap,
+	roleLabel,
 	rolesInOrder,
+	savedUuid,
 } from '../../utils/objectParties.js'
+import { fetchCallerScope } from '../../utils/objectPermissions.js'
 import { readPath } from '../../utils/readPath.js'
 
 let uid = 0
@@ -141,6 +274,7 @@ function defaultLabels() {
 		primary: t('nextcloud-vue', 'Primary party'),
 		notAccepted: t('nextcloud-vue', 'Kind not accepted here'),
 		representedBy: t('nextcloud-vue', 'Represented by'),
+		noPrimary: t('nextcloud-vue', 'No main contact yet'),
 	}
 }
 
@@ -164,6 +298,22 @@ function defaultLabels() {
  * }
  * ```
  *
+ * `manage` lets a reader change the parties through OpenRegister's party
+ * API, which asks the record's update right on every write: `add` (`{ label?,
+ * dialogTitle?, kind?, sources, create?, primary?, confirmLabel? }`) opens a
+ * dialog to pick somebody known or describe somebody new (`create: {
+ * register, schema, label?, fields, compose? }`, see `newPartyRecord`), choose
+ * a role and optionally make them the primary party; `remove` (`{ title?,
+ * message?, confirmLabel? }`, `{name}` and `{role}` in the message) takes a
+ * party off in one role. Both are hidden when OpenRegister says the reader
+ * may not update the schema; a refusal is shown, never swallowed.
+ *
+ * `presentation: "primary"` draws only the primary party, as a side card
+ * does: initials, name and role label, its correspondence e-mail, and
+ * `link` (`{ label, href? | tab? }`, `{total}` = the number of parties) at
+ * the foot; `tab` opens that tab of the page through the route hash. It
+ * reads the listing only.
+ *
  * A failed read says so and is never shown as "no parties".
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
@@ -171,12 +321,13 @@ function defaultLabels() {
 export default {
 	name: 'CnObjectPartiesWidget',
 
-	components: { NcEmptyContent, NcLoadingIcon, NcNoteCard },
+	components: { CnConfirmDialog, CnPartyAddDialog, EmailOutline, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Plus, TrashCanOutline },
 
 	mixins: [innerHeading],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -188,7 +339,10 @@ export default {
 		 * `kindsSource` (`{ url, enforce?, sourceText? }`), `extraLines`
 		 * (`[{ endpoint, path?, valueLabels?, lines }]`, one request per
 		 * party, `{party}` filled in), `correspondence` (`{ endpoint, path?,
-		 * senderField?, recipientsField? }`) and `labels`.
+		 * senderField?, recipientsField? }`), `labels`, `presentation`
+		 * (`"primary"`: only the primary party) and `link` (`{ label,
+		 * href? | tab? }`, the primary presentation's foot link) and
+		 * `manage` (`{ add?, remove? }`, adding and removing parties).
 		 */
 		content: {
 			type: Object,
@@ -226,13 +380,114 @@ export default {
 			kinds: null,
 			extra: {},
 			documents: [],
+			mayUpdate: true,
+			adding: false,
+			removing: null,
+			manageError: '',
 		}
 	},
 
 	computed: {
+		/** @return {boolean} The board look draws one ruled row per party. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/** @return {Array<object>} The role groups, primary first. */
 		groups() {
 			return rolesInOrder(this.listing, this.translatedMap(this.content?.roleLabels))
+		},
+
+		/** @return {object} The `manage` declaration, or an empty one. */
+		manage() {
+			const manage = this.content?.manage
+			return manage && typeof manage === 'object' ? manage : {}
+		},
+
+		/** @return {boolean} Whether the add button shows. */
+		canAdd() {
+			return Boolean(this.manage.add) && this.mayUpdate && !this.isPrimaryPresentation && !this.loading && !this.failed
+		},
+
+		/** @return {boolean} Whether each party offers its remove button. */
+		canRemove() {
+			return Boolean(this.manage.remove) && this.mayUpdate && !this.isPrimaryPresentation
+		},
+
+		/** @return {Array<{key: string, label: string}>} The roles a new party may hold, in the reader's words. */
+		addRoles() {
+			const declared = Array.isArray(this.listing?.roles) ? this.listing.roles : []
+			const kind = this.manage.add?.kind
+			const accepted = kind ? (this.listing?.kinds || []).find((entry) => kindCode(entry) === kind)?.roles : null
+			const keys = Array.isArray(accepted) && accepted.length > 0 ? accepted : declared.map((role) => role?.key).filter(Boolean)
+			const own = this.translatedMap(this.content?.roleLabels)
+			return keys.map((key) => ({ key, label: own[key] || this.cnTranslate(roleLabel(key, declared, {})) }))
+		},
+
+		/** @return {Array<object>} The picker sources, their words translated by the picker. */
+		addSources() {
+			return Array.isArray(this.manage.add?.sources) ? this.manage.add.sources : []
+		},
+
+		/** @return {Array<object>} The new-person fields, labels translated. */
+		createFields() {
+			const fields = this.manage.add?.create?.fields
+			return (Array.isArray(fields) ? fields : [])
+				.filter((field) => field && field.key)
+				.map((field) => ({ ...field, label: this.cnTranslate(field.label || field.key) }))
+		},
+
+		/** @return {string} The question the remove dialog asks. */
+		removeMessage() {
+			if (!this.removing) {
+				return ''
+			}
+			const name = this.nameOf(this.removing.party)
+			const role = this.removing.group.label
+			const own = this.manage.remove?.message
+			return own
+				? this.cnTranslate(own).replaceAll('{name}', name).replaceAll('{role}', role)
+				: t('nextcloud-vue', 'Remove {name} as {role}?', { name, role }, undefined, { escape: false })
+		},
+
+		/** @return {boolean} Whether only the primary party is drawn. */
+		isPrimaryPresentation() {
+			return this.content?.presentation === 'primary'
+		},
+
+		/** @return {object|null} The primary party's listing row. */
+		mainParty() {
+			if (!this.primary) {
+				return null
+			}
+			return (this.listing?.results || []).find((row) => row && row.partyUuid === this.primary) || null
+		},
+
+		/** @return {string} The primary party's role, in the app's words. */
+		mainRole() {
+			const key = this.mainParty?.role
+			if (!key) {
+				return ''
+			}
+			const own = this.translatedMap(this.content?.roleLabels)
+			if (typeof own[key] === 'string' && own[key] !== '') {
+				return own[key]
+			}
+			return this.cnTranslate(roleLabel(key, this.listing?.roles, {}))
+		},
+
+		/** @return {{label: string, href: string}|null} The primary presentation's foot link; none without parties. */
+		footLink() {
+			const link = this.content?.link
+			const total = Number(this.listing?.total ?? (this.listing?.results || []).length)
+			if (!link || typeof link !== 'object' || !link.label || !(total > 0)) {
+				return null
+			}
+			const href = link.tab ? `#${encodeURIComponent(link.tab)}` : (link.href || '')
+			if (href === '') {
+				return null
+			}
+			return { label: this.cnTranslate(link.label).replaceAll('{total}', String(total)), href }
 		},
 
 		/** @return {string|null} The primary party's uuid. */
@@ -300,7 +555,22 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.onPageRefresh = (payload) => {
+			if (payload?.source !== this.idPrefix) {
+				this.load()
+			}
+		}
+		subscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		t,
+		initialsOf,
 		kindCode,
 
 		/**
@@ -312,6 +582,115 @@ export default {
 		label(key) {
 			const own = this.content?.labels && typeof this.content.labels[key] === 'string' ? this.content.labels[key] : ''
 			return own !== '' ? this.cnTranslate(own) : defaultLabels()[key]
+		},
+
+		/**
+		 * A word of the `manage` declaration, translated, else the default.
+		 *
+		 * @param {string} part `add` or `remove`.
+		 * @param {string} key The word's key.
+		 * @param {string} fallback The default.
+		 * @return {string}
+		 */
+		manageWord(part, key, fallback) {
+			const own = this.manage[part]?.[key]
+			return typeof own === 'string' && own !== '' ? this.cnTranslate(own) : fallback
+		},
+
+		/**
+		 * The remove button's accessible name.
+		 *
+		 * @param {object} party The listing row.
+		 * @param {object} group The role group.
+		 * @return {string}
+		 */
+		removeLabel(party, group) {
+			return t('nextcloud-vue', 'Remove {name} as {role}', { name: this.nameOf(party), role: group.label }, undefined, { escape: false })
+		},
+
+		/**
+		 * Why a write failed, in the reader's words.
+		 *
+		 * @param {unknown} error The axios error.
+		 * @return {string}
+		 */
+		refusalOf(error) {
+			if (error?.response?.status === 403) {
+				return t('nextcloud-vue', 'You may not change who is on this record.')
+			}
+			const said = error?.response?.data?.error
+			return typeof said === 'string' && said !== '' ? said : t('nextcloud-vue', 'The change could not be saved. Nothing was changed.')
+		},
+
+		/** @return {string} The record's parties URL. */
+		partiesUrl() {
+			return this.urlOf(this.content?.rolesSource || '/apps/openregister/api/objects/@register/@schema/@objectId/parties')
+		},
+
+		/** @return {Promise<void>} Whether OpenRegister lets the reader update this schema; unknown counts as yes, the server decides. */
+		async loadMayUpdate() {
+			if (!this.manage.add && !this.manage.remove) {
+				return
+			}
+			const slug = (value) => (value && typeof value === 'object' ? String(value.slug || value.id || '') : String(value || ''))
+			const scope = await fetchCallerScope({ register: slug(this.register), schema: slug(this.schema) })
+			this.mayUpdate = !scope || !Array.isArray(scope.actions) || scope.actions.includes('update')
+		},
+
+		/**
+		 * Create the person when they are new, then give them the role; a
+		 * primary party is set through the primary route, which records the
+		 * replacement.
+		 *
+		 * @param {{mode: string, partyUuid: string|null, values: object, role: string, primary: boolean}} choice The dialog's choice.
+		 * @return {Promise<void>}
+		 */
+		async addParty(choice) {
+			try {
+				let partyUuid = choice.partyUuid
+				if (choice.mode === 'new') {
+					const create = this.manage.add?.create || {}
+					const { data } = await axios.post(
+						generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(create.register || '')}/${encodeURIComponent(create.schema || '')}`),
+						newPartyRecord(create, choice.values),
+					)
+					partyUuid = savedUuid(data)
+					if (partyUuid === '') {
+						throw new Error(t('nextcloud-vue', 'The new person was not saved.'))
+					}
+				}
+				if (choice.primary) {
+					await axios.put(generateUrl(`${this.partiesUrl()}/primary`), { partyUuid, role: choice.role })
+				} else {
+					await axios.post(generateUrl(this.partiesUrl()), { partyUuid, role: choice.role })
+				}
+				this.adding = false
+				this.changed()
+			} catch (error) {
+				this.$refs.addDialog?.fail(error?.response ? this.refusalOf(error) : (error?.message || this.refusalOf(error)))
+			}
+		},
+
+		/** @return {Promise<void>} Take the chosen party off in the chosen role. */
+		async removeParty() {
+			const { party, group } = this.removing || {}
+			if (!party) {
+				return
+			}
+			try {
+				await axios.delete(generateUrl(`${this.partiesUrl()}/${encodeURIComponent(party.partyUuid)}`), { params: { role: group.key } })
+				this.removing = null
+				this.changed()
+			} catch (error) {
+				this.$refs.removeDialog?.setResult({ error: this.refusalOf(error) })
+			}
+		},
+
+		/** @return {void} Read the parties again and tell the page (tab counts, the side card). */
+		changed() {
+			this.manageError = ''
+			this.load()
+			emit('cn:page:refresh', { source: this.idPrefix })
 		},
 
 		/**
@@ -383,6 +762,11 @@ export default {
 				return
 			}
 			this.listing = listing
+			await this.loadMayUpdate()
+			if (this.isPrimaryPresentation) {
+				this.loading = false
+				return
+			}
 			const uuids = [...new Set((listing.results || []).map((row) => row && row.partyUuid).filter(Boolean))]
 			const partyUrl = this.content?.partySource || '/apps/openregister/api/parties/{uuid}'
 			const records = await Promise.all(uuids.map((uuid) => this.read(this.urlOf(partyUrl, uuid))))
@@ -509,7 +893,7 @@ export default {
 			if (!party?.partyKind || !this.kinds || (enforce && this.kinds.source !== enforce)) {
 				return false
 			}
-			return !this.kinds.kinds.some((kind) => kindCode(kind) === party.partyKind)
+			return !partyKindAccepted(party.partyKind, this.kinds.kinds, this.listing?.kinds)
 		},
 
 		/**
@@ -578,6 +962,29 @@ export default {
 		 * @param {object} party The listing row.
 		 * @return {Array<object>}
 		 */
+		/**
+		 * The board row's meta line: the primary mark, the role, the kind,
+		 * whom the party represents, its extra lines, e-mail and documents,
+		 * separated by middots.
+		 *
+		 * @param {object} party The party.
+		 * @param {object} group Its role group.
+		 * @return {string}
+		 */
+		boardMetaOf(party, group) {
+			const parts = []
+			if (this.primary && party.partyUuid === this.primary) {
+				parts.push(this.label('primary'))
+			}
+			parts.push(group.label, this.kindOf(party))
+			const represented = this.representedBy(party)
+			if (represented) {
+				parts.push(`${this.label('representedBy')}: ${represented}`)
+			}
+			parts.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
+			return parts.filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
 		indicatorsFor(party) {
 			const record = this.partyRecords[party.partyUuid]
 			if (!record) {
@@ -655,6 +1062,66 @@ export default {
 
 .cn-object-parties__muted {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-object-parties__manage {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.cn-object-parties__remove {
+	margin-inline-start: auto;
+}
+
+.cn-object-parties__main-card {
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--default-grid-baseline, 4px) * 3);
+}
+
+.cn-object-parties__main {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--default-grid-baseline, 4px) * 3);
+}
+
+.cn-object-parties__main-initials {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-object-parties__main-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-object-parties__main-name {
+	font-size: 15px;
+}
+
+.cn-object-parties__main-role {
+	font-size: 13px;
+}
+
+.cn-object-parties__main-email {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--default-grid-baseline, 4px) * 2.5);
+	color: var(--color-main-text);
+	overflow-wrap: anywhere;
+}
+
+.cn-object-parties__main-link {
+	color: var(--color-primary-element);
+	font-weight: 600;
 }
 
 .cn-object-parties__accepted {

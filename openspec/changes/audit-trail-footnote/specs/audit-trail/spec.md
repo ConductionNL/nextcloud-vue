@@ -5,7 +5,7 @@
 ### Requirement: A history card can end in a line about the record
 
 An audit-trail widget with `content.footnote` SHALL draw that text, translated and filled from the record shown, as a
-muted line under the trail, and SHALL draw nothing when a field it names is empty.
+muted line under the trail inside the card's own box, and SHALL draw nothing when a field it names is empty.
 
 #### Scenario: A case type's history
 

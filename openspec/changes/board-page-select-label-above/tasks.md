@@ -1,0 +1,2 @@
+- [x] look-board-detail.css rules (probed on :8080 with the rules injected)
+- [x] tests/css/lookBoardPageSelectLabelAbove.spec.js (red first)

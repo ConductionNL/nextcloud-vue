@@ -28,9 +28,12 @@
 				:key="keyOf(event, index)"
 				class="cn-events-card__event"
 				data-testid="cn-events-card-event">
-				<span class="cn-events-card__summary">{{ summaryOf(event) }}</span>
-				<span class="cn-events-card__when">{{ whenOf(event) }}</span>
-				<span v-if="event.location" class="cn-events-card__where">{{ event.location }}</span>
+				<span v-if="dayOf(event)" class="cn-events-card__day" aria-hidden="true">{{ dayOf(event) }}</span>
+				<span class="cn-events-card__text">
+					<span class="cn-events-card__summary">{{ summaryOf(event) }}</span>
+					<span class="cn-events-card__when">{{ whenOf(event) }}</span>
+					<span v-if="event.location" class="cn-events-card__where">{{ event.location }}</span>
+				</span>
 			</li>
 		</ul>
 		<p v-else class="cn-events-card__muted" data-testid="cn-events-card-empty">
@@ -294,6 +297,15 @@ export default {
 
 		/**
 		 * @param {object} event The event.
+		 * @return {string} The day of the month it starts on, '' when it has no readable start.
+		 */
+		dayOf(event) {
+			const parsed = new Date(String(event?.dtstart ?? '').trim())
+			return Number.isNaN(parsed.getTime()) ? '' : String(parsed.getDate())
+		},
+
+		/**
+		 * @param {object} event The event.
 		 * @return {string} When it is: its start and end, or whichever it has.
 		 */
 		whenOf(event) {
@@ -333,8 +345,7 @@ function formatMoment(value) {
 
 .cn-events-card__event {
 	display: flex;
-	flex-direction: column;
-	gap: 2px;
+	gap: 12px;
 	padding-bottom: 8px;
 	border-bottom: 1px solid var(--color-border);
 }
@@ -342,6 +353,17 @@ function formatMoment(value) {
 .cn-events-card__event:last-child {
 	padding-bottom: 0;
 	border-bottom: none;
+}
+
+.cn-events-card__day {
+	display: none;
+}
+
+.cn-events-card__text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
 }
 
 .cn-events-card__summary {

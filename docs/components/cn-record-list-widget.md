@@ -36,6 +36,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 |-----|---------|
 | `register`, `schema` | The list to read. Without both the widget sends nothing. |
 | `endpointSource` | Read the rows from an app endpoint instead: `{ url, method?, params?, responsePath? }`, the shape the object table and the stat tile take. The payload at `responsePath` is the array of rows; a payload that is not an array is an empty list. `register`, `schema`, `filter` and `sort` are then not used. |
+| `objectRows` | List rows the page record holds instead: `{ path, where?, valuePath? }`. The list at `path`, narrowed to the entry matching `where`, its `valuePath` taken; a JSON string is decoded. No request is sent: the record is the one the page read as the reader, so its read rules already apply (dossiq Onderzoek: `{ "path": "sensitiveProperties", "where": { "name": "onderzoeksstappen" }, "valuePath": "value" }`). A tab counts the same rows with `countObjectRows`. |
 | `filter` | Field filters, with the `@objectId`, `@object.<field>` and `@workspace.<key>` tokens. While a required token has no value the widget sends nothing. An operator is an object: `{ "status": { "ne": "closed" } }`. |
 | `sort` | `{ field, dir }`, sent as `_order[field]`. |
 | `limit` | How many rows to fetch and draw. Default 5. |
@@ -50,6 +51,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 
 - `rows` (default): `title` in bold, `meta` under it, a `pill`, a `trailing` text and a chevron. A row with a route is a link. In a detail page's side column the row stacks (title as a link, meta, then pill and date) and drops the chevron, which is the board's "Lopende zaken" card with `limit: 1`.
 - A `rows` row can lead with a short text in a 52px column before the title: `leading` is a template, such as `"{submittedAt|time}"` for the time of day, as board PtDashboard draws "Recente inzendingen". A row whose template does not fill draws no leading text.
+- `pillAt: "start"` draws a `rows` row's pill before its title instead of at its end, and `ruleAbove: true` rules above the first row too, as DqZaakDocumenten draws "Weigeringsgronden tot nu toe" (the ground's code, then its name, under a hairline).
 - A `rows` list can lead with an avatar: `avatar` is a name template (`"{client.name}"`, or `{ "text": "{client.name}" }`), drawn as a 36px circle with the initials of its first and last word ("Sanne de Vries" reads "SV"). A row whose name is empty has no circle. The second line is `meta`: `"meta": "{client.name} · {channel}"` with `"extend": ["client"]` puts the customer under the title. The circle is decoration (`aria-hidden`); the name is in the meta text.
 - `feed`: a round `icon`, a `meta` line and a `text` line. `icon` is an icon name, or `{ field, map, default }` to pick one per row ("phone" to `Phone`).
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
@@ -70,6 +72,7 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 `rowAction` ends every `rows` row with one action, drawn as a 150px by 34px pill, as board DcMijnActies draws "Beoordelen" and "Stem uitbrengen". The title becomes the row's link (with `rowRoute`) and the chevron goes.
 
 - It is a manifest action plus a `label`: `open-page` opens that page for the row's id, `navigate` reads `@object.<field>` and `@objectId` off the row (`"/votes/@object.id"`). Both render as links. Any other type is a button that runs through the page's dispatcher: a `handler` gets the row as its last argument, `open-modal` gets it as the `row` prop.
+- `variant: "outlined"` draws it, in the board look on a dashboard, as an outlined button sized to its label, with the row title in the main ink (DqMijnTeam "Oppakken"). Without it the action keeps the pill.
 - `labels: { field, map }` picks the label per row: `{ "field": "status", "map": { "open": "Starten" } }` reads "Starten" for an open item and `label` ("Afronden") for the rest.
 - `endpoint` (with `method`, default POST) makes it a button that calls that app URL for the row, as a `rowActions` endpoint entry does: `@objectId` and the row's `{field}` tokens filled in, the list read again afterwards, a refusal shown in the server's words (else `errorText`). A row whose `labels` entry is an empty string has no action, so DqZaakBesluiten shows "Herinneren" on an open advice request only.
 
@@ -116,6 +119,8 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 
 ### An action under the list
 
+`footerLink` (the shape of `headerLink`: `{ label, route, params?, query? }` or `{ label, href }`, `{total}` filled) ends the card with a text link under the rows, not drawn while the list is empty (DqDagAfsluiten "Naar Mijn werk", DqDashboard "Alles bekijken").
+
 `footerAction` ends the card with one secondary button, also under the empty text, as board DqBezwaar draws "Beroep registreren" in its Beroep card. It is a manifest action plus a `label` and an optional `icon`, run through the page's dispatcher with the page's record as `@object`. `disabledWhen` is a visibleWhen condition (a `field` on the page's record, the workspace, an endpoint or a source; `total` reads the list's total): while it holds the button is disabled and `disabledReason` shows under it, tied to the button with `aria-describedby`. Label and reason go through the app's translate.
 
 ```json
@@ -161,7 +166,7 @@ In a tab panel there is no card header, so neither is drawn.
 
 | Key | Meaning |
 |-----|---------|
-| `value` | A template over the row, the cell text. |
+| `value` | A template over the row, the cell text, or a list of templates of which the first that fills is shown (`["{identifier} {title}", "{domain}"]`). |
 | `align` | `"end"` right-aligns the cell, for numbers. |
 | `alertAbove` | A number above it reads bold in the danger colour. |
 | `sortable` | The header becomes a button. The first press sorts the rows up, the next down. Numbers sort as numbers. The header carries `aria-sort`. |
@@ -244,7 +249,7 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 `badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.
 ## Due text
 
-`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. With `upcomingLabel` (`{ "one": "nog {count} dag", "other": "nog {count} dagen" }`) a day to come reads the days left instead of the date, and with `upcomingWeeksLabel` (`{ "one": "nog {count} week", "other": "nog {count} weken" }`) it reads the weeks left, rounded, from `upcomingWeeksFrom` days left (default 35). The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`.
+`due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. With `upcomingLabel` (`{ "one": "nog {count} dag", "other": "nog {count} dagen" }`) a day to come reads the days left instead of the date, and with `upcomingWeeksLabel` (`{ "one": "nog {count} week", "other": "nog {count} weken" }`) it reads the weeks left, rounded, from `upcomingWeeksFrom` days left (default 35). The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`. In `rows`, `duePlacement: "below"` draws the due text as a line under the title (13px, in its tone) instead of at the end of the row (DqDagAfsluiten "Morgen eerst").
 
 ## A bar under each row
 

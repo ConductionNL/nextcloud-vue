@@ -30,6 +30,7 @@ fetch matching choices (set `loading` while it does).
 | `modelValue` | `Array` | `[]` | The values in their order. |
 | `options` | `Array` | `[]` | The choices, `{ value, label, description?, icon? }`, or plain strings. `description` is a muted second line ("19 open cases") in the row and in the picker, and the row's buttons name it as their description; `icon` is an MDI name drawn in a small tile before the label. A listed value without a choice shows the value itself. |
 | `label` | `String` | `''` | The list's label, also its accessible name. |
+| `hideLabel` | `Boolean` | `false` | Keep the label for assistive technology only, when a heading above already says it. |
 | `addLabel` | `String` | `'Add'` | The picker's label. |
 | `addPlaceholder` | `String` | `''` | Placeholder in the picker. |
 | `addHint` | `String` | `''` | A hint under the picker. |

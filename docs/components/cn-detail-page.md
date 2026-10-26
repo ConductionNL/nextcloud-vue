@@ -20,6 +20,8 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
+| `cardButtons` | String | `'compact'` | How tall the labelled buttons in the page's card title rows stand in the board look: `compact` (34px, setting and case-type pages) or `regular` (the 40px control height, as the case page's tab cards draw them, DqZaakContact "Live gesprek"). Manifest `config.cardButtons`. |
+| `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). True keeps every widget on its authored row; false packs widgets upward, so a size-to-content widget ends at its content and the one below closes up (DqHandhaving: the violation card sits 20px under the matrix). |
 | `description` | String | `''` | Optional subtitle shown below the title |
 | `icon` | String | `''` | MDI icon name (rendered via CnIcon) |
 | `iconSize` | Number | `28` | Icon size in pixels |
@@ -216,6 +218,18 @@ The count is read again for another record and after a page refresh.
 The column sits to the right of the body and holds facts: the deadline, the requester, the handler, the links. A string names a widget declared in the page's `widgets`, which is how a `custom` widget gets there. An object is a widget definition of its own.
 
 The column drops under the body when the page is too narrow for both. That is decided by the room the page has, not by the viewport, so it also holds beside an open sidebar. A `layout` grid keeps working next to it.
+
+## A widget title that depends on the record
+
+A widget definition may carry `titleWhen: [{ when?, text }]`. The page resolves it against the record and its `@context` rows before the card, the tab strip or a leaf card reads the title: the first entry whose `when` holds becomes the plain `title`, an entry without `when` always holds, and while the record loads or no entry holds the written `title` stays. An empty `text` is a card without a title row. dossiq titles the case Files card "Documents for this request" on a case type that reviews its documents and draws it untitled on the others (DqZaakDocumenten, DqDocumentenBeheer):
+
+```json
+{ "id": "case-files", "title": "Files", "titleWhen": [{ "when": { "field": "@context.caseType.documentReview.enabled", "op": "eq", "value": true }, "text": "Documents for this request" }, { "text": "" }] }
+```
+
+## Widgets inside another widget's card
+
+`content.leadWidgetIds` names other widgets on the page that a widget's card draws inside itself, after its title row and before its own content, each without a card of its own and only while its own `visibleWhen` holds. dossiq draws the review summary ("4 van 7 beoordeeld") inside the case Files card (DqZaakDocumenten): `"content": { "view": "tab", "leadWidgetIds": ["case-document-verdicts-card"] }`, with the summary left out of the tab's own `widgetIds` so it does not draw twice.
 
 ## A body widget's own cards in the side column
 
@@ -608,6 +622,8 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `formSize` (`form-size`) | String | `'normal'` | NcDialog size for this page's create and edit form dialogs (`'small'`, `'normal'`, `'large'`). Set from the manifest as `config.formSize`. Before 2.44.0 the page passed no size, so both forms sat at `normal` however many properties the schema declared, while a manifest `open-form` header action could already ask for `large`. |
 | `formColumns` (`form-columns`) | Number | `1` | How many columns the create and edit forms flow their fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Textareas and JSON editors still span both, and the layout collapses back to one column below 700px. Set from the manifest as `config.formColumns`. |
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
+| `editTitle` | String | `''` | Title of the record edit form, run through the host translate. Empty uses the Edit button's label. |
+| `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
 
 ### Widget icons (ADR-062)
 

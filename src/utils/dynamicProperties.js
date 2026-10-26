@@ -449,6 +449,56 @@ export function usesArrayValues(config) {
 }
 
 /**
+ * Every array an array-mode declaration stores answers in: `arrayKey`, and
+ * the arrays `values.arrayKeyBy.keys` routes flagged answers to.
+ *
+ * A schema can let fewer people read a second array than the first, so a
+ * declaration routes the answers to some definitions there (a definition
+ * flagged `sensitive`, say) while the rest stay in `arrayKey`.
+ *
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @spec openspec/changes/dynamic-answers-by-definition-flag/specs/dynamic-answers-by-definition-flag/spec.md
+ * @return {Array<string>} The array keys, `arrayKey` first.
+ */
+export function arrayKeysOf(config) {
+	if (!usesArrayValues(config)) {
+		return []
+	}
+	const keys = (config.values.arrayKeyBy && config.values.arrayKeyBy.keys) || {}
+	return [...new Set([config.values.arrayKey, ...Object.values(keys).filter((key) => typeof key === 'string' && key !== '')])]
+}
+
+/**
+ * The answers of an array-mode declaration, grouped by the array each is
+ * stored in: the array `values.arrayKeyBy` names for the value of its
+ * definition's flag field, else `arrayKey`.
+ *
+ * @param {Array<{definitionId: string, value: unknown}>} answers The answers.
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @param {Array<object>} [definitions] The definition records, carrying the flag.
+ * @spec openspec/changes/dynamic-answers-by-definition-flag/specs/dynamic-answers-by-definition-flag/spec.md
+ * @return {Object<string, Array<{definitionId: string, value: unknown}>>} Array key => its answers; only arrays with answers.
+ */
+export function answersByArrayKey(answers, config, definitions = []) {
+	if (!usesArrayValues(config)) {
+		return {}
+	}
+	const by = config.values.arrayKeyBy || null
+	const field = by && typeof by.field === 'string' ? by.field : ''
+	const keys = (by && by.keys) || {}
+	const byId = new Map((definitions || []).map((d) => [String(d.id ?? d.uuid ?? ''), d]))
+
+	const groups = {}
+	for (const answer of answers || []) {
+		const def = byId.get(String(answer.definitionId))
+		const flag = field && def ? String(def[field]) : ''
+		const key = (flag && typeof keys[flag] === 'string' && keys[flag]) || config.values.arrayKey
+		;(groups[key] = groups[key] || []).push(answer)
+	}
+	return groups
+}
+
+/**
  * Build the array a declaration stores on its parent object.
  *
  * Each entry carries the definition it answers as well as its name, so a
@@ -563,10 +613,9 @@ export function storedAnswersFor(record, config, properties = {}) {
 	if (!record || !usesArrayValues(config)) {
 		return {}
 	}
-	const entries = record[config.values.arrayKey]
-	if (!Array.isArray(entries)) {
-		return {}
-	}
+	// Every array the declaration routes answers to: a reader the server
+	// stripped one of them for simply finds no stored answer there.
+	const entries = arrayKeysOf(config).flatMap((arrayKey) => (Array.isArray(record[arrayKey]) ? record[arrayKey] : []))
 	const definitionRef = config.values.definitionRef || 'definition'
 	const valueKey = config.values.valueKey || 'value'
 	const out = {}

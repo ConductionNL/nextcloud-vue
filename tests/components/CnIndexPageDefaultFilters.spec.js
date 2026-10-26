@@ -89,6 +89,15 @@ beforeEach(() => {
 })
 
 describe('CnIndexPage defaultFilters', () => {
+	it('sends a default held as one value with the request (DqOrganisaties "Plaats: Zuiddrecht")', async () => {
+		const { wrapper } = mountPage({}, { defaultFilters: { 'address.place': 'Zuiddrecht' } })
+		await settle()
+		const calls = mockStore.fetchCollection.mock.calls
+		expect(calls.length).toBeGreaterThan(0)
+		expect(calls[calls.length - 1][1]['address.place']).toBe('Zuiddrecht')
+		wrapper.unmount()
+	})
+
 	it('applies the defaults on load when the address names no filter', async () => {
 		const { wrapper } = mountPage({})
 		await settle()

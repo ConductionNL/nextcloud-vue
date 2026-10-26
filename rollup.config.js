@@ -280,6 +280,17 @@ export default {
 			format: 'es',
 			preserveModules: true,
 			preserveModulesRoot: 'src',
+			// The catalogues in l10n/ sit outside `src`, so their path follows
+			// the common root of every input. In a checkout whose node_modules
+			// resolves elsewhere (a git worktree with a linked node_modules)
+			// that root moves up and the catalogues land under
+			// dist/esm/<checkout>/l10n/. Pin them to dist/esm/l10n/, where
+			// consumers import them from.
+			entryFileNames: (chunk) => {
+				const id = chunk.facadeModuleId || ''
+				const match = id.includes('node_modules') ? null : id.match(/[\\/]l10n[\\/]([^\\/]+\.json)$/)
+				return match ? `l10n/${match[1]}.js` : '[name].js'
+			},
 			sourcemap: true,
 			// Only the entry chunk needs to pull in the extracted CSS —
 			// `banner` runs per emitted chunk under preserveModules, and a

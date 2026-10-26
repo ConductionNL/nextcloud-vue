@@ -8,8 +8,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type     | Required | Default | Description                                                                                                                                   |
-| ------------- | -------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `definitions` | `object` | ✓        | —       | Where the definitions are read: `{ register, schema, filter }`. A filter value `$route.query.&lt;key&gt;` reads the route and scopes the bar. |
-| `related`     | `object` | ✓        | —       | Where the values live: `{ schema, backref, definitionKey?, valueKey? }` (defaults `propertyDefinition` and `value`).                          |
-| `storeKey`    | `string` |          | `''`    | The object store key of the list, whose recorded error may be a refusal.                                                                      |
+| Name          | Type     | Required | Default | Description                                                                                                                                                                                                                                                                    |
+| ------------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `definitions` | `object` | ✓        | —       | Where the definitions are read: `{ register, schema, filter }`. A filter value `$route.query.&lt;key&gt;` reads the route and scopes the bar.                                                                                                                                  |
+| `related`     | `object` | ✓        | —       | Where the values live: `{ schema, backref, definitionKey?, valueKey? }` (defaults `propertyDefinition` and `value`) for rows of a related schema, or `{ element, definitionKey?, valueKey? }` for entries of the searched row's own array property (`properties[]` on a case). |
+| `storeKey`    | `string` |          | `''`    | The object store key of the list, whose recorded error may be a refusal.                                                                                                                                                                                                       |

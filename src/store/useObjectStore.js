@@ -714,10 +714,20 @@ const baseActions = {
 	 * @param {{error?: object|null}} [options.outcome] Opt-in sink for THIS call's own result: `error` is set to the error it records on `errors[type]`, or `null` on success. Unlike `errors[type]`, which every call for the type shares, a later call cannot overwrite it.
 	 * @param {boolean} [options.append] Add the fetched page after the rows already stored instead of replacing them. Dropped when the stored rows are no longer the page before it, or when `options.isCurrent()` returns false (the query changed meanwhile).
 	 * @param {() => boolean} [options.isCurrent] With `append`: asked once the page arrives; false drops it.
-	 * @return {Promise<Array>} The fetched collection (also stored in state)
+	 * @return {Promise<Array>} The fetched collection (also stored in state, unless a newer non-append fetch for the type started meanwhile)
+	 * @spec openspec/changes/list-keeps-its-newest-query/specs/list-keeps-its-newest-query/spec.md#requirement-the-newest-list-query-decides-what-the-list-shows
 	 */
 	async fetchCollection(type, params = {}, options = {}) {
 		const outcome = (options && typeof options.outcome === 'object' && options.outcome) || null
+		const append = options?.append === true
+		// Responses can arrive out of order; only the newest query for the
+		// type may write the list. An append page belongs to the query before it.
+		const currentQuery = this.__currentCollectionQuery || (this.__currentCollectionQuery = {})
+		if (!append) {
+			currentQuery[type] = JSON.stringify(params)
+		}
+		const query = currentQuery[type]
+		const superseded = () => currentQuery[type] !== query
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
@@ -746,10 +756,13 @@ const baseActions = {
 
 			if (!response.ok) {
 				const failure = await parseResponseError(response, type)
-				this.errors = { ...this.errors, [type]: failure }
 				if (outcome) {
 					outcome.error = failure
 				}
+				if (superseded()) {
+					return []
+				}
+				this.errors = { ...this.errors, [type]: failure }
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error fetching ${type} collection:`, failure)
 				return []
@@ -757,8 +770,13 @@ const baseActions = {
 
 			const data = await response.json()
 			const results = data.results || data
-			const append = options?.append === true
 
+			if (superseded()) {
+				if (outcome) {
+					outcome.error = null
+				}
+				return append ? [] : results
+			}
 			const stale = append && (
 				Number(this.pagination[type]?.page || 1) !== Number(params._page || 1) - 1
 				|| (typeof options.isCurrent === 'function' && !options.isCurrent())
@@ -797,15 +815,20 @@ const baseActions = {
 			const failure = error.name === 'TypeError'
 				? networkError(error)
 				: genericError(error)
-			this.errors = { ...this.errors, [type]: failure }
 			if (outcome) {
 				outcome.error = failure
 			}
+			if (superseded()) {
+				return []
+			}
+			this.errors = { ...this.errors, [type]: failure }
 			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
-			this.loading = { ...this.loading, [type]: false }
+			if (!superseded()) {
+				this.loading = { ...this.loading, [type]: false }
+			}
 		}
 	},
 

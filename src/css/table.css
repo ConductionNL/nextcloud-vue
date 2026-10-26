@@ -177,6 +177,20 @@
 /* The secondary line of a cell (`columns[].secondary`): muted, smaller, on its
    own line under the value. Theme hooks: --cn-table-secondary-size and
    --cn-table-secondary-color. */
+/* Pills beside a cell's value (`col.pills`, "Geheimhouding"). */
+.cn-data-table td > .cn-table-cell__pills {
+	display: inline-flex;
+	gap: 6px;
+	margin-inline-start: 8px;
+	vertical-align: middle;
+}
+
+.cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
 .cn-data-table .cn-table-cell__secondary {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
@@ -189,6 +203,11 @@
 /* The overline of a cell (`columns[].overline` / `overlineText`): muted and
    smaller, on its own line above the value. Same theme hooks as the
    secondary line. */
+/* A count column's zero label as text (`aggregate.zeroAs: "text"`): "Geen" in the muted ink. */
+.cn-data-table .cn-table-cell__zero {
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-data-table .cn-table-cell__overline {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
@@ -205,6 +224,18 @@
 	overflow: visible;
 	white-space: normal;
 	overflow-wrap: anywhere;
+}
+
+/* In a table fitted to its tile every column but the growing one asks for
+   as little width as its content allows (`width: 1%`). With
+   `overflow-wrap: anywhere` that is one character, so a wrapping head broke
+   letter by letter ("D o e l", DqDoorlooptijd "Prestaties per zaaktype",
+   240px tall). Here a wrapping column breaks between words and only breaks
+   a word that is longer than the column.
+   @spec openspec/changes/fit-table-wrap-by-word/specs/fit-table-wrap-by-word/spec.md#requirement-a-wrapping-column-in-a-fitted-table-breaks-between-words */
+.cn-data-table--fit th.cn-cell--wrap,
+.cn-data-table--fit td.cn-cell--wrap {
+	overflow-wrap: break-word;
 }
 
 /* Opt-in fixed layout (CnDataTable's `fixedLayout` prop).
@@ -270,6 +301,19 @@
 	white-space: nowrap;
 }
 
+/* A growing column that opts into wrapping (`cn-cell--wrap`, DqDoorlooptijd
+   "Zaken met risico" titles) wraps its text over lines instead of cutting
+   it, and keeps a readable width: with `max-width: 0` the wide one-line
+   cells beside it squeezed it to its padding (24px).
+   @spec openspec/changes/fit-table-wrap-column-keeps-width/specs/fit-table-wrap-column-keeps-width/spec.md#requirement-a-wrapping-growing-column-keeps-a-readable-width */
+.cn-data-table--fit th.cn-table-col--grow.cn-cell--wrap,
+.cn-data-table--fit td.cn-table-col--grow.cn-cell--wrap {
+	min-width: 8em;
+	max-width: none;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
 /* The secondary line of the growing column ("2026-0004" under a case title)
    is a line of its own with its own ellipsis. The cell does not wrap, so in
    the board look, where the secondary line is an inline block (the title
@@ -313,6 +357,13 @@
    list widgets (name + trailing status) that use `hideHeader`. */
 .cn-data-table td.cn-cell--strong {
 	font-weight: 500;
+}
+
+/* A lead cell's value reads 15px, a person's name over their function
+   (DqAfdelingen). */
+.cn-data-table td.cn-cell--lead > .cn-cell-renderer,
+.cn-data-table td.cn-cell--lead .cn-table-row__link > .cn-cell-renderer {
+	font-size: 15px;
 }
 
 .cn-data-table td.cn-cell--muted {
@@ -565,6 +616,15 @@
 	cursor: grab;
 }
 
+/* The handle before a reorderable row's name: a muted 16px grip 10px before it. */
+.cn-table-row__handle {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-end: 10px;
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+}
+
 .cn-table-row--drop-target {
 	box-shadow: inset 0 2px 0 var(--color-primary-element);
 }
@@ -597,9 +657,12 @@
 	outline-offset: -2px;
 }
 
+/* The controls in a linked row sit above the row link. A checkbox switch's
+   own input stays absolutely placed behind its icon: lifting it put the 34px
+   input in the flow and grew every row (the selection cell is lifted). */
 .cn-table-row--linked .cn-table-col--checkbox,
 .cn-table-row--linked .cn-table-col--actions,
-.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link) {
+.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link):not(.checkbox-radio-switch__input) {
 	position: relative;
 	z-index: 1;
 }

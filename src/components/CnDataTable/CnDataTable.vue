@@ -5,6 +5,8 @@
 		:class="{
 			'cn-table-container--board': isBoardLook,
 			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
+			'cn-table-container--title-text': isBoardLook && rowTitle === 'text',
+			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
 			'cn-table-container--fill': fillHeight,
@@ -23,7 +25,7 @@
 
 		<!-- Active header filters, one removable chip each. -->
 		<ul
-			v-if="!isLoading && activeColumnFilterChips.length > 0"
+			v-if="filterChips && !isLoading && activeColumnFilterChips.length > 0"
 			class="cn-data-table__filter-chips"
 			:aria-label="activeFiltersLabel"
 			data-testid="cn-table-filter-chips">
@@ -274,7 +276,7 @@
 							<td
 								v-if="rowIcon"
 								class="cn-table-col--icon"
-								:class="pinClass(selectable ? 1 : 0)"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + iconTone]"
 								:style="pinStyle(selectable ? 1 : 0)">
 								<CnIcon :name="getRowIcon(row)" :size="20" />
 							</td>
@@ -305,6 +307,13 @@
 								     customising their own data, not opting out of being told
 								     the record is locked. It renders nothing when unlocked,
 								     so an unlocked table is byte-for-byte what it was. -->
+								<!-- A reorderable row shows where to take hold of it, before its name. -->
+								<span v-if="reorderable && colIndex === 0"
+									class="cn-table-row__handle"
+									aria-hidden="true"
+									data-testid="cn-row-reorder-handle">
+									<DragVertical :size="16" />
+								</span>
 								<CnUnreadMarker
 									v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
 								<CnLockIndicator
@@ -345,7 +354,12 @@
 								     falls back to formatValue(). Columns with `aggregate` get a
 								     count of related objects (see cellValue/loadAggregates). The
 								     #column-{key} slot still wins. -->
+									<span
+										v-if="isTextZero(row, col)"
+										class="cn-table-cell__zero"
+										data-testid="cn-cell-zero">{{ cellValue(row, col) }}</span>
 									<CnCellRenderer
+										v-else
 										:value="cellValue(row, col)"
 										:property="columnProperty(col)"
 										:formatter="col.formatter || null"
@@ -357,6 +371,18 @@
 										:row="row"
 										:rowKey="rowKey" />
 								</slot>
+								<!-- Pills beside the value, from `col.pills`: each one whose
+								     condition holds on the row ("Geheimhouding", DqContacten). -->
+								<span
+									v-if="cellPills(row, col).length > 0"
+									class="cn-table-cell__pills">
+									<CnStatusBadge
+										v-for="(pill, pillIndex) in cellPills(row, col)"
+										:key="pillIndex"
+										:label="pill.label"
+										:variant="pill.variant"
+										data-testid="cn-cell-pill" />
+								</span>
 								<!-- A second, muted line under the value, from `col.secondary`:
 								     a field key, a "{field} · {other}" template, or a function
 								     of the row. Lets one column read "title" over "number ·
@@ -456,6 +482,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
@@ -469,11 +496,12 @@ import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNav
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
-import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
+import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 
 // CnDataTable has no scoped styles of its own — its entire look lives in the
@@ -561,9 +589,11 @@ export default {
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnStatusBadge,
 		CnPagination,
 		CnUnreadMarker,
 		ChevronDown,
+		DragVertical,
 		ChevronUp,
 		FilterOutline,
 	},
@@ -609,7 +639,10 @@ export default {
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object}|string>}
+		 * `emptyValue` is what a row without a value holds in that column, so a
+		 * `badge` column draws a pill on every row.
+		 *
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -627,6 +660,17 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * The tone of the leading icon's tile in the board look: `primary`
+		 * (default), `teal` or `neutral` (DqOrganisaties draws a teal tile).
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/**
@@ -834,15 +878,20 @@ export default {
 		 * How the board look draws the title column: `link` (the default) is
 		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
 		 * the 15px bold title without an underline and a 13px muted secondary
-		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
-		 * clickable either way. The Nextcloud look ignores it.
+		 * line, as the PqTickets and OcPublicaties boards draw it; `text` is an
+		 * ordinary cell, for a log table whose first column is a date
+		 * (DqZaakContact); `strong` is the cell's own size at weight 600 in the
+		 * main ink without an underline, the name column of a card's list
+		 * (DqZaaktypeStatussen). The row stays clickable either way. The
+		 * Nextcloud look ignores it.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/**
@@ -1052,6 +1101,30 @@ export default {
 		},
 
 		/**
+		 * The schema the header filters read instead of `schema`: a page that
+		 * filters through other fields than the rows' own (a named source's
+		 * search fields) hands them here. Null: the header filters read `schema`.
+		 *
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		filterSchema: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Draw the active header filters as removable chips above the table.
+		 * A host that lists them itself (the index page's board Active line)
+		 * turns this off, so a filter is not shown twice.
+		 *
+		 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+		 */
+		filterChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * The active filter map, `{ paramKey: values[] }`: the same map the
 		 * facet sidebar writes, so a header filter and a sidebar filter on one
 		 * field show the same state.
@@ -1126,6 +1199,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The leading icon tile's tone, one the board look draws.
+		 *
+		 * @return {string} `primary`, `teal` or `neutral`.
+		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
+		 */
+		iconTone() {
+			return ['primary', 'teal', 'neutral'].includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+		},
+
 		/**
 		 * Whether the table is drawn as the board look's white card.
 		 *
@@ -2003,6 +2086,26 @@ export default {
 		},
 
 		/**
+		 * The pills a cell draws beside its value: each `col.pills` entry
+		 * (`{ field, equals | in | ..., label, variant? }`, the row-indicator
+		 * condition grammar) whose condition holds on the row, its label
+		 * translated.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {Array<{label: string, variant: string}>} The pills, in declared order.
+		 * @spec openspec/changes/column-cell-pills/specs/data-table/spec.md#requirement-a-column-can-put-a-pill-beside-a-cells-value
+		 */
+		cellPills(row, col) {
+			if (!col || !Array.isArray(col.pills) || col.pills.length === 0) {
+				return []
+			}
+			return col.pills
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '' && typeof pill.field === 'string' && indicatorApplies(pill, row || {}))
+				.map((pill) => ({ label: this.translateLabel(pill.label), variant: typeof pill.variant === 'string' ? pill.variant : 'default' }))
+		},
+
+		/**
 		 * The secondary line of a cell, from `col.secondary`: a function is
 		 * called with the row; a string with `{field}` placeholders is a
 		 * template filled from the row (dotted paths allowed), where a
@@ -2134,7 +2237,32 @@ export default {
 				}
 				return v
 			}
-			return this.getCellValue(row, this.columnValueField(col))
+			const value = this.getCellValue(row, this.columnValueField(col))
+			// `emptyValue`: what a row without a value holds, so a badge column draws one for every row.
+			if ((value === null || value === undefined || value === '') && col && Object.hasOwn(col, 'emptyValue')) {
+				return col.emptyValue
+			}
+			return value
+		},
+
+		/**
+		 * Whether an aggregate cell shows its `zeroLabel` as muted text instead
+		 * of through the column's widget (`aggregate.zeroAs: "text"`): a count
+		 * of zero, or a max with nothing to read.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/aggregate-zero-as-text/specs/index-page/spec.md#requirement-a-count-column-can-show-its-zero-label-as-text
+		 */
+		isTextZero(row, col) {
+			const aggregate = col && col.aggregate
+			if (!aggregate || aggregate.zeroAs !== 'text' || typeof aggregate.zeroLabel !== 'string' || aggregate.zeroLabel === '') {
+				return false
+			}
+			const cached = this.aggregateValues[String(row[this.rowKey])]
+			const v = cached ? cached[col.key] : undefined
+			return v === 0 || v === '0' || v === null
 		},
 
 		/**
@@ -2487,7 +2615,7 @@ export default {
 			if (!this.filterable || !col) {
 				return null
 			}
-			return columnFilterDef(col, this.schema)
+			return columnFilterDef(col, this.filterSchema || this.schema)
 		},
 
 		columnFilterStateFor(col) {

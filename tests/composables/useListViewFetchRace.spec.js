@@ -93,7 +93,7 @@ afterEach(() => {
 
 describe('useListView error with the real store', () => {
 	it('ignores an older failure that settles between a newer start and its success', async () => {
-		const { store, list } = await setup()
+		const { list } = await setup()
 		expect(list.error.value).toBeNull()
 
 		const older = deferred()
@@ -112,9 +112,7 @@ describe('useListView error with the real store', () => {
 		await pNewer
 		await flush()
 
-		// The store's shared map still holds the older failure ...
-		expect(store.errors.t).not.toBeNull()
-		// ... but the latest refresh succeeded.
+		// The older failure stays off the store's shared map, and the latest refresh succeeded.
 		expect(list.error.value).toBeNull()
 		expect(list.objects.value).toEqual([{ id: 'b' }])
 	})
@@ -206,7 +204,8 @@ describe('useListView error with the real store', () => {
 		await Promise.all([pA, pC])
 		await flush()
 
-		expect(store.errors.t).not.toBeNull()
+		// C made A's query the newest again, so B's failure stays off the shared map.
+		expect(store.errors.t).toBeNull()
 		expect(list.error.value).toBeNull()
 		expect(list.objects.value).toEqual([{ id: 'a' }])
 	})

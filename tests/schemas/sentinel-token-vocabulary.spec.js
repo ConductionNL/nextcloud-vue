@@ -29,6 +29,7 @@ const DEF_FOR_CONTEXT = {
 	row: 'sentinelRowToken',
 	subject: 'sentinelSubjectToken',
 	context: 'sentinelContextToken',
+	source: 'sentinelSourceToken',
 	deprecated: 'sentinelDeprecatedToken',
 	link: 'sentinelLinkToken',
 }
@@ -87,6 +88,7 @@ describe('schema guard accepts known + deprecated, rejects out-of-vocabulary', (
 		['@config.currency config', manifest({ widgets: [{ content: { format: { currency: '@config.currency' } } }] })],
 		['@total visibleWhen (manifest-form-logic)', manifest({ fields: [{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { source: { register: 'r', schema: 's' }, field: '@total', op: 'gt', value: 0 } }] })],
 		['@context.caseType.category in a detail widget visibleWhen', manifest({ visibilityContext: { caseType: { field: 'caseType', register: 'r', schema: 'ct' } }, widgets: [{ id: 'w', visibleWhen: { field: '@context.caseType.category', op: 'in', value: ['Sociaal domein'] } }] })],
+		['@source.caseType.parentCaseType in a fact row route (dossiq DqZaaktypeVelden)', manifest({ widgets: [{ id: 'parent-type', type: 'facts', content: { fields: [{ label: 'Inherits from', path: 'caseType.parentCaseType', route: { name: 'CaseTypeDetail', params: { id: '@source.caseType.parentCaseType' } } }] } }] })],
 		['@object.phone|tel link (party-actions)', manifest({ widgets: [{ content: { actions: [{ id: 'call', type: 'navigate', target: '@object.phone|tel' }, { id: 'route', type: 'navigate', target: '@object.address|geo' }] } }] })],
 		['@route.id in top-level widget dataSource', manifest(undefined, [{ widgetKey: 'w', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, dataSource: { filter: { id: '@objectId' } } }])],
 	])('accepts %s', (_label, m) => {

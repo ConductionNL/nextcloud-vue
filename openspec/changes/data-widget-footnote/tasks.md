@@ -1,0 +1,3 @@
+- [x] CnObjectDataWidget footnote prop + markup + style
+- [x] CnDetailWidgetHost passes content.footnote
+- [x] Spec tests/components/CnObjectDataWidgetFootnote.spec.js

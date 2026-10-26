@@ -49,6 +49,7 @@ Confirming sends `{ team, reason, doorzending }` to the request url, or dispatch
 | `assignee.label`, `placeholder`, `hint` | The field's texts |
 | `assignee.currentPath`, `currentHint`, `currentAs` | Who has the record now, read from it, and the sentence that says so, shown in place of `hint`. The placeholder is `{current}`, or the name in `currentAs`, so an app can reuse a sentence it already translates (`"currentAs": "team"` for "Now with {team}.") |
 | `assignee.allowTyped` | Offer what was typed as a choice, for instances where the search answers nothing |
+| `assignee.describe` | `{ register, schema, groupField?, textField? }`: the records that hold a team's description (default fields `ncGroupId`, `description`). Each team option then reads "{count} members · {description}"; the count only where the viewer may read group details |
 | `assignee.field`, `kindField` | The key the id is sent as (default `assignee`), and the key its kind (`group`/`user`) is sent as |
 | `note` | `{ label?, hint?, required?, field? }`, required by default and sent as `field` (default `note`); `false` drops it |
 | `toggles` | `[{ field, label, note? }]`: switches that start off and are sent as booleans. `label` and `note` are templates filled from the record, so a note can name the applicant ("{initiatorDisplayName} then gets a message that the case moves") |

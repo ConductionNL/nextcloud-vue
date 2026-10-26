@@ -66,7 +66,7 @@ describe('flow step card on the board', () => {
 
 	it('reads Start on the start step, and the app name on a step outside the palette', async () => {
 		const badge = (await mountBoard({ nodeLook: 'card' })).vm.nodeBadge
-		expect(badge({ type: 'openregister.trigger-object' })).toEqual({ label: 'Start', variant: 'default' })
+		expect(badge({ type: 'openregister.trigger-object' })).toEqual({ label: 'Start step', variant: 'default' })
 		expect(badge({ type: 'filinq.generate-document' })).toEqual({ label: 'Filinq', variant: 'default' })
 	})
 })

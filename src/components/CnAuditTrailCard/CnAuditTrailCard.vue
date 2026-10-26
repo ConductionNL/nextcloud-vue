@@ -30,13 +30,15 @@
 			<li
 				v-for="entry in displayedEntries"
 				:key="entry.id"
-				class="cn-audit-card__row">
+				class="cn-audit-card__row"
+				:class="{ 'cn-audit-card__row--stacked': layout === 'stacked' }">
 				<div class="cn-audit-card__row-head">
 					<strong class="cn-audit-card__action">{{ formatAction(entry) }}</strong>
-					<span class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
+					<span v-if="layout !== 'stacked'" class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
 				</div>
 				<div class="cn-audit-card__row-body">
-					<span class="cn-audit-card__actor">{{ formatActor(entry) }}</span>
+					<span v-if="layout === 'stacked'" class="cn-audit-card__when" data-testid="cn-audit-card-when-below">{{ stackedLine(entry) }}</span>
+					<span v-else class="cn-audit-card__actor">{{ formatActor(entry) }}</span>
 					<span
 						v-if="entry.authorized === false"
 						class="cn-audit-card__refused"
@@ -47,6 +49,9 @@
 				</p>
 			</li>
 		</ul>
+		<p v-if="footnote" class="cn-audit-card__footnote" data-testid="cn-audit-trail-widget-footnote">
+			{{ footnote }}
+		</p>
 		<template v-if="shownEntries.length > maxDisplay" #footer>
 			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ shownEntries.length }})
@@ -61,9 +66,23 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
+import { readPath } from '../../utils/readPath.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
 import { userLocale } from '../../utils/userLocale.js'
+
+/**
+ * A changed value as an entry records it: OpenRegister writes `{ old, new }`,
+ * other sources the value itself.
+ *
+ * @param {unknown} value The recorded change.
+ * @return {unknown} The value it changed to.
+ */
+function newValueOf(value) {
+	return value !== null && typeof value === 'object' && Object.hasOwn(value, 'new') ? value.new : value
+}
 
 /**
  * @param {object} entry An audit entry.
@@ -93,6 +112,12 @@ export default {
 	components: { CnDetailCard, NcLoadingIcon },
 
 	props: {
+		/**
+		 * A muted line under the trail, inside the card ("Kenmerk ZT-OMV-REG").
+		 *
+		 * @spec openspec/changes/audit-trail-footnote/specs/audit-trail/spec.md#requirement-a-history-card-can-end-in-a-line-about-the-record
+		 */
+		footnote: { type: String, default: '' },
 		/** OpenRegister register id (slug or uuid). Optional for `scope: "app"`. */
 		register: { type: String, default: '' },
 		/** OpenRegister schema id (slug or uuid). Optional for `scope: "app"`. */
@@ -146,6 +171,12 @@ export default {
 		/** Maximum rows to render. */
 		maxDisplay: { type: Number, default: 5 },
 		/**
+		 * `stacked` (DqTaak "Historie"): the action, then one muted line under
+		 * it with the moment ("6 okt 09:05") and who, when the action does not
+		 * already name them. Default: the moment beside the action, who under it.
+		 */
+		layout: { type: String, default: '' },
+		/**
 		 * Actions the card leaves out (case-insensitive), such as `['read']`
 		 * for a history of what changed. It then reads more entries than it
 		 * shows, so the rows it leaves out do not crowd the rest away.
@@ -167,13 +198,46 @@ export default {
 		refusedLabel: { type: String, default: () => t('nextcloud-vue', '(refused)') },
 		/**
 		 * What happened, in words, by action (`claim`) or by action and the
-		 * state it led to (`complete:completed`, tried first). `{actor}` and
-		 * `{state}` are filled in; a label that names the actor leaves it off
+		 * state it led to (`complete:completed`, tried first). `{actor}`,
+		 * `{state}` and `{changed.<key>}` (a value the entry recorded, in the
+		 * words of `valueLabels`) are filled in; a label that names the actor leaves it off
 		 * the line under it. An action without a label shows as written.
 		 *
 		 * @type {Object<string, string>|null}
 		 */
 		actionLabels: { type: Object, default: null },
+		/**
+		 * Words for the values an action label quotes as `{changed.<key>}`:
+		 * `{ purpose: { handling: 'Handling' } }`. A value without an entry
+		 * shows as written.
+		 *
+		 * @type {{[key: string]: {[value: string]: string}}|null}
+		 */
+		valueLabels: { type: Object, default: null },
+		/**
+		 * What happened, in words, by the field an entry changed: rules
+		 * `[{ action?, field, to?, label }]`, the first whose `field` the entry
+		 * changed (to `to`, when given) wins over `actionLabels`. A label fills
+		 * the same tokens, plus `{object.<path>}` from `object`
+		 * ("Version {object.version} published" for `isDraft` set to false).
+		 *
+		 * @type {Array<{action?: string, field: string, to?: unknown, label: string}>}
+		 */
+		changeLabels: { type: Array, default: () => [] },
+		/** The audited record, for `{object.<path>}` in a label; null without one. */
+		object: { type: Object, default: null },
+		/**
+		 * Records beside the object whose events belong in its history:
+		 * `[{ as, register, schema, filter, limit? }]`. The card lists the
+		 * objects matching `filter` (`@objectId` is this object; at most
+		 * `limit`, default 5), reads their trails and merges the entries with
+		 * the object's own, newest first. A related entry is labelled by
+		 * `actionLabels["<as>.<action>"]` first. Object scope only.
+		 *
+		 * @type {Array<{as: string, register: string, schema: string, filter?: object, limit?: number}>}
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		relatedSources: { type: Array, default: () => [] },
 		/** Shown when a `source` or `endpoint` read failed. */
 		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The history could not be loaded') },
 	},
@@ -286,7 +350,11 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					const list = data.results || data.rows || data
-					this.entries = Array.isArray(list) ? list : []
+					const own = Array.isArray(list) ? list : []
+					const related = await this.fetchRelatedEntries()
+					this.entries = related.length > 0
+						? [...own, ...related].sort((a, b) => entryTime(b) - entryTime(a))
+						: own
 				} else {
 					this.entries = []
 					this.failed = this.sourceUrl !== null
@@ -302,6 +370,47 @@ export default {
 		},
 
 		/**
+		 * The entries of the records beside the object (`relatedSources`),
+		 * each tagged with its source's `as`. A read that fails leaves that
+		 * source out.
+		 *
+		 * @return {Promise<Array<object>>} The entries.
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		async fetchRelatedEntries() {
+			if (this.scope !== 'object' || this.sourceUrl !== null || !this.objectId || !Array.isArray(this.relatedSources)) {
+				return []
+			}
+			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const read = async (url) => {
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
+				if (!response.ok) {
+					throw new Error(String(response.status))
+				}
+				const data = await response.json()
+				const list = data.results || data.rows || data
+				return Array.isArray(list) ? list : []
+			}
+			const perSource = await Promise.all(this.relatedSources
+				.filter((source) => source && source.register && source.schema)
+				.map(async (source) => {
+					try {
+						const params = new URLSearchParams({ _limit: String(Number(source.limit) > 0 ? Number(source.limit) : 5), _order: JSON.stringify({ '@self.created': 'DESC' }) })
+						for (const [key, value] of Object.entries(source.filter || {})) {
+							params.set(key, value === '@objectId' ? this.objectId : String(value))
+						}
+						const objects = await read(`${this.apiBase}/objects/${source.register}/${source.schema}?${params.toString()}`)
+						const ids = objects.map((object) => object?.id || object?.['@self']?.id || object?.uuid).filter(Boolean)
+						const trails = await Promise.all(ids.map((id) => read(`${this.apiBase}/objects/${source.register}/${source.schema}/${id}/audit-trails?limit=${limit}`).catch(() => [])))
+						return trails.flat().map((entry) => ({ ...entry, relatedAs: source.as || source.schema }))
+					} catch {
+						return []
+					}
+				}))
+			return perSource.flat()
+		},
+
+		/**
 		 * What happened: the action, with the state it led to when the entry
 		 * names one (a flow task's `stateAfter`).
 		 *
@@ -309,14 +418,63 @@ export default {
 		 * @return {string} The line.
 		 */
 		formatAction(entry) {
-			const label = this.labelFor(entry)
+			const label = this.changeLabelFor(entry) ?? this.labelFor(entry)
 			if (label !== null) {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
+					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
+					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
+						const value = this.object ? readPath(this.object, path) : undefined
+						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
+					})
 			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
+		},
+
+		/**
+		 * A value the entry recorded under `changed` (an audit entry's context),
+		 * in the words of `valueLabels`; '' when it recorded none.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {string} key The recorded key.
+		 * @return {string} The value in words.
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		changedValue(entry, key) {
+			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
+			const value = newValueOf(changed[key])
+			if (value === null || value === undefined || typeof value === 'object') {
+				return ''
+			}
+			const words = this.valueLabels && this.valueLabels[key]
+			return words && typeof words[value] === 'string' ? words[value] : String(value)
+		},
+
+		/**
+		 * The `changeLabels` rule an entry matches: the first whose field the
+		 * entry changed, for its action and to its value when the rule names them.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string|null} The label, or null when no rule matches.
+		 */
+		changeLabelFor(entry) {
+			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
+			const action = entry.action || entry.event || ''
+			for (const rule of Array.isArray(this.changeLabels) ? this.changeLabels : []) {
+				if (!rule || typeof rule.label !== 'string' || rule.label === '' || typeof rule.field !== 'string' || !Object.hasOwn(changed, rule.field)) {
+					continue
+				}
+				if (rule.action && rule.action !== action) {
+					continue
+				}
+				if (Object.hasOwn(rule, 'to') && String(newValueOf(changed[rule.field])) !== String(rule.to)) {
+					continue
+				}
+				return rule.label
+			}
+			return null
 		},
 
 		/**
@@ -333,7 +491,10 @@ export default {
 			if (!labels || !action) {
 				return null
 			}
-			const label = labels[`${action}:${entry.stateAfter || ''}`] ?? labels[action]
+			const state = entry.stateAfter || ''
+			const prefix = entry.relatedAs ? `${entry.relatedAs}.` : ''
+			const label = (prefix ? (labels[`${prefix}${action}:${state}`] ?? labels[`${prefix}${action}`]) : undefined)
+				?? labels[`${action}:${state}`] ?? labels[action]
 			return typeof label === 'string' && label !== '' ? label : null
 		},
 
@@ -342,7 +503,27 @@ export default {
 		 * @return {string} Who did it, by name where the entry carries one.
 		 */
 		actorName(entry) {
-			return entry.actorDisplayName || entry.actor || entry.userId || entry.user || ''
+			if (entry.actorDisplayName) {
+				return entry.actorDisplayName
+			}
+			const id = entry.actor || entry.userId || entry.user || ''
+			// A person's user id reads as their display name once it is known.
+			return (id && (!entry.performerType || entry.performerType === 'user') && userDisplayName(String(id))) || id
+		},
+
+		/**
+		 * The muted line of a stacked row: the moment in the board's short
+		 * form ("6 okt 09:05") and who, unless the action names them already.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The line.
+		 * @spec openspec/changes/audit-card-stacked-rows/specs/audit-trail/spec.md#requirement-an-audit-row-can-put-its-moment-under-the-action
+		 */
+		stackedLine(entry) {
+			const raw = entry.creationDateTime || entry.created || entry.timestamp
+			const date = raw ? new Date(raw) : null
+			const when = date && !Number.isNaN(date.getTime()) ? `${formatBoardDate(date)} ${formatTimeOfDay(date)}` : ''
+			return [when, this.formatActor(entry)].filter((part) => part !== '').join(' · ')
 		},
 
 		/**
@@ -432,6 +613,12 @@ export default {
 	color: var(--color-text-maxcontrast);
 	text-align: center;
 	padding: 12px 0;
+}
+
+.cn-audit-card__footnote {
+	margin: 12px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-audit-card__show-all {

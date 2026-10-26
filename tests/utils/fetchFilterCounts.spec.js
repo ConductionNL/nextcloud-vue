@@ -323,3 +323,35 @@ describe('a lens that spells its operator in the key (screens-operator-key-lens-
 		expect(global.fetch).toHaveBeenCalledTimes(2)
 	})
 })
+
+describe('counts read through the list endpoint (`via: list`)', () => {
+	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
+
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	// An index page's chip counts what its list shows: the same request the list
+	// sends, so the number and the list cannot disagree (BOARD-SYNC 25 Oct: the
+	// case list's "Alles" chip read 173 where the list's total was 111).
+	it('asks the list endpoint for every entry, grouped or single, never an aggregation', async () => {
+		global.fetch = jest.fn().mockImplementation(async (url) => okResponse(String(url).includes('status=open') ? 5 : 11))
+
+		const counts = await fetchFilterCounts({
+			register: 'dossiq',
+			schema: 'case',
+			baseFilter: { isTemplate: false },
+			via: 'list',
+			entries: [
+				{ key: 'all', filter: { isDraft: false } },
+				{ key: 'open', filter: { status: 'open' } },
+				{ key: 'closed', filter: { status: 'closed' } },
+			],
+		})
+
+		expect(fetchGroupedCounts).not.toHaveBeenCalled()
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(global.fetch).toHaveBeenCalledTimes(3)
+		expect(counts).toEqual({ all: 11, open: 5, closed: 11 })
+	})
+})

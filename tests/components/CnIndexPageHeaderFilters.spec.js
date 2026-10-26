@@ -16,6 +16,15 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 describe('CnIndexPage header filters', () => {
+	/**
+	 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+	 */
+	it('lets the table draw its filter chips only where the Active line does not', () => {
+		const template = require('fs').readFileSync(require('path').resolve(__dirname, '../../src/components/CnIndexPage/CnIndexPage.vue'), 'utf8')
+		const table = template.slice(template.indexOf('<CnDataTable'), template.indexOf('>', template.indexOf(':columns="renderedColumns"')))
+		expect(table).toContain(':filterChips="!isBoardLook"')
+	})
+
 	it('defaults headerFilters to on', () => {
 		expect(CnIndexPage.props.headerFilters.default).toBe(true)
 	})

@@ -96,6 +96,7 @@
 						:key="row.note.id"
 						class="cn-notes-card__note"
 						:class="{ 'cn-notes-card__note--reply': row.isReply }">
+						<span class="cn-notes-card__initials" aria-hidden="true">{{ initialsOf(getNoteAuthorName(row.note)) }}</span>
 						<div class="cn-notes-card__note-header">
 							<CnUserActionMenu
 								v-if="!isCurrentUser(row.note)"
@@ -127,6 +128,7 @@
 						</p>
 						<NcButton
 							v-if="canReply"
+							class="cn-notes-card__reply-btn"
 							variant="tertiary"
 							size="small"
 							:aria-label="replyAria(row.note)"
@@ -175,6 +177,7 @@ import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import CnVisibilityChip from '../CnVisibilityChip/CnVisibilityChip.vue'
 import { useFileComments } from '../../composables/useFileComments.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { initialsOf } from '../../utils/initials.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
 import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
@@ -635,6 +638,8 @@ export default {
 			return note.actorId || note.author || ''
 		},
 
+		initialsOf,
+
 		getNoteAuthorName(note) {
 			return note.actorDisplayName || note.author || 'Unknown'
 		},
@@ -870,6 +875,10 @@ export default {
 	border-bottom: none;
 }
 
+.cn-notes-card__initials {
+	display: none;
+}
+
 .cn-notes-card__note-header {
 	display: flex;
 	justify-content: space-between;
@@ -907,7 +916,10 @@ export default {
 	padding-right: 32px;
 }
 
-.cn-notes-card__delete-btn {
+/* The note's own class leads so the position outranks NcButton's
+   `position: relative`, which loads later at the same weight and put the
+   button in the flow under the note. */
+.cn-notes-card__note > .cn-notes-card__delete-btn {
 	position: absolute;
 	top: 8px;
 	right: -4px;
@@ -915,7 +927,8 @@ export default {
 	transition: opacity 0.15s ease;
 }
 
-.cn-notes-card__note:hover .cn-notes-card__delete-btn {
+.cn-notes-card__note:hover > .cn-notes-card__delete-btn,
+.cn-notes-card__note:focus-within > .cn-notes-card__delete-btn {
 	opacity: 1;
 }
 

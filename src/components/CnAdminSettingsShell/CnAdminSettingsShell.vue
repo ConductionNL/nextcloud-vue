@@ -1,5 +1,8 @@
 <template>
-	<div class="cn-admin-settings-shell" :class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']">
+	<div
+		class="cn-admin-settings-shell"
+		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']"
+		:style="shellStyle">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
 
@@ -245,6 +248,7 @@ import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { ensureTranslations } from '../../l10n/index.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
@@ -757,6 +761,35 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Cell formatters by id, as `CnAppRoot`'s `formatters`: a table column
+		 * on the admin page names one with `formatter`. Added over the
+		 * built-ins and an ancestor's registry.
+		 */
+		formatters: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The board look's version card title size in px, when the app's board
+		 * draws it other than 17px (PqBeheer 19, OcInstellingen 18).
+		 */
+		versionTitleSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * The board look's gap in px between a card's title and its
+		 * description, when the app's board draws it other than 4px; the
+		 * content follows 10px further (DqBeheerinstellingen 6, so 16).
+		 */
+		descGap: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
@@ -779,6 +812,9 @@ export default {
 		// shell hands down the app's own catalog, keyed by its app id.
 		const hostTranslate = inject('cnTranslate', null)
 		provide('cnTranslate', hostTranslate || ((text, vars) => t(props.appId, text, vars)))
+		// No CnAppRoot provides the cell formatters on an admin page either.
+		const hostFormatters = inject('cnFormatters', null)
+		provide('cnFormatters', { ...BUILT_IN_FORMATTERS, ...(hostFormatters || {}), ...props.formatters })
 		return { environmentName, isBoard, ownLookClass }
 	},
 
@@ -792,6 +828,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The board look sizes an app's board sets on the shell
+		 * (`versionTitleSize`, `descGap`), as CSS custom properties.
+		 *
+		 * @return {object|null} The style, or null when none is set.
+		 */
+		shellStyle() {
+			const style = {}
+			if (this.versionTitleSize) {
+				style['--cn-board-version-title-size'] = `${this.versionTitleSize}px`
+			}
+			if (this.descGap) {
+				style['--cn-board-settings-desc-gap'] = `${this.descGap}px`
+			}
+			return Object.keys(style).length > 0 ? style : null
+		},
+
 		/**
 		 * The tabs that have an id and a label.
 		 *

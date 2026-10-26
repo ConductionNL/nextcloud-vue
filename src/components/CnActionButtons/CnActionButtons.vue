@@ -120,7 +120,8 @@
 		     that never asked for a limit keeps every action as a button. -->
 		<NcActions
 			v-if="overflowActions.length > 0"
-			:menuName="overflowMenuName"
+			:menuName="overflowOnly ? undefined : overflowMenuName"
+			:aria-label="overflowOnly ? overflowTriggerLabel : undefined"
 			:forceMenu="true"
 			data-testid="cn-action-buttons-overflow">
 			<template v-for="entry in overflowActions">
@@ -159,6 +160,7 @@
 			:dialogTitle="tr(confirmEntry.confirmTitle || confirmEntry.label)"
 			:message="tr(confirmEntry.confirmMessage) || defaultConfirmMessage"
 			:variant="confirmEntry.variant === 'error' ? 'error' : 'primary'"
+			v-bind="confirmButtonProps"
 			@confirm="onConfirmProceed"
 			@close="confirmEntry = null" />
 
@@ -222,7 +224,7 @@ import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import { mergeValueArray, usesArrayValues, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { answersByArrayKey, mergeValueArray, usesArrayValues, valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
@@ -381,6 +383,29 @@ export default {
 		},
 
 		/**
+		 * Every collapsible action in the `···` menu, none as a button: the
+		 * trigger is icon only and named by `overflowAriaLabel` (a card's
+		 * "Actions for Volledigheid toetsen").
+		 *
+		 * @type {boolean}
+		 */
+		overflowOnly: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The accessible name of the icon-only trigger under `overflowOnly`.
+		 * Empty falls back to the overflow label.
+		 *
+		 * @type {string}
+		 */
+		overflowAriaLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Explicit Vue Router instance for `navigate` / `open-page` /
 		 * `onSuccessRoute`. Falls back to `this.$router`. Only needed for
 		 * standalone mounts outside a router tree.
@@ -447,6 +472,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The confirm button's words and icon from the action
+		 * (`confirmLabel`, `confirmIcon`); none set leaves the dialog's own.
+		 *
+		 * @return {object}
+		 */
+		confirmButtonProps() {
+			const entry = this.confirmEntry || {}
+			return {
+				...(typeof entry.confirmLabel === 'string' && entry.confirmLabel !== '' ? { confirmLabel: this.tr(entry.confirmLabel) } : {}),
+				...(typeof entry.confirmIcon === 'string' && entry.confirmIcon !== '' ? { confirmIcon: entry.confirmIcon } : {}),
+			}
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
@@ -524,6 +563,9 @@ export default {
 			if (this.display === 'menu') {
 				return []
 			}
+			if (this.overflowOnly) {
+				return this.visibleActions.filter((a) => !this.isCollapsible(a))
+			}
 			if (!(this.inline > 0)) {
 				return this.visibleActions
 			}
@@ -541,7 +583,7 @@ export default {
 		 * @return {Array<object>} Actions to render as menu items.
 		 */
 		overflowActions() {
-			if (this.display === 'menu' || !(this.inline > 0)) {
+			if (this.display === 'menu' || !(this.inline > 0 || this.overflowOnly)) {
 				return []
 			}
 			const shown = new Set(this.barActions.map((a) => a.id))
@@ -555,6 +597,15 @@ export default {
 		 */
 		overflowMenuName() {
 			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Name of the icon-only trigger under `overflowOnly`.
+		 *
+		 * @return {string} The label.
+		 */
+		overflowTriggerLabel() {
+			return this.overflowAriaLabel || this.overflowMenuName
 		},
 
 		/**
@@ -1345,10 +1396,13 @@ export default {
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
-				const arrayKey = config.values.arrayKey
-				const entries = mergeValueArray(payload[arrayKey], mine, config, dynamic.definitions || [])
-				if (entries.length || Array.isArray(payload[arrayKey])) {
-					payload[arrayKey] = entries
+				// Each answer goes to the array its definition is routed to
+				// (`values.arrayKeyBy`), merged over what that array holds.
+				for (const [arrayKey, subset] of Object.entries(answersByArrayKey(mine, config, dynamic.definitions || []))) {
+					const entries = mergeValueArray(payload[arrayKey], subset, config, dynamic.definitions || [])
+					if (entries.length || Array.isArray(payload[arrayKey])) {
+						payload[arrayKey] = entries
+					}
 				}
 			}
 		},

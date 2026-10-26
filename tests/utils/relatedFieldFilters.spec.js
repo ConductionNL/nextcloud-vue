@@ -152,3 +152,28 @@ describe('the _related keys on a query', () => {
 		expect(relatedKeysIn(undefined)).toEqual([])
 	})
 })
+
+describe('values kept in an array on the row itself (related.element)', () => {
+	const ON_ROW = { element: 'properties' }
+
+	it('compiles one _element block per filled field, numbered when there are more', () => {
+		expect(buildRelatedFilters([{ definitionId: 'pd-1', value: { gte: '100' } }], ON_ROW)).toEqual({
+			'_element[properties][propertyDefinition]': 'pd-1',
+			'_element[properties][value][gte]': '100',
+		})
+		const two = buildRelatedFilters([{ definitionId: 'pd-1', value: { eq: 'ja' } }, { definitionId: 'pd-2', value: { in: ['a', 'b'] } }], ON_ROW)
+		expect(two).toEqual({
+			'_element[properties][0][propertyDefinition]': 'pd-1',
+			'_element[properties][0][value]': 'ja',
+			'_element[properties][1][propertyDefinition]': 'pd-2',
+			'_element[properties][1][value][in][0]': 'a',
+			'_element[properties][1][value][in][1]': 'b',
+		})
+	})
+
+	it('finds the _element keys on a query and reads an _element refusal', () => {
+		expect(relatedKeysIn({ caseType: 'ct-1', '_element[properties][propertyDefinition]': 'pd-1' })).toEqual(['_element[properties][propertyDefinition]'])
+		const refusal = readRelatedRefusal({ error: { response: { data: { error: "'_element' block 0 must name the fields pd-1" } } }, definitions: DEFINITIONS })
+		expect(refusal.name).toBe('bouwkosten')
+	})
+})

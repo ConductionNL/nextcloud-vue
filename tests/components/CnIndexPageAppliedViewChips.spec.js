@@ -33,6 +33,7 @@ function page(filters, view) {
 		},
 		effectiveActiveFilters: filters,
 		isFixedFilter: () => false,
+		isFolderFilter: () => false,
 		activeFilterValueLabel: (key, value) => String(value),
 		cnTranslate: (key) => key,
 		appliedSavedView: view,

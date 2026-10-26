@@ -7,7 +7,8 @@
  * r24 measured 47 items): an option is edged in the dark border grey
  * (130,138,149, live drew the hairline 228,230,234), rounded at 10px (live 12),
  * and its radio is 18px (live 13). The chosen and the refused options keep
- * their own edges. Read from the stylesheet text.
+ * their own edges; a refused option keeps the dark edge on the sunken ground.
+ * Read from the stylesheet text.
  */
 const fs = require('fs')
 const path = require('path')
@@ -38,6 +39,25 @@ describe('look-board.css: choice cards', () => {
 		expect(idle).toContain('border-color: var(--color-border-maxcontrast)')
 	})
 
+	it('edges a refused option in the dark border grey too, on the sunken ground (DqVolgendeStap r25b: 228 edge, 240 ground)', () => {
+		const refused = rule(`${cards} .cn-choice-cards__row--disabled${guard},\n${cards} .cn-choice-cards__row--disabled:hover${guard}`)
+		expect(refused).toContain('border-color: var(--color-border-maxcontrast)')
+		expect(refused).toContain('background: var(--cn-board-sunken-ground)')
+	})
+
+	it('sets an option\'s title and description at line height 1.2, its icon at the top (DqVolgendeStap r26a: rows 70 vs 60)', () => {
+		expect(rule(`${cards} .cn-choice-cards__row-title${guard},\n${cards} .cn-choice-cards__row-description${guard}`)).toContain('line-height: 1.2')
+		expect(rule(`${cards} .cn-choice-cards__row-icon${guard}`)).toContain('align-self: flex-start')
+	})
+
+	it('sets an option\'s title bold, as the boards draw it (r26c: 600 vs 700)', () => {
+		expect(rule(`${cards} .cn-choice-cards__row-title${guard}`)).toContain('font-weight: 700')
+	})
+
+	it('indents the chosen option\'s fields to its text when the option has an icon (r26a: 44 vs 76)', () => {
+		expect(rule(`${cards} .cn-choice-cards__cell--with-details:has(.cn-choice-cards__row-icon) .cn-choice-cards__details${guard}`)).toContain('padding-inline-start: 76px')
+	})
+
 	it('keeps a chosen option and its details frame white (design-system #371)', () => {
 		const chosen = rule(`${cards} .cn-choice-cards__row--selected${guard},\n${cards} .cn-choice-cards__row--selected:hover${guard},\n${cards} .cn-choice-cards__cell--with-details${guard}`)
 		expect(chosen).toContain('background: var(--color-main-background)')
@@ -58,5 +78,27 @@ describe('look-board.css: choice cards', () => {
 				expect(part.trim().endsWith(guard)).toBe(true)
 			}
 		}
+	})
+})
+
+describe('look-board.css: a setup step\'s choices (DqInstellen)', () => {
+	const step = '.cn-look-board .cn-setup-step .cn-choice-cards'
+
+	it('edges the chosen option with a real 2px border, no inset shadow, the content where it was', () => {
+		const chosen = rule(`${step} .cn-choice-cards__row--selected${guard},\n${step} .cn-choice-cards__row--selected:hover${guard}`)
+		expect(chosen).toContain('border-width: 2px')
+		expect(chosen).toContain('box-shadow: none')
+		expect(chosen).toContain('padding: 11px 19px')
+	})
+
+	/**
+	 * @spec openspec/changes/board-setup-choice-inset/specs/board-setup-choice-rows/spec.md#requirement-a-setup-choices-radio-sits-21px-inside-its-edge
+	 */
+	it('sets the radio 21px inside the option\'s edge, as the board does', () => {
+		expect(rule(`${step} .cn-choice-cards__row${guard}`)).toContain('padding: 12px 20px')
+	})
+
+	it('draws no option icon, as the board draws only the radio and the words', () => {
+		expect(rule(`${step} .cn-choice-cards__row-icon${guard}`)).toContain('display: none')
 	})
 })

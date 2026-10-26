@@ -1056,7 +1056,7 @@ export default {
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-opening-a-tab-marks-its-part-read
 		 */
 		unreadLabelOf(tab, widgetId) {
-			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField))) {
+			if (!this.readStateBadges || (tab && typeof tab === 'object' && (typeof tab.count === 'number' || tab.countField || tab.countObjectRows))) {
 				return ''
 			}
 			const key = this.unreadKeyOf(tab, widgetId)
@@ -1566,10 +1566,15 @@ export default {
 
 .cn-tabs-widget__panel-heading-text {
 	display: flex;
-	flex: 1 1 260px;
 	flex-direction: column;
 	gap: 4px;
 	min-width: 0;
+}
+
+/* The 260px basis is a width in the actions row; in the column heading it
+   would be a height. */
+.cn-tabs-widget__panel-heading--actions > .cn-tabs-widget__panel-heading-text {
+	flex: 1 1 260px;
 }
 
 .cn-tabs-widget__panel-actions {

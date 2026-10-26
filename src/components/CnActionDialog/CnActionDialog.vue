@@ -14,7 +14,9 @@
 		<div v-if="!done" class="cn-action-dialog">
 			<!-- The record the action is about: its title, a meta line, a badge. -->
 			<div v-if="summary" class="cn-action-dialog__summary" data-testid="cn-action-dialog-summary">
-				<CnIcon :name="config.summary.icon || 'FolderOutline'" :size="20" class="cn-action-dialog__summary-icon" />
+				<span class="cn-action-dialog__summary-icon">
+					<CnIcon :name="config.summary.icon || 'FolderOutline'" :size="20" />
+				</span>
 				<span class="cn-action-dialog__summary-text">
 					<strong>{{ summary.title }}</strong>
 					<span v-if="summary.meta" class="cn-action-dialog__muted">{{ summary.meta }}</span>
@@ -142,6 +144,9 @@
 				:type="noteType"
 				:heading="text(config.note.title)"
 				data-testid="cn-action-dialog-note">
+				<template v-if="config.note.icon" #icon>
+					<CnIcon class="cn-action-dialog__note-icon" :name="config.note.icon" :size="20" />
+				</template>
 				{{ text(config.note.text) }}
 			</NcNoteCard>
 
@@ -186,6 +191,7 @@ import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -214,7 +220,8 @@ let reasonSeq = 0
  *   `eyebrow` a template filled from the record ("Close off · {identifier}").
  * - `summary`: `{ source?, title, meta?, badge?, icon? }`: templates filled from
  *   the record (`source` an endpointSource to read it from, else `object`).
- * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template.
+ * - `facts`: `[{ title?, items: [{ label, value }] }]`, `value` a template; a
+ *   `{path|<formatter>}` token reads through the built-in and app formatters.
  * - `checklist`: `{ title?, source, itemsPath?, labels?, required? }`: items
  *   `{ id, met, label?, detail? }` read from `source`; `labels[id]` gives an
  *   item's `{ label, detail?, unmetDetail? }`; the ids in `required` must be
@@ -239,7 +246,8 @@ let reasonSeq = 0
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
- * - `note`: `{ variant?, title?, text }`: a read-only note.
+ * - `note`: `{ variant?, title?, text, icon? }`: a read-only note; `icon` an
+ *   icon name in place of the variant's own ("LockOutline").
  * - `confirm`: `{ label, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` posts itself (`body` templates filled with the record and
  *   `{reason}`); `action` dispatches a manifest action through the page.
@@ -256,6 +264,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The page's pre-bound action dispatcher (CnPageRenderer), for `confirm.action`. */
 		cnDispatchAction: { default: null },
+		/** The app's named formatters (CnAppRoot), for `{path|<formatter>}` in a template. */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -588,7 +598,8 @@ export default {
 			if (typeof template !== 'string' || template === '') {
 				return ''
 			}
-			return fillTemplate(this.cnTranslate(template), row || this.record || {}).trim()
+			const formatters = { ...BUILT_IN_FORMATTERS, ...(this.cnFormatters || {}) }
+			return fillTemplate(this.cnTranslate(template), row || this.record || {}, new Date(), { formatters }).trim()
 		},
 
 		/**
@@ -808,10 +819,33 @@ export default {
 .cn-action-dialog__summary {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 	padding: 12px 14px;
 	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 8px);
+	border-radius: var(--border-radius-large, 10px);
+}
+
+/* The record's icon on a tinted tile (DqArchiveren). */
+.cn-action-dialog__summary-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-action-dialog__summary-text strong {
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cn-action-dialog__summary-text .cn-action-dialog__muted {
+	font-size: 13px;
 }
 
 .cn-action-dialog__summary-text {
@@ -853,13 +887,26 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+/* The server draws every dt as a 130px right-aligned inline block and pads
+   dt and dd 12px; a fact is a label over its value. */
+.cn-action-dialog__facts dt,
+.cn-action-dialog__facts dd {
+	display: block;
+	width: auto;
+	white-space: normal;
+	text-align: start;
+}
+
 .cn-action-dialog__facts dt {
+	margin: 0;
+	padding: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 }
 
 .cn-action-dialog__facts dd {
 	margin: 0;
+	padding: 0;
 	font-size: 15px;
 	font-weight: 500;
 }
@@ -904,11 +951,36 @@ export default {
 
 /* A checkbox field is a tinted box with a 2px edge, its label bold and its
    hint under it (DqArchiveren). */
+/* A note's own icon stands on the heading's line, as the variant's icon
+   does (NcNoteCard centres a slotted icon on the whole note). */
+.cn-action-dialog__note-icon {
+	align-self: flex-start;
+	margin-top: 1px;
+}
+
 .cn-action-dialog__checkbox {
 	padding: 12px 14px;
 	border: 2px solid var(--color-primary-element);
 	border-radius: var(--border-radius-element, 8px);
-	background: var(--color-primary-element-light);
+	background: var(--color-main-background);
+}
+
+/* The box sits at the card's inset, 12px before the label, the label on
+   its first line (DqArchiveren "Sanne de Vries laten weten ..."):
+   NcCheckboxRadioSwitch pads its row and centres a 34px target. */
+.cn-action-dialog__checkbox :deep(.checkbox-content) {
+	padding: 0;
+	gap: 12px;
+	align-items: flex-start;
+	min-height: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-content__icon) {
+	margin: 0;
+}
+
+.cn-action-dialog__checkbox :deep(.checkbox-radio-switch__input) {
+	min-height: 0;
 }
 
 .cn-action-dialog__checkbox-text {
@@ -920,6 +992,7 @@ export default {
 .cn-action-dialog__checkbox-label {
 	font-size: 15px;
 	font-weight: 600;
+	line-height: 1.2;
 }
 
 .cn-action-dialog__checkbox .cn-action-dialog__muted {

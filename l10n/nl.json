@@ -56,7 +56,7 @@
     "Save sharing": "Delen opslaan",
     "Failed to save sharing": "Delen opslaan is mislukt",
     "My views": "Mijn weergaven",
-    "Shared with me": "Met mij gedeeld",
+    "Shared with me": "Gedeeld met mij",
     "Share \"{name}\"": "\"{name}\" delen",
     "Save the current view to \"{name}\"": "Huidige weergave opslaan in \"{name}\"",
     "Save \"{name}\" as my view": "\"{name}\" opslaan als mijn weergave",
@@ -1674,18 +1674,6 @@
     "Pages": "Pagina's",
     "Open {module}": "{module} openen",
     "{list} and {last}": "{list} en {last}",
-    "%n page: {pages}": [
-      "%n pagina: {pages}",
-      "%n pagina's: {pages}"
-    ],
-    "%n page, including {pages}": [
-      "%n pagina, waaronder {pages}",
-      "%n pagina's, waaronder {pages}"
-    ],
-    "{on} of %n is in the menu": [
-      "{on} van %n staat in het menu",
-      "{on} van %n staan in het menu"
-    ],
     "Put it in the menu:": "In het menu zetten:",
     "Support this app": "Steun deze app",
     "No features with this status": "Geen functies met deze status",
@@ -1702,10 +1690,6 @@
     "{status}, {expected}": "{status}, {expected}",
     "Build on this app": "Bouw verder op deze app",
     "AI skills": "AI-vaardigheden",
-    "%n feature": [
-      "%n functie",
-      "%n functies"
-    ],
     "Your account": "Uw account",
     "Only for you. Colleagues keep their own settings.": "Alleen voor jou. Collega's houden hun eigen instellingen.",
     "Sections of the settings": "Onderdelen van de instellingen",
@@ -1929,7 +1913,7 @@
     "Now": "Nu",
     "Tell me above a number": "Melden vanaf een aantal",
     "Threshold": "Grens",
-    "A message to you when there are {threshold} or more": "Bericht aan u als er {threshold} of meer zijn",
+    "A message to you when there are {threshold} or more": "Bericht aan u als er {threshold} of meer open zijn",
     "Save this search or open a saved one to set an alert on it.": "Sla deze zoekopdracht op of open een opgeslagen zoekopdracht om er een melding op te zetten.",
     "The alert could not be saved.": "De melding kon niet worden opgeslagen.",
     "Your exports could not be loaded.": "Uw exports konden niet worden geladen.",
@@ -2008,7 +1992,7 @@
     "Save current view": "Huidige weergave opslaan",
     "Share view: {name}": "Weergave delen: {name}",
     "The view \"{name}\" leaves your list and the menu on the left.": "De weergave \"{name}\" verdwijnt uit uw lijst en uit het menu links.",
-    "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet die onder Gedeeld met mij. Die is van u en blijft dat.",
+    "Whoever gets the view sees it under Shared with me. It is yours and stays yours.": "Wie de weergave krijgt, ziet hem onder Gedeeld met mij. Hij is van u en blijft dat.",
     "Whoever you share the view with sees the change at once.": "Iedereen met wie u de weergave deelt, ziet de wijziging meteen.",
     "Reason": "Reden",
     "Could not be read": "Kon niet worden gelezen",
@@ -2508,10 +2492,6 @@
     "from {from}": "vanaf {from}",
     "up to {to}": "tot en met {to}",
     "this week": "deze week",
-    "within %n day": [
-      "binnen %n dag",
-      "binnen %n dagen"
-    ],
     "Search term: {term}": "Zoekterm: {term}",
     "New contact": "Nieuw contact",
     "Template": "Sjabloon",
@@ -2607,7 +2587,77 @@
     "Week {week}": "Week {week}",
     "More default views": "Meer standaardweergaven",
     "Fewer default views": "Minder standaardweergaven",
-    "More steps": "Meer stappen"
+    "More steps": "Meer stappen",
+    "Board {name}": "Bord {name}",
+    "list {name}": "lijst {name}",
+    "Tentative": "Voorlopig",
+    "Confirmed": "Bevestigd",
+    "Cancelled": "Geannuleerd",
+    "{start} until {end}": "{start} tot {end}",
+    "Present": "Aanwezig",
+    "Absent until {date}": "Afwezig tot {date}",
+    "More views": "Meer weergaven",
+    "{type} from {app}": "{type} van {app}",
+    "Start step": "Start",
+    "Also who read it": "Ook wie het las",
+    "{shown} of {total} events, changes only": "{shown} van {total} gebeurtenissen, alleen wijzigingen",
+    "Opened the record": "Heeft het geopend",
+    "Viewed": "Ingezien",
+    "w{week}": "w{week}",
+    "Icon": "Pictogram",
+    "Shown when you point at the view in the menu.": "Te zien als u in het menu op de weergave wijst.",
+    "No main contact yet": "Nog geen hoofdcontact",
+    "is": "is",
+    "is not": "is niet",
+    "greater than": "groter dan",
+    "at least": "minstens",
+    "less than": "kleiner dan",
+    "at most": "hoogstens",
+    "is filled in": "is ingevuld",
+    "{field} is {value}": "{field} {value} is",
+    "{field} is not {value}": "{field} niet {value} is",
+    "{field} is greater than {value}": "{field} groter is dan {value}",
+    "{field} is at least {value}": "{field} minstens {value} is",
+    "{field} is less than {value}": "{field} kleiner is dan {value}",
+    "{field} is at most {value}": "{field} hoogstens {value} is",
+    "{field} is filled in": "{field} is ingevuld",
+    "No conditions: the rule always applies.": "Geen voorwaarden: de regel geldt altijd.",
+    "Add a party": "Partij toevoegen",
+    "Remove party": "Partij verwijderen",
+    "Remove {name} as {role}": "{name} als {role} verwijderen",
+    "Remove {name} as {role}?": "{name} als {role} verwijderen?",
+    "Someone already known": "Iemand die al bekend is",
+    "Someone new": "Iemand nieuw",
+    "The change could not be saved. Nothing was changed.": "De wijziging kon niet worden opgeslagen. Er is niets veranderd.",
+    "The new person was not saved.": "De nieuwe persoon is niet opgeslagen.",
+    "The party could not be added.": "De partij kon niet worden toegevoegd.",
+    "You may not change who is on this record.": "U mag niet wijzigen wie er bij dit record hoort.",
+    "Stop reading replies aloud": "Niet meer voorlezen",
+    "Read replies aloud": "Antwoorden voorlezen",
+    "View all conversations": "Alle gesprekken bekijken",
+    "Back to the chat": "Terug naar het gesprek",
+    "Talk to {agent}": "Praten met {agent}",
+    "Search a person or group": "Zoek een persoon of groep",
+    "Now: by {order}.": "Nu: op {order}.",
+    "You save the order along with a view.": "De sortering bewaart u mee in een weergave.",
+    "me": "ik",
+    "Open profile": "Profiel openen",
+    "Link a contact from your address book.": "Koppel een contact uit je adresboek.",
+    "The value could not be shown.": "De waarde kon niet worden getoond.",
+    "Save as draft": "Opslaan als concept",
+    "Draft saved at {time}": "Concept opgeslagen om {time}",
+    "The draft could not be saved": "Het concept kon niet worden opgeslagen",
+    "No value": "Geen waarde",
+    "Link an existing card": "Bestaande kaart koppelen",
+    "New card": "Nieuwe kaart",
+    "Could not link card.": "De kaart kon niet worden gekoppeld.",
+    "Could not create card.": "De kaart kon niet worden gemaakt.",
+    "This card is already linked.": "Deze kaart is al gekoppeld.",
+    "From {date}": "Vanaf {date}",
+    "Until {date}": "Tot {date}",
+    "More actions for {name}": "Meer acties voor {name}",
+    "Unlink contact": "Contact ontkoppelen",
+    "{term}, extendable by {extension}": "{term}, te verdagen met {extension}"
   },
   "plurals": {
     "{count} member": [
@@ -2801,6 +2851,38 @@
     "%n week": [
       "%n week",
       "%n weken"
+    ],
+    "%n minute": [
+      "%n minuut",
+      "%n minuten"
+    ],
+    "%n page: {pages}": [
+      "%n pagina: {pages}",
+      "%n pagina's: {pages}"
+    ],
+    "%n page, including {pages}": [
+      "%n pagina, waaronder {pages}",
+      "%n pagina's, waaronder {pages}"
+    ],
+    "{on} of %n is in the menu": [
+      "{on} van %n staat in het menu",
+      "{on} van %n staan in het menu"
+    ],
+    "%n feature": [
+      "%n functie",
+      "%n functies"
+    ],
+    "within %n day": [
+      "binnen %n dag",
+      "binnen %n dagen"
+    ],
+    "%n other": [
+      "%n andere",
+      "%n andere"
+    ],
+    "{names} has no location, so it is not on the map.": [
+      "{names} heeft geen locatie, dus staat niet op de kaart.",
+      "{names} hebben geen locatie, dus staan ze niet op de kaart."
     ]
   }
 }

@@ -1150,6 +1150,8 @@ const CHART_PROP_KEYS = [
 	'endpointSource',
 	// `bar-list` / `matrix` presentation keys.
 	'barMax',
+	'barValueAtEnd',
+	'matrixLabelWidth',
 	'footnote',
 	'highlight',
 	'cellSource',

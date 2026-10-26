@@ -1,0 +1,1 @@
+- [x] 1.1 CnDetailCard subtitle + host passes it (tests/components/CnDetailCardSubtitle.spec.js)

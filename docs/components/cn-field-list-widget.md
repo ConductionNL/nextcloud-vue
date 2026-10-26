@@ -60,6 +60,9 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `row.href` as `{ path, scheme }` | `scheme` `mailto` or `tel`: the title links to `mailto:<value>` or `tel:<digits>`. |
 | `edit` | `true` or `{ label?, saveLabel? }`: an Edit button per row (named `Edit: <title>`) opens the add form prefilled; saving replaces that entry in the same one PATCH. Not in `readOnly`. |
 | `add.fields[].type: "checkbox"` | A switch; its value is `true` or `false`. |
+| `add.fields[].type: "multiselect"` | A select of several values; its value is a list. An emptied list saves as empty. |
+| `add.fields[].optionsSource` | `{ url, path?, valuePath?, labelPath? }`: options read from an endpoint after the static ones, each value once (`@objectId`, `@object.<field>` filled in). Defaults `id` and `name`. |
+| `columns[].labelsFrom` | An add field key: a column value (or each item of a list value) reads as that field's option label. |
 | `add.requireOneOf` | Keys of which at least one must be filled (a handle or a profile URL); `add.requireOneOfMessage` is the sentence under the first. |
 | `add.exclusive` | Flags (`["primary"]`) only one entry may hold: an entry added or edited with the flag `true` clears it on every other entry. |
 | `lead` | A bold line above the rows, translated, with `{path}` placeholders filled from the object (`"Question about the dossier \"{subjectReference.title}\""`). |

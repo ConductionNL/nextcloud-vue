@@ -1,0 +1,2 @@
+- [x] 1.1 fieldsFrom, template formats, year (CnFactsWidget)
+- [x] 1.2 tests (CnFactsWidgetFieldsFrom.spec.js) and docs

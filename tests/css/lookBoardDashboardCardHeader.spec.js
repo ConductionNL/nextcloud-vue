@@ -42,8 +42,8 @@ function bodyOf(selector) {
 }
 
 describe('look-board.css: dashboard card header', () => {
-	it('defines the dashboard card inset as 24px', () => {
-		expect(css).toMatch(/\.cn-look-board\s*\{[^}]*--cn-board-dashboard-card-inset:\s*24px;/)
+	it('defines the dashboard card inset as 22px, as 51 of the Dq boards draw it', () => {
+		expect(css).toMatch(/\.cn-look-board\s*\{[^}]*--cn-board-dashboard-card-inset:\s*22px;/)
 	})
 
 	it('draws no rule under the title of any card but the Nextcloud dashboard one', () => {

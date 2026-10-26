@@ -67,6 +67,8 @@ describe('CnMailTab', () => {
 		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/app/api/types/t1/email-templates', { params: {} })
 		expect(wrapper.find('.cn-mail-tab__title').text()).toBe('Email')
 		expect(wrapper.find('.cn-mail-tab__subtitle').text()).toBe('Mail linked to this case')
+		// @spec openspec/changes/mail-tab-subtitle-not-a-paragraph/specs/mail-tab-subtitle-not-a-paragraph/spec.md#requirement-the-mail-tab-description-keeps-its-size-under-a-paragraph-theme
+		expect(wrapper.find('.cn-mail-tab__subtitle').element.tagName).toBe('DIV')
 		expect(wrapper.find('.cn-mail-tab__hint').text()).toBe('You send it from Mail.')
 		expect(wrapper.vm.templates).toEqual([{ id: 'tpl-1', name: 'Receipt' }])
 		expect(wrapper.find('[data-testid="cn-mail-tab-draft-template"]').exists()).toBe(true)
@@ -180,6 +182,14 @@ describe('CnMailTab', () => {
 			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Compose mail')
 			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').exists()).toBe(false)
 			expect(wrapper.findComponent({ name: 'CnEmailTab' }).props('showActions')).toBe(false)
+			wrapper.unmount()
+		})
+
+		it('keeps the row\'s empty draft beside "Compose mail" with draft.blankButton', async () => {
+			const wrapper = mountWithActions({ heading: 'Email', draft: { ...CONTENT.draft, blankButton: true }, headerActions: ['compose', 'link'] })
+			await flushPromises()
+			expect(wrapper.find('[data-testid="cn-mail-tab-header-compose"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Empty draft')
 			wrapper.unmount()
 		})
 

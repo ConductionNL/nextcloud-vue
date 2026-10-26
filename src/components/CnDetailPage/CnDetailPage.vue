@@ -23,7 +23,7 @@
 <template>
 	<div
 		class="cn-detail-page"
-		:class="[{ 'cn-detail-page--with-side': showsSideColumn }, boardClass]"
+		:class="[{ 'cn-detail-page--with-side': showsSideColumn, 'cn-detail-page--card-buttons-regular': cardButtons === 'regular' }, boardClass]"
 		data-testid="cn-detail-page"
 		:style="{ maxWidth: maxWidth }">
 		<!-- Skip link to the page's primary action. Off screen until it takes
@@ -253,7 +253,7 @@
 				     card, next to the checklist that explains it, and not here
 				     as well: one primary button per page. -->
 				<NcButton
-					v-if="effectivePrimaryLabel && !showsNextStepCard"
+					v-if="effectivePrimaryLabel && !showsNextStepCard && stagePrimaryOnTab"
 					:id="primaryActionAnchorId"
 					ref="primaryActionButton"
 					variant="primary"
@@ -573,7 +573,7 @@
 				<slot
 					:name="`widget-${headerWidgetDef.id}`"
 					:item="{ id: headerWidgetDef.id, widgetId: headerWidgetDef.id }"
-					:widget="headerWidgetDef"
+					:widget="titled(headerWidgetDef)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -581,7 +581,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="headerWidgetDef"
+						:widget="titled(headerWidgetDef)"
 						chrome="bare"
 						:objectId="objectId"
 						:object="currentObject"
@@ -594,7 +594,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -712,7 +712,7 @@
 				<slot
 					:name="`widget-${entry.widget.id}`"
 					:item="{ id: entry.widget.id, widgetId: entry.widget.id }"
-					:widget="entry.widget"
+					:widget="titled(entry.widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -720,7 +720,7 @@
 					:register="register"
 					:schema="schema">
 					<CnDetailWidgetHost
-						:widget="entry.widget"
+						:widget="titled(entry.widget)"
 						:chrome="entry.chrome"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -735,7 +735,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets" />
+						:availableWidgets="titledWidgets" />
 				</slot>
 			</div>
 		</div>
@@ -772,7 +772,7 @@
 		     the reader has stated why they open it and the purpose is recorded. -->
 		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
 			<CnAccessPurposeDialog
-				v-if="accessPurposeAsking"
+				v-if="accessPurposeAsking && !accessPurposeChecking"
 				:title="accessPurposeText('title')"
 				:description="accessPurposeText('description')"
 				:options="accessPurposeOptions"
@@ -781,7 +781,7 @@
 				@submit="recordAccessPurpose"
 				@cancel="accessPurposeAsking = false" />
 			<NcEmptyContent
-				v-else-if="accessPurposeRequired"
+				v-else-if="accessPurposeRequired && !accessPurposeChecking"
 				:name="t('nextcloud-vue', 'State a purpose to open this')"
 				:description="t('nextcloud-vue', 'This record holds special categories of personal data. It opens once your purpose is recorded.')"
 				data-testid="cn-detail-page-access-purpose-refused">
@@ -911,6 +911,7 @@
 				:editable="section.editable"
 				:columns="12"
 				:columnOpts="bodyColumnOpts"
+				:float="gridFloat"
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
@@ -992,7 +993,7 @@
 						<slot
 							:name="`widget-${item.widgetId}`"
 							:item="item"
-							:widget="findWidget(item)"
+							:widget="titled(findWidget(item))"
 							:objectId="objectId"
 							:object="resolvedObject"
 							:objectData="resolvedObject"
@@ -1000,7 +1001,7 @@
 							:register="register"
 							:schema="schema">
 							<CnDetailWidgetHost
-								:widget="findWidget(item)"
+								:widget="titled(findWidget(item))"
 								chrome="card"
 								inGridCell
 								:showCardTitle="showCardTitle(item)"
@@ -1016,7 +1017,7 @@
 								:integrationContext="effectiveIntegrationContext"
 								:hideEmpty="hideEmpty"
 								:cnRegistry="cnRegistry"
-								:availableWidgets="bodyGridWidgets"
+								:availableWidgets="titledBodyGridWidgets"
 								@geoSaved="onGeoSaved"
 								@openIntegration="onAutoBodyOpenIntegration"
 								@selectObject="onRelatedObjectSelect" />
@@ -1212,7 +1213,7 @@
 				<slot
 					:name="`widget-${widget.id}`"
 					:item="{ id: widget.id, widgetId: widget.id }"
-					:widget="widget"
+					:widget="titled(widget)"
 					:objectId="objectId"
 					:object="resolvedObject"
 					:objectData="resolvedObject"
@@ -1221,7 +1222,7 @@
 					:schema="schema">
 					<component
 						:is="widget.follows ? 'CnFollowingWidgetHost' : 'CnDetailWidgetHost'"
-						:widget="widget"
+						:widget="titled(widget)"
 						chrome="card"
 						:showCardTitle="true"
 						:showActions="effectiveShowWidgetActions"
@@ -1236,7 +1237,7 @@
 						:integrationContext="effectiveIntegrationContext"
 						:hideEmpty="hideEmpty"
 						:cnRegistry="cnRegistry"
-						:availableWidgets="widgets"
+						:availableWidgets="titledWidgets"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onAutoBodyOpenIntegration"
 						@selectObject="onRelatedObjectSelect" />
@@ -1258,7 +1259,7 @@
 		<CnWidgetStyleEditorModal
 			v-if="showWidgetConfig"
 			:show="showWidgetConfig"
-			:widget="configWidget"
+			:widget="titled(configWidget)"
 			:deletable="true"
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
@@ -1324,7 +1325,8 @@
 				:schema="currentSchema"
 				:item="currentObject"
 				:register="register"
-				:dialogTitle="editActionLabel"
+				:dialogTitle="editFormTitle"
+				:subtitle="editFormSubtitle"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -1460,6 +1462,7 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { createWidgetSelection, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
+import { withTitlesWhen, withTitleWhen } from '../../utils/widgetTitleWhen.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -1838,6 +1841,30 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * GridStack's `float` for the body grid (manifest `config.gridFloat`).
+		 * True (the default) keeps every widget on its authored row; false
+		 * packs widgets upward, so a size-to-content widget ends at its content
+		 * and the one below closes up (DqHandhaving: the violation card sits
+		 * 20px under the matrix).
+		 */
+		gridFloat: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * How tall the labelled buttons in the page's card title rows stand in
+		 * the board look: `compact` (34px, setting and case-type pages) or
+		 * `regular` (the 40px control height, the case page's tab cards:
+		 * DqZaakContact "Live gesprek"). Manifest `config.cardButtons`.
+		 */
+		cardButtons: {
+			type: String,
+			default: 'compact',
+			validator: (value) => ['compact', 'regular'].includes(value),
 		},
 
 		/**
@@ -2436,6 +2463,18 @@ export default {
 
 		/** Label for the header Edit button, run through the host translate. Defaults to a translated "Edit". */
 		editLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Title of the record edit form, run through the host translate. Empty uses the Edit button's label. */
+		editTitle: {
+			type: String,
+			default: '',
+		},
+
+		/** One line under the edit form's title, run through the host translate. Empty shows none. */
+		editSubtitle: {
 			type: String,
 			default: '',
 		},
@@ -3056,6 +3095,12 @@ export default {
 		 * browser session. A refusal keeps the record closed. `null` (the
 		 * default) asks nothing.
 		 *
+		 * `checkUrl` (GET, `{objectId}` filled in) is asked first: an answer
+		 * `{ required: false }` opens the record without the dialog (the app
+		 * recorded the purpose itself, as for the case's own handler); any
+		 * other answer, or a failure, shows the dialog. An option's `hint`
+		 * is a line under it saying what choosing it does besides recording it.
+		 *
 		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
 		 * @type {object|null}
 		 */
@@ -3096,11 +3141,15 @@ export default {
 		 * `{path|format}` formats it (`weekday`, `longdate`, `time`, `user`,
 		 * `currency:EUR`, ...). An empty token drops itself and its separator;
 		 * a line with no value at all is dropped. Only the board look draws it.
+		 * `{ count, one, other, zero? }` picks a form by the `headerMetaCounts`
+		 * total named `count` ("1 lopende zaak" / "2 lopende zaken"); each form
+		 * is translated on its own, and `zero` (when given) is used for none.
 		 *
 		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
 		 */
 		headerMeta: {
-			type: String,
+			type: [String, Object],
 			default: '',
 		},
 
@@ -3370,6 +3419,10 @@ export default {
 			accessPurposeGranted: readGrantedPurposes(),
 			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
 			accessPurposeAsking: true,
+			/** Whether `accessPurpose.checkUrl` is being asked for the record in view. */
+			accessPurposeChecking: false,
+			/** The record the check last answered for, so it is asked once per record. */
+			accessPurposeCheckedKey: '',
 			/** Whether a purpose is being recorded. */
 			accessPurposeBusy: false,
 			/** Why the last purpose was refused. */
@@ -3528,6 +3581,30 @@ export default {
 		},
 
 		/**
+		 * The header line's template: `headerMeta` itself, or for the plural
+		 * form `{ count, one, other, zero? }` the form its count asks for; null
+		 * while that count is missing.
+		 *
+		 * @return {string|null} The untranslated template, or null.
+		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
+		 */
+		headerMetaForm() {
+			const meta = this.headerMeta
+			if (!meta || typeof meta !== 'object') {
+				return typeof meta === 'string' ? meta : ''
+			}
+			const total = this.headerMetaCountValues[meta.count]
+			if (typeof total !== 'number') {
+				return null
+			}
+			if (total === 0 && typeof meta.zero === 'string') {
+				return meta.zero
+			}
+			const form = total === 1 ? meta.one : meta.other
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The meta line of row 2, translated and filled from the record.
 		 *
 		 * @return {string} The line, or ''.
@@ -3536,7 +3613,11 @@ export default {
 		headerMetaText() {
 			const record = this.lastChange && this.resolvedObject ? { ...this.resolvedObject, _lastChange: this.lastChange } : this.resolvedObject
 			let missing = false
-			const template = (this.headerMeta ? this.effectiveTranslate(this.headerMeta) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
+			const form = this.headerMetaForm
+			if (form === null) {
+				return ''
+			}
+			const template = (form ? this.effectiveTranslate(form) : '').replace(/\{count:([\w-]+)\}/g, (match, name) => {
 				const value = this.headerMetaCountValues[name]
 				if (typeof value !== 'number') {
 					missing = true
@@ -3772,6 +3853,19 @@ export default {
 				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
 				.filter((pinned) => pinned && pinned.id !== primaryId)
 				.slice(0, MAX_QUICK_ACTIONS)
+		},
+
+		/**
+		 * Whether the stage's primary button belongs beside the open body tab:
+		 * an inline stage action with `tabs`/`notTabs` follows the tab like a
+		 * quick action (DqZaakAssistent: no "Next step" beside AI oversight).
+		 * It stays in the Actions menu either way.
+		 *
+		 * @return {boolean} true when the button may show.
+		 * @spec openspec/changes/stage-primary-follows-tab/specs/detail-page/spec.md#requirement-a-stage-action-can-follow-the-open-tab
+		 */
+		stagePrimaryOnTab() {
+			return !this.stagePrimaryEntry || onTab(this.stagePrimary, this.activeBodyTab)
 		},
 
 		/**
@@ -4045,7 +4139,11 @@ export default {
 			const options = Array.isArray(this.accessPurpose?.options) ? this.accessPurpose.options : []
 			return options
 				.filter((option) => option && typeof option.value === 'string' && option.value !== '')
-				.map((option) => ({ value: option.value, label: this.cnTranslate(option.label || option.value) }))
+				.map((option) => ({
+					value: option.value,
+					label: this.cnTranslate(option.label || option.value),
+					...(typeof option.hint === 'string' && option.hint !== '' ? { hint: this.cnTranslate(option.hint) } : {}),
+				}))
 		},
 
 		/**
@@ -4738,6 +4836,16 @@ export default {
 			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
+		/** @return {string} The edit form's title, translated; the Edit button's label when none is configured. */
+		editFormTitle() {
+			return this.editTitle ? this.effectiveTranslate(this.editTitle) : this.editActionLabel
+		},
+
+		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
+		editFormSubtitle() {
+			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
+		},
+
 		/**
 		 * The create archetype: a schema-bound page (`register` + `schema`) whose
 		 * route carries NO object id, and which has no hand-authored body of its
@@ -4979,6 +5087,37 @@ export default {
 		 */
 		widgetVisibilityData() {
 			return widgetConditionData(this.resolvedObject, this.visibilityRows)
+		},
+
+		/**
+		 * The page's widget definitions with each `titleWhen` resolved against
+		 * the record, as the cards, the tab strip and the leaves read them.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledWidgets() {
+			return withTitlesWhen(this.widgets, this.titleData)
+		},
+
+		/**
+		 * The body grid's widget definitions with each `titleWhen` resolved.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titledBodyGridWidgets() {
+			return withTitlesWhen(this.bodyGridWidgets, this.titleData)
+		},
+
+		/**
+		 * What a `titleWhen` reads: the record with its `@context` rows, null
+		 * while the record or those rows are on their way.
+		 *
+		 * @return {object|null}
+		 */
+		titleData() {
+			return this.visibilityRowsPending ? null : this.widgetVisibilityData
 		},
 
 		/**
@@ -5633,6 +5772,15 @@ export default {
 			},
 		},
 
+		// Header actions gate on `@context.<name>` through the object context.
+		visibilityRows() {
+			this.syncObjectContext()
+		},
+
+		visibilityRowsPending() {
+			this.syncObjectContext()
+		},
+
 		// Endpoint and source conditions on grid widgets are asked once per record.
 		remoteWidgetConditionsKey: {
 			immediate: true,
@@ -5696,6 +5844,17 @@ export default {
 		accessPurposeKey() {
 			this.accessPurposeAsking = true
 			this.accessPurposeError = ''
+		},
+
+		/** Once the page knows the record asks a purpose, the app is asked first whether it must (`checkUrl`). */
+		accessPurposeRequired: {
+			handler(required) {
+				if (required && this.contentWithheld) {
+					this.checkAccessPurpose()
+				}
+			},
+
+			immediate: true,
 		},
 
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
@@ -5955,6 +6114,50 @@ export default {
 		 * @param {{purpose: string, note: string}} answer The chosen purpose.
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Ask the app whether the reader must state a purpose for this record
+		 * (`accessPurpose.checkUrl`); `{ required: false }` opens it at once.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {Promise<void>}
+		 */
+		async checkAccessPurpose() {
+			const key = this.accessPurposeKey
+			const url = String(this.accessPurpose?.checkUrl || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
+			if (url === '' || this.accessPurposeCheckedKey === key) {
+				return
+			}
+			this.accessPurposeCheckedKey = key
+			this.accessPurposeChecking = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const { data } = await axios.get(prefixUrl(url))
+				if (data && data.required === false && this.accessPurposeKey === key) {
+					this.grantAccessPurpose(key)
+				}
+			} catch {
+				// The check is a shortcut: without an answer the reader is asked as before.
+			} finally {
+				this.accessPurposeChecking = false
+			}
+		},
+
+		/**
+		 * Open the record and remember for this browser session that its
+		 * purpose is recorded.
+		 *
+		 * @param {string} key The record's session key.
+		 * @return {void}
+		 */
+		grantAccessPurpose(key) {
+			this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
+			try {
+				window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
+			} catch {
+				// Without session storage the purpose is asked again on the next visit.
+			}
+		},
+
 		async recordAccessPurpose(answer) {
 			const url = String(this.accessPurpose?.url || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
 			if (url === '') {
@@ -5966,13 +6169,7 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				await axios.post(prefixUrl(url), { purpose: answer.purpose, note: answer.note })
-				const key = this.accessPurposeKey
-				this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
-				try {
-					window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
-				} catch {
-					// Without session storage the purpose is asked again on the next visit.
-				}
+				this.grantAccessPurpose(this.accessPurposeKey)
 			} catch (error) {
 				const data = error?.response?.data
 				this.accessPurposeError = (data && (data.message || data.error)) || t('nextcloud-vue', 'Your purpose could not be recorded, so the record stays closed.')
@@ -7271,6 +7468,17 @@ export default {
 		 * @param {{ widgetId: string }} item Layout item.
 		 * @return {object|undefined} The matching widget definition.
 		 */
+		/**
+		 * A widget definition with its `titleWhen` resolved against the record.
+		 *
+		 * @param {object|null|undefined} def The definition.
+		 * @return {object|null|undefined} The definition to hand on.
+		 * @spec openspec/changes/widget-title-when/specs/widget-title-when/spec.md#requirement-a-widget-title-can-depend-on-the-record
+		 */
+		titled(def) {
+			return withTitleWhen(def, this.titleData)
+		},
+
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
 				|| this.findViewWidget(item.widgetId)
@@ -7764,6 +7972,7 @@ export default {
 				object: this.currentObject || null,
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				context: this.visibilityRowsPending ? null : (this.visibilityRows || null),
 				setObject: (object) => this.setCurrentObject(object),
 			}
 		},

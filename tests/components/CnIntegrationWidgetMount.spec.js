@@ -63,6 +63,25 @@ describe('CnIntegrationWidget single mode', () => {
 		})
 	})
 
+	it('forwards the placement\'s placementProps to the leaf, never over the record', async () => {
+		const registry = createIntegrationRegistry()
+		const { entry, mounted } = mountLeaf()
+		registry.register(entry)
+		mount(CnIntegrationWidget, {
+			props: {
+				registry,
+				only: 'decidiq-approval-chain',
+				register: 'dossiq',
+				schema: 'case',
+				objectId: 'case-1',
+				placementProps: { kinds: ['invoice', 'payment-request'], actions: ['request-payment'], objectId: 'someone-else' },
+			},
+			attachTo: document.body,
+		})
+		await flushPromises()
+		expect(mounted[0]).toMatchObject({ kinds: ['invoice', 'payment-request'], actions: ['request-payment'], objectId: 'case-1' })
+	})
+
 	it('names the app when the leaf is not registered', () => {
 		const w = mount(CnIntegrationWidget, {
 			props: { registry: createIntegrationRegistry(), only: 'decidesk-decisions', appName: 'Decidiq' },

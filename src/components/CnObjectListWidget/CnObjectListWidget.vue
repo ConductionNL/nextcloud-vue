@@ -35,7 +35,7 @@
 		     deliberate, and stays `compact` inside a fit-measured cell so it
 		     cannot outgrow a short tile (ADR-062). -->
 		<CnWidgetEmptyState
-			v-else-if="!loading && rows.length === 0"
+			v-else-if="!loading && rows.length === 0 && readOnlyRows.length === 0"
 			:name="resolvedEmptyText"
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
@@ -151,6 +151,7 @@
 						:sortKey="localSort.field || null"
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
+						:rowTitle="rowTitle"
 						:fitWidth="fitWidthActive"
 						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
@@ -162,7 +163,7 @@
 						@sort="onSort"
 						@columnFilter="onHeaderFilter">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-							<CnRowActions :actions="mappedRowActions" :row="row" />
+							<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
 						</template>
 					</CnDataTable>
 				</div>
@@ -180,6 +181,7 @@
 					:sortKey="localSort.field || null"
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
+					:rowTitle="rowTitle"
 					:fitWidth="fitWidthActive"
 					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
@@ -196,7 +198,7 @@
 					     when this slot is supplied, so a widget without
 					     `rowActions` keeps the column count it had. -->
 					<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-						<CnRowActions :actions="mappedRowActions" :row="row" />
+						<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
 					</template>
 					<!-- `content.children`: each row's child records under it, as
 					     a nested list fed from one query for all rows. -->
@@ -357,6 +359,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
@@ -364,6 +367,7 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
@@ -532,6 +536,13 @@ export default {
 		 *
 		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
 		 * download in the card's header; `group` shows it to one group only.
+		 * With `url` (and `params`, tokens such as `@objectId`) the button
+		 * downloads that app endpoint instead of OpenRegister's export.
+		 *
+		 * `endpointSource` (`{ url, params?, responsePath? }`) reads the rows
+		 * from an app endpoint instead of OpenRegister, for a list without
+		 * `register`/`schema`: rows at `responsePath` (default `results`),
+		 * the count at `total`. Such a list is read-only.
 		 *
 		 * `tableBleed: true` runs the table edge to edge in its card: in the
 		 * board look it goes under the card's side padding and its outer cells
@@ -539,6 +550,7 @@ export default {
 		 * Without it the table stays inside the padding.
 		 * `headerSubtitle` is a line under the card title with the list's
 		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
+		 * `headerNote` takes the same counts beside the card title instead.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
@@ -579,6 +591,8 @@ export default {
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
+			/** The rows `content.readOnlyRows` adds after the list's own, tagged `_readOnly`. */
+			readOnlyRows: [],
 			loading: false,
 			error: '',
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
@@ -652,6 +666,17 @@ export default {
 			const selected = this.cnWidgetSelection.entry(this.cnHostWidgetId()).selected
 			const idOf = (row) => String((row && (row.id ?? row['@self']?.id)) ?? '')
 			return (row) => (selected && idOf(row) !== '' && idOf(row) === idOf(selected) ? 'cn-object-list-widget__row--selected' : '')
+		},
+
+		/**
+		 * How the table draws its title column (`content.rowTitle`: link, plain,
+		 * text or strong), link when unset or unknown.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
+		 */
+		rowTitle() {
+			return ['plain', 'text', 'strong'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
 		},
 
 		/**
@@ -811,7 +836,8 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
-				if (!prop || out.widget !== undefined || out.formatter !== undefined) {
+				// The `label` widget writes the enum's label, so it still takes the enum.
+				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
 				}
 				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
@@ -834,7 +860,7 @@ export default {
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
@@ -1226,7 +1252,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		visibleRows() {
-			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
+			const rows = this.readOnlyRows.length > 0 ? [...this.rows, ...this.readOnlyRows] : this.rows
+			return this.fitRows ? rows.slice(0, this.fitRows) : rows
 		},
 
 		/**
@@ -1275,7 +1302,7 @@ export default {
 
 		/** Whether the designed empty state is what the widget is showing. */
 		showingEmptyState() {
-			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
+			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0 && this.readOnlyRows.length === 0
 		},
 
 		/**
@@ -1367,12 +1394,18 @@ export default {
 		 * @return {string}
 		 */
 		headerSubtitleText() {
-			const text = this.content.headerSubtitle
-			if (typeof text !== 'string' || text === '') {
-				return ''
-			}
-			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+			return this.countLine(this.content.headerSubtitle)
+		},
+
+		/**
+		 * `content.headerNote` filled in like `headerSubtitle`, for beside the
+		 * card title ("4 vastgelegd"), or '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-header-note/specs/object-list-header-note/spec.md#requirement-an-object-list-can-say-its-counts-beside-its-card-title
+		 */
+		headerNoteText() {
+			return this.countLine(this.content.headerNote)
 		},
 
 		resolvedSummary() {
@@ -1561,6 +1594,11 @@ export default {
 			this.emitHeader()
 		},
 
+		/** The counts beside the card title follow the rows (`content.headerNote`). */
+		headerNoteText() {
+			this.emitHeader()
+		},
+
 		sourceKey() {
 			// The query changed, so page 3 of the OLD result set means nothing
 			// against the new one — and an out-of-range `_page` returns an empty
@@ -1702,6 +1740,39 @@ export default {
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
 		 */
+		/**
+		 * Read the rows `content.readOnlyRows` adds after the list's own:
+		 * `{ url, responsePath?, where? }`, an app endpoint (tokens such as
+		 * `@objectId` in the url), narrowed by `where` (`{ field: value }` or
+		 * `{ field: [values] }`). Each row is tagged `_readOnly`. A read that
+		 * fails adds nothing.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-read-only-rows/specs/object-list-widget/spec.md#requirement-a-list-can-add-read-only-rows-from-an-endpoint
+		 */
+		async fetchReadOnlyRows() {
+			const config = this.content && this.content.readOnlyRows
+			if (!config || typeof config !== 'object' || typeof config.url !== 'string' || config.url === '') {
+				this.readOnlyRows = []
+				return
+			}
+			let data = null
+			try {
+				data = await fetchEndpointSource({ url: config.url, responsePath: config.responsePath || '' }, this.tokenCtx)
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load the read-only rows:', e)
+			}
+			const where = config.where && typeof config.where === 'object' ? Object.entries(config.where) : []
+			const matches = (row) => where.every(([field, want]) => {
+				const value = readPath(row, field)
+				return Array.isArray(want) ? want.map(String).includes(String(value)) : String(value) === String(want)
+			})
+			this.readOnlyRows = (Array.isArray(data) ? data : [])
+				.filter((row) => row && typeof row === 'object' && matches(row))
+				.map((row) => ({ ...row, _readOnly: true }))
+		},
+
 		async fetchChildren() {
 			const children = this.childrenConfig
 			const link = this.childLink
@@ -1770,9 +1841,60 @@ export default {
 			return buildExportUrl(this.content.register, this.content.schema, this.resolvedFilter, format)
 		},
 
+		/**
+		 * The download URL of an `export` that names an app endpoint: its
+		 * `url` and `params` resolved against the record, '' while a required
+		 * token is unresolved.
+		 *
+		 * @param {{url: string, params?: object}} config The export config.
+		 * @return {string} The URL under the Nextcloud base, or ''.
+		 * @spec openspec/changes/object-list-endpoint-rows/specs/object-list-widget/spec.md#requirement-a-list-can-read-its-rows-from-an-app-endpoint
+		 */
+		endpointExportUrl(config) {
+			const request = resolveEndpointRequest({ url: config.url, params: config.params || {} }, this.tokenCtx)
+			if (request.blocked) {
+				return ''
+			}
+			const base = /^https?:\/\//i.test(request.url) ? request.url : generateUrl(request.url)
+			const query = new URLSearchParams(Object.entries(request.params).map(([key, value]) => [key, String(value)])).toString()
+			return query === '' ? base : `${base}${base.includes('?') ? '&' : '?'}${query}`
+		},
+
+		/**
+		 * Read the rows from `content.endpointSource`: rows at its
+		 * `responsePath` (default `results`), the count at `total`.
+		 *
+		 * @param {{url: string, params?: object, responsePath?: string}} source The endpoint.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-endpoint-rows/specs/object-list-widget/spec.md#requirement-a-list-can-read-its-rows-from-an-app-endpoint
+		 */
+		async fetchEndpointRows(source) {
+			this.loading = true
+			this.error = ''
+			try {
+				const body = await fetchEndpointSource({ url: source.url, method: source.method, params: source.params || {} }, this.tokenCtx)
+				const rows = getByPath(body, typeof source.responsePath === 'string' && source.responsePath !== '' ? source.responsePath : 'results')
+				this.rows = Array.isArray(rows) ? rows : []
+				this.total = body && typeof body.total === 'number' ? body.total : this.rows.length
+				this.$nextTick(() => {
+					this.measureFit()
+					this.measureWidthFit()
+				})
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load the endpoint rows:', e)
+				this.error = endpointErrorMessage(e)
+				this.rows = []
+				this.total = 0
+			} finally {
+				this.loading = false
+			}
+		},
+
 		async offerExport() {
 			const config = this.content && this.content.export
-			if (!config || typeof config !== 'object' || !this.content.register || !this.content.schema) {
+			const endpointUrl = config && typeof config.url === 'string' && config.url !== '' ? this.endpointExportUrl(config) : ''
+			if (!config || typeof config !== 'object' || (!endpointUrl && (!this.content.register || !this.content.schema))) {
 				return
 			}
 			if (typeof config.group === 'string' && config.group !== '') {
@@ -1791,26 +1913,43 @@ export default {
 			this.headerAction = {
 				label,
 				icon: 'Download',
-				run: () => window.location.assign(this.exportUrl(format)),
+				run: () => window.location.assign(endpointUrl || this.exportUrl(format)),
 			}
 			this.emitHeader()
 		},
 
 		/**
+		 * A counts template (`{total}`, `{count:<field>=<value>}`) translated and
+		 * filled from the rows, or '' without one.
+		 *
+		 * @param {unknown} text The template.
+		 * @return {string}
+		 */
+		countLine(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+		},
+
+		/**
 		 * Tell the card around this list what its header shows: the Download
-		 * action (`content.export`) and the counts line under the title
-		 * (`content.headerSubtitle`). Nothing when the list has neither.
+		 * action (`content.export`), the counts line under the title
+		 * (`content.headerSubtitle`) and the note beside it
+		 * (`content.headerNote`). Nothing when the list has none of them.
 		 *
 		 * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
 		 */
 		emitHeader() {
 			const subtitle = this.headerSubtitleText
+			const note = this.headerNoteText
 			// A line shown before is cleared with an empty one, so the card does
 			// not keep a stale count; a list that never had one stays silent.
-			if (!this.headerAction && subtitle === '' && !this.headerSubtitleShown) {
+			if (!this.headerAction && subtitle === '' && note === '' && !this.headerSubtitleShown) {
 				return
 			}
-			this.headerSubtitleShown = subtitle !== ''
+			this.headerSubtitleShown = subtitle !== '' || note !== ''
 			/**
 			 * @event header The card header's parts: the Download action for the
 			 * list as filtered here (`content.export`) and the counts line under
@@ -1820,6 +1959,7 @@ export default {
 			this.$emit('header', {
 				...(this.headerAction ? { action: this.headerAction } : {}),
 				subtitle,
+				note,
 			})
 		},
 
@@ -1904,6 +2044,10 @@ export default {
 				return
 			}
 			const c = this.content || {}
+			if ((!c.register || !c.schema) && c.endpointSource && typeof c.endpointSource.url === 'string' && c.endpointSource.url !== '') {
+				await this.fetchEndpointRows(c.endpointSource)
+				return
+			}
 			if (!c.register || !c.schema) {
 				this.rows = []
 				this.error = ''
@@ -1976,6 +2120,7 @@ export default {
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
 				await this.fetchChildren()
+				await this.fetchReadOnlyRows()
 				this.$nextTick(() => {
 					this.measureFit()
 					this.measureWidthFit()
@@ -2414,6 +2559,9 @@ export default {
 		 * @return {void}
 		 */
 		onRowClick(row, event) {
+			if (row && row._readOnly === true) {
+				return
+			}
 			if (this.content.rowSelection === true && this.cnWidgetSelection && typeof this.cnHostWidgetId === 'function') {
 				this.cnWidgetSelection.select(this.cnHostWidgetId(), row)
 			}

@@ -16,12 +16,15 @@
 			:scope="resolvedScope"
 			:title="resolvedTitle"
 			:maxDisplay="resolvedMaxDisplay"
+			:layout="content && typeof content.layout === 'string' ? content.layout : ''"
 			:excludeActions="resolvedExcludeActions"
 			:actionLabels="actionLabels"
+			:valueLabels="valueLabels"
+			:changeLabels="changeLabels"
+			:object="ctx.object || ctx.objectData || null"
+			:relatedSources="relatedSources"
+			:footnote="footnote"
 			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
-		<p v-if="footnote" class="cn-audit-trail-widget__footnote" data-testid="cn-audit-trail-widget-footnote">
-			{{ footnote }}
-		</p>
 	</div>
 </template>
 
@@ -101,6 +104,8 @@ export default {
 		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
 		excludeActions: { type: Array, default: () => [] },
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -191,6 +196,22 @@ export default {
 		},
 
 		/**
+		 * `content.changeLabels`, each rule's label through the app's translate.
+		 *
+		 * @return {Array<object>}
+		 */
+		changeLabels() {
+			const rules = this.content.changeLabels
+			if (!Array.isArray(rules)) {
+				return []
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return rules
+				.filter((rule) => rule && typeof rule.label === 'string' && rule.label !== '')
+				.map((rule) => ({ ...rule, label: translate(rule.label) }))
+		},
+
+		/**
 		 * `content.footnote`, a muted line under the trail with the record's
 		 * fields filled in ("Reference {identifier}"); '' when a field is empty.
 		 *
@@ -204,6 +225,36 @@ export default {
 			}
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
 			return fillTemplate(translate(note), this.ctx.object || this.ctx.objectData || null)
+		},
+
+		/**
+		 * `content.valueLabels`, each word through the app's translate.
+		 *
+		 * @return {{[key: string]: {[value: string]: string}}|null}
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		valueLabels() {
+			const labels = this.content.valueLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, words]) => words && typeof words === 'object')
+				.map(([key, words]) => [key, Object.fromEntries(Object.entries(words)
+					.filter(([, text]) => typeof text === 'string' && text !== '')
+					.map(([value, text]) => [value, translate(text)]))]))
+		},
+
+		/**
+		 * `content.relatedSources`: records beside the object whose events
+		 * join its history (see CnAuditTrailCard).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		relatedSources() {
+			return Array.isArray(this.content.relatedSources) ? this.content.relatedSources : []
 		},
 
 		emptyText() {
@@ -249,14 +300,8 @@ export default {
 </script>
 
 <style scoped>
-/* The card keeps its own box; the wrapper only adds the line under it. */
+/* The card keeps its own box, footnote included. */
 .cn-audit-trail-widget {
 	display: contents;
-}
-
-.cn-audit-trail-widget__footnote {
-	margin: 0;
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
 }
 </style>

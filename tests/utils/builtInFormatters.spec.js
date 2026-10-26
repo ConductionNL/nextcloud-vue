@@ -9,7 +9,7 @@
  */
 
 const { registerTranslations } = require('../../src/l10n/index.js')
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, formatIsoDuration, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -250,6 +250,43 @@ describe('builtInFormatters', () => {
 			expect(formatConditionalPhrase(null, {}, {}, options)).toBe('')
 			expect(formatConditionalPhrase('', {}, {}, options)).toBe('')
 			expect(formatConditionalPhrase('garbage', {}, {}, options)).toBe('garbage')
+		})
+	})
+
+	describe('formatIsoDuration (isoDuration)', () => {
+		it('reads a one-unit ISO period in words, as a retention or term is meant to be read (DqZaaktypeStatussen "10 jaar")', () => {
+			expect(formatIsoDuration('P10Y')).toBe('10 years')
+			expect(formatIsoDuration('P1Y')).toBe('1 year')
+			expect(formatIsoDuration('P6W')).toBe('6 weeks')
+			expect(formatIsoDuration('P3M')).toBe('3 months')
+			expect(formatIsoDuration('P30D')).toBe('30 days')
+			expect(BUILT_IN_FORMATTERS.isoDuration).toBe(formatIsoDuration)
+		})
+
+		it('leaves anything else as written and is null-safe', () => {
+			expect(formatIsoDuration('P1Y6M')).toBe('P1Y6M')
+			expect(formatIsoDuration('permanent')).toBe('permanent')
+			expect(formatIsoDuration(null)).toBe('')
+			expect(formatIsoDuration('')).toBe('')
+		})
+
+		describe('for a Dutch reader', () => {
+			beforeAll(() => {
+				globalThis._nc_l10n_language = 'nl'
+				registerTranslations()
+			})
+
+			afterAll(() => {
+				globalThis._nc_l10n_language = 'en'
+				registerTranslations()
+			})
+
+			it('says jaar, weken and dagen', () => {
+				expect(formatIsoDuration('P10Y')).toBe('10 jaar')
+				expect(formatIsoDuration('P6W')).toBe('6 weken')
+				expect(formatIsoDuration('P1W')).toBe('1 week')
+				expect(formatIsoDuration('P30D')).toBe('30 dagen')
+			})
 		})
 	})
 

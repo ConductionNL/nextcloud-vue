@@ -19,9 +19,11 @@
 					<h3 v-if="heading" class="cn-mail-tab__title">
 						{{ heading }}
 					</h3>
-					<p v-if="description" class="cn-mail-tab__subtitle">
+					<!-- Divs, not <p>: a theme that sizes every paragraph with !important
+					     would override the card's 14px description. -->
+					<div v-if="description" class="cn-mail-tab__subtitle">
 						{{ description }}
-					</p>
+					</div>
 				</div>
 				<div v-if="hasHeaderActions" class="cn-mail-tab__header-actions">
 					<NcButton
@@ -70,16 +72,16 @@
 					{{ t('nextcloud-vue', 'Open draft from template') }}
 				</NcButton>
 				<NcButton
-					v-if="!showComposeAction"
+					v-if="!showComposeAction || draftSource.blankButton === true"
 					:disabled="closed || drafting"
 					data-testid="cn-mail-tab-draft-blank"
 					@click="draftBlank">
 					{{ t('nextcloud-vue', 'Empty draft') }}
 				</NcButton>
 			</div>
-			<p v-if="hint" class="cn-mail-tab__hint">
+			<div v-if="hint" class="cn-mail-tab__hint">
 				{{ hint }}
-			</p>
+			</div>
 
 			<NcNoteCard
 				v-if="error"
@@ -178,7 +180,8 @@ function keyOf(value) {
  * `linkedMail: false` leaves the linked mail to a separate `email`
  * integration card. `headerActions` puts buttons beside the heading:
  * `compose` opens the empty draft (or Nextcloud Mail's composer when there
- * is no `draft`) and replaces the row's empty-draft button; `link` opens the
+ * is no `draft`) and replaces the row's empty-draft button, unless
+ * `draft.blankButton` is true (DqZaakEmail draws both); `link` opens the
  * linked mail's picker and needs the linked mail. The linked mail then drops
  * its own buttons. Texts go through the host's translate.
  */

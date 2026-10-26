@@ -89,6 +89,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcTextArea } from '@nextcloud/vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { groupSublines } from '../../utils/groupSublines.js'
 import { readPath } from '../../utils/readPath.js'
 import { searchNextcloudGroups, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -134,7 +135,10 @@ export function withTypedAssignee(found, typed, label) {
  *   `eyebrow` a template filled from the record.
  * - `source`: an endpointSource to read the record from, else `object`.
  * - `assignee`: `{ kinds?, label?, placeholder?, hint?, currentPath?,
- *   currentHint?, currentAs?, allowTyped?, field?, kindField? }`. `kinds` is `["group"]`
+ *   currentHint?, currentAs?, allowTyped?, field?, kindField?, describe? }`.
+ *   `describe` (`{ register, schema, groupField?, textField? }`) names the
+ *   records that hold a team's description; each team option then reads
+ *   "{count} members · {description}", the count where the viewer may read it. `kinds` is `["group"]`
  *   (default), `["user"]` or both; `currentPath` reads who has it now from the
  *   record and `currentHint` ("Now with {current}.", the placeholder named
  *   by `currentAs`) says so, in place of `hint`; `allowTyped`
@@ -398,8 +402,12 @@ export default {
 			if (seq !== this.searchSeq) {
 				return
 			}
+			const lines = await groupSublines(groups.map((g) => g.id), typed, this.assigneeConfig.describe || null)
+			if (seq !== this.searchSeq) {
+				return
+			}
 			const found = [
-				...groups.map((g) => ({ id: g.id, label: g.label, secondary: g.subline || '', icon: 'AccountGroupOutline', kind: 'group' })),
+				...groups.map((g) => ({ id: g.id, label: g.label, secondary: lines[g.id] || g.subline || '', icon: 'AccountGroupOutline', kind: 'group' })),
 				...users.map((u) => ({ id: u.id, label: u.label, secondary: u.subline || '', avatar: true, kind: 'user' })),
 			]
 			this.options = this.assigneeConfig.allowTyped ? withTypedAssignee(found, typed, t('nextcloud-vue', 'Use "{name}"', { name: typed })) : found
@@ -528,7 +536,7 @@ export default {
 }
 
 .cn-assign-dialog__toggle-note {
-	padding-inline-start: 44px;
+	padding-inline-start: var(--cn-dialog-check-label-inset, 44px);
 }
 
 .cn-assign-dialog__error {

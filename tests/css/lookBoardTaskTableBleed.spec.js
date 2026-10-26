@@ -49,4 +49,29 @@ describe('look-board-detail.css: task table in a detail card', () => {
 		expect(body).toContain('min-height: 0')
 		expect(body).toContain('line-height: normal')
 	})
+
+	it('wraps a long task name and its line under it, so the table fits the card (r25b: 843 wide in a 798 card)', () => {
+		expect(rule(TABLE + ' :is(.cn-tasks-widget__name, .cn-tasks-widget__meta)')).toContain('white-space: normal')
+	})
+
+	it('keeps a row\'s buttons on one line: the task menu stands beside Afronden, not under it', () => {
+		const body = rule(TABLE + ' .cn-tasks-widget__cell-actions > *')
+		expect(body).toContain('display: inline-flex')
+		expect(body).toContain('vertical-align: middle')
+	})
+
+	it('sets head and body text at line height 1.2, as the board draws it (r25b: 21 vs 16.8)', () => {
+		expect(rule(TABLE + ' :is(th, td)')).toContain('line-height: 1.2')
+	})
+
+	it('gives the task name the spare width and keeps the handler on one line (r29: titles wrapped, rows 79 vs 64)', () => {
+		expect(rule(TABLE + ' th:first-child,\n' + TABLE + ' .cn-tasks-widget__cell-task')).toContain('width: 100%')
+		expect(rule(TABLE + ' .cn-tasks-widget__cell-handler')).toContain('white-space: nowrap')
+	})
+
+	it('draws the head filter as a 22px button, so a head is 42px as drawn (r29: 55)', () => {
+		const body = rule(TABLE + ' .cn-tasks-widget__head-filter .button-vue')
+		expect(body).toContain('--button-size: 22px')
+		expect(body).toContain('min-height: 22px')
+	})
 })

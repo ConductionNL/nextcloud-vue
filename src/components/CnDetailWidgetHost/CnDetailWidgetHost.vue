@@ -86,6 +86,7 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			:showActions="!isBare && actionsShown"
 			:icon="widget.icon || null"
@@ -99,6 +100,7 @@
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
 			:collapsedFields="content.collapsedFields ?? null"
+			:footnote="content.footnote || ''"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
@@ -170,6 +172,7 @@
 		<CnWidgetWrapper
 			v-else-if="wrapsMountLeaf"
 			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
 			:showActions="false"
@@ -187,6 +190,21 @@
 			<template v-if="hasRendererHeaderItems" #actions>
 				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<CnWidgetEmptyState
 				v-if="rendererHeader.empty"
 				:name="rendererHeader.empty.name"
@@ -207,6 +225,7 @@
 		<CnWidgetWrapper
 			v-else-if="wrapsLeafTab"
 			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
 			:subtitle="widgetSubtitle"
 			titleIconPosition="left"
 			:titleTone="widgetTitleTone"
@@ -218,6 +237,21 @@
 			<template v-if="leafCardIcon" #title-icon>
 				<CnIcon :name="leafCardIcon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component :is="resolveRegistryTab(widget.integrationId)" v-bind="integrationProps" />
 		</CnWidgetWrapper>
 
@@ -301,6 +335,21 @@
 					{{ action.label }}
 				</NcActionButton>
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -331,7 +380,48 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component :is="renderer" :content="content" v-bind="declaredContent" />
+		</CnWidgetWrapper>
+
+		<!-- A chart on a card surface: the titled card every body widget
+		     carries (ADR-062), with the whole prop bag, so record tokens in its
+		     `cellSource` or `dataSource` still resolve. In a tab panel it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsChart"
+			:title="widget.title || ''"
+			:subtitle="widgetSubtitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__card-fit"
+			data-testid="cn-detail-widget-chart-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
 		<!-- An app's own widget (consumer registry) on a card surface, the
@@ -360,6 +450,21 @@
 			<template v-if="hasRendererHeaderItems" #actions>
 				<CnDetailWidgetHeaderItems :header="rendererHeader" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -388,6 +493,21 @@
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
@@ -463,6 +583,7 @@ import { isActivityWidget } from '../../utils/headerMeta.js'
 import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -841,6 +962,26 @@ export default {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
 		},
 
+		/**
+		 * The widgets `content.leadWidgetIds` names, drawn inside this card before
+		 * its own content (DqZaakDocumenten: the review summary in the Files
+		 * card), those whose `visibleWhen` holds against the record.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-lead-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-lead-with-other-widgets
+		 */
+		leadWidgets() {
+			const ids = this.content && Array.isArray(this.content.leadWidgetIds) ? this.content.leadWidgetIds : []
+			if (ids.length === 0) {
+				return []
+			}
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const data = this.object ? { ...this.object, '@context': rows || {} } : null
+			return ids
+				.map((id) => (this.availableWidgets || []).find((def) => def && def.id === id))
+				.filter((def) => def && (!def.visibleWhen || (data !== null && evaluateVisibleWhenLocal(def.visibleWhen, data))))
+		},
+
 		/** @return {boolean} Whether the reported header has anything for the title row. */
 		hasRendererHeaderItems() {
 			const h = this.rendererHeader
@@ -973,6 +1114,15 @@ export default {
 		/** @return {boolean} true for object-list / table / files. */
 		isContentOnly() {
 			return isContentOnlyWidgetDef(this.widget)
+		},
+
+		/**
+		 * Whether a chart gets the titled card: on a card surface, with a title.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsChart() {
+			return !this.isBare && Boolean(this.widget) && this.widget.type === 'chart' && Boolean(this.widget.title)
 		},
 
 		/**
@@ -1184,6 +1334,10 @@ export default {
 		},
 
 		leafCardTitle() {
+			// An empty title is a card without one (a `titleWhen` entry that says so).
+			if (this.widget && this.widget.title === '') {
+				return ''
+			}
 			const title = widgetTitleOf(this.widget)
 			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
 		},
@@ -1291,6 +1445,7 @@ export default {
 				objectId: this.objectId,
 				object: this.object,
 				config: unwrapAppConfig(this.cnAppConfig),
+				context: (this.cnDetailVisibilityRows && this.cnDetailVisibilityRows.value) || null,
 			})
 		},
 
@@ -1357,6 +1512,7 @@ export default {
 				// prints its title as given.
 				title: this.translateLabel(this.widget?.title || ''),
 				...this.leafTitleLabel,
+				...(this.widgetSubtitle ? { subtitle: this.translateLabel(this.widgetSubtitle) } : {}),
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
@@ -1611,14 +1767,23 @@ export default {
 			if (this.showCardTitle !== null) {
 				return this.showCardTitle
 			}
+			if (this.widget?.title === '' && this.content.title === undefined) {
+				return false
+			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
-		/** @return {string} Label for the catalog Add action. */
+		/**
+		 * Label for the catalog Add action: the createAction's label, else the
+		 * list's own `addLabel`, as the list's Add reads it.
+		 *
+		 * @return {string}
+		 */
 		addLabel() {
 			const action = listCreateAction(this.content)
-			if (action && typeof action.label === 'string' && action.label !== '') {
-				return typeof this.cnTranslate === 'function' ? this.cnTranslate(action.label) : action.label
+			const label = action && typeof action.label === 'string' && action.label !== '' ? action.label : (typeof this.content.addLabel === 'string' ? this.content.addLabel : '')
+			if (label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
 			}
 			return t('nextcloud-vue', 'Add')
 		},

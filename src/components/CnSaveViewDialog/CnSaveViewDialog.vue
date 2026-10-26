@@ -29,6 +29,12 @@
 				data-testid="cn-save-view-name-input"
 				@update:modelValue="(v) => name = v" />
 
+			<CnSavedViewLookFields
+				:description="description"
+				:icon="icon"
+				@update:description="(v) => description = v"
+				@update:icon="(v) => icon = v" />
+
 			<NcCheckboxRadioSwitch
 				:modelValue="isPublic"
 				data-testid="cn-save-view-public-toggle"
@@ -73,6 +79,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
+import CnSavedViewLookFields from '../CnSavedViewLookFields/CnSavedViewLookFields.vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
 import CnViewPresentationPicker from '../CnViewPresentationPicker/CnViewPresentationPicker.vue'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
@@ -94,7 +101,7 @@ import { isPresentationComplete, presentationErrorPath } from '../../utils/prese
  * wiring is a recurring footgun and a dialog gives room for the public
  * toggle.
  *
- * @event {{ name: string, isPublic: boolean, sharedWith: Array<{group: string, mode: string}>, presentation?: object }} confirm — Save clicked with a non-empty name.
+ * @event {{ name: string, isPublic: boolean, sharedWith: Array<{group: string, mode: string}>, description: string, icon: string, presentation?: object }} confirm — Save clicked with a non-empty name.
  * @event {void} close — Dialog dismissed.
  */
 export default {
@@ -107,6 +114,7 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcCheckboxRadioSwitch,
+		CnSavedViewLookFields,
 		CnSavedViewShareFields,
 		CnViewPresentationPicker,
 		ContentSaveOutline,
@@ -138,6 +146,10 @@ export default {
 		return {
 			/** The view name being typed. */
 			name: '',
+			/** The view's description, its menu entry's tooltip. */
+			description: '',
+			/** The view's menu icon, '' for the menu's default. */
+			icon: '',
 			/** Whether the view is saved as public (shared). */
 			isPublic: false,
 			/** Groups the view is shared with, `[{ group, mode }]`. */
@@ -181,6 +193,8 @@ export default {
 				name: this.name.trim(),
 				isPublic: this.isPublic,
 				sharedWith: this.sharedWith,
+				description: this.description.trim(),
+				icon: this.icon,
 				...(this.schema ? { presentation: this.presentation } : {}),
 			})
 		},

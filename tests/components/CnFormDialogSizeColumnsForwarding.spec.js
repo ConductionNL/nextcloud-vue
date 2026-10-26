@@ -199,6 +199,52 @@ describe('CnFormDialog size/columns forwarding — every host', () => {
 			expect(dialogProps(wrapper)).toMatchObject({ size: 'large', columns: 2 })
 		})
 
+		it('gives the record EDIT form the configured subtitle, translated, and none by default', async () => {
+			const mountEdit = (extra) => mount(CnDetailPage, {
+				propsData: {
+					title: 'Case type',
+					register: 'dossiq',
+					schema: 'caseType',
+					objectId: 'ct-1',
+					objectStore: makeStore(),
+					...extra,
+				},
+				provide: { cnTranslate: (key) => `nl:${key}` },
+				mocks: { $route: { params: {}, query: {} }, $router: { push: jest.fn(), back: jest.fn() } },
+				stubs: { CnFormDialog: { name: 'CnFormDialog', props: ['size', 'columns', 'subtitle', 'dialogTitle'], template: '<div />' } },
+			})
+			const configured = mountEdit({ editSubtitle: 'The case fields.' })
+			await configured.setData({ editFormOpen: true })
+			expect(dialogProps(configured).subtitle).toBe('nl:The case fields.')
+
+			const plain = mountEdit({})
+			await plain.setData({ editFormOpen: true })
+			expect(dialogProps(plain).subtitle).toBe('')
+		})
+
+		it('titles the record EDIT form with the configured title, translated, and the Edit label by default', async () => {
+			const mountEdit = (extra) => mount(CnDetailPage, {
+				propsData: {
+					title: 'Case type',
+					register: 'dossiq',
+					schema: 'caseType',
+					objectId: 'ct-1',
+					objectStore: makeStore(),
+					...extra,
+				},
+				provide: { cnTranslate: (key) => `nl:${key}` },
+				mocks: { $route: { params: {}, query: {} }, $router: { push: jest.fn(), back: jest.fn() } },
+				stubs: { CnFormDialog: { name: 'CnFormDialog', props: ['dialogTitle'], template: '<div />' } },
+			})
+			const configured = mountEdit({ editTitle: 'Edit case', editLabel: 'Edit' })
+			await configured.setData({ editFormOpen: true })
+			expect(dialogProps(configured).dialogTitle).toBe('nl:Edit case')
+
+			const plain = mountEdit({ editLabel: 'Edit' })
+			await plain.setData({ editFormOpen: true })
+			expect(dialogProps(plain).dialogTitle).toBe('nl:Edit')
+		})
+
 		it('refuses a column count the dialog cannot lay out', () => {
 			const validator = CnDetailPage.props.formColumns.validator
 

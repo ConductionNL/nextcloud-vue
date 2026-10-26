@@ -105,6 +105,25 @@ describe('CnDetailPage "what now" card per tab', () => {
 	})
 })
 
+describe('CnDetailPage stage primary per tab', () => {
+	const primary = (wrapper) => wrapper.find('[data-testid="cn-detail-page-primary-action"]')
+	const STAGES = { received: { id: 'next', type: 'open-modal', label: 'Next step', target: 'NextDialog', notTabs: ['ai'] } }
+
+	it('stands an inline stage action aside on a notTabs tab', async () => {
+		const wrapper = await mountPage({ stageField: 'status', primaryActionByStage: STAGES })
+		await openTab(wrapper, 'overview')
+		expect(primary(wrapper).exists()).toBe(true)
+		await openTab(wrapper, 'ai')
+		expect(primary(wrapper).exists()).toBe(false)
+	})
+
+	it('keeps a stage action that names no tabs on every tab', async () => {
+		const wrapper = await mountPage({ stageField: 'status', primaryActionByStage: { received: { ...STAGES.received, notTabs: undefined } } })
+		await openTab(wrapper, 'ai')
+		expect(primary(wrapper).exists()).toBe(true)
+	})
+})
+
 describe('the manifest schema for actions per tab', () => {
 	const manifest = (config) => ({
 		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
@@ -118,6 +137,14 @@ describe('the manifest schema for actions per tab', () => {
 			headerActions: HEADER_ACTIONS,
 			quickActions: ['message', { id: 'document', notTabs: ['ai'] }, { id: 'contact', tabs: ['overview'] }],
 			nextStep: { ...NEXT_STEP, notTabs: ['ai'] },
+		}))
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts tabs and notTabs on an inline stage action', () => {
+		const result = validateManifestV2(manifest({
+			stageField: 'status',
+			primaryActionByStage: { received: { id: 'next', type: 'open-modal', label: 'Next step', target: 'NextDialog', notTabs: ['ai'] } },
 		}))
 		expect(result.errors).toEqual([])
 	})

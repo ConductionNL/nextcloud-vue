@@ -69,17 +69,23 @@ export function summarizeViewFilters(state, options = {}) {
 
 /**
  * The ids a view's filters hold per reference property, for a label lookup.
+ * A filter on a value that identifies a record without being its id (a case
+ * type's `identifier`) is a reference too when the page's `filterLabels`
+ * entry names it: `reference: { register?, schema, matchField, labelField }`.
  *
  * @param {{filters?: object}} state The view's state.
  * @param {Array<object>} fields The page schema's fields (`fieldsFromSchema`).
- * @return {Array<{key: string, register: string, schema: string, labelField: string, ids: Array<string>}>} One entry per reference filter.
+ * @param {{[key: string]: {reference?: object}}} [filterLabels] The page's `config.filterLabels`.
+ * @return {Array<{key: string, register: string, schema: string, labelField: string, matchField?: string, ids: Array<string>}>} One entry per reference filter.
+ * @spec openspec/changes/saved-view-summary-match-field-labels/specs/saved-view-menu-settings/spec.md#requirement-a-filter-on-a-records-identifier-reads-as-the-records-name
  */
-export function viewFilterReferences(state, fields) {
+export function viewFilterReferences(state, fields, filterLabels = {}) {
 	const filters = (state && state.filters && typeof state.filters === 'object') ? state.filters : {}
 	const out = []
 	for (const [key, raw] of Object.entries(filters)) {
 		const field = (Array.isArray(fields) ? fields : []).find((f) => f && f.key === key)
-		const ref = field && field.reference
+		const named = filterLabels && filterLabels[key] && filterLabels[key].reference && typeof filterLabels[key].reference === 'object' ? filterLabels[key].reference : null
+		const ref = (field && field.reference) || named
 		if (!ref || ref.schema === undefined || ref.schema === null) {
 			continue
 		}
@@ -87,7 +93,8 @@ export function viewFilterReferences(state, fields) {
 			.filter((id) => (typeof id === 'string' || typeof id === 'number') && id !== '' && id !== MISSING_VALUE)
 			.map(String)
 		if (ids.length > 0) {
-			out.push({ key, register: ref.register || '', schema: String(ref.schema), labelField: ref.labelField || '', ids })
+			const matchField = ref === named && typeof ref.matchField === 'string' && ref.matchField !== '' ? { matchField: ref.matchField } : {}
+			out.push({ key, register: ref.register || '', schema: String(ref.schema), labelField: ref.labelField || '', ...matchField, ids })
 		}
 	}
 	return out

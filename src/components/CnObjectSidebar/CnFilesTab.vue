@@ -16,6 +16,7 @@
 			:dropOverlay="dropOverlay"
 			:dropLabel="dropLabel"
 			:dropDetail="dropDetail"
+			:dropDetailValues="dropDetailValues"
 			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
@@ -24,6 +25,7 @@
 			:reviewSummary="reviewSummary"
 			:footnote="footnote"
 			:nameSecondary="nameSecondary"
+			:secondLine="secondLine"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
@@ -359,7 +361,9 @@ export default {
 		/** Forwarded to CnFilesBrowser: the drop state's line ("Laat los om toe te voegen"); the library's own without it. */
 		dropLabel: { type: String, default: undefined },
 		/** Forwarded to CnFilesBrowser: the drop state's second line, `{count}` the files dragged; it also makes the overlay fill the panel. */
-		dropDetail: { type: String, default: '' },
+		dropDetail: { type: [String, Array], default: '' },
+		/** Forwarded to CnFilesBrowser: named values filled into `dropDetail`. */
+		dropDetailValues: { type: Object, default: null },
 		/** Forwarded to CnFilesBrowser: "Or drag files onto this list." under the list. */
 		dropHint: { type: Boolean, default: false },
 		/**
@@ -450,6 +454,8 @@ export default {
 		footnote: { type: String, default: '' },
 		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
 		nameSecondary: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line as a list of fields, or variants. */
+		secondLine: { type: Array, default: null },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */
