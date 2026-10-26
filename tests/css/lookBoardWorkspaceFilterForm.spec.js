@@ -39,7 +39,9 @@ describe('look-board.css: workspace filter form', () => {
 	})
 
 	it('draws the load button 40px tall, 16px in', () => {
-		const body = ruleFor(`${FORM} .button-vue`)
+		// Two classes: NcButton's own `.button-vue:has(.button-vue__icon:empty)`
+		// padding is as strong as one and loads later (r31: 12px on :8080).
+		const body = ruleFor(`${FORM} .button-vue.button-vue`)
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')
 		expect(body).toContain('--button-padding: 16px;')
 		expect(ruleFor(`${FORM} .button-vue .button-vue__text.button-vue__text`)).toContain('padding-inline: 0;')
