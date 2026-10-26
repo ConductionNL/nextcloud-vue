@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--stacked': stacked }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -450,7 +450,7 @@ export default {
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
-		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
+		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -510,6 +510,15 @@ export default {
 		 */
 		twoColumns() {
 			return Number(this.content?.columns) === 2
+		},
+
+		/**
+		 * Whether the rows stack in one column, label above value.
+		 *
+		 * @return {boolean}
+		 */
+		stacked() {
+			return Number(this.content?.columns) === 1
 		},
 
 		/**
@@ -2218,6 +2227,17 @@ export default {
 
 .cn-facts-widget__rows--columns .cn-facts-widget__label.cn-facts-widget__label {
 	font-size: 13px;
+}
+
+/* One column, label above value: 2px under its label, 10px to the next
+   label, so a long label never squeezes its value (DqHandhaving). */
+.cn-facts-widget__rows--stacked {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 2px 0;
+}
+
+.cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
+	margin-bottom: 8px;
 }
 
 @media (max-width: 640px) {

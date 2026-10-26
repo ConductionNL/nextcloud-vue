@@ -50,3 +50,12 @@ describe('CnFactsWidget: two columns', () => {
 		expect(mountFacts({ fields: FIELDS }).find('dl').classes()).not.toContain('cn-facts-widget__rows--columns')
 	})
 })
+
+describe('CnFactsWidget: one stacked column', () => {
+	it('stacks the rows label above value with columns: 1', () => {
+		const dl = mountFacts({ columns: 1, fields: FIELDS }).find('dl')
+		expect(dl.classes()).toContain('cn-facts-widget__rows--stacked')
+		expect(dl.classes()).not.toContain('cn-facts-widget__rows--columns')
+		expect(mountFacts({ fields: FIELDS }).find('dl').classes()).not.toContain('cn-facts-widget__rows--stacked')
+	})
+})
