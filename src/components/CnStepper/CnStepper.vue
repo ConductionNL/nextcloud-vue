@@ -154,6 +154,14 @@ export default {
 	font: inherit;
 }
 
+/* Nextcloud's server.css gives every plain button a 3px margin and the
+   clickable-area height (`button:not(.button-vue, …):not(…)`, 0,2,1), which
+   made a done step 40px tall around its 28px circle. Two classes outrank it. */
+.cn-stepper button.cn-stepper__step {
+	margin: 0;
+	min-height: 0;
+}
+
 button.cn-stepper__step {
 	cursor: pointer;
 }
@@ -230,14 +238,14 @@ button.cn-stepper__step {
 }
 
 /* The board look: one row, 28px circles, the label beside the circle. */
-/* The board leaves 20px between the stepper and the step's body (DqInstellen). */
+/* The board leaves 16px between the stepper and the step's body (DqInstellen). */
 .cn-stepper--board {
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-start;
 	gap: 8px;
 	padding: 0;
-	margin: 0 0 20px;
+	margin: 0 0 16px;
 }
 
 .cn-stepper--board .cn-stepper__item {
