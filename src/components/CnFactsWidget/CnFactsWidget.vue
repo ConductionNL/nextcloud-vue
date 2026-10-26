@@ -227,6 +227,9 @@
 			<CnIcon v-if="link.icon" :name="link.icon" :size="18" />
 			{{ link.label }}
 		</component>
+		<p v-if="link && link.note && record" class="cn-facts-widget__link-note" data-testid="cn-facts-link-note">
+			{{ link.note }}
+		</p>
 		<button
 			v-if="action && record"
 			type="button"
@@ -867,18 +870,19 @@ export default {
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
 			}
+			const linkView = this.linkWords(link)
 			if (typeof link.sidebarTab === 'string' && link.sidebarTab !== '') {
 				return this.objectSidebarState
-					? { label: this.tr(link.label), sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
+					? { ...linkView, sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
 					: null
 			}
 			if (link.route) {
 				const to = this.resolveRoute(link.route, this.record)
-				return to ? { label: this.tr(link.label), to } : null
+				return to ? { ...linkView, to } : null
 			}
 			if (typeof link.href === 'string' && link.href !== '') {
 				const href = this.linkHref(link, this.record)
-				return href ? { label: this.tr(link.label), href, target: link.target === '_blank' ? '_blank' : '', icon: typeof link.icon === 'string' ? link.icon : '' } : null
+				return href ? { ...linkView, href, target: link.target === '_blank' ? '_blank' : '', icon: typeof link.icon === 'string' ? link.icon : '' } : null
 			}
 			return null
 		},
@@ -1017,6 +1021,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A link's label and the muted note under it, their `{path}` and
+		 * `{path:format}` placeholders filled from the record ("{page:last-segment}").
+		 *
+		 * @param {object} link The configured link.
+		 * @return {{label: string, note: string}}
+		 * @spec openspec/changes/facts-link-label-from-record/specs/facts-widget/spec.md#requirement-a-facts-link-can-take-its-words-from-the-record
+		 */
+		linkWords(link) {
+			const fill = (text) => (text.includes('{') && this.record ? this.templateValue(this.record, text) : this.tr(text))
+			const label = fill(String(link.label))
+			return {
+				label: label || this.tr(String(link.label)),
+				note: typeof link.note === 'string' && link.note !== '' ? fill(link.note) : '',
+			}
+		},
+
 		/**
 		 * Open the page's object sidebar on one of its tabs.
 		 *
@@ -1899,6 +1920,11 @@ export default {
 				return formatTermDuration(raw, typeof spec.extendBy === 'string' && record ? readPath(record, spec.extendBy) : null)
 			}
 			// The month written out, the year only outside this year: "3 oktober".
+			// One segment of a path ("Team/Page"): its first or its last.
+			if (format === 'first-segment' || format === 'last-segment') {
+				const segments = String(raw).split('/').map((part) => part.trim()).filter((part) => part !== '')
+				return (format === 'first-segment' ? segments[0] : segments[segments.length - 1]) || ''
+			}
 			if (format === 'longdate') {
 				return formatLongDate(raw)
 			}
@@ -2313,6 +2339,12 @@ export default {
 	font-weight: 600;
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+.cn-facts-widget__link-note {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-facts-widget__link--button {

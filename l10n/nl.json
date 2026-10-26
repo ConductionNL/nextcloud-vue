@@ -2653,7 +2653,8 @@
     "Until {date}": "Tot {date}",
     "More actions for {name}": "Meer acties voor {name}",
     "Unlink contact": "Contact ontkoppelen",
-    "{term}, extendable by {extension}": "{term}, te verdagen met {extension}"
+    "{term}, extendable by {extension}": "{term}, te verdagen met {extension}",
+    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen"
   },
   "plurals": {
     "{count} member": [

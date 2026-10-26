@@ -5,11 +5,12 @@
 <template>
 	<CnDialog
 		:name="text(title) || t('nextcloud-vue', 'This may already exist')"
+		:eyebrow="text(eyebrow)"
 		width="form"
 		data-testid="cn-duplicate-warning"
 		@closing="close">
 		<div class="cn-duplicate-warning">
-			<NcNoteCard :type="affordances.blocked ? 'error' : 'warning'" data-testid="cn-duplicate-warning-note">
+			<NcNoteCard :type="affordances.blocked && !affordances.mayContinue ? 'error' : 'warning'" data-testid="cn-duplicate-warning-note">
 				{{ headlineText }}
 			</NcNoteCard>
 
@@ -21,13 +22,14 @@
 					<a v-if="row.href" :href="row.href" class="cn-duplicate-warning__title">{{ row.title }}</a>
 					<span v-else class="cn-duplicate-warning__title">{{ row.title }}</span>
 					<span v-if="row.meta" class="cn-duplicate-warning__meta">{{ row.meta }}</span>
-					<span class="cn-duplicate-warning__meta">{{ row.matchedOn }} ({{ row.percentage }}%)</span>
+					<span class="cn-duplicate-warning__meta">{{ row.matched }}</span>
 				</li>
 			</ul>
 
 			<NcTextField v-if="affordances.needsReason"
 				:label="text(reasonLabel) || t('nextcloud-vue', 'Why file it anyway')"
 				:modelValue="reason"
+				:helperText="text(reasonHint)"
 				data-testid="cn-duplicate-warning-reason"
 				@update:modelValue="reason = $event" />
 
@@ -35,6 +37,12 @@
 				class="cn-duplicate-warning__hint"
 				data-testid="cn-duplicate-warning-blocked">
 				{{ text(blockedText) || t('nextcloud-vue', 'This cannot be filed twice. Open the one it matches, or ask a coordinator.') }}
+			</p>
+
+			<p v-if="footnote"
+				class="cn-duplicate-warning__hint"
+				data-testid="cn-duplicate-warning-footnote">
+				{{ text(footnote) }}
 			</p>
 		</div>
 
@@ -58,7 +66,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import { duplicateAffordances } from '../../utils/duplicateWarning.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { CnDialog } from '../CnDialog/index.js'
 
 /**
@@ -134,10 +142,44 @@ export default {
 			default: '{title}',
 		},
 
-		/** A record's meta line, a template filled from it. */
+		/**
+		 * A record's meta line, a template filled from it, or several: the
+		 * first that fills is shown ("{identifier} · {caseType.title}", then
+		 * "{identifier}" for a record that lacks the type).
+		 *
+		 * @type {string|Array<string>}
+		 */
 		rowMeta: {
-			type: String,
+			type: [String, Array],
 			default: '{identifier}',
+		},
+
+		/**
+		 * What a match was found on, `{fields}` (joined as a list: "Aanvrager
+		 * en Onderwerp") and `{percentage}` filled, through the host
+		 * translate. Empty: "Aanvrager, Onderwerp (82%)".
+		 */
+		matchedText: {
+			type: String,
+			default: '',
+		},
+
+		/** A line above the title, as the board dialogs draw one. */
+		eyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/** The help line under the reason field. */
+		reasonHint: {
+			type: String,
+			default: '',
+		},
+
+		/** A muted note under the matches and the reason, for what Cancel and a block mean. */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/** A record's page, a template with `{uuid}`; empty draws no link. */
@@ -233,15 +275,14 @@ export default {
 				const record = this.records.find((row) => String((row && (row.id || row.uuid || (row['@self'] && row['@self'].id))) || '') === uuid)
 				const fields = Array.isArray(match && match.matchedOn) ? match.matchedOn : []
 				const score = Number(match && match.score)
+				const words = fields.map((field) => (this.fieldLabels[field] ? this.cnTranslate(this.fieldLabels[field]) : field))
+				const percentage = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score * 100))) : 0
 				return {
 					uuid,
 					title: record ? (fillTemplate(this.rowTitle, record).trim() || uuid) : t('nextcloud-vue', 'A record you may not open'),
-					meta: record ? fillTemplate(this.rowMeta, record).trim() : '',
+					meta: record ? firstFilled(this.rowMeta, record, (key) => key).trim() : '',
 					href: record && this.recordUrl ? generateUrl(fillTemplate(this.recordUrl, { uuid: encodeURIComponent(uuid) })) : '',
-					matchedOn: fields.length
-						? fields.map((field) => (this.fieldLabels[field] ? this.cnTranslate(this.fieldLabels[field]) : field)).join(', ')
-						: t('nextcloud-vue', 'Matched on the score, not on a single field'),
-					percentage: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score * 100))) : 0,
+					matched: this.matchedLine(words, percentage),
 				}
 			})
 		},
@@ -258,6 +299,29 @@ export default {
 		 */
 		text(value) {
 			return value ? this.cnTranslate(value) : ''
+		},
+
+		/**
+		 * What a match was found on, and how strongly.
+		 *
+		 * @param {Array<string>} words The matched fields, in the host's words.
+		 * @param {number} percentage The score as a percentage.
+		 * @return {string}
+		 */
+		matchedLine(words, percentage) {
+			if (words.length === 0) {
+				return `${t('nextcloud-vue', 'Matched on the score, not on a single field')} (${percentage}%)`
+			}
+			if (!this.matchedText) {
+				return `${words.join(', ')} (${percentage}%)`
+			}
+			let fields = words.join(', ')
+			try {
+				fields = new Intl.ListFormat(document.documentElement.lang || undefined, { type: 'conjunction' }).format(words)
+			} catch {
+				// An engine without Intl.ListFormat keeps the comma list.
+			}
+			return fillTemplate(this.cnTranslate(this.matchedText), { fields, percentage: String(percentage) })
 		},
 
 		/** File it over the warning, carrying the reason and what it was filed over. */

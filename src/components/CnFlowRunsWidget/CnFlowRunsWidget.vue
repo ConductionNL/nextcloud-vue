@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-runs-widget">
+	<div class="cn-flow-runs-widget" :class="{ 'cn-flow-runs-widget--pills': pills }">
 		<!-- One quiet line on failure, never a leaked axios status string
 		     (ADR-062). The real error goes to the console. -->
 		<p v-if="error" class="cn-flow-runs-widget__error">
@@ -26,7 +26,7 @@
 			{{ emptyLabel }}
 		</p>
 		<template v-else>
-			<p v-if="rows.length === 0" class="cn-flow-runs-widget__empty">
+			<p v-if="rows.length === 0 && content.quietLineWithHistory !== false" class="cn-flow-runs-widget__empty">
 				{{ emptyLabel }}
 			</p>
 			<ul v-else class="cn-flow-runs-widget__list">
@@ -42,6 +42,7 @@
 						:href="runHref(run) || undefined"
 						@click="onRowClick($event, run)">
 						<span
+							v-if="!pills"
 							class="cn-flow-runs-widget__dot"
 							:class="`cn-flow-runs-widget__dot--${run.status}`"
 							:title="statusLabel(run.status)" />
@@ -49,6 +50,12 @@
 							<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
 							<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
 						</span>
+						<CnStatusBadge
+							v-if="pills"
+							class="cn-flow-runs-widget__pill"
+							:label="statusLabel(run.status)"
+							:variant="statusVariant(run.status)"
+							size="small" />
 						<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
 					</component>
 				</li>
@@ -62,7 +69,7 @@
 			     labelled section with a hollow dot and a muted name, so live
 			     and finished never rely on colour alone to tell apart. -->
 			<template v-if="showHistory">
-				<p class="cn-flow-runs-widget__history-title">
+				<p v-if="content.historyTitle !== false" class="cn-flow-runs-widget__history-title">
 					{{ tr('Earlier runs') }}
 				</p>
 				<p v-if="completedError" class="cn-flow-runs-widget__error">
@@ -81,6 +88,7 @@
 							:href="runHref(run) || undefined"
 							@click="onRowClick($event, run)">
 							<span
+								v-if="!pills"
 								class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
 								:class="`cn-flow-runs-widget__dot--${run.status}`"
 								:title="statusLabel(run.status)" />
@@ -88,6 +96,12 @@
 								<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
 								<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
 							</span>
+							<CnStatusBadge
+								v-if="pills"
+								class="cn-flow-runs-widget__pill"
+								:label="statusLabel(run.status)"
+								:variant="statusVariant(run.status)"
+								size="small" />
 							<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
 						</component>
 					</li>
@@ -106,9 +120,11 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * The OpenRegister endpoint that lists the caller's live flow runs.
@@ -197,6 +213,7 @@ export default {
 	name: 'CnFlowRunsWidget',
 
 	components: {
+		CnStatusBadge,
 		NcLoadingIcon,
 	},
 
@@ -231,6 +248,17 @@ export default {
 		 *   subject's finished runs render below it. Absent = today's org-wide
 		 *   widget, unchanged.
 		 * - `emptyText` — override for the "nothing running" line.
+		 * - `quietLineWithHistory` — `false` leaves out the "nothing running"
+		 *   line while the subject has finished runs to list.
+		 * - `historyTitle` — `false` leaves out the "Earlier runs" heading.
+		 * - `statusPill` — `true` shows the status as a pill on each row
+		 *   (no dot, and the meta line leaves the status out), rows ruled.
+		 * - `statusLabels` — words per status (`{ completed: 'Succeeded' }`),
+		 *   translated, over the built-in ones.
+		 * - `triggerLabels` — the meta line per trigger in words
+		 *   (`{ 'object.created': 'Started when the case was created' }`), translated.
+		 * - `age` — `'datetime'` shows when the run started ("3 okt, 14:32")
+		 *   instead of how long ago ("13d").
 		 * - `headerAction` — an action descriptor drawn in the card header
 		 *   (`{ label, icon?, ...action }`, "Flow uitvoeren"), reported through
 		 *   the `header` event and dispatched with the page's dispatcher; its
@@ -419,6 +447,11 @@ export default {
 		/** The "+N more" line. */
 		moreLabel() {
 			return this.tr('+{count} more').replace('{count}', String(this.hiddenCount))
+		},
+
+		/** Whether each row shows its status as a pill (`content.statusPill`). */
+		pills() {
+			return this.content.statusPill === true
 		},
 
 		/** The nothing-running line. */
@@ -678,8 +711,27 @@ export default {
 		 * @return {string} The label.
 		 */
 		statusLabel(status) {
-			const key = STATUS_LABELS[status]
+			const own = this.content.statusLabels && this.content.statusLabels[status]
+			const key = (typeof own === 'string' && own !== '') ? own : STATUS_LABELS[status]
 			return key ? this.tr(key) : String(status || '')
+		},
+
+		/**
+		 * The pill tone of a status: finished well is success, failed is error,
+		 * anything still going is info.
+		 *
+		 * @param {string} status The run status.
+		 * @return {string} A CnStatusBadge variant.
+		 * @spec openspec/changes/flow-runs-ruled-with-pills/specs/cn-flow-runs-widget/spec.md
+		 */
+		statusVariant(status) {
+			if (status === 'completed') {
+				return 'success'
+			}
+			if (status === 'failed' || status === 'dead_letter') {
+				return 'error'
+			}
+			return status === 'stopped' ? 'default' : 'info'
 		},
 
 		/**
@@ -690,7 +742,11 @@ export default {
 		 * @return {string} The meta line.
 		 */
 		metaLine(run) {
-			const parts = [this.statusLabel(run.status)]
+			const words = this.content.triggerLabels && this.content.triggerLabels[run.trigger]
+			if (typeof words === 'string' && words !== '') {
+				return this.tr(words)
+			}
+			const parts = this.pills ? [] : [this.statusLabel(run.status)]
 			if (run.step) {
 				parts.push(String(run.step))
 			}
@@ -713,6 +769,11 @@ export default {
 			const started = Date.parse(run.created || '')
 			if (Number.isFinite(started) === false) {
 				return ''
+			}
+			if (this.content.age === 'datetime') {
+				const at = new Date(started)
+				const pad = (value) => String(value).padStart(2, '0')
+				return `${formatBoardDate(at)}, ${pad(at.getHours())}:${pad(at.getMinutes())}`
 			}
 			const seconds = Math.max(0, Math.round((Date.now() - started) / 1000))
 			if (seconds < 60) {
@@ -963,6 +1024,43 @@ a.cn-flow-runs-widget__row-content:hover .cn-flow-runs-widget__name {
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
+}
+
+/* Status pills: each row ruled on top, the name over its meta line, the pill
+   and the start moment at the end, as the Dq case boards draw the Flows card. */
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__row {
+	border-top: 1px solid var(--color-border);
+	border-bottom: none;
+}
+
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__row-content {
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	padding: 11px 0;
+}
+
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__body {
+	flex: 1 1 260px;
+	gap: 2px;
+}
+
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__name,
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__row--terminal .cn-flow-runs-widget__name {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--color-main-text);
+	white-space: normal;
+}
+
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__meta {
+	font-size: 13px;
+	white-space: normal;
+}
+
+.cn-flow-runs-widget--pills .cn-flow-runs-widget__age {
+	flex: 0 0 104px;
+	font-size: 13px;
+	text-align: end;
 }
 
 @keyframes cn-flow-runs-pulse {

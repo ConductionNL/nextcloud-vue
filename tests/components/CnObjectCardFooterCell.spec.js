@@ -51,6 +51,16 @@ describe('CnObjectCard footerCell', () => {
 		expect(card.find('[data-testid="cn-object-card-foot-cell"]').text()).toBe('Woo-verzoek')
 	})
 
+	// r31 DqZakenSorteren: a case without a handler reads "—" before its
+	// deadline, as an empty table cell does; live left the place out.
+	it('marks an empty part with a dash beside the date', () => {
+		const card = mountCard({ footerCell: 'handler', footerDate: { field: 'deadline' } }, { handler: '' })
+		const empty = card.find('[data-testid="cn-object-card-foot-cell-empty"]')
+		expect(empty.exists()).toBe(true)
+		expect(empty.text()).toBe('\u2014')
+		expect(card.find('[data-testid="cn-object-card-foot-cell-empty"] + [data-testid="cn-object-card-date"]').exists()).toBe(true)
+	})
+
 	it('leaves the footer out while the field is empty', () => {
 		const card = mountCard({ footerCell: 'handler' }, { handler: '' })
 		expect(card.find('[data-testid="cn-object-card-foot"]').exists()).toBe(false)

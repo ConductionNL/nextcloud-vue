@@ -1094,6 +1094,10 @@ export default {
 				const results = data.results || data
 				this.registers = Array.isArray(results) ? results : []
 				this.registersLoaded = true
+				// A configuration that arrived while the registers were loading
+				// skipped its schema read (the watcher waits for the registers),
+				// so read the mapped registers' schemas now.
+				this.mappedRegisterIds().forEach((id) => this.loadSchemasForRegister(id))
 			} catch (error) {
 				this.registersError = error.message || t('nextcloud-vue', 'The registers could not be loaded: {reason}', { reason: t('nextcloud-vue', 'no connection') })
 			} finally {

@@ -21,8 +21,8 @@ const MATCHES = [
 const RECORDS = [{ id: 'c-1', title: 'Verlichting fietspad Lindelaan', identifier: '2026-0082' }]
 
 const STUBS = {
-	CnDialog: { name: 'CnDialog', props: ['name'], template: '<div class="dialog" :data-name="name"><slot /><slot name="actions" /></div>' },
-	NcTextField: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<input :aria-label="label" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' },
+	CnDialog: { name: 'CnDialog', props: ['name', 'eyebrow'], template: '<div class="dialog" :data-name="name" :data-eyebrow="eyebrow"><slot /><slot name="actions" /></div>' },
+	NcTextField: { props: ['modelValue', 'label', 'helperText'], emits: ['update:modelValue'], template: '<input :aria-label="label" :data-hint="helperText" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' },
 	NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
 }
 
@@ -68,10 +68,30 @@ describe('CnDuplicateWarning', () => {
 		expect(blocked.find('[data-testid="cn-duplicate-warning-blocked"]').exists()).toBe(true)
 
 		const coordinator = mountWarning({ policy: 'block', mayOverride: true })
+		expect(coordinator.find('.note').attributes('data-type')).toBe('warning')
 		expect(continueButton(coordinator).attributes('disabled')).toBeDefined()
 		await coordinator.find('input').setValue('Second request, different plot')
 		await continueButton(coordinator).trigger('click')
 		expect(coordinator.emitted('file')[0][0].reason).toBe('Second request, different plot')
+	})
+
+	it('draws the board parts: eyebrow, a meta line from the first template that fills, the matched words, the reason hint and a footnote', () => {
+		const w = mountWarning({
+			policy: 'block',
+			mayOverride: true,
+			records: [{ id: 'c-1', title: 'Kosten zwembad Sportpark Zuid', identifier: '2026-4867', caseType: { title: 'Woo-verzoek' }, initiatorDisplayName: 'Henk Visser' }],
+			rowMeta: ['{identifier} · {caseType.title} · {initiatorDisplayName} · {missing}', '{identifier} · {caseType.title} · {initiatorDisplayName}', '{identifier}'],
+			matchedText: 'Found on {fields} ({percentage}%)',
+			eyebrow: 'New case · possible duplicate',
+			reasonHint: 'The case type asks for a reason.',
+			footnote: 'Cancel takes you back to the form.',
+		})
+		expect(w.find('.dialog').attributes('data-eyebrow')).toBe('New case · possible duplicate')
+		const row = w.findAll('[data-testid="cn-duplicate-warning-match"]')[0]
+		expect(row.text()).toContain('2026-4867 · Woo-verzoek · Henk Visser')
+		expect(row.text()).toMatch(/Found on Aanvrager (and|en) Onderwerp \(91%\)/)
+		expect(w.find('input').attributes('data-hint')).toBe('The case type asks for a reason.')
+		expect(w.find('[data-testid="cn-duplicate-warning-footnote"]').text()).toBe('Cancel takes you back to the form.')
 	})
 
 	it('takes its own headline and goes back on cancel', async () => {

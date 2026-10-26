@@ -1,0 +1,51 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * The index side panel in the board look as DqFilterBeheren / DqFilterInMenu
+ * draw it (r31 on :8080): its content 20px in from the panel edge (live 26:
+ * the tab's 10px and the section's 16px), the subtitle 2px under the title at
+ * a normal line height (live 5px at 1.6, pushing the tabs 13px down), the
+ * saved-view rows' text at a normal line height (row text 3px lower), the
+ * manage menu 278px outside (264 of content, 6px in, a 1px line), and the
+ * share dialog's audience names at a normal line height (DqFilterDelen 21 vs
+ * 16.8). Read from the stylesheet text.
+ *
+ * @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md
+ */
+const fs = require('fs')
+const path = require('path')
+
+const strip = (f) => fs.readFileSync(path.join(__dirname, '../../src/css', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const index = strip('look-board-index.css')
+const board = strip('look-board.css')
+
+/** The body of the rule whose selector starts at `selector`. */
+function body(css, selector) {
+	const at = css.indexOf(selector + ' {')
+	return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
+}
+
+describe('board side panel rhythm', () => {
+	it('puts the panel content 20px in: 10px of section padding on the tab\'s 10px', () => {
+		expect(body(index, '.cn-look-board:has(.cn-index-page) > .app-sidebar .cn-index-sidebar__section')).toMatch(/padding: 10px;/)
+	})
+
+	it('sets the subtitle 2px under the title at a normal line height', () => {
+		const b = body(index, '.cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname')
+		expect(b).toMatch(/margin-top: 2px;/)
+		expect(b).toMatch(/line-height: normal;/)
+	})
+
+	it('runs a saved view row\'s name and description at a normal line height', () => {
+		expect(body(index, '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text')).toMatch(/line-height: normal;/)
+	})
+
+	it('draws the manage menu 278px outside', () => {
+		expect(body(board, 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner')).toMatch(/width: 278px;/)
+	})
+
+	it('runs a share row\'s name and kind at a normal line height', () => {
+		expect(body(board, '.cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *)')).toMatch(/line-height: normal;/)
+	})
+})
