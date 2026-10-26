@@ -1060,6 +1060,13 @@
 	text-decoration: none;
 }
 
+/* A row's action buttons ("Aan zaak koppelen", "Nieuwe zaak") are the
+   board's 34px buttons, not NcButton's small 24px one (DqPostvak).
+   @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md */
+.cn-look-board .cn-cell-renderer__actions .button-vue {
+	--button-size: 34px;
+}
+
 /* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
    the name, the e-mail under the name beside it. The name keeps the title's
    weight and size, and its underline: an inline-flex box is atomic, so the
