@@ -1194,6 +1194,11 @@ export default {
 	padding: 12px 14px;
 }
 
+.cn-checklist-run__photos-title {
+	font-size: 15px;
+	line-height: 1.2;
+}
+
 .cn-checklist-run__legend {
 	font-size: 15px;
 	font-weight: 600;
