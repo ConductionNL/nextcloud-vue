@@ -232,7 +232,13 @@
 						:aria-label="removeAriaLabel(row)"
 						:data-testid="`cn-field-list-remove-${row.key}`"
 						@click="remove(row)">
-						{{ removeLabel }}
+						<!-- An option row has room for an icon, not a word, beside its name and code. -->
+						<template v-if="isOptions" #icon>
+							<DeleteOutline :size="18" />
+						</template>
+						<template v-if="!isOptions" #default>
+							{{ removeLabel }}
+						</template>
 					</NcButton>
 				</div>
 				<p v-if="row.detail" class="cn-field-list-widget__detail">
@@ -331,6 +337,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import DeleteOutline from 'vue-material-design-icons/DeleteOutline.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -393,7 +400,7 @@ function rowHref(entry, spec) {
 export default {
 	name: 'CnFieldListWidget',
 
-	components: { CnStatusBadge, DragVertical, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField, Plus },
+	components: { CnStatusBadge, DeleteOutline, DragVertical, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField, Plus },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

@@ -73,4 +73,19 @@ describe('CnFieldListWidget options variant', () => {
 		expect(open.text()).toBe('Add option')
 		expect(open.find('.plus-icon').exists()).toBe(true)
 	})
+
+	it('removes an option from an icon button named by the option', () => {
+		const w = mount(CnFieldListWidget, {
+			props: { content: CONTENT, objectData: FIELD, objectId: 'f-1', register: 'dossiq', schema: 'propertyDefinition' },
+			global: {
+				provide: { cnTranslate: (key) => key },
+				stubs: { NcButton: { template: '<button v-bind="$attrs"><slot name="icon" /><slot /></button>' }, NcNoteCard: true, NcTextField: true, NcSelect: true },
+			},
+		})
+		const remove = w.findAll('[data-testid^="cn-field-list-remove-"]')[0]
+		expect(remove.text()).toBe('')
+		expect(remove.find('.delete-outline-icon').exists()).toBe(true)
+		expect(remove.attributes('aria-label')).toContain('Woning')
+	})
 })
+
