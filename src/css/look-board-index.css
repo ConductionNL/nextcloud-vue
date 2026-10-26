@@ -12,14 +12,17 @@
 
 /* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
    the count line, 6px under. The header starts 4px under the content's top
-   (DqZaken: the title at 96, the count line at 142).
-   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
+   (DqZaken: the title at 96, the count line at 142) and ends 8px under the
+   count line, which reads at its normal leading (header 76px).
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top
+   @spec openspec/changes/board-list-rhythm/specs/board-list-rhythm/spec.md#requirement-a-board-list-page-keeps-the-boards-vertical-rhythm */
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: start;
 	row-gap: 6px;
 	padding-top: 4px;
+	padding-bottom: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 }
 
@@ -37,9 +40,11 @@
 }
 
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__description {
+	--nldesign-component-paragraph-line-height: normal;
 	grid-column: 1;
 	grid-row: 2;
 	font-size: 15px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -137,13 +142,14 @@
 
 /* No band, no padding, no radius. The DOM is already in reading order (row 1,
    the act cluster, row 2), so the rows only need laying out: the two row
-   wrappers dissolve into the bar's flex row, and row 2 takes a full line. */
+   wrappers dissolve into the bar's flex row, and row 2 takes a full line,
+   20px under row 1 as the boards' sections stand apart. */
 .cn-look-board .cn-actions-bar.cn-actions-bar--board {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	gap: 8px;
+	gap: 20px 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
@@ -649,6 +655,12 @@
 	border-radius: 8px;
 }
 
+/* In the index page the page's own 20px gap stands between the band and the
+   card, so the band adds no margin of its own (DqZaken: card 20px under it). */
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) > .cn-actions-bar__band {
+	margin-bottom: 0;
+}
+
 /* The band's text sits at the font's normal line height, and its lead keeps
    6px before the buttons (DqZaken "Met de geselecteerde zaken"). */
 .cn-look-board .cn-actions-bar__band:not(.cn-look-nextcloud *) {
@@ -706,8 +718,8 @@
 
 /* The list and map views are one card as the table is, with the count line
    and the pager inside it under the hairline (DqTeamwachtrij, DqZakenKaart).
-   The list keeps the height of its rows rather than scrolling inside the
-   column; the map keeps filling it, its own card unframed inside. */
+   Both keep the height of their content rather than filling the column; the
+   map's own card sits unframed inside. */
 .cn-look-board .cn-index-page__main.cn-index-page__main--list,
 .cn-look-board .cn-index-page__main.cn-index-page__main--map {
 	border: 1px solid var(--color-border);
@@ -717,12 +729,17 @@
 	overflow: hidden;
 }
 
-.cn-look-board .cn-index-page__main.cn-index-page__main--list {
+.cn-look-board .cn-index-page__main.cn-index-page__main--list,
+.cn-look-board .cn-index-page__main.cn-index-page__main--map {
 	flex: 1 1 auto;
 	align-self: flex-start;
 }
 
+/* The map card is as tall as its 533px map (or its list), 18px in, and the
+   footer follows it (DqZakenKaart: card 632, pager at 891). */
 .cn-look-board .cn-index-page__main--map > .cn-index-page__map-card {
+	flex: none;
+	padding: 18px;
 	border: 0;
 	border-radius: 0;
 	background: transparent;
@@ -737,6 +754,14 @@
 
 .cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *) {
 	flex: 3 1 520px;
+	min-height: 533px;
+}
+
+/* The list rows' number line and date read at their normal leading. */
+.cn-look-board .cn-index-page__map-sub,
+.cn-look-board .cn-index-page__map-due {
+	--nldesign-component-paragraph-line-height: normal;
+	line-height: normal;
 }
 
 /* The numbered list scrolls inside the card's height rather than running
