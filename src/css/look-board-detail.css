@@ -2323,6 +2323,15 @@
 	text-decoration: underline;
 }
 
+/* Facts and their lines sit on the font's own leading, as the boards draw
+   them: a 14px fact 17px tall and 25px apart, a 13px line 15.6px (DqHandhaving
+   Classificatie 225 against 202, Afwijking en definitief 406 against 355). The
+   body's 1.5 made each fact 21px and each line 19.5px. */
+.cn-look-board .cn-facts-widget__rows:not(.cn-look-nextcloud *),
+.cn-look-board .cn-facts-widget__line:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* Two-column facts (`columns: 2`, DqContact "Contact", DqOrganisatie
    "Organisatie"): the boards draw the label 2px above a regular-weight
    value, with no hairline under the fact; the 14px row gap separates them.
