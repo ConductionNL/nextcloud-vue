@@ -4320,6 +4320,10 @@
 							"type": "string",
 							"description": "type='wiki': property on the article object holding the markdown body. Defaults to 'body'. Maps to CnWikiPage `contentField` prop."
 						},
+						"titleTemplate": {
+							"type": "string",
+							"description": "type='detail': a line the header names the record by, built from its fields (\"Shift {floatAt|date}, {drawer}\", `fillTemplate` formats), in the host's translation. Wins over titleField; a template with an empty field falls back to titleField. Maps to CnDetailPage `titleTemplate`."
+						},
 						"titleField": {
 							"type": "string",
 							"description": "type='wiki': property on the article object holding the page title. Defaults to 'title'. Maps to CnWikiPage `titleField` prop. type='detail' (detail-title-field): the record field (a dotted path, for example `number`) the header names the record by, as an invoice page names the invoice number instead of the schema title; an empty value falls back to the display name, and the breadcrumb's current crumb and the type eyebrow follow. Maps to CnDetailPage `titleField`."

@@ -200,6 +200,7 @@ export default {
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
+| `columns[].template` | String | | The cell reads a line built from the row's fields, such as `Shift {floatAt|date}, {drawer}` (`fillTemplate` formats), in the host's translation, instead of the column's own field. A template with an empty field leaves the cell empty. |
 | `rowTitle` | String | `'link'` | Board look only: how the title column draws its title. `link` underlines the title (not its secondary line). `plain` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does; the row stays clickable. The Nextcloud look ignores it. |
 | `reorderable` | Boolean | `false` | Lets the reader drag rows into another order; a drop emits `row-move` with `{ row, from, to }` |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
