@@ -2654,7 +2654,18 @@
     "More actions for {name}": "Meer acties voor {name}",
     "Unlink contact": "Contact ontkoppelen",
     "{term}, extendable by {extension}": "{term}, te verdagen met {extension}",
-    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen"
+    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen",
+    "Clock": "Klok",
+    "Clock with warning": "Klok met waarschuwing",
+    "Calendar with clock": "Agenda met klok",
+    "Attention": "Let op",
+    "Label": "Label",
+    "Bell": "Bel",
+    "Scales": "Weegschaal",
+    "Briefcase": "Koffer",
+    "Eye": "Oog",
+    "Euro": "Euro",
+    "Ready": "Gereed"
   },
   "plurals": {
     "{count} member": [

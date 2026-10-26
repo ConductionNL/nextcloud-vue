@@ -25,8 +25,8 @@
 				class="cn-saved-view-look__icon"
 				:class="{ 'cn-saved-view-look__icon--chosen': name === chosenIcon }"
 				:aria-checked="name === chosenIcon ? 'true' : 'false'"
-				:aria-label="name"
-				:title="name"
+				:aria-label="iconLabel(name)"
+				:title="iconLabel(name)"
 				:data-icon="name"
 				@click="onIcon(name)">
 				<component :is="componentOf(name)" :size="20" />
@@ -114,6 +114,39 @@ export default {
 		},
 
 		t,
+
+		/**
+		 * The accessible name of an icon option: what it shows, in words.
+		 *
+		 * @param {string} name An icon name.
+		 * @return {string} Its label, or the name when it has none.
+		 * @spec openspec/changes/saved-view-icon-labels/specs/saved-view-icon-labels/spec.md#requirement-an-icon-option-is-named-in-words
+		 */
+		iconLabel(name) {
+			const labels = {
+				FilterVariant: t('nextcloud-vue', 'Filter'),
+				ClockOutline: t('nextcloud-vue', 'Clock'),
+				ClockAlertOutline: t('nextcloud-vue', 'Clock with warning'),
+				CalendarClockOutline: t('nextcloud-vue', 'Calendar with clock'),
+				CalendarOutline: t('nextcloud-vue', 'Calendar'),
+				AccountOutline: t('nextcloud-vue', 'Person'),
+				AccountGroupOutline: t('nextcloud-vue', 'Group'),
+				FolderOutline: t('nextcloud-vue', 'Folder'),
+				FileDocumentOutline: t('nextcloud-vue', 'Document'),
+				AlertCircleOutline: t('nextcloud-vue', 'Attention'),
+				CheckCircleOutline: t('nextcloud-vue', 'Ready'),
+				EmailOutline: t('nextcloud-vue', 'Email'),
+				MapMarkerOutline: t('nextcloud-vue', 'Location'),
+				TagOutline: t('nextcloud-vue', 'Label'),
+				BellOutline: t('nextcloud-vue', 'Bell'),
+				ScaleBalance: t('nextcloud-vue', 'Scales'),
+				BriefcaseOutline: t('nextcloud-vue', 'Briefcase'),
+				EyeOutline: t('nextcloud-vue', 'Eye'),
+				LockOutline: t('nextcloud-vue', 'Lock'),
+				CurrencyEur: t('nextcloud-vue', 'Euro'),
+			}
+			return labels[name] || name
+		},
 
 		/**
 		 * @param {string} name An icon name.

@@ -2399,7 +2399,18 @@
     "More actions for {name}": "More actions for {name}",
     "Unlink contact": "Unlink contact",
     "{term}, extendable by {extension}": "{term}, extendable by {extension}",
-    "Move {item}, use the arrow keys": "Move {item}, use the arrow keys"
+    "Move {item}, use the arrow keys": "Move {item}, use the arrow keys",
+    "Clock": "Clock",
+    "Clock with warning": "Clock with warning",
+    "Calendar with clock": "Calendar with clock",
+    "Attention": "Attention",
+    "Label": "Label",
+    "Bell": "Bell",
+    "Scales": "Scales",
+    "Briefcase": "Briefcase",
+    "Eye": "Eye",
+    "Euro": "Euro",
+    "Ready": "Ready"
   },
   "plurals": {
     "{count} member": [
