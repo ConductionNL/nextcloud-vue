@@ -2688,3 +2688,26 @@
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
 }
+
+/* A joined paragraph in a side card (DqContact "Bereikbaar via": the last
+   contact and the registration note) is 14px muted on a 1.45 line, and the
+   value beside an icon reads in the regular weight, as the board draws them.
+   @spec openspec/changes/facts-line-joins-previous/specs/facts-widget/spec.md#requirement-a-line-can-join-the-line-before-it */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__line--joined:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__label--icon:not(.cn-look-nextcloud *) + .cn-facts-widget__value {
+	font-weight: 400;
+}
+
+/* A list's empty sentence reads as the boards write it under a card title:
+   14px muted on the font's own line (DqSociaalDomein "Andere zaken van dit
+   huishouden": "Geen andere zaken in dit huishouden die u mag zien").
+   @spec openspec/changes/facts-line-joins-previous/specs/facts-widget/spec.md#requirement-a-board-lists-empty-sentence-is-14px-muted */
+.cn-look-board .cn-detail-page .cn-record-list__empty:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: normal;
+}
