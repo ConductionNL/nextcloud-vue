@@ -339,6 +339,7 @@ export default {
 	margin: 0;
 	font-size: 20px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-device-frames-widget__body {

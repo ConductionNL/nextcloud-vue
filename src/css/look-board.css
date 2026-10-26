@@ -2647,6 +2647,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 500;
 }
 
+/* A compact card keeps its 15px/700 title on a dashboard page too (DqInspectie). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__card .cn-record-list__title {
+	font-weight: 700;
+	line-height: 1.2;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__main {
 	gap: 2px;
 }
