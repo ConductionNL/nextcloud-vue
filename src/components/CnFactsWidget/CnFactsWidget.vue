@@ -175,6 +175,15 @@
 					</span>
 					<span class="cn-facts-widget__line">{{ block.value }}</span>
 				</div>
+				<div v-else-if="block.kind === 'pills'" class="cn-facts-widget__pills">
+					<CnStatusBadge
+						v-for="pill in block.pills"
+						:key="pill.key"
+						:label="pill.value"
+						:variant="pill.variant"
+						size="small"
+						:data-testid="`cn-fact-${pill.key}`" />
+				</div>
 				<div v-else-if="block.kind === 'pill'">
 					<CnStatusBadge
 						:label="block.value"
@@ -302,6 +311,30 @@ function resolveSourceTokens(value, record) {
 }
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
+/**
+ * Two or more pills in a row become one `pills` block, drawn on one line.
+ *
+ * @param {Array<object>} blocks The blocks in order.
+ * @return {Array<object>}
+ * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+ */
+function groupPills(blocks) {
+	const out = []
+	blocks.forEach((block) => {
+		const last = out[out.length - 1]
+		if (block.kind !== 'pill') {
+			out.push(block)
+		} else if (last && last.kind === 'pills') {
+			last.pills.push(block)
+		} else if (last && last.kind === 'pill') {
+			out[out.length - 1] = { kind: 'pills', key: `pills-${last.key}`, pills: [last, block] }
+		} else {
+			out.push(block)
+		}
+	})
+	return out
+}
+
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter', 'progress'])
 
 /** The schemes a facts link opens, besides a path on this server. */
@@ -443,15 +476,18 @@ export default {
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
+		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
 		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
+		 * - `fieldsFrom` — `@context.<name>.<path>`, a list of entries on a record the page reads beside this one (a case type's `requestFields`); when it holds entries they are drawn instead of `fields`.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
 		 * - `footnote` — a plain muted line under the facts, without a band (DqZaakBesluiten "Na het ondertekenen ..."); the text is translated.
 		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
@@ -511,6 +547,29 @@ export default {
 
 	computed: {
 		/**
+		 * The entries to draw: the list `fieldsFrom` names on the page's
+		 * `@context` records when it holds entries (a case type's
+		 * `requestFields`), else `fields`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+		 */
+		entries() {
+			const from = this.content?.fieldsFrom
+			if (typeof from === 'string' && from.startsWith('@context.')) {
+				const rows = this.cnDetailVisibilityRows && typeof this.cnDetailVisibilityRows === 'object' && 'value' in this.cnDetailVisibilityRows
+					? this.cnDetailVisibilityRows.value
+					: this.cnDetailVisibilityRows
+				const named = readPath({ '@context': rows || {} }, from)
+				const list = Array.isArray(named) ? named.filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry)) : []
+				if (list.length > 0) {
+					return list
+				}
+			}
+			return Array.isArray(this.content?.fields) ? this.content.fields : []
+		},
+
+		/**
 		 * Whether the rows sit in two columns, label above value.
 		 *
 		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
@@ -554,7 +613,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		countJobsKey() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const keys = fields
 				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
 				.map((field) => this.countKey(field.countFrom))
@@ -715,7 +774,7 @@ export default {
 		 */
 		blocks() {
 			const sourceRecord = this.record
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			// A source that finds nothing still leaves the entries that read the
 			// page's own object (`from: "object"`).
 			const ownEntries = Boolean(this.objectData) && fields.some((field) => field && field.from === 'object')
@@ -794,7 +853,7 @@ export default {
 					out.push({ kind: 'rows', key: 'rows-answered', rows: [row] })
 				}
 			})
-			return out
+			return groupPills(out)
 		},
 
 		/**
@@ -1129,7 +1188,7 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		async loadCounts() {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const seen = new Set()
 			for (const field of fields) {
 				const countFrom = field && field.countFrom
@@ -1206,8 +1265,8 @@ export default {
 		 */
 		templateValue(record, template) {
 			let filled = false
-			const text = this.tr(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
-				const value = this.format(readPath(record, path), {}, record)
+			const text = this.tr(template).replace(/\{([\w.@]+)(?::([\w-]+))?\}/g, (match, path, format) => {
+				const value = this.format(readPath(record, path), format ? { format } : {}, record)
 				filled = filled || value !== ''
 				return value
 			})
@@ -1599,7 +1658,7 @@ export default {
 		 * @return {Array<{spec: object, raw: unknown}>}
 		 */
 		refSpecs(record) {
-			const fields = Array.isArray(this.content?.fields) ? this.content.fields : []
+			const fields = this.entries
 			const specs = []
 			const visit = (spec) => {
 				if (!spec || typeof spec !== 'object') {
@@ -1832,6 +1891,10 @@ export default {
 					.filter((item) => item !== '')
 				return items.join(', ')
 			}
+			if (format === 'year') {
+				const date = parseDateValue(raw)
+				return date === null ? '' : String(date.getFullYear())
+			}
 			// The month written out, the year only outside this year: "3 oktober".
 			if (format === 'longdate') {
 				return formatLongDate(raw)
@@ -1971,6 +2034,12 @@ export default {
 	flex-direction: column;
 	gap: 10px;
 	min-width: 0;
+}
+
+.cn-facts-widget__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 /* `padding: 0`: Nextcloud's core stylesheet pads every `dl` 12px at the top
