@@ -630,7 +630,10 @@ export default {
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object}|string>}
+		 * `emptyValue` is what a row without a value holds in that column, so a
+		 * `badge` column draws a pill on every row.
+		 *
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -2225,7 +2228,12 @@ export default {
 				}
 				return v
 			}
-			return this.getCellValue(row, this.columnValueField(col))
+			const value = this.getCellValue(row, this.columnValueField(col))
+			// `emptyValue`: what a row without a value holds, so a badge column draws one for every row.
+			if ((value === null || value === undefined || value === '') && col && Object.hasOwn(col, 'emptyValue')) {
+				return col.emptyValue
+			}
+			return value
 		},
 
 		/**
