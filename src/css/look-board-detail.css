@@ -751,6 +751,14 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A card that opens on a record-list table starts 12px under its title: the
+   table's head row sets its own padding and line height, so no first line
+   carries the half-leading the rule above takes off (r31 DqZaaktype
+   "Berichten aan de aanvrager" sat 2.2px high). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list > .cn-record-list__table:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+}
+
 /* A history card with stacked rows (DqTaak "Historie") opens on the first
    row's hairline 6px under the title, the row's own 12px padding above its
    text, as drawn: 19px from the title to the first action.
