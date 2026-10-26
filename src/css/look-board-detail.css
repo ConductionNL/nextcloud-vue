@@ -19,6 +19,13 @@
 	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
+	/* The ink on that tint: a completed plan row's state. */
+	--cn-board-success-ink: var(--color-success-text, #1e6b2a);
+	/* The ink on the light primary fill: an active plan row's state. */
+	--cn-board-primary-light-ink: var(--color-primary-element-light-text, #234a78);
+	/* The teal badge of a public history entry. */
+	--cn-board-teal-tint: var(--nldesign-color-teal-light, #e3f1f3);
+	--cn-board-teal-ink: var(--nldesign-color-teal-dark, #1d5e66);
 	/* Card h2 and side heading. */
 	--cn-board-heading-size: 17px;
 	--cn-board-side-heading-size: 15px;
@@ -2522,12 +2529,12 @@
 
 .cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='completed']:not(.cn-look-nextcloud *) {
 	background: var(--cn-board-success-tint);
-	color: var(--color-success-text, #1e6b2a);
+	color: var(--cn-board-success-ink);
 }
 
 .cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='active']:not(.cn-look-nextcloud *) {
 	background: var(--color-primary-element-light);
-	color: var(--color-primary-element-light-text, #234a78);
+	color: var(--cn-board-primary-light-ink);
 }
 
 /* The history card's note composer and entries as DqZaakHistorie draws them
@@ -2553,8 +2560,8 @@
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__badge--public:not(.cn-look-nextcloud *) {
 	padding: 2px 8px;
 	border-radius: 10px;
-	background: var(--nldesign-color-teal-light, #e3f1f3);
-	color: var(--nldesign-color-teal-dark, #1d5e66);
+	background: var(--cn-board-teal-tint);
+	color: var(--cn-board-teal-ink);
 	font-size: 12px;
 	font-weight: 600;
 }
