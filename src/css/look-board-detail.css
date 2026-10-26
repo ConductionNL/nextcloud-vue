@@ -481,6 +481,26 @@
 	padding: var(--cn-board-card-padding);
 }
 
+/* A panel's own heading (DqZaaktypeRegels "Regels op de zaak"): title and
+   subtitle on their natural leading 2px apart, actions that wrap 8px under
+   them, and the card's 12px gap before the content. */
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading {
+	margin-bottom: 12px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading--actions {
+	row-gap: 8px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading-text {
+	gap: 2px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-title,
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-subtitle {
+	line-height: normal;
+}
+
 /* A list's footer Add bleeds to the panel's edges, so it bleeds the card
    padding (CnTabsWidget bleeds the Nextcloud look's 12px). */
 .cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content > .cn-tab > .cn-detail-widget-host--bare .cn-object-list-widget__add {
