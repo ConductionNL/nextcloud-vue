@@ -592,6 +592,7 @@ import { resolveDue } from '../../utils/dueText.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { variantForColor } from '../../utils/headerFieldChips.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
@@ -2627,7 +2628,10 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, variant?, hideValues? }`.
+		 * The row's pill: `{ field, labels?, colorMap?, colorField?, variant?, hideValues? }`.
+		 * `colorField` reads the tone from the row (a colour name such as a
+		 * status type's `colour`: purple, teal, blue ...) where `colorMap`
+		 * names none (DqMijnWerk "In behandeling" in the status's purple).
 		 *
 		 * @param {object} row The row.
 		 * @param {object} [config] A pill config; the widget's `pill` by default.
@@ -2652,7 +2656,9 @@ export default {
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
-			const variant = found ? map[found] : pill.variant
+			const colour = pill.colorField ? readPath(row, pill.colorField) : null
+			const fromRow = typeof colour === 'string' && colour !== '' ? variantForColor(colour) : null
+			const variant = found ? map[found] : (fromRow || pill.variant)
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
