@@ -48,7 +48,7 @@
 				</div>
 				<div class="cn-settings-fields__inline-save">
 					<NcButton
-						variant="primary"
+						:variant="saveVariant"
 						type="submit"
 						:disabled="saveDisabled"
 						data-testid="cn-settings-fields-save">
@@ -122,7 +122,7 @@
 					{{ t('nextcloud-vue', 'Unsaved changes') }}
 				</span>
 				<NcButton
-					variant="primary"
+					:variant="saveVariant"
 					type="submit"
 					:disabled="saveDisabled"
 					data-testid="cn-settings-fields-save">
@@ -400,6 +400,16 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The Save button's variant: `primary`, or `secondary` for a card
+		 * whose Save is one choice among others, as a board draws it
+		 * (DqBeheerinstellingen "Dit account gebruiken").
+		 */
+		saveVariant: {
+			type: String,
+			default: 'primary',
+		},
+
 		/** The section title. */
 		name: {
 			type: String,
