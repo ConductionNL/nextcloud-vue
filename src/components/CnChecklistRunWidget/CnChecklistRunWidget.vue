@@ -94,7 +94,7 @@
 					:required="question.required"
 					data-testid="cn-checklist-run-text"
 					@input="markDirty(question.id)" />
-				<label v-if="allowNote" class="cn-checklist-run__note-label">
+				<label v-if="allowNote && noteShown(question)" class="cn-checklist-run__note-label">
 					{{ noteLabel }}
 					<textarea
 						v-model="draft[question.id].note"
@@ -288,6 +288,11 @@ function idOf(object) {
  * with no bound record, `record: { register, schema, filter, sort }` picks
  * the open record: the first match, under the reader's rights.
  *
+ * `noteWhen: { answers: [...] }` shows a question's note field only once its
+ * answer is one of those stored values (the board shows a note under "Nee"),
+ * or when the question already holds a note; without it every question shows
+ * one (`allowNote: false` hides them all).
+ *
  * `startAt: "firstOpen"` opens a run that was started earlier at the page of
  * its first unanswered question (the last page when all are answered), once
  * per record; without it the run opens at the first page.
@@ -321,7 +326,7 @@ export default {
 		 * The widget config: `{ questions | questionsPath, itemsKey?,
 		 * groupLabelField?, orderField?, fields?, typeMap?, choiceValues?,
 		 * answers | answersPath, answerKey?, answerFields?, recordPhotosField?,
-		 * record?, saveAction?, finishAction?, pageSize?, allowNote?,
+		 * record?, saveAction?, finishAction?, pageSize?, allowNote?, noteWhen?,
 		 * allowPhotos?, caption?, emptyText? }`, as in the component
 		 * description and docs/components/cn-checklist-run-widget.md.
 		 *
@@ -612,6 +617,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a question shows its note field: always, unless `noteWhen`
+		 * names the answers that ask for one and this question has none of
+		 * them and no note yet.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean}
+		 */
+		noteShown(question) {
+			const answers = this.content?.noteWhen?.answers
+			if (!Array.isArray(answers)) {
+				return true
+			}
+			const draft = this.draft[question.id] || {}
+			return (draft.note || '') !== '' || answers.map(String).includes(String(draft.value ?? ''))
+		},
+
 		/**
 		 * The host's translate, or the text unchanged.
 		 *
