@@ -1924,7 +1924,31 @@
    @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it */
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc {
 	padding-block-start: 15px;
+	padding-block-end: 0;
 	padding-inline-start: 20px;
+}
+
+/* The line under the title is a paragraph the theme sets with `!important`
+   (15px, its own leading): 14px muted at its normal leading, 2px under the
+   title, so the tab row starts 14px under it and the first field 20px under
+   the tabs (DqZakenSorteren, DqFilterBeheren: title 20, line 46, tabs 77,
+   search field 137).
+   @spec openspec/changes/board-side-panel-header-rhythm/specs/board-side-panel-header-rhythm/spec.md#requirement-the-side-panel-header-and-first-field-sit-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__subname {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: normal;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	font-size: 14px !important;
+	line-height: normal !important;
+	margin-block-start: -3px !important;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child {
+	padding-top: 8px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child > .input-field {
+	margin-top: 0;
 }
 
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
