@@ -481,6 +481,21 @@
 	padding-inline: 10px 30px;
 }
 
+/* ---- A table on a dashboard card ------------------------------------------ */
+/* The card is the frame: a table on it draws no border of its own, and its
+   pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
+   "Zaken met risico", "Prestaties per zaaktype"; r32 a second frame inside
+   the card, the pager 16px in).
+   @spec openspec/changes/board-dashboard-table-in-card/specs/board-dashboard-table-in-card/spec.md#requirement-a-table-on-a-board-dashboard-card-has-no-frame-of-its-own */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container.cn-table-container--board {
+	border: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container--board .cn-pagination.cn-pagination--board {
+	padding: 12px 0 0;
+}
+
 /* ---- A text field and a multiple select --------------------------------- */
 /* A text field and a textarea are the same control as the board select: a 1px
    edge in the 3:1 control colour (DqZakenSorteren "Zoek op zaak, nummer of
