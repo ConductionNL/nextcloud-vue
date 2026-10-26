@@ -19,4 +19,10 @@ describe('fillTemplate count', () => {
 		expect(fillTemplate('{occurrences|count} opened so far', { occurrences: [] })).toBe('')
 		expect(fillTemplate('{occurrences|count} opened so far', {})).toBe('')
 	})
+
+	it('sums the named list of each entry (a checklist\'s questions over its sections, DqInspectie)', () => {
+		const template = { sections: [{ items: [1, 2, 3] }, { items: [4] }, { name: 'empty' }] }
+		expect(fillTemplate('{template.sections|count:items} questions', { template })).toBe('4 questions')
+		expect(fillTemplate('{template.sections|count:items} questions', { template: { sections: [{ items: [] }] } })).toBe('')
+	})
 })
