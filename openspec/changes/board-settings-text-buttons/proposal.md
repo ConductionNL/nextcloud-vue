@@ -11,3 +11,5 @@ r31 verdicts DqBeheerinstellingen: "Uitleg tonen" and "Geavanceerd" read as 40px
 ## Scope
 
 - `src/css/look-board.css`, the first-line css test.
+
+Also: a card's footer link sits 16px under the content in one 14px line (r31 DqVthInstellingen: Activiteiten and Legesregels each 20px taller).

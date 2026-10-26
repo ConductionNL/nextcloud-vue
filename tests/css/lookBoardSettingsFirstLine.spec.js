@@ -38,4 +38,9 @@ describe('look-board.css: a settings card first line', () => {
 		expect(text).toContain('--nldesign-component-paragraph-font-size: 14px;')
 		expect(text).toContain('margin: 0;')
 	})
+	it('ends a card with its footer link 16px under the content', () => {
+		const link = body('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-section__footer-link')
+		expect(link).toContain('margin: 2px 0 0;')
+		expect(link).toContain('line-height: 1.2;')
+	})
 })

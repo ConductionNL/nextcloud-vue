@@ -1676,6 +1676,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 0;
 }
 
+/* A card's footer link ends the card 16px under its content, one 14px line,
+   as the boards draw "Koppelingen beheren in integriq" (r31
+   DqVthInstellingen: Activiteiten and Legesregels each 20px taller, the
+   section's 14px gap plus the link's own 16px margin and a 15px line).
+   @spec openspec/changes/board-settings-text-buttons/specs/settings-board-look/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-section__footer-link {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.2;
+	margin: 2px 0 0;
+	font-size: 14px;
+	line-height: 1.2;
+}
+
 /* A settings card's first line sits where the boards draw it: an
    "Uitleg tonen" link, a switch or a note adds no height beyond its text, so
    the first text is 16px under the subtitle (DqBeheerinstellingen
