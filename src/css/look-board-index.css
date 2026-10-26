@@ -225,6 +225,12 @@
 	gap: 8px;
 }
 
+/* Under the line above it, row 2 sits 20px down, the boards' section gap
+   (DqZaaktypen, DqZaken, DqTaken, PqTickets), not the bar's own 8px. */
+.cn-look-board .cn-actions-bar--board > :not(.cn-actions-bar__row--search) ~ .cn-actions-bar__row--search {
+	margin-top: 12px;
+}
+
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
    text colour and drawn without a border. The quick-filter tabs take the same
    chip. */
