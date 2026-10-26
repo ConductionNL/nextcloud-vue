@@ -2217,6 +2217,13 @@
 	padding: 12px 0;
 }
 
+/* Under a title with a subtitle the rule sits 8px below the subtitle
+   (DqZaakBesluiten "Adviezen", DqZaakArchivering "Bewaring"). A custom
+   widget that opens on a ruled list opts in with `cn-rule-above` on its root. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above, > .cn-rule-above) {
+	padding-top: 8px;
+}
+
 /* A side list row with initials stays one line: a 28px circle 8px before
    the regular-weight text (DqSociaalDomein "Wie"). The library stacks side
    rows into a column, which put the initials above the name.
