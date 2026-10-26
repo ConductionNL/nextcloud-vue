@@ -37,6 +37,7 @@ const MENU = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__
 describe('look-board.css: saved view manage menu', () => {
 	it('is 278px wide outside, the board\'s 264px of content, 6px in and a 1px line', () => {
 		expect(ruleFor(`${MENU}:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner`)).toContain('width: 278px;')
+		expect(ruleFor(`${MENU}:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner`)).toContain('margin-top: -7px;')
 	})
 
 	it('draws 40px rows with the label at 600', () => {

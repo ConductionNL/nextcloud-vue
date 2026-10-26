@@ -1013,6 +1013,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	box-sizing: border-box;
 	width: 278px;
 	max-width: calc(100vw - 32px);
+	/* The board hangs the menu over the button's lower edge (46px under the
+	   row's top, the button 34px from 15px): 7px above the popper's place. */
+	margin-top: -7px;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
