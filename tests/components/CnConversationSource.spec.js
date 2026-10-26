@@ -96,6 +96,18 @@ describe('CnConversationWidget: messages from a list', () => {
 		expect(items[1].find('[data-testid="cn-conversation-note"]').exists()).toBe(false)
 	})
 
+	// @spec openspec/changes/conversation-body-field-fallback/specs/conversation-body-field-fallback/spec.md#requirement-a-messages-text-can-fall-back-across-fields
+	it('reads the first field of a bodyField list that holds text', async () => {
+		const rows = [
+			{ id: 'f1', direction: 'in', medium: 'email', from: 'Sanne de Vries', sentAt: '2026-10-05T09:15:00', message: 'Goedemorgen, the full mail.', body: 'Adds the quotes.' },
+			{ id: 'f2', direction: 'in', medium: 'phone', from: 'Sanne de Vries', sentAt: '2026-10-05T10:00:00', message: '', body: 'Called.' },
+		]
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: rows }) }))
+		const w = mountWidget({ ...CONTENT, bodyField: ['message', 'body'] })
+		await flushPromises()
+		expect(w.findAll('.cn-conversation-thread__text').map((el) => el.text())).toEqual(['Goedemorgen, the full mail.', 'Called.'])
+	})
+
 	it('sends no request while the record id is unknown, and says the thread is empty', async () => {
 		global.fetch = jest.fn()
 		const w = mountWidget(CONTENT, {}, '')
