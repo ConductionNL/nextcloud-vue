@@ -57,6 +57,15 @@ describe('CnRetentionWidget hold and transfer marks', () => {
 	})
 })
 
+describe('CnRetentionWidget rows', () => {
+	it('sets a hold or transfer row on the normal line, 15px over 13px, the ED mark in the soft ink', () => {
+		expect(rule(sfc, '\n\n.cn-retention__row-text')).toContain('line-height: normal')
+		expect(rule(sfc, '.cn-retention__row-text .cn-retention__muted')).toContain('font-size: 13px')
+		expect(rule(sfc, '.cn-retention__row-title')).toContain('font-size: 15px')
+		expect(rule(sfc, '\n\n.cn-retention__mark')).toContain('var(--cn-board-text-soft')
+	})
+})
+
 describe('CnRetentionWidget board rhythm', () => {
 	it('sets the head subtitle on a 1.2 line and stacks the parts 10px apart', () => {
 		expect(rule(detail, '.cn-look-board .cn-retention .cn-retention__head-text .cn-retention__muted')).toContain('line-height: 1.2')

@@ -64,7 +64,11 @@
 					<span class="cn-conversation-thread__meta">
 						<span class="hidden-visually">{{ row.directionLabel }}</span>
 						<span class="cn-conversation-thread__author">{{ row.author }}</span>
-						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel">{{ row.channel }}</span>
+						<span v-if="row.channel" class="cn-conversation-thread__channel" data-testid="cn-conversation-channel"><CnIcon v-if="row.channelIcon"
+							class="cn-conversation-thread__channel-icon"
+							:name="row.channelIcon"
+							:size="13"
+							aria-hidden="true" />{{ row.channel }}</span>
 						<span v-if="row.status" class="cn-conversation-thread__status" data-testid="cn-conversation-status">{{ row.status }}</span>
 						<span v-if="showDirection"
 							class="cn-conversation-thread__direction"
@@ -151,6 +155,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnQuickFilterBar from '../CnQuickFilterBar/CnQuickFilterBar.vue'
 import { prefixUrl } from '../../utils/headers.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -185,6 +190,7 @@ export default {
 	name: 'CnConversationThread',
 
 	components: {
+		CnIcon,
 		CnQuickFilterBar,
 		NcButton,
 		Send,
@@ -197,7 +203,7 @@ export default {
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, channelIcon?, status?, actions?, note? }`.
 		 * `status` is shown after the channel ("Failed"); `actions` are
 		 * `{ id, label, disabled? }` buttons under the text, each emitting
 		 * `message-action`.
@@ -381,6 +387,7 @@ export default {
 						timeLabel: time.label,
 						datetime: time.datetime,
 						channel: typeof message.channel === 'string' ? message.channel : '',
+						channelIcon: typeof message.channelIcon === 'string' ? message.channelIcon : '',
 						status: typeof message.status === 'string' ? message.status : '',
 						actions: Array.isArray(message.actions) ? message.actions.filter((action) => action && action.id && action.label) : [],
 						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
@@ -786,5 +793,12 @@ export default {
 
 .cn-conversation-thread__channel {
 	color: var(--color-text-maxcontrast);
+}
+
+/* The channel's icon (`channelIcon`) stands before its name, 5px apart. */
+.cn-conversation-thread__channel:has(.cn-conversation-thread__channel-icon) {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
 }
 </style>

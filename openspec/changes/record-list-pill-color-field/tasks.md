@@ -1,0 +1,2 @@
+- [x] pill.colorField via variantForColor
+- [x] CnRecordListWidgetPillColorField spec

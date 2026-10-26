@@ -2399,7 +2399,10 @@
     "More actions for {name}": "More actions for {name}",
     "Unlink contact": "Unlink contact",
     "{term}, extendable by {extension}": "{term}, extendable by {extension}",
-    "Move {item}, use the arrow keys": "Move {item}, use the arrow keys"
+    "Move {item}, use the arrow keys": "Move {item}, use the arrow keys",
+    "Invited": "Invited",
+    "Accepted": "Accepted",
+    "Declined": "Declined"
   },
   "plurals": {
     "{count} member": [

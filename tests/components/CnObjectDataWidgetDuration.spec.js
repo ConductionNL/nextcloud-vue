@@ -2,7 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
 /*
- * CnObjectDataWidget and CnFactsWidget `format: 'duration'`: a term reads in
+ * CnObjectDataWidget and CnFactsWidget `format: 'duration'`, and the data
+ * widget's board dates (`format: 'date'` / `'date-long'`, DqZaak Zaakgegevens
+ * "3 okt 2026"; r31 drew 12-10-2026, 09:12:00): a term reads in
  * words, with the extension the object holds at `extendBy` (DqZaak Termijn
  * en betaling "Wettelijke termijn: 4 weken, te verdagen met 2"; live drew P28D).
  *
@@ -32,6 +34,30 @@ describe('format duration', () => {
 
 	it('keeps the stored text without the format', () => {
 		expect(displayed({ statutoryTerm: 'P28D' }, {})).toBe('P28D')
+	})
+
+	it('reads a date the board way, with the year on date-long', () => {
+		const w = shallowMount(CnObjectDataWidget, {
+			propsData: {
+				schema: { properties: { startDate: { type: 'string', format: 'date' }, receivedAt: { type: 'string', format: 'date-time' } } },
+				objectData: { startDate: '2026-10-03', receivedAt: '2026-10-03T09:12:00+02:00' },
+				overrides: { startDate: { format: 'date-long' }, receivedAt: { format: 'date' } },
+			},
+			mocks: { t: (app, s) => s },
+		})
+		expect(w.vm.displayValues.startDate).toMatch(/3/)
+		expect(w.vm.displayValues.startDate).toContain('2026')
+		expect(w.vm.displayValues.startDate).not.toContain(':')
+		expect(w.vm.displayValues.receivedAt).not.toContain('09:12')
+	})
+
+	it('leaves a schema format alone without the override', () => {
+		const w = shallowMount(CnObjectDataWidget, {
+			propsData: { schema: { properties: { startDate: { type: 'string', format: 'date' } } }, objectData: { startDate: '2026-10-03' } },
+			mocks: { t: (app, s) => s },
+		})
+		expect(w.vm.displayValues.startDate).toContain('2026')
+		expect(w.vm.displayValues.startDate).toMatch(/\d{1,2}\D\d{1,2}\D2026|2026\D\d{2}\D\d{2}/)
 	})
 
 	it('reads the term in words in a facts row', () => {

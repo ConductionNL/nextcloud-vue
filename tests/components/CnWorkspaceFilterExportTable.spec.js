@@ -68,7 +68,7 @@ describe('CnWorkspaceFilterWidget input with a table export', () => {
 describe('look-board.css: workspace filter export', () => {
 	it('draws the export as the 40px control, 14px in', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
-		expect(css).toMatch(/\.cn-look-board \.cn-workspace-filter-widget__form:not\(\.cn-look-nextcloud \*\) \.button-vue\.cn-workspace-filter-widget__export \{\s*--button-size: var\(--cn-board-control-height\);\s*--button-padding: 14px;\s*\}/)
+		expect(css).toMatch(/\.cn-look-board \.cn-workspace-filter-widget__form:not\(\.cn-look-nextcloud \*\) \.button-vue\.button-vue\.cn-workspace-filter-widget__export \{\s*--button-size: var\(--cn-board-control-height\);\s*--button-padding: 14px;\s*\}/)
 		expect(css).toMatch(/\.cn-look-board \.cn-workspace-filter-widget__form:not\(\.cn-look-nextcloud \*\) \.button-vue\.cn-workspace-filter-widget__export \.button-vue__text \{\s*padding-inline: 0;\s*\}/)
 	})
 })

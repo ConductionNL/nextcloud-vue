@@ -102,7 +102,7 @@
 						<span class="cn-timeline-manage__author">{{ entry.author }}</span>
 						<span class="cn-timeline-manage__moment">{{ moment(entry.created) }}</span>
 						<span v-if="entry.visibility === 'public'"
-							class="cn-timeline-manage__badge"
+							class="cn-timeline-manage__badge cn-timeline-manage__badge--public"
 							data-testid="cn-timeline-public">
 							{{ publicLabel }}
 						</span>
