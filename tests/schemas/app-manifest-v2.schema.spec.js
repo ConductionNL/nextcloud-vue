@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.157.0', () => {
+	it('the manifest schema version reads 2.159.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1431,7 +1431,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.155.0 lets an inline stage action follow the open tab (tabs, notTabs; stage-primary-follows-tab).
 		// 2.156.0 lets a detail page pack its grid upward too (gridFloat on type='detail', CnDetailPage gridFloat; description only).
 		// 2.157.0 lets accessPurpose ask the app first (checkUrl) and an option carry a hint.
-		expect(schema.version).toBe('2.157.0')
+		// 2.159.0 adds the import dialog's template, column mapping and check first (importTemplate, importMapping, importCheckFirst; mass-import-mapping-check-first).
+		expect(schema.version).toBe('2.159.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
