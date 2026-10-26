@@ -88,4 +88,3 @@ describe('CnFieldListWidget options variant', () => {
 		expect(remove.attributes('aria-label')).toContain('Woning')
 	})
 })
-
