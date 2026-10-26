@@ -11,3 +11,7 @@ In the board look the buildiq square sets `--cn-buildiq-color: #e2611a`. The Nex
 ## Rollback
 
 Revert the commit.
+
+## Superseded (26 Oct 2026)
+
+Ruben decided on 22 Oct that the boards follow the app: design-system 4db25d04 moved the 65 Dq boards to #f36c21. The board-look override to #e2611a is removed; the square is #f36c21 in both looks (r31: buildiq background flagged on every Dq board).
