@@ -1,5 +1,7 @@
 {
   "translations": {
+    "you": "you",
+    "my team": "my team",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",
@@ -2599,6 +2601,14 @@
     "%n feature": [
       "%n feature",
       "%n features"
+    ],
+    "in %n day": [
+      "in %n day",
+      "in %n days"
+    ],
+    "%n day ago": [
+      "%n day ago",
+      "%n days ago"
     ],
     "within %n day": [
       "within %n day",

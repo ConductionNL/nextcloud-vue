@@ -108,3 +108,22 @@ describe('viewFilterReferences from the page\'s filterLabels', () => {
 		})).toBe('Zaaktype Woo-verzoek')
 	})
 })
+
+/**
+ * @spec openspec/changes/saved-view-summary-tokens-in-words/specs/saved-view-menu-settings/spec.md
+ */
+describe('summarizeViewFilters with tokens and range keys', () => {
+	it('reads @me and an @today range in words, not as stored tokens', () => {
+		const line = summarizeViewFilters(
+			{ filters: { assignee: '@me', status: 'open', 'deadline[gte]': '@today', 'deadline[lt]': '@today+7d' } },
+			{ properties: { ...PROPERTIES, assignee: { type: 'string', title: 'Handler' } }, translate },
+		)
+		expect(line).toBe('Handler you, status open, deadline within 7 days')
+		expect(line).not.toMatch(/@|\[/)
+	})
+
+	it('reads a one-sided token range and a shifted day', () => {
+		expect(summarizeViewFilters({ filters: { 'deadline[lt]': '@today-3d' } }, { properties: PROPERTIES })).toBe('Deadline up to 3 days ago')
+		expect(summarizeViewFilters({ filters: { 'deadline[gte]': '@today+2d' } }, { properties: PROPERTIES })).toBe('Deadline from in 2 days')
+	})
+})
