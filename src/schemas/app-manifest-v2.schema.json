@@ -5533,7 +5533,7 @@
 						"gridFloat": {
 							"type": "boolean",
 							"default": true,
-							"description": "type='dashboard': `false` packs widgets upward (GridStack `float: false`), so a size-to-content widget that shrinks closes the gap under it instead of leaving an empty band (zuiddrecht-pixel-gaps-3). Maps to CnDashboardPage `gridFloat`."
+							"description": "type='dashboard' and type='detail': `false` packs widgets upward (GridStack `float: false`), so a size-to-content widget that shrinks closes the gap under it instead of leaving an empty band (zuiddrecht-pixel-gaps-3). Maps to CnDashboardPage and CnDetailPage `gridFloat`."
 						},
 						"showTitle": {
 							"type": "boolean",

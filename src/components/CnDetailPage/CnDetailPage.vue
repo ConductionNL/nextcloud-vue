@@ -911,6 +911,7 @@
 				:editable="section.editable"
 				:columns="12"
 				:columnOpts="bodyColumnOpts"
+				:float="gridFloat"
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
@@ -1840,6 +1841,18 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * GridStack's `float` for the body grid (manifest `config.gridFloat`).
+		 * True (the default) keeps every widget on its authored row; false
+		 * packs widgets upward, so a size-to-content widget ends at its content
+		 * and the one below closes up (DqHandhaving: the violation card sits
+		 * 20px under the matrix).
+		 */
+		gridFloat: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
