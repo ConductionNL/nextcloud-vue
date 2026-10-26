@@ -1944,6 +1944,11 @@
 	line-height: 1.2;
 }
 
+.cn-look-board .cn-object-parties .cn-object-parties__accepted .cn-object-parties__muted {
+	font-size: 13px;
+	line-height: 1.2;
+}
+
 .cn-look-board .cn-object-parties .cn-object-parties__accepted-kind {
 	padding: 2px 8px;
 	border: 1px solid var(--color-border-maxcontrast);
