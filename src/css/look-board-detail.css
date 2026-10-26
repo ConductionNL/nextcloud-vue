@@ -2434,3 +2434,10 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
 }
+
+/* Grouped cards that open on their buttons set them 10px under the
+   subtitle (DqZaaktype "Fasen en taken": subtitle 329, buttons 339).
+   @spec openspec/changes/board-grouped-cards/specs/board-grouped-cards/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-grouped-cards > .cn-grouped-cards__actions:first-child) {
+	padding-top: 10px;
+}

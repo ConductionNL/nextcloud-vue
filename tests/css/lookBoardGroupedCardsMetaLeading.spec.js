@@ -16,4 +16,11 @@ describe('look-board-detail.css: a grouped card meta line', () => {
 		expect(at).toBeGreaterThan(-1)
 		expect(css.slice(at, css.indexOf('}', at))).toContain('line-height: normal;')
 	})
+
+	it('sets the buttons a card opens on 10px under its subtitle', () => {
+		const at = css.indexOf('> .cn-widget-wrapper__content:has(> .cn-grouped-cards > .cn-grouped-cards__actions:first-child) {')
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('padding-top: 10px;')
+	})
 })
+
