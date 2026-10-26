@@ -137,7 +137,7 @@
     "Advanced": "Geavanceerd",
     "The item could not be created.": "Het item kon niet worden aangemaakt.",
     "Start over": "Opnieuw beginnen",
-    "Continue where you left off": "Ga verder waar je was",
+    "Continue where you left off": "Verder met de rondleiding",
     "Active": "Actief",
     "Appraisal": "Waardering",
     "Archiving": "Archivering",
@@ -2678,7 +2678,13 @@
     "week {number}": "week {number}",
     "Pinned apps (app ids, comma separated)": "Vastgezette apps (app-id's, gescheiden door komma's)",
     "Show the filter field": "Filterveld tonen",
-    "Show the most used apps": "Meest gebruikte apps tonen"
+    "Show the most used apps": "Meest gebruikte apps tonen",
+    "Map layers": "Kaartlagen",
+    "you": "jij",
+    "my team": "mijn team",
+    "Subject: {subject}": "Onderwerp: {subject}",
+    "Optional": "Optioneel",
+    "Reached": "Bereikt"
   },
   "plurals": {
     "{count} member": [
@@ -2908,6 +2914,18 @@
     "%n time": [
       "%n keer",
       "%n keer"
+    ],
+    "in %n day": [
+      "over %n dag",
+      "over %n dagen"
+    ],
+    "%n day ago": [
+      "%n dag geleden",
+      "%n dagen geleden"
+    ],
+    "%n attachment": [
+      "%n bijlage",
+      "%n bijlagen"
     ]
   }
 }

@@ -1,0 +1,4 @@
+- [x] CnConversationWidget subjectField + attachmentCountField (noteOf)
+- [x] CnConversationThread subject line
+- [x] l10n en/nl
+- [x] jest CnConversationSource (red first); docs

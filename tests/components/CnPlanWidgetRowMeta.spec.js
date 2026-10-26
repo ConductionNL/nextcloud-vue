@@ -38,3 +38,24 @@ describe('CnPlanWidgetRow', () => {
 		expect(rule('.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state:not(.cn-look-nextcloud *)')).toContain('font-weight: 600')
 	})
 })
+
+describe('CnPlanWidgetRow state words', () => {
+	const word = (item, labels) => mount(CnPlanWidgetRow, { props: { item: { key: 'x', name: 'x', ...item }, labels } }).find('.cn-plan-row__state').text()
+
+	it('says a completed milestone is reached and a completed task is done (DqZaak Zaakplan "Bereikt")', () => {
+		expect(word({ state: 'completed', type: 'milestone' })).toBe('Reached')
+		expect(word({ state: 'completed', type: 'humanTask' })).toBe('Done')
+	})
+
+	it('says an optional item nobody started is optional, not waiting ("Optioneel")', () => {
+		expect(word({ state: 'available', type: 'humanTask', discretionary: true })).toBe('Optional')
+		expect(word({ state: 'enabled', type: 'humanTask', discretionary: true })).toBe('Optional')
+		expect(word({ state: 'available', type: 'humanTask' })).toBe('Waiting')
+		expect(word({ state: 'active', type: 'humanTask', discretionary: true })).toBe('In progress')
+	})
+
+	it('takes the configured word for a state ("Actief")', () => {
+		expect(word({ state: 'active', type: 'humanTask' }, { active: 'Active' })).toBe('Active')
+		expect(word({ state: 'completed', type: 'milestone' }, { completed: 'Closed' })).toBe('Closed')
+	})
+})

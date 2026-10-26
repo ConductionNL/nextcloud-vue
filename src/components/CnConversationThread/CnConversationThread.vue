@@ -76,6 +76,7 @@
 							aria-hidden="true">{{ row.directionWord }}</span>
 						<time v-if="row.timeLabel" :datetime="row.datetime || null">{{ row.timeLabel }}</time>
 					</span>
+					<span v-if="row.subjectLine" class="cn-conversation-thread__subject" data-testid="cn-conversation-subject">{{ row.subjectLine }}</span>
 					<span class="cn-conversation-thread__text">{{ row.text }}</span>
 					<span v-if="row.note" class="cn-conversation-thread__note" data-testid="cn-conversation-note">{{ row.note }}</span>
 					<span v-if="row.actions.length > 0" class="cn-conversation-thread__message-actions">
@@ -203,7 +204,7 @@ export default {
 
 	props: {
 		/**
-		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, channelIcon?, status?, actions?, note? }`.
+		 * The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, channelIcon?, status?, subject?, actions?, note? }`.
 		 * `status` is shown after the channel ("Failed"); `actions` are
 		 * `{ id, label, disabled? }` buttons under the text, each emitting
 		 * `message-action`.
@@ -389,6 +390,7 @@ export default {
 						channel: typeof message.channel === 'string' ? message.channel : '',
 						channelIcon: typeof message.channelIcon === 'string' ? message.channelIcon : '',
 						status: typeof message.status === 'string' ? message.status : '',
+						subjectLine: typeof message.subject === 'string' && message.subject !== '' ? t('nextcloud-vue', 'Subject: {subject}', { subject: message.subject }) : '',
 						actions: Array.isArray(message.actions) ? message.actions.filter((action) => action && action.id && action.label) : [],
 						directionLabel: side === 'us' ? t('nextcloud-vue', 'Sent message') : t('nextcloud-vue', 'Received message'),
 						directionWord: side === 'us' ? t('nextcloud-vue', 'Outgoing') : t('nextcloud-vue', 'Incoming'),
@@ -653,6 +655,10 @@ export default {
 
 .cn-conversation-thread__direction::after {
 	content: ' ·';
+}
+
+.cn-conversation-thread__subject {
+	font-weight: 600;
 }
 
 .cn-conversation-thread__note {

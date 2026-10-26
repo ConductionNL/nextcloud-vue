@@ -80,6 +80,22 @@ describe('CnConversationWidget: messages from a list', () => {
 		expect(chips[1].text()).toBe('E-mail')
 	})
 
+	// @spec openspec/changes/conversation-subject-attachments/specs/conversation-subject-attachments/spec.md#requirement-a-message-can-show-its-subject-note-and-attachment-count
+	it('shows a subject line above the text and the note with the attachment count under it', async () => {
+		const rows = [
+			{ id: 'e1', direction: 'in', medium: 'email', from: 'Sanne de Vries', sentAt: '2026-10-05T09:15:00', body: 'Please add the quotes.', subject: 'Addition to request 2026-0110', remark: 'Arrived in the Woo mailbox', files: 1 },
+			{ id: 'e2', direction: 'in', medium: 'phone', from: 'Sanne de Vries', sentAt: '2026-10-05T10:00:00', body: 'Called.', files: 0 },
+		]
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: rows }) }))
+		const w = mountWidget({ ...CONTENT, subjectField: 'subject', noteField: 'remark', attachmentCountField: 'files' })
+		await flushPromises()
+		const items = w.findAll('[data-testid="cn-conversation-message"]')
+		expect(items[0].find('[data-testid="cn-conversation-subject"]').text()).toBe('Subject: Addition to request 2026-0110')
+		expect(items[0].find('[data-testid="cn-conversation-note"]').text()).toBe('Arrived in the Woo mailbox, 1 attachment')
+		expect(items[1].find('[data-testid="cn-conversation-subject"]').exists()).toBe(false)
+		expect(items[1].find('[data-testid="cn-conversation-note"]').exists()).toBe(false)
+	})
+
 	it('sends no request while the record id is unknown, and says the thread is empty', async () => {
 		global.fetch = jest.fn()
 		const w = mountWidget(CONTENT, {}, '')
