@@ -3440,3 +3440,13 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-timeline-manage__draft-label:first-child:not(.cn-look-nextcloud *) {
 	margin-block-start: 0;
 }
+
+/* ---- The share dialog's audience rows ----------------------------------- */
+/* A person or group the view is shared with sits on the page's own ground at
+   radius 8, as DqFilterDelen draws it; Nextcloud's look keeps its hover grey
+   and large radius.
+   @spec openspec/changes/board-share-rows-ground/specs/board-share-rows-ground/spec.md */
+.cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *) {
+	border-radius: 8px;
+	background: var(--cn-board-sunken-ground);
+}
