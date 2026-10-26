@@ -76,6 +76,16 @@ describe('board side panel rhythm', () => {
 		expect(body(index, '.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__read-only')).toMatch(/color: var\(--cn-board-text-soft\);/)
 	})
 
+	it('lays the edit view dialog out as DqFilterBewerken draws it', () => {
+		const look = '.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *)'
+		expect(body(board, '.cn-look-board .cn-edit-view__label:not(.cn-look-nextcloud *)')).toMatch(/line-height: normal;/)
+		expect(body(board, '.cn-look-board .cn-edit-view__note:not(.cn-look-nextcloud *)')).toMatch(/font-size: 13px;/)
+		expect(body(board, look)).toMatch(/gap: 16px;/)
+		expect(body(board, look + ' .cn-saved-view-look__icons')).toMatch(/gap: 7px;/)
+		expect(body(board, look + ' .cn-saved-view-look__icon')).toMatch(/margin: 0;/)
+		expect(body(board, look + ' .cn-saved-view-look__icon:not(.cn-saved-view-look__icon--chosen)')).toMatch(/border-color: var\(--cn-board-control-border\);/)
+	})
+
 	it('runs a share row\'s name and kind at a normal line height', () => {
 		expect(body(board, '.cn-look-board .cn-saved-view-share__mode:not(.cn-look-nextcloud *)')).toMatch(/line-height: normal;/)
 	})

@@ -3496,3 +3496,45 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *) {
 	margin-bottom: 0;
 }
+
+/* The edit view dialog (DqFilterBewerken): field labels at a normal line
+   height, the sharing note 16px under the choices at 13px, the
+   description's hint 6px under its field, the icon group 16px
+   under the hint with its label at 14px, and the icons 7px apart without
+   the core button margin, the unchosen ones in the field line.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
+.cn-look-board .cn-edit-view__label:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-edit-view__note:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .input-field__helper-text-message {
+	padding-top: 2px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icons {
+	gap: 7px;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__label {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon {
+	margin: 0;
+}
+
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon:not(.cn-saved-view-look__icon--chosen) {
+	border-color: var(--cn-board-control-border);
+}

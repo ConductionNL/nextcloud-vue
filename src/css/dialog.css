@@ -19,7 +19,7 @@
 .cn-dialog-board {
 	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
-	--cn-dialog-danger: var(--color-error);
+	--cn-dialog-danger: color-mix(in srgb, var(--color-error) 80%, #000);
 	--cn-dialog-eyebrow-color: var(--color-primary-element-light-text, var(--color-main-text));
 	--cn-dialog-eyebrow-transform: none;
 	--cn-dialog-eyebrow-tracking: 0;
@@ -330,11 +330,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-inline-end: auto;
 }
 
-/* A destructive primary is filled with the danger colour and white text. */
+/* A destructive primary is filled with the danger colour, the error colour
+   a fifth darker (#a30000 on #cc0000, DqFilterVerwijderen), with white text
+   and no line round it.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
 .cn-dialog-board .dialog__actions .button-vue--vue-error,
 .cn-dialog-board .dialog__actions .button-vue--error {
+	border-width: 0;
 	background-color: var(--cn-dialog-danger);
-	border-color: var(--cn-dialog-danger);
 	color: #fff;
 }
 
