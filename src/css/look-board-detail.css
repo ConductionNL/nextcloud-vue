@@ -1657,6 +1657,12 @@
 	line-height: 1.2;
 }
 
+/* The meta line under a task (its role and term) at the font's normal line
+   height, as DqZaaktype draws it, not the page's 1.5. */
+.cn-look-board .cn-grouped-cards__item-meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* A card with actions holds them at its end, beside the title and meta (the
    board's "···" on each task). */
 .cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
@@ -2585,4 +2591,11 @@
 	color: var(--cn-board-teal-ink);
 	font-size: 12px;
 	font-weight: 600;
+}
+
+/* Grouped cards that open on their buttons set them 10px under the
+   subtitle (DqZaaktype "Fasen en taken": subtitle 329, buttons 339).
+   @spec openspec/changes/board-grouped-cards/specs/board-grouped-cards/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-grouped-cards > .cn-grouped-cards__actions:first-child) {
+	padding-top: 10px;
 }
