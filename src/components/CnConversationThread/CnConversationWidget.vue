@@ -85,7 +85,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTemplateSelect from '../CnTemplateSelect/CnTemplateSelect.vue'
@@ -111,6 +111,9 @@ import { userDisplayName } from '../../utils/userDisplayName.js'
  * `outValue`) for the messages the organisation sent, and `channelField` with
  * an optional `channelMap` from stored value to label ("email" to "E-mail")
  * and `channelIcons` from stored value to an icon name, drawn before the label.
+ * `subjectField` shows a message's subject on a line of its own above its
+ * text ("Subject: ..."); `noteField` a grey line under it, followed by the
+ * count `attachmentCountField` holds ("1 attachment").
  *
  * The reply box posts to `endpoint` (`@objectId` filled in), or runs
  * `replyAction`, an action descriptor the app decides the meaning of: it is
@@ -307,7 +310,8 @@ export default {
 					return {
 						id: key,
 						author: this.authorOf(message, sideOf),
-						note: c.noteField ? this.textOf(readPath(message, c.noteField)) : '',
+						subject: c.subjectField ? this.textOf(readPath(message, c.subjectField)) : '',
+						note: this.noteOf(message),
 						time: readPath(message, c.timestampField || c.timeField || 'time'),
 						text: readPath(message, c.bodyField || c.textField || 'text'),
 						side: sideOf,
@@ -692,6 +696,22 @@ export default {
 			const text = this.textOf(value)
 			const format = side === 'us' ? c.usAuthorFormat : c.themAuthorFormat
 			return format === 'user' && text !== '' ? (userDisplayName(text) || text) : text
+		},
+
+		/**
+		 * The grey line under a message: its note, then its attachment count,
+		 * joined with a comma ("Binnengekomen op het Woo-postvak, 1 bijlage").
+		 *
+		 * @param {object} message The stored message.
+		 * @return {string} The line, or '' when it has neither.
+		 * @spec openspec/changes/conversation-subject-attachments/specs/conversation-subject-attachments/spec.md#requirement-a-message-can-show-its-subject-note-and-attachment-count
+		 */
+		noteOf(message) {
+			const c = this.content || {}
+			const note = c.noteField ? this.textOf(readPath(message, c.noteField)) : ''
+			const count = c.attachmentCountField ? Number(readPath(message, c.attachmentCountField)) : 0
+			const attachments = Number.isFinite(count) && count > 0 ? n('nextcloud-vue', '%n attachment', '%n attachments', count) : ''
+			return [note, attachments].filter((part) => part !== '').join(', ')
 		},
 
 		/**
