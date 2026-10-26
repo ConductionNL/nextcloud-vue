@@ -33,7 +33,9 @@ describe('look-board-detail.css: side person rows', () => {
 	})
 
 	it('draws a 28px circle and the text in regular weight', () => {
-		expect(rule('.cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar')).toContain('width: 28px;')
+		const avatar = rule('.cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar')
+		expect(avatar).toContain('width: 28px;')
+		expect(avatar).toContain('background: var(--color-primary-element-light);')
 		expect(rule(`${row} .cn-record-list__title`)).toContain('font-weight: 400;')
 	})
 })

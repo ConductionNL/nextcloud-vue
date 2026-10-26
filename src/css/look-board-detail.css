@@ -748,7 +748,8 @@
 }
 
 /* Facts that open on the column grid are a data card too (DqContact
-   "Contact", DqOrganisatie "Organisatie").
+   "Contact", DqOrganisatie "Organisatie"). Their labels sit on the normal
+   line height in the board look, so no leading is taken off the 14px.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
 	padding-top: 14px;
@@ -2297,6 +2298,8 @@
 .cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {
 	width: 28px;
 	height: 28px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 
 .cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
