@@ -45,6 +45,7 @@ describe('look-board-detail.css: contacts rows', () => {
 
 	it('draws every initials avatar on the grey ground in the soft ink, 12px bold (r31: hashed tint, white-ish ink, 14px)', () => {
 		expect(rule(TAB + ' .cn-contacts-tab__avatar .avatardiv__initials-wrapper')).toContain('background-color: var(--color-background-hover) !important')
+		expect(rule(TAB + ' .cn-contacts-tab__avatar .avatardiv__initials-wrapper')).toContain('color: var(--cn-board-text-soft)')
 		const initials = rule(TAB + ' .cn-contacts-tab__avatar .avatardiv__initials')
 		expect(initials).toContain('color: var(--cn-board-text-soft) !important')
 		expect(initials).toContain('font-size: 12px')
