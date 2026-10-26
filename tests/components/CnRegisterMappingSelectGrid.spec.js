@@ -88,7 +88,10 @@ describe('CnRegisterMapping select grid', () => {
 	it('saves a schema picked in the grid', async () => {
 		const wrapper = await make({ boardLayout: 'selects' })
 		const save = wrapper.find('[data-testid="cn-register-mapping-board-save"]')
-		expect(save.attributes('disabled')).toBeDefined()
+		// Ready to press as the board draws it; with nothing changed it sends nothing.
+		expect(save.attributes('disabled')).toBeUndefined()
+		await save.trigger('click')
+		expect(wrapper.emitted('save')).toBeUndefined()
 		const status = wrapper.find('[data-testid="cn-register-mapping-select-grid"]').findAllComponents({ name: 'NcSelect' })[2]
 		status.vm.$emit('update:modelValue', { value: '42', label: 'Status schema' })
 		await wrapper.vm.$nextTick()

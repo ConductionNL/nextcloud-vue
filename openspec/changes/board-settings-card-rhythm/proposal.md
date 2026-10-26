@@ -11,3 +11,5 @@ r32 DqBeheerinstellingen: every settings card ran 18 to 30px taller than the boa
 ## Scope
 
 - `src/css/look-board.css`, css tests (three updated to the new values).
+
+Also: the register mapping's board Save is ready to press like the other settings cards (it sends nothing when nothing changed).
