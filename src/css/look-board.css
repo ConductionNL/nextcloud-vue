@@ -3466,6 +3466,26 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	background: var(--color-background-hover);
 }
 
+/* The base-map switch in the top left is the same 36px edged square, 12px
+   in, around an 18px layers icon in the main ink (Leaflet's own is a 44px
+   grey-edged square with a bitmap icon).
+   @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button */
+.cn-look-board .cn-map-widget .leaflet-control-layers:not(.cn-look-nextcloud *) {
+	margin: 12px 0 0 12px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	box-shadow: none;
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-map-widget .leaflet-control-layers .leaflet-control-layers-toggle:not(.cn-look-nextcloud *) {
+	width: 34px;
+	height: 34px;
+	background: var(--color-main-text);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
+}
+
 /* The manage timeline's lines as DqZaakHistorie draws them: the subtitle and
    the event count 14px muted (over a theme's paragraph tokens, which set a
    paragraph 15px ink), the count line under a hairline, and the note form
