@@ -157,6 +157,15 @@
 	min-width: 0;
 }
 
+/* A header with a stage bar (the case page) groups its rows as the case
+   boards do: the title row, then 22px, then the meta and Follow rows 6px
+   apart, then 22px, then the stages. The header's 6px row gap plus 16px
+   gives the first 22 (every case board; r32 every card 16px high).
+   @spec openspec/changes/board-case-header-meta-22/specs/board-case-header-meta-22/spec.md#requirement-a-case-header-puts-its-meta-22px-under-the-title-row */
+.cn-look-board .cn-detail-page__header:has(> .cn-detail-page__header-widget) > .cn-detail-page__header-row2:not(.cn-look-nextcloud *) {
+	margin-top: 16px;
+}
+
 .cn-look-board .cn-detail-page__header-row2 .cn-detail-page__pills {
 	flex-wrap: nowrap;
 	gap: 8px;

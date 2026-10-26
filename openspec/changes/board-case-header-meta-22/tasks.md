@@ -1,0 +1,2 @@
+- [x] src/css/look-board-detail.css rule
+- [x] tests/css/lookBoardCaseHeaderMeta22.spec.js (red first)
