@@ -216,6 +216,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	gap: 10px;
 }
 
+/* A board dialog's choice rows stand 10px apart, as every dialog board draws
+   its options (DqDocumentGenereren, DqVolgendeStap, DqInstellen,
+   DqZaakSamenwerken); CnChoiceCards sets 8 (r32 Genereren rows 3 and 4 4-5px
+   high).
+   @spec openspec/changes/board-dialog-choice-rows-10/specs/board-dialog-choice-rows-10/spec.md#requirement-a-board-dialogs-choice-rows-stand-10px-apart */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__rows {
+	gap: 10px;
+}
+
 /* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
    the board draws it (DqOverdragen, 76px for a label and a two-line note):
    10px 14px padding, the checkbox row at the 24px minimum target instead of
