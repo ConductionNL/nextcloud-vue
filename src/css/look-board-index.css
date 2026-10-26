@@ -709,6 +709,22 @@
 	border-radius: 0;
 }
 
+/* A page notice under the list card sits 20px under the card, the page's
+   gap (DqContracten "Verlengen en opzeggen ..."). The body kept its column
+   height while the card kept the height of its rows, so the card ran past
+   the body and the notice sat 8px under it in a full-page capture (and
+   under the card in a short window); the notecard's own 15px top margin
+   came on top.
+   @spec openspec/changes/board-page-notice-under-card/specs/board-page-notice-under-card/spec.md */
+.cn-look-board.cn-index-page:has(> .cn-index-page__notice--page) > .cn-index-page__body,
+.cn-look-board .cn-index-page:has(> .cn-index-page__notice--page) > .cn-index-page__body {
+	flex: none;
+}
+
+.cn-look-board .cn-index-page__notice--page {
+	margin-top: 0;
+}
+
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
 	/* The body is a row: the card takes the width left beside a sidebar (the
 	   board's table card spans the content), and keeps the height of its rows. */
