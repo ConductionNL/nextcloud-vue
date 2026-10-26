@@ -27,6 +27,15 @@ function mountDialog() {
 }
 
 describe('CnAccessPurposeDialog', () => {
+	it('shows the hint of an option under it, and none under an option without one', () => {
+		const w = mount(CnAccessPurposeDialog, {
+			props: { options: [{ value: 'handling', label: 'Behandeling van de zaak', hint: 'Je wordt behandelaar van deze zaak.' }, { value: 'advice', label: 'Advies' }] },
+			global: { stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' } } },
+		})
+		expect(w.find('[data-testid="cn-access-purpose-hint-handling"]').text()).toBe('Je wordt behandelaar van deze zaak.')
+		expect(w.find('[data-testid="cn-access-purpose-hint-advice"]').exists()).toBe(false)
+	})
+
 	it('offers the purposes and Other once', () => {
 		const w = mountDialog()
 		expect(w.vm.choices.map((choice) => choice.value)).toEqual(['handling', 'other'])
