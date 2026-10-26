@@ -2645,7 +2645,8 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, colorField?, variant?, hideValues? }`.
+		 * The row's pill: `{ field, labels?, colorMap?, colorField?, variant?, variantWhen?, hideValues? }`.
+		 * `variantWhen` (`[{ when, variant }]`, the first whose condition holds for the row) wins over `colorMap`.
 		 * `colorField` reads the tone from the row (a colour name such as a
 		 * status type's `colour`: purple, teal, blue ...) where `colorMap`
 		 * names none (DqMijnWerk "In behandeling" in the status's purple).
@@ -2673,9 +2674,14 @@ export default {
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
+			// `variantWhen` colours the pill by the row rather than the value: a
+			// finished case is green whatever its case type calls the final status.
+			const rule = Array.isArray(pill.variantWhen)
+				? pill.variantWhen.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+				: null
 			const colour = pill.colorField ? readPath(row, pill.colorField) : null
 			const fromRow = typeof colour === 'string' && colour !== '' ? variantForColor(colour) : null
-			const variant = found ? map[found] : (fromRow || pill.variant)
+			const variant = rule ? rule.variant : (found ? map[found] : (fromRow || pill.variant))
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
