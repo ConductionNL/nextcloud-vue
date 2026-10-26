@@ -124,3 +124,22 @@ A `route` is resolved through the router, so the link is right with and without 
 - [CnNavCardGrid](./cn-nav-card-grid.md) is the widget for a few link cards inside a dashboard.
 - [CnReportsPage](./cn-reports-page.md) lists an app's reports.
 - [CnAppNav](./cn-app-nav.md) renders the menu this page takes entries from.
+
+## Status pills and a closing panel
+
+A card's `status` draws a pill under its description: a string, or `{ "text": "...", "tone": "error" }`, where the tone is `neutral` (the default), `error`, `warning` or `success`. The text is translated. `{name}` placeholders are then filled from the card's `statusValues`, and `{runtime.<path>}` from the manifest runtime. A value is an OpenRegister aggregate descriptor (`{ register, schema, metric?, field?, filter? }`), or `{ url, path?, params? }`, which reads the number at `path` (default `total`) from a GET. The pill stays away until its values are in, and it is left out when a value fails.
+
+`config.panel` closes the page with one card. On the left are a badge, a paragraph and a link; on the right are a title, a subtitle and a list of facts. A fact takes `visibleIf`, so a panel can show the one line that applies, such as the menu profile. Board PqGeavanceerdHub uses it for the menu structure. Schema 2.158.0.
+
+```json
+"panel": {
+  "badge": { "label": "Administrators only", "icon": "ShieldAccountOutline" },
+  "text": "The app opens with the simple menu.",
+  "link": { "label": "Change the menu structure in the admin settings", "href": "/index.php/settings/admin/pipelinq" },
+  "title": "Menu structure",
+  "facts": [
+    { "label": "Menu", "value": "Simple", "visibleIf": { "menu.profile": "simple" } },
+    { "label": "Modules in the menu", "value": "{runtime.menu.modulesOn}", "note": "Off: {runtime.menu.modulesOff}" }
+  ]
+}
+```
