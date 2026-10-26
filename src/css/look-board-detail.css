@@ -48,6 +48,13 @@
 	row-gap: 6px;
 }
 
+/* The boards pad the header 8px under its last row (DqZaaktype*, DqContact,
+   DqTaak, DqOrganisatie: tabs 20px under that). A header with a widget
+   row (a case) lays its rows out as its own boards draw them. */
+.cn-look-board .cn-detail-page__header--board:not(.cn-detail-page__header--with-widget) {
+	padding-bottom: 8px;
+}
+
 /* Row 1: the title takes what the buttons leave, from a zero basis, and the
    buttons sit at the row's top beside it (DqZaak: both at 96). From a 320px
    basis the title and its follow control claimed the row first, so on a 960px
