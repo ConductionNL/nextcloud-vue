@@ -2675,7 +2675,10 @@
     "Pinned": "Vastgezet",
     "Outage": "Storing",
     "Filter tiles": "Filter tegels",
-    "week {number}": "week {number}"
+    "week {number}": "week {number}",
+    "Pinned apps (app ids, comma separated)": "Vastgezette apps (app-id's, gescheiden door komma's)",
+    "Show the filter field": "Filterveld tonen",
+    "Show the most used apps": "Meest gebruikte apps tonen"
   },
   "plurals": {
     "{count} member": [

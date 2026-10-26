@@ -151,6 +151,8 @@ export default {
 	emits: [
 		/** An item was chosen. Payload: the item. */
 		'select',
+		/** The menu opened, for a host that reads what to offer only then. */
+		'open',
 	],
 
 	data() {
@@ -184,6 +186,7 @@ export default {
 	watch: {
 		open(isOpen) {
 			if (isOpen) {
+				this.$emit('open')
 				this.$nextTick(() => this.focusItem(0))
 			}
 		},

@@ -7,12 +7,13 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
+import CnAppTilesWidgetForm from '../CnAppTilesWidgetForm/CnAppTilesWidgetForm.vue'
 import CnAppTilesWidget from './CnAppTilesWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('app-tiles', {
 	renderer: CnAppTilesWidget,
-	form: null,
+	form: CnAppTilesWidgetForm,
 	defaultContent: {
 		title: 'Apps',
 		pinned: [],

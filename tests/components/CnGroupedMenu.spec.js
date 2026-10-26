@@ -79,8 +79,9 @@ describe('visibleColumns', () => {
 })
 
 describe('CnGroupedMenu', () => {
-	it('names the button and the menu with its label', async () => {
+	it('names the button and the menu with its label, and reports that it opened', async () => {
 		const wrapper = await mountOpen()
+		expect(wrapper.emitted('open')).toHaveLength(1)
 		expect(wrapper.find('[data-testid="cn-grouped-menu-trigger"]').text()).toBe('Meer')
 		expect(wrapper.find('[role="menu"]').attributes('aria-label')).toBe('Meer')
 		wrapper.unmount()

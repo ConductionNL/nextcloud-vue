@@ -47,6 +47,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAppTilesWidget,
+	CnAppTilesWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
 	CnAuditTrailCard,
