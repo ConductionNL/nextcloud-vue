@@ -151,10 +151,11 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	/* The view row and the search row are two of the board's sections, 20px
-	   apart (DqZaken, DqContracten: the search row sat 12px high, and the
-	   table with it). Items on one row keep 8px between them. */
-	gap: var(--cn-board-section-gap, 20px) 8px;
+	/* Lines of row 1 are 8px apart and items on a line 8px; the search row
+	   keeps its own 12px on top, so it sits 20px under row 1 as the boards
+	   draw it (DqZaken, DqContracten), while a wrapped part of row 1 (the
+	   view switch beside a side panel, DqFilterBeheren) sits 8px under it. */
+	gap: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
@@ -227,13 +228,46 @@
 	min-width: 0;
 }
 
-/* Row 2: the search field and the active filters on a line of their own. */
+/* Row 2: the search field and the active filters on a line of their own,
+   20px under row 1 with the bar's 8px.
+   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {
 	display: flex;
 	flex: 0 0 100%;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+	margin-top: 12px;
+}
+
+/* Beside a side panel the view switch always starts a line of its own under
+   row 1, 8px down, and Filter takes the end of row 1 (DqFilterBeheren,
+   DqFilterInMenu: with Save view hidden the switch fitted on row 1 and the
+   list sat 46px high). An empty full-width item breaks the line; the switch
+   pulls up by the gap that line adds.
+   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board::after {
+	content: '';
+	order: 1;
+	flex: 0 0 100%;
+	height: 0;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-toggle {
+	order: 2;
+	margin-top: -8px;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board > .cn-actions-bar__row--search {
+	order: 3;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__filter-button {
+	margin-inline-start: auto;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-saved-views__save ~ .cn-actions-bar__view-controls .cn-actions-bar__filter-button {
+	margin-inline-start: 0;
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
