@@ -35,12 +35,18 @@ function declarationsOf(selector) {
 
 describe('look-board: a dashboard row action is an outlined button', () => {
 	it('outlines the action and sizes it to its label', () => {
-		const rule = declarationsOf(`${PREFIX} .cn-record-list__action--outlined`)
+		const rule = declarationsOf('.cn-look-board .cn-record-list__action--outlined:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/border:\s*1px solid var\(--cn-board-control-border\)/)
 		expect(rule).toMatch(/border-radius:\s*8px/)
 		expect(rule).toMatch(/background:\s*var\(--color-main-background\)/)
 		expect(rule).toMatch(/flex:\s*none/)
 		expect(rule).toMatch(/--nldesign-color-on-surface:\s*var\(--color-main-text\)/)
+		expect(rule).toMatch(/gap:\s*8px/)
+	})
+
+	it('outlines the action on any board page, not only a dashboard (DqZaakBesluiten Adviezen)', () => {
+		expect(declarationsOf(`${PREFIX} .cn-record-list__action--outlined`)).toBe('')
+		expect(declarationsOf('.cn-look-board .cn-record-list__action--outlined:not(.cn-look-nextcloud *)')).not.toBe('')
 	})
 
 	it('draws the title link in the main ink', () => {
