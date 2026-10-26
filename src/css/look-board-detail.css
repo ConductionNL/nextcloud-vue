@@ -2412,3 +2412,11 @@
 	line-height: 1.2;
 	color: var(--color-primary-element);
 }
+
+/* A data card keeps its 14px under a subtitle too (DqZaakBetrokkenen
+   "Zetels"): the subtitle rule's 12px won over the data card's 14px, so the
+   labels sat 2.2px high (r31).
+   @spec openspec/changes/board-data-card-under-subtitle/specs/board-card/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
+	padding-top: 14px;
+}
