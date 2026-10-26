@@ -1584,11 +1584,14 @@ export default {
 	border-radius: 10px;
 	background: var(--color-primary-element-light, #eaf0f7);
 	color: var(--color-primary-element-light-text, #234a78);
+	font-size: 14px;
 	line-height: 1.5;
 }
 
+/* The icon font's own align-self: center would centre it on a long note. */
 .cn-ai-chat-window__note-icon {
 	flex: none;
+	align-self: flex-start;
 	margin-top: 1px;
 }
 
