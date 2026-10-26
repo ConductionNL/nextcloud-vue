@@ -2580,3 +2580,10 @@
 .cn-look-board .cn-detail-page .cn-field-list-widget__rows:not(.cn-field-list-widget__rows--options):not(.cn-detail-page__side *) .cn-field-list-widget__main {
 	gap: 2px;
 }
+
+/* An option in a choice list (DqZaaktypeVelden Keuzelijst) is plain 14px
+   text beside its code, not a 600 title. */
+.cn-look-board .cn-field-list-widget__rows--options:not(.cn-look-nextcloud *) .cn-field-list-widget__title {
+	font-size: 14px;
+	font-weight: 400;
+}

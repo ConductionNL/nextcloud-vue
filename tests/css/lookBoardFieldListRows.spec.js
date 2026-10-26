@@ -31,4 +31,10 @@ describe('look-board-detail.css: a page card field list', () => {
 	it('sets title and meta 2px apart', () => {
 		expect(rule(`${LIST} .cn-field-list-widget__main`)).toContain('gap: 2px;')
 	})
+
+	it('sets an option as plain 14px text', () => {
+		const body = rule('.cn-look-board .cn-field-list-widget__rows--options:not(.cn-look-nextcloud *) .cn-field-list-widget__title')
+		expect(body).toContain('font-size: 14px;')
+		expect(body).toContain('font-weight: 400;')
+	})
 })
