@@ -2487,3 +2487,45 @@
 .cn-look-board .cn-detail-page__side .cn-record-list__aside:not(.cn-look-nextcloud *) {
 	gap: 8px;
 }
+
+/* A plan in the board look, as DqZaak draws "Zaakplan": ruled rows 10px
+   high on each side, the name at 15px/500 over its muted line, the state a
+   13px/600 pill toned by state (r31: grey rows, 600 names, 400 pills).
+   @spec openspec/changes/board-plan-rows/specs/plan-widget/spec.md */
+.cn-look-board .cn-plan .cn-plan-row:not(.cn-look-nextcloud *) {
+	gap: 6px 16px;
+	padding: 10px 0;
+	border-top: 1px solid var(--color-border);
+	background: transparent;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__name:not(.cn-look-nextcloud *) {
+	font-size: 15px;
+	font-weight: 500;
+	line-height: normal;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state:not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	color: var(--cn-board-text-soft);
+	font-size: 13px;
+	font-weight: 600;
+	line-height: normal;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='completed']:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-success-tint);
+	color: var(--color-success-text, #1e6b2a);
+}
+
+.cn-look-board .cn-plan .cn-plan-row .cn-plan-row__state[data-state='active']:not(.cn-look-nextcloud *) {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, #234a78);
+}

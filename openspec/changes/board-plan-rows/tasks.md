@@ -1,0 +1,3 @@
+- [x] 1.1 row description line (CnPlanWidgetRow)
+- [x] 1.2 board look rows and pills (look-board-detail.css)
+- [x] 1.3 tests (CnPlanWidgetRowMeta.spec.js)
