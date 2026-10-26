@@ -11,3 +11,5 @@ The boards draw a settings card's Save ("Opslaan") ready to press; live disabled
 ## Scope
 
 - `CnSettingsFieldsSection.vue`, a jest test.
+
+Also: \`saveVariant\` (a card whose Save is a secondary choice, DqBeheerinstellingen "Dit account gebruiken"), and an image field's upload button carries the upload icon the boards draw (DqInstellingenAlgemeen "Ander logo").
