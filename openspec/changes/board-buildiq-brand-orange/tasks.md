@@ -1,2 +1,0 @@
-- [x] patches.css: drop the board-look override
-- [x] tests/css/lookBoardBuildiqOrange.spec.js updated (red first)
