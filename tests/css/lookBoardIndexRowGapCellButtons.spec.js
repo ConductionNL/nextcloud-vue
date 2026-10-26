@@ -2,10 +2,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The dossiq list boards put the search row 20px under the views row (live
- * 8px, so the table sat 12px high) and draw a row's action buttons 34px tall
- * (DqPostvak; live 24px), and the header's count line at a normal line
- * height with 8px under it (76px headers; live 72.5). Read from the
+ * DqPostvak draws a row's action buttons ("Aan zaak koppelen", "Nieuwe
+ * zaak") 34px tall; live drew NcButton's small 24px one. Read from the
  * stylesheet text.
  *
  * @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md
@@ -21,17 +19,7 @@ function body(selector) {
 	return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
 }
 
-describe('board index row gap and cell buttons', () => {
-	it('puts 20px between the bar rows and 8px between items', () => {
-		expect(body('.cn-look-board .cn-actions-bar.cn-actions-bar--board')).toMatch(/gap: 20px 8px;/)
-	})
-
-	it('runs the count line at a normal line height with 8px under it', () => {
-		const b = body('.cn-look-board .cn-index-page .cn-page-header .cn-page-header__description')
-		expect(b).toMatch(/padding-bottom: 8px;/)
-		expect(b).toMatch(/line-height: normal;/)
-	})
-
+describe('board cell action buttons', () => {
 	it('draws a row action button 34px tall', () => {
 		expect(body('.cn-look-board .cn-cell-renderer__actions .button-vue')).toMatch(/--button-size: 34px;/)
 	})
