@@ -1,0 +1,2 @@
+- [x] src/css/look-board-detail.css rule
+- [x] tests/css/lookBoardMailHeaderButtons40.spec.js (red first)
