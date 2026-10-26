@@ -2654,7 +2654,10 @@
     "More actions for {name}": "Meer acties voor {name}",
     "Unlink contact": "Contact ontkoppelen",
     "{term}, extendable by {extension}": "{term}, te verdagen met {extension}",
-    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen"
+    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen",
+    "Invited": "Uitgenodigd",
+    "Accepted": "Geaccepteerd",
+    "Declined": "Afgewezen"
   },
   "plurals": {
     "{count} member": [
