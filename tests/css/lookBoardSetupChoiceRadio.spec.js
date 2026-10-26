@@ -39,4 +39,8 @@ describe('look-board.css: setup step choice radio', () => {
 			expect(body).toContain(decl)
 		}
 	})
+
+	it('keeps 3px after it, so the option title starts 56px in (DqInstellen)', () => {
+		expect(ruleFor('.cn-look-board .cn-setup-step .cn-choice-cards input.cn-choice-cards__row-input:not(.cn-look-nextcloud *)')).toContain('margin-inline-end: 3px;')
+	})
 })
