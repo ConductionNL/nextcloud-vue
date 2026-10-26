@@ -1990,6 +1990,20 @@
 	margin-bottom: 8px;
 }
 
+/* The board draws every party's initials on the same grey ground in the
+   soft ink, 12px bold, where NcAvatar tints each one from a hash of the name
+   (inline styles, hence the !important).
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__avatar .avatardiv__initials-wrapper {
+	background-color: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__avatar .avatardiv__initials {
+	color: var(--cn-board-text-soft) !important;
+	font-size: 12px;
+	font-weight: 700;
+}
+
 /* The contacts tab inside a detail card (DqZaakBetrokkenen "Partijen") takes
    the card's padding instead of its own, and its buttons start at the card's
    edge under the subtitle.

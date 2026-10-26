@@ -42,4 +42,12 @@ describe('look-board-detail.css: contacts rows', () => {
 		expect(body).toContain('font-size: 13px')
 		expect(body).toContain('color: var(--color-text-maxcontrast)')
 	})
+
+	it('draws every initials avatar on the grey ground in the soft ink, 12px bold (r31: hashed tint, white-ish ink, 14px)', () => {
+		expect(rule(TAB + ' .cn-contacts-tab__avatar .avatardiv__initials-wrapper')).toContain('background-color: var(--color-background-hover) !important')
+		const initials = rule(TAB + ' .cn-contacts-tab__avatar .avatardiv__initials')
+		expect(initials).toContain('color: var(--cn-board-text-soft) !important')
+		expect(initials).toContain('font-size: 12px')
+		expect(initials).toContain('font-weight: 700')
+	})
 })
