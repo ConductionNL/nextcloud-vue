@@ -132,6 +132,7 @@
 
 .cn-board-view.cn-board-view--board .cn-board-view__card-sub {
 	font-size: 13px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -151,6 +152,7 @@
 
 .cn-board-view.cn-board-view--board .cn-board-view__card-footer {
 	display: flex;
+	line-height: normal;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
