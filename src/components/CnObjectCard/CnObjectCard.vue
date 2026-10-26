@@ -112,6 +112,11 @@
 						:row="object" />
 					<template v-else>{{ recordFootCell.text }}</template>
 				</span>
+				<!-- An empty footerCell keeps its place as a dash, as an empty table cell. -->
+				<span
+					v-else-if="recordFootCellDeclared"
+					class="cn-object-card__record-foot-cell cn-object-card__record-foot-cell--empty"
+					data-testid="cn-object-card-foot-cell-empty">—</span>
 				<span
 					v-if="recordDate"
 					class="cn-object-card__record-date"
@@ -587,6 +592,17 @@ export default {
 			}
 			const tone = ['purple', 'teal'].includes(def.tone) ? def.tone : ''
 			return { text: part.text, tone }
+		},
+
+		/**
+		 * Whether the record layout names a `footerCell`, so an empty one
+		 * keeps its place.
+		 *
+		 * @spec openspec/changes/card-empty-footer-cell-dash/specs/card-empty-footer-cell-dash/spec.md#requirement-an-empty-footer-cell-reads-as-a-dash
+		 * @return {boolean}
+		 */
+		recordFootCellDeclared() {
+			return Boolean(this.recordLayout && this.recordLayout.footerCell)
 		},
 
 		/**
