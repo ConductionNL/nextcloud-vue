@@ -174,6 +174,15 @@
 					</span>
 					<span class="cn-facts-widget__line">{{ block.value }}</span>
 				</div>
+				<div v-else-if="block.kind === 'pills'" class="cn-facts-widget__pills">
+					<CnStatusBadge
+						v-for="pill in block.pills"
+						:key="pill.key"
+						:label="pill.value"
+						:variant="pill.variant"
+						size="small"
+						:data-testid="`cn-fact-${pill.key}`" />
+				</div>
 				<div v-else-if="block.kind === 'pill'">
 					<CnStatusBadge
 						:label="block.value"
@@ -294,6 +303,30 @@ function resolveSourceTokens(value, record) {
 }
 
 /** Kinds of entry a `fields[]` item can be. A labelled item without `as` is a row. */
+/**
+ * Two or more pills in a row become one `pills` block, drawn on one line.
+ *
+ * @param {Array<object>} blocks The blocks in order.
+ * @return {Array<object>}
+ * @spec openspec/changes/facts-fields-from-context/specs/facts-widget/spec.md#requirement-a-facts-card-can-take-its-entries-from-the-page-context
+ */
+function groupPills(blocks) {
+	const out = []
+	blocks.forEach((block) => {
+		const last = out[out.length - 1]
+		if (block.kind !== 'pill') {
+			out.push(block)
+		} else if (last && last.kind === 'pills') {
+			last.pills.push(block)
+		} else if (last && last.kind === 'pill') {
+			out[out.length - 1] = { kind: 'pills', key: `pills-${last.key}`, pills: [last, block] }
+		} else {
+			out.push(block)
+		}
+	})
+	return out
+}
+
 const KINDS = Object.freeze(['row', 'title', 'line', 'pill', 'lead', 'text', 'meter', 'progress'])
 
 /** The schemes a facts link opens, besides a path on this server. */
@@ -799,7 +832,7 @@ export default {
 					out.push({ kind: 'rows', key: 'rows-answered', rows: [row] })
 				}
 			})
-			return out
+			return groupPills(out)
 		},
 
 		/**
@@ -1947,6 +1980,12 @@ export default {
 	flex-direction: column;
 	gap: 10px;
 	min-width: 0;
+}
+
+.cn-facts-widget__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 /* `padding: 0`: Nextcloud's core stylesheet pads every `dl` 12px at the top

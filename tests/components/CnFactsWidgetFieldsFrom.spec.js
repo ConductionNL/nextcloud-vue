@@ -43,6 +43,16 @@ describe('CnFactsWidget fieldsFrom', () => {
 		expect(text).not.toContain('Ik wil de documenten.')
 	})
 
+	it('draws pills in a row on one line', () => {
+		const w = mount(CnFactsWidget, {
+			props: { content: { fields: [{ as: 'pill', key: 'a', text: 'A', template: 'A {request.scope}' }, { as: 'pill', key: 'b', path: 'request.kinds' }] }, objectData: record },
+		})
+		const row = w.find('.cn-facts-widget__pills')
+		expect(row.exists()).toBe(true)
+		expect(row.find('[data-testid="cn-fact-a"]').exists()).toBe(true)
+		expect(row.find('[data-testid="cn-fact-b"]').exists()).toBe(true)
+	})
+
 	it('falls back to its own fields when the context names none', () => {
 		expect(textWith({})).toContain('Ik wil de documenten.')
 		expect(textWith({ requestFields: [] })).toContain('Ik wil de documenten.')
