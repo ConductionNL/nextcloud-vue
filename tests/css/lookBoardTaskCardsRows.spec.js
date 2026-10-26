@@ -30,7 +30,7 @@ describe('look-board-detail.css: task card rows', () => {
 	it('draws a hairline above every row, 12px 0, none below the last', () => {
 		const row = rule('.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child')
 		expect(rule('.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child')).toContain('border-top: 1px solid var(--cn-board-hairline);')
-		expect(row).toContain('padding: 12px 0;')
+		expect(row).toContain('padding-block: 12px;')
 		expect(row).toContain('border-top: 1px solid var(--cn-board-hairline);')
 		expect(row).toContain('border-bottom: none;')
 	})
@@ -55,5 +55,19 @@ describe('look-board-detail.css: task card rows', () => {
 			.filter((one) => /^\.cn-look-board \.cn-(events|notes)-card__/.test(one))
 		expect(selectors.length).toBeGreaterThan(20)
 		selectors.forEach((one) => expect(one).toContain(':not(.cn-look-nextcloud *)'))
+	})
+
+	/** @spec openspec/changes/board-note-rows-tile-room/specs/task-cards/spec.md#requirement-a-board-note-row-keeps-its-tile-room-and-two-lines */
+	it('keeps the tile\'s 44px for a note that is the last in its thread', () => {
+		const last = '.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child'
+		expect(rule(last)).toContain('padding-inline: 44px 0;')
+		expect(rule(last)).not.toMatch(/padding:\s/)
+	})
+
+	/** @spec openspec/changes/board-note-rows-tile-room/specs/task-cards/spec.md#requirement-a-board-note-row-keeps-its-tile-room-and-two-lines */
+	it('takes Reply out of the flow, shown on hover and focus', () => {
+		const reply = rule('.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) > .cn-notes-card__reply-btn')
+		expect(reply).toContain('position: absolute;')
+		expect(rule('.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):focus-within > .cn-notes-card__reply-btn')).toContain('opacity: 1;')
 	})
 })

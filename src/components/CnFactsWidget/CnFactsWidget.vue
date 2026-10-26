@@ -41,11 +41,12 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--stacked': stacked }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
 						class="cn-facts-widget__row"
+						:class="{ 'cn-facts-widget__row--inline': row.inline }"
 						:data-testid="`cn-fact-${row.key}`">
 						<dt class="cn-facts-widget__label" :class="{ 'cn-facts-widget__label--icon': row.icon }">
 							<CnIcon
@@ -232,7 +233,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { formatFileSize } from '@nextcloud/files'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -251,6 +252,7 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, formatLongDate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
@@ -424,16 +426,17 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, text?, title?, subtitle?, initialsPath?, tone? }`.
+		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
+		 *   A row with `inline: true` spans both columns as one line, the label, the value and its buttons side by side (a masked BSN with Show).
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show, which unmasks the record's value; `reveal: { url, path? }` makes Show ask the server for the value at `url` (tokens resolved), read at `path` (else the entry's path), so a server that answers the mask can check and record the reveal). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
-		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty.
+		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path`; it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
@@ -441,14 +444,14 @@ export default {
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath`), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set) or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
-		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row).
+		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -508,6 +511,15 @@ export default {
 		 */
 		twoColumns() {
 			return Number(this.content?.columns) === 2
+		},
+
+		/**
+		 * Whether the rows stack in one column, label above value.
+		 *
+		 * @return {boolean}
+		 */
+		stacked() {
+			return Number(this.content?.columns) === 1
 		},
 
 		/**
@@ -725,7 +737,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.labelOf(record, field), value, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -1130,7 +1142,12 @@ export default {
 			if (value === '') {
 				return typeof field.emptyValue === 'string' && field.emptyValue !== '' ? this.tr(field.emptyValue) : ''
 			}
-			return typeof field.suffix === 'string' ? `${value}${field.suffix}` : value
+			if (typeof field.suffix !== 'string') {
+				return value
+			}
+			// The words of a suffix are translated; its leading space stays as written.
+			const lead = field.suffix.match(/^\s*/)[0]
+			return `${value}${lead}${this.tr(field.suffix.slice(lead.length))}`
 		},
 
 		/**
@@ -1798,7 +1815,7 @@ export default {
 			if (format === 'list' || Array.isArray(raw)) {
 				const items = (Array.isArray(raw) ? raw : [raw])
 					.map((item) => (spec.itemPath && item && typeof item === 'object' ? readPath(item, spec.itemPath) : item))
-					.map((item) => this.format(item, { ...spec, format: 'text' }))
+					.map((item) => this.format(item, { ...spec, format: spec.itemFormat || 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
 			}
@@ -1816,12 +1833,34 @@ export default {
 					? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
 					: formatBoardDate(date)
 			}
+			// A number of months in words: whole years as years ("20 jaar"), else months.
+			if (format === 'months') {
+				const months = Number(raw)
+				if (typeof raw === 'object' || !Number.isInteger(months) || months < 0) {
+					return typeof raw === 'object' ? '' : String(raw)
+				}
+				return months > 0 && months % 12 === 0
+					? n('nextcloud-vue', '%n year', '%n years', months / 12)
+					: n('nextcloud-vue', '%n month', '%n months', months)
+			}
 			if (format === 'bytes') {
 				const bytes = Number(raw)
 				return Number.isFinite(bytes) && bytes >= 0 ? formatFileSize(bytes) : ''
 			}
 			if (format === 'user') {
 				return userDisplayName(raw)
+			}
+			// A Nextcloud group by its display name; the id until the name is known.
+			if (format === 'group') {
+				if (typeof raw === 'object') {
+					return ''
+				}
+				const name = groupDisplayName(String(raw))
+				if (name === null) {
+					loadGroupDisplayName(String(raw))
+					return String(raw)
+				}
+				return name
 			}
 			if (format === 'number') {
 				const number = Number(raw)
@@ -1936,6 +1975,21 @@ export default {
 /* Each row is a grid of its own children: the wrapper takes no box. */
 .cn-facts-widget__row {
 	display: contents;
+}
+
+.cn-facts-widget__row--inline {
+	display: flex;
+	grid-column: 1 / -1;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.cn-facts-widget__row--inline .cn-facts-widget__value {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
 }
 
 /* Nextcloud core styles `dt` and `dd` (text-align end, 12px padding, a
@@ -2201,6 +2255,17 @@ export default {
 
 .cn-facts-widget__rows--columns .cn-facts-widget__label.cn-facts-widget__label {
 	font-size: 13px;
+}
+
+/* One column, label above value: 2px under its label, 10px to the next
+   label, so a long label never squeezes its value (DqHandhaving). */
+.cn-facts-widget__rows--stacked {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 2px 0;
+}
+
+.cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
+	margin-bottom: 8px;
 }
 
 @media (max-width: 640px) {

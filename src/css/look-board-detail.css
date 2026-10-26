@@ -481,6 +481,26 @@
 	padding: var(--cn-board-card-padding);
 }
 
+/* A panel's own heading (DqZaaktypeRegels "Regels op de zaak"): title and
+   subtitle on their natural leading 2px apart, actions that wrap 8px under
+   them, and the card's 12px gap before the content. */
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading {
+	margin-bottom: 12px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading--actions {
+	row-gap: 8px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-heading-text {
+	gap: 2px;
+}
+
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-title,
+.cn-look-board .cn-tabs-widget__tabs .cn-tabs-widget__panel-subtitle {
+	line-height: normal;
+}
+
 /* A list's footer Add bleeds to the panel's edges, so it bleeds the card
    padding (CnTabsWidget bleeds the Nextcloud look's 12px). */
 .cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content > .cn-tab > .cn-detail-widget-host--bare .cn-object-list-widget__add {
@@ -740,17 +760,19 @@
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
-   "Zaakgegevens", DqContact "Contact"). A side card keeps its 10px.
+   "Zaakgegevens", DqContact "Contact"); its first label sits at the top of
+   its line box, so no leading comes off. A side card keeps its 10px.
    @spec openspec/changes/board-data-card-gap/specs/board-data-card-gap/spec.md#requirement-a-board-data-cards-body-starts-14px-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
-	padding-top: calc(14px - var(--cn-board-first-line-leading));
+	padding-top: 14px;
 }
 
 /* Facts that open on the column grid are a data card too (DqContact
-   "Contact", DqOrganisatie "Organisatie").
+   "Contact", DqOrganisatie "Organisatie"). Their labels sit on the normal
+   line height in the board look, so no leading is taken off the 14px.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows--columns:first-child):not(.cn-detail-page__side *) {
-	padding-top: calc(14px - var(--cn-board-first-line-leading));
+	padding-top: 14px;
 }
 
 /* A table (an object list) starts 12px below the title's box: its head has
@@ -817,6 +839,47 @@
 
 .cn-look-board .cn-object-data-widget__value {
 	font-weight: 500;
+}
+
+/* A labelled select in a page card is the board's field, as in a board
+   dialog (dialog.css): its label above the control at 14px/600 on the normal
+   line (the theme's label weight token set to 600 here), the control 40px,
+   21px of room above it so the raised label does not rise over what stands
+   above (DqZaakEmail "E-mailsjabloon": NcSelect drew
+   the label inside a 44px field, 15px/700). The quick filter bar's dropdown
+   keeps NcSelect's own look.
+   @spec openspec/changes/board-page-select-label-above/specs/board-page-select-label-above/spec.md#requirement-a-labelled-select-in-a-board-page-card-carries-its-label-above */
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *) {
+	--nldesign-component-form-field-label-font-weight: 600;
+	margin-block: 21px 0;
+}
+
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select) .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .nc-select.v-select.select:not(.cn-quick-filter-bar__select) .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *) {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: var(--cn-field-label-size, 14px);
+	font-weight: 600;
+	line-height: normal;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *) {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+/* The mail card's template buttons stand beside the field at its 40px
+   height, their bottom on the field's edge (inside its 2px focus inset). */
+.cn-look-board .cn-mail-tab__template-row .button-vue:where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+	margin-block-end: var(--border-width-input-focused, 2px);
 }
 
 /* A data card's label and value sit 3px apart on the normal line height, as
@@ -946,6 +1009,12 @@
 	padding: 0;
 }
 
+/* Its Actions menu is the board's 34px header control. */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions .action-item .button-vue {
+	height: 34px;
+	min-height: 34px;
+}
+
 /* A widget-reported card header action in the main column is a neutral 40px
    control: the main background, the control border, the main text at
    14px/600, a 16px icon 8px before the label (DqZaakBesluiten "Document
@@ -1028,6 +1097,24 @@
 }
 
 .cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card .notecard__icon svg:not(.cn-look-nextcloud *) {
+	height: 18px;
+	width: 18px;
+}
+
+/* NcNoteCard renders a slotted icon (the banner's own, DqSociaalDomein
+   "Bijzondere persoonsgegevens") as a bare 22px material icon without the
+   `notecard__icon` wrapper; it takes the same 18px box on the first line, so
+   the text starts 44px in.
+   @spec openspec/changes/board-notice-slotted-icon/specs/board-notice-slotted-icon/spec.md#requirement-a-side-notices-slotted-icon-is-18px */
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card > .material-design-icon:not(.cn-look-nextcloud *) {
+	align-self: flex-start;
+	color: var(--cn-board-notice-ink);
+	margin-top: 2px;
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .cn-detail-page__side-item--notice .cn-banner-widget__card > .material-design-icon svg:not(.cn-look-nextcloud *) {
 	height: 18px;
 	width: 18px;
 }
@@ -1497,6 +1584,12 @@
 
 /* The buttons above the groups are the card's 34px controls ("Bekijken als
    flow", "Taak toevoegen"), not the page's 40px ones. */
+/* The buttons sit 14px under the subtitle and 14px above the groups, the
+   card's gap (the content's own 12px top padding plus 2px). */
+.cn-look-board .cn-grouped-cards__actions.cn-grouped-cards__actions:not(.cn-look-nextcloud *) {
+	margin-block: 2px 14px;
+}
+
 .cn-look-board .cn-grouped-cards__actions:not(.cn-look-nextcloud *) .button-vue {
 	min-height: 34px;
 	height: 34px;
@@ -1938,6 +2031,11 @@
 	line-height: 1.2;
 }
 
+.cn-look-board .cn-object-parties .cn-object-parties__accepted .cn-object-parties__muted {
+	font-size: 13px;
+	line-height: 1.2;
+}
+
 .cn-look-board .cn-object-parties .cn-object-parties__accepted-kind {
 	padding: 2px 8px;
 	border: 1px solid var(--color-border-maxcontrast);
@@ -1986,9 +2084,14 @@
 .cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child,
 .cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
-	padding: 12px 0;
+	padding-block: 12px;
 	border-top: 1px solid var(--cn-board-hairline);
 	border-bottom: none;
+}
+
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__event:not(.cn-look-nextcloud *):last-child {
+	padding-inline: 0;
 }
 
 .cn-look-board .cn-events-card__day:not(.cn-look-nextcloud *),
@@ -2015,7 +2118,7 @@
 .cn-look-board .cn-notes-card__body:not(.cn-look-nextcloud *) {
 	font-size: 15px;
 	font-weight: 600;
-	line-height: 1.35;
+	line-height: normal;
 }
 
 .cn-look-board .cn-events-card__summary:not(.cn-look-nextcloud *) {
@@ -2037,11 +2140,29 @@
 	white-space: pre;
 }
 
-.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) {
+/* Each note sits alone in its thread, so it is also a :last-child; the
+   padding above is set per side so the 44px room for the tile holds. */
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *),
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):last-child {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	padding-inline-start: 44px;
+	padding-inline: 44px 0;
+}
+
+/* Reply stays on the row as Delete does: at its end, shown on hover and on
+   keyboard focus, so the row keeps the board's two lines.
+   @spec openspec/changes/board-note-rows-tile-room/specs/task-cards/spec.md#requirement-a-board-note-row-keeps-its-tile-room-and-two-lines */
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *) > .cn-notes-card__reply-btn {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 32px;
+	opacity: 0;
+}
+
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):hover > .cn-notes-card__reply-btn,
+.cn-look-board .cn-notes-card__note:not(.cn-look-nextcloud *):focus-within > .cn-notes-card__reply-btn {
+	opacity: 1;
 }
 
 .cn-look-board .cn-notes-card__initials:not(.cn-look-nextcloud *) {
@@ -2057,6 +2178,7 @@
 .cn-look-board .cn-notes-card__note-header:not(.cn-look-nextcloud *) {
 	justify-content: flex-start;
 	margin-bottom: 0;
+	line-height: normal;
 }
 
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
@@ -2217,6 +2339,13 @@
 	padding: 12px 0;
 }
 
+/* Under a title with a subtitle the rule sits 8px below the subtitle
+   (DqZaakBesluiten "Adviezen", DqZaakArchivering "Bewaring"). A custom
+   widget that opens on a ruled list opts in with `cn-rule-above` on its root. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-record-list--rows.cn-record-list--rule-above, > .cn-rule-above) {
+	padding-top: 8px;
+}
+
 /* A side list row with initials stays one line: a 28px circle 8px before
    the regular-weight text (DqSociaalDomein "Wie"). The library stacks side
    rows into a column, which put the initials above the name.
@@ -2230,8 +2359,23 @@
 .cn-look-board .cn-detail-page__side .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {
 	width: 28px;
 	height: 28px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 
 .cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
 	font-weight: 400;
+}
+
+/* The history card's kind chips sit on the header's 16px gap, 8px apart, as
+   DqZaakHistorie draws them: the server's 3px button margin pushed the row
+   3px down and made it 42px tall. The composer's field labels run on a 1.2
+   line, so "Sjabloon" starts 12px under the subtitle as drawn.
+   @spec openspec/changes/board-history-chips-and-labels/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage__chips .cn-timeline-manage__chip:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
+.cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
+	line-height: 1.2;
 }

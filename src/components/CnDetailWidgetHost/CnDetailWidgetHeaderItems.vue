@@ -86,6 +86,7 @@ export default {
 	font-size: 13px;
 	font-weight: 700;
 	gap: 6px;
+	margin: 0;
 	min-height: 32px;
 	padding: 0 14px;
 	white-space: nowrap;
