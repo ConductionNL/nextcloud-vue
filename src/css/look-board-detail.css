@@ -1006,6 +1006,16 @@
    adres") draws the lead row 12px below the title, its two lines at their
    normal height so they centre on the 40px tile.
    @spec openspec/changes/board-card-title-gap-variants/specs/board-card-title-gap-variants/spec.md#requirement-a-board-card-starts-its-body-as-drawn-for-its-kind-of-body */
+/* A side facts card (DqZaaktypeOverzicht "Gegevens") sets its rows at the
+   font's normal line height, 25px apart, the first 10px under the title. */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns) .cn-facts-widget__row {
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child) {
+	padding-top: 10px;
+}
+
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__lead:first-child) {
 	padding-top: 12px;
 }
