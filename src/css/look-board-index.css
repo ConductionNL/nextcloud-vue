@@ -151,10 +151,11 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	/* The view row and the search row are two of the board's sections, 20px
-	   apart (DqZaken, DqContracten: the search row sat 12px high, and the
-	   table with it). Items on one row keep 8px between them. */
-	gap: var(--cn-board-section-gap, 20px) 8px;
+	/* Items keep 8px between them, also where row 1 wraps (DqZakenSorteren:
+	   the view switch 8px under the chips beside the side panel). The search
+	   row is a section of its own, 20px under row 1 (DqZaken, DqContracten).
+	   @spec openspec/changes/board-list-toolbar-kpi-chips/specs/board-list-toolbar-kpi-chips/spec.md#requirement-the-board-list-keeps-its-toolbar-stat-and-chip-sizes */
+	gap: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
@@ -234,6 +235,7 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+	margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
@@ -1607,6 +1609,11 @@
 	font-size: 14px;
 }
 
+/* The handler's initials in a card's footer are 12px, as in the table. */
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell .cn-cell-renderer__avatar-initials {
+	font-size: 12px;
+}
+
 .cn-look-board .cn-object-card--board .cn-object-card__record-date {
 	margin-inline-start: auto;
 	color: var(--color-main-text);
@@ -2523,4 +2530,16 @@
 
 .cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table th .cn-table-header__sort {
 	min-width: max-content;
+}
+
+/* A stat card in the index page's widget row is the wrapper's 1px edge and
+   18px in (DqTeamwachtrij: 110px, the label 19px under the top); the KPI
+   card's own transparent 2px border made it 114. */
+.cn-look-board .cn-index-page-widgets__cell .cn-kpi-card:not(.cn-look-nextcloud *) {
+	border-width: 0;
+}
+
+/* The team-today initials are the soft ink on the grey chip (DqTeamwachtrij). */
+.cn-look-board .cn-team-workload__avatar:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
 }
