@@ -1622,6 +1622,12 @@
 	line-height: 1.2;
 }
 
+/* The meta line under a task (its role and term) at the font's normal line
+   height, as DqZaaktype draws it, not the page's 1.5. */
+.cn-look-board .cn-grouped-cards__item-meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* A card with actions holds them at its end, beside the title and meta (the
    board's "···" on each task). */
 .cn-look-board .cn-grouped-cards__item.cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
