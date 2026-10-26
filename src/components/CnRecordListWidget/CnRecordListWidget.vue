@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -3493,6 +3493,32 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.2;
+}
+
+.cn-record-list--compact .cn-record-list__card .cn-record-list__meta {
+	line-height: normal;
+}
+
+/* `cardPillAside: true`: the title over its meta line on the left, 2px
+   apart, the pill beside both at the card's end (DqInspectie outbox). */
+.cn-record-list--pill-aside .cn-record-list__card {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 2px 8px;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-head {
+	display: contents;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-pills {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card .cn-record-list__meta {
+	grid-column: 1;
 }
 
 .cn-record-list__card--link:hover,
