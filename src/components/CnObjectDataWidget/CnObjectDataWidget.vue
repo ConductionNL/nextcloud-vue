@@ -438,10 +438,12 @@ import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
@@ -1103,6 +1105,12 @@ export default {
 				// label, beside a list that already read "Ingediend".
 				const enumLabel = this.enumDisplayLabel(field, raw)
 				const empty = this.emptyValueFor(field, raw)
+				if (empty === null && field.format === 'duration' && raw !== null && raw !== undefined && raw !== '') {
+					// A term in words, with the extension at `extendBy` when the object holds one.
+					const extension = typeof field.extendBy === 'string' ? readPath(this.objectData || {}, field.extendBy) : null
+					values[field.key] = formatTermDuration(raw, extension)
+					continue
+				}
 				values[field.key] = empty !== null ? empty : (enumLabel !== null ? enumLabel : formatValue(raw, prop || {}))
 			}
 			return values
