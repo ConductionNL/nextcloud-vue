@@ -1513,17 +1513,19 @@
 	margin: 0;
 	font-size: 17px;
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 	text-decoration: none;
 	white-space: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-meta {
 	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: normal;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: normal;
 }
 
 /* The meta line, note and description are paragraphs: each hands the theme,
@@ -1531,11 +1533,13 @@
 .cn-look-board .cn-object-card--board .cn-object-card__record-note {
 	--nldesign-component-paragraph-font-size: 13px;
 	--nldesign-component-paragraph-font-weight: 600;
+	--nldesign-component-paragraph-line-height: normal;
 	--nldesign-component-paragraph-color: var(--cn-board-text-soft);
 	margin: 0;
 	color: var(--cn-board-text-soft);
 	font-size: 13px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
