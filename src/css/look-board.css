@@ -671,6 +671,13 @@
 	gap: 8px;
 }
 
+/* A card's own header items (a count note, a status pill) stand before the
+   manifest's title-row buttons, as the boards draw them (DqZaakTaken "Wat
+   hierna komt": "2 gepland", then "+ Toevoegen"). */
+.cn-look-board .cn-widget-wrapper__actions > .cn-detail-widget-header-items:not(.cn-look-nextcloud *) {
+	order: -1;
+}
+
 .cn-look-board .cn-detail-card__header-right:not(.cn-look-nextcloud *) {
 	gap: 8px;
 }
