@@ -772,7 +772,7 @@
 		     the reader has stated why they open it and the purpose is recorded. -->
 		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
 			<CnAccessPurposeDialog
-				v-if="accessPurposeAsking"
+				v-if="accessPurposeAsking && !accessPurposeChecking"
 				:title="accessPurposeText('title')"
 				:description="accessPurposeText('description')"
 				:options="accessPurposeOptions"
@@ -781,7 +781,7 @@
 				@submit="recordAccessPurpose"
 				@cancel="accessPurposeAsking = false" />
 			<NcEmptyContent
-				v-else-if="accessPurposeRequired"
+				v-else-if="accessPurposeRequired && !accessPurposeChecking"
 				:name="t('nextcloud-vue', 'State a purpose to open this')"
 				:description="t('nextcloud-vue', 'This record holds special categories of personal data. It opens once your purpose is recorded.')"
 				data-testid="cn-detail-page-access-purpose-refused">
@@ -3095,6 +3095,12 @@ export default {
 		 * browser session. A refusal keeps the record closed. `null` (the
 		 * default) asks nothing.
 		 *
+		 * `checkUrl` (GET, `{objectId}` filled in) is asked first: an answer
+		 * `{ required: false }` opens the record without the dialog (the app
+		 * recorded the purpose itself, as for the case's own handler); any
+		 * other answer, or a failure, shows the dialog. An option's `hint`
+		 * is a line under it saying what choosing it does besides recording it.
+		 *
 		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
 		 * @type {object|null}
 		 */
@@ -3413,6 +3419,10 @@ export default {
 			accessPurposeGranted: readGrantedPurposes(),
 			/** Whether the purpose dialog is open; closing it without a purpose keeps the record closed. */
 			accessPurposeAsking: true,
+			/** Whether `accessPurpose.checkUrl` is being asked for the record in view. */
+			accessPurposeChecking: false,
+			/** The record the check last answered for, so it is asked once per record. */
+			accessPurposeCheckedKey: '',
 			/** Whether a purpose is being recorded. */
 			accessPurposeBusy: false,
 			/** Why the last purpose was refused. */
@@ -4129,7 +4139,11 @@ export default {
 			const options = Array.isArray(this.accessPurpose?.options) ? this.accessPurpose.options : []
 			return options
 				.filter((option) => option && typeof option.value === 'string' && option.value !== '')
-				.map((option) => ({ value: option.value, label: this.cnTranslate(option.label || option.value) }))
+				.map((option) => ({
+					value: option.value,
+					label: this.cnTranslate(option.label || option.value),
+					...(typeof option.hint === 'string' && option.hint !== '' ? { hint: this.cnTranslate(option.hint) } : {}),
+				}))
 		},
 
 		/**
@@ -5832,6 +5846,17 @@ export default {
 			this.accessPurposeError = ''
 		},
 
+		/** Once the page knows the record asks a purpose, the app is asked first whether it must (`checkUrl`). */
+		accessPurposeRequired: {
+			handler(required) {
+				if (required && this.contentWithheld) {
+					this.checkAccessPurpose()
+				}
+			},
+
+			immediate: true,
+		},
+
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
 		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
 		// forwards never changes. A shallow watcher missed every such edit —
@@ -6089,6 +6114,50 @@ export default {
 		 * @param {{purpose: string, note: string}} answer The chosen purpose.
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Ask the app whether the reader must state a purpose for this record
+		 * (`accessPurpose.checkUrl`); `{ required: false }` opens it at once.
+		 *
+		 * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
+		 * @return {Promise<void>}
+		 */
+		async checkAccessPurpose() {
+			const key = this.accessPurposeKey
+			const url = String(this.accessPurpose?.checkUrl || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
+			if (url === '' || this.accessPurposeCheckedKey === key) {
+				return
+			}
+			this.accessPurposeCheckedKey = key
+			this.accessPurposeChecking = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const { data } = await axios.get(prefixUrl(url))
+				if (data && data.required === false && this.accessPurposeKey === key) {
+					this.grantAccessPurpose(key)
+				}
+			} catch {
+				// The check is a shortcut: without an answer the reader is asked as before.
+			} finally {
+				this.accessPurposeChecking = false
+			}
+		},
+
+		/**
+		 * Open the record and remember for this browser session that its
+		 * purpose is recorded.
+		 *
+		 * @param {string} key The record's session key.
+		 * @return {void}
+		 */
+		grantAccessPurpose(key) {
+			this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
+			try {
+				window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
+			} catch {
+				// Without session storage the purpose is asked again on the next visit.
+			}
+		},
+
 		async recordAccessPurpose(answer) {
 			const url = String(this.accessPurpose?.url || '').replace(/\{objectId\}/g, encodeURIComponent(String(this.objectId || '')))
 			if (url === '') {
@@ -6100,13 +6169,7 @@ export default {
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 				await axios.post(prefixUrl(url), { purpose: answer.purpose, note: answer.note })
-				const key = this.accessPurposeKey
-				this.accessPurposeGranted = [...new Set([...this.accessPurposeGranted, key])]
-				try {
-					window.sessionStorage.setItem(ACCESS_PURPOSE_SESSION_KEY, JSON.stringify(this.accessPurposeGranted))
-				} catch {
-					// Without session storage the purpose is asked again on the next visit.
-				}
+				this.grantAccessPurpose(this.accessPurposeKey)
 			} catch (error) {
 				const data = error?.response?.data
 				this.accessPurposeError = (data && (data.message || data.error)) || t('nextcloud-vue', 'Your purpose could not be recorded, so the record stays closed.')
