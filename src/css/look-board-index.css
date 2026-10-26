@@ -137,13 +137,15 @@
 
 /* No band, no padding, no radius. The DOM is already in reading order (row 1,
    the act cluster, row 2), so the rows only need laying out: the two row
-   wrappers dissolve into the bar's flex row, and row 2 takes a full line. */
+   wrappers dissolve into the bar's flex row, and row 2 takes a full line,
+   20px under row 1 (DqZaken, DqPostvak, DqContracten).
+   @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md */
 .cn-look-board .cn-actions-bar.cn-actions-bar--board {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	gap: 8px;
+	gap: 20px 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
 	background: transparent;
@@ -1061,6 +1063,13 @@
    the name, the e-mail under the name beside it. The name keeps the title's
    weight and size, and its underline: an inline-flex box is atomic, so the
    cell's own underline does not reach it. */
+/* A row's action buttons ("Aan zaak koppelen", "Nieuwe zaak") are the
+   board's 34px buttons, not NcButton's small 24px one (DqPostvak).
+   @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md */
+.cn-look-board .cn-cell-renderer__actions .button-vue {
+	--button-size: 34px;
+}
+
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar {
 	gap: 10px;
 }
