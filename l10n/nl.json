@@ -2672,7 +2672,9 @@
     "Map layers": "Kaartlagen",
     "you": "jij",
     "my team": "mijn team",
-    "Subject: {subject}": "Onderwerp: {subject}"
+    "Subject: {subject}": "Onderwerp: {subject}",
+    "Optional": "Optioneel",
+    "Reached": "Bereikt"
   },
   "plurals": {
     "{count} member": [

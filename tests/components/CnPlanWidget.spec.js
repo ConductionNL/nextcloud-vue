@@ -88,6 +88,13 @@ describe('CnPlanWidget', () => {
 		expect(w.find('[data-testid="cn-plan-error"]').text()).toContain('while a sub-task is open')
 	})
 
+	it('words a state as the page configures it', async () => {
+		const w = await mountWidget({ objectId: 'z-1', content: { stateLabels: { active: 'Active', completed: '' } } })
+		const words = w.findAll('.cn-plan-row__state').map((pill) => pill.text())
+		expect(words).toContain('Active')
+		expect(words).not.toContain('In progress')
+	})
+
 	it('reads 404 as no plan and any other failure as an error with a retry', async () => {
 		axios.get.mockRejectedValueOnce({ response: { status: 404 } })
 		const none = await mountWidget({ objectId: 'z-1', content: { emptyText: 'This case type has no adaptive plan' } })

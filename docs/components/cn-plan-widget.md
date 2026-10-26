@@ -23,6 +23,7 @@ Place it only where a plan can exist, with the widget's `visibleWhen`, so record
 | Key | Description |
 |-----|-------------|
 | `emptyText` | Text when the record has no plan, through the app's translate |
+| `stateLabels` | The word per state (`{ "active": "Active" }`), through the app's translate. Without it a state reads Waiting, Can start, In progress, Done, Stopped or Not needed; a completed milestone reads Reached, and an optional item nobody has started reads Optional |
 
 ## Props
 

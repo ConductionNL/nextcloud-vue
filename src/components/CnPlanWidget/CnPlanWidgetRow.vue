@@ -8,7 +8,7 @@
 			<span class="cn-plan-row__name">{{ item.name }}</span>
 			<span v-if="item.description" class="cn-plan-row__meta" data-testid="cn-plan-row-meta">{{ item.description }}</span>
 		</span>
-		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item.state) }}</span>
+		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item) }}</span>
 		<NcButton v-if="item.state === 'enabled' && item.discretionary"
 			:disabled="busy"
 			:data-testid="`cn-plan-enable-${item.key || item.uuid}`"
@@ -49,6 +49,16 @@ export default {
 			required: true,
 		},
 
+		/**
+		 * The word per state that replaces the default, already translated.
+		 *
+		 * @type {object}
+		 */
+		labels: {
+			type: Object,
+			default: () => ({}),
+		},
+
 		/** A move is running. */
 		busy: {
 			type: Boolean,
@@ -69,12 +79,24 @@ export default {
 		t,
 
 		/**
-		 * The word for a state.
+		 * The word for an item's state. A completed milestone is reached, and
+		 * an optional item nobody has started reads as optional rather than
+		 * waiting. `labels` replaces the word for a state.
 		 *
-		 * @param {string} state The state.
+		 * @param {object} item The plan item.
 		 * @return {string}
 		 */
-		stateLabel(state) {
+		stateLabel(item) {
+			const state = item.state
+			if (typeof this.labels[state] === 'string' && this.labels[state] !== '') {
+				return this.labels[state]
+			}
+			if (state === 'completed' && item.type === 'milestone') {
+				return t('nextcloud-vue', 'Reached')
+			}
+			if (item.discretionary && (state === 'available' || state === 'enabled')) {
+				return t('nextcloud-vue', 'Optional')
+			}
 			const labels = {
 				available: t('nextcloud-vue', 'Waiting'),
 				enabled: t('nextcloud-vue', 'Can start'),

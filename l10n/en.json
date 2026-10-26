@@ -2417,7 +2417,9 @@
     "Map layers": "Map layers",
     "you": "you",
     "my team": "my team",
-    "Subject: {subject}": "Subject: {subject}"
+    "Subject: {subject}": "Subject: {subject}",
+    "Optional": "Optional",
+    "Reached": "Reached"
   },
   "plurals": {
     "{count} member": [
