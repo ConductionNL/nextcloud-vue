@@ -3787,3 +3787,21 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 .cn-look-board .checkbox-radio-switch-switch.checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::after {
 	inset-inline-start: 18px;
 }
+
+/* A record list's tonal pill ("Vervolg plannen") keeps the primary tint in
+   the board look: NcButton redefines the primary light colour inside the
+   button, so the tint is read on the list and handed down (r31: grey, ink).
+   @spec openspec/changes/board-record-list-tonal-pill/specs/record-list/spec.md */
+.cn-look-board .cn-record-list:not(.cn-look-nextcloud *) {
+	--cn-record-list-tonal-bg: var(--color-primary-element-light);
+	--cn-record-list-tonal-ink: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) {
+	background-color: var(--cn-record-list-tonal-bg);
+	color: var(--cn-record-list-tonal-ink);
+}
+
+.cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
+	color: var(--cn-record-list-tonal-ink);
+}
