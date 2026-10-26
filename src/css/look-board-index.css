@@ -1704,9 +1704,19 @@
 	--app-sidebar-width: 360px;
 }
 
+/* The subtitle 2px under the title at a normal line height, and the tab's
+   content 20px in from the panel edge (the tab's 10px and 10px here), as
+   DqFilterBeheren draws the side panel.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname {
+	margin-top: 2px;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board:has(.cn-index-page) > .app-sidebar .cn-index-sidebar__section {
+	padding: 10px;
 }
 
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar__close {
@@ -2120,6 +2130,7 @@
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
 	font-size: 14px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 /* A view's count: a grey pill at the end of its row (DqFilterBeheren). */
