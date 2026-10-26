@@ -3413,6 +3413,7 @@ export default {
 	font-weight: 600;
 	height: 34px;
 	justify-content: center;
+	margin: 0;
 	padding: 0 14px;
 	text-decoration: none;
 }
