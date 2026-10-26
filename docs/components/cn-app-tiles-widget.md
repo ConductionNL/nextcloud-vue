@@ -6,6 +6,13 @@ Without `content.apps` the tiles are the apps of Nextcloud's navigation, so the 
 
 Part of the dashboard widget library. See [CnAppTilesWidgetForm](./cn-app-tiles-widget-form.md) and [the widget library overview](./cn-widget-grid.md).
 
+## Props
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `content` | `object` | `{}` | The widget's content, below. |
+| `placement` | `object` | `null` | The placement, part of the widget renderer contract; not read. |
+
 ## Content
 
 | Key | Type | Default | Description |
