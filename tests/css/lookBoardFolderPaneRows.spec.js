@@ -59,4 +59,11 @@ describe('look-board-index.css: the folder pane draws folder rows', () => {
 		expect(body).toContain('color: var(--color-primary-element-light-text);')
 		expect(body).toContain('font-weight: 700;')
 	})
+
+	it('keeps the 18px icon on Alle and draws the counts in the board grey', () => {
+		const all = css.slice(css.indexOf('.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {'))
+		expect(all.slice(0, all.indexOf('}'))).toContain('width: 18px;')
+		const count = css.slice(css.indexOf('.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__count {'))
+		expect(count.slice(0, count.indexOf('}'))).toContain('background: var(--cn-board-hairline);')
+	})
 })
