@@ -35,6 +35,7 @@ From code, for example a create override, use [`openDuplicateWarning`](../utilit
 | `matchedText` | String | `''` | What a match was found on, with `{fields}` (joined as a list: "Aanvrager en Onderwerp") and `{percentage}` filled, through the host translate. Empty: "Aanvrager, Onderwerp (82%)". |
 | `eyebrow` | String | `''` | A line above the title, as the board dialogs draw one. |
 | `reasonHint` | String | `''` | The help line under the reason field. |
+| `footnote` | String | `''` | A muted note under the matches and the reason, for what Cancel and a block mean. |
 | `rowMeta` | String | `'{identifier}'` | A record's meta line, a template |
 | `recordUrl` | String | `''` | A record's page, a template with `{uuid}`; empty draws no link |
 | `fieldLabels` | Object | `{}` | Words for the matched fields, through the app's translate |
