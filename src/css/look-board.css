@@ -3879,7 +3879,8 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 }
 
 .cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon > * {
-	display: none;
+	/* NcIconSvgWrapper's inline icon sets display inline-flex !important. */
+	display: none !important;
 }
 
 .cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon::after {
