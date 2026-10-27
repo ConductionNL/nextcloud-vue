@@ -18,6 +18,12 @@ describe('CnAttentionFlagWidget compose button', () => {
 		expect(button).toContain('class="cn-attention-flag__compose"')
 	})
 
+	it('keeps its flag and label at the start, the flag at 16px, as the boards draw it', () => {
+		const button = sfc.slice(sfc.indexOf('<NcButton'), sfc.indexOf('</NcButton>'))
+		expect(button).toContain('alignment="start"')
+		expect(button).toContain('<FlagOutline :size="16" />')
+	})
+
 	it('is not held to its label width', () => {
 		const at = sfc.indexOf('\n.cn-attention-flag__compose {')
 		const body = at < 0 ? '' : sfc.slice(at, sfc.indexOf('}', at))

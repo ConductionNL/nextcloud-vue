@@ -51,10 +51,11 @@
 				class="cn-attention-flag__compose"
 				variant="secondary"
 				wide
+				alignment="start"
 				data-testid="cn-attention-flag-compose"
 				@click="composing = true">
 				<template #icon>
-					<FlagOutline :size="20" />
+					<FlagOutline :size="16" />
 				</template>
 				{{ raised ? label('clear') : label('raise') }}
 			</NcButton>
