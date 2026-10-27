@@ -414,6 +414,26 @@
 	overflow: visible;
 }
 
+/* A sortable column of a table on a dashboard card shows its idle chevron only
+   on hover or focus, outside the column's width: the boards draw these heads as
+   text (DqDoorlooptijd "Prestaties per zaaktype" 569px; the 14px chevron and its
+   4px gap made it 641). A sorted column keeps its chevron in place.
+   @spec openspec/changes/board-dashboard-table-idle-chevron/specs/board-dashboard-table-idle-chevron/spec.md#requirement-an-idle-sort-chevron-on-a-dashboard-card-takes-no-room */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__sort {
+	position: relative;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__chevron--idle {
+	position: absolute;
+	inset-inline-start: calc(100% + 2px);
+	opacity: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content th.cn-table-header--sortable:hover .cn-table-header__chevron--idle,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__sort:focus-visible .cn-table-header__chevron--idle {
+	opacity: 1;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
