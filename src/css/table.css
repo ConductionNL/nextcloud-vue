@@ -474,6 +474,13 @@
 	opacity: 1;
 }
 
+/* The boards draw an unsorted column's chevron solid in the control border
+   grey (#828a95), not as a faded muted one (DqZaakAssistent "Moment"). */
+.cn-look-board .cn-table-header__chevron--idle:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-control-border, var(--color-text-maxcontrast));
+	opacity: 1;
+}
+
 /* A column carrying a `description` gets a dotted underline — the long-standing
    convention for "there is an explanation here". Without it the tooltip is
    undiscoverable: nobody hovers a header that gives no sign of having more to
