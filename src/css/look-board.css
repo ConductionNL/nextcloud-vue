@@ -2815,6 +2815,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-inline-start: auto;
 }
 
+/* A row's lone trailing line (DqDashboard "12 dagen stil") wraps under the text
+   at its start, at the font's normal line height, as the boards draw it: an
+   83px row, not the text's 77 with the line squeezed in as a second meta.
+   @spec openspec/changes/board-lone-trailing-wraps-at-start/specs/board-lone-trailing-wraps-at-start/spec.md#requirement-a-lone-trailing-line-wraps-under-the-text-at-its-start */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__aside:has(> .cn-record-list__trailing:only-child) {
+	margin-inline-start: 0;
+	line-height: normal;
+}
+
 /* The title and meta take the room the pill and the date leave, and a long
    title wraps inside it: the pill and the date stay on the title line, as the
    board draws them. They drop under the text only when the card is too narrow
