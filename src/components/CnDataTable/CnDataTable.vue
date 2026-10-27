@@ -2239,6 +2239,11 @@ export default {
 				}
 				return v
 			}
+			// `col.template`: the cell reads a line built from the row's fields
+			// ("Shift {floatAt|date}, {drawer}"), in the host's translation.
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return this.cellLineValue(row, this.translateLabel(col.template), col)
+			}
 			const value = this.getCellValue(row, this.columnValueField(col))
 			const empty = value === null || value === undefined || value === ''
 			// `emptyValueBy`: what an empty cell means depends on another field

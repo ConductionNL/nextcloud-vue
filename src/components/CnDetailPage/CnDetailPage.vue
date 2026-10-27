@@ -3233,6 +3233,17 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * A line the header names the record by, built from its fields
+		 * (manifest `config.titleTemplate`, "Shift {floatAt|date}, {drawer}"),
+		 * in the host's translation. Wins over `titleField`; a template with an
+		 * empty field falls back to it.
+		 */
+		titleTemplate: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: [
@@ -5281,6 +5292,12 @@ export default {
 			const obj = this.resolvedObject
 			if (!obj || typeof obj !== 'object') {
 				return ''
+			}
+			if (this.titleTemplate) {
+				const filled = fillTemplate(this.cnTranslate(this.titleTemplate), obj)
+				if (filled !== '') {
+					return filled
+				}
 			}
 			if (this.titleField) {
 				const named = stageOf(obj, this.titleField)
