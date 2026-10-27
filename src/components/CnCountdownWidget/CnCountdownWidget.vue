@@ -506,6 +506,18 @@ export default {
 	font-size: 13px;
 }
 
+/* The board stacks the term card 10px apart: the days, the date line, the
+   bar and the action (DqZaak "Termijn": r33 live 2 / 11.9 / 5 against 10,
+   card 182.7 against 188). */
+.cn-countdown-widget--board .cn-kpi-card__body {
+	gap: 10px;
+}
+
+.cn-countdown-widget--board .cn-countdown-widget__progress.cn-countdown-widget__progress,
+.cn-countdown-widget--board .cn-countdown-widget__action.cn-countdown-widget__action {
+	margin: 0;
+}
+
 .cn-countdown-widget__action--primary {
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
