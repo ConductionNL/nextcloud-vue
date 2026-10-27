@@ -43,5 +43,7 @@ describe('CnDashboardPage: the grid sits flush in the board look', () => {
 		expect(body('.cn-dashboard-page--board .cn-dashboard-page__kpi-row + :deep(.cn-dashboard-grid)')).toContain('margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px))')
 		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header:has(.cn-header-trail)')).toContain('padding-bottom: 8px')
 		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail)')).toContain('margin-bottom: 0')
+		// The trail and the date beside it sit at normal leading: a 75px header (DqDagAfsluiten), not 79.
+		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail)')).toContain('line-height: normal')
 	})
 })
