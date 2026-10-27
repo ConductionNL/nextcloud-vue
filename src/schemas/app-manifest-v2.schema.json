@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.158.0",
+	"version": "2.159.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5718,6 +5718,7 @@
 							"description": "type='index': the property keys the cards view shows as the facts list of each card, in order; defaults to the first four list columns under the board look (screens-card-parity). Maps to CnIndexPage `cardFields`.",
 							"items": { "type": "string", "minLength": 1 }
 						},
+						"tableTitle": { "type": "string", "minLength": 1, "description": "type='index', table view: a title at the top of the table card, an i18n key; under the board look the head row then reads on white with a rule under it (index-table-title). Maps to CnIndexPage `tableTitle`." },
 						"cardLayout": {
 							"type": "object",
 							"additionalProperties": false,

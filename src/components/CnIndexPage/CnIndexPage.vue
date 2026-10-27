@@ -771,8 +771,13 @@
 					'cn-index-page__main--list': currentViewMode === 'list',
 					'cn-index-page__main--table': currentViewMode === 'table',
 					'cn-index-page__main--split': splitLayout === 'split',
+					'cn-index-page__main--titled': tableTitleShown,
 				}"
 				@scroll="onListScroll">
+				<!-- The table card's own title (board PqInloop "In de wachtrij"). -->
+				<h2 v-if="tableTitleShown" class="cn-index-page__table-title" data-testid="cn-index-page-table-title">
+					{{ cnTranslate(tableTitle) }}
+				</h2>
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
@@ -2285,6 +2290,19 @@ export default {
 		cardFields: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * A title at the top of the table view's card (manifest key
+		 * `config.tableTitle`), in the host's translation. Under the board look
+		 * the head row of a titled table reads on the card's white with a rule
+		 * under it (board PqInloop "In de wachtrij").
+		 *
+		 * @spec openspec/changes/index-table-title/specs/index-table-title/spec.md
+		 */
+		tableTitle: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -4738,6 +4756,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the table card draws its title.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/index-table-title/specs/index-table-title/spec.md
+		 */
+		tableTitleShown() {
+			return this.currentViewMode === 'table' && typeof this.tableTitle === 'string' && this.tableTitle !== ''
+		},
+
 		/**
 		 * The quick-filter placement in the current view: its entry in
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.

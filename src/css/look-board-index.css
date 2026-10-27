@@ -2644,3 +2644,20 @@
 .cn-look-board .cn-team-workload__avatar:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
 }
+
+/* A titled table card (CnIndexPage `tableTitle`, board PqInloop "In de
+   wachtrij"): the title at 17px/700 at the top of the card, the head row on
+   the card's white with a rule under it.
+   @spec openspec/changes/index-table-title/specs/index-table-title/spec.md */
+.cn-look-board .cn-index-page__table-title {
+	margin: 0;
+	padding: 16px 18px 6px;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-index-page__main--titled .cn-data-table thead th:not(.cn-look-nextcloud *) {
+	background-color: var(--color-main-background);
+	border-bottom: 1px solid var(--color-border);
+}
