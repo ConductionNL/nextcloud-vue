@@ -3542,6 +3542,35 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 10px;
 }
 
+/* ---- An empty state on a settings card ---------------------------------- */
+/* A 48px icon in the control colour over a 20px bold line, 8px apart and 12px
+   in at top and bottom: 104px (DqBeheerGeavanceerd "StUF-ZKN-auditlog",
+   "Tenant-onboarding"); NcEmptyContent drew a 64px faded icon over a 30px
+   line, 127px. Its icon size carries `!important`, so this one does too.
+   @spec openspec/changes/board-settings-empty-state/specs/board-settings-empty-state/spec.md#requirement-a-board-settings-empty-state-is-104px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content {
+	gap: 8px;
+	padding: 12px 0;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__icon {
+	width: 48px;
+	height: 48px;
+	margin: 0;
+	opacity: 1;
+	color: var(--cn-board-control-border);
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__icon svg {
+	width: 48px !important;
+	height: 48px !important;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__name {
+	margin: 0;
+	line-height: 24px;
+}
+
 /* ---- A setup step's choice radio ---------------------------------------- */
 /* The setup wizard's choice cards draw their radio 20px square in the primary
    colour (DqInstellen "Voorbeeldgegevens laden"); the browser draws 13px, and
