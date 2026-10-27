@@ -473,6 +473,16 @@
 .cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select {
 	min-width: 0;
 	width: auto;
+	margin: 0;
+}
+
+/* A description that holds the page's filters is one 40px row, without
+   NcSelect's own 6px above and 4px under it, and ends the header 8px under it
+   as the boards pad it (DqDoorlooptijd, DqProcesanalyse: 50 and 100; DqTermijnen
+   90; the boards 98).
+   @spec openspec/changes/board-description-filter-row-40/specs/board-description-filter-row-40/spec.md#requirement-a-filter-description-is-a-40px-row-8px-above-the-headers-end */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__description--with-period {
+	padding-bottom: 8px;
 }
 
 /* Its search box sizes to the placeholder or choice instead of the input's 20
