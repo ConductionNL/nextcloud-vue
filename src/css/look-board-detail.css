@@ -2251,6 +2251,7 @@
 
 .cn-look-board .cn-events-card__when:not(.cn-look-nextcloud *),
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__who:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__author:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	color: var(--color-text-maxcontrast);
@@ -2259,6 +2260,7 @@
 }
 
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
+.cn-look-board .cn-events-card__who:not(.cn-look-nextcloud *)::before,
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *)::before {
 	content: ' · ';
 	white-space: pre;
@@ -2777,6 +2779,14 @@
 
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
+}
+
+/* An appointment's status pill stands at the row's end, centred on its two
+   lines (DqTaak Afspraken "Uitgenodigd").
+   @spec openspec/changes/events-card-board-row/specs/events-card/spec.md#requirement-an-appointment-row-names-who-is-invited-and-where-they-stand */
+.cn-look-board .cn-events-card__status:not(.cn-look-nextcloud *) {
+	align-self: center;
+	margin-inline-start: auto;
 }
 
 /* A joined paragraph in a side card (DqContact "Bereikbaar via": the last

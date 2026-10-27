@@ -52,7 +52,9 @@ export function eventStatusLabel(ev) {
  */
 export function inviteeAnswer(ev) {
 	const answers = (Array.isArray(ev?.attendees) ? ev.attendees : [])
-		.map((att) => (att && typeof att === 'object' ? String(att.partstat || '').toLowerCase() : ''))
+		// `partstat` as iCal writes it; `status: "invited"` as an appointment part
+		// writes it reads as still to answer.
+		.map((att) => (att && typeof att === 'object' ? String(att.partstat || att.status || '').toLowerCase().replace(/^invited$/, 'needs-action') : ''))
 		.filter(Boolean)
 	for (const answer of ['declined', 'needs-action', 'tentative']) {
 		if (answers.includes(answer)) {
