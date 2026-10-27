@@ -657,6 +657,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnConnectionsPanel": {
+			"direct": 0,
+			"transitive": 2,
+			"tier": "light",
+			"via": [],
+			"page": null
+		},
 		"CnContactCreate": {
 			"direct": 0,
 			"transitive": 0,
@@ -785,7 +792,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -855,6 +862,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1033,7 +1041,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 208,
+			"transitive": 209,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1103,6 +1111,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -1350,6 +1359,13 @@
 				"CnCalendarEventPicker"
 			],
 			"page": "cn-events-card"
+		},
+		"CnExpandableRow": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": null
 		},
 		"CnExportWizard": {
 			"direct": 0,
@@ -1666,7 +1682,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 216,
+			"transitive": 217,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1737,6 +1753,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedFieldFilters",
 				"CnRelatedObjectsWidget",
@@ -2103,7 +2120,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 213,
+			"transitive": 214,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2173,6 +2190,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedFieldFilters",
 				"CnRelatedObjectsWidget",
@@ -2441,9 +2459,19 @@
 		},
 		"CnLinkCardsPage": {
 			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
-			"via": [],
+			"transitive": 27,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnBuildiqEditButton",
+				"CnCellRenderer",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
+				"CnSchemaFormDialog"
+			],
 			"page": "cn-link-cards-page"
 		},
 		"CnLinkedWidget": {
@@ -3256,7 +3284,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 233,
+			"transitive": 234,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3331,6 +3359,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRedactionEditor",
 				"CnRegisterMapping",
 				"CnRegisterSchemaSelect",
@@ -3603,6 +3632,13 @@
 			],
 			"page": "cn-record-list-widget"
 		},
+		"CnRecordNotesWidget": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": null
+		},
 		"CnRedactionEditor": {
 			"direct": 1,
 			"transitive": 3,
@@ -3756,7 +3792,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 206,
+			"transitive": 207,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3827,6 +3863,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
@@ -5026,7 +5063,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 195,
+			"transitive": 196,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5093,6 +5130,7 @@
 				"CnPlanWidget",
 				"CnPollPicker",
 				"CnRecordListWidget",
+				"CnRecordNotesWidget",
 				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
