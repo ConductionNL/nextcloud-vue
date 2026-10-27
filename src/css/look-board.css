@@ -377,6 +377,15 @@
 	line-height: normal;
 }
 
+/* A card's header link under its title ("Alles bekijken") sits 10px under the
+   title at the font's normal line height, as the boards wrap it there
+   (DqDashboard: the first row 46px under the title, live 42).
+   @spec openspec/changes/board-link-under-title-gap/specs/board-link-under-title-gap/spec.md#requirement-a-board-header-link-under-the-title-sits-10px-under-it */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__header-link--under-title {
+	line-height: normal;
+	margin-top: 8px;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
