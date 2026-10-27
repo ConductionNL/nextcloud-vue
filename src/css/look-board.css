@@ -4253,3 +4253,109 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	font-size: 13px;
 	line-height: 1.45;
 }
+
+/* ---- The links page (CnLinkCardsPage) ---------------------------------- */
+/* As PqGeavanceerdHub draws it: the page padded as a board page, the title
+   28px/700 on a row as tall as a control (the boards' header actions) with
+   the description 15px under it and no gap for the navigation toggle; group captions 13px/700 in capitals; cards in columns of at least
+   320px, 16px apart, each with the hairline border, 18px padding, a 40px
+   tinted icon tile, the label 17px, the description 14px, a 21px status pill
+   and a trailing chevron.
+   @spec openspec/changes/board-link-cards-page/specs/board-link-cards-page/spec.md */
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) {
+	gap: var(--cn-board-section-gap);
+	padding: var(--cn-board-content-padding);
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 4px 0 8px;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__title {
+	min-height: var(--cn-board-control-height);
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__description {
+	max-width: none;
+	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__group:not(.cn-link-cards-page__group--list) {
+	gap: 12px;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__group:not(.cn-link-cards-page__group--list) .cn-link-cards-page__caption {
+	font-size: 13px;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__grid {
+	gap: 16px;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__card {
+	gap: 14px;
+	padding: 18px;
+	border-color: var(--cn-board-hairline);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: flex-start;
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__body {
+	gap: 6px;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__label {
+	font-size: 17px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__card-description {
+	color: var(--cn-board-text-soft);
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__status {
+	line-height: normal;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__status:not([class*='cn-link-cards-page__status--']),
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__status--neutral {
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__trailing {
+	margin-top: 10px;
+}
+
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__panel {
+	border-color: var(--cn-board-hairline);
+	border-radius: var(--cn-board-card-radius);
+}
