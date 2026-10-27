@@ -254,9 +254,9 @@ export default {
 		 * Write one matrix cell and read the answer again.
 		 *
 		 * @param {object} change The matrix's change: `{ eventId, channelId, value }`.
-		 * @param change.eventId
-		 * @param change.channelId
-		 * @param change.value
+		 * @param {string} change.eventId The event's id.
+		 * @param {string} change.channelId The channel's id.
+		 * @param {boolean} change.value Whether the event goes to that channel.
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/notification-preferences-board-matrix/specs/notification-preferences-board-matrix/spec.md#requirement-the-board-look-draws-notification-preferences-as-a-matrix
 		 */
