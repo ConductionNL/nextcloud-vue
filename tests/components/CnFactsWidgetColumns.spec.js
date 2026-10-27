@@ -9,6 +9,7 @@
  * the rows stay label beside value, as before.
  *
  * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
+ * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-three-columns
  */
 import { mount } from '@vue/test-utils'
 import CnFactsWidget from '../../src/components/CnFactsWidget/CnFactsWidget.vue'
@@ -57,5 +58,14 @@ describe('CnFactsWidget: one stacked column', () => {
 		expect(dl.classes()).toContain('cn-facts-widget__rows--stacked')
 		expect(dl.classes()).not.toContain('cn-facts-widget__rows--columns')
 		expect(mountFacts({ fields: FIELDS }).find('dl').classes()).not.toContain('cn-facts-widget__rows--stacked')
+	})
+})
+
+describe('CnFactsWidget: three columns', () => {
+	it('lays the rows out in three columns, label above value, with columns: 3', () => {
+		const dl = mountFacts({ columns: 3, fields: FIELDS }).find('dl')
+		expect(dl.classes()).toContain('cn-facts-widget__rows--columns')
+		expect(dl.classes()).toContain('cn-facts-widget__rows--three')
+		expect(mountFacts({ columns: 2, fields: FIELDS }).find('dl').classes()).not.toContain('cn-facts-widget__rows--three')
 	})
 })

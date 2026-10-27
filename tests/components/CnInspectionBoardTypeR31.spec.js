@@ -27,6 +27,10 @@ describe('DqInspectie type', () => {
 		expect(rule('components/CnDeviceFramesWidget/CnDeviceFramesWidget.vue', '.cn-device-frames-widget__title')).toContain('line-height: 1.2')
 	})
 
+	it('sets the frame status line on the normal line height (the head 4px shorter)', () => {
+		expect(rule('components/CnDeviceFramesWidget/CnDeviceFramesWidget.vue', '.cn-device-frames-widget__status')).toContain('line-height: normal')
+	})
+
 	it('keeps a compact card title 700 on a dashboard page', () => {
 		const body = rule('css/look-board.css', '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--compact .cn-record-list__card .cn-record-list__title')
 		expect(body).toContain('font-weight: 700')

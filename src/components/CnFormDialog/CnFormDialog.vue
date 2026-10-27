@@ -215,6 +215,7 @@
 							     `sources`; the form stores the chosen row's id only. -->
 							<div v-if="field.widget === 'party'" class="cn-form-dialog__party-wrapper">
 								<CnPartyPicker
+									:inputId="'cn-form-' + field.key"
 									:modelValue="formData[field.key] != null ? formData[field.key] : null"
 									:sources="field.sources || []"
 									:inputLabel="fieldLabelText(field)"

@@ -5,6 +5,7 @@
 <template>
 	<div class="cn-party-picker">
 		<CnSearchSelect
+			:inputId="inputId"
 			:modelValue="selectedOption"
 			:options="options"
 			:inputLabel="inputLabel"
@@ -91,6 +92,12 @@ export default {
 	},
 
 	props: {
+		/** The search input's id, so the form's own label names it. */
+		inputId: {
+			type: String,
+			default: undefined,
+		},
+
 		/** The chosen party's id. */
 		modelValue: {
 			type: [String, Number],

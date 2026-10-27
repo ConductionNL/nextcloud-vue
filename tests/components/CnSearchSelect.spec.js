@@ -74,4 +74,14 @@ describe('CnSearchSelect', () => {
 		expect(mountSelect({ modelValue: 'gone' }).vm.selectedOption).toEqual({ id: 'gone', label: 'gone' })
 		expect(mountSelect({ modelValue: null }).vm.selectedOption).toBeNull()
 	})
+
+	it('draws a result row without its own padding and its lines on the normal height (DqNieuweZaak rows 47px)', () => {
+		const fs = require('fs')
+		const path = require('path')
+		const sfc = fs.readFileSync(path.join(__dirname, '../../src/components/CnSearchSelect/CnSearchSelect.vue'), 'utf8')
+		const block = (selector) => sfc.slice(sfc.indexOf(selector + ' {'), sfc.indexOf('}', sfc.indexOf(selector + ' {')))
+		expect(block('.cn-search-select__row')).toMatch(/padding: 0;/)
+		expect(block('.cn-search-select__name')).toMatch(/line-height: normal;/)
+		expect(block('.cn-search-select__secondary')).toMatch(/line-height: normal;/)
+	})
 })
