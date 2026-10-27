@@ -2976,6 +2976,33 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions {
 	flex: 1 1 100%;
 	justify-content: space-between;
+	padding-inline: 1px;
+}
+
+/* The closing pair as the board draws it: Annuleren 14px in with no inner text
+   padding, Dag afsluiten 16px in with an 18px icon, 24px from the card edge
+   (r33 DqDagAfsluiten: Annuleren 4px wider, Dag afsluiten 6px narrower, the
+   gap between them 517 against 512.8; by injection 513.1).
+   @spec openspec/changes/board-close-day-pair-as-drawn/specs/board-close-day-pair-as-drawn/spec.md#requirement-the-board-closing-pair-is-drawn-as-the-board */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue {
+	--button-padding: 14px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
+	--button-padding: 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue__icon {
+	width: 18px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue__icon .material-design-icon__svg {
+	width: 18px;
+	height: 18px;
 }
 
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
