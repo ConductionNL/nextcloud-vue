@@ -846,6 +846,8 @@ describe('CnMapWidget — board look controls (DqZakenKaart)', () => {
 		const toggle = L.control.layers.mock.results.at(-1).value.getContainer().querySelector('.leaflet-control-layers-toggle')
 		expect(toggle.getAttribute('title')).toBe('Map layers')
 		expect(toggle.getAttribute('aria-label')).toBe('Map layers')
+		expect(toggle.querySelector('svg')).toBeTruthy()
+		expect(toggle.style.backgroundImage).toBe('none')
 		wrapper.unmount()
 	})
 

@@ -132,6 +132,7 @@
 						:aria-describedby="missingPhoto.includes(question.id) ? `${uid}-photo-${question.id}` : null"
 						data-testid="cn-checklist-run-photo-input"
 						@change="addPhotos($event, question.id)">
+					<CameraOutline :size="16" />
 					{{ photoNamesFor(question).length || (storedPhotos[question.id] || []).length ? morePhotoLabel : addPhotoLabel }}
 				</label>
 				<p
@@ -175,6 +176,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CameraOutline from 'vue-material-design-icons/CameraOutline.vue'
 import { uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -308,7 +310,7 @@ function idOf(object) {
 export default {
 	name: 'CnChecklistRunWidget',
 
-	components: { NcButton, NcLoadingIcon },
+	components: { CameraOutline, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The detail page's object context (`{ objectId, object }`), for tokens. */
@@ -1260,6 +1262,13 @@ export default {
 	width: 100%;
 }
 
+/* A note is two 15px lines on the normal line height, 8px 12px in: 54px, as
+   the board draws it (live 48). */
+.cn-checklist-run__text.cn-checklist-run__text {
+	padding: 8px 12px;
+	line-height: normal;
+}
+
 .cn-checklist-run__group {
 	font-size: 14px;
 	font-weight: 600;
@@ -1280,13 +1289,20 @@ export default {
 .cn-checklist-run__photo-button {
 	align-items: center;
 	align-self: flex-start;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border, var(--color-border-dark));
 	border-radius: var(--border-radius-element, 8px);
 	cursor: pointer;
 	display: inline-flex;
-	font-weight: 600;
+	gap: 8px;
 	min-height: 34px;
 	padding: 0 14px;
+}
+
+/* A theme sets every label bold and at the body size; the photo button is
+   the board's 14px/600 control with a camera before its label (DqInspectie). */
+.cn-checklist-run__photo-button.cn-checklist-run__photo-button {
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-checklist-run__photo-button:focus-within {

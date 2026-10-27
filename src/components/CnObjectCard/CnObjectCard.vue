@@ -78,7 +78,7 @@
 			<div v-if="recordChips.length > 0" class="cn-object-card__record-chips" data-testid="cn-object-card-chips">
 				<CnStatusBadge
 					v-for="chip in recordChips"
-					:key="chip.field"
+					:key="chip.key || chip.field"
 					class="cn-object-card__record-pill"
 					:label="chip.label"
 					:variant="chip.variant">
@@ -251,6 +251,7 @@ import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -407,7 +408,10 @@ export default {
 		 * has passed. `description` is a field (or `{ field, maxLength? }`, cut
 		 * at 140 characters by default) drawn under the meta line. `chips` is a
 		 * list of `{ field, formatter?, formatterOptions?, colorMap?, labels?,
-		 * variant? }`, each a pill whose text reads through the formatter.
+		 * variant? }`, each a pill whose text reads through the formatter; with
+		 * `each` a list field gives one pill per entry (`each` names the entry's
+		 * field or is a template). A `meta` part may be `{ template }`, a line
+		 * filled from the object (`'{stages|count} stages'`).
 		 * `note` is `{ field, formatter?, formatterOptions?, tone? }`, a line
 		 * under the meta line in the `purple` or `teal` pill ink.
 		 * Without it the card keeps its head, facts and action.
@@ -675,7 +679,11 @@ export default {
 			return chips
 				.map((def) => (typeof def === 'string' ? { field: def } : def))
 				.filter((def) => def && typeof def.field === 'string' && def.field !== '')
+				.flatMap((def) => (typeof def.each === 'string' && def.each !== '' ? this.listChips(def) : [def]))
 				.map((def) => {
+					if (def.listChip) {
+						return this.withLook({ key: def.key, field: def.field, label: def.label, variant: isBadgeVariant(def.variant) ? def.variant : 'default' }, def)
+					}
 					const column = typeof def.formatter === 'string' ? { formatter: def.formatter, formatterOptions: def.formatterOptions } : undefined
 					const label = this.layoutText(def.field, column)
 					if (label === '') {
@@ -799,6 +807,9 @@ export default {
 		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
 		 */
 		metaPart(part) {
+			if (part && typeof part === 'object' && typeof part.template === 'string' && part.template !== '') {
+				return { field: part.template, value: null, text: fillTemplate(this.cnTranslate(part.template), this.object), column: null }
+			}
 			if (typeof part === 'string' && part !== '') {
 				return { field: part, value: readPath(this.object, part), text: this.layoutText(part), column: this.layoutColumn(part) }
 			}
@@ -807,6 +818,31 @@ export default {
 			}
 			const column = typeof part.formatter === 'string' ? { formatter: part.formatter, formatterOptions: part.formatterOptions } : null
 			return { field: part.field, value: readPath(this.object, part.field), text: this.layoutText(part.field, column), column }
+		},
+
+		/**
+		 * One chip per entry of a list field (`{ field: 'stages', each: 'name' }`):
+		 * `each` names the entry's field, or is a template filled from the entry
+		 * (`'{name} {probability}%'`). Empty entries are left out.
+		 *
+		 * @param {object} def The chip definition.
+		 * @return {Array<object>} The chips, marked `listChip`.
+		 * @spec openspec/changes/card-list-chips/specs/object-card/spec.md
+		 */
+		listChips(def) {
+			const items = readPath(this.object, def.field)
+			if (!Array.isArray(items)) {
+				return []
+			}
+			const template = def.each.includes('{') ? this.cnTranslate(def.each) : ''
+			return items
+				.map((item, index) => {
+					const label = template !== ''
+						? fillTemplate(template, item || {})
+						: String(readPath(item || {}, def.each) ?? '')
+					return { ...def, listChip: true, key: def.field + '.' + index, label }
+				})
+				.filter((chip) => chip.label !== '')
 		},
 
 		/**

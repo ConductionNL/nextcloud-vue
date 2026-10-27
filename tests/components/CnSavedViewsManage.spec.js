@@ -52,6 +52,11 @@ describe('the saved-views panel', () => {
 		expect(ids(w, 'cn-saved-views-manage')[0].attributes('aria-label')).toBe('Manage "Mine"')
 	})
 
+	it('opens a row\'s manage menu at the end of its button, so it stays inside the panel', () => {
+		const w = mountPanel([own])
+		expect(w.findComponent({ name: 'NcActions' }).attributes('placement')).toBe('bottom-end')
+	})
+
 	it('offers each access only its own entries; only the owner edits and deletes', () => {
 		const w = mountPanel([own, writable, readOnly])
 		expect(entriesOf(w, '1')).toEqual(['edit', 'update', 'share', 'copy', 'delete'])

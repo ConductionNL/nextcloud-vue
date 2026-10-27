@@ -119,3 +119,20 @@ describe('CnFormDialog resource widget', () => {
 		expect(wrapper.vm.formData.roleType).toBeNull()
 	})
 })
+
+describe('CnFormDialog party widget over a semantic reference', () => {
+	it('keeps the party picker when the property also names a semantic type (dossiq case.requester)', async () => {
+		const wrapper = mount(CnFormDialog, {
+			props: {
+				schema: { title: 'Case', properties: { requester: { type: 'string', format: 'uuid', title: 'Requester', referenceSemanticType: 'https://openregister.app/ns#Requester' } } },
+				item: null,
+				fieldOverrides: { requester: { widget: 'party', sources: SOURCES } },
+			},
+			global: { stubs, provide: { cnTranslate: (k) => k } },
+		})
+		wrapper.vm.semanticResolutions = { 'https://openregister.app/ns#Requester': { status: 'done', resolved: true, schemaSlug: 'contact', registerSlug: 'pipelinq' } }
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findComponent({ name: 'CnPartyPicker' }).exists()).toBe(true)
+		expect(wrapper.find('.cn-form-dialog__semantic-unresolved').exists()).toBe(false)
+	})
+})

@@ -31,6 +31,7 @@ oldest first by their time.
 | `senderField` | Where it keeps its sender (alias of `authorField`). |
 | `directionField` | Where it keeps its direction (alias of `sideField`); a message whose direction equals `outValue` (alias of `usValue`) is one the organisation sent. |
 | `channelField` | Where it keeps its channel; `channelMap` turns a stored value into a label (`{ "email": "E-mail" }`), translated. |
+| `bodyField` (list) | A list of fields: the first that holds text is the message's text (`["message", "summary"]`: the full message, else its summary). |
 | `subjectField` | Where a message keeps its subject; shown on its own line above the text, "Subject: ...". |
 | `noteField` / `attachmentCountField` | A grey line under the message: the note, then the attachment count ("1 attachment"), joined with a comma. |
 | `channelIcons` | Stored channel value to an icon name (`{ "phone": "PhoneOutline" }`), drawn before the channel's name on each message. |

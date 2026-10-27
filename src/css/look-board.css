@@ -177,6 +177,16 @@
 	margin-top: 0;
 }
 
+/* A description that is a line of text sits at the font's normal line height
+   and ends the header 8px under it, as the boards pad their header (DqDashboard,
+   DqMijnWerk, DqMijnTeam: 76, live 72.5). A description that holds the page's
+   filters keeps its own height: the controls already set it.
+   @spec openspec/changes/board-text-description-ends-8px/specs/board-text-description-ends-8px/spec.md#requirement-a-text-description-ends-the-board-header-8px-under-it */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__description:not(:has(.v-select, .cn-segmented-control)) {
+	padding-bottom: 8px;
+	line-height: normal;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__title-row {
 	grid-column: 1;
 	grid-row: 1;
@@ -479,6 +489,21 @@
 .cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select .input-field__input {
 	field-sizing: content;
 	padding-inline: 10px 30px;
+}
+
+/* ---- A table on a dashboard card ------------------------------------------ */
+/* The card is the frame: a table on it draws no border of its own, and its
+   pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
+   "Zaken met risico", "Prestaties per zaaktype"; r32 a second frame inside
+   the card, the pager 16px in).
+   @spec openspec/changes/board-dashboard-table-in-card/specs/board-dashboard-table-in-card/spec.md#requirement-a-table-on-a-board-dashboard-card-has-no-frame-of-its-own */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container.cn-table-container--board {
+	border: 0;
+	border-radius: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container--board .cn-pagination.cn-pagination--board {
+	padding: 12px 0 0;
 }
 
 /* ---- A text field and a multiple select --------------------------------- */
@@ -1013,6 +1038,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	box-sizing: border-box;
 	width: 278px;
 	max-width: calc(100vw - 32px);
+	/* The board hangs the menu over the button's lower edge (46px under the
+	   row's top, the button 34px from 15px): 7px above the popper's place. */
+	margin-top: -7px;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
@@ -1763,7 +1791,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    hit area; the negative margin only takes it out of the line.
    @spec openspec/changes/board-settings-first-line/specs/settings-board-look/spec.md */
 .cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
-	margin-block: -8px;
+	/* The label on the row's first line, the row 36px as the boards' switch rows. */
+	margin-block: -8px 10px;
 }
 
 .cn-look-board .cn-settings-field--status:not(.cn-look-nextcloud *) > .notecard {
@@ -1871,7 +1900,6 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--nldesign-component-form-field-label-color: var(--color-main-text);
 }
 
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *),
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea:has(.textarea__label) {
 	margin-block-start: 22px;
 }
@@ -2115,6 +2143,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--cn-status-badge-ink: var(--cn-board-text-soft);
 	background-color: var(--color-background-hover);
 	color: var(--cn-status-badge-ink);
+}
+
+/* A toned board tag takes the theme's status badge ground and ink, as the
+   boards draw them (#E7F3EA/#1E6B2A, #FFF4DE/#7A4F00, #FCEDEC/#A30000,
+   #EAF0F7/#234A78); the hue tokens the base badge reads are not set by every
+   theme, and their fallbacks are a translucent mix.
+   @spec openspec/changes/board-tag-tones/specs/board-tag-tones/spec.md#requirement-a-toned-board-tag-takes-the-themes-status-badge-tokens */
+.cn-look-board .cn-status-badge--success:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--nldesign-component-status-badge-success-color, var(--nl-color-green-text, var(--color-success-text)));
+	background-color: var(--nldesign-component-status-badge-success-background-color, var(--nl-color-green-light, var(--color-success-light, rgba(70, 186, 97, 0.15))));
+}
+
+.cn-look-board .cn-status-badge--warning:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--nldesign-component-status-badge-warning-color, var(--nl-color-orange-text, var(--color-warning-text)));
+	background-color: var(--nldesign-component-status-badge-warning-background-color, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))));
+}
+
+.cn-look-board .cn-status-badge--error:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+	background-color: var(--nldesign-component-status-badge-error-background-color, var(--nl-color-red-light, var(--color-error-light, rgba(224, 68, 68, 0.15))));
+}
+
+.cn-look-board .cn-status-badge--info:not(.cn-status-badge--solid):not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--nldesign-component-status-badge-info-color, var(--nl-color-blue-text, var(--color-info-text)));
+	background-color: var(--nldesign-component-status-badge-info-background-color, var(--nl-color-blue-light, var(--color-info-light, rgba(0, 130, 201, 0.15))));
 }
 
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
@@ -2483,6 +2536,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-record-list__footer-note:not(.cn-look-nextcloud *) {
 	--nldesign-component-paragraph-font-size: 13px;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	--nldesign-component-paragraph-line-height: normal;
+	line-height: normal;
 }
 
 /* An audit row is a board list row (DqHandhaving, DqTenant "Historie"): 10px
@@ -2690,14 +2745,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    DqMijnTeam "Oppakken"): its title link reads as the row's title in the main
    ink (the theme's link rule reads --nldesign-color-on-surface), and the
    action is an outlined button sized to its label. Without the variant the
-   action keeps its 150px pill (DcMijnActies).
+   action keeps its 150px pill (DcMijnActies). The outlined action is the
+   same on a detail page's lists (DqZaakBesluiten Adviezen "Herinneren").
    @spec openspec/changes/board-row-action-outlined/specs/board-row-action-outlined/spec.md#requirement-a-dashboard-rows-action-is-an-outlined-button */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row--action:has(.cn-record-list__action--outlined) .cn-record-list__title--link {
 	--nldesign-color-on-surface: var(--color-main-text);
 	color: var(--color-main-text);
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined {
+.cn-look-board .cn-record-list__action--outlined:not(.cn-look-nextcloud *) {
 	--nldesign-color-on-surface: var(--color-main-text);
 	flex: none;
 	padding: 0 12px;
@@ -2705,10 +2761,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 8px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
+	gap: 8px;
 }
 
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:hover,
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__action--outlined:focus-visible {
+.cn-look-board .cn-record-list__action--outlined:not(.cn-look-nextcloud *):hover,
+.cn-look-board .cn-record-list__action--outlined:not(.cn-look-nextcloud *):focus-visible {
 	background: var(--color-background-hover);
 }
 
@@ -3423,6 +3480,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	display: none;
 }
 
+/* The setup choices stand 10px apart with a bold title and a 14px
+   description, as DqInstellen draws them.
+   @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__rows:not(.cn-look-nextcloud *) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 /* ---- A dashboard chart's bar list --------------------------------------- */
 /* The rows stand 27px apart, as DqDashboard draws them ("Zaken per status":
    14px text, 10px between). A row is a drill button, which took Nextcloud's
@@ -3492,9 +3564,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* An option's two lines at line height 1.2 and its icon at the top of the
-   row, as DqVolgendeStap draws them (rows 60 high, not 70). */
+   row, as DqVolgendeStap draws them (rows 60 high, not 70). A refused
+   option's reason takes the description's place on the same line height. */
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *),
-.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *),
+.cn-look-board .cn-choice-cards .cn-choice-cards__reason:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
 }
 
@@ -3525,6 +3599,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(.cn-look-nextcloud *) {
 	width: 18px;
 	height: 18px;
+}
+
+/* The radio keeps no border under the pointer: the server's input hover
+   rule drew a 2px ring on it while the board draws the bare radio. The id
+   in :not() outranks that rule's :not() list. */
+.cn-look-board .cn-choice-cards .cn-choice-cards__row-input:not(#cn-choice-cards-radio):not(.cn-look-nextcloud *) {
+	border: 0;
 }
 
 /* ---- A dashboard card's count chip -------------------------------------- */
@@ -3597,22 +3678,29 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 
 /* The base-map switch in the top left is the same 36px edged square, 12px
    in, around an 18px layers icon in the main ink (Leaflet's own is a 44px
-   grey-edged square with a bitmap icon).
+   grey-edged square with a bitmap icon). The toggle link is the button; the
+   control around it draws nothing, so the edge and ground read as the
+   button's own.
    @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button */
 .cn-look-board .cn-map-widget .leaflet-control-layers:not(.cn-look-nextcloud *) {
 	margin: 12px 0 0 12px;
-	border: 1px solid var(--cn-board-control-border);
+	border: 0;
 	border-radius: var(--cn-board-control-radius);
 	box-shadow: none;
-	background: var(--color-main-background);
+	background: transparent;
 }
 
 .cn-look-board .cn-map-widget .leaflet-control-layers .leaflet-control-layers-toggle:not(.cn-look-nextcloud *) {
-	width: 34px;
-	height: 34px;
-	background: var(--color-main-text);
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 36px;
+	height: 36px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: var(--cn-board-control-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
 }
 
 /* The manage timeline's lines as DqZaakHistorie draws them: the subtitle and
@@ -3714,6 +3802,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    margin under it, so the list starts 60px under the field (DqFilterDelen). */
 .cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
 	--default-clickable-area: 36px;
+	--cn-field-height: 36px;
 }
 
 .cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
@@ -3824,4 +3913,73 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 
 .cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
 	color: var(--cn-record-list-tonal-ink);
+}
+
+/* ---- Settings card rhythm (r32 DqBeheerinstellingen) ------------------- */
+/* A fields card's Save sits 16px under its last row, the form's own gap, as
+   the boards draw it: the shared save row's 4px margin and 14px padding put it
+   34px down (Adviseringsbeheer, Zaak-e-mail, Kadaster).
+   @spec openspec/changes/board-settings-card-rhythm/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__save.cn-settings-section__save:not(.cn-look-nextcloud *) {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+/* A choice reads as the boards draw it: the option label on its line, its
+   description 2px under it and 30px in (under the label, past the 20px dot
+   and its 10px gap), the next option 10px further (Menustructuur: options
+   61px apart against the board's 49). The radio keeps its 34px hit area; the
+   negative margin takes it out of the line. */
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
+	margin-block: -8px;
+}
+
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch + .cn-settings-field__option-description {
+	margin: 2px 0 0;
+	padding-inline-start: 30px;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .cn-settings-field__option-description + .checkbox-radio-switch,
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch + .checkbox-radio-switch {
+	margin-block-start: 2px;
+}
+
+/* A labelled select in a settings card takes the room a text field does: its
+   label 6px above a 40px field, nothing below. NcSelect's 44px toggle (the
+   40px field inside a 2px ring either side) with a 22px top and 4px bottom
+   margin put each row of selects 7px lower than the board's (DqBeheerinstellingen
+   "Configuratie": rows 86px apart against 79). 23px above and -4px below put
+   the label where the board's is and the rows 79px apart. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select.select:has(.input-field__label) {
+	margin-block: 23px -4px;
+}
+
+/* A sub-heading inside a fields card ("Verbindingstest") is one 16px line at
+   1.3 that the card's 16px gap already sets apart, as the boards draw it. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__heading {
+	margin: 0;
+	line-height: 1.3;
+}
+
+/* A labelled text field takes the board's room too: its label 6px above the
+   40px field, the rows 79px apart (Zaak-e-mail: 82). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *) {
+	margin-block: 22px -3px;
+}
+
+/* A choice group's legend leaves 11px to its first option, as the boards draw
+   it (Menustructuur: 8px). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__radio-legend {
+	margin-block-end: 3px;
+}
+
+/* A field's hint: 13px at 1.45, 6px under its control, as the boards draw it
+   (Serviceaccount voor achtergrondtaken). The control's negative bottom
+   margin above would otherwise pull it up. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__hint {
+	margin-block-start: 3px;
+	font-size: 13px;
+	line-height: 1.45;
 }

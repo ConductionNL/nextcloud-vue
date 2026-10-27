@@ -216,6 +216,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	gap: 10px;
 }
 
+/* In a board dialog a checkbox row is the 24px minimum target the boards draw
+   it at (an 18px label), not NcCheckboxRadioSwitch's 34px, and a note adds no
+   margin of its own: the dialog's gap spaces it. DqZaakSamenwerken "Alleen een
+   deel van de zaakvelden delen" and its note sat 25px lower than drawn (r32;
+   probed with these rules: field to note 50, as drawn).
+   @spec openspec/changes/board-dialog-checkbox-24-note-flush/specs/board-dialog-checkbox-24-note-flush/spec.md#requirement-a-board-dialogs-checkbox-is-24px-and-its-notes-add-no-margin */
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard {
+	margin-block: 0;
+}
+
+/* A board dialog's choice rows stand 10px apart, as every dialog board draws
+   its options (DqDocumentGenereren, DqVolgendeStap, DqInstellen,
+   DqZaakSamenwerken); CnChoiceCards sets 8 (r32 Genereren rows 3 and 4 4-5px
+   high).
+   @spec openspec/changes/board-dialog-choice-rows-10/specs/board-dialog-choice-rows-10/spec.md#requirement-a-board-dialogs-choice-rows-stand-10px-apart */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__rows {
+	gap: 10px;
+}
+
 /* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
    the board draws it (DqOverdragen, 76px for a label and a two-line note):
    10px 14px padding, the checkbox row at the 24px minimum target instead of
@@ -467,8 +492,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* A board textarea's lines sit on the normal line height, as the boards'
-   `font` shorthand sets it: two rows are 58px, not 68 (DqArchiveren Reden). */
+   `font` shorthand sets it, 10px 12px in, and its rows set its height
+   (NcTextArea holds a 68px minimum): two rows are 58px, not 68 (DqArchiveren
+   Reden). The Calendar app injects `textarea { padding: 5px 12px !important }`
+   on every page, which made three rows 68px against the board's 76
+   (DqOverdragen "Waarom de zaak verhuist"), so the padding is important too. */
 .cn-dialog-board .dialog__content .textarea__input {
+	min-height: 0;
+	padding: 10px 12px !important;
 	line-height: normal;
 }
 

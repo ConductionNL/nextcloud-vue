@@ -46,6 +46,7 @@ describe('look-board-index.css: list page rhythm', () => {
 		expect(card).toMatch(/flex: none;/)
 		expect(card).toMatch(/padding: 18px;/)
 		expect(ruleEndingWith('.cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *)')).toMatch(/min-height: 533px;/)
+		expect(ruleEndingWith('.cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *)')).toMatch(/\theight: 533px !important;/)
 	})
 
 	it('sets the map list number line and date at their normal leading', () => {

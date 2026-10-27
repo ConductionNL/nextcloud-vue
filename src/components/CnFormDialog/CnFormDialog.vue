@@ -177,7 +177,7 @@
 						     through the normal select branch below; only the
 						     unresolved/loading case lands here. -->
 						<div
-							v-else-if="field.referenceSemanticType && !isSemanticResolved(field)"
+							v-else-if="field.referenceSemanticType && field.widget !== 'party' && !isSemanticResolved(field)"
 							class="cn-form-dialog__semantic-unresolved"
 							:title="semanticUnavailableText(field)">
 							<NcTextField
@@ -2605,7 +2605,9 @@ export default {
 		 * @return {object} The (possibly transformed) field.
 		 */
 		applySemanticResolution(field) {
-			if (!field || !field.referenceSemanticType) {
+			// A field the manifest draws as a party picker searches its own
+			// `sources`; the semantic provider does not replace it.
+			if (!field || !field.referenceSemanticType || field.widget === 'party') {
 				return field
 			}
 			const entry = this.semanticResolutions[field.referenceSemanticType]

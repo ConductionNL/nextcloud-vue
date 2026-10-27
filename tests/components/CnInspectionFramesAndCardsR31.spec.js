@@ -44,6 +44,6 @@ describe('DqInspectie frames and cards', () => {
 	it('draws the pill beside the title and meta with cardPillAside', () => {
 		expect(list).toContain("'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true")
 		expect(rule(list, '.cn-record-list--pill-aside .cn-record-list__card')).toContain('grid-template-columns: minmax(0, 1fr) auto')
-		expect(rule(list, '.cn-record-list--pill-aside .cn-record-list__card-pills')).toContain('grid-row: 1 / span 2')
+		expect(rule(list, '.cn-record-list--pill-aside .cn-record-list__card-pills')).toContain('align-self: start')
 	})
 })
