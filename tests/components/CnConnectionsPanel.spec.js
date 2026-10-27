@@ -13,7 +13,7 @@ jest.mock('../../src/utils/boardReferenceColumns.js', () => ({ __esModule: true,
 const { fetchReferenceObjects } = require('../../src/utils/boardReferenceColumns.js')
 
 const ROWS = [
-	{ id: '2', key: 'social-x', title: 'X', status: 'unconfigured', order: 23, settingsUrl: '/apps/pipelinq/social-accounts', declaration: { kind: 'Social network' } },
+	{ id: '2', key: 'social-x', title: 'X', status: 'unconfigured', order: 23, settingsUrl: '/apps/pipelinq/social-accounts' },
 	{ id: '1', key: 'cti', title: 'Telephony (CTI)', status: 'configured', order: 10, checkedAt: '2026-10-07T06:12:00Z', statusMessage: 'Asterisk answers.', settingsUrl: '/settings/admin/pipelinq?tab=connections', declaration: { kind: 'Telephony', icon: 'Headset' } },
 	{ id: '3', key: 'social-facebook', title: 'Facebook page', status: 'error', order: 24, statusMessage: 'The page token expired.', declaration: { kind: 'Social network' } },
 	{ id: '4', key: 'social-linkedin', title: 'LinkedIn', status: 'limited', order: 22, statusMessage: 'The company page needs admin rights.' },
@@ -27,7 +27,7 @@ const ROWS = [
 async function panel() {
 	fetchReferenceObjects.mockResolvedValue(ROWS)
 	const wrapper = mount(CnConnectionsPanel, {
-		props: { app: 'pipelinq', appName: 'Pipelinq', addUrl: '/apps/integriq/connections' },
+		props: { app: 'pipelinq', appName: 'Pipelinq', addUrl: '/apps/integriq/connections', kinds: { 'social-x': { kind: 'Social network', icon: 'ShareVariant' } } },
 		global: { stubs: { CnIcon: true } },
 	})
 	await flushPromises()
@@ -69,5 +69,11 @@ describe('CnConnectionsPanel', () => {
 		expect(wrapper.text()).toContain('The connections could not be read.')
 		expect(checkedMoment('')).toBe('')
 		expect(checkedMoment('2026-10-07T06:12:00Z')).toMatch(/7/)
+	})
+
+	it('takes a connection\'s kind from the host when its declaration names none', async () => {
+		const wrapper = await panel()
+		const x = wrapper.findAll('[data-testid="cn-connections-card"]').find((card) => card.text().includes('X'))
+		expect(x.text()).toContain('Social network · never checked')
 	})
 })

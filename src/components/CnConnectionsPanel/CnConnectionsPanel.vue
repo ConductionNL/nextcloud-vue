@@ -164,8 +164,8 @@ export function checkedMoment(iso) {
  * was checked, its status, what it does and what integriq said, filtered by
  * status chips and a text field, beside what needs attention.
  *
- * A connection's `declaration` may name its `kind` ("Telephony") and its
- * `icon`, through the host translate.
+ * A connection's kind ("Telephony") and icon come from its `declaration`, or
+ * from the `kinds` the host passes; the kind goes through the host translate.
  */
 export default {
 	name: 'CnConnectionsPanel',
@@ -182,6 +182,12 @@ export default {
 		app: { type: String, required: true },
 		/** The app's name as people read it ("Pipelinq"). */
 		appName: { type: String, default: '' },
+		/**
+		 * What kind of connection each one is and its icon, by connection key
+		 * (`{ cti: { kind: 'Telephony', icon: 'Headset' } }`), for an app whose
+		 * declarations cannot carry them. A declaration's own `kind` and `icon` win.
+		 */
+		kinds: { type: Object, default: () => ({}) },
 		/** Where Add integration and Open integriq go. */
 		addUrl: { type: String, default: '' },
 		/** The register integriq keeps the connections in. */
@@ -200,7 +206,7 @@ export default {
 			return [...this.records]
 				.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
 				.map((record) => {
-					const declaration = record.declaration || {}
+					const declaration = { ...(this.kinds[record.key] || {}), ...(record.declaration || {}) }
 					const status = STATUSES[record.status] || STATUSES.unconfigured
 					const checked = checkedMoment(record.checkedAt)
 					const kind = declaration.kind ? this.cnTranslate(declaration.kind) : ''
