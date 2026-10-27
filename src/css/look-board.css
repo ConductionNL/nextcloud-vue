@@ -2522,6 +2522,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A list whose rows lead with a description the board sets in bold
+   (DqZaakTaken "Incidenten", `strongTitle: true`). */
+.cn-look-board .cn-record-list--rows.cn-record-list--strong-title:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
+	font-weight: 600;
+}
+
 .cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__hint {
 	line-height: normal;
 }

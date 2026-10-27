@@ -1615,6 +1615,12 @@
 	vertical-align: middle;
 }
 
+/* The task menu sits 4px after the row's button, as drawn ("Afronden" then
+   the menu); the compiled template keeps no space between them. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * + * {
+	margin-inline-start: 4px;
+}
+
 /* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
 /* The case-tab boards draw a list's table edge to edge in its card
    (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
@@ -2847,4 +2853,18 @@
 .cn-look-board .cn-object-parties__main-initials:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
 	font-size: 16px;
+}
+
+/* A card table on a detail page keeps the sorted column's label in the head's
+   muted ink, as the case boards draw it (DqZaakGerelateerd Deelzaken
+   "Termijn", Objecten "Identificatie"); the chevron marks the sort. */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-data-table th[aria-sort] .cn-table-header__sort:not(.cn-look-nextcloud *) {
+	color: inherit;
+}
+
+/* A done task reads muted on the board, its status tag too (DqZaakTaken
+   "Klaar" in #5e6168 where an open task's tag keeps the soft ink). */
+.cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--color-text-maxcontrast);
+	color: var(--cn-status-badge-ink);
 }
