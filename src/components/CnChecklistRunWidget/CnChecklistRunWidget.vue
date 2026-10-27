@@ -1263,9 +1263,9 @@ export default {
 }
 
 /* A note is two 15px lines on the normal line height, 8px 12px in: 54px, as
-   the board draws it (live 48). */
+   the board draws it. A theme pads every textarea 5px 12px with !important. */
 .cn-checklist-run__text.cn-checklist-run__text {
-	padding: 8px 12px;
+	padding: 8px 12px !important;
 	line-height: normal;
 }
 
@@ -1298,11 +1298,12 @@ export default {
 	padding: 0 14px;
 }
 
-/* A theme sets every label bold and at the body size; the photo button is
-   the board's 14px/600 control with a camera before its label (DqInspectie). */
+/* A theme sets every label bold and at the body size, the weight with
+   !important (thematiq's form-field label token); the photo button is the
+   board's 14px/600 control with a camera before its label (DqInspectie). */
 .cn-checklist-run__photo-button.cn-checklist-run__photo-button {
 	font-size: 14px;
-	font-weight: 600;
+	font-weight: 600 !important;
 }
 
 .cn-checklist-run__photo-button:focus-within {

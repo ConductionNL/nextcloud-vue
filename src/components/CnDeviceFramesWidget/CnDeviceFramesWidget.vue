@@ -328,6 +328,7 @@ export default {
 	gap: 6px;
 	font-size: 13px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 .cn-device-frames-widget__status--warning {
