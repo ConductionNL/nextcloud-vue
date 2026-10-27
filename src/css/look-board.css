@@ -4274,3 +4274,21 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	font-size: 13px;
 	line-height: 1.45;
 }
+
+/* A page header standing on its own, outside the page primitives that draw
+   one (a custom view such as pipelinq's Forecast), takes the boards'
+   title: 28px/700 on a 1.2 line, and the line under it 15px on a normal line
+   13px below the title (PqForecast: the title read 30px/300 and the line sat
+   4px below it).
+   @spec openspec/changes/board-standalone-page-header/specs/board-standalone-page-header/spec.md#requirement-a-standalone-board-page-header-takes-the-board-title */
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *) .cn-page-header__title {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *) .cn-page-header__description {
+	margin-top: 9px;
+	font-size: 15px;
+	line-height: normal;
+}
