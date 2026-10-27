@@ -7,3 +7,4 @@ Board DqOrganisatie draws the Hoofdcontact e-mail and the "Alle 2 contactpersone
 ## What changes
 
 - In the board look, the main contact card's e-mail and link are 14px.
+- In the board look, a stacked side list titles its rows as links (DqOrganisatie Lopende zaken, Open tickets: 15px bold blue underlined; live 500 black made the title a meta line).

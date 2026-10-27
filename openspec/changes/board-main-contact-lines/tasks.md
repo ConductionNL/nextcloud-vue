@@ -1,2 +1,3 @@
 - [x] Board look: main contact e-mail and link 14px
+- [x] Board look: stacked side list row titles as links
 - [x] CSS test

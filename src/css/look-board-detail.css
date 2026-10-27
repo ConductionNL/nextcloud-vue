@@ -2160,6 +2160,14 @@
 	padding: 0;
 }
 
+/* Its rows are titled as links: bold, in the link colour, underlined
+   (DqOrganisatie "Subsidie buurtfeest Oosthaven"). */
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__title {
+	color: var(--color-primary-element);
+	font-weight: 700;
+	text-decoration: underline;
+}
+
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-text {
 	line-height: normal;
 }
