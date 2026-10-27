@@ -2164,6 +2164,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 	font-weight: 600;
 	line-height: normal;
+	/* One line, as every board tag (DqBeheerGeavanceerd AWB "Verschuift van een
+	   gesloten dag" wrapped to 51px and made its row 71.4, board 55). */
+	white-space: nowrap;
 }
 
 /* A neutral board tag ("Normaal", "Uit") is the soft text on the chip ground,
