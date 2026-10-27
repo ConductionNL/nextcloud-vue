@@ -2732,7 +2732,7 @@
 
 /* The history card's note composer and entries as DqZaakHistorie draws them
    (r31 strict verdict): the note field three lines high on the normal line
-   (76px, as the boards draw their textareas since design-system #613) with
+   (76px, as the boards draw their textareas since design-system PR 613) with
    10px 12px inside, the add button at the board's 40px, the title-row
    buttons 12px apart, and an entry the requester sees marked with a 12px
    teal pill.
