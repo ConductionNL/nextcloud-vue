@@ -2878,7 +2878,7 @@
 }
 
 /* A done task reads muted on the board, its status tag too (DqZaakTaken
-   "Klaar" in #5e6168 where an open task's tag keeps the soft ink). */
+   "Klaar" in the muted ink where an open task's tag keeps the soft ink). */
 .cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *) {
 	--cn-status-badge-ink: var(--color-text-maxcontrast);
 	color: var(--cn-status-badge-ink);
