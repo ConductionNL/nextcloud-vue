@@ -23,7 +23,7 @@ const SOURCES = [
 
 const SearchSelect = {
 	name: 'CnSearchSelect',
-	props: ['modelValue', 'options', 'inputLabel', 'placeholder', 'loading', 'filterable', 'clearable'],
+	props: ['inputId', 'modelValue', 'options', 'inputLabel', 'placeholder', 'loading', 'filterable', 'clearable'],
 	emits: ['update:modelValue', 'search'],
 	template: '<div class="ss" />',
 }
@@ -176,5 +176,9 @@ describe('CnPartyPicker', () => {
 		await flushPromises()
 		expect(axios.post).not.toHaveBeenCalled()
 		expect(axios.get.mock.calls.find(([url]) => url.endsWith('/brpPerson'))).toBeDefined()
+	})
+
+	it('hands its input id to the search, so a form label names it', () => {
+		expect(mountPicker({ inputId: 'cn-form-requester' }).findComponent({ name: 'CnSearchSelect' }).props('inputId')).toBe('cn-form-requester')
 	})
 })

@@ -23,7 +23,7 @@ const stubs = {
 	NcCheckboxRadioSwitch: true,
 	CnPartyPicker: {
 		name: 'CnPartyPicker',
-		props: ['modelValue', 'sources', 'inputLabel', 'labelOutside', 'placeholder', 'clearable', 'disabled'],
+		props: ['inputId', 'modelValue', 'sources', 'inputLabel', 'labelOutside', 'placeholder', 'clearable', 'disabled'],
 		emits: ['update:modelValue'],
 		template: '<div class="party-picker" />',
 	},
@@ -82,6 +82,8 @@ describe('CnFormDialog party widget', () => {
 		expect(picker.props('labelOutside')).toBe(true)
 		expect(picker.props('placeholder')).toBe('Name, BSN, trade name or KvK number')
 		expect(picker.attributes('data-testid')).toBe('initiator-picker-search')
+		// The form's label names the search input (board DqNieuweZaak "Aanvrager").
+		expect(picker.props('inputId')).toMatch(/^cn-form-/)
 	})
 
 	it('stores the chosen row id only', async () => {
