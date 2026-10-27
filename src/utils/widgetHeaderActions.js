@@ -24,7 +24,7 @@ export const WIDGET_BODY_ACTIONS = 'cnWidgetBodyActions'
  * @property {string} key Stable identity for the list.
  * @property {string} label The label, translated.
  * @property {string} icon A `CnIcon` name, or ''.
- * @property {'primary'|'secondary'|'link'} variant The button's weight; `link` reads as a text link.
+ * @property {'primary'|'secondary'|'link'|'tonal'} variant The button's weight; `link` reads as a text link, `tonal` as a pill.
  * @property {() => unknown} run Dispatches the action.
  */
 
@@ -42,17 +42,19 @@ export const WIDGET_BODY_ACTIONS = 'cnWidgetBodyActions'
  * that tab of the page through the `#<tab>` anchor the tab strip follows.
  *
  * @param {object|null} widget The widget definition.
- * @param {object} context `{ object, objectId, translate?, dispatch, recordEdit? }`; `recordEdit` is
- *   `{ available, open }` from the detail page.
+ * @param {object} context `{ object, objectId, workspace?, translate?, dispatch, recordEdit? }`; `recordEdit` is
+ *   `{ available, open }` from the detail page, `workspace` the page filters a
+ *   dashboard resolves `@workspace.<key>` tokens from.
  * @param {string} [key] The list to read: `headerActions` (default) or `bodyActions`.
  * @return {WidgetHeaderAction[]} The buttons, in manifest order.
  * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
+ * @spec openspec/changes/widget-header-action-tonal/specs/widget-header-action-tonal/spec.md#requirement-a-dashboard-card-header-action-reads-the-page-filters
  */
 export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerActions') {
 	const list = widget && Array.isArray(widget[key]) ? widget[key] : []
 	const object = context.object || {}
 	const translate = typeof context.translate === 'function' ? context.translate : (key) => key
-	const tokenCtx = { objectId: context.objectId, object }
+	const tokenCtx = { objectId: context.objectId, object, workspace: context.workspace || {} }
 	return list
 		.filter((entry) => entry && typeof entry.label === 'string' && entry.label !== '' && entry.action && typeof entry.action === 'object')
 		.filter((entry) => entry.action.type !== 'edit-record' || context.recordEdit?.available === true)
@@ -66,7 +68,7 @@ export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerAc
 			key: `${index}-${entry.label}`,
 			label: translate(entry.label),
 			icon: typeof entry.icon === 'string' ? entry.icon : '',
-			variant: ['primary', 'link'].includes(entry.variant) ? entry.variant : 'secondary',
+			variant: ['primary', 'link', 'tonal'].includes(entry.variant) ? entry.variant : 'secondary',
 			run: () => {
 				if (entry.action.type === 'edit-record') {
 					return context.recordEdit.open()
@@ -75,7 +77,13 @@ export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerAc
 					window.location.hash = encodeURIComponent(String(entry.action.tab || ''))
 					return undefined
 				}
-				return typeof context.dispatch === 'function' ? context.dispatch(resolveDeepTokens(entry.action, tokenCtx)) : undefined
+				if (typeof context.dispatch !== 'function') {
+					return undefined
+				}
+				const resolved = resolveDeepTokens(entry.action, tokenCtx)
+				// A dashboard also hands the token context on, so an api-call
+				// fills `@workspace.<key>` in its url.
+				return context.workspace ? context.dispatch(resolved, { tokenCtx }) : context.dispatch(resolved)
 			},
 		}))
 }

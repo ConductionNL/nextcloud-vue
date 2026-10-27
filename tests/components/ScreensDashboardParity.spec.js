@@ -312,6 +312,13 @@ describe('CnDashboardPage: KPI row', () => {
 		warn.mockRestore()
 	})
 
+	it('lays the row out in a fixed number of columns with kpiColumns', () => {
+		const w = mountPage({ widgets, layout, kpiRow: ['kpi-a', 'kpi-b'], kpiColumns: 4 }, { slots })
+		const row = w.find('[data-testid="cn-dashboard-page-kpi-row"]')
+		expect(row.classes()).toContain('cn-kpi-grid--cols-4')
+		expect(row.classes()).not.toContain('cn-kpi-grid--cols-auto')
+	})
+
 	it('renders as before without kpiRow', () => {
 		const w = mountPage({ widgets, layout }, { slots })
 		expect(w.find('[data-testid="cn-dashboard-page-kpi-row"]').exists()).toBe(false)

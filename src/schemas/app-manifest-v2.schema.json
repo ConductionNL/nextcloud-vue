@@ -615,7 +615,8 @@
 						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
 						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
-						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
+						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." },
+						"keepFields": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Values of the row each option carries along as `data`, such as a programme's terms url a create form links to (create-form-widget)." }
 					}
 				},
 				{
@@ -631,7 +632,8 @@
 						"groupField": { "type": "string", "minLength": 1, "description": "Groups the options by this field, groups in the order they first appear (form-small-features)." },
 						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
-						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." }
+						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." },
+						"keepFields": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Values of the row each option carries along as `data`, such as a programme's terms url a create form links to (create-form-widget)." }
 					}
 				}
 			]
@@ -5552,6 +5554,14 @@
 							"items": { "type": "string" },
 							"default": [],
 							"description": "type='dashboard': widget ids drawn as a KPI row above the grid, in the listed order, in an auto-fit grid (`repeat(auto-fit, minmax(200px, 1fr))`, gap 16). The named widgets are not GridStack items, so they do not reflow with the grid and are not part of the emitted layout; an id that names no widget is skipped with a development warning (screens-dashboard-parity). Maps to CnDashboardPage `kpiRow`. `dateRange.control` also accepts \"segmented\": the presets as one compact segmented group under the header."
+						},
+						"kpiColumns": {
+							"oneOf": [
+								{ "type": "integer", "enum": [2, 3, 4] },
+								{ "type": "string", "enum": ["auto"] }
+							],
+							"default": "auto",
+							"description": "type='dashboard': the columns of the `kpiRow` at full width, 2, 3 or 4 (PqLoyaliteit draws eight tiles in two rows of four), or \"auto\" (the default) for as many 200px columns as fit. Maps to CnDashboardPage `kpiColumns`."
 						},
 						"greeting": {
 							"oneOf": [

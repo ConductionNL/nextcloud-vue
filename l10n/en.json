@@ -2463,7 +2463,8 @@
     "About these reports": "About these reports",
     "Categories": "Categories",
     "Opens a page of its own": "Opens a page of its own",
-    "Open {report}": "Open {report}"
+    "Open {report}": "Open {report}",
+    "Could not create the item": "Could not create the item"
   },
   "plurals": {
     "{count} member": [

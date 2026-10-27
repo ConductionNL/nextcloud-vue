@@ -2728,7 +2728,8 @@
     "About these reports": "Over deze rapportages",
     "Categories": "Categorieën",
     "Opens a page of its own": "Opent een eigen pagina",
-    "Open {report}": "{report} openen"
+    "Open {report}": "{report} openen",
+    "Could not create the item": "Het item kon niet worden aangemaakt"
   },
   "plurals": {
     "{count} member": [
