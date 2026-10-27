@@ -755,6 +755,15 @@
 			"via": [],
 			"page": "cn-countdown-widget-form"
 		},
+		"CnCreateFormWidget": {
+			"direct": 2,
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnResourceSelect"
+			],
+			"page": "cn-create-form-widget"
+		},
 		"CnCredentials": {
 			"direct": 13,
 			"transitive": 0,
@@ -792,7 +801,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 206,
+			"transitive": 207,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -814,6 +823,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
@@ -1041,7 +1051,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 209,
+			"transitive": 210,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1063,6 +1073,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
@@ -1682,7 +1693,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 217,
+			"transitive": 218,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1704,6 +1715,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
@@ -2120,7 +2132,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 214,
+			"transitive": 215,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2142,6 +2154,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
@@ -3284,7 +3297,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 234,
+			"transitive": 235,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3306,6 +3319,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDashboardPage",
 				"CnDataTable",
 				"CnDeckCardCreate",
@@ -3792,7 +3806,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 207,
+			"transitive": 208,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3814,6 +3828,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDashboardPage",
 				"CnDataTable",
 				"CnDeckCardCreate",
@@ -5063,7 +5078,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 196,
+			"transitive": 197,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5084,6 +5099,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnCreateFormWidget",
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
