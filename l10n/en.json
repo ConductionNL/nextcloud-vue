@@ -2459,7 +2459,11 @@
     "never checked": "never checked",
     "All connections": "All connections",
     "Not set up": "Not set up",
-    "Unavailable": "Unavailable"
+    "Unavailable": "Unavailable",
+    "About these reports": "About these reports",
+    "Categories": "Categories",
+    "Opens a page of its own": "Opens a page of its own",
+    "Open {report}": "Open {report}"
   },
   "plurals": {
     "{count} member": [

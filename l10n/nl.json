@@ -2724,7 +2724,11 @@
     "never checked": "nooit gecontroleerd",
     "All connections": "Alle koppelingen",
     "Not set up": "Niet ingesteld",
-    "Unavailable": "Niet beschikbaar"
+    "Unavailable": "Niet beschikbaar",
+    "About these reports": "Over deze rapportages",
+    "Categories": "Categorieën",
+    "Opens a page of its own": "Opent een eigen pagina",
+    "Open {report}": "{report} openen"
   },
   "plurals": {
     "{count} member": [
