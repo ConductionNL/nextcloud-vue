@@ -74,7 +74,7 @@ describe('CnIndexPage reference column labels', () => {
 		w.vm.$options.computed
 		const facets = { case: { values: [{ value: 'c1', count: 2 }] } }
 		w.vm.refLabels = { case: { c1: 'Permit A' } }
-		const data = w.vm.$options.computed.effectiveFacetData.call({ storeFacets: facets, resolvedSidebar: {}, refLabelSpecs: w.vm.refLabelSpecs, refLabels: w.vm.refLabels })
+		const data = w.vm.$options.computed.effectiveFacetData.call({ storeFacets: facets, resolvedSidebar: {}, groupFacetsByName: (f) => f, refLabelSpecs: w.vm.refLabelSpecs, refLabels: w.vm.refLabels })
 		expect(data.case.values[0]).toEqual({ value: 'c1', count: 2, label: 'Permit A' })
 	})
 

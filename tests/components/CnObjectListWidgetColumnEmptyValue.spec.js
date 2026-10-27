@@ -31,4 +31,19 @@ describe('CnObjectListWidget column emptyValue', () => {
 		expect(w.vm.resolvedColumns[1]).toMatchObject({ key: 'origin', widget: 'badge', emptyValue: 'own' })
 		expect(w.vm.resolvedColumns[0].emptyValue).toBeUndefined()
 	})
+	it('keeps a column\'s emptyValueBy for the table (DqZaaktypeStatussen Resultaten "Permanent")', () => {
+		const by = { field: 'archivalAction', values: { bewaren: 'Kept permanently' } }
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: {
+				content: {
+					register: 'dossiq',
+					schema: 'resultType',
+					columns: [{ key: 'name', label: 'Result' }, { key: 'archivalPeriod', label: 'Archival period', formatter: 'isoDuration', emptyValueBy: by }],
+				},
+			},
+			stubs: { CnDataTable: true, CnFormDialog: true },
+			mocks: { t: (_app, s) => s },
+		})
+		expect(w.vm.resolvedColumns[1].emptyValueBy).toEqual(by)
+	})
 })

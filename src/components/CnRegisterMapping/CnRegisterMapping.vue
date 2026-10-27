@@ -86,7 +86,7 @@
 			<div v-if="showSaveButton" class="cn-register-mapping__board-save">
 				<NcButton
 					variant="primary"
-					:disabled="saving || !hasChanges"
+					:disabled="saving"
 					data-testid="cn-register-mapping-board-save"
 					@click="handleSave">
 					<template v-if="saving" #icon>
@@ -212,7 +212,7 @@
 			<div v-if="showSaveButton" class="cn-register-mapping__board-save">
 				<NcButton
 					variant="primary"
-					:disabled="saving || !hasChanges"
+					:disabled="saving"
 					data-testid="cn-register-mapping-board-save"
 					@click="handleSave">
 					<template v-if="saving" #icon>
@@ -1062,6 +1062,11 @@ export default {
 
 		/** Emit save event with current config */
 		handleSave() {
+			// The board's Save is ready to press (as the boards draw it); with
+			// nothing changed there is nothing to send.
+			if (!this.hasChanges) {
+				return
+			}
 			this.$emit('save', { ...this.localConfig })
 		},
 

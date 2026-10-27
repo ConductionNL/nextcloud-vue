@@ -111,6 +111,8 @@ import { userDisplayName } from '../../utils/userDisplayName.js'
  * `outValue`) for the messages the organisation sent, and `channelField` with
  * an optional `channelMap` from stored value to label ("email" to "E-mail")
  * and `channelIcons` from stored value to an icon name, drawn before the label.
+ * `bodyField` may be a list: the first field that holds text is the message's
+ * text (a full message falling back to its summary).
  * `subjectField` shows a message's subject on a line of its own above its
  * text ("Subject: ..."); `noteField` a grey line under it, followed by the
  * count `attachmentCountField` holds ("1 attachment").
@@ -313,7 +315,7 @@ export default {
 						subject: c.subjectField ? this.textOf(readPath(message, c.subjectField)) : '',
 						note: this.noteOf(message),
 						time: readPath(message, c.timestampField || c.timeField || 'time'),
-						text: readPath(message, c.bodyField || c.textField || 'text'),
+						text: this.bodyOf(message),
 						side: sideOf,
 						channel: channelKey === '' ? '' : this.tr(Object.hasOwn(channelMap, channelKey) ? channelMap[channelKey] : channelKey),
 						// @spec openspec/changes/conversation-channel-icons/specs/conversation-channel-icons/spec.md#requirement-a-messages-channel-can-carry-its-icon
@@ -696,6 +698,30 @@ export default {
 			const text = this.textOf(value)
 			const format = side === 'us' ? c.usAuthorFormat : c.themAuthorFormat
 			return format === 'user' && text !== '' ? (userDisplayName(text) || text) : text
+		},
+
+		/**
+		 * A message's text: `bodyField` (alias `textField`), or the first of a
+		 * list of fields that holds text, so a full message can fall back to
+		 * its summary ("message", then "summary").
+		 *
+		 * @param {object} message The stored message.
+		 * @return {string|number|null|undefined} The text as stored.
+		 * @spec openspec/changes/conversation-body-field-fallback/specs/conversation-body-field-fallback/spec.md#requirement-a-messages-text-can-fall-back-across-fields
+		 */
+		bodyOf(message) {
+			const c = this.content || {}
+			const fields = c.bodyField || c.textField || 'text'
+			if (!Array.isArray(fields)) {
+				return readPath(message, fields)
+			}
+			for (const field of fields) {
+				const value = readPath(message, field)
+				if (value !== undefined && value !== null && value !== '') {
+					return value
+				}
+			}
+			return ''
 		},
 
 		/**

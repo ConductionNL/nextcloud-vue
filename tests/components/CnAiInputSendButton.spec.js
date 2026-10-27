@@ -24,9 +24,10 @@ function rule(selector) {
 
 describe('CnAiInput send button', () => {
 	it('outranks server.css with a doubled class', () => {
-		expect(rule('.cn-ai-input__send-button.cn-ai-input__send-button')).toContain('background: var(--color-primary-element)')
-		const labelled = rule('.cn-ai-input__send-button--labelled.cn-ai-input__send-button--labelled')
+		expect(rule('button.cn-ai-input__send-button.cn-ai-input__send-button')).toContain('background: var(--color-primary-element)')
+		const labelled = rule('button.cn-ai-input__send-button--labelled.cn-ai-input__send-button--labelled')
 		expect(labelled).toContain('height: 40px')
 		expect(labelled).toContain('font-size: 14px')
+		expect(labelled).toContain('font-weight: 600')
 	})
 })

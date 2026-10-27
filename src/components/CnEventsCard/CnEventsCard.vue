@@ -33,7 +33,14 @@
 					<span class="cn-events-card__summary">{{ summaryOf(event) }}</span>
 					<span class="cn-events-card__when">{{ whenOf(event) }}</span>
 					<span v-if="event.location" class="cn-events-card__where">{{ event.location }}</span>
+					<span v-if="attendeesOf(event)" class="cn-events-card__who">{{ attendeesOf(event) }}</span>
 				</span>
+				<CnStatusBadge
+					v-if="statusLabelOf(event)"
+					class="cn-events-card__status"
+					:label="statusLabelOf(event)"
+					:variant="statusVariantOf(event)"
+					size="small" />
 			</li>
 		</ul>
 		<p v-else class="cn-events-card__muted" data-testid="cn-events-card-empty">
@@ -66,7 +73,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnCalendarEventCreate from '../CnCalendarEventCreate/CnCalendarEventCreate.vue'
 import CnCalendarEventPicker from '../CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { linkCalendarEvent } from '../../integrations/builtin/calendar/calendarEventLink.js'
+import { eventAttendeeNames, eventStatusLabel, eventStatusVariant } from '../../integrations/builtin/calendar/eventStatus.js'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -90,7 +100,7 @@ import { userLocale } from '../../utils/userLocale.js'
 export default {
 	name: 'CnEventsCard',
 
-	components: { CnCalendarEventCreate, CnCalendarEventPicker, NcLoadingIcon },
+	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnStatusBadge, NcLoadingIcon },
 
 	inject: {
 		/** The host app's translate function (CnAppRoot `cnTranslate`). */
@@ -309,14 +319,56 @@ export default {
 		 * @return {string} When it is: its start and end, or whichever it has.
 		 */
 		whenOf(event) {
-			const start = formatMoment(event?.dtstart)
-			const end = formatMoment(event?.dtend)
-			if (start === '' || end === '') {
-				return start || end
+			const start = readMoment(event?.dtstart)
+			const end = readMoment(event?.dtend)
+			if (start && end && start.toDateString() === end.toDateString()) {
+				return `${formatBoardDate(start)}, ${t('nextcloud-vue', '{start} until {end}', { start: formatTimeOfDay(start), end: formatTimeOfDay(end) })}`
 			}
-			return `${start} - ${end}`
+			const from = formatMoment(event?.dtstart)
+			const to = formatMoment(event?.dtend)
+			if (from === '' || to === '') {
+				return from || to
+			}
+			return `${from} - ${to}`
+		},
+
+		/**
+		 * @param {object} event The event.
+		 * @return {string} Who is invited, by name, '' when nobody is.
+		 */
+		attendeesOf(event) {
+			return eventAttendeeNames(event).join(', ')
+		},
+
+		/**
+		 * @param {object} event The event.
+		 * @return {string} The event's status or where its invitees stand ("Invited"), '' when neither.
+		 */
+		statusLabelOf(event) {
+			return eventStatusLabel(event)
+		},
+
+		/**
+		 * @param {object} event The event.
+		 * @return {string} The badge tone of that status.
+		 */
+		statusVariantOf(event) {
+			return eventStatusVariant(event)
 		},
 	},
+}
+
+/**
+ * @param {unknown} value An ISO date-time.
+ * @return {Date|null} The moment, or null when empty or unreadable.
+ */
+function readMoment(value) {
+	const raw = String(value ?? '').trim()
+	if (raw === '') {
+		return null
+	}
+	const parsed = new Date(raw)
+	return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 /**
@@ -372,6 +424,7 @@ function formatMoment(value) {
 
 .cn-events-card__when,
 .cn-events-card__where,
+.cn-events-card__who,
 .cn-events-card__muted {
 	color: var(--color-text-maxcontrast);
 }

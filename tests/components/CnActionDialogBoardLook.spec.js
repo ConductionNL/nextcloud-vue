@@ -97,6 +97,8 @@ describe('CnActionDialog in the board look', () => {
 	it('sets a board dialog textarea on the normal line height', () => {
 		const dialog = fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('line-height: normal')
+		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('min-height: 0')
+		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('padding: 10px 12px')
 	})
 
 	it('draws the tile and resets the facts\' cell padding', () => {

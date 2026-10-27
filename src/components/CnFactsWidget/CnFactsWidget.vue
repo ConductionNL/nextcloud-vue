@@ -111,6 +111,7 @@
 				<span
 					v-else-if="block.kind === 'line'"
 					class="cn-facts-widget__line"
+					:class="{ 'cn-facts-widget__line--joined': block.joined }"
 					:data-testid="`cn-fact-${block.key}`">
 					{{ block.value }}
 				</span>
@@ -469,15 +470,17 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, text?, title?, subtitle?, initialsPath?, tone? }`.
+		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, joinPrevious?, joinSeparator?, text?, title?, subtitle?, initialsPath?, tone? }`.
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
+		 *   A `line` or `text` with `joinPrevious: true` is written on after the line or text just before it, as one paragraph (`joinSeparator`, default a space); with none before it, it stands alone.
 		 *   A row with `inline: true` spans both columns as one line, the label, the value and its buttons side by side (a masked BSN with Show).
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show, which unmasks the record's value; `reveal: { url, path? }` makes Show ask the server for the value at `url` (tokens resolved), read at `path` (else the entry's path), so a server that answers the mask can check and record the reveal). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
-		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain.
+		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain. `nameField` with `nameMap` picks the route name by the record's value at `nameField` (a person requester to ContactDetail, a company to OrganisationDetail); a value missing from the map links nowhere. The foot `link.route` takes the same.
+		 *   A lead's `title` or `subtitle` may be `{ firstOf: [spec, ...] }`: the first spec that gives text ("Logged in with DigiD", else the requester's kind).
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
@@ -814,6 +817,16 @@ export default {
 					} else {
 						out.push({ kind: 'rows', key: `rows-${index}`, rows: [row] })
 					}
+					return
+				}
+				// `joinPrevious` writes a line on after the line or text just before it,
+				// as one paragraph ("Laatst contact op … via e-mail. Telefoon en e-mail
+				// staan niet in de basisregistratie."); with nothing before it, it
+				// stands on its own.
+				const previous = out[out.length - 1]
+				if (field.joinPrevious === true && (kind === 'line' || kind === 'text') && previous && (previous.kind === 'line' || previous.kind === 'text')) {
+					previous.value = `${previous.value}${typeof field.joinSeparator === 'string' ? field.joinSeparator : ' '}${value}`
+					previous.joined = true
 					return
 				}
 				const block = { kind, key, value }
@@ -1380,6 +1393,15 @@ export default {
 		 * @return {string}
 		 */
 		partsValue(record, spec) {
+			if (spec && typeof spec === 'object' && Array.isArray(spec.firstOf)) {
+				for (const option of spec.firstOf) {
+					const value = this.partsValue(record, option)
+					if (value !== '') {
+						return value
+					}
+				}
+				return ''
+			}
 			if (typeof spec === 'string' && spec !== '') {
 				return this.valueOf(record, { path: spec })
 			}
@@ -1690,7 +1712,7 @@ export default {
 						specs.push({ spec: toneSpec(spec), raw: readPath(record, spec.path) })
 					}
 				}
-				const nested = [...(Array.isArray(spec.parts) ? spec.parts : []), ...(Array.isArray(spec.title) ? spec.title : [spec.title]), ...(Array.isArray(spec.subtitle) ? spec.subtitle : [spec.subtitle])]
+				const nested = [...(Array.isArray(spec.parts) ? spec.parts : []), ...(Array.isArray(spec.firstOf) ? spec.firstOf : []), ...(Array.isArray(spec.title) ? spec.title : [spec.title]), ...(Array.isArray(spec.subtitle) ? spec.subtitle : [spec.subtitle])]
 				nested.forEach(visit)
 			}
 			fields.forEach(visit)
@@ -2028,17 +2050,25 @@ export default {
 		},
 
 		/**
-		 * Resolve a route declaration (`{ name, params?, query? }`).
+		 * Resolve a route declaration (`{ name, params?, query? }`, or
+		 * `{ nameField, nameMap, params?, query? }` to pick the name by a value
+		 * on the record).
 		 *
 		 * @param {object} route The declaration.
 		 * @param {object|null} record The object shown.
-		 * @return {object|null} The route, or null when a param stays unresolved.
+		 * @return {object|null} The route, or null when the name or a param stays unresolved.
 		 */
 		resolveRoute(route, record) {
-			if (!route || typeof route !== 'object' || !route.name) {
+			if (!route || typeof route !== 'object') {
 				return null
 			}
-			const out = { name: route.name }
+			const name = typeof route.nameField === 'string' && route.nameMap && typeof route.nameMap === 'object'
+				? route.nameMap[String(readPath(record, route.nameField) ?? '')]
+				: route.name
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
+			const out = { name }
 			for (const key of ['params', 'query']) {
 				if (route[key] && typeof route[key] === 'object') {
 					out[key] = {}

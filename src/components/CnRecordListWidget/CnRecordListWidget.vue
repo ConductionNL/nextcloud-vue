@@ -3222,10 +3222,11 @@ export default {
 	margin-inline-end: -4px;
 }
 
-/* Without a tone (`avatar.tone`) the initials sit on the hover ground. */
+/* Without a tone (`avatar.tone`) the initials sit on the hover ground in the
+   boards' soft ink (DqZaakBesluiten Adviezen "JZ"). */
 .cn-record-list__avatar:not([class*='cn-status-badge--']) {
 	background: var(--color-background-hover);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 }
 
 .cn-record-list__avatar {
@@ -3566,7 +3567,7 @@ export default {
 }
 
 /* `cardPillAside: true`: the title over its meta line on the left, 2px
-   apart, the pill beside both at the card's end (DqInspectie outbox). */
+   apart, the pill at the card's end on the title's row (DqInspectie outbox). */
 .cn-record-list--pill-aside .cn-record-list__card {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
@@ -3580,7 +3581,8 @@ export default {
 
 .cn-record-list--pill-aside .cn-record-list__card-pills {
 	grid-column: 2;
-	grid-row: 1 / span 2;
+	grid-row: 1;
+	align-self: start;
 }
 
 .cn-record-list--pill-aside .cn-record-list__card .cn-record-list__meta {

@@ -36,7 +36,7 @@ function ruleFor(selector) {
 
 describe('look-board.css: a select in a board settings card', () => {
 	it('keeps the text-field label rules off a select\'s inner field', () => {
-		expect(ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *)')).toContain('margin-block-start: 22px;')
+		expect(ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *)')).toContain('margin-block: 22px -3px;')
 		expect(ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field__input:not(.v-select *) + .input-field__label')).toContain('inset-block-end: calc(100% + 6px);')
 		expect(ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label)')).toBeNull()
 	})

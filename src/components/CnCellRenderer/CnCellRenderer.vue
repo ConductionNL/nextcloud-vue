@@ -2352,10 +2352,14 @@ export default {
 	color: var(--color-text-success, var(--color-success-text, var(--color-success)));
 }
 
+/* Top-aligned, so the inline-flex box sits on its line instead of raising the
+   line box by its baseline offset (a status row 42.2px against the board's 40,
+   DqZaaktypeStatussen). */
 .cn-cell-renderer__swatch-wrap {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
+	vertical-align: top;
 }
 
 .cn-cell-renderer__swatch-dot {
