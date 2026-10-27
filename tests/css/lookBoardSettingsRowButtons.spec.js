@@ -14,7 +14,7 @@ const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css')
 
 describe('look-board.css: settings table-row buttons', () => {
 	it('draws a labelled button in a table cell 34px with 12px padding', () => {
-		const sel = '.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *):not(.cn-settings-field__image-row *) {'
+		const sel = '.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *):not(.cn-settings-field__image-row *)'
 		const at = css.indexOf(sel)
 		expect(at).toBeGreaterThan(-1)
 		const body = css.slice(at, css.indexOf('}', at))
