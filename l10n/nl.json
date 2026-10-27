@@ -2698,7 +2698,11 @@
     "Shows which rows would fail and why.": "Laat zien welke rijen zouden mislukken en waarom.",
     "Checked. Nothing is imported yet.": "Gecontroleerd. Er is nog niets geïmporteerd.",
     "{rows} rows · {columns} columns · {size}": "{rows} rijen · {columns} kolommen · {size}",
-    "Field for column {column}": "Veld voor kolom {column}"
+    "Field for column {column}": "Veld voor kolom {column}",
+    "About these reports": "Over deze rapportages",
+    "Categories": "Categorieën",
+    "Opens a page of its own": "Opent een eigen pagina",
+    "Open {report}": "{report} openen"
   },
   "plurals": {
     "{count} member": [
