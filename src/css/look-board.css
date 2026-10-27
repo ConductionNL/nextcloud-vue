@@ -3395,6 +3395,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* The darkest step of a scale matrix sets its figure in white, as the boards
+   do (DqProcesanalyse "70 d"; live the light primary tint, 234,240,247).
+   @spec openspec/changes/board-matrix-darkest-white/specs/board-matrix-darkest-white/spec.md#requirement-the-darkest-board-matrix-step-is-white */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--4 {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	color: var(--color-primary-element-text);
+}
+
 /* ---- A tree menu on a card (DqCatalogus "Zaaktypen, Attributen ...") ---- */
 /* The board draws a card of folders: 14px inside the card, rows 2px apart,
    each 8px 10px with an 8px corner at 15px, the open folder on the primary
