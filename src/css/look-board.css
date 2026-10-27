@@ -3480,6 +3480,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	display: none;
 }
 
+/* The setup choices stand 10px apart with a bold title and a 14px
+   description, as DqInstellen draws them.
+   @spec openspec/changes/board-setup-choice-rows/specs/board-setup-choice-rows/spec.md */
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__rows:not(.cn-look-nextcloud *) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
+.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-title:not(.cn-look-nextcloud *) {
+	font-weight: 700;
+}
+
 /* ---- A dashboard chart's bar list --------------------------------------- */
 /* The rows stand 27px apart, as DqDashboard draws them ("Zaken per status":
    14px text, 10px between). A row is a drill button, which took Nextcloud's

@@ -268,6 +268,7 @@ button.cn-stepper__step {
 
 .cn-stepper--board .cn-stepper__dot {
 	flex: 0 0 auto;
+	box-sizing: border-box;
 	width: 28px;
 	height: 28px;
 	font-size: 14px;
@@ -292,9 +293,10 @@ button.cn-stepper__step {
 	background: var(--color-success);
 }
 
-/* Done: filled success circle, 16px white check, label in the main text. */
+/* Done: filled success circle without an edge, 16px white check, label in
+   the main text. */
 .cn-stepper--board .cn-stepper__item--done .cn-stepper__dot {
-	border-color: var(--color-success);
+	border-width: 0;
 	background: var(--color-success);
 	/* A white check on the green, as the board draws it (DqInstellen); the
 	   theme's success text tone is a dark green meant for a light ground. */
@@ -306,9 +308,10 @@ button.cn-stepper__step {
 	font-weight: 400;
 }
 
-/* Current: filled primary, number 14/700, label 14/700 in the main text colour. */
+/* Current: filled primary without an edge, number 14/700, label 14/700 in
+   the main text colour. */
 .cn-stepper--board .cn-stepper__item--current .cn-stepper__dot {
-	border-color: var(--color-primary-element);
+	border-width: 0;
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text, #fff);
 	font-weight: 700;
