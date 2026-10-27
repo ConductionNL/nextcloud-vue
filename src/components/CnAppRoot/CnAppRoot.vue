@@ -666,11 +666,11 @@
 								-->
 								<NcButton variant="tertiary"
 									:href="entry.href"
-									:aria-label="entry.label">
+									:aria-label="manifestTranslate(entry.label)">
 									<template #icon>
 										<OpenInNew :size="20" />
 									</template>
-									{{ entry.label }}
+									{{ manifestTranslate(entry.label) }}
 								</NcButton>
 							</li>
 						</ul>
