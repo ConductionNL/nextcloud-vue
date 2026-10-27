@@ -243,6 +243,11 @@ export default {
 		 *
 		 * @return {string} The composer URL.
 		 */
+		/** @return {string} The record, register and schema the list is for. */
+		bindingKey() {
+			return [this.register, this.schema, this.objectId].join('/')
+		},
+
 		composeUrl() {
 			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
 				? OC.generateUrl('/apps/mail/box/draft')
@@ -251,10 +256,15 @@ export default {
 	},
 
 	watch: {
-		objectId: {
+		/*
+		 * The record, its register and its schema together: on a detail page
+		 * the id is known first and the register and schema follow, and the
+		 * list loads once all three are there.
+		 */
+		bindingKey: {
 			immediate: true,
-			handler(id) {
-				if (id) {
+			handler() {
+				if (this.register && this.schema && this.objectId) {
 					this.reset()
 					this.fetchMessages()
 				}
