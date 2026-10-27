@@ -32,6 +32,10 @@ describe('CnChecklistRunWidget r32', () => {
 		expect(rule('.cn-checklist-run__photo-button')).toContain('gap: 8px')
 	})
 
+	it('pads the Previous and Next labels 2px a side, as wide as the board draws them', () => {
+		expect(rule('.cn-checklist-run__nav :deep(.button-vue__text)')).toContain('padding-inline: 2px')
+	})
+
 	it('sets a note on the normal line height, 8px 12px in', () => {
 		const note = rule('.cn-checklist-run__text.cn-checklist-run__text')
 		expect(note).toContain('line-height: normal')

@@ -1324,6 +1324,12 @@ export default {
 	justify-content: space-between;
 }
 
+/* Previous and Next are as wide as the board draws them: NcButton pads its
+   label 4px a side inside the button's own padding, the board 2px. */
+.cn-checklist-run__nav :deep(.button-vue__text) {
+	padding-inline: 2px;
+}
+
 .cn-checklist-run__error {
 	color: var(--color-error-text, var(--color-error));
 	margin: 0;
