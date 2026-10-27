@@ -1876,6 +1876,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-block-start: 22px;
 }
 
+/* A settings card's text area sets its lines at 1.5, 8px 12px in, as the
+   boards draw them (56 board textareas; NcTextArea took the browser's
+   leading, ~1.13).
+   @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15 */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input {
+	box-sizing: border-box;
+	padding: 8px 12px;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
 /* A save button beside a one-field form (`saveInline`) lines up with the
    control under that label, not with the label. */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-fields__inline-save {
