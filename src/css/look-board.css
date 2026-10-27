@@ -1028,6 +1028,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	box-sizing: border-box;
 	width: 278px;
 	max-width: calc(100vw - 32px);
+	/* The board hangs the menu over the button's lower edge (46px under the
+	   row's top, the button 34px from 15px): 7px above the popper's place. */
+	margin-top: -7px;
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
@@ -3749,6 +3752,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    margin under it, so the list starts 60px under the field (DqFilterDelen). */
 .cn-look-board .cn-saved-view-share__rights:not(.cn-look-nextcloud *) {
 	--default-clickable-area: 36px;
+	--cn-field-height: 36px;
 }
 
 .cn-look-board .cn-saved-view-share__hint:not(.cn-look-nextcloud *),
