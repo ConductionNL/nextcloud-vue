@@ -2444,6 +2444,13 @@
 	text-decoration: underline;
 }
 
+/* A chart's notice sits 12px under the chart and ends the card (DqHandhaving
+   "Advies: last onder dwangsom"): NcNoteCard's 15px margin above and below
+   made the matrix card 19px taller than the board's 446. */
+.cn-look-board .cn-chart-widget .cn-chart-widget__notice.notecard:not(.cn-look-nextcloud *) {
+	margin: 12px 0 0;
+}
+
 /* Facts and their lines sit on the font's own leading, as the boards draw
    them: a 14px fact 17px tall and 25px apart, a 13px line 15.6px (DqHandhaving
    Classificatie 225 against 202, Afwijking en definitief 406 against 355). The
