@@ -1451,19 +1451,24 @@ export default {
 		/**
 		 * A field's values as checkbox rows, in the board look and for a short
 		 * list only: label and count apart, from the facet when there is one,
-		 * else the field's own options. Null where the picker stays (the
-		 * Nextcloud look, a single choice, a reference, more than
-		 * CHECKLIST_MAX values).
+		 * else the field's own options. A single choice is a list too (a row
+		 * replaces the other); a reference only from its facet, whose buckets
+		 * carry the labels. Null where the picker stays (the Nextcloud look, a
+		 * reference without a facet, more than CHECKLIST_MAX values).
 		 *
 		 * @spec openspec/changes/board-sidebar-filters-as-checkbox-lists/specs/index-sidebar/spec.md#requirement-the-board-look-draws-a-short-filter-as-a-checkbox-list-with-counts
 		 * @param {object} filter The filter definition.
 		 * @return {Array<{id: (string|number|boolean), label: string, count: (number|null)}>|null} The rows, or null.
 		 */
 		checklistOptions(filter) {
-			if (!this.isBoardLook || filter.multiple === false || filter.type === 'reference') {
+			if (!this.isBoardLook) {
 				return null
 			}
 			const facet = this.facetData[filter.key]
+			const hasBuckets = Boolean(facet && Array.isArray(facet.values) && facet.values.length > 0)
+			if (filter.type === 'reference' && !hasBuckets) {
+				return null
+			}
 			let rows
 			if (facet && Array.isArray(facet.values) && facet.values.length > 0) {
 				rows = facet.values.map((bucket) => ({
@@ -1506,6 +1511,10 @@ export default {
 			const value = this.activeFilters[filter.key]
 			const current = Array.isArray(value) ? [...value] : (value === undefined || value === null || value === '' ? [] : [value])
 			const rest = current.filter((v) => String(v) !== String(id))
+			if (filter.multiple === false) {
+				this.$emit('filter-change', { key: filter.key, values: checked ? [id] : [] })
+				return
+			}
 			this.$emit('filter-change', { key: filter.key, values: checked ? [...rest, id] : rest })
 		},
 
