@@ -40,4 +40,9 @@ describe('CnFeaturesBoard subtitle under a theme', () => {
 		expect(rule('.cn-features-board__subtitle')).toMatch(/line-height:\s*normal/)
 		expect(rule('.cn-features-board__row-text')).toMatch(/line-height:\s*normal/)
 	})
+
+	it('sets the panel 20px apart and holds the notice to that gap alone', () => {
+		expect(rule('.cn-features-board__panel')).toMatch(/gap:\s*20px/)
+		expect(rule('.cn-features-board__panel > .cn-features-board__notice')).toMatch(/margin:\s*0/)
+	})
 })
