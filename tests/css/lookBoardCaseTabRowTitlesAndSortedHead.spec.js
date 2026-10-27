@@ -31,6 +31,11 @@ describe('board look: case tab row titles and the sorted head', () => {
 			.toContain('font-weight: 600')
 	})
 
+	it('sets the task menu 4px after the row button', () => {
+		expect(rule(read('look-board-detail.css'), '.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * + *'))
+			.toContain('margin-inline-start: 4px')
+	})
+
 	it('mutes a done task\'s status tag', () => {
 		expect(rule(read('look-board-detail.css'), '.cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *)'))
 			.toContain('--cn-status-badge-ink: var(--color-text-maxcontrast)')

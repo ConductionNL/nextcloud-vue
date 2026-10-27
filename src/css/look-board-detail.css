@@ -1588,6 +1588,12 @@
 	vertical-align: middle;
 }
 
+/* The task menu sits 4px after the row's button, as drawn ("Afronden" then
+   the menu); the compiled template keeps no space between them. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * + * {
+	margin-inline-start: 4px;
+}
+
 /* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
 /* The case-tab boards draw a list's table edge to edge in its card
    (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
