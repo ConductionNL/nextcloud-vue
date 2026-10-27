@@ -2,8 +2,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * "Markeer voor aandacht" is as wide as its label, as DqZaakAssistent draws it;
- * it was stretched across the side card (r31, 254px).
+ * "Markeer voor aandacht" spans the side card, label at the start, as every
+ * case board draws it (254px on DqZaak, DqZaakEmail, DqZaakAssistent and the
+ * other case tabs, r32; live was 202px wide).
  */
 import fs from 'fs'
 import path from 'path'
@@ -11,11 +12,15 @@ import path from 'path'
 const sfc = fs.readFileSync(path.join(__dirname, '../../src/components/CnAttentionFlagWidget/CnAttentionFlagWidget.vue'), 'utf8')
 
 describe('CnAttentionFlagWidget compose button', () => {
-	it('is not a wide button and keeps to its label', () => {
+	it('is a wide button', () => {
 		const button = sfc.slice(sfc.indexOf('<NcButton'), sfc.indexOf('data-testid="cn-attention-flag-compose"'))
-		expect(button).not.toMatch(/\bwide\b/)
+		expect(button).toMatch(/\bwide\b/)
 		expect(button).toContain('class="cn-attention-flag__compose"')
+	})
+
+	it('is not held to its label width', () => {
 		const at = sfc.indexOf('\n.cn-attention-flag__compose {')
-		expect(sfc.slice(at, sfc.indexOf('}', at))).toContain('align-self: flex-start')
+		const body = at < 0 ? '' : sfc.slice(at, sfc.indexOf('}', at))
+		expect(body).not.toContain('align-self: flex-start')
 	})
 })
