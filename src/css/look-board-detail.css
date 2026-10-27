@@ -2164,6 +2164,13 @@
 	line-height: normal;
 }
 
+/* Main contact (DqOrganisatie Hoofdcontact): the e-mail and the link to all
+   contact persons are 14px lines under the 15px name. */
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-email,
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-link {
+	font-size: 14px;
+}
+
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
    every row including the first, 12px 0 padding, a 32px round tile (the day
    an appointment starts, the author's initials) 12px before the text, the

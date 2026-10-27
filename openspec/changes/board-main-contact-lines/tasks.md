@@ -1,0 +1,2 @@
+- [x] Board look: main contact e-mail and link 14px
+- [x] CSS test
