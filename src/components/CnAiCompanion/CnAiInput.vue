@@ -228,7 +228,6 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { FilePickerType, getFilePickerBuilder } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
@@ -1081,6 +1080,9 @@ export default {
 			}
 			this.uploadError = ''
 			try {
+				// Loaded when someone picks from Files: the dialogs package is a large
+				// share of the chat panel, which hosts load on every page.
+				const { FilePickerType, getFilePickerBuilder } = await import('@nextcloud/dialogs')
 				const picker = getFilePickerBuilder(this.cnTranslate('Choose from Files'))
 					.setMultiSelect(true)
 					.setType(FilePickerType.Choose)

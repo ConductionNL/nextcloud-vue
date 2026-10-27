@@ -121,6 +121,15 @@
 				<span v-if="dirty" class="cn-settings-fields__dirty" data-testid="cn-settings-fields-dirty">
 					{{ t('nextcloud-vue', 'Unsaved changes') }}
 				</span>
+				<!-- An action field with `placement: 'save'` stands beside Save
+				     (DqBeheerGeavanceerd "Willekeurig geheim genereren"). -->
+				<CnSettingsField
+					v-for="field in saveRowFields"
+					:key="field.key"
+					class="cn-settings-fields__save-action"
+					:field="field"
+					:modelValue="form[field.key]"
+					@action="runAction(field)" />
 				<NcButton
 					:variant="saveVariant"
 					type="submit"
@@ -740,7 +749,17 @@ export default {
 		 * @return {Array<object>}
 		 */
 		mainFields() {
-			return this.visibleFields.filter((field) => field.advanced !== true)
+			return this.visibleFields.filter((field) => field.advanced !== true && !this.inSaveRow(field))
+		},
+
+		/**
+		 * The visible action fields drawn in the save row, beside Save.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/settings-action-in-save-row/specs/settings-action-in-save-row/spec.md#requirement-an-action-field-can-stand-beside-save
+		 */
+		saveRowFields() {
+			return this.visibleFields.filter((field) => field.advanced !== true && this.inSaveRow(field))
 		},
 
 		/**
@@ -868,6 +887,19 @@ export default {
 		 */
 		valueOf(key) {
 			return Object.hasOwn(this.form, key) ? this.form[key] : literalFirst(this.values, key)
+		},
+
+		/**
+		 * Whether an action field stands in the save row: it asks for
+		 * `placement: 'save'` and the form draws a save row at all.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/settings-action-in-save-row/specs/settings-action-in-save-row/spec.md#requirement-an-action-field-can-stand-beside-save
+		 */
+		inSaveRow(field) {
+			return field.type === 'action' && field.placement === 'save'
+				&& !this.autoSave && this.hasInputs && !this.inlineSave
 		},
 
 		/**
@@ -1564,6 +1596,10 @@ export default {
 	align-items: center;
 	justify-content: flex-end;
 	gap: 12px;
+}
+
+.cn-settings-fields__save-action {
+	flex: none;
 }
 
 .cn-settings-fields__dirty {
