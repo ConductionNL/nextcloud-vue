@@ -16,7 +16,8 @@ import CnDuplicateWarning from '../components/CnDuplicateWarning/CnDuplicateWarn
  * over }` when the user files anyway, null when they cancel.
  *
  * @spec openspec/changes/duplicate-warning/specs/duplicate-warning/spec.md#requirement-a-generic-duplicate-warning
- * @param {object} props CnDuplicateWarning's props (`matches`, `records`, `policy`, `mayOverride`, ...).
+ * @param {object} props CnDuplicateWarning's props (`matches`, `records`, `policy`, `mayOverride`, ...),
+ *   and `look` (`board` or `nextcloud`); without it the page's look is used.
  * @return {Promise<{reason: string, over: Array<string>}|null>} The decision.
  */
 export function openDuplicateWarning(props) {
@@ -29,7 +30,11 @@ export function openDuplicateWarning(props) {
 			host.remove()
 			resolve(decision)
 		}
-		app = createApp(CnDuplicateWarning, { ...(props || {}), onClose: () => finish(null), onFile: (decision) => finish(decision) })
+		const { look, ...rest } = props || {}
+		app = createApp(CnDuplicateWarning, { ...rest, onClose: () => finish(null), onFile: (decision) => finish(decision) })
+		// Mounted outside CnAppRoot, so nothing provides the look: take the
+		// caller's, else the board look when the page around it is drawn in it.
+		app.provide('cnLook', look || (document.querySelector('.cn-look-board') ? 'board' : 'nextcloud'))
 		app.mount(host)
 	})
 }
