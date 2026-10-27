@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--stacked': stacked }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -499,7 +499,7 @@ export default {
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
-		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
+		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -575,13 +575,23 @@ export default {
 		},
 
 		/**
-		 * Whether the rows sit in two columns, label above value.
+		 * Whether the rows sit in columns, label above value: two, or three.
 		 *
 		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-two-columns
 		 * @return {boolean}
 		 */
 		twoColumns() {
-			return Number(this.content?.columns) === 2
+			return [2, 3].includes(Number(this.content?.columns))
+		},
+
+		/**
+		 * Whether the rows sit in three columns (board DqSociaalDomein "De melding").
+		 *
+		 * @spec openspec/changes/facts-columns/specs/facts-widget/spec.md#requirement-facts-rows-can-sit-in-three-columns
+		 * @return {boolean}
+		 */
+		threeColumns() {
+			return Number(this.content?.columns) === 3
 		},
 
 		/**
@@ -2412,6 +2422,13 @@ export default {
 	font-size: 13px;
 }
 
+/* `columns: 3` (board DqSociaalDomein "De melding"): three columns, 12px
+   between the rows of facts. */
+.cn-facts-widget__rows--three {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	row-gap: 12px;
+}
+
 /* One column, label above value: 2px under its label, 10px to the next
    label, so a long label never squeezes its value (DqHandhaving). */
 .cn-facts-widget__rows--stacked {
@@ -2424,7 +2441,8 @@ export default {
 }
 
 @media (max-width: 640px) {
-	.cn-facts-widget__rows--columns {
+	.cn-facts-widget__rows--columns,
+	.cn-facts-widget__rows--three {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
