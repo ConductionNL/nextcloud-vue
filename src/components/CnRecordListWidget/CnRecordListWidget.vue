@@ -3222,10 +3222,11 @@ export default {
 	margin-inline-end: -4px;
 }
 
-/* Without a tone (`avatar.tone`) the initials sit on the hover ground. */
+/* Without a tone (`avatar.tone`) the initials sit on the hover ground in the
+   boards' soft ink (DqZaakBesluiten Adviezen "JZ"). */
 .cn-record-list__avatar:not([class*='cn-status-badge--']) {
 	background: var(--color-background-hover);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 }
 
 .cn-record-list__avatar {

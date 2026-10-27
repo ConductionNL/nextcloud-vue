@@ -54,3 +54,11 @@ describe('record list avatar tone and row action icon', () => {
 		expect(action.text()).toBe('Remind')
 	})
 })
+
+describe('record list neutral initials', () => {
+	it('sets them in the boards\' soft ink', () => {
+		const css = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnRecordListWidget/CnRecordListWidget.vue'), 'utf8')
+		const at = css.indexOf(".cn-record-list__avatar:not([class*='cn-status-badge--']) {")
+		expect(css.slice(at, css.indexOf('}', at))).toContain('var(--cn-board-text-soft')
+	})
+})
