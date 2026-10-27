@@ -14,8 +14,13 @@ const path = require('path')
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
 describe('look-board-index.css: actions bar rows', () => {
-	it('sets the rows a section apart and the items 8px apart', () => {
+	it('keeps the items 8px apart, also on a wrapped row 1', () => {
 		const at = css.indexOf('.cn-look-board .cn-actions-bar.cn-actions-bar--board {')
-		expect(css.slice(at, css.indexOf('}', at))).toContain('gap: var(--cn-board-section-gap, 20px) 8px;')
+		expect(css.slice(at, css.indexOf('}', at))).toContain('gap: 8px;')
+	})
+
+	it('sets the search row a section under row 1', () => {
+		const at = css.indexOf('.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {')
+		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);')
 	})
 })
