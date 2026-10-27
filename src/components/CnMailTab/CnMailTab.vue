@@ -281,14 +281,14 @@ export default {
 			return keyOf(this.objectId) || keyOf(this.record.id) || keyOf(this.record['@self'] && this.record['@self'].id)
 		},
 
-		/** @return {string} The register slug or id. */
+		/** @return {string} The register slug or id, from the prop or else the record's own `@self`. */
 		registerKey() {
-			return keyOf(this.register)
+			return keyOf(this.register) || keyOf(this.record['@self'] && this.record['@self'].register)
 		},
 
-		/** @return {string} The schema slug or id. */
+		/** @return {string} The schema slug or id, from the prop or else the record's own `@self`. */
 		schemaKey() {
-			return keyOf(this.schema)
+			return keyOf(this.schema) || keyOf(this.record['@self'] && this.record['@self'].schema)
 		},
 
 		/** @return {object} The token context for the URLs. */
