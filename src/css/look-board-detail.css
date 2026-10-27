@@ -2731,15 +2731,16 @@
 }
 
 /* The history card's note composer and entries as DqZaakHistorie draws them
-   (r31 strict verdict): the note field three lines high on a 1.5 line with
+   (r31 strict verdict): the note field three lines high on the normal line
+   (76px, as the boards draw their textareas since design-system #613) with
    10px 12px inside, the add button at the board's 40px, the title-row
    buttons 12px apart, and an entry the requester sees marked with a 12px
    teal pill.
    @spec openspec/changes/board-history-composer/specs/timeline/spec.md */
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__draft:not(.cn-look-nextcloud *) {
-	min-height: calc(3 * 1.5em + 22px);
+	min-height: calc(3 * 1.2em + 22px);
 	padding: 10px 12px;
-	line-height: 1.5;
+	line-height: normal;
 }
 
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__composer-foot .button-vue:where(:not(.cn-look-nextcloud *)) {
