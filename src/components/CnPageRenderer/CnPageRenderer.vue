@@ -1662,6 +1662,12 @@ export default {
 			if (!page) {
 				return null
 			}
+			// In the board look a flow page is CnFlowBoard, which carries the flow's
+			// controls itself behind its side panel button (PqFlow, DqFlow): an
+			// app sidebar beside it took the canvas's width.
+			if (this.resolvedLook === 'board' && defaultPageSidebars[page.type]) {
+				return null
+			}
 			if (typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
 				const sidebarShown = !page.sidebar || typeof page.sidebar !== 'object' || page.sidebar.show !== false
 				return (sidebarShown && defaultPageSidebars[page.type]) || null
