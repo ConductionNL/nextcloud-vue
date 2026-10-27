@@ -266,7 +266,7 @@ import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/u
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
-import { formatBoardDate } from '../../utils/boardDate.js'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
@@ -493,12 +493,12 @@ export default {
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
 		 * - `footnote` — a plain muted line under the facts, without a band (DqZaakBesluiten "Na het ondertekenen ..."); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `longdatetime` (the month written out, the year and the time: "7 oktober 2026, 09:12"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
-		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
+		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `emptyText` — shown when no entry has a value.
@@ -629,11 +629,20 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		countJobsKey() {
-			const fields = this.entries
-			const keys = fields
-				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
-				.map((field) => this.countKey(field.countFrom))
+			const keys = this.countSources.map((countFrom) => this.countKey(countFrom))
 			return JSON.stringify([...new Set(keys)])
+		},
+
+		/**
+		 * Every list this card counts: the entries' `countFrom` and the link's.
+		 *
+		 * @return {Array<{register: string, schema: string, filter?: object}>}
+		 * @spec openspec/changes/facts-link-count/specs/facts-widget/spec.md#requirement-a-facts-link-can-name-a-count
+		 */
+		countSources() {
+			const linkCount = this.content?.link?.countFrom
+			return [...this.entries.map((field) => field && field.countFrom), linkCount]
+				.filter((countFrom) => countFrom && typeof countFrom === 'object' && countFrom.register && countFrom.schema)
 		},
 
 		/**
@@ -1051,9 +1060,21 @@ export default {
 		 *
 		 * @param {object} link The configured link.
 		 * @return {{label: string, note: string}}
+		 * A link with `countFrom` (`{ register, schema, filter? }`) puts that
+		 * list's total in its `{count}` ("Klantpagina, 4 eerdere contacten"),
+		 * and reads `fallbackLabel` while the count is not known.
+		 *
 		 * @spec openspec/changes/facts-link-label-from-record/specs/facts-widget/spec.md#requirement-a-facts-link-can-take-its-words-from-the-record
+		 * @spec openspec/changes/facts-link-count/specs/facts-widget/spec.md#requirement-a-facts-link-can-name-a-count
 		 */
 		linkWords(link) {
+			if (link.countFrom && typeof link.countFrom === 'object') {
+				const total = this.counts[this.countKey(link.countFrom)]
+				const counted = Number.isFinite(total)
+					? this.tr(String(link.label)).replace('{count}', String(total))
+					: this.tr(String(link.fallbackLabel || link.label).replace(/\{count\}/g, '').trim())
+				return { label: counted, note: typeof link.note === 'string' && link.note !== '' ? this.tr(link.note) : '' }
+			}
 			const fill = (text) => (text.includes('{') && this.record ? this.templateValue(this.record, text) : this.tr(text))
 			const label = fill(String(link.label))
 			return {
@@ -1232,13 +1253,8 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		async loadCounts() {
-			const fields = this.entries
 			const seen = new Set()
-			for (const field of fields) {
-				const countFrom = field && field.countFrom
-				if (!countFrom || typeof countFrom !== 'object' || !countFrom.register || !countFrom.schema) {
-					continue
-				}
+			for (const countFrom of this.countSources) {
 				const key = this.countKey(countFrom)
 				if (seen.has(key)) {
 					continue
@@ -1961,6 +1977,10 @@ export default {
 			}
 			if (format === 'longdate') {
 				return formatLongDate(raw)
+			}
+			if (format === 'longdatetime') {
+				const date = parseDateValue(raw)
+				return date === null ? '' : `${formatLongDate(date, new Date(), true)}, ${formatTimeOfDay(date)}`
 			}
 			if (format === 'date' || format === 'date-long') {
 				const date = parseDateValue(raw)
