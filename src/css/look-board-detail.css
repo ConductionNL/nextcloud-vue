@@ -2571,10 +2571,12 @@
 
 /* A table in a detail page card names each row in the link colour at 14px,
    as DqZaakGerelateerd draws "Deelzaken" and "Objecten" (r31: 15px in the
-   body ink). The row opens the record, so its name reads as the link.
+   body ink). The row opens the record, so its name reads as the link. A
+   plain log (`rowTitle: "text"`, DqZaakAssistent's AI log) keeps it in the
+   body ink.
    @spec openspec/changes/board-detail-table-title-cells/specs/board-tables/spec.md */
-.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *),
-.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *),
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *) {
 	font-size: 14px;
 	line-height: 1.2;
 	color: var(--color-primary-element);
