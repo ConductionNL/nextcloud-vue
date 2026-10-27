@@ -62,6 +62,19 @@ describe('CnRecordNotesWidget', () => {
 		jest.useRealTimers()
 	})
 
+	it('keeps the label for screen readers but hides it from view with hideLabel, under a section heading that says the same', () => {
+		const shown = mountNotes().find('.cn-record-notes__label')
+		expect(shown.classes()).not.toContain('hidden-visually')
+		const w = mount(CnRecordNotesWidget, {
+			props: { objectData: RECORD, content: { ...CONTENT, hideLabel: true } },
+			global: { provide: { cnTranslate: (key) => key } },
+		})
+		const label = w.find('.cn-record-notes__label')
+		expect(label.text()).toBe('Conversation notes')
+		expect(label.attributes('for')).toBe(w.find('[data-testid="cn-record-notes-text"]').attributes('id'))
+		expect(label.classes()).toContain('hidden-visually')
+	})
+
 	it('shows the record\'s notes and its outcome options', () => {
 		const w = mountNotes()
 		expect(w.find('[data-testid="cn-record-notes-text"]').element.value).toBe('Belde over zijn afvalpas.')
