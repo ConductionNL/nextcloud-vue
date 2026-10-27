@@ -36,11 +36,13 @@
 	<div
 		class="cn-map-widget"
 		:class="{ 'cn-map-widget--fullscreen': isFullscreen }"
-		:style="{ height: isFullscreen ? null : resolvedHeight }">
+		:style="{ height: isFullscreen || markerCaption ? null : resolvedHeight }">
 		<div
 			v-if="leafletAvailable"
 			ref="mapEl"
 			class="cn-map-widget__leaflet"
+			:class="{ 'cn-map-widget__leaflet--captioned': markerCaption && !isFullscreen }"
+			:style="markerCaption && !isFullscreen ? { height: resolvedHeight } : null"
 			role="application"
 			:aria-label="resolvedAriaLabel"
 			tabindex="0" />
@@ -63,6 +65,9 @@
 			:role="markersFailed ? 'alert' : null"
 			:data-testid="markersFailed ? 'cn-map-markers-failed' : 'cn-map-markers-empty'">
 			{{ markerStatusText }}
+		</p>
+		<p v-if="markerCaption && !isFullscreen" class="cn-map-widget__caption" data-testid="cn-map-caption">
+			{{ markerCaption }}
 		</p>
 		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
 			{{ unplottedLabel }}
@@ -427,6 +432,8 @@ export default {
 		 * `clustering`, `height`, `autoFit`, `layers`, `basemaps`) overrides the
 		 * matching flat prop. Direct (non-dashboard) consumers omit this and pass
 		 * the flat props instead. See the `cfg` computed for the merge rules.
+		 * `labelsBelow: true` writes the markers' `popupField` values on a line
+		 * under the map ("Fietspad Lindelaan, tussen nummer 2 en 40").
 		 *
 		 * @type {object|null}
 		 */
@@ -500,6 +507,8 @@ export default {
 			// Whether the marker source has answered, and with how many markers.
 			markersLoaded: false,
 			markerCount: 0,
+			// The markers' `popupField` values, for `content.labelsBelow`.
+			markerLabels: [],
 			// Whether the marker source could not be read (not: read and empty).
 			markersFailed: false,
 			// Set once the user has framed the view themselves; stops autoFit.
@@ -610,6 +619,21 @@ export default {
 		 */
 		headerNoteText() {
 			return countLine(this.content?.headerNote, this)
+		},
+
+		/**
+		 * The line under the map naming its places (`content.labelsBelow: true`):
+		 * each marker's `markers.popupField` value, joined by ", ", as the case
+		 * boards draw "Fietspad Lindelaan, tussen nummer 2 en 40" under the
+		 * Locaties map. Empty until the source answered with labelled markers.
+		 *
+		 * @return {string}
+		 */
+		markerCaption() {
+			if (this.content?.labelsBelow !== true || !this.markersLoaded || this.markersFailed) {
+				return ''
+			}
+			return (this.markerLabels || []).join(', ')
 		},
 
 		markerStatusText() {
@@ -1038,6 +1062,23 @@ export default {
 		},
 
 		/**
+		 * The non-empty `markers.popupField` values of the features, in order.
+		 *
+		 * @param {Array|null} features The features.
+		 * @return {string[]}
+		 */
+		labelsOf(features) {
+			const field = this.cfg.markers && this.cfg.markers.popupField
+			if (!field || !Array.isArray(features)) {
+				return []
+			}
+			return features
+				.map((feature) => (feature && feature.properties ? feature.properties[field] : null))
+				.filter((label) => typeof label === 'string' && label.trim() !== '')
+				.map((label) => label.trim())
+		},
+
+		/**
 		 * Mount the configured `markers` onto the Leaflet map. Reads from
 		 * `features[]` (inline) OR `dataSource.url` (HTTP fetch). When
 		 * `clusteringEnabled`, lazy-loads `leaflet.markercluster` and
@@ -1065,6 +1106,7 @@ export default {
 			this.markersFailed = false
 			const features = await this.collectFeatures()
 			this.markerCount = Array.isArray(features) ? features.length : 0
+			this.markerLabels = this.labelsOf(features)
 			this.markersLoaded = true
 			if (!features || features.length === 0) {
 				return
@@ -1718,6 +1760,18 @@ export default {
 	/* Leaflet paints its container #ddd, which reads as a white flash before the
 	   tiles arrive — and a bright one in a dark theme. */
 	background: var(--color-background-dark);
+}
+
+/* With a caption the map keeps its own height and the caption sits under it. */
+.cn-map-widget__leaflet--captioned {
+	min-height: 200px;
+}
+
+.cn-map-widget__caption {
+	margin: 12px 0 0;
+	font-size: 15px;
+	line-height: 1.2;
+	color: var(--color-main-text);
 }
 
 .cn-map-widget__note {

@@ -5477,7 +5477,10 @@ export default {
 /* The same under the KPI row: the cards stand the row's 20px under the tiles,
    not that plus the grid margin (DqDashboard: 32, the board 20).
    @spec openspec/changes/board-kpi-row-to-grid-gap/specs/board-kpi-row-to-grid-gap/spec.md#requirement-the-board-grid-stands-the-section-gap-under-the-kpi-row */
-.cn-dashboard-page--board .cn-dashboard-page__kpi-row + :deep(.cn-dashboard-grid) {
+/* And under the view switch: the cards stand the switch row's 20px under it
+   (DqMijnWerk, DqMijnTeam: 32, the board 20). */
+.cn-dashboard-page--board .cn-dashboard-page__kpi-row + :deep(.cn-dashboard-grid),
+.cn-dashboard-page--board .cn-dashboard-page__switch-row + :deep(.cn-dashboard-grid) {
 	margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
 }
 

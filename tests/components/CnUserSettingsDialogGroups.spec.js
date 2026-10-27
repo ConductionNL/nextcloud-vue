@@ -70,3 +70,18 @@ describe('CnUserSettingsDialog: Nextcloud links and the app group', () => {
 		w.unmount()
 	})
 })
+
+describe('CnUserSettingsDialog navigation styles', () => {
+	const fs = require('fs')
+	const path = require('path')
+	const css = fs.readFileSync(path.join(__dirname, '../../src/components/CnUserSettingsDialog/CnUserSettingsDialog.vue'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+	const body = (sel) => css.slice(css.indexOf(`${sel} {`), css.indexOf('}', css.indexOf(`${sel} {`)))
+
+	it('indents the app sections with a selector that outranks the list reset', () => {
+		expect(body('.cn-user-settings-dialog__nav ul.cn-user-settings-dialog__group-sections')).toContain('padding-inline-start: 10px;')
+	})
+
+	it('keeps an entry on one line with an ellipsis', () => {
+		expect(body('.cn-user-settings-dialog__nav-label')).toContain('white-space: nowrap;')
+	})
+})
