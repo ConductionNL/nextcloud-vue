@@ -162,7 +162,8 @@ export function relatedEvents(rows, config, now = new Date()) {
 }
 
 /**
- * Events from audit-trail entries.
+ * Events from audit-trail entries: one per change. A read changes nothing,
+ * so it is left out.
  *
  * @param {Array<object>} entries The audit-trail rows.
  * @param {(action: string, actor: string) => string} describe Builds the label from action and actor.
@@ -171,6 +172,7 @@ export function relatedEvents(rows, config, now = new Date()) {
  */
 export function auditEvents(entries, describe, now = new Date()) {
 	return (Array.isArray(entries) ? entries : [])
+		.filter((e) => String((e && (e.action || e.event)) || '') !== 'read')
 		.map((e, i) => makeEvent({
 			id: `audit:${e && (e.id || e.uuid) ? (e.id || e.uuid) : i}`,
 			raw: e && (e.created || e.creationDateTime || e.timestamp),
