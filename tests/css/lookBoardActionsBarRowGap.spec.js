@@ -31,7 +31,8 @@ describe('look-board-index.css: actions bar rows', () => {
 		const at = css.indexOf('.cn-look-board .cn-actions-bar.cn-actions-bar--board {')
 		expect(css.slice(at, css.indexOf('}', at))).toContain('gap: 8px;')
 		const row = css.indexOf('.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {')
-		expect(css.slice(row, css.indexOf('}', row))).toContain('margin-top: 12px;')
+		// 12px: the section gap less the 8px line gap (board-list-toolbar-kpi-chips writes it so).
+		expect(css.slice(row, css.indexOf('}', row))).toContain('margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);')
 	})
 
 	it('puts the view switch on a line of its own beside a side panel, Filter at the end of row 1', () => {

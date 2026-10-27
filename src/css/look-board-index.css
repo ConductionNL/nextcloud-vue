@@ -162,17 +162,6 @@
 	border-radius: 0;
 }
 
-	/* Lines of row 1 are 8px apart and items on a line 8px; the search row
-	   keeps its own 12px on top, so it sits 20px under row 1 as the boards
-	   draw it (DqZaken, DqContracten), while a wrapped part of row 1 (the
-	   view switch beside a side panel, DqFilterBeheren) sits 8px under it. */
-	gap: 8px;
-	margin-bottom: var(--cn-board-section-gap, 20px);
-	padding: 0;
-	background: transparent;
-	border-radius: 0;
-}
-
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--views,
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__actions {
 	display: contents;
@@ -249,9 +238,6 @@
 	align-items: center;
 	gap: 8px;
 	margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);
-}
-
-	margin-top: 12px;
 }
 
 /* Beside a side panel the view switch always starts a line of its own under
