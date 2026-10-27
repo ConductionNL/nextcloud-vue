@@ -17,6 +17,12 @@ import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnLinkedWidget/index.js'
 
+jest.mock('../../src/utils/boardReferenceColumns.js', () => ({ __esModule: true, fetchReferenceObjects: jest.fn() }))
+jest.mock('../../src/utils/appInstalled.js', () => ({ __esModule: true, isAppInstalled: jest.fn(() => true) }))
+
+const { fetchReferenceObjects } = require('../../src/utils/boardReferenceColumns.js')
+const { isAppInstalled } = require('../../src/utils/appInstalled.js')
+
 /**
  * Register a mount-mode leaf that records what it was handed.
  *
@@ -111,5 +117,44 @@ describe('CnLinkedWidget', () => {
 
 		expect(wrapper.find('[data-testid="cn-linked-row"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-linked-empty"]').exists()).toBe(false)
+	})
+
+	describe('a record leaf written in the manifest', () => {
+		const REQUESTS = { id: 'pipelinq-requests', register: 'pipelinq', schema: 'ticket', filter: { caseReference: '@objectId' }, requiredApp: 'pipelinq', noun: 'questions', label: 'Question in pipelinq', href: '/apps/pipelinq/requests/{id}', icon: 'MessageQuestionOutline' }
+
+		beforeEach(() => {
+			fetchReferenceObjects.mockReset()
+			isAppInstalled.mockReset()
+			isAppInstalled.mockReturnValue(true)
+		})
+
+		it('reads the records that point at this record and lists one row each, in the configured order', async () => {
+			fetchReferenceObjects.mockResolvedValue([{ id: 'r-1' }])
+			const documents = registerLeaf('documents')
+			const wrapper = mountCard(['documents', REQUESTS])
+			documents[0].onSummary({ count: 1, noun: 'documenten', rows: [{ label: 'Dossier' }] })
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			await wrapper.vm.$nextTick()
+
+			expect(fetchReferenceObjects).toHaveBeenCalledWith({ register: 'pipelinq', schema: 'ticket', filter: { caseReference: 'case-1' }, limit: 20 })
+			const rows = wrapper.findAll('[data-testid="cn-linked-row"]')
+			expect(rows.map((r) => r.text())).toEqual(['Dossier', 'Question in pipelinq'])
+			expect(rows[1].find('a').attributes('href')).toContain('/apps/pipelinq/requests/r-1')
+		})
+
+		it('joins the nothing-linked line when no record points here, and is left out when its app is absent', async () => {
+			fetchReferenceObjects.mockResolvedValue([])
+			const wrapper = mountCard([REQUESTS])
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-testid="cn-linked-empty"]').text()).toBe('Questions: nothing linked')
+
+			fetchReferenceObjects.mockClear()
+			isAppInstalled.mockReturnValue(false)
+			const absent = mountCard([REQUESTS])
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			expect(fetchReferenceObjects).not.toHaveBeenCalled()
+			expect(absent.find('[data-testid="cn-linked-empty"]').exists()).toBe(false)
+		})
 	})
 })

@@ -74,6 +74,10 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Join nouns as a sentence list in the user's language ("a, b en c").
@@ -100,6 +104,14 @@ function joinList(items) {
  * one line ("Leges, contract en projecten: niets gekoppeld") followed by their
  * actions. A leaf whose app is absent is not registered and is left out.
  *
+ * A leaf may also be a record leaf, written in the manifest instead of
+ * registered by an app: `{ id, register, schema, filter?, requiredApp?, noun,
+ * label, href?, icon? }`. The card reads that register's records matching
+ * `filter` (`@objectId` is this record's id) and lists one row per record,
+ * `label` and `href` filled from it (DqZaak "Vraag in pipelinq": the
+ * requests whose case reference is this case). It is left out when
+ * `requiredApp` is not installed. Texts go through the host translate.
+ *
  * @spec openspec/changes/linked-integrations-card/specs/linked-integrations-card/spec.md#requirement-one-card-lists-the-linked-integrations-of-a-record
  */
 export default {
@@ -108,7 +120,7 @@ export default {
 	components: { CnIcon, CnLeafMountHost },
 
 	props: {
-		/** `{ leaves: string[] }`: the integration ids, in the order to list them. */
+		/** `{ leaves: Array<string|object> }`: integration ids or record leaves, in the order to list them. */
 		content: {
 			type: Object,
 			default: () => ({}),
@@ -133,6 +145,11 @@ export default {
 		},
 	},
 
+	inject: {
+		/** The host app's translate (CnAppRoot `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	setup() {
 		const { integrations, getById } = useIntegrationRegistry()
 		return { integrations, getById }
@@ -146,10 +163,30 @@ export default {
 	},
 
 	computed: {
-		/** @return {string[]} The configured leaf ids. */
-		leafIds() {
+		/** @return {Array<string|object>} The configured leaves. */
+		leaves() {
 			const leaves = this.content && this.content.leaves
-			return Array.isArray(leaves) ? leaves.filter((id) => typeof id === 'string' && id !== '') : []
+			return Array.isArray(leaves) ? leaves : []
+		},
+
+		/** @return {string[]} The configured integration ids. */
+		leafIds() {
+			return this.leaves.filter((id) => typeof id === 'string' && id !== '')
+		},
+
+		/** @return {object[]} The record leaves whose app is here. */
+		recordLeaves() {
+			return this.leaves.filter((leaf) => leaf && typeof leaf === 'object' && typeof leaf.id === 'string' && leaf.id !== ''
+				&& leaf.register && leaf.schema && (!leaf.requiredApp || isAppInstalled(leaf.requiredApp)))
+		},
+
+		/** @return {string[]} Every listed leaf's id, in the configured order. */
+		orderedIds() {
+			const providers = new Set(this.providers.map((p) => p.id))
+			const records = new Set(this.recordLeaves.map((leaf) => leaf.id))
+			return this.leaves
+				.map((leaf) => (typeof leaf === 'string' ? leaf : (leaf && leaf.id)))
+				.filter((id) => providers.has(id) || records.has(id))
 		},
 
 		/** @return {object[]} The registered mount-mode providers, in the configured order. */
@@ -178,9 +215,9 @@ export default {
 
 		/** @return {Array<{id: string, summary: object}>} The reported summaries, in order. */
 		reported() {
-			return this.providers
-				.filter((p) => this.summaries[p.id])
-				.map((p) => ({ id: p.id, summary: this.summaries[p.id] }))
+			return this.orderedIds
+				.filter((id) => this.summaries[id])
+				.map((id) => ({ id, summary: this.summaries[id] }))
 		},
 
 		/** @return {object[]} The rows of the leaves that have something linked. */
@@ -223,7 +260,53 @@ export default {
 		},
 	},
 
+	watch: {
+		recordLeaves: {
+			handler() {
+				this.recordLeaves.forEach((leaf) => this.readRecordLeaf(leaf))
+			},
+			immediate: true,
+		},
+
+		objectId() {
+			this.recordLeaves.forEach((leaf) => this.readRecordLeaf(leaf))
+		},
+	},
+
 	methods: {
+		/**
+		 * Read a record leaf's records and report them as its summary. A
+		 * failed read reports nothing, so the leaf is not listed as empty.
+		 *
+		 * @param {object} leaf The record leaf.
+		 * @return {Promise<void>}
+		 */
+		async readRecordLeaf(leaf) {
+			const objectId = String(this.objectId || '')
+			if (objectId === '') {
+				return
+			}
+			const filter = {}
+			for (const [key, value] of Object.entries(leaf.filter || {})) {
+				filter[key] = value === '@objectId' ? objectId : value
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ register: leaf.register, schema: leaf.schema, filter, limit: leaf.limit || 20 })
+			} catch {
+				return
+			}
+			const label = leaf.label ? this.cnTranslate(leaf.label) : ''
+			this.onSummary(leaf.id, {
+				count: rows.length,
+				noun: leaf.noun ? this.cnTranslate(leaf.noun) : '',
+				rows: rows.map((row) => {
+					const href = leaf.href ? fillTemplate(leaf.href, row) : ''
+					return { label: fillTemplate(label, row), href: href ? prefixUrl(href) : undefined, icon: leaf.icon || undefined }
+				}),
+			})
+		},
+
 		/**
 		 * Keep a leaf's summary, normalised.
 		 *
