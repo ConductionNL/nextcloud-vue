@@ -25,6 +25,7 @@ describe('board page notice under the list card', () => {
 	})
 
 	it('drops the notecard\'s own top margin', () => {
-		expect(body('.cn-look-board .cn-index-page__notice--page')).toMatch(/margin-top: 0;/)
+		// Outweighs NcNoteCard's scoped `.notecard[data-v]` (two classes), which loads later.
+		expect(body('.cn-look-board .cn-index-page__notice.cn-index-page__notice--page')).toMatch(/margin-top: 0;/)
 	})
 })

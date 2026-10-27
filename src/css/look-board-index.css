@@ -756,7 +756,8 @@
 	flex: none;
 }
 
-.cn-look-board .cn-index-page__notice--page {
+/* Two classes, so it outweighs NcNoteCard's scoped `.notecard[data-v]` margin, which loads later. */
+.cn-look-board .cn-index-page__notice.cn-index-page__notice--page {
 	margin-top: 0;
 }
 
