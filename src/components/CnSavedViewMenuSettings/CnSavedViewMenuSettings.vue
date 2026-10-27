@@ -442,8 +442,10 @@ export default {
 </script>
 
 <style scoped>
+/* The description sits 16px above the list, as a board section's does
+   (DqPersoonlijkeInstellingen "Weergaven in mijn menu"). */
 .cn-saved-view-menu-settings__intro {
-	margin: 0 0 12px;
+	margin: 0 0 16px;
 	color: var(--color-text-maxcontrast);
 }
 </style>
