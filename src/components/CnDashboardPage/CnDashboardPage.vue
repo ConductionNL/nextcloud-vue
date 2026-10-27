@@ -1421,6 +1421,22 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Titles that replace `title` while a page control's value holds
+		 * (manifest `config.titleWhen`): `[{ when, title }]`, `when` a workspace
+		 * condition (`{ workspace, op?, value? }`) and `title` a template whose
+		 * `{workspace.<key>}` reads the page's workspace ("Gesprek met
+		 * {workspace.selectedClientName}" while a call is on, PqWerkplekKlant).
+		 * The first entry whose condition holds and whose tokens all fill wins.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @type {Array<{when: object, title: string}>}
+		 */
+		titleWhen: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
@@ -2415,6 +2431,10 @@ export default {
 		 * @return {string}
 		 */
 		resolvedTitle() {
+			const fromWorkspace = this.titleFromWorkspace()
+			if (fromWorkspace !== '') {
+				return fromWorkspace
+			}
 			const view = this.hasViews ? this.activeView : null
 			if (view && view.title) {
 				return view.title
@@ -3113,6 +3133,35 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The first `titleWhen` title whose condition holds on the workspace,
+		 * its `{workspace.<key>}` tokens filled; '' when none applies.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @return {string}
+		 */
+		titleFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.titleWhen) ? this.titleWhen : []) {
+				if (!entry || typeof entry.title !== 'string' || !isWorkspaceCondition(entry.when) || !evaluateWorkspaceCondition(entry.when, workspace)) {
+					continue
+				}
+				let complete = true
+				const title = this.effectiveTranslate(entry.title).replace(/\{workspace\.([\w.-]+)\}/g, (token, key) => {
+					const value = workspace[key]
+					if (value === undefined || value === null || value === '') {
+						complete = false
+						return ''
+					}
+					return String(value)
+				})
+				if (complete) {
+					return title
+				}
+			}
+			return ''
+		},
+
 		/**
 		 * Re-emit the page-level CnActionsMenu `@refresh` to the host,
 		 * passing the synthetic event through so a host listener can
