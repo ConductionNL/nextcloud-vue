@@ -1763,7 +1763,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    hit area; the negative margin only takes it out of the line.
    @spec openspec/changes/board-settings-first-line/specs/settings-board-look/spec.md */
 .cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
-	margin-block: -8px;
+	/* The label on the row's first line, the row 36px as the boards' switch rows. */
+	margin-block: -8px 10px;
 }
 
 .cn-look-board .cn-settings-field--status:not(.cn-look-nextcloud *) > .notecard {
@@ -1871,7 +1872,6 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--nldesign-component-form-field-label-color: var(--color-main-text);
 }
 
-.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *),
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea:has(.textarea__label) {
 	margin-block-start: 22px;
 }
@@ -3844,4 +3844,73 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 
 .cn-look-board .cn-record-list .cn-record-list__action--tonal.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
 	color: var(--cn-record-list-tonal-ink);
+}
+
+/* ---- Settings card rhythm (r32 DqBeheerinstellingen) ------------------- */
+/* A fields card's Save sits 16px under its last row, the form's own gap, as
+   the boards draw it: the shared save row's 4px margin and 14px padding put it
+   34px down (Adviseringsbeheer, Zaak-e-mail, Kadaster).
+   @spec openspec/changes/board-settings-card-rhythm/specs/settings-board-look/spec.md */
+.cn-look-board .cn-settings-fields__save.cn-settings-section__save:not(.cn-look-nextcloud *) {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+/* A choice reads as the boards draw it: the option label on its line, its
+   description 2px under it and 30px in (under the label, past the 20px dot
+   and its 10px gap), the next option 10px further (Menustructuur: options
+   61px apart against the board's 49). The radio keeps its 34px hit area; the
+   negative margin takes it out of the line. */
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch {
+	margin-block: -8px;
+}
+
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch + .cn-settings-field__option-description {
+	margin: 2px 0 0;
+	padding-inline-start: 30px;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .cn-settings-field__option-description + .checkbox-radio-switch,
+.cn-look-board .cn-settings-field__radio:not(.cn-look-nextcloud *) > .checkbox-radio-switch + .checkbox-radio-switch {
+	margin-block-start: 2px;
+}
+
+/* A labelled select in a settings card takes the room a text field does: its
+   label 6px above a 40px field, nothing below. NcSelect's 44px toggle (the
+   40px field inside a 2px ring either side) with a 22px top and 4px bottom
+   margin put each row of selects 7px lower than the board's (DqBeheerinstellingen
+   "Configuratie": rows 86px apart against 79). 23px above and -4px below put
+   the label where the board's is and the rows 79px apart. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .v-select.select:has(.input-field__label) {
+	margin-block: 23px -4px;
+}
+
+/* A sub-heading inside a fields card ("Verbindingstest") is one 16px line at
+   1.3 that the card's 16px gap already sets apart, as the boards draw it. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__heading {
+	margin: 0;
+	line-height: 1.3;
+}
+
+/* A labelled text field takes the board's room too: its label 6px above the
+   40px field, the rows 79px apart (Zaak-e-mail: 82). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .input-field:has(.input-field__label):not(.v-select *) {
+	margin-block: 22px -3px;
+}
+
+/* A choice group's legend leaves 11px to its first option, as the boards draw
+   it (Menustructuur: 8px). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__radio-legend {
+	margin-block-end: 3px;
+}
+
+/* A field's hint: 13px at 1.45, 6px under its control, as the boards draw it
+   (Serviceaccount voor achtergrondtaken). The control's negative bottom
+   margin above would otherwise pull it up. */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field__hint {
+	margin-block-start: 3px;
+	font-size: 13px;
+	line-height: 1.45;
 }
