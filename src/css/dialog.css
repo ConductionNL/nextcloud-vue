@@ -477,6 +477,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	line-height: normal;
 }
 
+   `font` shorthand sets it, 10px 12px in, and its rows set its height (NcTextArea
+   holds a 68px minimum): two rows are 58px (DqArchiveren Reden). */
+.cn-dialog-board .dialog__content .textarea__input {
+	min-height: 0;
+	padding: 10px 12px;
+	line-height: normal;
+}
+
 /* A plain input an app puts in a board dialog (a date, a number) is the same
    40px control; Nextcloud's core stylesheet makes it 34px. */
 .cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input) {
