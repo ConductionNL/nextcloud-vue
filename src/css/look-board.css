@@ -2881,6 +2881,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-top: 0;
 }
 
+/* Its due line sits at the font's normal line height, its footer link 10px
+   under the last row as a block of its own (an inline link's padding did not
+   move it), and the list ends 20px under the link: DqDagAfsluiten "Morgen
+   eerst" 195px, r33 188 (by injection 194.9).
+   @spec openspec/changes/board-stacked-list-as-drawn/specs/board-stacked-list-as-drawn/spec.md#requirement-a-board-stacked-list-is-drawn-as-the-board */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked .cn-record-list__due--below {
+	line-height: normal;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked .cn-record-list__footer-link {
+	display: block;
+	width: fit-content;
+	margin-top: 10px;
+	padding-top: 0;
+	line-height: normal;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked:has(.cn-record-list__footer-link) {
+	padding-bottom: 20px;
+}
+
 /* A dashboard card's task list and decision list rule above every row, the
    first one under the title included, as the record lists with ruleAbove do
    (DqMijnWerk "Mijn taken", "Mijn archiefbeoordelingen"); no rule under the
