@@ -33,4 +33,8 @@ describe('look-board.css: switch', () => {
 		expect(body(`${ICON}::after`)).toContain('width: 18px;')
 		expect(body('.cn-look-board .checkbox-radio-switch-switch.checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::after')).toContain('inset-inline-start: 18px;')
 	})
+
+	it('hides Nextcloud\'s toggle icon over NcIconSvgWrapper\'s important inline display', () => {
+		expect(body(`${ICON} > *`)).toContain('display: none !important;')
+	})
 })

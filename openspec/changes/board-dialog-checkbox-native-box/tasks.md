@@ -1,0 +1,2 @@
+- [x] dialog.css: the board dialog checkbox draws the native box
+- [x] tests/css/dialogBoardCheckboxNativeBox.spec.js

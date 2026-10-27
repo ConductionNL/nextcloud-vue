@@ -473,6 +473,16 @@
 .cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .v-select.select.cn-dashboard-page__description-select {
 	min-width: 0;
 	width: auto;
+	margin: 0;
+}
+
+/* A description that holds the page's filters is one 40px row, without
+   NcSelect's own 6px above and 4px under it, and ends the header 8px under it
+   as the boards pad it (DqDoorlooptijd, DqProcesanalyse: 50 and 100; DqTermijnen
+   90; the boards 98).
+   @spec openspec/changes/board-description-filter-row-40/specs/board-description-filter-row-40/spec.md#requirement-a-filter-description-is-a-40px-row-8px-above-the-headers-end */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__description--with-period {
+	padding-bottom: 8px;
 }
 
 /* Its search box sizes to the placeholder or choice instead of the input's 20
@@ -670,11 +680,28 @@
 	box-sizing: border-box;
 	height: 34px;
 	min-height: 34px;
-	padding: 0 14px;
+	padding: 0 12px;
 	border: 1px solid var(--cn-board-control-border);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
+}
+
+/* A row is 10px 12px in with 12px between its parts, the drag handle a
+   plain 20px column at the row's edge (DqPersoonlijkeInstellingen: content
+   13px in and 11.6px down; live sat 17px in and 5px down).
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__row:not(.cn-look-nextcloud *) {
+	gap: 12px;
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-ordered-list-field__handle:not(.cn-look-nextcloud *) {
+	width: 20px;
+	min-width: 20px;
+	height: 20px;
+	min-height: 20px;
+	margin: 0;
 }
 
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
@@ -1904,6 +1931,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-block-start: 22px;
 }
 
+/* A settings card's text area sets its lines at 1.5, 8px 12px in, as the
+   boards draw them (56 board textareas; NcTextArea took the browser's
+   leading, ~1.13).
+   @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15 */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input {
+	box-sizing: border-box;
+	padding: 8px 12px;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
 /* A save button beside a one-field form (`saveInline`) lines up with the
    control under that label, not with the label. */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-fields__inline-save {
@@ -2047,10 +2085,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
-/* `compact` (dossiq's boards): 15px facts, values at weight 500, wider gaps. */
+/* `compact` (dossiq's boards): 15px facts at the font's own leading, rows
+   24px apart, values at weight 500, wider gaps. */
 .cn-look-board .cn-version-info--compact .cn-version-info__details {
 	gap: 6px 24px;
 	font-size: 15px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-version-info--compact .cn-version-info__label {
@@ -2134,6 +2174,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 	font-weight: 600;
 	line-height: normal;
+	/* One line, as every board tag (DqBeheerGeavanceerd AWB "Verschuift van een
+	   gesloten dag" wrapped to 51px and made its row 71.4, board 55). */
+	white-space: nowrap;
 }
 
 /* A neutral board tag ("Normaal", "Uit") is the soft text on the chip ground,
@@ -2509,6 +2552,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* A list whose rows lead with a description the board sets in bold
+   (DqZaakTaken "Incidenten", `strongTitle: true`). */
+.cn-look-board .cn-record-list--rows.cn-record-list--strong-title:not(.cn-dashboard-page *):not(.cn-look-nextcloud *) .cn-record-list__title {
+	font-weight: 600;
+}
+
 .cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__hint {
 	line-height: normal;
 }
@@ -2870,6 +2919,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__aside {
 	margin-inline-start: auto;
+}
+
+/* A row's lone trailing line (DqDashboard "12 dagen stil") wraps under the text
+   at its start, at the font's normal line height, as the boards draw it: an
+   83px row, not the text's 77 with the line squeezed in as a second meta.
+   @spec openspec/changes/board-lone-trailing-wraps-at-start/specs/board-lone-trailing-wraps-at-start/spec.md#requirement-a-lone-trailing-line-wraps-under-the-text-at-its-start */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__aside:has(> .cn-record-list__trailing:only-child) {
+	margin-inline-start: 0;
+	line-height: normal;
+}
+
+/* Beside such a line the text keeps 260px, as the Dq boards size it, so a short
+   line ("vandaag") wraps under it in a 360px card too. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:has(> .cn-record-list__aside > .cn-record-list__trailing:only-child) > .cn-record-list__main {
+	flex-basis: 260px;
 }
 
 /* The title and meta take the room the pill and the date leave, and a long
@@ -3412,6 +3476,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding-inline: 0;
 }
 
+/* A button in a table row on a settings card is 34px, 12px in at both sides
+   (DqBeheerGeavanceerd ZGW "Bewerken" / "Opnieuw instellen", AWB "Nieuwe
+   versie"; every in-table button on the Dq settings boards). The repeated
+   class outranks the 40px body-button and 16px padding rules above.
+   @spec openspec/changes/board-settings-row-buttons/specs/board-settings-row-buttons/spec.md#requirement-a-button-in-a-settings-table-row-is-34px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *):not(.cn-settings-field__image-row *) {
+	--button-size: 34px;
+	--button-padding: 12px;
+	min-height: 34px;
+	height: 34px;
+}
+
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
 	height: var(--cn-field-height, 40px);
@@ -3437,6 +3513,22 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: var(--cn-board-side-heading-size, 15px) !important;
 	font-weight: 600 !important;
 	color: var(--color-text-maxcontrast) !important;
+}
+
+/* ---- A settings card's image field -------------------------------------- */
+/* The logo is a 56px tile with a 10px radius and no edge, 16px before its
+   upload button (DqInstellingenAlgemeen "Huisstijl"; live drew 64px).
+   @spec openspec/changes/board-settings-logo-tile/specs/board-settings-logo-tile/spec.md#requirement-a-board-settings-logo-is-a-56px-tile */
+.cn-look-board .cn-settings-field__image-row:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-settings-field__image-tile:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 56px;
+	height: 56px;
+	border: 0;
+	border-radius: 10px;
 }
 
 /* ---- A setup step's choice radio ---------------------------------------- */
@@ -3879,7 +3971,8 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 }
 
 .cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon > * {
-	display: none;
+	/* NcIconSvgWrapper's inline icon sets display inline-flex !important. */
+	display: none !important;
 }
 
 .cn-look-board .checkbox-radio-switch-switch:not(.cn-look-nextcloud *) .checkbox-content__icon::after {
