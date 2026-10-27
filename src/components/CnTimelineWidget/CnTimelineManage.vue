@@ -325,7 +325,8 @@ export default {
 		 * (day, short month and time in the reader's locale).
 		 * An entry shows its `fields.title` after the message ("Document
 		 * beoordeeld: Mail aannemer over planning"), its author by display
-		 * name, and the `icon` its kind declares in the rail circle.
+		 * name, and its kind's icon in the rail circle: `kindIcons`
+		 * (`{ kind: iconName }`), else the `icon` the kind declares.
 		 */
 		content: { type: Object, default: () => ({}) },
 	},
@@ -790,13 +791,21 @@ export default {
 		},
 
 		/**
-		 * The icon the entry's kind declares (`icon` on the kind), or ''.
+		 * The icon of the entry's kind: `content.kindIcons[kind]`, else the
+		 * `icon` the kind declares, or ''.
 		 *
 		 * @param {object} entry The entry.
 		 * @return {string} An icon name for CnIcon.
 		 */
 		kindIcon(entry) {
-			const declared = entry.kind ? this.kinds.find((kind) => kind.slug === entry.kind) : null
+			if (!entry.kind) {
+				return ''
+			}
+			const configured = this.content?.kindIcons?.[entry.kind]
+			if (typeof configured === 'string' && configured !== '') {
+				return configured
+			}
+			const declared = this.kinds.find((kind) => kind.slug === entry.kind)
 			return declared && typeof declared.icon === 'string' ? declared.icon : ''
 		},
 

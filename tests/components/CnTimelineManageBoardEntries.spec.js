@@ -107,6 +107,13 @@ describe('CnTimelineManage board entries', () => {
 		expect(second.find('[data-testid="cn-timeline-entry-icon"]').exists()).toBe(false)
 	})
 
+	it('takes the icon from content.kindIcons before the kind\'s own', async () => {
+		const wrapper = await mountManage({ kindIcons: { toewijzing: 'AccountOutline', document: 'FileOutline' } })
+		const [first, second] = wrapper.findAll('[data-testid="cn-timeline-entry"]')
+		expect(first.find('.stub-icon').attributes('data-name')).toBe('FileOutline')
+		expect(second.find('.stub-icon').attributes('data-name')).toBe('AccountOutline')
+	})
+
 	it('draws the detail in the normal weight and the icon over the rail circle on the board look', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
 		expect(css).toContain('.cn-look-board .cn-timeline-manage__detail:not(.cn-look-nextcloud *) {\n\tfont-weight: 400;')
