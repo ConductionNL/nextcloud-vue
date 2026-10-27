@@ -2688,3 +2688,10 @@
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
 }
+
+/* A card table on a detail page keeps the sorted column's label in the head's
+   muted ink, as the case boards draw it (DqZaakGerelateerd Deelzaken
+   "Termijn", Objecten "Identificatie"); the chevron marks the sort. */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-data-table th[aria-sort] .cn-table-header__sort:not(.cn-look-nextcloud *) {
+	color: inherit;
+}
