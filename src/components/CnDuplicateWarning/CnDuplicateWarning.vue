@@ -6,7 +6,7 @@
 	<CnDialog
 		:name="text(title) || t('nextcloud-vue', 'This may already exist')"
 		:eyebrow="text(eyebrow)"
-		width="form"
+		width="confirm"
 		data-testid="cn-duplicate-warning"
 		@closing="close">
 		<div class="cn-duplicate-warning">
@@ -47,7 +47,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton variant="tertiary" data-testid="cn-duplicate-warning-cancel" @click="close">
+			<NcButton variant="secondary" data-testid="cn-duplicate-warning-cancel" @click="close">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton v-if="affordances.mayContinue"
@@ -55,6 +55,9 @@
 				:disabled="!canFile"
 				data-testid="cn-duplicate-warning-continue"
 				@click="fileAnyway">
+				<template #icon>
+					<CnIcon name="Plus" :size="20" />
+				</template>
 				{{ text(continueLabel) || t('nextcloud-vue', 'File it anyway') }}
 			</NcButton>
 		</template>
@@ -65,6 +68,7 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import { duplicateAffordances } from '../../utils/duplicateWarning.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -96,7 +100,7 @@ import { CnDialog } from '../CnDialog/index.js'
 export default {
 	name: 'CnDuplicateWarning',
 
-	components: { CnDialog, NcButton, NcNoteCard, NcTextField },
+	components: { CnDialog, CnIcon, NcButton, NcNoteCard, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -364,7 +368,7 @@ export default {
 	gap: 4px 12px;
 	padding: 8px 12px;
 	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 8px);
+	border-radius: 8px;
 }
 
 .cn-duplicate-warning__title {
