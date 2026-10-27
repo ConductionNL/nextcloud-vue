@@ -2438,7 +2438,26 @@
     "{rows} rows · {columns} columns · {size}": "{rows} rows · {columns} columns · {size}",
     "Field for column {column}": "Field for column {column}",
     "Open {name}": "Open {name}",
-    "Close {name}": "Close {name}"
+    "Close {name}": "Close {name}",
+    "{shown} of {total} connections {app} declares, checked by integriq": "{shown} of {total} connections {app} declares, checked by integriq",
+    "Add integration": "Add integration",
+    "Filter connections": "Filter connections",
+    "The connections could not be read.": "The connections could not be read.",
+    "Open settings for {name}": "Open settings for {name}",
+    "Set up {name}": "Set up {name}",
+    "No settings screen yet": "No settings screen yet",
+    "Needs attention": "Needs attention",
+    "Checked by integriq": "Checked by integriq",
+    "Last checked {when}": "Last checked {when}",
+    "integriq tests each connection and keeps its status. {app} only shows which connections it uses.": "integriq tests each connection and keeps its status. {app} only shows which connections it uses.",
+    "Open integriq": "Open integriq",
+    "Add a connection": "Add a connection",
+    "A connection the app has not declared cannot be checked. Add new connections in integriq; Add integration takes you there.": "A connection the app has not declared cannot be checked. Add new connections in integriq; Add integration takes you there.",
+    "checked {when}": "checked {when}",
+    "never checked": "never checked",
+    "All connections": "All connections",
+    "Not set up": "Not set up",
+    "Unavailable": "Unavailable"
   },
   "plurals": {
     "{count} member": [

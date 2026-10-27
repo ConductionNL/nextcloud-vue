@@ -79,6 +79,7 @@ export {
 	CnCommandPalette,
 	CnConditionListEditor,
 	CnConfigurationCard,
+	CnConnectionsPanel,
 	CnContactCreate,
 	CnContactPicker,
 	CnContactsCard,
