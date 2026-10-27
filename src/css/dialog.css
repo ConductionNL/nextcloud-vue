@@ -278,6 +278,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block-end: -2px;
 }
 
+/* The note's help line sits 6px under the text area too (DqOverdragen
+   "Verplicht. ..."): the inline text area left a descender gap in its
+   wrapper, and the wrapper's 2px ring room came on top. */
+.cn-dialog-board .dialog__content .cn-assign-dialog__field .textarea__input {
+	vertical-align: top;
+}
+
+.cn-dialog-board .dialog__content .cn-assign-dialog__field > .textarea {
+	margin-block-end: -2px;
+}
+
 /* Body: padding 20px 24px, 18px between blocks. */
 .cn-dialog-board .dialog__content {
 	display: flex;
