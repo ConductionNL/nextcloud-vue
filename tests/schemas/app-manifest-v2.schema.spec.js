@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.160.0', () => {
+	it('the manifest schema version reads 2.159.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1432,7 +1432,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.156.0 lets a detail page pack its grid upward too (gridFloat on type='detail', CnDetailPage gridFloat; description only).
 		// 2.157.0 lets accessPurpose ask the app first (checkUrl) and an option carry a hint.
 		// 2.158.0 lets a link card carry a status and a links page close with a panel (link-cards-status-and-info), adds the import dialog's template, column mapping and check first (importTemplate, importMapping, importCheckFirst; mass-import-mapping-check-first), a detail page's titleTemplate (column-and-title-template) and card chips per list entry with a template meta part (each; card-list-chips).
-		// 2.159.0 colours a list chip per entry (tones; card-list-chip-tones) and lets a metric format write a date as its day and short month (style date; pl2-stat-date-style).
+		// 2.159.0 colours a list chip per entry (tones; card-list-chip-tones), lets a metric format write a date as its day and short month (style date; pl2-stat-date-style), adds expandable list rows (expandableRows; index-expandable-rows) and a detail page's record-kind variants and crumb visibleWhen (contact-moment-page-parts).
 		expect(schema.version).toBe('2.159.0')
 	})
 
