@@ -28,12 +28,13 @@ describe('CnChecklistRunWidget r32', () => {
 		const label = sfc.slice(sfc.indexOf('<label class="cn-checklist-run__photo-button">'), sfc.indexOf('</label>', sfc.indexOf('<label class="cn-checklist-run__photo-button">')))
 		expect(label).toContain('<CameraOutline :size="16" />')
 		expect(rule('.cn-checklist-run__photo-button.cn-checklist-run__photo-button')).toContain('font-size: 14px')
+		expect(rule('.cn-checklist-run__photo-button.cn-checklist-run__photo-button')).toContain('font-weight: 600 !important')
 		expect(rule('.cn-checklist-run__photo-button')).toContain('gap: 8px')
 	})
 
 	it('sets a note on the normal line height, 8px 12px in', () => {
 		const note = rule('.cn-checklist-run__text.cn-checklist-run__text')
 		expect(note).toContain('line-height: normal')
-		expect(note).toContain('padding: 8px 12px')
+		expect(note).toContain('padding: 8px 12px !important')
 	})
 })
