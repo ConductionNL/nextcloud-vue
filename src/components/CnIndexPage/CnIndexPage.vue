@@ -7069,7 +7069,7 @@ export default {
 		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
 		 */
 		effectiveFacetData() {
-			const data = this.storeFacets || this.resolvedSidebar.facets || {}
+			const data = this.groupFacetsByName(this.storeFacets || this.resolvedSidebar.facets || {})
 			if (this.refLabelSpecs.length === 0) {
 				return data
 			}
@@ -11702,6 +11702,39 @@ export default {
 				return true
 			}
 			return isGroupProp(this.effectiveSchema?.properties?.[key])
+		},
+
+		/**
+		 * Facets with the buckets of a group field labelled by the group's
+		 * display name ("Woo en informatie", not "zuiddrecht-woo-en-informatie").
+		 * A bucket that already carries its own label keeps it; an unknown name
+		 * is looked up once and fills in when it arrives.
+		 *
+		 * @param {object} facets `{ fieldName: { values: [...] } }`.
+		 * @return {object} The facets, group buckets labelled.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
+		 */
+		groupFacetsByName(facets) {
+			let out = facets
+			for (const [key, facet] of Object.entries(facets || {})) {
+				if (!facet || !Array.isArray(facet.values) || !this.isGroupFilter(key)) {
+					continue
+				}
+				const values = facet.values.map((fv) => {
+					const base = fv && typeof fv === 'object' ? fv : { value: fv }
+					const id = String(base.value)
+					if (typeof base.label === 'string' && base.label !== '' && base.label !== id) {
+						return base
+					}
+					const name = groupDisplayName(id)
+					if (name === null) {
+						loadGroupDisplayName(id)
+					}
+					return name ? { ...base, label: name } : base
+				})
+				out = { ...out, [key]: { ...facet, values } }
+			}
+			return out
 		},
 
 		activeFilterValueLabel(key, value) {
