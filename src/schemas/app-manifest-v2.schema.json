@@ -5969,6 +5969,18 @@
 									"type": "boolean",
 									"description": "Whether to show the built-in mass Import action. Maps to CnIndexPage `showMassImport`."
 								},
+								"importTemplate": {
+									"type": "boolean",
+									"description": "The import dialog offers an empty file with the schema's columns (OpenRegister's import template). Maps to CnIndexPage `importTemplate`."
+								},
+								"importMapping": {
+									"type": "boolean",
+									"description": "The import dialog maps each column of a CSV or JSON file to a schema field, or leaves it out. Maps to CnIndexPage `importMapping`."
+								},
+								"importCheckFirst": {
+									"type": "boolean",
+									"description": "The import dialog offers to check the file first and import nothing (OpenRegister dryRun). Maps to CnIndexPage `importCheckFirst`."
+								},
 								"showMassExport": {
 									"type": "boolean",
 									"description": "Whether to show the built-in mass Export action. Maps to CnIndexPage `showMassExport`."

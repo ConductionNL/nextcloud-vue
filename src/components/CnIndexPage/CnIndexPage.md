@@ -374,6 +374,9 @@ export default {
 | `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
 | `exportFormats` | Array | `[Excel, CSV]` | Available export formats for the export dialog |
 | `importOptions` | Array | `[]` | Import option definitions for the import dialog |
+| `importTemplate` | Boolean | `false` | The import dialog offers OpenRegister's empty import file for this page's schema (manifest `config.importTemplate`). |
+| `importMapping` | Boolean | `false` | The import dialog maps each column of a CSV or JSON file to one of the schema's fields, or leaves it out (manifest `config.importMapping`). |
+| `importCheckFirst` | Boolean | `false` | The import dialog offers to check the file first and import nothing (OpenRegister `dryRun`), then import it for real (manifest `config.importCheckFirst`). |
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |

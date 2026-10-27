@@ -558,6 +558,9 @@
 			v-if="showImportDialog"
 			ref="importDialog"
 			:options="importOptions"
+			:templateUrl="importTemplateUrl"
+			:fields="importFields"
+			:checkFirst="importCheckFirst"
 			@confirm="onMassImportConfirm"
 			@close="showImportDialog = false">
 			<template v-if="$slots['import-fields']" #fields="{ file }">
@@ -1465,6 +1468,7 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -3324,6 +3328,24 @@ export default {
 		showMassImport: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** The import dialog offers OpenRegister's empty import template for this schema. */
+		importTemplate: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The import dialog maps each column of a CSV or JSON file to a schema field. */
+		importMapping: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The import dialog offers to check the file first and import nothing. */
+		importCheckFirst: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether to show the built-in mass Export action */
@@ -7561,6 +7583,27 @@ export default {
 			}
 			const vnodeProps = (this.$ && this.$.vnode && this.$.vnode.props) || {}
 			return typeof vnodeProps.onFilterChange === 'function' || Array.isArray(vnodeProps.onFilterChange)
+		},
+
+		/** OpenRegister's empty import file for this page's schema, when asked for. */
+		importTemplateUrl() {
+			const schema = this.effectiveSchema
+			const schemaRef = (schema && (schema.slug || schema.id)) || (typeof this.schema === 'string' ? this.schema : '')
+			if (!this.importTemplate || !this.register || !schemaRef) {
+				return ''
+			}
+			return prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(this.register)}/schemas/${encodeURIComponent(schemaRef)}/import-template?format=csv`)
+		},
+
+		/** The schema's fields for the import column mapping, when asked for. */
+		importFields() {
+			const properties = this.importMapping && this.effectiveSchema && this.effectiveSchema.properties
+			if (!properties) {
+				return []
+			}
+			return Object.entries(properties)
+				.filter(([, prop]) => prop && prop.readOnly !== true)
+				.map(([key, prop]) => ({ key, label: prop.title || key }))
 		},
 
 		effectiveSchema() {
