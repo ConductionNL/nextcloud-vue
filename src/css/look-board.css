@@ -386,6 +386,34 @@
 	margin-top: 8px;
 }
 
+/* A task list with the subject and due line (DqMijnWerk "Mijn taken") wraps
+   its title and subject instead of cutting them off, sets the line at the
+   font's normal line height 4px under the title, and ends 20px under its last
+   row, as the board draws it: rows of 64 to 100px in a 555px card (r33: one
+   line each, 447px).
+   @spec openspec/changes/board-task-rows-as-drawn/specs/board-task-rows-as-drawn/spec.md#requirement-a-board-task-row-wraps-as-drawn */
+.cn-look-board .cn-tasks-widget--list:has(.cn-tasks-widget__meta--split) {
+	padding-bottom: 20px;
+}
+
+.cn-look-board .cn-tasks-widget__row:has(.cn-tasks-widget__meta--split) .cn-tasks-widget__body {
+	gap: 4px;
+}
+
+.cn-look-board .cn-tasks-widget__row:has(.cn-tasks-widget__meta--split) .cn-tasks-widget__name {
+	white-space: normal;
+	overflow: visible;
+}
+
+.cn-look-board .cn-tasks-widget__meta--split {
+	line-height: normal;
+}
+
+.cn-look-board .cn-tasks-widget__meta--split .cn-tasks-widget__subject {
+	white-space: normal;
+	overflow: visible;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
