@@ -391,7 +391,7 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					const list = data.results || data.rows || data
-					const own = Array.isArray(list) ? list : []
+					const own = await this.withFollowingPages(url, Array.isArray(list) ? list : [])
 					const related = await this.fetchRelatedEntries()
 					this.entries = related.length > 0
 						? [...own, ...related].sort((a, b) => entryTime(b) - entryTime(a))
@@ -408,6 +408,43 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * An object's trail read on until it holds enough entries to show. The
+		 * card leaves entries out (reads, actors, empty re-saves) after
+		 * reading, and every page view writes a read, so the newest page alone
+		 * can be all reads (DqHandhaving Historie: "no changes yet"). Reads at
+		 * most four more pages.
+		 *
+		 * @param {string} url The first page's path.
+		 * @param {Array<object>} first The first page's entries.
+		 * @return {Promise<Array<object>>} The entries read.
+		 */
+		async withFollowingPages(url, first) {
+			const entries = [...first]
+			if (!this.filtersEntries || this.scope !== 'object' || this.sourceUrl !== null) {
+				return entries
+			}
+			const limit = Number(new URLSearchParams(url.split('?')[1] || '').get('limit')) || first.length
+			let page = first
+			for (let more = 0; more < 4 && page.length >= limit && limit > 0; more++) {
+				this.entries = [...entries]
+				if (this.shownEntries.length >= this.maxDisplay) {
+					break
+				}
+				const next = new URL(url, 'http://x')
+				next.searchParams.set('offset', String(entries.length))
+				const response = await fetch(prefixUrl(next.pathname + next.search), { headers: buildHeaders() })
+				if (!response.ok) {
+					break
+				}
+				const data = await response.json()
+				const list = data.results || data.rows || data
+				page = Array.isArray(list) ? list : []
+				entries.push(...page)
+			}
+			return [...entries]
 		},
 
 		/**

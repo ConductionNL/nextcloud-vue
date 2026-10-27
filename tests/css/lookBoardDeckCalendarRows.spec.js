@@ -32,6 +32,10 @@ describe('look-board-detail.css: calendar and Deck rows', () => {
 		expect(rule('.cn-look-board .cn-detail-page .cn-calendar-card__meta,\n.cn-look-board .cn-detail-page .cn-deck-card__row-meta')).toContain('font-size: 13px')
 	})
 
+	it('puts the calendar meta line 2px under the title, not 4 (r33: row 58 against 56)', () => {
+		expect(rule('.cn-look-board .cn-detail-page .cn-calendar-card__meta:not(.cn-look-nextcloud *)')).toContain('margin-top: 0')
+	})
+
 	it('draws the link to the app under the rows, 14px bold', () => {
 		const body = rule('.cn-look-board .cn-detail-page .cn-calendar-card__open,\n.cn-look-board .cn-detail-page .cn-deck-card__open')
 		expect(body).toContain('font-weight: 600')

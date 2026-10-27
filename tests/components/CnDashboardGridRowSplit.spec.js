@@ -26,15 +26,15 @@ function attrs(wrapper, id) {
 }
 
 describe('CnDashboardGrid: a size-to-content cell ends at its content', () => {
-	it('splits each row into twenty 4px rows on a packing view-mode grid with a size-to-content cell', () => {
+	it('splits each row into eighty 1px rows on a packing view-mode grid with a size-to-content cell', () => {
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout: [fit, capped, below], float: false } })
-		expect(GridStack.init.mock.calls.at(-1)[0].cellHeight).toBe(4)
-		expect(attrs(wrapper, 'below')).toEqual({ y: '60', h: '40', minH: '40', fit: undefined })
+		expect(GridStack.init.mock.calls.at(-1)[0].cellHeight).toBe(1)
+		expect(attrs(wrapper, 'below')).toEqual({ y: '240', h: '160', minH: '160', fit: undefined })
 		expect(attrs(wrapper, 'fit').fit).toBe('true')
 		// A size-to-content cell may shrink to its content.
 		expect(attrs(wrapper, 'fit').minH).toBe('1')
 		// A row maximum scales with the rows.
-		expect(attrs(wrapper, 'capped').fit).toBe('100')
+		expect(attrs(wrapper, 'capped').fit).toBe('400')
 	})
 
 	it('builds every other grid as before', () => {
@@ -62,7 +62,7 @@ describe('CnDashboardGrid: a size-to-content cell ends at its content', () => {
 		grid.engine.nodes.push({ id: 'below', x: 0, y: 24, w: 12, h: 16, el })
 		await wrapper.setProps({ layout: [fit, { ...below, gridY: 4 }] })
 		await wrapper.vm.$nextTick()
-		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 80 })
+		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 320 })
 	})
 
 	it('rebuilds on whole rows for edit mode, and reports changes there in layout rows', async () => {
