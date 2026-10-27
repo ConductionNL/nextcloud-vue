@@ -26,6 +26,7 @@ Typing two characters or more searches every source at once (OpenRegister's `_se
 | `modelValue` | String \| Number | `null` | The chosen party's id |
 | `sources` | Array | `[]` | `{ id, register, schema, label?, title?, secondary?, limit?, icon? }` per OpenRegister set (`title` and `secondary` templates filled from the row, `label` the kind, through the app's translate), or `{ id, type: "contacts", label? }` |
 | `inputLabel` | String | `''` | The field's label |
+| `inputId` | String | `undefined` | The search input's id, so the form's own label names it. |
 | `labelOutside` | Boolean | `false` | Draw the label above the field |
 | `placeholder` | String | `''` | Placeholder, through the app's translate |
 | `selectedLabel` | String | `''` | The chosen party's name before the list holds it |

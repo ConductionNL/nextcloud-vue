@@ -289,6 +289,9 @@ function userError(message) {
  *   labelField?, descriptionField?, finalField?, limit? }`, an OpenRegister
  *   query whose filter takes the same tokens.
  *
+ * Both take `offPathField`: a stage whose row holds true there is a side
+ * status, left off the strip unless the record is in it.
+ *
  * `datesSource`: `{ url, method?, params?, path?, idField?, dateField? }`, an
  * endpoint (same token grammar) answering the date the record reached each
  * stage, when the stage list does not carry it: the case type's statuses list
@@ -666,7 +669,7 @@ export default {
 			const cfg = this.stageConfig
 			const rows = this.endpointStages ? getByPath(this.stagesBody, cfg.path) : this.sourceRows
 			const orderField = cfg.orderField || (this.endpointStages ? '' : cfg.orderBy)
-			return normalizeStages(rows, { ...cfg, orderField })
+			return normalizeStages(rows, { ...cfg, orderField, currentId: this.currentStageId })
 		},
 
 		/**

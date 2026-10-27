@@ -8,17 +8,18 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name            | Type                 | Required | Default | Description                                                                                                                                                                          |
-| --------------- | -------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `modelValue`    | `string&#124;number` |          | `null`  | The chosen party's id.                                                                                                                                                               |
-| `sources`       | `Array<object>`      |          | `[]`    | Where to search: OpenRegister sets `{ id, register, schema, label?, title?, secondary?, limit?, icon? }`, or `{ id, type: "contacts", label? }` for the reader's Nextcloud contacts. |
-| `inputLabel`    | `string`             |          | `''`    | The field's label.                                                                                                                                                                   |
-| `labelOutside`  | `boolean`            |          | `false` | Draw the label above the field.                                                                                                                                                      |
-| `placeholder`   | `string`             |          | `''`    | Placeholder ("Name, BSN, trade name or KvK number"), through the host translate.                                                                                                     |
-| `selectedLabel` | `string`             |          | `''`    | The chosen party's name, shown before the list holds it.                                                                                                                             |
-| `clearable`     | `boolean`            |          | `true`  | Offer a clear button.                                                                                                                                                                |
-| `disabled`      | `boolean`            |          | `false` | Disable the field.                                                                                                                                                                   |
-| `minLength`     | `number`             |          | `2`     | The fewest characters a search needs.                                                                                                                                                |
+| Name            | Type                 | Required | Default     | Description                                                                                                                                                                          |
+| --------------- | -------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `inputId`       | `string`             |          | `undefined` | The search input's id, so the form's own label names it.                                                                                                                             |
+| `modelValue`    | `string&#124;number` |          | `null`      | The chosen party's id.                                                                                                                                                               |
+| `sources`       | `Array<object>`      |          | `[]`        | Where to search: OpenRegister sets `{ id, register, schema, label?, title?, secondary?, limit?, icon? }`, or `{ id, type: "contacts", label? }` for the reader's Nextcloud contacts. |
+| `inputLabel`    | `string`             |          | `''`        | The field's label.                                                                                                                                                                   |
+| `labelOutside`  | `boolean`            |          | `false`     | Draw the label above the field.                                                                                                                                                      |
+| `placeholder`   | `string`             |          | `''`        | Placeholder ("Name, BSN, trade name or KvK number"), through the host translate.                                                                                                     |
+| `selectedLabel` | `string`             |          | `''`        | The chosen party's name, shown before the list holds it.                                                                                                                             |
+| `clearable`     | `boolean`            |          | `true`      | Offer a clear button.                                                                                                                                                                |
+| `disabled`      | `boolean`            |          | `false`     | Disable the field.                                                                                                                                                                   |
+| `minLength`     | `number`             |          | `2`         | The fewest characters a search needs.                                                                                                                                                |
 
 ### Events
 

@@ -103,6 +103,8 @@ const DEFAULT_MAP = {
 	default: 'defaultValue',
 	hideOnCreate: 'hideOnCreate',
 	items: 'items',
+	label: 'title',
+	sort: 'order',
 }
 
 /**
@@ -325,8 +327,16 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 
 	const properties = {}
 	const required = []
+	// A definition's own `order` places it; one without follows those that have one, as given.
+	const place = (record) => {
+		const value = record ? Number(mapped(record, map, 'sort')) : NaN
+		return Number.isFinite(value) ? value : Infinity
+	}
 	const list = (Array.isArray(definitions) ? definitions : [])
 		.filter((record) => !(options.create === true && record && mapped(record, map, 'hideOnCreate') === true))
+		.map((record, index) => ({ record, index }))
+		.sort((a, b) => (place(a.record) - place(b.record)) || (a.index - b.index))
+		.map(({ record }) => record)
 
 	list.forEach((record, index) => {
 		if (!record || !record.id) {
@@ -337,6 +347,7 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 		const base = typeMap[declaredType] || typeMap.string
 
 		const title = mapped(record, map, 'title')
+		const label = mapped(record, map, 'label')
 		const description = mapped(record, map, 'description')
 		const enumValues = mapped(record, map, 'enum')
 		const defaultValue = mapped(record, map, 'default')
@@ -345,7 +356,8 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 
 		const prop = {
 			...base,
-			title: humaniseName(title) || key,
+			// The definition's own label as written ("Soort verzoeker"), else its name made readable.
+			title: (typeof label === 'string' && label.trim() !== '') ? label : (humaniseName(title) || key),
 			// A definition record separates its short `definition` from its
 			// longer `description`; either may be absent, and an empty string
 			// must not become the helper text "undefined".

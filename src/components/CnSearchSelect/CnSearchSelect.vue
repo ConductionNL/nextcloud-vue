@@ -249,7 +249,7 @@ export default {
 	gap: 10px;
 	width: 100%;
 	min-width: 0;
-	padding: 4px 0;
+	padding: 0;
 }
 
 .cn-search-select__lead {
@@ -275,11 +275,13 @@ export default {
 
 .cn-search-select__name {
 	font-weight: 600;
+	line-height: normal;
 	overflow-wrap: anywhere;
 }
 
 .cn-search-select__secondary {
 	font-size: 13px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 	overflow-wrap: anywhere;
 }

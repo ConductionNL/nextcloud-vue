@@ -23,3 +23,11 @@ separator? }` SHALL be joined first. Without `columns` the rows SHALL stay label
 - **GIVEN** a person with residence street "Parkstraat", number "24", postcode "3421 AB" and city "Zuiddrecht"
 - **WHEN** a row joins a street-and-number group, the postcode and the city with ", "
 - **THEN** it reads "Parkstraat 24, 3421 AB, Zuiddrecht"
+
+### Requirement: Facts rows can sit in three columns
+
+A facts widget with `columns: 3` SHALL lay its rows out in three columns, each label above its value, and fall back to one column on a phone.
+
+#### Scenario: DqSociaalDomein De melding
+
+- **THEN** Zaaktype, Grondslag and Gemeld door share the first row, and Onderzoek klaar, Regisseur and Gezinsplan the second

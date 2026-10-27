@@ -19,7 +19,7 @@ describe('look-board.css: settings text area', () => {
 		expect(at).toBeGreaterThan(-1)
 		const body = css.slice(at, css.indexOf('}', at))
 		expect(body).toContain('line-height: 1.5;')
-		expect(body).toContain('padding: 8px 12px;')
+		expect(body).toContain('padding: 8px 12px !important;')
 		expect(body).toContain('font-size: 15px;')
 	})
 })

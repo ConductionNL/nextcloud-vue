@@ -21,7 +21,9 @@ const MATCHES = [
 const RECORDS = [{ id: 'c-1', title: 'Verlichting fietspad Lindelaan', identifier: '2026-0082' }]
 
 const STUBS = {
-	CnDialog: { name: 'CnDialog', props: ['name', 'eyebrow'], template: '<div class="dialog" :data-name="name" :data-eyebrow="eyebrow"><slot /><slot name="actions" /></div>' },
+	CnDialog: { name: 'CnDialog', props: ['name', 'eyebrow', 'width'], template: '<div class="dialog" :data-name="name" :data-eyebrow="eyebrow" :data-width="width"><slot /><slot name="actions" /></div>' },
+	NcButton: { name: 'NcButton', props: ['variant', 'disabled'], template: '<button :data-variant="variant" :disabled="disabled"><slot name="icon" /><slot /></button>' },
+	CnIcon: { name: 'CnIcon', props: ['name'], template: '<i :data-icon="name" />' },
 	NcTextField: { props: ['modelValue', 'label', 'helperText'], emits: ['update:modelValue'], template: '<input :aria-label="label" :data-hint="helperText" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)">' },
 	NcNoteCard: { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
 }
@@ -119,5 +121,12 @@ describe('CnDuplicateWarning', () => {
 		document.querySelector('[data-testid="cn-duplicate-warning-cancel"]').click()
 		await expect(cancelled).resolves.toBeNull()
 		expect(document.querySelector('[data-testid="cn-duplicate-warning"]')).toBeNull()
+	})
+
+	it('is drawn as DqNieuweZaakDubbel draws it: 560 wide, a bordered Cancel, a plus on File it anyway', () => {
+		const w = mountWarning()
+		expect(w.find('.dialog').attributes('data-width')).toBe('confirm')
+		expect(w.find('[data-testid="cn-duplicate-warning-cancel"]').attributes('data-variant')).toBe('secondary')
+		expect(continueButton(w).find('[data-icon="Plus"]').exists()).toBe(true)
 	})
 })
