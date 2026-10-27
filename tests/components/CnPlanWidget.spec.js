@@ -13,6 +13,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import CnPlanWidget from '../../src/components/CnPlanWidget/CnPlanWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { offeredTransitions, planTree } from '../../src/utils/planTree.js'
+import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -32,6 +33,9 @@ const PLAN = {
 const STUBS = {
 	NcEmptyContent: { props: ['name', 'description'], template: '<div class="empty">{{ name }} {{ description }}<slot name="action" /></div>' },
 	NcLoadingIcon: true,
+	// The row menu drawn open, so its moves can be clicked.
+	NcActions: { props: ['ariaLabel'], template: '<div class="menu" :aria-label="ariaLabel"><slot /></div>' },
+	NcActionButton: { emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' },
 }
 
 /**
@@ -86,6 +90,25 @@ describe('CnPlanWidget', () => {
 		await w.find('[data-testid="cn-plan-completed-advice"]').trigger('click')
 		await flushPromises()
 		expect(w.find('[data-testid="cn-plan-error"]').text()).toContain('while a sub-task is open')
+	})
+
+	it('stands in the host\'s titled card, as DqZaak draws "Zaakplan" (r32: bare rows without a title)', () => {
+		expect(isContentOnlyWidgetDef({ type: 'plan' })).toBe(true)
+		expect(getWidgetTypeEntry('plan').ownsTitle).toBeFalsy()
+	})
+
+	it('keeps the moves in each row\'s menu, and a row without moves has no menu (DqZaak Zaakplan)', async () => {
+		const w = await mountWidget()
+		expect(w.find('[data-testid="cn-plan-menu-advice"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-plan-menu-advice"]').attributes('aria-label')).toBe('Actions for Ask advice')
+		expect(w.find('[data-testid="cn-plan-row-advice"] .button-vue').exists()).toBe(false)
+	})
+
+	it('words a state as the page configures it', async () => {
+		const w = await mountWidget({ objectId: 'z-1', content: { stateLabels: { active: 'Active', completed: '' } } })
+		const words = w.findAll('.cn-plan-row__state').map((pill) => pill.text())
+		expect(words).toContain('Active')
+		expect(words).not.toContain('In progress')
 	})
 
 	it('reads 404 as no plan and any other failure as an error with a retry', async () => {

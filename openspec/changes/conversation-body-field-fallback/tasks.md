@@ -1,0 +1,2 @@
+- [x] CnConversationWidget bodyOf
+- [x] jest CnConversationSource (red first); docs

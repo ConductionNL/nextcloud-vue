@@ -89,6 +89,16 @@ describe('CnCalendarWidget renderer', () => {
 	})
 })
 
+describe('CnCalendarWidget mode toggle', () => {
+	it('pairs the light primary background of the active mode with its own text colour', () => {
+		const source = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnCalendarWidget/CnCalendarWidget.vue'), 'utf8')
+		const start = source.indexOf('.cn-calendar-widget__mode-btn.is-active {')
+		const rule = source.slice(start, source.indexOf('}', start))
+		expect(rule).toContain('background: var(--color-primary-element-light,')
+		expect(rule).toContain('color: var(--color-primary-element-light-text,')
+	})
+})
+
 describe('calendar registry registration', () => {
 	it('registers the calendar type after importing the renderer index', () => {
 		let mod

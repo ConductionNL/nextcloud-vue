@@ -94,7 +94,7 @@
 					:required="question.required"
 					data-testid="cn-checklist-run-text"
 					@input="markDirty(question.id)" />
-				<label v-if="allowNote" class="cn-checklist-run__note-label">
+				<label v-if="allowNote && noteShown(question)" class="cn-checklist-run__note-label">
 					{{ noteLabel }}
 					<textarea
 						v-model="draft[question.id].note"
@@ -132,6 +132,7 @@
 						:aria-describedby="missingPhoto.includes(question.id) ? `${uid}-photo-${question.id}` : null"
 						data-testid="cn-checklist-run-photo-input"
 						@change="addPhotos($event, question.id)">
+					<CameraOutline :size="16" />
 					{{ photoNamesFor(question).length || (storedPhotos[question.id] || []).length ? morePhotoLabel : addPhotoLabel }}
 				</label>
 				<p
@@ -175,6 +176,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CameraOutline from 'vue-material-design-icons/CameraOutline.vue'
 import { uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -288,6 +290,11 @@ function idOf(object) {
  * with no bound record, `record: { register, schema, filter, sort }` picks
  * the open record: the first match, under the reader's rights.
  *
+ * `noteWhen: { answers: [...] }` shows a question's note field only once its
+ * answer is one of those stored values (the board shows a note under "Nee"),
+ * or when the question already holds a note; without it every question shows
+ * one (`allowNote: false` hides them all).
+ *
  * `startAt: "firstOpen"` opens a run that was started earlier at the page of
  * its first unanswered question (the last page when all are answered), once
  * per record; without it the run opens at the first page.
@@ -303,7 +310,7 @@ function idOf(object) {
 export default {
 	name: 'CnChecklistRunWidget',
 
-	components: { NcButton, NcLoadingIcon },
+	components: { CameraOutline, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The detail page's object context (`{ objectId, object }`), for tokens. */
@@ -321,7 +328,7 @@ export default {
 		 * The widget config: `{ questions | questionsPath, itemsKey?,
 		 * groupLabelField?, orderField?, fields?, typeMap?, choiceValues?,
 		 * answers | answersPath, answerKey?, answerFields?, recordPhotosField?,
-		 * record?, saveAction?, finishAction?, pageSize?, allowNote?,
+		 * record?, saveAction?, finishAction?, pageSize?, allowNote?, noteWhen?,
 		 * allowPhotos?, caption?, emptyText? }`, as in the component
 		 * description and docs/components/cn-checklist-run-widget.md.
 		 *
@@ -612,6 +619,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a question shows its note field: always, unless `noteWhen`
+		 * names the answers that ask for one and this question has none of
+		 * them and no note yet.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean}
+		 */
+		noteShown(question) {
+			const answers = this.content?.noteWhen?.answers
+			if (!Array.isArray(answers)) {
+				return true
+			}
+			const draft = this.draft[question.id] || {}
+			return (draft.note || '') !== '' || answers.map(String).includes(String(draft.value ?? ''))
+		},
+
 		/**
 		 * The host's translate, or the text unchanged.
 		 *
@@ -1194,6 +1218,11 @@ export default {
 	padding: 12px 14px;
 }
 
+.cn-checklist-run__photos-title {
+	font-size: 15px;
+	line-height: 1.2;
+}
+
 .cn-checklist-run__legend {
 	font-size: 15px;
 	font-weight: 600;
@@ -1233,6 +1262,13 @@ export default {
 	width: 100%;
 }
 
+/* A note is two 15px lines on the normal line height, 8px 12px in: 54px, as
+   the board draws it (live 48). */
+.cn-checklist-run__text.cn-checklist-run__text {
+	padding: 8px 12px;
+	line-height: normal;
+}
+
 .cn-checklist-run__group {
 	font-size: 14px;
 	font-weight: 600;
@@ -1253,13 +1289,20 @@ export default {
 .cn-checklist-run__photo-button {
 	align-items: center;
 	align-self: flex-start;
-	border: 1px solid var(--color-border-dark);
+	border: 1px solid var(--cn-board-control-border, var(--color-border-dark));
 	border-radius: var(--border-radius-element, 8px);
 	cursor: pointer;
 	display: inline-flex;
-	font-weight: 600;
+	gap: 8px;
 	min-height: 34px;
 	padding: 0 14px;
+}
+
+/* A theme sets every label bold and at the body size; the photo button is
+   the board's 14px/600 control with a camera before its label (DqInspectie). */
+.cn-checklist-run__photo-button.cn-checklist-run__photo-button {
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-checklist-run__photo-button:focus-within {

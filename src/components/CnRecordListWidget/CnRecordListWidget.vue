@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -61,7 +61,8 @@
 								:data-testid="`cn-record-list-sort-${col.key}`"
 								@click="toggleTableSort(col.key)">
 								{{ col.label }}
-								<span class="cn-record-list__sort-mark" aria-hidden="true">{{ sortMarkOf(col.key) }}</span>
+								<ChevronUp v-if="sortStateOf(col.key) === 'ascending'" class="cn-record-list__sort-mark" :size="14" />
+								<ChevronDown v-else class="cn-record-list__sort-mark" :size="14" />
 							</button>
 							<template v-else>
 								{{ col.label }}
@@ -216,7 +217,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-primary': avatarPrimary }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -234,6 +235,7 @@
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -280,6 +282,7 @@
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
+							<CnIcon v-if="item.action.icon" :name="item.action.icon" :size="16" />
 							{{ item.action.label }}
 						</component>
 					</div>
@@ -301,6 +304,7 @@
 						</span>
 						<span v-if="item.initials"
 							class="cn-record-list__avatar"
+							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
@@ -308,6 +312,12 @@
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
+						<span v-if="iconTiles"
+							class="cn-record-list__icon-tile"
+							aria-hidden="true"
+							data-testid="cn-record-list-icon-tile">
+							<CnIcon :name="item.icon" :size="18" />
+						</span>
 						<span class="cn-record-list__main">
 							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
 							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
@@ -575,7 +585,9 @@ import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
@@ -589,6 +601,7 @@ import { resolveDue } from '../../utils/dueText.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { variantForColor } from '../../utils/headerFieldChips.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
@@ -672,7 +685,7 @@ function unwrap(value) {
 export default {
 	name: 'CnRecordListWidget',
 
-	components: { Check, ChevronRight, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+	components: { Check, ChevronDown, ChevronRight, ChevronUp, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -870,6 +883,18 @@ export default {
 			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
 		},
 
+		/**
+		 * Whether the avatar is tinted with the primary colour (`avatar.tone:
+		 * "primary"`), as DqZaakGerelateerd draws a related case's type initials.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-avatar-tone/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-carry-the-primary-tint
+		 */
+		avatarPrimary() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && avatar.tone === 'primary')
+		},
+
 		/** @return {boolean} Whether a row's pill comes before its title (`pillAt: "start"`). */
 		pillFirst() {
 			return this.content?.pillAt === 'start'
@@ -998,6 +1023,17 @@ export default {
 		},
 
 		/**
+		 * Whether a `rows` row leads with its icon in a round tile
+		 * (`iconTile: true` beside `icon`), as DqZaakTaken draws "Wat hierna komt".
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-row-icon-tile/specs/record-list/spec.md#requirement-a-record-list-row-can-lead-with-an-icon-tile
+		 */
+		iconTiles() {
+			return this.content?.iconTile === true && this.cardIcons
+		},
+
+		/**
 		 * Whether a `cards` card leads its title with an icon: only when the
 		 * list declares `icon`, so a card without one has no placeholder.
 		 *
@@ -1119,6 +1155,7 @@ export default {
 					tag: link ? 'router-link' : 'div',
 					attrs: link ? { to: link } : {},
 					initials: this.initialsFor(row),
+					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
 					text: this.fill(c.text, row),
@@ -1838,6 +1875,23 @@ export default {
 		},
 
 		/**
+		 * The tone of a row's initials, from `avatar.tone: { field, map }`
+		 * (`{ field: "status", map: { requested: "warning" } }`: an open advice
+		 * request's initials on the warning tint, DqZaakBesluiten); '' without.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} A status variant, or ''.
+		 */
+		avatarToneFor(row) {
+			const tone = this.content?.avatar?.tone
+			if (!tone || typeof tone !== 'object' || typeof tone.field !== 'string' || !tone.map || typeof tone.map !== 'object') {
+				return ''
+			}
+			const variant = tone.map[String(readPath(row, tone.field) ?? '')]
+			return ['default', 'success', 'warning', 'error', 'info', 'purple', 'teal'].includes(variant) ? variant : ''
+		},
+
+		/**
 		 * The initials of the row's avatar (`avatar`: a name template such as
 		 * `"{client.name}"`, or `{ text }`), or '' without one.
 		 *
@@ -1986,7 +2040,7 @@ export default {
 					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
 					: { label, tag: 'router-link', attrs: { to: link.to } }
 			}
-			return { label, tag: 'button', attrs: { type: 'button' } }
+			return { label, tag: 'button', attrs: { type: 'button' }, icon: typeof action.icon === 'string' ? action.icon : '' }
 		},
 
 		/**
@@ -2267,20 +2321,6 @@ export default {
 		 */
 		sortStateOf(key) {
 			return this.tableSort.key === key && this.tableSort.dir ? this.tableSort.dir : 'none'
-		},
-
-		/**
-		 * The arrow after a sortable column's label.
-		 *
-		 * @param {string} key The column key.
-		 * @return {string} An up or down arrow, or '' while the column is not the sort.
-		 */
-		sortMarkOf(key) {
-			const state = this.sortStateOf(key)
-			if (state === 'ascending') {
-				return '▲'
-			}
-			return state === 'descending' ? '▼' : ''
 		},
 
 		/**
@@ -2638,7 +2678,11 @@ export default {
 		},
 
 		/**
-		 * The row's pill: `{ field, labels?, colorMap?, variant?, hideValues? }`.
+		 * The row's pill: `{ field, labels?, colorMap?, colorField?, variant?, variantWhen?, hideValues? }`.
+		 * `variantWhen` (`[{ when, variant }]`, the first whose condition holds for the row) wins over `colorMap`.
+		 * `colorField` reads the tone from the row (a colour name such as a
+		 * status type's `colour`: purple, teal, blue ...) where `colorMap`
+		 * names none (DqMijnWerk "In behandeling" in the status's purple).
 		 *
 		 * @param {object} row The row.
 		 * @param {object} [config] A pill config; the widget's `pill` by default.
@@ -2663,7 +2707,14 @@ export default {
 			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
 			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
 			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
-			const variant = found ? map[found] : pill.variant
+			// `variantWhen` colours the pill by the row rather than the value: a
+			// finished case is green whatever its case type calls the final status.
+			const rule = Array.isArray(pill.variantWhen)
+				? pill.variantWhen.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+				: null
+			const colour = pill.colorField ? readPath(row, pill.colorField) : null
+			const fromRow = typeof colour === 'string' && colour !== '' ? variantForColor(colour) : null
+			const variant = rule ? rule.variant : (found ? map[found] : (fromRow || pill.variant))
 			return {
 				label: labels[key] ? this.translate(labels[key]) : key,
 				variant: isBadgeVariant(variant) ? variant : 'default',
@@ -3171,11 +3222,16 @@ export default {
 	margin-inline-end: -4px;
 }
 
+/* Without a tone (`avatar.tone`) the initials sit on the hover ground in the
+   boards' soft ink (DqZaakBesluiten Adviezen "JZ"). */
+.cn-record-list__avatar:not([class*='cn-status-badge--']) {
+	background: var(--color-background-hover);
+	color: var(--cn-board-text-soft, var(--color-main-text));
+}
+
 .cn-record-list__avatar {
 	align-items: center;
-	background: var(--color-background-hover);
 	border-radius: 50%;
-	color: var(--color-main-text);
 	display: flex;
 	flex: none;
 	font-size: 12px;
@@ -3312,7 +3368,7 @@ export default {
 }
 
 .cn-record-list__sort-mark {
-	font-size: 10px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-record-list__head {
@@ -3321,8 +3377,14 @@ export default {
 	align-items: center;
 }
 
-.cn-record-list__head-filter {
+/* The funnel is a 22px control, as the boards draw it beside a head, not
+   NcActions' 34px trigger that made the head row 54px. */
+.cn-record-list__head-filter :deep(.button-vue) {
 	--button-size: 22px;
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
 }
 
 .cn-record-list__table .cn-record-list__cell--end {
@@ -3413,9 +3475,14 @@ export default {
 	font-weight: 600;
 	height: 34px;
 	justify-content: center;
-	margin: 0;
 	padding: 0 14px;
 	text-decoration: none;
+}
+
+/* server.css gives every button `margin: 3px 3px 3px 0` at (0,2,1); the
+   doubled class outranks it. */
+.cn-record-list__action.cn-record-list__action {
+	margin: 0;
 }
 
 .cn-record-list__action:hover,
@@ -3493,6 +3560,33 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.2;
+}
+
+.cn-record-list--compact .cn-record-list__card .cn-record-list__meta {
+	line-height: normal;
+}
+
+/* `cardPillAside: true`: the title over its meta line on the left, 2px
+   apart, the pill at the card's end on the title's row (DqInspectie outbox). */
+.cn-record-list--pill-aside .cn-record-list__card {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 2px 8px;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-head {
+	display: contents;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card-pills {
+	grid-column: 2;
+	grid-row: 1;
+	align-self: start;
+}
+
+.cn-record-list--pill-aside .cn-record-list__card .cn-record-list__meta {
+	grid-column: 1;
 }
 
 .cn-record-list__card--link:hover,
@@ -3584,6 +3678,25 @@ export default {
 a.cn-record-list__inline-title {
 	color: var(--color-primary-element);
 	text-decoration: underline;
+}
+
+/* A row's icon in a 36px round tile on the sunken ground, before the text
+   (`iconTile`, DqZaakTaken "Wat hierna komt"). */
+.cn-record-list__icon-tile {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 18px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-record-list__list--avatar-primary .cn-record-list__avatar {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 </style>
 

@@ -161,4 +161,6 @@ explicit event when you are writing new code:
 
 `float` (Boolean, default `true`): GridStack's `float`. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap.
 
+`fillHeight` (Boolean, default `false`) and `fillMinWidth` (Number, default `960`): in view mode, on a grid at least `fillMinWidth` px wide, the layout rows divide the height the host gives the grid instead of growing with the content, so the page around it does not scroll (LpVandaag). A row whose items all set `fitRows: true` takes its content's height; the other rows share what is left, and a cell scrolls what does not fit. Edit mode and a narrower grid keep GridStack's `cellHeight` rows.
+
 `sideColumn` (Object, default `null`): `{ width, from? }`. Layout items with `track: "side"` are drawn at `width` px (the card, without its margins) from column `from` (8 by default), items with `track: "main"` share the rest, so the side cards keep their width on any screen (DqMijnWerk). Items without a track keep the twelve shares. Only on the full twelve-column grid and not while editing.

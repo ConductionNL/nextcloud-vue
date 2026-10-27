@@ -4,27 +4,39 @@
 -->
 <template>
 	<div class="cn-plan-row" :data-testid="`cn-plan-row-${item.key || item.uuid}`">
-		<span class="cn-plan-row__name">{{ item.name }}</span>
-		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item.state) }}</span>
-		<NcButton v-if="item.state === 'enabled' && item.discretionary"
+		<span class="cn-plan-row__text">
+			<span class="cn-plan-row__name">{{ item.name }}</span>
+			<span v-if="item.description" class="cn-plan-row__meta" data-testid="cn-plan-row-meta">{{ item.description }}</span>
+		</span>
+		<span class="cn-plan-row__state" :data-state="item.state">{{ stateLabel(item) }}</span>
+		<!-- The moves OpenRegister offers sit in the row's menu, so a row reads
+		     as its name, its line and its state (DqZaak "Zaakplan"). -->
+		<NcActions v-if="hasMoves"
+			:ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })"
 			:disabled="busy"
-			:data-testid="`cn-plan-enable-${item.key || item.uuid}`"
-			@click="$emit('enable', item)">
-			{{ t('nextcloud-vue', 'Start') }}
-		</NcButton>
-		<NcButton v-for="target in targets"
-			:key="target"
-			:disabled="busy"
-			:data-testid="`cn-plan-${target}-${item.key || item.uuid}`"
-			@click="$emit('transition', item, target)">
-			{{ target === 'completed' ? t('nextcloud-vue', 'Complete') : t('nextcloud-vue', 'Stop') }}
-		</NcButton>
+			:data-testid="`cn-plan-menu-${item.key || item.uuid}`">
+			<NcActionButton v-if="canStart"
+				:disabled="busy"
+				closeAfterClick
+				:data-testid="`cn-plan-enable-${item.key || item.uuid}`"
+				@click="$emit('enable', item)">
+				{{ t('nextcloud-vue', 'Start') }}
+			</NcActionButton>
+			<NcActionButton v-for="target in targets"
+				:key="target"
+				:disabled="busy"
+				closeAfterClick
+				:data-testid="`cn-plan-${target}-${item.key || item.uuid}`"
+				@click="$emit('transition', item, target)">
+				{{ target === 'completed' ? t('nextcloud-vue', 'Complete') : t('nextcloud-vue', 'Stop') }}
+			</NcActionButton>
+		</NcActions>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 import { offeredTransitions } from '../../utils/planTree.js'
 
 /**
@@ -33,7 +45,7 @@ import { offeredTransitions } from '../../utils/planTree.js'
 export default {
 	name: 'CnPlanWidgetRow',
 
-	components: { NcButton },
+	components: { NcActionButton, NcActions },
 
 	props: {
 		/**
@@ -44,6 +56,16 @@ export default {
 		item: {
 			type: Object,
 			required: true,
+		},
+
+		/**
+		 * The word per state that replaces the default, already translated.
+		 *
+		 * @type {object}
+		 */
+		labels: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** A move is running. */
@@ -60,18 +82,40 @@ export default {
 		targets() {
 			return offeredTransitions(this.item)
 		},
+
+		/** @return {boolean} A discretionary item that may be started. */
+		canStart() {
+			return this.item.state === 'enabled' && Boolean(this.item.discretionary)
+		},
+
+		/** @return {boolean} Whether the row offers any move. */
+		hasMoves() {
+			return this.canStart || this.targets.length > 0
+		},
 	},
 
 	methods: {
 		t,
 
 		/**
-		 * The word for a state.
+		 * The word for an item's state. A completed milestone is reached, and
+		 * an optional item nobody has started reads as optional rather than
+		 * waiting. `labels` replaces the word for a state.
 		 *
-		 * @param {string} state The state.
+		 * @param {object} item The plan item.
 		 * @return {string}
 		 */
-		stateLabel(state) {
+		stateLabel(item) {
+			const state = item.state
+			if (typeof this.labels[state] === 'string' && this.labels[state] !== '') {
+				return this.labels[state]
+			}
+			if (state === 'completed' && item.type === 'milestone') {
+				return t('nextcloud-vue', 'Reached')
+			}
+			if (item.discretionary && (state === 'available' || state === 'enabled')) {
+				return t('nextcloud-vue', 'Optional')
+			}
 			const labels = {
 				available: t('nextcloud-vue', 'Waiting'),
 				enabled: t('nextcloud-vue', 'Can start'),
@@ -95,9 +139,21 @@ export default {
 	padding-block: 6px;
 }
 
-.cn-plan-row__name {
+.cn-plan-row__text {
+	display: flex;
 	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-plan-row__name {
 	font-weight: 600;
+}
+
+.cn-plan-row__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-plan-row__state {

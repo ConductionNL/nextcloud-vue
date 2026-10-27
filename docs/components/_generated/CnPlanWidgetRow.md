@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name   | Type      | Required | Default | Description                                                              |
-| ------ | --------- | -------- | ------- | ------------------------------------------------------------------------ |
-| `item` | `object`  | ✓        | —       | The plan item (`uuid`, `key`, `name`, `state`, `type`, `discretionary`). |
-| `busy` | `boolean` |          | `false` | A move is running.                                                       |
+| Name     | Type      | Required | Default | Description                                                              |
+| -------- | --------- | -------- | ------- | ------------------------------------------------------------------------ |
+| `item`   | `object`  | ✓        | —       | The plan item (`uuid`, `key`, `name`, `state`, `type`, `discretionary`). |
+| `labels` | `object`  |          | `\{\}`  | The word per state that replaces the default, already translated.        |
+| `busy`   | `boolean` |          | `false` | A move is running.                                                       |
 
 ### Events
 

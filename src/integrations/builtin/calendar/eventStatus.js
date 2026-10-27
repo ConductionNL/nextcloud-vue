@@ -25,7 +25,43 @@ export function eventStatusLabel(ev) {
 	if (status === 'cancelled') {
 		return t('nextcloud-vue', 'Cancelled')
 	}
+	const answer = inviteeAnswer(ev)
+	if (answer === 'needs-action') {
+		return t('nextcloud-vue', 'Invited')
+	}
+	if (answer === 'accepted') {
+		return t('nextcloud-vue', 'Accepted')
+	}
+	if (answer === 'declined') {
+		return t('nextcloud-vue', 'Declined')
+	}
+	if (answer === 'tentative') {
+		return t('nextcloud-vue', 'Tentative')
+	}
 	return ''
+}
+
+/**
+ * Where the invitees stand when the event itself has no status: a decline
+ * first, then anyone still to answer, then a tentative answer, else accepted
+ * when all accepted; '' without invitees that answered or were asked.
+ *
+ * @param {object} ev The event.
+ * @return {string} `declined`, `needs-action`, `tentative`, `accepted` or ''.
+ * @spec openspec/changes/calendar-invitee-answer/specs/calendar-integration/spec.md#requirement-an-appointment-without-a-status-shows-where-its-invitees-stand
+ */
+export function inviteeAnswer(ev) {
+	const answers = (Array.isArray(ev?.attendees) ? ev.attendees : [])
+		// `partstat` as iCal writes it; `status: "invited"` as an appointment part
+		// writes it reads as still to answer.
+		.map((att) => (att && typeof att === 'object' ? String(att.partstat || att.status || '').toLowerCase().replace(/^invited$/, 'needs-action') : ''))
+		.filter(Boolean)
+	for (const answer of ['declined', 'needs-action', 'tentative']) {
+		if (answers.includes(answer)) {
+			return answer
+		}
+	}
+	return answers.length > 0 && answers.every((answer) => answer === 'accepted') ? 'accepted' : ''
 }
 
 /**
@@ -45,7 +81,14 @@ export function eventStatusVariant(ev) {
 	if (status === 'cancelled') {
 		return 'error'
 	}
-	return 'default'
+	const answer = inviteeAnswer(ev)
+	if (answer === 'accepted') {
+		return 'success'
+	}
+	if (answer === 'declined') {
+		return 'error'
+	}
+	return answer === '' ? 'default' : 'info'
 }
 
 /**

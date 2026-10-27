@@ -79,8 +79,9 @@ describe('dialog.css', () => {
 
 	it('puts the tertiary region at the far left and fills a destructive primary with the danger token', () => {
 		expect(css).toMatch(/\.cn-dialog__tertiary\s*\{[^}]*margin-inline-end:\s*auto/)
-		expect(css).toMatch(/--cn-dialog-danger:\s*var\(--color-error\)/)
+		expect(css).toMatch(/--cn-dialog-danger:\s*color-mix\(in srgb, var\(--color-error\) 80%, #000\)/)
 		expect(css).toMatch(/background-color:\s*var\(--cn-dialog-danger\)/)
+		expect(css).toMatch(/\.button-vue--error\s*\{[^}]*border-width:\s*0;/)
 	})
 
 	it('holds a type-to-confirm button at 45% opacity', () => {

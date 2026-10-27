@@ -327,7 +327,7 @@
 								{{ columnLabel(column) }}
 							</template>
 						</th>
-						<th class="cn-files-browser__col-actions" scope="col">
+						<th class="cn-files-browser__col-actions" scope="col" :style="actionsColumnStyle">
 							<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
 						</th>
 					</tr>
@@ -1343,6 +1343,8 @@ export default {
 
 	data() {
 		return {
+			/** The actions column's measured width while a row button stands in it, else null. */
+			actionsColumnWidth: null,
 			currentPath: this.rootPath,
 			/** The open folder as a node, or null before the first listing. */
 			folder: null,
@@ -1402,6 +1404,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The actions column's width. The table lays out fixed, so its columns
+		 * take their widths from the head; a row button (Beoordelen) beside the
+		 * row menu needs more than the menu's 48px, measured from the first row.
+		 *
+		 * @return {object} The head cell's style.
+		 * @spec openspec/changes/files-actions-column-fits-row-button/specs/files-actions-column-fits-row-button/spec.md#requirement-the-actions-column-fits-a-row-button
+		 */
+		actionsColumnStyle() {
+			return this.actionsColumnWidth ? { width: this.actionsColumnWidth + 'px' } : {}
+		},
+
 		/**
 		 * The `dropDetail` text: the string, or the text of the first variant
 		 * `{ when, text }` whose `when` is `true` or that has none.
@@ -1856,6 +1870,10 @@ export default {
 		}
 	},
 
+	updated() {
+		this.measureActionsColumn()
+	},
+
 	beforeUnmount() {
 		this.cnDetailSideColumn?.claim?.(this.$.uid, false)
 		for (const channel of FOLDER_CHANGED_CHANNELS) {
@@ -1865,6 +1883,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Measure the first row's actions cell (padding, the row button, the
+		 * gap and the menu) and keep it as the column's width, so a fixed
+		 * table does not push the button past its card. Without a row button
+		 * the column keeps its own width.
+		 *
+		 * @spec openspec/changes/files-actions-column-fits-row-button/specs/files-actions-column-fits-row-button/spec.md#requirement-the-actions-column-fits-a-row-button
+		 */
+		measureActionsColumn() {
+			const cell = this.$el && this.$el.querySelector ? this.$el.querySelector('tbody .cn-files-browser__col-actions') : null
+			const button = cell ? cell.querySelector('.cn-files-browser__row-button') : null
+			if (!cell || !button) {
+				if (this.actionsColumnWidth !== null) {
+					this.actionsColumnWidth = null
+				}
+				return
+			}
+			const style = window.getComputedStyle(cell)
+			const content = [...cell.children].reduce((sum, child) => {
+				const childStyle = window.getComputedStyle(child)
+				return sum + child.offsetWidth + (parseFloat(childStyle.marginInlineStart) || 0) + (parseFloat(childStyle.marginInlineEnd) || 0)
+			}, 0)
+			const width = Math.ceil(content + (parseFloat(style.paddingInlineStart) || 0) + (parseFloat(style.paddingInlineEnd) || 0))
+			if (width > 0 && width !== this.actionsColumnWidth) {
+				this.actionsColumnWidth = width
+			}
+		},
+
 		t,
 
 		preventMiddleClickAutoscroll,
@@ -3588,7 +3634,6 @@ export default {
 
 .cn-files-browser__row-button {
 	display: inline-flex;
-	margin-inline-end: 8px;
 	vertical-align: middle;
 }
 

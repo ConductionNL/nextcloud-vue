@@ -143,6 +143,13 @@ describe('exports widget', () => {
 		expect(rows[1].find('[data-testid="cn-exports-expires-today"]').exists()).toBe(true)
 	})
 
+	it('draws a download icon on the Download button', async () => {
+		mockGet.mockResolvedValue({ data: { results: [{ id: 2, uuid: 'r2', filename: 'zaken-verlichting.xlsx', fileId: 12, filePath: '/Exports/z.xlsx', downloadCount: 3, producedAt: '2026-10-07T10:00:00Z', expiresAt: inAWeek.toISOString() }] } })
+		const w = mount(CnExportsWidget, { props: { content: { register: 'dossiq', schema: 'case' } }, global: { stubs: { NcButton: { name: 'NcButton', props: ['href'], template: '<a class="download" :href="href"><span class="icon"><slot name="icon" /></span><slot /></a>' } } } })
+		await flushPromises()
+		expect(w.find('.download .icon').findComponent({ name: 'DownloadOutlineIcon' }).exists()).toBe(true)
+	})
+
 	it('says so when there are none, and when they cannot be read', async () => {
 		mockGet.mockResolvedValueOnce({ data: { results: [] } })
 		const empty = mount(CnExportsWidget, { props: { content: {} } })

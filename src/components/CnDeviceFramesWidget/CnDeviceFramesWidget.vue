@@ -103,6 +103,7 @@ export default {
 		 *   `offlineText` while the device is offline and `onlineText` otherwise. `tone` is `warning`
 		 *   (default while offline), `success` or `info`.
 		 * - `width` — the frame width in pixels (default 350).
+		 * - `height` — the frame height in pixels (at least 400); what does not fit scrolls inside it. Without it the frame grows with its content.
 		 *
 		 * @type {{frames?: Array<object>, status?: object, width?: number}}
 		 */
@@ -190,7 +191,12 @@ export default {
 		/** @return {object} The frame width. */
 		frameStyle() {
 			const width = Number(this.content?.width)
-			return { '--cn-device-frame-width': `${Number.isFinite(width) && width >= 240 ? width : 350}px` }
+			const height = Number(this.content?.height)
+			const style = { '--cn-device-frame-width': `${Number.isFinite(width) && width >= 240 ? width : 350}px` }
+			if (Number.isFinite(height) && height >= 400) {
+				style['--cn-device-frame-height'] = `${height}px`
+			}
+			return style
 		},
 
 		/**
@@ -299,6 +305,7 @@ export default {
 	width: var(--cn-device-frame-width, 350px);
 	max-width: 100%;
 	min-height: 600px;
+	height: var(--cn-device-frame-height, auto);
 	box-sizing: border-box;
 	overflow: hidden;
 	border: 10px solid var(--color-main-text);
@@ -339,6 +346,7 @@ export default {
 	margin: 0;
 	font-size: 20px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-device-frames-widget__body {
@@ -346,6 +354,14 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	padding: 14px;
+}
+
+/* `height` (DqInspectie: 700) makes every frame a phone of that height;
+   what does not fit scrolls inside the screen. */
+.cn-device-frames-widget__frame[style*='--cn-device-frame-height'] .cn-device-frames-widget__body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 /* On a phone the frame is the screen: no bezel, the full width. */

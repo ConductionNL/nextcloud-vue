@@ -1,0 +1,2 @@
+- [x] 1.1 link label/note placeholders, segment formats (CnFactsWidget)
+- [x] 1.2 tests (CnFactsWidgetLinkFromRecord.spec.js) and docs

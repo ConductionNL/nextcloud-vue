@@ -13,7 +13,8 @@
 /* Row 1: the h1 and the buttons at its end, both at the row's top. Row 2:
    the count line, 6px under. The header starts 4px under the content's top
    (DqZaken: the title at 96, the count line at 142).
-   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top */
+   @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top
+   @spec openspec/changes/board-list-rhythm/specs/board-list-rhythm/spec.md#requirement-a-board-list-page-keeps-the-boards-vertical-rhythm */
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
@@ -21,6 +22,11 @@
 	row-gap: 6px;
 	padding-top: 4px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
+}
+
+/* Under a count line (no breadcrumb row) the header ends 8px lower. */
+.cn-look-board .cn-index-page .cn-page-header:not(:has(.cn-header-trail)) {
+	padding-bottom: 8px;
 }
 
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__text {
@@ -37,9 +43,11 @@
 }
 
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__description {
+	--nldesign-component-paragraph-line-height: normal;
 	grid-column: 1;
 	grid-row: 2;
 	font-size: 15px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -143,6 +151,11 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
+	/* Lines of row 1 are 8px apart and items on a line 8px; the search row
+	   keeps its own 12px on top, so it sits 20px under row 1 as the boards
+	   draw it (DqZaken, DqContracten), while a wrapped part of row 1 (the
+	   view switch beside a side panel, DqFilterBeheren) sits 8px under it.
+	   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
 	gap: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
@@ -216,13 +229,46 @@
 	min-width: 0;
 }
 
-/* Row 2: the search field and the active filters on a line of their own. */
+/* Row 2: the search field and the active filters on a line of their own,
+   20px under row 1 with the bar's 8px.
+   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
 .cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {
 	display: flex;
 	flex: 0 0 100%;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+	margin-top: 12px;
+}
+
+/* Beside a side panel the view switch always starts a line of its own under
+   row 1, 8px down, and Filter takes the end of row 1 (DqFilterBeheren,
+   DqFilterInMenu: with Save view hidden the switch fitted on row 1 and the
+   list sat 46px high). An empty full-width item breaks the line; the switch
+   pulls up by the gap that line adds.
+   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board::after {
+	content: '';
+	order: 1;
+	flex: 0 0 100%;
+	height: 0;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__view-toggle {
+	order: 2;
+	margin-top: -8px;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board > .cn-actions-bar__row--search {
+	order: 3;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-actions-bar__filter-button {
+	margin-inline-start: auto;
+}
+
+.cn-look-board .cn-index-page--sidebar-open .cn-actions-bar--board .cn-saved-views__save ~ .cn-actions-bar__view-controls .cn-actions-bar__filter-button {
+	margin-inline-start: 0;
 }
 
 /* Saved-view chips: one 38px pill each, the selected one filled with the main
@@ -649,6 +695,12 @@
 	border-radius: 8px;
 }
 
+/* In the index page the page's own 20px gap stands between the band and the
+   card, so the band adds no margin of its own (DqZaken: card 20px under it). */
+.cn-look-board .cn-index-page:not(.cn-look-nextcloud *) > .cn-actions-bar__band {
+	margin-bottom: 0;
+}
+
 /* The band's text sits at the font's normal line height, and its lead keeps
    6px before the buttons (DqZaken "Met de geselecteerde zaken"). */
 .cn-look-board .cn-actions-bar__band:not(.cn-look-nextcloud *) {
@@ -692,6 +744,22 @@
 	border-radius: 0;
 }
 
+/* A page notice under the list card sits 20px under the card, the page's
+   gap (DqContracten "Verlengen en opzeggen ..."). The body kept its column
+   height while the card kept the height of its rows, so the card ran past
+   the body and the notice sat 8px under it in a full-page capture (and
+   under the card in a short window); the notecard's own 15px top margin
+   came on top.
+   @spec openspec/changes/board-page-notice-under-card/specs/board-page-notice-under-card/spec.md */
+.cn-look-board.cn-index-page:has(> .cn-index-page__notice--page) > .cn-index-page__body,
+.cn-look-board .cn-index-page:has(> .cn-index-page__notice--page) > .cn-index-page__body {
+	flex: none;
+}
+
+.cn-look-board .cn-index-page__notice--page {
+	margin-top: 0;
+}
+
 .cn-look-board .cn-index-page__main.cn-index-page__main--table {
 	/* The body is a row: the card takes the width left beside a sidebar (the
 	   board's table card spans the content), and keeps the height of its rows. */
@@ -706,8 +774,8 @@
 
 /* The list and map views are one card as the table is, with the count line
    and the pager inside it under the hairline (DqTeamwachtrij, DqZakenKaart).
-   The list keeps the height of its rows rather than scrolling inside the
-   column; the map keeps filling it, its own card unframed inside. */
+   Both keep the height of their content rather than filling the column; the
+   map's own card sits unframed inside. */
 .cn-look-board .cn-index-page__main.cn-index-page__main--list,
 .cn-look-board .cn-index-page__main.cn-index-page__main--map {
 	border: 1px solid var(--color-border);
@@ -717,12 +785,17 @@
 	overflow: hidden;
 }
 
-.cn-look-board .cn-index-page__main.cn-index-page__main--list {
+.cn-look-board .cn-index-page__main.cn-index-page__main--list,
+.cn-look-board .cn-index-page__main.cn-index-page__main--map {
 	flex: 1 1 auto;
 	align-self: flex-start;
 }
 
+/* The map card is as tall as its 533px map (or its list), 18px in, and the
+   footer follows it (DqZakenKaart: card 632, pager at 891). */
 .cn-look-board .cn-index-page__main--map > .cn-index-page__map-card {
+	flex: none;
+	padding: 18px;
 	border: 0;
 	border-radius: 0;
 	background: transparent;
@@ -737,6 +810,18 @@
 
 .cn-look-board .cn-index-page__map-card .cn-index-page__map:not(.cn-look-nextcloud *) {
 	flex: 3 1 520px;
+	min-height: 533px;
+	/* CnIndexPage gives the widget an inline 100% height, which an auto-height
+	   card resolves to nothing: the Leaflet pane inside it then stood 0px tall.
+	   @spec openspec/changes/board-map-pane-height/specs/board-map-pane-height/spec.md#requirement-the-board-map-pane-is-533px-tall */
+	height: 533px !important;
+}
+
+/* The list rows' number line and date read at their normal leading. */
+.cn-look-board .cn-index-page__map-sub,
+.cn-look-board .cn-index-page__map-due {
+	--nldesign-component-paragraph-line-height: normal;
+	line-height: normal;
 }
 
 /* The numbered list scrolls inside the card's height rather than running
@@ -1032,6 +1117,15 @@
 	text-decoration: none;
 }
 
+
+/* A date widget in that column takes the main ink too: it kept the link colour
+   (DqZaakContact "14 okt, 09:15" read primary; r32 cell colour 27,28,29 vs
+   54,105,165, probed: TIME.cn-cell-renderer__date).
+   @spec openspec/changes/board-log-table-date-ink/specs/board-log-table-date-ink/spec.md#requirement-a-plain-logs-date-reads-in-the-main-ink */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-table-col--title .cn-cell-renderer__date:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
 /* In such a plain log an icon-and-name cell is regular too (DqZaakContact
    Kanaal "Mijn Zuiddrecht"); elsewhere the icon label stays 600.
    @spec openspec/changes/board-log-table-icon-label-regular/specs/board-log-table-icon-label-regular/spec.md#requirement-a-plain-logs-icon-label-cell-is-regular */
@@ -1057,6 +1151,13 @@
 	text-decoration: none;
 }
 
+/* A row's action buttons ("Aan zaak koppelen", "Nieuwe zaak") are the
+   board's 34px buttons, not NcButton's small 24px one (DqPostvak).
+   @spec openspec/changes/board-index-row-gap-and-cell-buttons/specs/board-index-row-gap-and-cell-buttons/spec.md */
+.cn-look-board .cn-cell-renderer__actions .button-vue {
+	--button-size: 34px;
+}
+
 /* An avatar in the title column (PtAccounts): a 32px chip circle, 10px before
    the name, the e-mail under the name beside it. The name keeps the title's
    weight and size, and its underline: an inline-flex box is atomic, so the
@@ -1079,8 +1180,9 @@
    @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral {
 	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {
@@ -1513,17 +1615,19 @@
 	margin: 0;
 	font-size: 17px;
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 	text-decoration: none;
 	white-space: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-meta {
 	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: normal;
 	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: normal;
 }
 
 /* The meta line, note and description are paragraphs: each hands the theme,
@@ -1531,11 +1635,13 @@
 .cn-look-board .cn-object-card--board .cn-object-card__record-note {
 	--nldesign-component-paragraph-font-size: 13px;
 	--nldesign-component-paragraph-font-weight: 600;
+	--nldesign-component-paragraph-line-height: normal;
 	--nldesign-component-paragraph-color: var(--cn-board-text-soft);
 	margin: 0;
 	color: var(--cn-board-text-soft);
 	font-size: 13px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-note--purple {
@@ -1563,6 +1669,11 @@
 	align-items: center;
 	min-width: 0;
 	font-size: 14px;
+}
+
+/* The handler's initials in a card's footer are 12px, as in the table. */
+.cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell .cn-cell-renderer__avatar-initials {
+	font-size: 12px;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-date {
@@ -1703,9 +1814,19 @@
 	--app-sidebar-width: 360px;
 }
 
+/* The subtitle 2px under the title at a normal line height, and the tab's
+   content 20px in from the panel edge (the tab's 10px and 10px here), as
+   DqFilterBeheren draws the side panel.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar-header__subname {
+	margin-top: 2px;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board:has(.cn-index-page) > .app-sidebar .cn-index-sidebar__section {
+	padding: 10px;
 }
 
 .cn-look-board:has(.cn-index-page) > .app-sidebar .app-sidebar__close {
@@ -1735,8 +1856,10 @@
 	padding: 0 6px;
 	box-sizing: border-box;
 	border-radius: 10px;
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	/* The board's count pill: the hairline grey with the secondary ink
+	   (DqAfdelingen 228,230,234 / 61,64,71), not the hover grey and the main ink. */
+	background: var(--cn-board-hairline);
+	color: color-mix(in srgb, var(--color-text-maxcontrast) 50%, var(--color-main-text));
 	font-size: 12px;
 	font-weight: 600;
 }
@@ -1776,9 +1899,24 @@
 	padding-inline-start: 64px;
 }
 
-.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item > :not(.cn-folder-tree__name):not(.cn-folder-tree__count),
-.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {
+.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item > :not(.cn-folder-tree__name):not(.cn-folder-tree__count) {
 	display: none;
+}
+
+/* "Alle" keeps its 18px all-inclusive icon, 8px before the label, as the
+   board draws it (DqAfdelingen "∞ Alle"); the folder rows draw no icon.
+   @spec openspec/changes/board-folder-pane-rows/specs/board-folder-pane-rows/spec.md#requirement-a-board-folder-pane-draws-the-boards-folder-rows */
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-index-page__folder-pane .cn-folder-sidebar__all > :not(.cn-folder-sidebar__all-label) {
+	display: inline-flex;
+	flex: none;
+	width: 18px;
+	height: 18px;
 }
 
 .cn-look-board .cn-index-page__folder-pane .cn-folder-tree__item--active,
@@ -1924,7 +2062,31 @@
    @spec openspec/changes/board-index-sidebar-title-inset/specs/board-index-sidebar-title-inset/spec.md#requirement-the-index-side-panel-title-is-inset-as-the-board-draws-it */
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-header.app-sidebar-header .app-sidebar-header__info .app-sidebar-header__desc.app-sidebar-header__desc {
 	padding-block-start: 15px;
+	padding-block-end: 0;
 	padding-inline-start: 20px;
+}
+
+/* The line under the title is a paragraph the theme sets with `!important`
+   (15px, its own leading): 14px muted at its normal leading, 2px under the
+   title, so the tab row starts 14px under it and the first field 20px under
+   the tabs (DqZakenSorteren, DqFilterBeheren: title 20, line 46, tabs 77,
+   search field 137).
+   @spec openspec/changes/board-side-panel-header-rhythm/specs/board-side-panel-header-rhythm/spec.md#requirement-the-side-panel-header-and-first-field-sit-as-the-boards-draw-them */
+.cn-look-board .cn-index-sidebar-panel .app-sidebar-header__subname {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: normal;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	font-size: 14px !important;
+	line-height: normal !important;
+	margin-block-start: -3px !important;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child {
+	padding-top: 8px;
+}
+
+.cn-look-board .cn-index-sidebar-panel .cn-index-sidebar__tab-content > .cn-index-sidebar__section:first-child > .input-field {
+	margin-top: 0;
 }
 
 .cn-look-board .cn-index-sidebar-panel .app-sidebar-tabs__nav[role="tablist"] {
@@ -2112,13 +2274,17 @@
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name {
 	min-height: 0;
+	margin: 0;
 	padding: 6px 0;
 	gap: 2px;
+	border-radius: 0;
+	white-space: normal;
 }
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__name-text {
 	font-size: 14px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 /* A view's count: a grey pill at the end of its row (DqFilterBeheren). */
@@ -2131,8 +2297,14 @@
 	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 600;
+	line-height: normal;
 	text-align: center;
 	box-sizing: border-box;
+}
+
+/* A shared view's "Read only" label in the soft ink (DqFilterBeheren). */
+.cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__read-only {
+	color: var(--cn-board-text-soft);
 }
 
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__row .action-item__menutoggle {
@@ -2159,10 +2331,13 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* A long description wraps under the name, as DqFilterBeheren draws "Wacht
+   op inwoner" and "Termijn verstreken", instead of being cut off. */
 .cn-look-board .cn-saved-views-panel:not(.cn-look-nextcloud *) .cn-saved-views-panel__subline {
 	font-size: 13px;
 	font-weight: 400;
 	color: var(--color-text-maxcontrast);
+	white-space: normal;
 }
 
 /* ---- A saved view row's menu ------------------------------------------- */
@@ -2417,4 +2592,16 @@
 
 .cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table th .cn-table-header__sort {
 	min-width: max-content;
+}
+
+/* A stat card in the index page's widget row is the wrapper's 1px edge and
+   18px in (DqTeamwachtrij: 110px, the label 19px under the top); the KPI
+   card's own transparent 2px border made it 114. */
+.cn-look-board .cn-index-page-widgets__cell .cn-kpi-card:not(.cn-look-nextcloud *) {
+	border-width: 0;
+}
+
+/* The team-today initials are the soft ink on the grey chip (DqTeamwachtrij). */
+.cn-look-board .cn-team-workload__avatar:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
 }

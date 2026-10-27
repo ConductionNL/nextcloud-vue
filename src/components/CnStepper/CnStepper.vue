@@ -268,6 +268,7 @@ button.cn-stepper__step {
 
 .cn-stepper--board .cn-stepper__dot {
 	flex: 0 0 auto;
+	box-sizing: border-box;
 	width: 28px;
 	height: 28px;
 	font-size: 14px;
@@ -292,21 +293,25 @@ button.cn-stepper__step {
 	background: var(--color-success);
 }
 
-/* Done: filled success circle, 16px check, secondary label. */
+/* Done: filled success circle without an edge, 16px white check, label in
+   the main text. */
 .cn-stepper--board .cn-stepper__item--done .cn-stepper__dot {
-	border-color: var(--color-success);
+	border-width: 0;
 	background: var(--color-success);
-	color: var(--color-success-text, #fff);
+	/* A white check on the green, as the board draws it (DqInstellen); the
+	   theme's success text tone is a dark green meant for a light ground. */
+	color: var(--color-primary-element-text, #fff);
 }
 
 .cn-stepper--board .cn-stepper__item--done .cn-stepper__label {
-	color: var(--cn-board-text-soft, var(--color-main-text));
+	color: var(--color-main-text);
 	font-weight: 400;
 }
 
-/* Current: filled primary, number 14/700, label 14/700 in the main text colour. */
+/* Current: filled primary without an edge, number 14/700, label 14/700 in
+   the main text colour. */
 .cn-stepper--board .cn-stepper__item--current .cn-stepper__dot {
-	border-color: var(--color-primary-element);
+	border-width: 0;
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text, #fff);
 	font-weight: 700;
@@ -317,12 +322,12 @@ button.cn-stepper__step {
 	font-weight: 700;
 }
 
-/* Upcoming: 2px outline, number 14/600, label in the max-contrast tone. */
+/* Upcoming: 2px outline, number 14/700, label in the max-contrast tone. */
 .cn-stepper--board .cn-stepper__item--upcoming .cn-stepper__dot {
 	border: 2px solid var(--color-border-dark);
 	background: transparent;
 	color: var(--color-text-maxcontrast);
-	font-weight: 600;
+	font-weight: 700;
 }
 
 .cn-stepper--board .cn-stepper__item--upcoming .cn-stepper__label {

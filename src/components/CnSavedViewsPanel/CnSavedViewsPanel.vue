@@ -105,6 +105,7 @@
 						<NcActions
 							:aria-label="manageLabel(row.view)"
 							:forceMenu="true"
+							placement="bottom-end"
 							data-testid="cn-saved-views-manage"
 							:data-view-id="idOf(row.view)">
 							<NcActionButton

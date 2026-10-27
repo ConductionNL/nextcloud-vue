@@ -39,6 +39,9 @@ describe('CnFilesBrowser: the row button beside the row menu', () => {
 	})
 
 	it('puts 14px between them', () => {
+		// The button adds no margin of its own, so the gap is the menu's 14px alone (r31 read 22).
+		// @spec openspec/changes/files-row-button-gap-14/specs/files-row-button-gap-14/spec.md#requirement-the-row-button-and-menu-stand-14px-apart
+		expect(bodyOf('.cn-files-browser__row-button')).not.toMatch(/margin-inline-end/)
 		expect(bodyOf('.cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu')).toMatch(/margin-inline-start:\s*14px/)
 	})
 })

@@ -20,6 +20,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Page title |
+| `titleTemplate` | String | `''` | A line the header names the record by, built from its fields (manifest `config.titleTemplate`, `"Shift {floatAt\|date}, {drawer}"`), in the host's translation. Wins over `titleField`; a template with an empty field falls back to it. |
 | `cardButtons` | String | `'compact'` | How tall the labelled buttons in the page's card title rows stand in the board look: `compact` (34px, setting and case-type pages) or `regular` (the 40px control height, as the case page's tab cards draw them, DqZaakContact "Live gesprek"). Manifest `config.cardButtons`. |
 | `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). True keeps every widget on its authored row; false packs widgets upward, so a size-to-content widget ends at its content and the one below closes up (DqHandhaving: the violation card sits 20px under the matrix). |
 | `description` | String | `''` | Optional subtitle shown below the title |
@@ -794,7 +795,7 @@ With `look: "board"` (the manifest root key, `config.look`, or the `look` prop) 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `look` | String | `''` | `nextcloud` or `board`. Empty takes the look the app provides. |
-| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. An enum field reads as its `x-enum-labels` label. A token can format its value as a record-list row does: `date` ("7 okt"), `datetime`, `weekday` ("ma 5 okt", `weekday:today`), `longdate` ("7 oktober", `longdate:year`), `time`, `user` (a user id's display name), `currency:EUR` (or `currency:<field>`), `relative`, `relativetime`, `days`. An empty token drops itself and the separator before it (`{amount\|currency:EUR} · {cashier\|user} · {at\|longdate} {at\|time}` without a cashier reads "€ 96,41 · 7 oktober 11.43"); a line with no value at all is dropped. |
+| `headerMeta` | String | `''` | The meta line on row 2 (manifest `config.headerMeta`): a field template such as `via {channel}`. An enum field reads as its `x-enum-labels` label. A token can format its value as a record-list row does: `date` ("7 okt"), `datetime`, `weekday` ("ma 5 okt", `weekday:today`), `longdate` ("7 oktober", `longdate:year`), `time`, `user` (a user id's display name), `group` (a group id's display name), `currency:EUR` (or `currency:<field>`), `relative`, `relativetime`, `days`. An empty token drops itself and the separator before it (`{amount\|currency:EUR} · {cashier\|user} · {at\|longdate} {at\|time}` without a cashier reads "€ 96,41 · 7 oktober 11.43"); a line with no value at all is dropped. |
 | `tabsLabel` | String | `''` | The accessible name of the tab list (manifest `config.tabsLabel`). |
 | `identifierField` | String | `''` | The record field named in the last line of the History side card (manifest `config.identifierField`). |
 | `titleField` | String | `''` | The record field the header names the record by (manifest `config.titleField`, a dotted path such as `number`). An empty value falls back to the display name. Works in both looks. |

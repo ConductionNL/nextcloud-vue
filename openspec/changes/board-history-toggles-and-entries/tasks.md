@@ -1,0 +1,3 @@
+- [x] 1.1 message before head (CnTimelineManage)
+- [x] 1.2 board checkboxes (look-board-detail.css)
+- [x] 1.3 tests (lookBoardHistoryTogglesAndEntries.spec.js)

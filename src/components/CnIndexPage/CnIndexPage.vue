@@ -558,6 +558,9 @@
 			v-if="showImportDialog"
 			ref="importDialog"
 			:options="importOptions"
+			:templateUrl="importTemplateUrl"
+			:fields="importFields"
+			:checkFirst="importCheckFirst"
 			@confirm="onMassImportConfirm"
 			@close="showImportDialog = false">
 			<template v-if="$slots['import-fields']" #fields="{ file }">
@@ -1465,6 +1468,7 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
@@ -3324,6 +3328,24 @@ export default {
 		showMassImport: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** The import dialog offers OpenRegister's empty import template for this schema. */
+		importTemplate: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The import dialog maps each column of a CSV or JSON file to a schema field. */
+		importMapping: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The import dialog offers to check the file first and import nothing. */
+		importCheckFirst: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether to show the built-in mass Export action */
@@ -6373,7 +6395,24 @@ export default {
 			if (declared || !from || typeof from.field !== 'string' || from.field === '') {
 				return ''
 			}
-			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, q: from })
+			return JSON.stringify({ r: this.register, s: this.exportSchemaSlug, f: this.filter || null, a: this.quickFiltersFromScope, q: from })
+		},
+
+		/**
+		 * The active filters the `quickFiltersFrom` values are counted within,
+		 * without the field's own: a saved view's or default filters narrow the
+		 * tabs as they narrow the list, and picking a tab keeps the others.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/quick-filters-from-active-scope/specs/quick-filters-from-active-scope/spec.md#requirement-generated-quick-filters-count-within-the-active-filters
+		 */
+		quickFiltersFromScope() {
+			const field = this.quickFiltersFrom && this.quickFiltersFrom.field
+			const scope = { ...(this.effectiveActiveFilters || {}) }
+			if (field) {
+				delete scope[field]
+			}
+			return scope
 		},
 
 		filterStripCountKey() {
@@ -7052,7 +7091,7 @@ export default {
 		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
 		 */
 		effectiveFacetData() {
-			const data = this.storeFacets || this.resolvedSidebar.facets || {}
+			const data = this.groupFacetsByName(this.storeFacets || this.resolvedSidebar.facets || {})
 			if (this.refLabelSpecs.length === 0) {
 				return data
 			}
@@ -7544,6 +7583,27 @@ export default {
 			}
 			const vnodeProps = (this.$ && this.$.vnode && this.$.vnode.props) || {}
 			return typeof vnodeProps.onFilterChange === 'function' || Array.isArray(vnodeProps.onFilterChange)
+		},
+
+		/** OpenRegister's empty import file for this page's schema, when asked for. */
+		importTemplateUrl() {
+			const schema = this.effectiveSchema
+			const schemaRef = (schema && (schema.slug || schema.id)) || (typeof this.schema === 'string' ? this.schema : '')
+			if (!this.importTemplate || !this.register || !schemaRef) {
+				return ''
+			}
+			return prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(this.register)}/schemas/${encodeURIComponent(schemaRef)}/import-template?format=csv`)
+		},
+
+		/** The schema's fields for the import column mapping, when asked for. */
+		importFields() {
+			const properties = this.importMapping && this.effectiveSchema && this.effectiveSchema.properties
+			if (!properties) {
+				return []
+			}
+			return Object.entries(properties)
+				.filter(([, prop]) => prop && prop.readOnly !== true)
+				.map(([key, prop]) => ({ key, label: prop.title || key }))
 		},
 
 		effectiveSchema() {
@@ -9830,7 +9890,8 @@ export default {
 
 		/**
 		 * Build the `quickFiltersFrom` tabs: the field's distinct values with
-		 * their counts in one grouped request, labelled through the
+		 * their counts within the page filter and the active filters (not the
+		 * field's own) in one grouped request, labelled through the
 		 * reference-label resolver when the values are record ids. A failed
 		 * request draws no tabs.
 		 *
@@ -9849,7 +9910,7 @@ export default {
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
 			let groups
 			try {
-				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: resolveFilterMap(this.filter, params, ctx) }, ctx)
+				groups = await fetchGroupedCounts({ register: this.register, schema, groupBy: from.field, filter: { ...resolveFilterMap(this.filter, params, ctx), ...resolveFilterMap(this.quickFiltersFromScope, params, ctx) } }, ctx)
 			} catch {
 				groups = []
 			}
@@ -10500,10 +10561,16 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
 			}
+			const props = { selectedIds, count, ...own }
+			// The app root opens the modal, as a row action's open-modal does;
+			// without one the host gets the event and opens it itself.
+			if (typeof this.cnOpenModal === 'function') {
+				this.cnOpenModal(target, props)
+			}
 			/**
-			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props.
+			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props. With an app root that provides `cnOpenModal` the modal is already open.
 			 */
-			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
+			this.$emit('open-modal', { target, props })
 		},
 
 		/**
@@ -11684,6 +11751,39 @@ export default {
 				return true
 			}
 			return isGroupProp(this.effectiveSchema?.properties?.[key])
+		},
+
+		/**
+		 * Facets with the buckets of a group field labelled by the group's
+		 * display name ("Woo en informatie", not "zuiddrecht-woo-en-informatie").
+		 * A bucket that already carries its own label keeps it; an unknown name
+		 * is looked up once and fills in when it arrives.
+		 *
+		 * @param {object} facets `{ fieldName: { values: [...] } }`.
+		 * @return {object} The facets, group buckets labelled.
+		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-group-filter-is-named-by-the-groups-display-name
+		 */
+		groupFacetsByName(facets) {
+			let out = facets
+			for (const [key, facet] of Object.entries(facets || {})) {
+				if (!facet || !Array.isArray(facet.values) || !this.isGroupFilter(key)) {
+					continue
+				}
+				const values = facet.values.map((fv) => {
+					const base = fv && typeof fv === 'object' ? fv : { value: fv }
+					const id = String(base.value)
+					if (typeof base.label === 'string' && base.label !== '' && base.label !== id) {
+						return base
+					}
+					const name = groupDisplayName(id)
+					if (name === null) {
+						loadGroupDisplayName(id)
+					}
+					return name ? { ...base, label: name } : base
+				})
+				out = { ...out, [key]: { ...facet, values } }
+			}
+			return out
 		},
 
 		activeFilterValueLabel(key, value) {

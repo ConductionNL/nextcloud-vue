@@ -11,7 +11,10 @@
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-open-add"
 				@click="adding = !adding">
-				+ {{ addLabel }}
+				<template #icon>
+					<Plus :size="16" />
+				</template>
+				{{ addLabel }}
 			</NcButton>
 		</div>
 		<form
@@ -165,13 +168,28 @@
 				</NcButton>
 			</div>
 		</div>
-		<ul v-else class="cn-field-list-widget__rows">
+		<ul v-else class="cn-field-list-widget__rows" :class="{ 'cn-field-list-widget__rows--options': isOptions }">
 			<li
 				v-for="row in rows"
 				:key="row.key"
 				class="cn-field-list-widget__row"
-				:data-testid="`cn-field-list-row-${row.key}`">
+				:draggable="canReorder ? 'true' : undefined"
+				:data-testid="`cn-field-list-row-${row.key}`"
+				@dragstart="dragFrom = row.index"
+				@dragover.prevent
+				@drop.prevent="dropOn(row.index)">
 				<div class="cn-field-list-widget__line">
+					<!-- `variant: "options"`: a grip that moves the option, by drag or with the arrow keys. -->
+					<button
+						v-if="canReorder"
+						type="button"
+						class="cn-field-list-widget__grip"
+						:aria-label="moveLabel(row)"
+						:data-testid="`cn-field-list-grip-${row.key}`"
+						@keydown.up.prevent="move(row.index, -1)"
+						@keydown.down.prevent="move(row.index, 1)">
+						<DragVertical :size="16" />
+					</button>
 					<span v-if="row.initials" class="cn-field-list-widget__avatar" aria-hidden="true">{{ row.initials }}</span>
 					<span class="cn-field-list-widget__main">
 						<a
@@ -187,6 +205,7 @@
 						:label="row.pill.label"
 						:variant="row.pill.variant"
 						size="small" />
+					<span v-if="row.code" class="cn-field-list-widget__code" :data-testid="`cn-field-list-code-${row.key}`">{{ row.code }}</span>
 					<span v-if="row.aside" class="cn-field-list-widget__aside">{{ row.aside }}</span>
 					<NcButton
 						v-for="action in row.actions"
@@ -213,7 +232,13 @@
 						:aria-label="removeAriaLabel(row)"
 						:data-testid="`cn-field-list-remove-${row.key}`"
 						@click="remove(row)">
-						{{ removeLabel }}
+						<!-- An option row has room for an icon, not a word, beside its name and code. -->
+						<template v-if="isOptions" #icon>
+							<DeleteOutline :size="18" />
+						</template>
+						<template v-if="!isOptions" #default>
+							{{ removeLabel }}
+						</template>
 					</NcButton>
 				</div>
 				<p v-if="row.detail" class="cn-field-list-widget__detail">
@@ -242,7 +267,10 @@
 				:disabled="busy !== ''"
 				data-testid="cn-field-list-open-add"
 				@click="adding = true">
-				+ {{ addLabel }}
+				<template #icon>
+					<Plus :size="16" />
+				</template>
+				{{ addLabel }}
 			</NcButton>
 		</div>
 		<form
@@ -307,7 +335,11 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import DeleteOutline from 'vue-material-design-icons/DeleteOutline.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
@@ -368,7 +400,7 @@ function rowHref(entry, spec) {
 export default {
 	name: 'CnFieldListWidget',
 
-	components: { CnStatusBadge, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField },
+	components: { CnStatusBadge, DeleteOutline, DragVertical, NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextField, Plus },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -388,6 +420,7 @@ export default {
 		 * - `rowActions` — `[{ id, label, ariaLabel?, when?, placement?: 'band'|'inline', request: { method?, url, payload? } }]`, or `{ id, label, dialog, props }` to open a modal registered in the app registry with filled props (shown in `readOnly` too, since it writes nothing, and only when every token in `props` fills); tokens `@object.<field>`, `@objectId`, `@row.<field>`, `@index`. In the table variant `placement: 'inline'` draws the action as a button in the row instead of in the "..." menu; `ariaLabel` is a template filled from the row.
 		 * - `when` (row actions, `detail`) — `{ field: value }`, every field equal; or per field `{ eq?, neq?, set? }`, where a value `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`.
 		 * - `rowSource` — `{ url, path?, key }`: live per-row state merged by key.
+		 * - `variant: 'options'` — the rows as framed options (a field's choice list): a grip that moves the option by drag or with the arrow keys and saves the order, and a code chip from `code` (`{ path }` on an object option, or `{ field }`, a map on the record from a plain option to its code).
 		 * - `variant: 'table'` + `columns` — `[{ header, path, map?, format?, strong?, pill?, variantMap?, labelsFrom? }]` (a list value reads as its items joined; `labelsFrom` names an add field whose option labels word the values): rows as a table; a per-row "..." menu holds the row actions and remove; `detail` lines become a warning band under the table, with the row actions that have `placement: 'band'`.
 		 * - `add.trigger: 'button'`, `add.placement: 'header' | 'title' | 'footer'` — the add form opens from a button; `title` reports the button for the card's title row on the `header` event.
 		 * - `readOnly`, `hint`, `emptyText`.
@@ -436,6 +469,8 @@ export default {
 		return {
 			/** The list as last saved by this widget; null = read it off objectData. */
 			saved: null,
+			/** The place of the option being dragged, -1 while none is. */
+			dragFrom: -1,
 			/** Live per-row state from `rowSource`, by key. */
 			live: {},
 			draft: {},
@@ -500,8 +535,19 @@ export default {
 					copies: spec.detail && this.matches(entry, spec.detail.when) ? this.copiesOf(entry, spec.detail.copy) : [],
 					actions: this.actionsFor(entry, index),
 					cells: this.isTable ? this.cellsOf(entry) : [],
+					code: this.isOptions ? this.codeOf(item, entry) : '',
 				}
 			})
+		},
+
+		/** Whether the rows are drawn as framed options (`variant: 'options'`): a grip, the name, a code chip. */
+		isOptions() {
+			return this.content.variant === 'options'
+		},
+
+		/** Whether the options can be moved: the options look on a list that saves. */
+		canReorder() {
+			return this.isOptions && !this.readOnly && Boolean(this.content.field)
 		},
 
 		/** Whether the list is read-only. */
@@ -1300,6 +1346,73 @@ export default {
 		 * @param {object} row The row.
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * An option's code chip: `content.code.path` on an object option, or the
+		 * value's entry in the record's map at `content.code.field` for a plain
+		 * one ("Woning" -> "WON"); '' for none.
+		 *
+		 * @param {unknown} item The stored option.
+		 * @param {object} entry The option as a row reads it.
+		 * @return {string}
+		 */
+		codeOf(item, entry) {
+			const spec = this.content.code
+			if (!spec || typeof spec !== 'object') {
+				return ''
+			}
+			if (item && typeof item === 'object' && typeof spec.path === 'string') {
+				return String(readPath(item, spec.path) ?? '')
+			}
+			const map = typeof spec.field === 'string' ? readPath(this.objectData || {}, spec.field) : null
+			const code = map && typeof map === 'object' ? map[String(entry.value ?? item)] : ''
+			return typeof code === 'string' ? code : ''
+		},
+
+		/**
+		 * The grip's accessible name.
+		 *
+		 * @param {object} row The row.
+		 * @return {string}
+		 */
+		moveLabel(row) {
+			return t('nextcloud-vue', 'Move {item}, use the arrow keys', { item: row.title })
+		},
+
+		/**
+		 * Drop the dragged option on this one's place.
+		 *
+		 * @param {number} to The place it lands on.
+		 * @return {Promise<void>}
+		 */
+		async dropOn(to) {
+			const from = this.dragFrom
+			this.dragFrom = -1
+			if (from < 0 || from === to) {
+				return
+			}
+			await this.move(from, to - from)
+		},
+
+		/**
+		 * Move an option by a number of places and save the list.
+		 *
+		 * @param {number} from Its place.
+		 * @param {number} by How far, negative is up.
+		 * @return {Promise<void>}
+		 */
+		async move(from, by) {
+			const to = from + by
+			if (!this.canReorder || to < 0 || to >= this.items.length) {
+				return
+			}
+			await this.save((stored) => {
+				const list = [...stored]
+				const [moved] = list.splice(from, 1)
+				list.splice(to, 0, moved)
+				return list
+			}, this.keyOf(this.items[from], from))
+		},
+
 		async remove(row) {
 			await this.save((stored) => stored.filter((item, index) => this.keyOf(item, index) !== row.key), row.key)
 		},
@@ -1407,6 +1520,35 @@ export default {
 .cn-field-list-widget__row:first-child {
 	border-top: none;
 	padding-top: 0;
+}
+
+/* `variant: "options"` (DqZaaktypeVelden Keuzelijst): each option a framed
+   row, 6px apart, with a grip before its name and its code in a chip. */
+.cn-field-list-widget__rows--options {
+	gap: 6px;
+}
+
+.cn-field-list-widget__rows--options .cn-field-list-widget__row,
+.cn-field-list-widget__rows--options .cn-field-list-widget__row:first-child {
+	padding: 6px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-element, 8px);
+}
+
+.cn-field-list-widget__grip {
+	flex: none;
+	display: inline-flex;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+}
+
+.cn-field-list-widget__code {
+	flex: none;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-field-list-widget__line {

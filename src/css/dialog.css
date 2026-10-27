@@ -19,7 +19,7 @@
 .cn-dialog-board {
 	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
-	--cn-dialog-danger: var(--color-error);
+	--cn-dialog-danger: color-mix(in srgb, var(--color-error) 80%, #000);
 	--cn-dialog-eyebrow-color: var(--color-primary-element-light-text, var(--color-main-text));
 	--cn-dialog-eyebrow-transform: none;
 	--cn-dialog-eyebrow-tracking: 0;
@@ -216,6 +216,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	gap: 10px;
 }
 
+/* In a board dialog a checkbox row is the 24px minimum target the boards draw
+   it at (an 18px label), not NcCheckboxRadioSwitch's 34px, and a note adds no
+   margin of its own: the dialog's gap spaces it. DqZaakSamenwerken "Alleen een
+   deel van de zaakvelden delen" and its note sat 25px lower than drawn (r32;
+   probed with these rules: field to note 50, as drawn).
+   @spec openspec/changes/board-dialog-checkbox-24-note-flush/specs/board-dialog-checkbox-24-note-flush/spec.md#requirement-a-board-dialogs-checkbox-is-24px-and-its-notes-add-no-margin */
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard {
+	margin-block: 0;
+}
+
+/* A board dialog's choice rows stand 10px apart, as every dialog board draws
+   its options (DqDocumentGenereren, DqVolgendeStap, DqInstellen,
+   DqZaakSamenwerken); CnChoiceCards sets 8 (r32 Genereren rows 3 and 4 4-5px
+   high).
+   @spec openspec/changes/board-dialog-choice-rows-10/specs/board-dialog-choice-rows-10/spec.md#requirement-a-board-dialogs-choice-rows-stand-10px-apart */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__rows {
+	gap: 10px;
+}
+
 /* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
    the board draws it (DqOverdragen, 76px for a label and a two-line note):
    10px 14px padding, the checkbox row at the 24px minimum target instead of
@@ -330,11 +355,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-inline-end: auto;
 }
 
-/* A destructive primary is filled with the danger colour and white text. */
+/* A destructive primary is filled with the danger colour, the error colour
+   a fifth darker (#a30000 on #cc0000, DqFilterVerwijderen), with white text
+   and no line round it.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
 .cn-dialog-board .dialog__actions .button-vue--vue-error,
 .cn-dialog-board .dialog__actions .button-vue--error {
+	border-width: 0;
 	background-color: var(--cn-dialog-danger);
-	border-color: var(--cn-dialog-danger);
 	color: #fff;
 }
 
@@ -461,6 +489,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	border-radius: 8px;
 	box-shadow: none;
 	font-size: var(--cn-field-text-size, 15px);
+}
+
+/* A board textarea's lines sit on the normal line height, as the boards'
+   `font` shorthand sets it, 10px 12px in, and its rows set its height
+   (NcTextArea holds a 68px minimum): two rows are 58px, not 68 (DqArchiveren
+   Reden). The Calendar app injects `textarea { padding: 5px 12px !important }`
+   on every page, which made three rows 68px against the board's 76
+   (DqOverdragen "Waarom de zaak verhuist"), so the padding is important too. */
+.cn-dialog-board .dialog__content .textarea__input {
+	min-height: 0;
+	padding: 10px 12px !important;
+	line-height: normal;
 }
 
 /* A plain input an app puts in a board dialog (a date, a number) is the same
@@ -594,4 +634,33 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 		margin-top: var(--cn-dialog-top, 88px);
 		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
 	}
+}
+
+/* The chosen option's fields start 12px under its description, the label on
+   the normal line, as DqVolgendeStap draws "Opschorten": the row's 12px
+   bottom padding plus the cell's 8px gap and a 21px label line put them
+   11.6px lower (r31).
+   @spec openspec/changes/board-choice-card-fields-under-the-text/specs/dialog/spec.md */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details {
+	gap: 12px;
+}
+
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details .cn-choice-cards__row {
+	padding-bottom: 0;
+}
+
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__label {
+	line-height: normal;
+}
+
+/* A setup step's parts are 16px apart, as the boards draw them (DqInstellen:
+   intro, choices and note sat 11 to 26px apart), and a note inside it adds no
+   margin of its own.
+   @spec openspec/changes/board-wizard-step/specs/setup-wizard/spec.md */
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step {
+	gap: 16px;
+}
+
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step .notecard.notecard {
+	margin: 0;
 }

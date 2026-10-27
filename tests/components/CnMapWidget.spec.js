@@ -127,6 +127,16 @@ jest.mock('leaflet', () => {
 				_kind: 'layers',
 				_baseLayers: baseLayers,
 				_opts: opts,
+				getContainer: jest.fn(function() {
+					if (!this._container) {
+						this._container = globalThis.document.createElement('div')
+						const toggle = globalThis.document.createElement('a')
+						toggle.className = 'leaflet-control-layers-toggle'
+						toggle.title = 'Layers'
+						this._container.appendChild(toggle)
+					}
+					return this._container
+				}),
 				addTo: jest.fn(function(map) {
 					map._controls = map._controls || []
 					map._controls.push(this)
@@ -823,6 +833,21 @@ describe('CnMapWidget — board look controls (DqZakenKaart)', () => {
 		await nextTick()
 		const L = require('leaflet').default
 		expect(L.control.layers.mock.calls.at(-1)[2]).toEqual({ position: 'topleft' })
+		wrapper.unmount()
+	})
+
+	it('names the base map switch in the user\'s language', async () => {
+		const wrapper = mountBoard({
+			basemaps: [{ name: 'A', url: 'https://a/{z}/{x}/{y}.png' }, { name: 'B', url: 'https://b/{z}/{x}/{y}.png' }],
+		})
+		await flush()
+		await nextTick()
+		const L = require('leaflet').default
+		const toggle = L.control.layers.mock.results.at(-1).value.getContainer().querySelector('.leaflet-control-layers-toggle')
+		expect(toggle.getAttribute('title')).toBe('Map layers')
+		expect(toggle.getAttribute('aria-label')).toBe('Map layers')
+		expect(toggle.querySelector('svg')).toBeTruthy()
+		expect(toggle.style.backgroundImage).toBe('none')
 		wrapper.unmount()
 	})
 

@@ -106,6 +106,26 @@ function entryTime(entry) {
  *   surface="detail-page" />
  * ```
  */
+/**
+ * Whether an audit entry is an update that changed no field: its `changed`
+ * map holds only `@self` bookkeeping or pairs whose old and new are equal.
+ * An entry without a `changed` map is kept, since nothing says it was empty.
+ *
+ * @param {object} entry The audit entry.
+ * @return {boolean}
+ */
+function isEmptyUpdate(entry) {
+	if (String((entry && (entry.action || entry.event)) || '').toLowerCase() !== 'update') {
+		return false
+	}
+	const changed = entry.changed
+	if (!changed || typeof changed !== 'object' || Array.isArray(changed)) {
+		return false
+	}
+	return Object.entries(changed).every(([field, pair]) => field.startsWith('@')
+		|| (pair && typeof pair === 'object' && JSON.stringify(pair.old ?? null) === JSON.stringify(pair.new ?? null)))
+}
+
 export default {
 	name: 'CnAuditTrailCard',
 
@@ -184,6 +204,14 @@ export default {
 		 * @spec openspec/changes/audit-trail-exclude-actions/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-events-by-action
 		 */
 		excludeActions: { type: Array, default: () => [] },
+		/**
+		 * Actors the card leaves out by user id (case-insensitive), such as
+		 * `['System']` for a history of what people did: the bookkeeping a
+		 * background job writes is not shown.
+		 *
+		 * @spec openspec/changes/audit-card-exclude-actors/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-entries-by-actor
+		 */
+		excludeActors: { type: Array, default: () => [] },
 		/** Whether the card collapses. */
 		collapsible: { type: Boolean, default: false },
 		/** Override the card title (defaults to the translated label). */
@@ -199,7 +227,8 @@ export default {
 		/**
 		 * What happened, in words, by action (`claim`) or by action and the
 		 * state it led to (`complete:completed`, tried first). `{actor}`,
-		 * `{state}` and `{changed.<key>}` (a value the entry recorded, in the
+		 * `{state}` and `{changed.<key>}` (a value the entry recorded, a dotted key
+		 * reading into it such as `{changed.data.fileName}`, in the
 		 * words of `valueLabels`) are filled in; a label that names the actor leaves it off
 		 * the line under it. An action without a label shows as written.
 		 *
@@ -259,13 +288,25 @@ export default {
 			return this.title || t('nextcloud-vue', 'Audit trail')
 		},
 
-		/** @return {Array<object>} The entries without the excluded actions. */
+		/**
+		 * The entries without the excluded actions and actors, and without an
+		 * update that changed nothing: a re-save whose `changed` holds no field
+		 * whose old and new value differ (only `@self` bookkeeping) is not
+		 * something that happened to the record.
+		 *
+		 * @return {Array<object>}
+		 */
 		shownEntries() {
 			const excluded = this.excludeActions.map((action) => String(action).toLowerCase())
-			if (excluded.length === 0) {
-				return this.entries
-			}
-			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase()))
+			const actors = this.excludeActors.map((actor) => String(actor).toLowerCase())
+			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase())
+				&& !actors.includes(String(entry.user || '').toLowerCase())
+				&& !isEmptyUpdate(entry))
+		},
+
+		/** @return {boolean} Whether the card leaves entries out, and so reads more than it shows. */
+		filtersEntries() {
+			return this.excludeActions.length > 0 || this.excludeActors.length > 0
 		},
 
 		displayedEntries() {
@@ -301,7 +342,7 @@ export default {
 			if (this.sourceUrl !== null) {
 				return this.sourceUrl
 			}
-			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const limit = this.filtersEntries ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
 			const params = new URLSearchParams({ limit: String(limit) })
 			if (this.scope === 'app') {
 				if (this.register) {
@@ -381,7 +422,7 @@ export default {
 			if (this.scope !== 'object' || this.sourceUrl !== null || !this.objectId || !Array.isArray(this.relatedSources)) {
 				return []
 			}
-			const limit = this.excludeActions.length > 0 ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
+			const limit = this.filtersEntries ? Math.min(100, this.maxDisplay * 10) : this.maxDisplay
 			const read = async (url) => {
 				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (!response.ok) {
@@ -423,7 +464,7 @@ export default {
 				return label
 					.replace('{actor}', this.actorName(entry))
 					.replace('{state}', entry.stateAfter || '')
-					.replace(/\{changed\.([\w-]+)\}/g, (match, key) => this.changedValue(entry, key))
+					.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => this.changedValue(entry, key))
 					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
 						const value = this.object ? readPath(this.object, path) : undefined
 						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
@@ -444,7 +485,8 @@ export default {
 		 */
 		changedValue(entry, key) {
 			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			const value = newValueOf(changed[key])
+			// A dotted key reads into what the entry recorded (`data.fileName` on a file action).
+			const value = String(key).split('.').reduce((at, part) => newValueOf(at !== null && typeof at === 'object' ? at[part] : undefined), changed)
 			if (value === null || value === undefined || typeof value === 'object') {
 				return ''
 			}

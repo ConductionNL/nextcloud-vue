@@ -2403,7 +2403,37 @@
     "Until {date}": "Until {date}",
     "More actions for {name}": "More actions for {name}",
     "Unlink contact": "Unlink contact",
-    "{term}, extendable by {extension}": "{term}, extendable by {extension}"
+    "{term}, extendable by {extension}": "{term}, extendable by {extension}",
+    "Move {item}, use the arrow keys": "Move {item}, use the arrow keys",
+    "Invited": "Invited",
+    "Accepted": "Accepted",
+    "Declined": "Declined",
+    "Clock": "Clock",
+    "Clock with warning": "Clock with warning",
+    "Calendar with clock": "Calendar with clock",
+    "Attention": "Attention",
+    "Label": "Label",
+    "Bell": "Bell",
+    "Scales": "Scales",
+    "Briefcase": "Briefcase",
+    "Eye": "Eye",
+    "Euro": "Euro",
+    "Ready": "Ready",
+    "Map layers": "Map layers",
+    "you": "you",
+    "my team": "my team",
+    "Subject: {subject}": "Subject: {subject}",
+    "Optional": "Optional",
+    "Reached": "Reached",
+    "Download template": "Download template",
+    "How the columns are read": "How the columns are read",
+    "Column in the file": "Column in the file",
+    "Not used": "Not used",
+    "Check first, import nothing yet": "Check first, import nothing yet",
+    "Shows which rows would fail and why.": "Shows which rows would fail and why.",
+    "Checked. Nothing is imported yet.": "Checked. Nothing is imported yet.",
+    "{rows} rows · {columns} columns · {size}": "{rows} rows · {columns} columns · {size}",
+    "Field for column {column}": "Field for column {column}"
   },
   "plurals": {
     "{count} member": [
@@ -2612,6 +2642,18 @@
     "{names} has no location, so it is not on the map.": [
       "{names} has no location, so it is not on the map.",
       "{names} have no location, so they are not on the map."
+    ],
+    "in %n day": [
+      "in %n day",
+      "in %n days"
+    ],
+    "%n day ago": [
+      "%n day ago",
+      "%n days ago"
+    ],
+    "%n attachment": [
+      "%n attachment",
+      "%n attachments"
     ]
   }
 }

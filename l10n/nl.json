@@ -137,7 +137,7 @@
     "Advanced": "Geavanceerd",
     "The item could not be created.": "Het item kon niet worden aangemaakt.",
     "Start over": "Opnieuw beginnen",
-    "Continue where you left off": "Ga verder waar je was",
+    "Continue where you left off": "Verder met de rondleiding",
     "Active": "Actief",
     "Appraisal": "Waardering",
     "Archiving": "Archivering",
@@ -2004,7 +2004,7 @@
     "Mail is not available": "E-mail is niet beschikbaar",
     "Install Nextcloud Mail to draft and link mail here.": "Installeer Nextcloud Mail om hier e-mail op te stellen en te koppelen.",
     "Email template": "E-mailsjabloon",
-    "Open draft from template": "Concept openen vanuit sjabloon",
+    "Open draft from template": "Concept openen uit sjabloon",
     "Empty draft": "Leeg concept",
     "Could not open draft": "Kon concept niet openen",
     "Some template fields could not be filled. Fill these in the draft yourself:": "Sommige sjabloonvelden konden niet worden ingevuld. Vul deze zelf in het concept in:",
@@ -2658,7 +2658,47 @@
     "Until {date}": "Tot {date}",
     "More actions for {name}": "Meer acties voor {name}",
     "Unlink contact": "Contact ontkoppelen",
-    "{term}, extendable by {extension}": "{term}, te verdagen met {extension}"
+    "{term}, extendable by {extension}": "{term}, te verdagen met {extension}",
+    "Move {item}, use the arrow keys": "{item} verplaatsen, gebruik de pijltjestoetsen",
+    "Invited": "Uitgenodigd",
+    "Accepted": "Geaccepteerd",
+    "Declined": "Afgewezen",
+    "Clock": "Klok",
+    "Clock with warning": "Klok met waarschuwing",
+    "Calendar with clock": "Agenda met klok",
+    "Attention": "Let op",
+    "Label": "Label",
+    "Bell": "Bel",
+    "Scales": "Weegschaal",
+    "Briefcase": "Koffer",
+    "Eye": "Oog",
+    "Euro": "Euro",
+    "Ready": "Gereed",
+    "Most used": "Meest gebruikt",
+    "No tile matches the filter": "Geen tegel past bij het filter",
+    "No apps to show": "Geen apps om te tonen",
+    "Pinned": "Vastgezet",
+    "Outage": "Storing",
+    "Filter tiles": "Filter tegels",
+    "week {number}": "week {number}",
+    "Pinned apps (app ids, comma separated)": "Vastgezette apps (app-id's, gescheiden door komma's)",
+    "Show the filter field": "Filterveld tonen",
+    "Show the most used apps": "Meest gebruikte apps tonen",
+    "Map layers": "Kaartlagen",
+    "you": "jij",
+    "my team": "mijn team",
+    "Subject: {subject}": "Onderwerp: {subject}",
+    "Optional": "Optioneel",
+    "Reached": "Bereikt",
+    "Download template": "Sjabloon downloaden",
+    "How the columns are read": "Hoe de kolommen worden gelezen",
+    "Column in the file": "Kolom in het bestand",
+    "Not used": "Niet gebruikt",
+    "Check first, import nothing yet": "Eerst controleren, nog niets importeren",
+    "Shows which rows would fail and why.": "Laat zien welke rijen zouden mislukken en waarom.",
+    "Checked. Nothing is imported yet.": "Gecontroleerd. Er is nog niets geïmporteerd.",
+    "{rows} rows · {columns} columns · {size}": "{rows} rijen · {columns} kolommen · {size}",
+    "Field for column {column}": "Veld voor kolom {column}"
   },
   "plurals": {
     "{count} member": [
@@ -2884,6 +2924,22 @@
     "{names} has no location, so it is not on the map.": [
       "{names} heeft geen locatie, dus staat niet op de kaart.",
       "{names} hebben geen locatie, dus staan ze niet op de kaart."
+    ],
+    "%n time": [
+      "%n keer",
+      "%n keer"
+    ],
+    "in %n day": [
+      "over %n dag",
+      "over %n dagen"
+    ],
+    "%n day ago": [
+      "%n dag geleden",
+      "%n dagen geleden"
+    ],
+    "%n attachment": [
+      "%n bijlage",
+      "%n bijlagen"
     ]
   }
 }

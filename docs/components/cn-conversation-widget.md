@@ -31,6 +31,10 @@ oldest first by their time.
 | `senderField` | Where it keeps its sender (alias of `authorField`). |
 | `directionField` | Where it keeps its direction (alias of `sideField`); a message whose direction equals `outValue` (alias of `usValue`) is one the organisation sent. |
 | `channelField` | Where it keeps its channel; `channelMap` turns a stored value into a label (`{ "email": "E-mail" }`), translated. |
+| `bodyField` (list) | A list of fields: the first that holds text is the message's text (`["message", "summary"]`: the full message, else its summary). |
+| `subjectField` | Where a message keeps its subject; shown on its own line above the text, "Subject: ...". |
+| `noteField` / `attachmentCountField` | A grey line under the message: the note, then the attachment count ("1 attachment"), joined with a comma. |
+| `channelIcons` | Stored channel value to an icon name (`{ "phone": "PhoneOutline" }`), drawn before the channel's name on each message. |
 | `replyAction` | An action descriptor run on Send instead of posting to `endpoint`; the app decides what sending means. It is dispatched with `args: [{ text, objectId }]` and `props.text` added, tokens resolved; afterwards the list is read again. |
 | `channelChips` | `true` draws channel chips above the thread (board DqZaakContact): All, then every `channelMap` label in map order, then any other channel a message uses, each with its count. Choosing one shows only that channel's messages. |
 | `headerAction` | A button beside the title, `{ label, icon?, ...action }` (DqZaakContact's "Contact vastleggen"). The label goes through the app's translate; the action is dispatched like `replyAction`, with `args: [{ objectId }]`, and the source is read again after it. |

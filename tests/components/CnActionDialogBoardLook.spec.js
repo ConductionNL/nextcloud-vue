@@ -69,6 +69,38 @@ describe('CnActionDialog in the board look', () => {
 		expect(w.find('[data-testid="cn-action-dialog-facts"] dd').text()).toBe('5 years')
 	})
 
+	it('tones the summary badge by its value and sets it on the normal line (DqArchiveren "Deels openbaar gemaakt")', async () => {
+		axios.get.mockResolvedValue({ data: { title: 'Verlichting fietspad Lindelaan', identifier: '2026-0082', result: 'Deels openbaar gemaakt' } })
+		const config = { ...CONFIG, summary: { ...CONFIG.summary, badge: '{result}', badgeColorMap: { 'Deels openbaar gemaakt': 'teal' } } }
+		const w = mount(CnActionDialog, {
+			props: { config, objectId: 'z-82' },
+			global: { stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		const badge = w.find('.cn-action-dialog__badge')
+		expect(badge.text()).toBe('Deels openbaar gemaakt')
+		expect(badge.classes()).toContain('cn-status-badge--teal')
+		expect(rule(sfc, '.cn-action-dialog__badge')).toContain('line-height: normal')
+	})
+
+	it('keeps a badge without a tone neutral', async () => {
+		axios.get.mockResolvedValue({ data: { title: 'Verlichting fietspad Lindelaan', identifier: '2026-0082', result: 'Openbaar' } })
+		const config = { ...CONFIG, summary: { ...CONFIG.summary, badge: '{result}', badgeColorMap: { 'Deels openbaar gemaakt': 'teal' } } }
+		const w = mount(CnActionDialog, {
+			props: { config, objectId: 'z-82' },
+			global: { stubs: { CnDialog: { template: '<div><slot /><slot name="actions" /></div>' }, CnIcon: true } },
+		})
+		await flushPromises()
+		expect(w.find('.cn-action-dialog__badge').classes().join(' ')).not.toContain('cn-status-badge--')
+	})
+
+	it('sets a board dialog textarea on the normal line height', () => {
+		const dialog = fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('line-height: normal')
+		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('min-height: 0')
+		expect(rule(dialog, '\n.cn-dialog-board .dialog__content .textarea__input')).toContain('padding: 10px 12px')
+	})
+
 	it('draws the tile and resets the facts\' cell padding', () => {
 		const tile = rule(sfc, '.cn-action-dialog__summary-icon')
 		expect(tile).toContain('width: 36px')

@@ -356,9 +356,10 @@ export default {
 		 * boots after it, so whichever check runs first sees nothing and both
 		 * render.
 		 *
-		 * First to claim wins and the rest render nothing. That order is stable
-		 * in practice — the standalone mount runs first — but the rule does not
-		 * depend on it: what matters is that exactly one renders, not which.
+		 * First to claim wins and the rest render nothing, except that the
+		 * app's own companion (with an injected `cnAiContext`) always takes the
+		 * slot from a standalone one: the health probes race, so "first" is
+		 * not stable, and the app's own carries the page context.
 		 *
 		 * @return {void}
 		 */
@@ -392,7 +393,19 @@ export default {
 				return
 			}
 
-			this.isPrimaryCompanion = scope[COMPANION_SINGLETON_KEY] === this
+			const holder = scope[COMPANION_SINGLETON_KEY]
+			if (holder !== this && this.cnAiContext && !holder.cnAiContext) {
+				// The app's own companion (inside a CnAppRoot, with the page's
+				// context) outranks a standalone mount, whichever probe answered
+				// first; the holder's flag is set directly so a standalone built
+				// on an older copy of this library stands down too.
+				holder.isPrimaryCompanion = false
+				scope[COMPANION_SINGLETON_KEY] = this
+				this.isPrimaryCompanion = true
+				return
+			}
+
+			this.isPrimaryCompanion = holder === this
 		},
 
 		/**

@@ -5,6 +5,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay, isoWeek } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { formatMoney } from './formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from './groupAutocomplete.js'
 import { readPath } from './readPath.js'
 import { userDisplayName } from './userDisplayName.js'
 
@@ -61,10 +62,26 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
 }
 
 /**
+ * How many entries a list holds; with a key, the entries of that list in each
+ * of its entries summed (`{sections|count:items}`: the questions of every
+ * section of a checklist).
+ *
+ * @param {Array} list The list.
+ * @param {string} key The key of each entry's own list, or '' to count the entries.
+ * @return {number} The count.
+ */
+function countEntries(list, key) {
+	if (key === '') {
+		return list.length
+	}
+	return list.reduce((sum, entry) => sum + (entry && Array.isArray(entry[key]) ? entry[key].length : 0), 0)
+}
+
+/**
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -76,7 +93,7 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
 function formatValue(value, format, now, arg = '', object = null, config = null, formatters = null) {
 	// `{list|count}`: how many entries a list holds, nothing for an empty one.
 	if (format === 'count') {
-		const count = Array.isArray(value) ? value.length : Number(value)
+		const count = Array.isArray(value) ? countEntries(value, arg) : Number(value)
 		return Number.isFinite(count) && count > 0 ? String(count) : ''
 	}
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
@@ -104,6 +121,14 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'user') {
 		return userDisplayName(value)
+	}
+	if (format === 'group') {
+		const name = groupDisplayName(value)
+		if (name === null) {
+			loadGroupDisplayName(value)
+			return ''
+		}
+		return name
 	}
 	if (format === 'time') {
 		const date = parseDateValue(value)
@@ -152,7 +177,8 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * for today), `{path|longdate}` writes the month out ("7 oktober";
  * `{path|longdate:year}` always adds the year), `{path|time}` is the time
  * of day ("08:45"), `{path|user}` is a user id's display name (looked up
- * once, '' until it arrives), `{path|currency}`,
+ * once, '' until it arrives), `{path|group}` is a group id's display name
+ * (the same, through the group name cache), `{path|currency}`,
  * `{path|currency:EUR}` and `{path|currency:field}` write an amount in a
  * currency (a code, or the row field that holds it; without either, or when
  * the row field is empty, the app's reporting currency), `{path|relative}` and
@@ -160,7 +186,8 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * ("vandaag, 09.42"), `{path|ago}` says how long ago it was ("10 min
  * geleden", "vanochtend", "vrijdag"), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"),
- * `{path|count}` is how many entries a list holds (nothing for an empty one),
+ * `{path|count}` is how many entries a list holds (nothing for an empty one;
+ * `{path|count:key}` sums the `key` list of each entry),
  * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"
  * reads "Step 2: in progress" mid-sentence), and any other name is one of
  * the app's formatters, passed as `context.formatters` (`{id|caseAddress}`).

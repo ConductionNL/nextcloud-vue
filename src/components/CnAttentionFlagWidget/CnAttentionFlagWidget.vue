@@ -48,12 +48,12 @@
 				{{ raised ? label('hintClear') : label('hintRaise') }}
 			</p>
 			<NcButton
+				class="cn-attention-flag__compose"
 				variant="secondary"
-				wide
 				data-testid="cn-attention-flag-compose"
 				@click="composing = true">
 				<template #icon>
-					<FlagOutline :size="20" />
+					<FlagOutline :size="16" />
 				</template>
 				{{ raised ? label('clear') : label('raise') }}
 			</NcButton>
@@ -456,6 +456,12 @@ function hasPassed(date) {
 	flex-direction: column;
 	gap: 4px;
 	padding: 4px 0;
+}
+
+/* The button is as wide as its label, as the boards draw it (DqZaakAssistent
+   "Markeer voor aandacht"), not stretched across the card. */
+.cn-attention-flag__compose {
+	align-self: flex-start;
 }
 
 .cn-attention-flag__line,

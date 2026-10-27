@@ -639,6 +639,8 @@ export default {
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
+		 * `emptyValueBy` (`{ field, values }`) names what an empty cell holds by
+		 * another field of the row, translated; it goes before `emptyValue`.
 		 * `emptyValue` is what a row without a value holds in that column, so a
 		 * `badge` column draws a pill on every row.
 		 *
@@ -2237,12 +2239,48 @@ export default {
 				}
 				return v
 			}
+			// `col.template`: the cell reads a line built from the row's fields
+			// ("Shift {floatAt|date}, {drawer}"), in the host's translation.
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return this.cellLineValue(row, this.translateLabel(col.template), col)
+			}
 			const value = this.getCellValue(row, this.columnValueField(col))
+			const empty = value === null || value === undefined || value === ''
+			// `emptyValueBy`: what an empty cell means depends on another field
+			// of the row (a retention period left empty on a result that is
+			// kept reads "Permanent", on one that is destroyed it stays empty).
+			if (empty && col && col.emptyValueBy && typeof col.emptyValueBy === 'object') {
+				const words = this.emptyValueFor(row, col.emptyValueBy)
+				if (words !== '') {
+					return words
+				}
+			}
 			// `emptyValue`: what a row without a value holds, so a badge column draws one for every row.
-			if ((value === null || value === undefined || value === '') && col && Object.hasOwn(col, 'emptyValue')) {
+			if (empty && col && Object.hasOwn(col, 'emptyValue')) {
 				return col.emptyValue
 			}
 			return value
+		},
+
+		/**
+		 * The words an empty cell shows, picked by another field of the row:
+		 * `{ field, values: { <that field's value>: <words> } }`, translated.
+		 *
+		 * @param {object} row The row data.
+		 * @param {{field: string, values: object}} spec The column's `emptyValueBy`.
+		 * @return {string} The words, '' when the row's value has none.
+		 */
+		emptyValueFor(row, spec) {
+			const key = this.getCellValue(row, spec.field)
+			const values = spec.values && typeof spec.values === 'object' ? spec.values : {}
+			if (key === null || key === undefined || !Object.hasOwn(values, String(key))) {
+				return ''
+			}
+			const words = values[String(key)]
+			if (typeof words !== 'string' || words === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(words) : words
 		},
 
 		/**

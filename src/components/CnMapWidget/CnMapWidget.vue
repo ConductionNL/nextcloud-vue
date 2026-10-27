@@ -168,6 +168,7 @@ const DEFAULT_BASEMAP = {
 // icon-font dependency and renders identically inside a Leaflet control bar.
 const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z'
 const ICON_LOCATE = 'M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
+const ICON_LAYERS = 'M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'
 const ICON_FULLSCREEN = 'M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'
 const ICON_FULLSCREEN_EXIT = 'M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z'
 const ICON_ZOOM_IN = 'M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z'
@@ -1269,6 +1270,33 @@ export default {
 				// The board look keeps the top right for its control column.
 				this.layersControl = L.control.layers(baseLayers, {}, { position: this.isBoardLook ? 'topleft' : 'topright' })
 				this.layersControl.addTo(this.map)
+				this.labelLayersToggle()
+			}
+		},
+
+		/**
+		 * Name the base-map switch in the user's language: Leaflet titles its
+		 * toggle "Layers" and gives it no accessible name of its own. In the
+		 * board look the toggle also carries the layers icon as an svg.
+		 *
+		 * @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button
+		 */
+		labelLayersToggle() {
+			const container = this.layersControl && typeof this.layersControl.getContainer === 'function'
+				? this.layersControl.getContainer()
+				: null
+			const toggle = container ? container.querySelector('.leaflet-control-layers-toggle') : null
+			if (!toggle) {
+				return
+			}
+			const label = t('nextcloud-vue', 'Map layers')
+			toggle.setAttribute('title', label)
+			toggle.setAttribute('aria-label', label)
+			// The board look draws the toggle as its edged map button around the
+			// layers icon, in place of Leaflet's bitmap.
+			if (this.isBoardLook) {
+				toggle.style.backgroundImage = 'none'
+				toggle.innerHTML = controlIcon(ICON_LAYERS)
 			}
 		},
 

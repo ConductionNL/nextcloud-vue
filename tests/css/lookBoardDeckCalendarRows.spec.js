@@ -20,9 +20,10 @@ function rule(selector) {
 }
 
 describe('look-board-detail.css: calendar and Deck rows', () => {
-	it('rules each row and pads it 12px', () => {
+	it('rules each row and pads it 10px', () => {
 		const body = rule('.cn-look-board .cn-detail-page .cn-calendar-card__row,\n.cn-look-board .cn-detail-page .cn-deck-card__row')
-		expect(body).toContain('padding: 12px 0')
+		// 10px: the rows sit on the font's own leading (r32-board-integration-rows), 56px high as the boards draw them.
+		expect(body).toContain('padding: 10px 0')
 		expect(body).toContain('border-top: 1px solid var(--cn-board-hairline)')
 	})
 

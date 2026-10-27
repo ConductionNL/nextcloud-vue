@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * A saved view's manage menu ("Beheer Termijn deze week") is the boards'
- * 264px menu with 40px rows, 600 labels, 12px explanations and a red Delete
+ * 278px menu with 40px rows, 600 labels, 12px explanations and a red Delete
  * (DqFilterBeheren, DqFilterInMenu). jsdom draws no layout, so the rules are
  * read from the stylesheet text.
  *
@@ -35,8 +35,9 @@ function ruleFor(selector) {
 const MENU = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper'
 
 describe('look-board.css: saved view manage menu', () => {
-	it('is 264px wide', () => {
-		expect(ruleFor(`${MENU}:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner`)).toContain('width: 264px;')
+	it('is 278px wide outside, the board\'s 264px of content, 6px in and a 1px line', () => {
+		expect(ruleFor(`${MENU}:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner`)).toContain('width: 278px;')
+		expect(ruleFor(`${MENU}:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner`)).toContain('margin-top: -7px;')
 	})
 
 	it('draws 40px rows with the label at 600', () => {
