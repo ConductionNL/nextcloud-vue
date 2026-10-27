@@ -485,3 +485,26 @@ describe('mergeValueArray', () => {
 		], ARRAY_CONFIG, definitions)).toEqual([{ propertyDefinition: 'def-1', name: 'Plafond', value: '1' }])
 	})
 })
+
+describe('propertiesFromDefinitions: a definition\'s own label and order', () => {
+	const fields = (definitions) => Object.values(propertiesFromDefinitions(definitions).properties)
+		.sort((a, b) => a.order - b.order)
+		.map((prop) => prop.title)
+
+	it('shows the label a definition carries, else its name made readable (DqNieuweZaak "Soort verzoeker")', () => {
+		expect(fields([
+			{ id: 'a', name: 'verzoekerType', title: 'Soort verzoeker', propertyType: 'enum' },
+			{ id: 'b', name: 'periodeVan', propertyType: 'date' },
+			{ id: 'c', name: 'onderwerp', title: '  ', propertyType: 'string' },
+		])).toEqual(['Soort verzoeker', 'Periode van', 'Onderwerp'])
+	})
+
+	it('places definitions by their order, those without one after, as given', () => {
+		expect(fields([
+			{ id: 'a', name: 'verzoekerNaam', title: 'Naam verzoeker', order: 2 },
+			{ id: 'b', name: 'receiptDate' },
+			{ id: 'c', name: 'onderwerp', title: 'Onderwerp', order: 1 },
+			{ id: 'd', name: 'extra' },
+		])).toEqual(['Onderwerp', 'Naam verzoeker', 'Receipt date', 'Extra'])
+	})
+})
