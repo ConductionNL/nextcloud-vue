@@ -1944,11 +1944,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* A settings card's text area sets its lines at 1.5, 8px 12px in, as the
    boards draw them (56 board textareas; NcTextArea took the browser's
-   leading, ~1.13).
+   leading, ~1.13). The padding carries `!important` because a theme sets
+   every textarea to 5px 12px with `!important` (r33: 124.5px, board 130.5).
    @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15 */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input {
 	box-sizing: border-box;
-	padding: 8px 12px;
+	padding: 8px 12px !important;
 	font-size: 15px;
 	line-height: 1.5;
 }
