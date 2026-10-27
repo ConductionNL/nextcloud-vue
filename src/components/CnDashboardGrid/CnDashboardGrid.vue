@@ -108,12 +108,14 @@ const MENU_ANCHOR_OFFSET = 8
 
 /**
  * How many GridStack rows a layout row is drawn as on a grid with
- * size-to-content cells (`wantsRowSplit`): 80px rows become 4px rows, so a
- * cell sized to its content ends at most 4px under it.
+ * size-to-content cells (`wantsRowSplit`): 80px rows become 1px rows, so a
+ * cell sized to its content ends less than 1px under it. On 4px rows each
+ * stacked card could end up to 4px low, and the rounding added up down a
+ * column (r33 DqHandhaving "De overtreding" y +6).
  *
  * @spec openspec/changes/fit-cells-on-4px-rows/specs/fit-cells-on-4px-rows/spec.md#requirement-a-size-to-content-cell-ends-within-4px-of-its-content
  */
-const ROW_SPLIT = 20
+const ROW_SPLIT = 80
 
 /**
  * Whether a layout holds a size-to-content cell (`sizeToContent` true or a
