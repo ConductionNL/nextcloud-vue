@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.157.0",
+	"version": "2.158.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1938,7 +1938,51 @@
 				"query": { "type": "object", "description": "Query passed along with `route`.", "additionalProperties": { "type": ["string", "number", "boolean"] } },
 				"href": { "type": "string", "minLength": 1, "description": "External URL, opened in a new tab. Mutually exclusive with route." },
 				"permission": { "type": "string", "description": "Permission the user must hold for the card to render. Same rule as menuItem.permission." },
-				"visibleIf": { "$ref": "#/$defs/visibleIfCondition", "description": "Display condition, evaluated the way a menu entry's is." }
+				"visibleIf": { "$ref": "#/$defs/visibleIfCondition", "description": "Display condition, evaluated the way a menu entry's is." },
+				"status": {
+					"description": "A status pill under the description (board PqGeavanceerdHub). A string, or { text, tone }. The text is translated, then {name} is filled from statusValues and {runtime.<path>} from the manifest runtime; a status that waits on a value is not shown.",
+					"oneOf": [
+						{ "type": "string", "minLength": 1 },
+						{
+							"type": "object",
+							"required": ["text"],
+							"additionalProperties": false,
+							"properties": {
+								"text": { "type": "string", "minLength": 1 },
+								"tone": { "type": "string", "enum": ["neutral", "error", "warning", "success"] },
+								"plural": { "type": "string", "minLength": 1, "description": "The text when the counted value is not 1." },
+								"zero": {
+									"description": "The status when the counted value is 0: a string, or { text, tone }.",
+									"oneOf": [
+										{ "type": "string", "minLength": 1 },
+										{ "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string", "minLength": 1 }, "tone": { "type": "string", "enum": ["neutral", "error", "warning", "success"] } } }
+									]
+								},
+								"countOf": { "type": "string", "description": "The statusValues name that picks zero or plural. Defaults to the first." }
+							}
+						}
+					]
+				},
+				"statusValues": {
+					"type": "object",
+					"description": "The numbers a status names, by placeholder: an aggregate descriptor { register, schema, metric?, field?, filter? } or { url, path?, params? }, a GET whose JSON holds the number at path (default total; an array counts its items).",
+					"additionalProperties": {
+						"type": "object",
+						"properties": {
+							"register": { "type": "string" },
+							"schema": { "type": "string" },
+							"metric": { "type": "string" },
+							"field": { "type": "string" },
+							"filter": { "type": "object" },
+							"url": { "type": "string", "minLength": 1 },
+							"path": { "type": "string" },
+							"params": { "type": "object" },
+							"where": { "type": "object", "description": "Count only the list items whose fields equal these values." },
+							"sumOf": { "type": "string", "description": "Add up this field of each list item (an array field by its length) instead of counting the items." }
+						},
+						"anyOf": [{ "required": ["url"] }, { "required": ["register", "schema"] }]
+					}
+				}
 			},
 			"allOf": [
 				{ "not": { "required": ["route", "href"] } },
@@ -6128,7 +6172,23 @@
 									"modules": { "type": "array", "items": { "$ref": "#/$defs/linkModule" }, "description": "Module cards drawn above the link cards (board PqModules): per module an icon, title, in-the-menu/off badge, description, its pages, an Open button and, when off, a link to the admin settings." },
 									"modulesTitle": { "type": "string", "description": "i18n key / heading of the modules section. Defaults to 'Modules'." },
 									"footnote": { "type": "string", "description": "i18n key / a note under the module cards." },
-									"groupStyle": { "type": "string", "enum": ["cards", "list"], "default": "cards", "description": "cards: a grid of link cards per group. list: one card per group with a row per link (icon, label, description, chevron or external-link icon)." }
+									"groupStyle": { "type": "string", "enum": ["cards", "list"], "default": "cards", "description": "cards: a grid of link cards per group. list: one card per group with a row per link (icon, label, description, chevron or external-link icon)." },
+									"panel": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "A closing card after the groups (board PqGeavanceerdHub, the menu structure): a badge, a paragraph and a link beside a titled list of facts. Strings are translated, then {runtime.<path>} is filled.",
+										"properties": {
+											"label": { "type": "string" },
+											"badge": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "icon": { "type": "string" } } },
+											"text": { "type": "string" },
+											"link": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "route": { "type": "string", "minLength": 1 }, "href": { "type": "string", "minLength": 1 }, "params": { "type": "object" }, "query": { "type": "object" } } },
+											"title": { "type": "string" },
+											"subtitle": { "type": "string" },
+											"facts": { "type": "array", "items": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "value": { "type": "string" }, "note": { "type": "string" }, "visibleIf": { "$ref": "#/$defs/visibleIfCondition" } } } },
+											"permission": { "type": "string" },
+											"visibleIf": { "$ref": "#/$defs/visibleIfCondition" }
+										}
+									}
 								}
 							}
 						},
