@@ -89,7 +89,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcTextArea } from '@nextcloud/vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
-import { groupSublines } from '../../utils/groupSublines.js'
+import { describedGroupIds, groupSublines } from '../../utils/groupSublines.js'
 import { readPath } from '../../utils/readPath.js'
 import { searchNextcloudGroups, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -136,9 +136,11 @@ export function withTypedAssignee(found, typed, label) {
  * - `source`: an endpointSource to read the record from, else `object`.
  * - `assignee`: `{ kinds?, label?, placeholder?, hint?, currentPath?,
  *   currentHint?, currentAs?, allowTyped?, field?, kindField?, describe? }`.
- *   `describe` (`{ register, schema, groupField?, textField? }`) names the
+ *   `describe` (`{ register, schema, groupField?, textField?, only? }`) names the
  *   records that hold a team's description; each team option then reads
- *   "{count} members · {description}", the count where the viewer may read it. `kinds` is `["group"]`
+ *   "{count} members · {description}", the count where the viewer may read it.
+ *   With `only` the search lists just the groups such a record names (the
+ *   app's teams, not every Nextcloud group); with no record at all it lists every group. `kinds` is `["group"]`
  *   (default), `["user"]` or both; `currentPath` reads who has it now from the
  *   record and `currentHint` ("Now with {current}.", the placeholder named
  *   by `currentAs`) says so, in place of `hint`; `allowTyped`
@@ -402,12 +404,15 @@ export default {
 			if (seq !== this.searchSeq) {
 				return
 			}
-			const lines = await groupSublines(groups.map((g) => g.id), typed, this.assigneeConfig.describe || null)
+			const describe = this.assigneeConfig.describe || null
+			const teams = describe && describe.only ? await describedGroupIds(describe) : null
+			const listed = teams && teams.size > 0 ? groups.filter((g) => teams.has(String(g.id))) : groups
+			const lines = await groupSublines(listed.map((g) => g.id), typed, describe)
 			if (seq !== this.searchSeq) {
 				return
 			}
 			const found = [
-				...groups.map((g) => ({ id: g.id, label: g.label, secondary: lines[g.id] || g.subline || '', icon: 'AccountGroupOutline', kind: 'group' })),
+				...listed.map((g) => ({ id: g.id, label: g.label, secondary: lines[g.id] || g.subline || '', icon: 'AccountGroupOutline', kind: 'group' })),
 				...users.map((u) => ({ id: u.id, label: u.label, secondary: u.subline || '', avatar: true, kind: 'user' })),
 			]
 			this.options = this.assigneeConfig.allowTyped ? withTypedAssignee(found, typed, t('nextcloud-vue', 'Use "{name}"', { name: typed })) : found
