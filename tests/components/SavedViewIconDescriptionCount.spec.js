@@ -83,6 +83,14 @@ describe('the icon and description fields', () => {
 		}
 	})
 
+	it('keeps the Icon label above the group, not inside it, so the group holds only the options', () => {
+		const w = mount(CnSavedViewLookFields, { props: { icon: '', description: '' } })
+		const group = w.get('[role="radiogroup"]')
+		expect(group.find('.cn-saved-view-look__label').exists()).toBe(false)
+		expect(group.findAll(':scope > *').every((c) => c.attributes('role') === 'radio')).toBe(true)
+		expect(w.get('.cn-saved-view-look__label').text()).toBe('Icon')
+	})
+
 	it('the edit dialog starts from the view and emits description and icon', async () => {
 		const w = mount(CnSavedViewEditDialog, { props: { view: own } })
 		expect(w.vm.description).toBe('My open cases')

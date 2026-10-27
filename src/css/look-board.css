@@ -3942,6 +3942,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	line-height: normal;
 }
 
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon-field,
 .cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icons {
 	gap: 7px;
 }
