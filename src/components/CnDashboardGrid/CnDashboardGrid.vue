@@ -108,9 +108,12 @@ const MENU_ANCHOR_OFFSET = 8
 
 /**
  * How many GridStack rows a layout row is drawn as on a grid with
- * size-to-content cells (`wantsRowSplit`): 80px rows become 10px rows.
+ * size-to-content cells (`wantsRowSplit`): 80px rows become 4px rows, so a
+ * cell sized to its content ends at most 4px under it.
+ *
+ * @spec openspec/changes/fit-cells-on-4px-rows/specs/fit-cells-on-4px-rows/spec.md#requirement-a-size-to-content-cell-ends-within-4px-of-its-content
  */
-const ROW_SPLIT = 8
+const ROW_SPLIT = 20
 
 /**
  * Whether a layout holds a size-to-content cell (`sizeToContent` true or a
@@ -491,8 +494,8 @@ export default {
 		 * size-to-content cell can only be a whole number of rows tall, so on
 		 * 80px rows it kept up to a row of empty space under its content and
 		 * a packing grid (`float: false`) could not close it (pipelinq and
-		 * dossiq Mijn werk, decidiq Mijn acties). Split into 10px rows the
-		 * cell ends within 10px of its content and the widgets below move up.
+		 * dossiq Mijn werk, decidiq Mijn acties). Split into 4px rows the
+		 * cell ends within 4px of its content and the widgets below move up.
 		 *
 		 * Only in view mode, only on a packing grid with a size-to-content
 		 * cell: every other grid is built exactly as before. Item positions
