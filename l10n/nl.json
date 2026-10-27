@@ -2698,7 +2698,26 @@
     "Shows which rows would fail and why.": "Laat zien welke rijen zouden mislukken en waarom.",
     "Checked. Nothing is imported yet.": "Gecontroleerd. Er is nog niets geïmporteerd.",
     "{rows} rows · {columns} columns · {size}": "{rows} rijen · {columns} kolommen · {size}",
-    "Field for column {column}": "Veld voor kolom {column}"
+    "Field for column {column}": "Veld voor kolom {column}",
+    "{shown} of {total} connections {app} declares, checked by integriq": "{shown} van {total} koppelingen die {app} aanvraagt, gecontroleerd door integriq",
+    "Add integration": "Integratie toevoegen",
+    "Filter connections": "Koppelingen filteren",
+    "The connections could not be read.": "De koppelingen konden niet worden gelezen.",
+    "Open settings for {name}": "Instellingen openen voor {name}",
+    "Set up {name}": "{name} instellen",
+    "No settings screen yet": "Nog geen instellingenscherm",
+    "Needs attention": "Vraagt aandacht",
+    "Checked by integriq": "Gecontroleerd door integriq",
+    "Last checked {when}": "Laatste controle {when}",
+    "integriq tests each connection and keeps its status. {app} only shows which connections it uses.": "integriq test elke koppeling en bewaart de status. {app} geeft alleen aan welke koppelingen het gebruikt.",
+    "Open integriq": "integriq openen",
+    "Add a connection": "Koppeling toevoegen",
+    "A connection the app has not declared cannot be checked. Add new connections in integriq; Add integration takes you there.": "Een koppeling die de app niet aanvraagt, kan niet worden gecontroleerd. Nieuwe koppelingen voeg je daarom toe in integriq. Integratie toevoegen brengt je daarheen.",
+    "checked {when}": "gecontroleerd {when}",
+    "never checked": "nooit gecontroleerd",
+    "All connections": "Alle koppelingen",
+    "Not set up": "Niet ingesteld",
+    "Unavailable": "Niet beschikbaar"
   },
   "plurals": {
     "{count} member": [
