@@ -2522,11 +2522,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
-/* A macro reads as the boards draw a card's list row: the name at weight 500
-   over its 13px line, both at the font's normal line height, 56px a row
+/* A macro reads as the boards draw a card's list row: the name 15px at
+   weight 500 over its 13px line, both at the font's normal line height, 56px a row
    (DqZaakAssistent "Macro's").
    @spec openspec/changes/board-macros-rows/specs/board-macros-rows/spec.md#requirement-a-board-macros-row-is-a-board-list-row */
 .cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__name {
+	font-size: 15px;
 	font-weight: 500;
 	line-height: normal;
 }

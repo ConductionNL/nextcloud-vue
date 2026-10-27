@@ -35,6 +35,7 @@ describe('look-board.css: a macros row', () => {
 	it('sets the name at 500, normal line height', () => {
 		const body = bodyOf('.cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__name')
 		expect(body).toContain('font-weight: 500;')
+		expect(body).toContain('font-size: 15px;')
 		expect(body).toContain('line-height: normal;')
 	})
 
