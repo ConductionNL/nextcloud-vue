@@ -3441,6 +3441,22 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast) !important;
 }
 
+/* ---- A settings card's image field -------------------------------------- */
+/* The logo is a 56px tile with a 10px radius and no edge, 16px before its
+   upload button (DqInstellingenAlgemeen "Huisstijl"; live drew 64px).
+   @spec openspec/changes/board-settings-logo-tile/specs/board-settings-logo-tile/spec.md#requirement-a-board-settings-logo-is-a-56px-tile */
+.cn-look-board .cn-settings-field__image-row:not(.cn-look-nextcloud *) {
+	gap: 16px;
+}
+
+.cn-look-board .cn-settings-field__image-tile:not(.cn-look-nextcloud *) {
+	box-sizing: border-box;
+	width: 56px;
+	height: 56px;
+	border: 0;
+	border-radius: 10px;
+}
+
 /* ---- A setup step's choice radio ---------------------------------------- */
 /* The setup wizard's choice cards draw their radio 20px square in the primary
    colour (DqInstellen "Voorbeeldgegevens laden"); the browser draws 13px, and
