@@ -46,4 +46,3 @@ describe('DqZaaktype cards in the board look', () => {
 		expect(rule(detail, '.cn-look-board .cn-grouped-cards__extra-text:not(.cn-look-nextcloud *)')).toContain('font-size: 14px;')
 	})
 })
-

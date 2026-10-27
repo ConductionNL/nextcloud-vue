@@ -17,22 +17,11 @@ const path = require('path')
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
 describe('look-board-index.css: actions bar rows', () => {
-	it('keeps the items 8px apart, also on a wrapped row 1', () => {
-		const at = css.indexOf('.cn-look-board .cn-actions-bar.cn-actions-bar--board {')
-		expect(css.slice(at, css.indexOf('}', at))).toContain('gap: 8px;')
-	})
-
-	it('sets the search row a section under row 1', () => {
-		const at = css.indexOf('.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {')
-		expect(css.slice(at, css.indexOf('}', at))).toContain('margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);')
-	})
-
 	it('keeps lines and items 8px apart and puts the search row 20px under row 1', () => {
 		const at = css.indexOf('.cn-look-board .cn-actions-bar.cn-actions-bar--board {')
 		expect(css.slice(at, css.indexOf('}', at))).toContain('gap: 8px;')
 		const row = css.indexOf('.cn-look-board .cn-actions-bar--board > .cn-actions-bar__row--search {')
-		// 12px: the section gap less the 8px line gap (board-list-toolbar-kpi-chips writes it so).
-		expect(css.slice(row, css.indexOf('}', row))).toContain('margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);')
+		expect(css.slice(row, css.indexOf('}', row))).toContain('margin-top: 12px;')
 	})
 
 	it('puts the view switch on a line of its own beside a side panel, Filter at the end of row 1', () => {

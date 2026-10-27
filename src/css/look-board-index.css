@@ -151,10 +151,11 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	align-items: center;
-	/* Items keep 8px between them, also where row 1 wraps (DqZakenSorteren:
-	   the view switch 8px under the chips beside the side panel). The search
-	   row is a section of its own, 20px under row 1 (DqZaken, DqContracten).
-	   @spec openspec/changes/board-list-toolbar-kpi-chips/specs/board-list-toolbar-kpi-chips/spec.md#requirement-the-board-list-keeps-its-toolbar-stat-and-chip-sizes */
+	/* Lines of row 1 are 8px apart and items on a line 8px; the search row
+	   keeps its own 12px on top, so it sits 20px under row 1 as the boards
+	   draw it (DqZaken, DqContracten), while a wrapped part of row 1 (the
+	   view switch beside a side panel, DqFilterBeheren) sits 8px under it.
+	   @spec openspec/changes/board-bar-toggles-own-line/specs/board-bar-toggles-own-line/spec.md */
 	gap: 8px;
 	margin-bottom: var(--cn-board-section-gap, 20px);
 	padding: 0;
@@ -237,7 +238,7 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
-	margin-top: calc(var(--cn-board-section-gap, 20px) - 8px);
+	margin-top: 12px;
 }
 
 /* Beside a side panel the view switch always starts a line of its own under
