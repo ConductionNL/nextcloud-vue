@@ -3628,6 +3628,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 5px;
 }
 
+/* Its label wraps in the 150px column instead of being cut off, as the board
+   breaks "Parkeervergunning bewoners" over two lines (r33: one line with an
+   ellipsis, a 234px section against 249).
+   @spec openspec/changes/board-section-bar-label-wraps/specs/board-section-bar-label-wraps/spec.md#requirement-a-board-section-bar-label-wraps */
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-label {
+	white-space: normal;
+	overflow: visible;
+}
+
 /* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd
    per status") sets its rows in 13px, the label in the secondary text, the
    value in the main ink at 600, rows 34px apart.
