@@ -2449,6 +2449,12 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The meta line sits 2px under the title (the column's gap); the calendar
+   card's own 2px margin made it 4 and the row 58 against 56 (r33). */
+.cn-look-board .cn-detail-page .cn-calendar-card__meta:not(.cn-look-nextcloud *) {
+	margin-top: 0;
+}
+
 /* The Deck card's title is a link the theme inks as one with !important
    (blue, underlined); the board draws it as the row's title, so the theme's
    own link variables are set to the title ink here. */
