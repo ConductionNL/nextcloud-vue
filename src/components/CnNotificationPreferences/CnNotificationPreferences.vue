@@ -203,11 +203,12 @@ export default {
 		 */
 		matrixProps() {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			// OpenRegister's channel ids, named as dossiq's screen names them.
 			const channelNames = {
-				notification: t('nextcloud-vue', 'In Nextcloud'),
-				nextcloud: t('nextcloud-vue', 'In Nextcloud'),
+				'nc-notification': t('nextcloud-vue', 'In Nextcloud'),
 				email: t('nextcloud-vue', 'By email'),
-				mail: t('nextcloud-vue', 'By email'),
+				activity: t('nextcloud-vue', 'In the activity stream'),
+				'web-push': t('nextcloud-vue', 'As a push message'),
 			}
 			return propsFor({
 				entries: this.scopedEntries,
