@@ -13,6 +13,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import CnPlanWidget from '../../src/components/CnPlanWidget/CnPlanWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { offeredTransitions, planTree } from '../../src/utils/planTree.js'
+import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -86,6 +87,11 @@ describe('CnPlanWidget', () => {
 		await w.find('[data-testid="cn-plan-completed-advice"]').trigger('click')
 		await flushPromises()
 		expect(w.find('[data-testid="cn-plan-error"]').text()).toContain('while a sub-task is open')
+	})
+
+	it('stands in the host\'s titled card, as DqZaak draws "Zaakplan" (r32: bare rows without a title)', () => {
+		expect(isContentOnlyWidgetDef({ type: 'plan' })).toBe(true)
+		expect(getWidgetTypeEntry('plan').ownsTitle).toBeFalsy()
 	})
 
 	it('words a state as the page configures it', async () => {

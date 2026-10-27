@@ -334,7 +334,6 @@ registerDashboardWidget('plan', {
 	displayName: 'Plan',
 	icon: 'FormatListChecks',
 	surfaces: ['detail-page'],
-	ownsTitle: true,
 })
 
 registerDashboardWidget('work-queue', {
