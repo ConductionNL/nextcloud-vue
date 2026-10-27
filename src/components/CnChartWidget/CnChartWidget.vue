@@ -2365,7 +2365,8 @@ export default {
 				const rawKeys = groups.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
 				const values = groups.map((g) => Number(g.value) || 0)
 				// When the grouped field is a reference (uuid), swap the raw ids for
-				// the referenced objects' display labels (e.g. client name).
+				// the referenced objects' display labels (e.g. client name); with
+				// `reference.keyField` the keys are a vocabulary's codes instead.
 				if (gb.reference && gb.reference.schema) {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
 					if (requestKey !== this.groupByKey) {
@@ -2818,7 +2819,12 @@ export default {
 		 * object can't be loaded, so a chart never regresses to a blank bar.
 		 *
 		 * @param {string} defaultRegister Register to use when the reference omits one.
-		 * @param {{ register?: string, schema: string, labelField?: string }} reference Reference descriptor from `groupBy.reference`.
+		 * With `keyField` the keys are not ids but a code the referenced
+		 * objects carry (a vocabulary: a ticket's `category` holds a category's
+		 * `key`). The vocabulary is read once and matched on that field.
+		 *
+		 * @param {string} defaultRegister Register to use when the reference omits one.
+		 * @param {{ register?: string, schema: string, labelField?: string, keyField?: string }} reference Reference descriptor from `groupBy.reference`.
 		 * @param {Array<{ key: string|number|null }>} groups Raw grouped rows from OpenRegister.
 		 * @return {Promise<string[]>} One resolved label per group, in order.
 		 */
@@ -2831,6 +2837,24 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
+				if (typeof reference.keyField === 'string' && reference.keyField !== '') {
+					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register, schema })
+					const res = await axios.get(url, { params: { _limit: 500 } })
+					const rows = (res && res.data && (res.data.results || res.data.objects)) || []
+					const byKey = new Map()
+					for (const row of rows) {
+						const code = row && row[reference.keyField]
+						if (code !== undefined && code !== null && code !== '') {
+							byKey.set(String(code), this.displayString(row[labelField]))
+						}
+					}
+					return groups.map((g) => {
+						if (g.key === null || g.key === undefined || g.key === '') {
+							return '—'
+						}
+						return byKey.get(String(g.key)) || String(g.key)
+					})
+				}
 				return await Promise.all(groups.map(async (g) => {
 					const key = g.key
 					if (key === null || key === undefined || key === '') {

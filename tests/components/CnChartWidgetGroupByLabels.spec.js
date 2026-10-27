@@ -103,4 +103,22 @@ describe('CnChartWidget — dataSource.groupBy labels and otherBucket', () => {
 		expect(wrapper.vm.groupByData.labels).toEqual(['in_progress', 'new', 'Other'])
 		expect(wrapper.vm.groupByData.series).toEqual([9, 4, 3])
 	})
+
+	it('names vocabulary codes by the objects that carry them (reference.keyField), reading the vocabulary once', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.endsWith('/ticketCategory')) {
+				return Promise.resolve({ data: { results: [{ key: 'afval', name: 'Afval en containers' }, { key: 'odd', name: 'Overige vragen' }] } })
+			}
+			return Promise.resolve({ data: { groups: [{ key: 'afval', value: 9 }, { key: 'odd', value: 4 }, { key: 'unknown', value: 2 }, { key: null, value: 1 }] } })
+		})
+		const wrapper = mountChart({
+			type: 'donut',
+			dataSource: { register: 'crm', schema: 'request', groupBy: { field: 'category', sort: 'desc', reference: { schema: 'ticketCategory', keyField: 'key', labelField: 'name' } } },
+		})
+		await flush()
+		await flush()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.groupByData.labels).toEqual(['Afval en containers', 'Overige vragen', 'unknown', '—'])
+		expect(axios.get.mock.calls.filter(([url]) => url.endsWith('/ticketCategory'))).toHaveLength(1)
+	})
 })
