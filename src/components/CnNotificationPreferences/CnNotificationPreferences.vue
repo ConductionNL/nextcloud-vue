@@ -203,11 +203,12 @@ export default {
 		 */
 		matrixProps() {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			// OpenRegister's channel ids, named as dossiq's screen names them.
 			const channelNames = {
-				notification: t('nextcloud-vue', 'In Nextcloud'),
-				nextcloud: t('nextcloud-vue', 'In Nextcloud'),
+				'nc-notification': t('nextcloud-vue', 'In Nextcloud'),
 				email: t('nextcloud-vue', 'By email'),
-				mail: t('nextcloud-vue', 'By email'),
+				activity: t('nextcloud-vue', 'In the activity stream'),
+				'web-push': t('nextcloud-vue', 'As a push message'),
 			}
 			return propsFor({
 				entries: this.scopedEntries,
@@ -253,10 +254,10 @@ export default {
 		/**
 		 * Write one matrix cell and read the answer again.
 		 *
-		 * @param {object} change The matrix's change: `{ eventId, channelId, value }`.
-		 * @param {string} change.eventId The event's id.
-		 * @param {string} change.channelId The channel's id.
-		 * @param {boolean} change.value Whether the event goes to that channel.
+		 * @param {object} change The matrix's change.
+		 * @param {string} change.eventId The row, as `keyFor` made it.
+		 * @param {string} change.channelId The column.
+		 * @param {boolean} change.value The cell's new value.
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/notification-preferences-board-matrix/specs/notification-preferences-board-matrix/spec.md#requirement-the-board-look-draws-notification-preferences-as-a-matrix
 		 */

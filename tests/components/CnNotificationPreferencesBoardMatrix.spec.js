@@ -36,7 +36,7 @@ const STUBS = {
 }
 
 const RESULTS = [
-	{ schema: 'lead', schemaTitle: 'Lead', application: 'pipelinq', notification: 'leadAssigned', enabled: true, channels: ['notification'], availableChannels: ['notification', 'email'], source: 'schema-default' },
+	{ schema: 'lead', schemaTitle: 'Lead', application: 'pipelinq', notification: 'leadAssigned', enabled: true, channels: ['nc-notification'], availableChannels: ['nc-notification', 'email'], source: 'schema-default' },
 ]
 
 async function mountPane(look) {
@@ -77,7 +77,7 @@ describe('CnNotificationPreferences in the board look', () => {
 			schema: 'lead',
 			notification: 'leadAssigned',
 			enabled: true,
-			channels: ['notification', 'email'],
+			channels: ['nc-notification', 'email'],
 		}))
 	})
 })
