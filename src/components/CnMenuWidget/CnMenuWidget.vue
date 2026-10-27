@@ -208,9 +208,35 @@ import CnMenuTreeNode from './CnMenuTreeNode.vue'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { normalizeFacets } from '../../utils/facets.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
+
+/**
+ * An item's label with its count in it (`countLabel`): a string, or
+ * `{ one, other }` picked by the count, as a header pill's countLabel, with `{count}` filled in after
+ * the host translates it ("2 nieuwsbrieven", PqCampagne). '' when the item
+ * declares none, so the count shows as the badge at the row's end instead.
+ *
+ * @param {unknown} declared The item's `countLabel`.
+ * @param {number} count The count read through `countFrom`.
+ * @param {(key: string) => string} translate The host translate function.
+ * @return {string} The label, or ''.
+ */
+function countLabelOf(declared, count, translate) {
+	let text = ''
+	if (typeof declared === 'string') {
+		text = declared
+	} else if (declared && typeof declared === 'object') {
+		text = count === 1 ? declared.one : (declared.other || declared.one)
+	}
+	if (typeof text !== 'string' || text === '') {
+		return ''
+	}
+	return translate(text).replace(/\{count\}/g, String(count))
+}
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
 const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
 
@@ -265,6 +291,8 @@ export default {
 	inject: {
 		/** Host translate function provided by CnAppRoot, for the item labels. */
 		cnTranslate: { default: () => (key) => key },
+		/** Detail-page object context (`{ objectId, object }`), for `@objectId` in a `countFrom` filter. */
+		cnObjectContext: { default: null },
 	},
 
 	props: {
@@ -328,9 +356,15 @@ export default {
 			// An item with `childrenFrom` adds the children read for it after
 			// its declared ones; those are data, not manifest strings.
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			// An item's `visibleIf` reads the detail page's record as `object.<field>`
+			// (PqCampagne's article line only while the campaign has page content).
+			const record = { object: this.objectContext().object ?? null }
 			const translated = (list, prefix) => list.map((item, idx) => {
 				if (!item || typeof item !== 'object') {
 					return item
+				}
+				if (item.visibleIf && typeof item.visibleIf === 'object' && !passesContextPredicates(item.visibleIf, record)) {
+					return null
 				}
 				const out = { ...item }
 				if (typeof item.label === 'string' && item.label !== '') {
@@ -338,7 +372,12 @@ export default {
 				}
 				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
 				if (typeof this.fetchedCounts[key] === 'number') {
-					out.count = this.fetchedCounts[key]
+					const counted = countLabelOf(item.countLabel, this.fetchedCounts[key], translate)
+					if (counted !== '') {
+						out.label = counted
+					} else {
+						out.count = this.fetchedCounts[key]
+					}
 				}
 				const declared = Array.isArray(item.children) ? translated(item.children, key) : null
 				const fetched = this.fetchedChildren[key]
@@ -348,7 +387,7 @@ export default {
 					out.children = declared
 				}
 				return out
-			})
+			}).filter((item) => item !== null)
 			return translated(arr, '')
 		},
 
@@ -465,6 +504,15 @@ export default {
 		activeLeafKey() {
 			return this.activePathMap.leafKey
 		},
+
+		/**
+		 * The detail page's record id, when the menu sits on one.
+		 *
+		 * @return {string|null} The id.
+		 */
+		objectId() {
+			return this.objectContext().objectId ?? null
+		},
 	},
 
 	watch: {
@@ -475,6 +523,12 @@ export default {
 			},
 
 			immediate: true,
+		},
+
+		objectId(next, previous) {
+			if (next !== previous) {
+				this.loadCountsFrom()
+			}
 		},
 	},
 
@@ -564,12 +618,17 @@ export default {
 				walk(item && item.children, key)
 			})
 			walk(this.content?.items, '')
+			const ctx = this.objectContext()
 			const entries = await Promise.all(sources.map(async ({ key, from }) => {
 				try {
 					if (from.register && from.schema) {
+						const filter = resolveFilterTokens(from.filter || {}, ctx)
+						if (Object.values(filter).some((value) => typeof value === 'string' && value.startsWith('@'))) {
+							return [key, null]
+						}
 						const body = await cnFetchJson(
 							`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
-							{ query: { ...listQueryOf(from.filter), _limit: 1 } },
+							{ query: { ...listQueryOf(filter), _limit: 1 } },
 						)
 						return [key, Number.isFinite(Number(body?.total)) ? Number(body.total) : null]
 					}
@@ -586,6 +645,17 @@ export default {
 				}
 			}))
 			this.fetchedCounts = Object.fromEntries(entries.filter(([, count]) => typeof count === 'number'))
+		},
+
+		/**
+		 * The injected detail-page object context, unwrapped from a ref.
+		 *
+		 * @return {{objectId?: string, object?: object}} The context, or {}.
+		 */
+		objectContext() {
+			const raw = this.cnObjectContext
+			const value = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+			return value && typeof value === 'object' ? value : {}
 		},
 
 		/**
