@@ -12,6 +12,7 @@ const path = require('path')
 
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '')
 const dialog = strip(fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8'))
+const board = strip(fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8'))
 const stepper = strip(fs.readFileSync(path.join(__dirname, '../../src/components/CnStepper/CnStepper.vue'), 'utf8'))
 
 /**
@@ -34,5 +35,18 @@ describe('the board setup wizard', () => {
 		expect(body(stepper, '.cn-stepper--board .cn-stepper__item--done .cn-stepper__dot')).toContain('color: var(--color-primary-element-text, #fff);')
 		expect(body(stepper, '.cn-stepper--board .cn-stepper__item--done .cn-stepper__label')).toContain('color: var(--color-main-text);')
 		expect(body(stepper, '.cn-stepper--board .cn-stepper__item--upcoming .cn-stepper__dot')).toContain('font-weight: 700;')
+	})
+
+	it('sets the setup choices 10px apart with a 14px description', () => {
+		const rows = '.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__rows:not(.cn-look-nextcloud *)'
+		const desc = '.cn-look-board .cn-setup-step .cn-choice-cards .cn-choice-cards__row-description:not(.cn-look-nextcloud *)'
+		expect(body(board, rows)).toContain('gap: 10px;')
+		expect(body(board, desc)).toContain('font-size: 14px;')
+	})
+
+	it('draws the filled done and current dots without an edge, 28px across', () => {
+		expect(body(stepper, '.cn-stepper--board .cn-stepper__dot')).toContain('box-sizing: border-box;')
+		expect(body(stepper, '.cn-stepper--board .cn-stepper__item--done .cn-stepper__dot')).toContain('border-width: 0;')
+		expect(body(stepper, '.cn-stepper--board .cn-stepper__item--current .cn-stepper__dot')).toContain('border-width: 0;')
 	})
 })
