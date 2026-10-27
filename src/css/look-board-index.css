@@ -447,6 +447,13 @@
 	font-weight: 600;
 }
 
+/* The Filter menu (board look, no filter sidebar) is an NcActions trigger,
+   which sizes itself from --button-size. */
+.cn-look-board .cn-actions-bar__filter-menu .button-vue {
+	--button-size: 36px;
+	height: 36px;
+}
+
 /* With the sidebar open the Filter button is pressed: the board draws it on
    the light primary ground with a primary edge and the main ink, not as a
    filled primary button (DqFilterBeheren). Its count badge stays the filled
