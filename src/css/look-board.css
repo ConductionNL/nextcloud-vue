@@ -2047,10 +2047,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
-/* `compact` (dossiq's boards): 15px facts, values at weight 500, wider gaps. */
+/* `compact` (dossiq's boards): 15px facts at the font's own leading, rows
+   24px apart, values at weight 500, wider gaps. */
 .cn-look-board .cn-version-info--compact .cn-version-info__details {
 	gap: 6px 24px;
 	font-size: 15px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-version-info--compact .cn-version-info__label {
