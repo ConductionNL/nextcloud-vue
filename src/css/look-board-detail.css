@@ -2364,8 +2364,20 @@
 	gap: 16px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px 0;
+	padding: 10px 0;
 	border-top: 1px solid var(--cn-board-hairline);
+}
+
+/* Only the rule above each row: the calendar card's own rule under a row and
+   the Deck card's boxed card come off (r32: Afspraken 196.8 against 179, the
+   Deck card boxed). */
+.cn-look-board .cn-detail-page .cn-calendar-card__row:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row:not(.cn-look-nextcloud *) {
+	border-right: 0;
+	border-bottom: 0;
+	border-left: 0;
+	border-radius: 0;
+	background: transparent;
 }
 
 .cn-look-board .cn-detail-page .cn-calendar-card__row-main,
@@ -2388,6 +2400,25 @@
 .cn-look-board .cn-detail-page .cn-deck-card__row-meta {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* The Deck card's title is a link the theme inks as one with !important
+   (blue, underlined); the board draws it as the row's title, so the theme's
+   own link variables are set to the title ink here. */
+.cn-look-board .cn-detail-page a.cn-deck-card__row-title:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	text-decoration: none;
+}
+
+/* The title and the meta line on the font's own leading, as the boards
+   draw them: a row 56px high, not 72. */
+.cn-look-board .cn-detail-page .cn-calendar-card__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row-title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-calendar-card__meta:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row-meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 .cn-look-board .cn-object-parties--board .cn-object-parties__end {
