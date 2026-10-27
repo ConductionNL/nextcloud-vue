@@ -247,6 +247,7 @@ export {
 	CnObjectAccessTab,
 	CnObjectCalendar,
 	CnObjectCard,
+	CnExpandableRow,
 	CnObjectDataWidget,
 	CnObjectFilesWidget,
 	CnObjectGeoWidget,
