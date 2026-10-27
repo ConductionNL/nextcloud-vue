@@ -2771,6 +2771,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* What the entry is about follows its message in the normal weight
+   ("Document beoordeeld: Mail aannemer over planning", DqZaakHistorie). */
+.cn-look-board .cn-timeline-manage__detail:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
+/* The icon its kind declares sits in the rail circle in the soft ink, in
+   place of the dot. */
+.cn-look-board .cn-timeline-manage__entry-icon:not(.cn-look-nextcloud *) {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-timeline-manage__entry:has(> .cn-timeline-manage__entry-icon):not(.cn-look-nextcloud *)::before {
+	background: var(--color-background-dark);
+}
+
 .cn-look-board .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	gap: 0;
 	font-size: 13px;
