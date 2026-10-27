@@ -1685,27 +1685,28 @@ export default {
 
 		/**
 		 * Every entry or part that carries `resolve`, with the record's value at its path.
+		 * A `from: "object"` entry reads the page's own object.
 		 *
-		 * @param {object} record The object.
+		 * @param {object|null} record The object.
 		 * @return {Array<{spec: object, raw: unknown}>}
 		 */
 		refSpecs(record) {
 			const fields = this.entries
 			const specs = []
-			const visit = (spec) => {
+			const visit = (spec, from) => {
 				if (!spec || typeof spec !== 'object') {
 					return
 				}
-				if (spec.resolve && typeof spec.resolve === 'object' && spec.path) {
-					specs.push({ spec, raw: readPath(record, spec.path) })
+				if (from && spec.resolve && typeof spec.resolve === 'object' && spec.path) {
+					specs.push({ spec, raw: readPath(from, spec.path) })
 					if (toneSpec(spec)) {
-						specs.push({ spec: toneSpec(spec), raw: readPath(record, spec.path) })
+						specs.push({ spec: toneSpec(spec), raw: readPath(from, spec.path) })
 					}
 				}
 				const nested = [...(Array.isArray(spec.parts) ? spec.parts : []), ...(Array.isArray(spec.title) ? spec.title : [spec.title]), ...(Array.isArray(spec.subtitle) ? spec.subtitle : [spec.subtitle])]
-				nested.forEach(visit)
+				nested.forEach((part) => visit(part, from))
 			}
-			fields.forEach(visit)
+			fields.forEach((field) => visit(field, field && field.from === 'object' && this.objectData ? this.objectData : record))
 			return specs
 		},
 
@@ -1717,7 +1718,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadLabels(record = this.record) {
-			if (!record) {
+			if (!record && !this.objectData) {
 				return
 			}
 			const groups = new Map()
