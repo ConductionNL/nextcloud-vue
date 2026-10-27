@@ -80,4 +80,15 @@ describe('CnNotificationMatrix in the Nextcloud look', () => {
 		expect(wrapper.find('[data-testid="cn-nm-channel-settings"]').exists()).toBe(false)
 		expect(wrapper.classes()).not.toContain('cn-notification-matrix--board')
 	})
+
+	it('opens the channel settings with a chevron before the words, not the browser marker', () => {
+		const wrapper = mountScreen('board')
+		const summary = wrapper.find('.cn-notification-matrix__channels-summary')
+		expect(summary.find('.cn-notification-matrix__channels-chevron').exists()).toBe(true)
+		const fs = require('fs')
+		const path = require('path')
+		const src = fs.readFileSync(path.join(__dirname, '../../src/components/CnNotificationMatrix/CnNotificationMatrix.vue'), 'utf8')
+		expect(src).toContain('<ChevronRight :size="16" class="cn-notification-matrix__channels-chevron" />')
+		expect(src).toMatch(/\.cn-notification-matrix__channels-summary \{[^}]*list-style: none;/)
+	})
 })

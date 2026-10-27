@@ -11,26 +11,28 @@
 			:helperText="t('nextcloud-vue', 'Shown when you point at the view in the menu.')"
 			data-testid="cn-saved-view-description"
 			@update:modelValue="onDescription" />
-		<div
-			class="cn-saved-view-look__icons"
-			role="radiogroup"
-			:aria-label="t('nextcloud-vue', 'Icon')"
-			data-testid="cn-saved-view-icon">
+		<div class="cn-saved-view-look__icon-field">
 			<span class="cn-saved-view-look__label" aria-hidden="true">{{ t('nextcloud-vue', 'Icon') }}</span>
-			<button
-				v-for="name in iconNames"
-				:key="name"
-				type="button"
-				role="radio"
-				class="cn-saved-view-look__icon"
-				:class="{ 'cn-saved-view-look__icon--chosen': name === chosenIcon }"
-				:aria-checked="name === chosenIcon ? 'true' : 'false'"
-				:aria-label="iconLabel(name)"
-				:title="iconLabel(name)"
-				:data-icon="name"
-				@click="onIcon(name)">
-				<component :is="componentOf(name)" :size="20" />
-			</button>
+			<div
+				class="cn-saved-view-look__icons"
+				role="radiogroup"
+				:aria-label="t('nextcloud-vue', 'Icon')"
+				data-testid="cn-saved-view-icon">
+				<button
+					v-for="name in iconNames"
+					:key="name"
+					type="button"
+					role="radio"
+					class="cn-saved-view-look__icon"
+					:class="{ 'cn-saved-view-look__icon--chosen': name === chosenIcon }"
+					:aria-checked="name === chosenIcon ? 'true' : 'false'"
+					:aria-label="iconLabel(name)"
+					:title="iconLabel(name)"
+					:data-icon="name"
+					@click="onIcon(name)">
+					<component :is="componentOf(name)" :size="20" />
+				</button>
+			</div>
 		</div>
 	</div>
 </template>
@@ -172,8 +174,13 @@ export default {
 	gap: 4px;
 }
 
+.cn-saved-view-look__icon-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
 .cn-saved-view-look__label {
-	flex: 0 0 100%;
 	font-weight: 600;
 }
 

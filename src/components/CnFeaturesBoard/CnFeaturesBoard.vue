@@ -780,7 +780,7 @@ export default {
 .cn-features-board__panel {
 	display: flex;
 	flex-direction: column;
-	gap: 22px;
+	gap: 20px;
 }
 
 .cn-features-board__panel--tabbed {
@@ -1105,7 +1105,9 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-features-board__notice {
+/* The panel's gap is the notice's only space: NcNoteCard's own margin
+   outranks a plain class, so the notice is held by its place in the panel. */
+.cn-features-board__panel > .cn-features-board__notice {
 	margin: 0;
 }
 </style>

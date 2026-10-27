@@ -377,6 +377,63 @@
 	line-height: normal;
 }
 
+/* A card's header link under its title ("Alles bekijken") sits 10px under the
+   title at the font's normal line height, as the boards wrap it there
+   (DqDashboard: the first row 46px under the title, live 42).
+   @spec openspec/changes/board-link-under-title-gap/specs/board-link-under-title-gap/spec.md#requirement-a-board-header-link-under-the-title-sits-10px-under-it */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__header-link--under-title {
+	line-height: normal;
+	margin-top: 8px;
+}
+
+/* A task list with the subject and due line (DqMijnWerk "Mijn taken") wraps
+   its title and subject instead of cutting them off, sets the line at the
+   font's normal line height 4px under the title, and ends 20px under its last
+   row, as the board draws it: rows of 64 to 100px in a 555px card (r33: one
+   line each, 447px).
+   @spec openspec/changes/board-task-rows-as-drawn/specs/board-task-rows-as-drawn/spec.md#requirement-a-board-task-row-wraps-as-drawn */
+.cn-look-board .cn-tasks-widget--list:has(.cn-tasks-widget__meta--split) {
+	padding-bottom: 20px;
+}
+
+.cn-look-board .cn-tasks-widget__row:has(.cn-tasks-widget__meta--split) .cn-tasks-widget__body {
+	gap: 4px;
+}
+
+.cn-look-board .cn-tasks-widget__row:has(.cn-tasks-widget__meta--split) .cn-tasks-widget__name {
+	white-space: normal;
+	overflow: visible;
+}
+
+.cn-look-board .cn-tasks-widget__meta--split {
+	line-height: normal;
+}
+
+.cn-look-board .cn-tasks-widget__meta--split .cn-tasks-widget__subject {
+	white-space: normal;
+	overflow: visible;
+}
+
+/* A sortable column of a table on a dashboard card shows its idle chevron only
+   on hover or focus, outside the column's width: the boards draw these heads as
+   text (DqDoorlooptijd "Prestaties per zaaktype" 569px; the 14px chevron and its
+   4px gap made it 641). A sorted column keeps its chevron in place.
+   @spec openspec/changes/board-dashboard-table-idle-chevron/specs/board-dashboard-table-idle-chevron/spec.md#requirement-an-idle-sort-chevron-on-a-dashboard-card-takes-no-room */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__sort {
+	position: relative;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__chevron--idle {
+	position: absolute;
+	inset-inline-start: calc(100% + 2px);
+	opacity: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content th.cn-table-header--sortable:hover .cn-table-header__chevron--idle,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-header__sort:focus-visible .cn-table-header__chevron--idle {
+	opacity: 1;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form
@@ -687,6 +744,14 @@
    button ("Uit menu halen") is an outlined secondary button, and the select
    that adds a row runs the field's full width.
    @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+/* A row's buttons sit on its 10px padding with no margin of their own, so a
+   row is 61px as the board draws it (Nextcloud's 3px button margin made it
+   66, DqPersoonlijkeInstellingen "Weergaven in mijn menu").
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__button:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	height: 34px;
@@ -1944,11 +2009,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 /* A settings card's text area sets its lines at 1.5, 8px 12px in, as the
    boards draw them (56 board textareas; NcTextArea took the browser's
-   leading, ~1.13).
+   leading, ~1.13). The padding carries `!important` because a theme sets
+   every textarea to 5px 12px with `!important` (r33: 124.5px, board 130.5).
    @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15 */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input {
 	box-sizing: border-box;
-	padding: 8px 12px;
+	padding: 8px 12px !important;
 	font-size: 15px;
 	line-height: 1.5;
 }
@@ -2522,11 +2588,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
-/* A macro reads as the boards draw a card's list row: the name at weight 500
-   over its 13px line, both at the font's normal line height, 56px a row
+/* A macro reads as the boards draw a card's list row: the name 15px at
+   weight 500 over its 13px line, both at the font's normal line height, 56px a row
    (DqZaakAssistent "Macro's").
    @spec openspec/changes/board-macros-rows/specs/board-macros-rows/spec.md#requirement-a-board-macros-row-is-a-board-list-row */
 .cn-look-board .cn-macros-widget__row:not(.cn-look-nextcloud *) .cn-macros-widget__name {
+	font-size: 15px;
 	font-weight: 500;
 	line-height: normal;
 }
@@ -2702,6 +2769,31 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 15px;
 	font-weight: 600;
 	line-height: normal;
+}
+
+/* What the entry is about follows its message in the normal weight
+   ("Document beoordeeld: Mail aannemer over planning", DqZaakHistorie). */
+.cn-look-board .cn-timeline-manage__detail:not(.cn-look-nextcloud *) {
+	font-weight: 400;
+}
+
+/* The icon its kind declares sits in the rail circle in the soft ink, in
+   place of the dot. */
+.cn-look-board .cn-timeline-manage__entry-icon:not(.cn-look-nextcloud *) {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-timeline-manage__entry:has(> .cn-timeline-manage__entry-icon):not(.cn-look-nextcloud *)::before {
+	background: var(--color-background-dark);
 }
 
 .cn-look-board .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
@@ -2909,6 +3001,33 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions {
 	flex: 1 1 100%;
 	justify-content: space-between;
+	padding-inline: 1px;
+}
+
+/* The closing pair as the board draws it: Annuleren 14px in with no inner text
+   padding, Dag afsluiten 16px in with an 18px icon, 24px from the card edge
+   (r33 DqDagAfsluiten: Annuleren 4px wider, Dag afsluiten 6px narrower, the
+   gap between them 517 against 512.8; by injection 513.1).
+   @spec openspec/changes/board-close-day-pair-as-drawn/specs/board-close-day-pair-as-drawn/spec.md#requirement-the-board-closing-pair-is-drawn-as-the-board */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue {
+	--button-padding: 14px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
+	--button-padding: 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue__icon {
+	width: 18px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue__icon .material-design-icon__svg {
+	width: 18px;
+	height: 18px;
 }
 
 /* Hover: the whole row takes the hover ground, 8px beyond the text so the
@@ -3376,6 +3495,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* The darkest step of a scale matrix sets its figure in white, as the boards
+   do (DqProcesanalyse "70 d"; live the light primary tint, 234,240,247).
+   @spec openspec/changes/board-matrix-darkest-white/specs/board-matrix-darkest-white/spec.md#requirement-the-darkest-board-matrix-step-is-white */
+.cn-look-board .cn-chart-widget__matrix:not(.cn-look-nextcloud *) .cn-chart-widget__matrix-cell--4 {
+	--nldesign-color-on-surface: var(--color-primary-element-text);
+	color: var(--color-primary-element-text);
+}
+
 /* ---- A tree menu on a card (DqCatalogus "Zaaktypen, Attributen ...") ---- */
 /* The board draws a card of folders: 14px inside the card, rows 2px apart,
    each 8px 10px with an 8px corner at 15px, the open folder on the primary
@@ -3542,6 +3669,35 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	border-radius: 10px;
 }
 
+/* ---- An empty state on a settings card ---------------------------------- */
+/* A 48px icon in the control colour over a 20px bold line, 8px apart and 12px
+   in at top and bottom: 104px (DqBeheerGeavanceerd "StUF-ZKN-auditlog",
+   "Tenant-onboarding"); NcEmptyContent drew a 64px faded icon over a 30px
+   line, 127px. Its icon size carries `!important`, so this one does too.
+   @spec openspec/changes/board-settings-empty-state/specs/board-settings-empty-state/spec.md#requirement-a-board-settings-empty-state-is-104px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content {
+	gap: 8px;
+	padding: 12px 0;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__icon {
+	width: 48px;
+	height: 48px;
+	margin: 0;
+	opacity: 1;
+	color: var(--cn-board-control-border);
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__icon svg {
+	width: 48px !important;
+	height: 48px !important;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .empty-content__name {
+	margin: 0;
+	line-height: 24px;
+}
+
 /* ---- A setup step's choice radio ---------------------------------------- */
 /* The setup wizard's choice cards draw their radio 20px square in the primary
    colour (DqInstellen "Voorbeeldgegevens laden"); the browser draws 13px, and
@@ -3626,6 +3782,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-track {
 	height: 10px;
 	border-radius: 5px;
+}
+
+/* Its label wraps in the 150px column instead of being cut off, as the board
+   breaks "Parkeervergunning bewoners" over two lines (r33: one line with an
+   ellipsis, a 234px section against 249).
+   @spec openspec/changes/board-section-bar-label-wraps/specs/board-section-bar-label-wraps/spec.md#requirement-a-board-section-bar-label-wraps */
+.cn-look-board .cn-sections-widget__section .cn-chart-widget__bar-list:not(.cn-look-nextcloud *) .cn-chart-widget__bar-label {
+	white-space: normal;
+	overflow: visible;
 }
 
 /* A bar list with the value at the bar's end (DqProcesanalyse "Doorlooptijd
@@ -3942,6 +4107,7 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	line-height: normal;
 }
 
+.cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icon-field,
 .cn-look-board .cn-saved-view-look:not(.cn-look-nextcloud *) .cn-saved-view-look__icons {
 	gap: 7px;
 }

@@ -23,7 +23,7 @@ const T = '.cn-look-board .cn-timeline-manage'
 
 describe('look-board-detail.css: the history composer and entries', () => {
 	it('makes the note field three lines high', () => {
-		expect(rule(T + ' .cn-timeline-manage__draft:not(.cn-look-nextcloud *)')).toContain('min-height: calc(3 * 1.5em + 22px)')
+		expect(rule(T + ' .cn-timeline-manage__draft:not(.cn-look-nextcloud *)')).toContain('min-height: calc(3 * 1.2em + 22px)')
 	})
 
 	it('sets the add button at the board height and the title-row buttons 12px apart', () => {

@@ -32,6 +32,10 @@ describe('look-board.css: an ordered list field', () => {
 		expect(body).toContain('background: var(--color-main-background);')
 	})
 
+	it('sets a row\'s buttons without a margin of their own', () => {
+		expect(rule(`.cn-look-board .cn-ordered-list-field__button${guard}`)).toContain('margin: 0;')
+	})
+
 	it('runs the add select the full width', () => {
 		expect(rule(`.cn-look-board .cn-ordered-list-field__add .v-select${guard}`)).toContain('width: 100%;')
 	})

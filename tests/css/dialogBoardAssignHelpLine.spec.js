@@ -31,4 +31,9 @@ describe('dialog.css: the assign dialog help lines', () => {
 	it('pulls the team search\'s 2px ring room back, so its help line is 6px under the field', () => {
 		expect(rule('.cn-dialog-board .dialog__content .cn-assign-dialog__field > .cn-search-select .v-select.select')).toMatch(/margin-block-end: -2px;/)
 	})
+
+	it('sets the note\'s text area on top of its line and pulls its ring room back, so its help line is 6px under it', () => {
+		expect(rule('.cn-dialog-board .dialog__content .cn-assign-dialog__field .textarea__input')).toMatch(/vertical-align: top;/)
+		expect(rule('.cn-dialog-board .dialog__content .cn-assign-dialog__field > .textarea')).toMatch(/margin-block-end: -2px;/)
+	})
 })
