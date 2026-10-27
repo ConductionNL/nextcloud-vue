@@ -1432,7 +1432,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.156.0 lets a detail page pack its grid upward too (gridFloat on type='detail', CnDetailPage gridFloat; description only).
 		// 2.157.0 lets accessPurpose ask the app first (checkUrl) and an option carry a hint.
 		// 2.158.0 lets a link card carry a status and a links page close with a panel (link-cards-status-and-info), adds the import dialog's template, column mapping and check first (importTemplate, importMapping, importCheckFirst; mass-import-mapping-check-first), a detail page's titleTemplate (column-and-title-template) and card chips per list entry with a template meta part (each; card-list-chips).
-		// 2.159.0 adds a dashboard's kpiColumns (widget-header-action-tonal).
+		// 2.159.0 adds a dashboard's kpiColumns (widget-header-action-tonal) and optionsFrom.keepFields (create-form-widget).
 		expect(schema.version).toBe('2.159.0')
 	})
 

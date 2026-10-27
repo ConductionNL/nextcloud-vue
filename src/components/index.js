@@ -287,6 +287,7 @@ export { default as CnNextStepWidget } from './CnNextStepCard/CnNextStepWidget.v
 export { default as CnAuditTrailWidget } from './CnAuditTrailWidget/CnAuditTrailWidget.vue'
 export { CnKbSearchWidget } from './CnKbSearchWidget/index.js'
 export { CnInteractionFormWidget } from './CnInteractionFormWidget/index.js'
+export { CnCreateFormWidget } from './CnCreateFormWidget/index.js'
 export { CnWorkspaceFilterWidget } from './CnWorkspaceFilterWidget/index.js'
 export { CnFilePreview } from './CnFilePreview/index.js'
 export { CnTaskFormDialog } from './CnTaskFormDialog/index.js'

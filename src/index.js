@@ -90,6 +90,7 @@ export {
 	CnCopyDialog,
 	CnCountdownWidget,
 	CnCountdownWidgetForm,
+	CnCreateFormWidget,
 	CnCredentials,
 	CnCronField,
 	CnDashboardGrid,
