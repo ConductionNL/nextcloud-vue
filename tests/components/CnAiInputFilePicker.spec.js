@@ -90,4 +90,10 @@ describe('CnAiInput Choose from Files', () => {
 		expect(w.vm.attachments.length).toBe(1)
 		expect(w.vm.uploadError).toBe('')
 	})
+
+	it('loads the dialogs package only when someone picks from Files', () => {
+		const source = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnAiCompanion/CnAiInput.vue'), 'utf8')
+		expect(source).not.toMatch(/^import [^\n]* from '@nextcloud\/dialogs'/m)
+		expect(source).toContain("await import('@nextcloud/dialogs')")
+	})
 })
