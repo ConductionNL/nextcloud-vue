@@ -118,6 +118,7 @@
 				<span
 					v-else-if="block.kind === 'text'"
 					class="cn-facts-widget__text"
+					:class="{ 'cn-facts-widget__text--joined': block.joined }"
 					:data-testid="`cn-fact-${block.key}`">
 					{{ block.value }}
 				</span>
@@ -474,7 +475,7 @@ export default {
 		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
-		 *   A `line` or `text` with `joinPrevious: true` is written on after the line or text just before it, as one paragraph (`joinSeparator`, default a space); with none before it, it stands alone.
+		 *   A `line` or `text` with `joinPrevious: true` is written on after the line or text just before it, as one paragraph (`joinSeparator`, default a space); with none before it, it stands alone. A text joined with a line break (`joinSeparator: "\n"`) keeps it: two address lines as one block.
 		 *   A row with `inline: true` spans both columns as one line, the label, the value and its buttons side by side (a masked BSN with Show).
 		 *   A row's `format` may also be `email`, `phone` or `url` (a link) or `masked` (the last four characters; `reveal: true` adds Show, which unmasks the record's value; `reveal: { url, path? }` makes Show ask the server for the value at `url` (tokens resolved), read at `path` (else the entry's path), so a server that answers the mask can check and record the reveal). `copy: true` adds a copy button; `icon` replaces the label.
 		 *   A part may be `{ text }`, a constant; a `line` or `text` entry without `path` or `parts` shows its `text`.
@@ -2281,6 +2282,12 @@ export default {
 .cn-facts-widget__text {
 	color: var(--color-main-text);
 	font-size: 15px;
+}
+
+/* Text joined on with a line break (`joinSeparator: "\n"`) keeps the break:
+   an address as two lines of one block (DqOrganisatie "KvK en adres"). */
+.cn-facts-widget__text--joined {
+	white-space: pre-line;
 }
 
 /* A lead: an icon tile or initials beside a bold title and a muted subtitle. */
