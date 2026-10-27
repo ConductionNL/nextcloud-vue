@@ -17,3 +17,11 @@ In the board look, a stacked record list in a detail page's side column SHALL dr
 #### Scenario: DqOrganisatie Lopende zaken
 
 - **THEN** "Subsidie buurtfeest Oosthaven" is 15px bold, blue and underlined
+
+### Requirement: A wrapping column's secondary line is 14px, 2px under its value in the board look
+
+In the board look, a wrapping table column other than the title column SHALL draw its secondary line at 14px and a normal line height, 2px under the value.
+
+#### Scenario: DqTaken Onderwerp
+
+- **THEN** "2026-4853" is 14px, 2px under "Melding geluidsoverlast terras Markt", and the row is 99px

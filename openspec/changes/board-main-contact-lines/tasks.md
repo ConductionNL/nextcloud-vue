@@ -1,3 +1,4 @@
 - [x] Board look: main contact e-mail and link 14px
 - [x] Board look: stacked side list row titles as links
+- [x] Board look: a wrapping column secondary line 14px, 2px under the value
 - [x] CSS test
