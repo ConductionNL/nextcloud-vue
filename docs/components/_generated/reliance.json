@@ -66,7 +66,7 @@
 		},
 		"CnActionsBar": {
 			"direct": 0,
-			"transitive": 25,
+			"transitive": 26,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -76,7 +76,8 @@
 				"CnFkResolveCell",
 				"CnFlowDetail",
 				"CnGraphCanvas",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnSchemaFormDialog"
 			],
 			"page": "cn-actions-bar"
 		},
@@ -103,7 +104,7 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 28,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -114,7 +115,8 @@
 				"CnFkResolveCell",
 				"CnFlowDetail",
 				"CnGraphCanvas",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnSchemaFormDialog"
 			],
 			"page": "cn-admin-settings-shell"
 		},
@@ -401,7 +403,7 @@
 		},
 		"CnBuildiqEditButton": {
 			"direct": 1,
-			"transitive": 24,
+			"transitive": 25,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -410,7 +412,8 @@
 				"CnFkResolveCell",
 				"CnFlowDetail",
 				"CnGraphCanvas",
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnSchemaFormDialog"
 			],
 			"page": "cn-buildiq-edit-button"
 		},
@@ -782,7 +785,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -856,6 +859,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnSlotGrid",
@@ -1029,7 +1033,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 207,
+			"transitive": 208,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1103,6 +1107,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnSlotGrid",
@@ -1433,7 +1438,7 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 28,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1444,7 +1449,8 @@
 				"CnFlowDetail",
 				"CnGraphCanvas",
 				"CnIndexPage",
-				"CnRoadmapTab"
+				"CnRoadmapTab",
+				"CnSchemaFormDialog"
 			],
 			"page": "cn-features-and-roadmap-page"
 		},
@@ -1457,7 +1463,7 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 28,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1468,13 +1474,14 @@
 				"CnFlowDetail",
 				"CnGraphCanvas",
 				"CnIndexPage",
-				"CnRoadmapTab"
+				"CnRoadmapTab",
+				"CnSchemaFormDialog"
 			],
 			"page": "cn-features-and-roadmap-view"
 		},
 		"CnFeaturesBoard": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 28,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1485,7 +1492,8 @@
 				"CnFlowDetail",
 				"CnGraphCanvas",
 				"CnIndexPage",
-				"CnRoadmapTab"
+				"CnRoadmapTab",
+				"CnSchemaFormDialog"
 			],
 			"page": null
 		},
@@ -1658,7 +1666,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 215,
+			"transitive": 216,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1734,6 +1742,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnSlotGrid",
@@ -2094,7 +2103,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 212,
+			"transitive": 213,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2169,6 +2178,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnSlotGrid",
@@ -3246,7 +3256,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 232,
+			"transitive": 233,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3329,6 +3339,7 @@
 				"CnResourceSelect",
 				"CnRetentionWidget",
 				"CnRoadmapTab",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSearchPage",
 				"CnSettingsField",
@@ -3745,7 +3756,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 205,
+			"transitive": 206,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3820,6 +3831,7 @@
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
 				"CnRetentionWidget",
+				"CnSchemaFormDialog",
 				"CnSchemaRulesWidget",
 				"CnSettingsFormWidget",
 				"CnSlotGrid",
@@ -4036,7 +4048,7 @@
 			"page": "cn-saved-views-widget"
 		},
 		"CnSchemaFormDialog": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 16,
 			"tier": "heavy",
 			"via": [
@@ -4195,7 +4207,7 @@
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4207,6 +4219,7 @@
 				"CnGraphCanvas",
 				"CnIndexPage",
 				"CnRegisterMapping",
+				"CnSchemaFormDialog",
 				"CnSettingsField"
 			],
 			"page": "cn-settings-page"

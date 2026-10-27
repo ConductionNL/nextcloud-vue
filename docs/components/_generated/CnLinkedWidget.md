@@ -10,9 +10,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name       | Type                 | Required | Default | Description                                                             |
-| ---------- | -------------------- | -------- | ------- | ----------------------------------------------------------------------- |
-| `content`  | `object`             |          | `\{\}`  | `{ leaves: string[] }`: the integration ids, in the order to list them. |
-| `objectId` | `string&#124;number` |          | `''`    | The record's id.                                                        |
-| `register` | `string`             |          | `''`    | The record's register.                                                  |
-| `schema`   | `string`             |          | `''`    | The record's schema.                                                    |
+| Name       | Type                 | Required | Default | Description                                                                                             |
+| ---------- | -------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `content`  | `object`             |          | `\{\}`  | `{ leaves: Array&lt;string\|object&gt; }`: integration ids or record leaves, in the order to list them. |
+| `objectId` | `string&#124;number` |          | `''`    | The record's id.                                                                                        |
+| `register` | `string`             |          | `''`    | The record's register.                                                                                  |
+| `schema`   | `string`             |          | `''`    | The record's schema.                                                                                    |

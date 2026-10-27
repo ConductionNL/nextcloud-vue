@@ -294,4 +294,19 @@ describe('CnSettingsFieldsSection field kinds', () => {
 		expect(wrapper.find('h2').exists()).toBe(false)
 		expect(field(wrapper, 'x').exists()).toBe(true)
 	})
+
+	it('draws an action with placement save beside Save, and keeps the others in the form', async () => {
+		axios.get.mockResolvedValue({ data: { secret: '' } })
+		const wrapper = await mountSection({
+			fields: [
+				{ key: 'secret', label: 'Secret', type: 'password' },
+				{ key: 'gen', label: 'Generate random secret', type: 'action', fill: { key: 'secret', bytes: 32 }, placement: 'save' },
+				{ key: 'test', label: 'Test', type: 'action', url: '/apps/myapp/api/health' },
+			],
+		})
+		const saveRow = wrapper.find('.cn-settings-fields__save')
+		expect(saveRow.find('[data-testid="cn-settings-field-action-gen"]').exists()).toBe(true)
+		expect(saveRow.find('[data-testid="cn-settings-field-action-test"]').exists()).toBe(false)
+		expect(wrapper.find('.cn-settings-fields__grid [data-testid="cn-settings-field-action-gen"]').exists()).toBe(false)
+	})
 })

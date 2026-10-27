@@ -342,6 +342,8 @@ export default {
 					objectDescriptionField: '',
 					objectImageField: '',
 					objectSummaryField: '',
+					objectSlugField: '',
+					objectSlugSuffix: false,
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
@@ -606,6 +608,8 @@ export default {
 					objectDescriptionField: '',
 					objectImageField: '',
 					objectSummaryField: '',
+					objectSlugField: '',
+					objectSlugSuffix: false,
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
@@ -639,6 +643,12 @@ export default {
 				}
 				if (!this.schemaItem.configuration.objectSummaryField) {
 					this.schemaItem.configuration.objectSummaryField = ''
+				}
+				if (!this.schemaItem.configuration.objectSlugField) {
+					this.schemaItem.configuration.objectSlugField = ''
+				}
+				if (this.schemaItem.configuration.objectSlugSuffix === undefined) {
+					this.schemaItem.configuration.objectSlugSuffix = false
 				}
 				if (this.schemaItem.configuration.allowFiles === undefined) {
 					this.schemaItem.configuration.allowFiles = false

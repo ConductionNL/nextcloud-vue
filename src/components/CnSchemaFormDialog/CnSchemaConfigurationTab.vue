@@ -123,6 +123,23 @@
 			:clearable="true"
 			:inputLabel="t('nextcloud-vue', 'Object summary field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
+		<NcSelect
+			v-model="schema.configuration.objectSlugField"
+			:disabled="loading"
+			:options="slugFieldOptions"
+			:reduce="option => option.id"
+			label="label"
+			:clearable="true"
+			:inputLabel="t('nextcloud-vue', 'Object slug field')"
+			:placeholder="t('nextcloud-vue', 'Select a property to build object slugs from')" />
+		<NcCheckboxRadioSwitch
+			v-model="schema.configuration.objectSlugSuffix"
+			:disabled="loading || !schema.configuration.objectSlugField">
+			{{ t('nextcloud-vue', 'Append a date-time suffix when a slug is already taken') }}
+		</NcCheckboxRadioSwitch>
+		<NcNoteCard v-if="schema.configuration.objectSlugField" type="info">
+			<p>{{ t('nextcloud-vue', 'A slug is unique within the register and schema and does not change once it is set, also not after the slug field is switched. Objects without a slug get one from the new field on their next save or with occ openregister:backfill-slugs <register> <schema>.') }}</p>
+		</NcNoteCard>
 		<NcCheckboxRadioSwitch
 			v-model="schema.configuration.allowFiles"
 			:disabled="loading">
@@ -217,6 +234,21 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The choices for the object slug field: every schema property, and first the
+		 * reserved source `@schema.name` that OpenRegister turns into
+		 * `<schema slug>-<object name>` (the second choice Robert Zondervan asked for
+		 * next to a property, 2026-10-26). Stored as the id, shown by its label.
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		slugFieldOptions() {
+			return [
+				{ id: '@schema.name', label: t('nextcloud-vue', 'Schema name + object name') },
+				...this.propertyOptions.map((property) => ({ id: property, label: property })),
+			]
+		},
+
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
@@ -224,6 +256,16 @@ export default {
 	},
 
 	watch: {
+		// The suffix only applies together with a slug field; drop it when the
+		// field is cleared so it cannot silently re-activate on a later pick.
+		'schema.configuration.objectSlugField': {
+			handler(value) {
+				if (!value && this.schema.configuration.objectSlugSuffix) {
+					this.schema.configuration.objectSlugSuffix = false
+				}
+			},
+		},
+
 		'schema.configuration.allowedTags': {
 			immediate: true,
 			handler(tags) {
