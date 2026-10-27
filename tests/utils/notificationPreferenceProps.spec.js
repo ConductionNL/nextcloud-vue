@@ -51,12 +51,8 @@ describe('the id of a row', () => {
 		// The same key can exist on two schemas. A collision would merge two
 		// notifications into one switch, and half of them would stop being
 		// settable at all.
-		expect(keyFor({ schema: 'case', notification: 'caseAssigned' })).toBe(
-			'case-caseAssigned',
-		)
-		expect(
-			keyFor({ schema: 'substitution', notification: 'caseAssigned' }),
-		).not.toBe(keyFor({ schema: 'case', notification: 'caseAssigned' }))
+		expect(keyFor({ schema: 'case', notification: 'caseAssigned' })).toBe('case-caseAssigned')
+		expect(keyFor({ schema: 'substitution', notification: 'caseAssigned' })).not.toBe(keyFor({ schema: 'case', notification: 'caseAssigned' }))
 	})
 })
 
@@ -68,18 +64,16 @@ describe('the columns', () => {
 	})
 
 	it('carries a channel the instance has not configured, with the reason', () => {
-		expect(
-			channelsFrom({
-				channels: [
-					{
-						id: 'sms',
-						label: 'SMS',
-						configured: false,
-						unconfiguredReason: 'No gateway',
-					},
-				],
-			})[0],
-		).toEqual({
+		expect(channelsFrom({
+			channels: [
+				{
+					id: 'sms',
+					label: 'SMS',
+					configured: false,
+					unconfiguredReason: 'No gateway',
+				},
+			],
+		})[0]).toEqual({
 			id: 'sms',
 			label: 'SMS',
 			configured: false,
@@ -124,10 +118,8 @@ describe('the rows', () => {
 	it('takes the shipped default from the effective value when nothing overrode it', () => {
 		const events = eventsFrom({ entries: ENTRIES })
 
-		expect(
-			events.find((event) => event.id === 'workDigest-workDigestReady')
-				.appDefault,
-		).toBe(true)
+		expect(events.find((event) => event.id === 'workDigest-workDigestReady')
+			.appDefault).toBe(true)
 	})
 
 	it('does not guess a shipped default that was overridden', () => {
@@ -137,9 +129,7 @@ describe('the rows', () => {
 		// a layer the screen displays.
 		const events = eventsFrom({ entries: ENTRIES })
 
-		expect(
-			events.find((event) => event.id === 'case-caseAssigned').appDefault,
-		).toBe(false)
+		expect(events.find((event) => event.id === 'case-caseAssigned').appDefault).toBe(false)
 	})
 
 	it('takes the shipped default from the platform when it says so, which is the control', () => {
@@ -232,9 +222,7 @@ describe('the layers', () => {
 			],
 		})
 
-		expect(forcedValues['case-caseAssigned'][SINGLE_CHANNEL_ID].value).toBe(
-			false,
-		)
+		expect(forcedValues['case-caseAssigned'][SINGLE_CHANNEL_ID].value).toBe(false)
 	})
 
 	it('carries a refusal with its reason, separately from an absence', () => {
@@ -289,9 +277,7 @@ describe('the write behind a change', () => {
 	it('keeps a key that contains a dash intact', () => {
 		// Splitting on the LAST dash would move half the key into the schema
 		// and write to a notification nobody has.
-		expect(
-			writeFor({ eventId: 'case-case-handoff-intake', value: false }),
-		).toEqual({
+		expect(writeFor({ eventId: 'case-case-handoff-intake', value: false })).toEqual({
 			schema: 'case',
 			notification: 'case-handoff-intake',
 			enabled: false,
@@ -299,16 +285,12 @@ describe('the write behind a change', () => {
 	})
 
 	it('pins the write to the domain being shown', () => {
-		expect(
-			writeFor({ eventId: 'case-caseAssigned', scope: 'zaken', value: true })
-				.scope,
-		).toBe('domain:zaken')
+		expect(writeFor({ eventId: 'case-caseAssigned', scope: 'zaken', value: true })
+			.scope).toBe('domain:zaken')
 	})
 
 	it('writes nothing global as scoped, which is the control', () => {
-		expect(
-			writeFor({ eventId: 'case-caseAssigned', value: true }).scope,
-		).toBeUndefined()
+		expect(writeFor({ eventId: 'case-caseAssigned', value: true }).scope).toBeUndefined()
 	})
 
 	it('refuses an id it did not make', () => {

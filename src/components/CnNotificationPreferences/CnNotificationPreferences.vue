@@ -93,9 +93,9 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
 import BellOutline from 'vue-material-design-icons/BellOutline.vue'
+import CnNotificationMatrix from '../CnNotificationMatrix/CnNotificationMatrix.vue'
 import innerHeading from '../../mixins/innerHeading.js'
 import { channelsOnFor, keyFor, propsFor, writeFor } from '../../utils/notificationPreferenceProps.js'
-import CnNotificationMatrix from '../CnNotificationMatrix/CnNotificationMatrix.vue'
 import { notificationRuleLabel } from '../../utils/notificationRuleLabel.js'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
@@ -254,6 +254,9 @@ export default {
 		 * Write one matrix cell and read the answer again.
 		 *
 		 * @param {object} change The matrix's change: `{ eventId, channelId, value }`.
+		 * @param change.eventId
+		 * @param change.channelId
+		 * @param change.value
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/notification-preferences-board-matrix/specs/notification-preferences-board-matrix/spec.md#requirement-the-board-look-draws-notification-preferences-as-a-matrix
 		 */
