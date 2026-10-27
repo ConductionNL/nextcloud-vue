@@ -61,6 +61,7 @@
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-store-page:not(.cn-look-nextcloud *),
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *),
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
@@ -82,6 +83,7 @@
 .cn-look-board .cn-dashboard-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
 .cn-look-board .cn-settings-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
 .cn-look-board .cn-store-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
+.cn-look-board .cn-link-cards-page:not(#cn-board-page-ground):not(.cn-look-nextcloud *),
 .cn-look-board .cn-admin-settings-shell:not(#cn-board-page-ground):not(.cn-look-nextcloud *) {
 	background-color: transparent;
 }
@@ -134,6 +136,7 @@
    kept the inset with the navigation open, 56px right of the board's title. */
 .cn-look-board .cn-page-header:not(.cn-look-nextcloud *),
 .cn-look-board .cn-store-page:not(.cn-look-nextcloud *) .cn-store-page__header,
+.cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__header,
 .cn-look-board .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	padding-inline-start: 0;
@@ -141,6 +144,7 @@
 
 .cn-look-board:has(.app-navigation--closed) .cn-page-header:not(.cn-look-nextcloud *),
 .cn-look-board:has(.app-navigation--closed) .cn-store-page:not(.cn-look-nextcloud *) .cn-store-page__header,
+.cn-look-board:has(.app-navigation--closed) .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__header,
 .cn-look-board:has(.app-navigation--closed) .cn-detail-page:not(.cn-look-nextcloud *) .cn-detail-page__header,
 .cn-look-board:has(.app-navigation--closed) .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-dashboard-page__header {
 	padding-inline-start: 56px;

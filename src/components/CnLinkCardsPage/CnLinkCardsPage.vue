@@ -4,9 +4,21 @@
 -->
 
 <template>
-	<div class="cn-link-cards-page" data-testid="cn-link-cards-page">
+	<div class="cn-link-cards-page" :class="{ 'cn-link-cards-page--board': isBoardLook }" data-testid="cn-link-cards-page">
+		<!-- The board look draws the page's own header: the title as the page's
+		     h1 with the buildiq square on its row, the line under it (PqModules,
+		     PqReports). The plain look draws the same h1 without the row, above
+		     the categories' h2. -->
 		<div class="cn-link-cards-page__header">
-			<h1 v-if="resolvedTitle" class="cn-link-cards-page__title">
+			<div v-if="isBoardLook" class="cn-link-cards-page__title-row">
+				<h1 v-if="resolvedTitle" class="cn-link-cards-page__title">
+					{{ resolvedTitle }}
+				</h1>
+				<div class="cn-link-cards-page__header-actions">
+					<CnBuildiqEditButton />
+				</div>
+			</div>
+			<h1 v-else-if="resolvedTitle" class="cn-link-cards-page__title">
 				{{ resolvedTitle }}
 			</h1>
 			<p v-if="resolvedDescription" class="cn-link-cards-page__description">
@@ -195,7 +207,9 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnModuleCard from '../CnModuleCard/CnModuleCard.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -309,7 +323,7 @@ async function fetchStatusValue(source) {
 export default {
 	name: 'CnLinkCardsPage',
 
-	components: { ChevronRight, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
+	components: { ChevronRight, CnBuildiqEditButton, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
 
 	inject: {
 		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
@@ -318,6 +332,8 @@ export default {
 		cnManifest: { default: null },
 		/** The permissions the user holds. Empty means the app did not say, and allows. */
 		cnPermissions: { default: () => [] },
+		/** The look the app takes: `board` draws the page's own header. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -430,6 +446,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @spec openspec/changes/links-page-board-header/specs/links-page-board-header/spec.md#requirement-a-board-links-page-draws-the-page-header
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * The config, from the flattened props or from `page.config`. Props win.
 		 *
@@ -900,6 +926,50 @@ export default {
 
 .cn-link-cards-page__title {
 	margin: 0 0 var(--default-grid-baseline);
+}
+
+/* Board look: the boards' page header (PqModules): the title as a 28px h1
+   with the buildiq square at the end of its row, the 15px line 6px under it,
+   4px above and 8px under the header; the sections 20px apart.
+   @spec openspec/changes/links-page-board-header/specs/links-page-board-header/spec.md#requirement-a-board-links-page-draws-the-page-header */
+.cn-link-cards-page--board {
+	gap: 20px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 4px 0 8px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__title-row {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px 24px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__title {
+	flex: 1 1 320px;
+	min-width: 0;
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__header-actions {
+	flex: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__description {
+	max-width: none;
+	font-size: 15px;
 }
 
 .cn-link-cards-page__description,
