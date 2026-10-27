@@ -1327,6 +1327,7 @@
 				:register="register"
 				:dialogTitle="editFormTitle"
 				:subtitle="editFormSubtitle"
+				:confirmLabel="editFormConfirmLabel"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -2475,6 +2476,12 @@ export default {
 
 		/** One line under the edit form's title, run through the host translate. Empty shows none. */
 		editSubtitle: {
+			type: String,
+			default: '',
+		},
+
+		/** The edit form's save button, run through the host translate. Empty keeps the form's own label. */
+		editConfirmLabel: {
 			type: String,
 			default: '',
 		},
@@ -4855,6 +4862,11 @@ export default {
 		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
 		editFormSubtitle() {
 			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
+		},
+
+		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
+		editFormConfirmLabel() {
+			return this.editConfirmLabel ? this.effectiveTranslate(this.editConfirmLabel) : ''
 		},
 
 		/**
