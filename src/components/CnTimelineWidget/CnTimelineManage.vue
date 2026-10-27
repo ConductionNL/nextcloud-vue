@@ -97,13 +97,19 @@
 					:class="{ 'cn-timeline-manage__entry--pinned': entry.pinned }"
 					:data-kind="entry.kind || 'note'"
 					data-testid="cn-timeline-entry">
+					<span v-if="kindIcon(entry)"
+						class="cn-timeline-manage__entry-icon"
+						aria-hidden="true"
+						data-testid="cn-timeline-entry-icon">
+						<CnIcon :name="kindIcon(entry)" :size="16" />
+					</span>
 					<p class="cn-timeline-manage__message">
-						{{ entry.message }}
+						{{ entry.message }}<span v-if="entryDetail(entry)" class="cn-timeline-manage__detail">: {{ entryDetail(entry) }}</span>
 					</p>
 
 					<div class="cn-timeline-manage__head">
 						<span class="cn-timeline-manage__kind">{{ kindLabel(entry) }}</span>
-						<span class="cn-timeline-manage__author">{{ entry.author }}</span>
+						<span class="cn-timeline-manage__author">{{ authorName(entry.author) }}</span>
 						<span class="cn-timeline-manage__moment">{{ moment(entry.created) }}</span>
 						<span v-if="entry.visibility === 'public'"
 							class="cn-timeline-manage__badge cn-timeline-manage__badge--public"
@@ -252,7 +258,10 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import { prefixUrl } from '../../utils/headers.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 let instanceCount = 0
 
@@ -279,7 +288,7 @@ function readPath(value, path) {
 export default {
 	name: 'CnTimelineManage',
 
-	components: { Download, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, Plus },
+	components: { CnIcon, Download, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, Plus },
 
 	inject: {
 		/** The app's component registry; entry actions resolve their modal here. */
@@ -312,6 +321,11 @@ export default {
 		 * `auditTrailLink` (`true` or a label) draws a footer link that opens
 		 * the object sidebar on its audit trail tab, `auditTrailTab` when the
 		 * page declares that tab under its own id.
+		 * `momentFormat: "short"` writes an entry's moment as "6 okt, 15:40"
+		 * (day, short month and time in the reader's locale).
+		 * An entry shows its `fields.title` after the message ("Document
+		 * beoordeeld: Mail aannemer over planning"), its author by display
+		 * name, and the `icon` its kind declares in the rail circle.
 		 */
 		content: { type: Object, default: () => ({}) },
 	},
@@ -776,6 +790,39 @@ export default {
 		},
 
 		/**
+		 * The icon the entry's kind declares (`icon` on the kind), or ''.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} An icon name for CnIcon.
+		 */
+		kindIcon(entry) {
+			const declared = entry.kind ? this.kinds.find((kind) => kind.slug === entry.kind) : null
+			return declared && typeof declared.icon === 'string' ? declared.icon : ''
+		},
+
+		/**
+		 * What the entry is about, written after its message: `fields.title`.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The detail, or ''.
+		 */
+		entryDetail(entry) {
+			const title = entry.fields && typeof entry.fields.title === 'string' ? entry.fields.title.trim() : ''
+			return title
+		},
+
+		/**
+		 * An author's display name; the user id while it is looked up or
+		 * when it names no user.
+		 *
+		 * @param {string} author The author as stored.
+		 * @return {string} The name.
+		 */
+		authorName(author) {
+			return userDisplayName(author) || author || ''
+		},
+
+		/**
 		 * The label of one entry's kind, falling back to "Note".
 		 *
 		 * @param {object} entry The entry.
@@ -803,7 +850,16 @@ export default {
 				return ''
 			}
 			const parsed = new Date(value)
-			return isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
+			if (isNaN(parsed.getTime())) {
+				return value
+			}
+			if (this.content?.momentFormat === 'short') {
+				const locale = userLocale()
+				const day = parsed.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace(/\.$/, '')
+				const time = parsed.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+				return `${day}, ${time}`
+			}
+			return parsed.toLocaleString()
 		},
 
 		async togglePin(entry) {
