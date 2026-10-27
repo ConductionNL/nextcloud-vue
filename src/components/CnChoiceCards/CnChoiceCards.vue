@@ -540,6 +540,15 @@ export default {
 	border-color: var(--color-border-dark);
 }
 
+/* Rows side by side (`columns` above 1) are as high as the tallest: a grid
+   cell stretches, and its row fills it, as the boards draw "Delen" beside
+   "Overdragen" (DqZaakSamenwerken). A cell with details keeps its row at its
+   own height, the fields under it. In a single column the cell is as high as
+   its row, so nothing changes there. */
+.cn-choice-cards__cell:not(.cn-choice-cards__cell--with-details) > .cn-choice-cards__row {
+	flex-grow: 1;
+}
+
 .cn-choice-cards__row--selected,
 .cn-choice-cards__row--selected:hover {
 	border-color: var(--color-primary-element);
