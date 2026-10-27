@@ -6,9 +6,9 @@
 <template>
 	<div class="cn-link-cards-page" data-testid="cn-link-cards-page">
 		<div class="cn-link-cards-page__header">
-			<h2 v-if="resolvedTitle" class="cn-link-cards-page__title">
+			<h1 v-if="resolvedTitle" class="cn-link-cards-page__title">
 				{{ resolvedTitle }}
-			</h2>
+			</h1>
 			<p v-if="resolvedDescription" class="cn-link-cards-page__description">
 				{{ resolvedDescription }}
 			</p>
@@ -56,12 +56,12 @@
 			:aria-label="group.label ? null : resolvedTitle || null"
 			data-testid="cn-link-cards-group"
 			:data-group="group.key">
-			<h3
+			<h2
 				v-if="group.label"
 				:id="group.headingId"
 				class="cn-link-cards-page__caption">
 				{{ group.label }}
-			</h3>
+			</h2>
 			<!-- groupStyle "list": the group is one card of rows, each an icon
 			     chip, the label over its description, and a trailing chevron
 			     (an external-link icon for a URL). -->
@@ -129,6 +129,11 @@
 								{{ statusOf(card) }}
 							</span>
 						</span>
+						<OpenInNew
+							v-if="trailingOf(card) === 'external'"
+							:size="18"
+							class="cn-link-cards-page__trailing" />
+						<ChevronRight v-else :size="20" class="cn-link-cards-page__trailing" />
 					</a>
 				</li>
 			</ul>
@@ -984,9 +989,15 @@ export default {
 
 .cn-link-cards-page__body {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
 	gap: var(--default-grid-baseline);
 	min-width: 0;
+}
+
+.cn-link-cards-page__trailing {
+	flex: none;
+	color: var(--color-text-maxcontrast);
 }
 
 /* The label is the card's title. Its colour is set here, on the span, because
