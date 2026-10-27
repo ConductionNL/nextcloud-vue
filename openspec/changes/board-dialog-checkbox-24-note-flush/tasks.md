@@ -1,0 +1,2 @@
+- [x] src/css/dialog.css rule
+- [x] tests/css/dialogBoardCheckbox24NoteFlush.spec.js (red first)
