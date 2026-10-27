@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { translate as t } from '@nextcloud/l10n'
-import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay, isoWeek } from './boardDate.js'
+import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatSoon, formatTimeOfDay, isoWeek } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
 import { formatMoney } from './formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from './groupAutocomplete.js'
@@ -81,7 +81,7 @@ function countEntries(list, key) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `soon`, `week`, `days`, `lower`, `mailbox` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -150,6 +150,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	if (format === 'ago') {
 		return formatAgo(value, now)
 	}
+	if (format === 'soon') {
+		return formatSoon(value, now)
+	}
 	if (format === 'mailbox') {
 		// An address up to and with its @ ("gemeente@" from gemeente@zuiddrecht.nl).
 		const text = String(value)
@@ -184,7 +187,8 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * the row field is empty, the app's reporting currency), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
  * ("vandaag, 09.42"), `{path|ago}` says how long ago it was ("10 min
- * geleden", "vanochtend", "vrijdag"), and `{path|days}` is the
+ * geleden", "vanochtend", "vrijdag"), `{path|soon}` says when a coming moment
+ * is due ("13.00" today, "morgen", "woensdag", then the short date), and `{path|days}` is the
  * whole days since that date ("has waited {createdAt|days} days"),
  * `{path|count}` is how many entries a list holds (nothing for an empty one;
  * `{path|count:key}` sums the `key` list of each entry),

@@ -1104,23 +1104,28 @@ export default {
 	font-weight: 600;
 }
 
-/* The start card: text left, control (and link) right, as PqDashboard's "Contact starten". */
+/* The start card: text left, control (and link) right, as PqDashboard's
+   "Contact starten". It is the card's whole body, so it carries the card's
+   inner spacing (20px 22px). */
 .cn-workspace-filter-widget--start {
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 16px 24px;
+	gap: 12px 20px;
+	padding: 20px 22px;
+	box-sizing: border-box;
 }
 
 .cn-workspace-filter-widget__text {
-	flex: 1 1 320px;
+	flex: 1 1 300px;
 	min-width: 0;
 }
 
 .cn-workspace-filter-widget__title {
-	margin: 0 0 4px;
+	margin: 0 0 2px;
 	font-size: 17px;
 	font-weight: 700;
+	line-height: 1.2;
 	color: var(--color-main-text);
 }
 
@@ -1132,7 +1137,7 @@ export default {
 
 .cn-workspace-filter-widget--start .cn-workspace-filter-widget__control,
 .cn-workspace-filter-widget--start > .v-select {
-	flex: 0 1 480px;
+	flex: 1 1 360px;
 	min-width: 240px;
 }
 

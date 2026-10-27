@@ -245,6 +245,39 @@ export function formatAgo(value, now = new Date()) {
 }
 
 /**
+ * When a coming moment is due, as a call list says it: the time of day for
+ * today ("13.00" in Dutch, also when it has just passed), "tomorrow", the weekday for
+ * two to six days ahead ("Wednesday"), and the board's short date for any
+ * other day; yesterday reads "yesterday".
+ *
+ * @param {unknown} value The moment.
+ * @param {Date} [now] The reference moment.
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/soon-date-format/specs/soon-date-format/spec.md#requirement-a-template-reads-a-coming-moment-as-when-it-is-due
+ */
+export function formatSoon(value, now = new Date()) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const days = ageInDays(date, now)
+	if (days === 0) {
+		return formatTimeOfDay(date)
+	}
+	if (days === -1 || days === 1) {
+		return formatRelativeDate(date, { now })
+	}
+	if (days <= -2 && days >= -6) {
+		try {
+			return new Intl.DateTimeFormat(boardDateLocale(), { weekday: 'long' }).format(date)
+		} catch {
+			return new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(date)
+		}
+	}
+	return formatBoardDate(date, now)
+}
+
+/**
  * The ISO 8601 week number of a date: weeks start on Monday and week 1 holds
  * the year's first Thursday.
  *
