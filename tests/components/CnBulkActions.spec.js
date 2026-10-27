@@ -144,6 +144,22 @@ describe('CnIndexPage — bulk action dispatch', () => {
 		})
 	})
 
+	it('opens the modal through the app root when it provides cnOpenModal', () => {
+		const openModal = jest.fn()
+		const wrapper = mount(CnIndexPage, {
+			propsData: {
+				objects: [],
+				bulkActions: [{ id: 'enrich', label: 'Fill in', handler: 'open-modal', target: 'EnrichDialog' }],
+			},
+			global: { provide: { cnOpenModal: openModal } },
+			stubs: { CnActionsBar: { template: '<div />', props: ['bulkActions', 'headerActions', 'selectedIds', 'selectable'] } },
+			shallow: true,
+		})
+		wrapper.vm.onBulkAction({ id: 'enrich', selectedIds: ['a', 'b'], count: 2 })
+
+		expect(openModal).toHaveBeenCalledWith('EnrichDialog', { selectedIds: ['a', 'b'], count: 2 })
+	})
+
 	it('warns when a manifest shadows selectedIds, because the modal then never sees the selection', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const wrapper = mountPage([
