@@ -105,6 +105,7 @@ const DEFAULT_MAP = {
 	items: 'items',
 	label: 'title',
 	sort: 'order',
+	enumLabels: 'enumLabels',
 }
 
 /**
@@ -374,6 +375,11 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 		}
 		if (Array.isArray(enumValues) && enumValues.length > 0) {
 			prop.enum = [...enumValues]
+			// What each option reads ("digitaal" shown as "Digitaal"), when the definition says.
+			const enumLabels = mapped(record, map, 'enumLabels')
+			if (enumLabels && typeof enumLabels === 'object' && !Array.isArray(enumLabels)) {
+				prop.enumLabels = { ...enumLabels }
+			}
 		}
 		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
 			prop.default = defaultValue

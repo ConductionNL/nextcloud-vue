@@ -507,4 +507,12 @@ describe('propertiesFromDefinitions: a definition\'s own label and order', () =>
 			{ id: 'd', name: 'extra' },
 		])).toEqual(['Onderwerp', 'Naam verzoeker', 'Receipt date', 'Extra'])
 	})
+
+	it('hands a definition\'s option labels to the form (DqNieuweZaak "Digitaal", not "digitaal")', () => {
+		const { properties } = propertiesFromDefinitions([
+			{ id: 'v', name: 'gewensteVorm', propertyType: 'enum', enumValues: ['papier', 'digitaal'], enumLabels: { papier: 'Papier', digitaal: 'Digitaal' } },
+			{ id: 'w', name: 'plain', propertyType: 'enum', enumValues: ['a'] },
+		])
+		expect(Object.values(properties).map((prop) => prop.enumLabels)).toEqual([{ papier: 'Papier', digitaal: 'Digitaal' }, undefined])
+	})
 })
