@@ -2295,6 +2295,25 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	background-color: var(--nldesign-component-status-badge-info-background-color, var(--nl-color-blue-light, var(--color-info-light, rgba(0, 130, 201, 0.15))));
 }
 
+/* A table cell's progress badge (the "Verouderd 12 dagen" tag beside a
+   win chance, PqLeads) takes the same board tag tones; its base rule mixes
+   the Nextcloud status colour into a translucent ground.
+   @spec openspec/changes/board-tag-tones/specs/board-tag-tones/spec.md#requirement-a-toned-board-tag-takes-the-themes-status-badge-tokens */
+.cn-look-board .cn-cell-renderer__progress-badge--success:not(.cn-look-nextcloud *) {
+	color: var(--nldesign-component-status-badge-success-color, var(--nl-color-green-text, var(--color-success-text)));
+	background: var(--nldesign-component-status-badge-success-background-color, var(--nl-color-green-light, var(--color-success-light, rgba(70, 186, 97, 0.15))));
+}
+
+.cn-look-board .cn-cell-renderer__progress-badge--warning:not(.cn-look-nextcloud *) {
+	color: var(--nldesign-component-status-badge-warning-color, var(--nl-color-orange-text, var(--color-warning-text)));
+	background: var(--nldesign-component-status-badge-warning-background-color, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))));
+}
+
+.cn-look-board .cn-cell-renderer__progress-badge--error:not(.cn-look-nextcloud *) {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+	background: var(--nldesign-component-status-badge-error-background-color, var(--nl-color-red-light, var(--color-error-light, rgba(224, 68, 68, 0.15))));
+}
+
 /* ---- Info notes (NcNoteCard type="info") -------------------------------- */
 /* The board's info note is a light-blue rounded box: no edge bar, 10px 14px
    of padding, radius 10, an 18px icon on the first line 10px before the text,
