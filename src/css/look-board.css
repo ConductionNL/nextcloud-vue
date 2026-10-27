@@ -3355,6 +3355,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding-inline: 0;
 }
 
+/* A button in a table row on a settings card is 34px, 12px in at both sides
+   (DqBeheerGeavanceerd ZGW "Bewerken" / "Opnieuw instellen", AWB "Nieuwe
+   versie"; every in-table button on the Dq settings boards). The repeated
+   class outranks the 40px body-button and 16px padding rules above.
+   @spec openspec/changes/board-settings-row-buttons/specs/board-settings-row-buttons/spec.md#requirement-a-button-in-a-settings-table-row-is-34px */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):not(.cn-settings-section__actions *):not(.cn-settings-field__image-row *) {
+	--button-size: 34px;
+	--button-padding: 12px;
+	min-height: 34px;
+	height: 34px;
+}
+
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
 	height: var(--cn-field-height, 40px);
