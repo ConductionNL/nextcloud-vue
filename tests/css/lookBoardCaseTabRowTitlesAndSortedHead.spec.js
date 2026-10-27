@@ -31,6 +31,11 @@ describe('board look: case tab row titles and the sorted head', () => {
 			.toContain('font-weight: 600')
 	})
 
+	it('mutes a done task\'s status tag', () => {
+		expect(rule(read('look-board-detail.css'), '.cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *)'))
+			.toContain('--cn-status-badge-ink: var(--color-text-maxcontrast)')
+	})
+
 	it('keeps a detail card table\'s sorted label in the head ink', () => {
 		expect(rule(read('look-board-detail.css'), '.cn-look-board .cn-detail-page .cn-object-list-widget .cn-data-table th[aria-sort] .cn-table-header__sort:not(.cn-look-nextcloud *)'))
 			.toContain('color: inherit')

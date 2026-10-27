@@ -2695,3 +2695,10 @@
 .cn-look-board .cn-detail-page .cn-object-list-widget .cn-data-table th[aria-sort] .cn-table-header__sort:not(.cn-look-nextcloud *) {
 	color: inherit;
 }
+
+/* A done task reads muted on the board, its status tag too (DqZaakTaken
+   "Klaar" in #5e6168 where an open task's tag keeps the soft ink). */
+.cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--color-text-maxcontrast);
+	color: var(--cn-status-badge-ink);
+}
