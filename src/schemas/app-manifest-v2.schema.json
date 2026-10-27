@@ -1305,7 +1305,7 @@
 					"type": "object",
 					"description": "screens-kanban-parity: how the sum is formatted when the field's own schema does not say: `{ style, currency, decimals }`.",
 					"properties": {
-						"style": { "type": "string", "enum": ["number", "currency", "percent", "duration-hours", "decimal"] },
+						"style": { "type": "string", "enum": ["number", "currency", "percent", "duration-hours", "decimal", "date"] },
 						"currency": { "type": "string" },
 						"decimals": { "type": "integer", "minimum": 0 }
 					}
@@ -4004,12 +4004,12 @@
 				"format": {
 					"description": "How the value is shown, as a type:'stat' widget's content.format: a style name, or { style, currency, currencyField, decimals, prefix, suffix }. Omitted, the plain localized count is shown. Numbers are formatted with Intl in the user's locale.",
 					"oneOf": [
-						{ "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours"] },
+						{ "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours", "date"] },
 						{
 							"type": "object",
 							"additionalProperties": false,
 							"properties": {
-								"style": { "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours"] },
+								"style": { "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours", "date"] },
 								"currency": { "type": "string", "description": "ISO-4217 code, or a token such as @config.currency or @object.currency." },
 								"currencyField": { "type": "string", "description": "Field of the detail page's object that holds the currency (dot-path allowed)." },
 								"decimals": { "type": "integer", "minimum": 0, "description": "Fraction digits." },
