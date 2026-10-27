@@ -74,6 +74,24 @@ describe('the board look\'s filter checklists', () => {
 		expect(head.find('button').text()).toBe('Clear all')
 	})
 
+	it('draws a single-choice field and a reference with buckets as rows; a row replaces the other', async () => {
+		const w = mountSidebar('board', {
+			schema: { properties: {
+				assignedGroup: { type: 'string', title: 'Team', facetable: true, inputControl: 'select' },
+				caseType: { type: 'string', title: 'Zaaktype', facetable: true, inputControl: 'reference' },
+				status: { type: 'string', title: 'Status', facetable: true, inputControl: 'reference' },
+			} },
+			facetData: { ...facetData, caseType: { values: [{ value: 'ct1', label: 'Woo-verzoek', count: 9 }] }, status: undefined },
+		})
+		expect(w.find('[data-testid="cn-index-sidebar-checklist-caseType"]').text()).toContain('Woo-verzoek')
+		expect(w.find('[data-testid="cn-index-sidebar-checklist-status"]').exists()).toBe(false)
+		const inputs = w.findAll('[data-testid="cn-index-sidebar-checklist-assignedGroup"] input')
+		await inputs[1].setValue(true)
+		expect(w.emitted('filter-change').at(-1)[0]).toEqual({ key: 'assignedGroup', values: ['verg'] })
+		await inputs[0].setValue(false)
+		expect(w.emitted('filter-change').at(-1)[0]).toEqual({ key: 'assignedGroup', values: [] })
+	})
+
 	it('keeps the pickers in the Nextcloud look', () => {
 		const w = mountSidebar('nextcloud')
 		expect(w.find('[data-testid="cn-index-sidebar-checklist-assignedGroup"]').exists()).toBe(false)
