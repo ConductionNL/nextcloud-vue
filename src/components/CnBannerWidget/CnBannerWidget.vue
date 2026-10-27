@@ -992,7 +992,11 @@ export default {
 	width: 100%;
 }
 
-.cn-banner-widget__card {
+/* Doubled: NcNoteCard's own `.notecard` margin (15px above and below) is as
+   strong as one scoped class and loads later, so the card kept it and stood
+   15px under its grid cell's top (DqDashboard info line, r33).
+   @spec openspec/changes/banner-card-no-margin/specs/banner-card-no-margin/spec.md#requirement-a-banner-card-draws-no-margin-of-its-own */
+.cn-banner-widget__card.cn-banner-widget__card {
 	margin: 0;
 }
 
