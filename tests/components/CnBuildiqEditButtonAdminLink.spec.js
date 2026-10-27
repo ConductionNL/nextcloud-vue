@@ -9,8 +9,8 @@
  * @spec openspec/changes/admin-buildiq-square/specs/admin-buildiq-square/spec.md
  */
 import { mount } from '@vue/test-utils'
-import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnAppRoot from '../../src/components/CnAppRoot/CnAppRoot.vue'
+import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 
 const NcActionsStub = { name: 'NcActions', template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' }
 
