@@ -468,7 +468,10 @@ export default {
 	white-space: nowrap;
 }
 
+/* The bar spans the card: the KPI body aligns its items to the start, which
+   left the empty track 0px wide. */
 .cn-countdown-widget__progress {
+	align-self: stretch;
 	background: var(--color-border);
 	border-radius: 3px;
 	display: block;

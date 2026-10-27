@@ -13,7 +13,7 @@ jest.mock('../../src/utils/boardReferenceColumns.js', () => ({ __esModule: true,
 
 const axios = require('@nextcloud/axios').default
 const { fetchReferenceObjects } = require('../../src/utils/boardReferenceColumns.js')
-const { clearGroupSublineCache, groupSublines } = require('../../src/utils/groupSublines.js')
+const { clearGroupSublineCache, describedGroupIds, groupSublines } = require('../../src/utils/groupSublines.js')
 
 const DESCRIBE = { register: 'dossiq', schema: 'organisatieRol' }
 
@@ -48,5 +48,14 @@ describe('groupSublines', () => {
 		expect(fetchReferenceObjects).toHaveBeenCalledTimes(1)
 		await groupSublines(['a'], 'a', null)
 		expect(fetchReferenceObjects).toHaveBeenCalledTimes(1)
+	})
+
+	it('names every group a record holds, with or without a description, from the same single read', async () => {
+		axios.get.mockResolvedValue({ data: { ocs: { data: { groups: [] } } } })
+		fetchReferenceObjects.mockResolvedValue([{ ncGroupId: 'juridische-zaken', description: 'bezwaar' }, { ncGroupId: 'jz-sociaal' }, { description: 'no group' }])
+		expect([...await describedGroupIds(DESCRIBE)]).toEqual(['juridische-zaken', 'jz-sociaal'])
+		await groupSublines(['jz-sociaal'], 'j', DESCRIBE)
+		expect(fetchReferenceObjects).toHaveBeenCalledTimes(1)
+		expect((await describedGroupIds(null)).size).toBe(0)
 	})
 })

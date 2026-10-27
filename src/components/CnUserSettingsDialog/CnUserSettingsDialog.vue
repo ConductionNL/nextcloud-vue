@@ -344,6 +344,7 @@ export default {
 
 .cn-user-settings-dialog__nav-label {
 	overflow: hidden;
+	white-space: nowrap;
 	text-overflow: ellipsis;
 }
 
@@ -382,7 +383,9 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-user-settings-dialog__group-sections {
+/* The app's sections sit 10px in under its name; the `ul` reset above
+   carries the nav class too, so this repeats it to outrank that. */
+.cn-user-settings-dialog__nav ul.cn-user-settings-dialog__group-sections {
 	padding-inline-start: 10px;
 }
 

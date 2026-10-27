@@ -50,4 +50,10 @@ describe('look-board.css: a settings card\'s controls are 40px', () => {
 	it('draws the compact version card title at 17px unless the app names its board\'s size', () => {
 		expect(bodyOf(`${SECTION}:has(.cn-version-info--compact) > .settings-section__name`)).toContain('font-size: var(--cn-board-version-title-size, 17px);')
 	})
+
+	it('sets the compact version facts at the font\'s own leading, 24px apart', () => {
+		const body = bodyOf('.cn-look-board .cn-version-info--compact .cn-version-info__details')
+		expect(body).toContain('line-height: normal;')
+		expect(body).toContain('gap: 6px 24px;')
+	})
 })

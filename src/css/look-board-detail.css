@@ -821,6 +821,13 @@
 	padding-top: 14px;
 }
 
+/* Facts that open on plain rows (DqZaak "Prioriteit": Afgeleid, Overschreven)
+   sit 12px below the title's box: the rows are set at the normal line height,
+   so no leading comes off (r32 9.8 against 12). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
 /* A table (an object list) starts 12px below the title's box: its head has
    a fill and no leading, so the glyph-to-glyph gap above left it 2px short
    (DqZaaktypeStatussen "Statussen", "Resultaten"). */
@@ -1608,6 +1615,12 @@
 	vertical-align: middle;
 }
 
+/* The task menu sits 4px after the row's button, as drawn ("Afronden" then
+   the menu); the compiled template keeps no space between them. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * + * {
+	margin-inline-start: 4px;
+}
+
 /* ---- An object list table edge to edge (`content.tableBleed`) ------------ */
 /* The case-tab boards draw a list's table edge to edge in its card
    (DqZaakContact "Contactmomenten op deze zaak", DqZaakGerelateerd): it runs
@@ -2189,8 +2202,23 @@
 	padding: 0;
 }
 
+/* Its rows are titled as links: bold, in the link colour, underlined
+   (DqOrganisatie "Subsidie buurtfeest Oosthaven"). */
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__title {
+	color: var(--color-primary-element);
+	font-weight: 700;
+	text-decoration: underline;
+}
+
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-text {
 	line-height: normal;
+}
+
+/* Main contact (DqOrganisatie Hoofdcontact): the e-mail and the link to all
+   contact persons are 14px lines under the 15px name. */
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-email,
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-link {
+	font-size: 14px;
 }
 
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
@@ -2840,4 +2868,18 @@
 .cn-look-board .cn-object-parties__main-initials:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
 	font-size: 16px;
+}
+
+/* A card table on a detail page keeps the sorted column's label in the head's
+   muted ink, as the case boards draw it (DqZaakGerelateerd Deelzaken
+   "Termijn", Objecten "Identificatie"); the chevron marks the sort. */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-data-table th[aria-sort] .cn-table-header__sort:not(.cn-look-nextcloud *) {
+	color: inherit;
+}
+
+/* A done task reads muted on the board, its status tag too (DqZaakTaken
+   "Klaar" in the muted ink where an open task's tag keeps the soft ink). */
+.cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *) {
+	--cn-status-badge-ink: var(--color-text-maxcontrast);
+	color: var(--cn-status-badge-ink);
 }

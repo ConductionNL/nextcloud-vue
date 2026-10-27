@@ -35,4 +35,10 @@ describe('look-board.css: an ordered list field', () => {
 	it('runs the add select the full width', () => {
 		expect(rule(`.cn-look-board .cn-ordered-list-field__add .v-select${guard}`)).toContain('width: 100%;')
 	})
+
+	it('sets a row 10px 12px in with a plain 20px drag handle', () => {
+		expect(rule(`.cn-look-board .cn-ordered-list-field__row${guard}`)).toContain('padding: 10px 12px;')
+		expect(rule(`.cn-look-board .cn-ordered-list-field__handle${guard}`)).toContain('width: 20px;')
+		expect(rule(`.cn-look-board .cn-ordered-list-field__button--text${guard}`)).toContain('padding: 0 12px;')
+	})
 })
