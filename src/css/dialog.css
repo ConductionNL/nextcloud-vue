@@ -633,3 +633,35 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 .cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step .notecard.notecard {
 	margin: 0;
 }
+
+/* A board dialog's checkbox is the boards' native one: an 18px square with a
+   2px corner and a grey 1px edge while open, filled in the primary colour with
+   a white tick once checked (DqZaakSamenwerken "Alleen een deel van de
+   zaakvelden delen" drew NcCheckboxRadioSwitch's primary outline glyph, r32).
+   The glyph keeps its place but is hidden.
+   @spec openspec/changes/board-dialog-checkbox-native-box/specs/dialog/spec.md */
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon {
+	position: relative;
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon svg {
+	visibility: hidden;
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon::before {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 2px;
+	background: var(--color-main-background);
+	content: '';
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox.checkbox-radio-switch--checked:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon::before {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
