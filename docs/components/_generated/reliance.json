@@ -280,6 +280,20 @@
 			],
 			"page": "cn-app-root"
 		},
+		"CnAppTilesWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-app-tiles-widget"
+		},
+		"CnAppTilesWidgetForm": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-app-tiles-widget-form"
+		},
 		"CnAssignDialog": {
 			"direct": 0,
 			"transitive": 4,
@@ -768,7 +782,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 203,
+			"transitive": 204,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1015,7 +1029,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 206,
+			"transitive": 207,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1644,7 +1658,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 214,
+			"transitive": 215,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1994,6 +2008,13 @@
 			],
 			"page": "cn-grouped-cards-widget"
 		},
+		"CnGroupedMenu": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-grouped-menu"
+		},
 		"CnGuardianHome": {
 			"direct": 0,
 			"transitive": 0,
@@ -2072,8 +2093,8 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 11,
-			"transitive": 211,
+			"direct": 12,
+			"transitive": 212,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2410,8 +2431,8 @@
 		},
 		"CnLinkCardsPage": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"transitive": 2,
+			"tier": "light",
 			"via": [],
 			"page": "cn-link-cards-page"
 		},
@@ -2660,8 +2681,8 @@
 		},
 		"CnMenuWidget": {
 			"direct": 2,
-			"transitive": 1,
-			"tier": "light",
+			"transitive": 2,
+			"tier": "medium",
 			"via": [],
 			"page": "cn-menu-widget"
 		},
@@ -3225,7 +3246,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 231,
+			"transitive": 232,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3444,9 +3465,9 @@
 			"page": null
 		},
 		"CnPlanWidget": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 0,
-			"tier": "light",
+			"tier": "medium",
 			"via": [],
 			"page": "cn-plan-widget"
 		},
@@ -3724,7 +3745,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 204,
+			"transitive": 205,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4992,7 +5013,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 194,
+			"transitive": 195,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

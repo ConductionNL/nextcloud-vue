@@ -72,6 +72,9 @@ describe('CnMailTab', () => {
 		expect(wrapper.find('.cn-mail-tab__hint').text()).toBe('You send it from Mail.')
 		expect(wrapper.vm.templates).toEqual([{ id: 'tpl-1', name: 'Receipt' }])
 		expect(wrapper.find('[data-testid="cn-mail-tab-draft-template"]').exists()).toBe(true)
+		// @spec openspec/changes/mail-template-actions-board/specs/mail-template-actions-board/spec.md#requirement-the-draft-buttons-stand-together-the-template-one-with-its-icon
+		expect(wrapper.find('.cn-mail-tab__template-actions [data-testid="cn-mail-tab-draft-template"]').exists()).toBe(true)
+		expect(wrapper.findComponent({ name: 'OpenInNewIcon' }).exists()).toBe(true)
 		expect(wrapper.find('.linked-mail-stub').exists()).toBe(false)
 		wrapper.unmount()
 	})

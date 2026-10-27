@@ -17,5 +17,6 @@ describe('CnAttentionFlagWidget compose button', () => {
 		expect(button).toContain('class="cn-attention-flag__compose"')
 		const at = sfc.indexOf('\n.cn-attention-flag__compose {')
 		expect(sfc.slice(at, sfc.indexOf('}', at))).toContain('align-self: flex-start')
+		expect(sfc).toContain('<FlagOutline :size="16" />')
 	})
 })

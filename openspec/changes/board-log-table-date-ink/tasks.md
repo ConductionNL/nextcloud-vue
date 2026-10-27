@@ -1,0 +1,2 @@
+- [x] src/css/look-board-index.css rule
+- [x] tests/css/lookBoardLogTableDateInk.spec.js (red first)

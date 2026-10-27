@@ -76,23 +76,30 @@ export async function runSelfExportRequest({ register, schema, format, ids, quer
 }
 
 /**
- * @param {{ register: string, schema: string|null, file: File }} params The import
+ * @param {{ register: string, schema: string|null, file: File, dryRun?: boolean }} params The import
  *   target: the OpenRegister `register` slug, the `schema` slug (required for a
- *   CSV upload, which cannot carry its own schema; `null` otherwise), and the
- *   user-picked `file` posted as multipart form data.
- * @return {Promise<void>} Resolves once the upload succeeded; rejects when no
- *   file was selected or the server responds non-2xx.
+ *   CSV upload, which cannot carry its own schema; `null` otherwise), the
+ *   user-picked `file` posted as multipart form data, and `dryRun` to check the
+ *   rows without saving any.
+ * @return {Promise<object|null>} The server's import report (`summary` per sheet),
+ *   or null when the response has no JSON body; rejects when no file was
+ *   selected or the server responds non-2xx.
  */
-export async function runSelfImportRequest({ register, schema, file }) {
+export async function runSelfImportRequest({ register, schema, file, dryRun = false }) {
 	if (!file) {
 		throw new Error('No file selected')
 	}
 	const ext = (file.name.split('.').pop() || '').toLowerCase()
 	const isCsv = ext === 'csv' && !!schema
 	let path = `/apps/openregister/api/registers/${register}/import`
+	const query = {}
 	if (isCsv) {
-		path += buildQueryString({ schema })
+		query.schema = schema
 	}
+	if (dryRun) {
+		query.dryRun = 'true'
+	}
+	path += buildQueryString(query)
 	const formData = new FormData()
 	formData.append('file', file)
 	if (isCsv) {
@@ -107,5 +114,10 @@ export async function runSelfImportRequest({ register, schema, file }) {
 	})
 	if (!response.ok) {
 		throw new Error(`Import failed (${response.status})`)
+	}
+	try {
+		return await response.json()
+	} catch {
+		return null
 	}
 }

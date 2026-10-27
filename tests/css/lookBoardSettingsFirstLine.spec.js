@@ -26,7 +26,7 @@ describe('look-board.css: a settings card first line', () => {
 		const link = body('.cn-look-board .cn-settings-fields__hints-toggle:not(.cn-look-nextcloud *) .button-vue,\n.cn-look-board .cn-settings-fields__advanced:not(.cn-look-nextcloud *) > .button-vue')
 		expect(link).toContain('height: 25px;')
 		expect(link).toContain('border-radius: 0;')
-		expect(body('.cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch')).toContain('margin-block: -8px;')
+		expect(body('.cn-look-board .cn-settings-field--switch:not(.cn-look-nextcloud *) > .checkbox-radio-switch')).toContain('margin-block: -8px 10px;')
 	})
 
 	it('drops a status note margin', () => {

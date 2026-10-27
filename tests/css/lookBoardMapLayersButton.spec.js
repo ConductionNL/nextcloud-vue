@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * In the board look the base-map switch is the board's 36px edged square,
- * 12px in from the top left, around an 18px layers icon in the main ink
- * (DqZakenKaart). Read from the stylesheet text.
+ * 12px in from the top left: the toggle link is the button, the control
+ * around it bare (DqZakenKaart, r32: the masked toggle read as a dark
+ * square). Read from the stylesheet text.
  *
  * @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button
  */
@@ -25,17 +26,17 @@ function ruleEndingWith(selector) {
 }
 
 describe('look-board.css: base-map switch', () => {
-	it('draws the control as an edged square 12px in', () => {
+	it('keeps the control bare, 12px in', () => {
 		const rule = ruleEndingWith('.cn-look-board .cn-map-widget .leaflet-control-layers:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/margin: 12px 0 0 12px;/)
-		expect(rule).toMatch(/border: 1px solid var\(--cn-board-control-border\);/)
-		expect(rule).toMatch(/box-shadow: none;/)
+		expect(rule).toMatch(/border: 0;/)
+		expect(rule).toMatch(/background: transparent;/)
 	})
 
-	it('draws the toggle 34px with an 18px icon in the main ink', () => {
+	it('draws the toggle as the 36px edged map button', () => {
 		const rule = ruleEndingWith('.cn-look-board .cn-map-widget .leaflet-control-layers .leaflet-control-layers-toggle:not(.cn-look-nextcloud *)')
-		expect(rule).toMatch(/width: 34px;/)
-		expect(rule).toMatch(/background: var\(--color-main-text\);/)
-		expect(rule).toMatch(/\tmask: url\(.*\) center \/ 18px 18px no-repeat;/)
+		expect(rule).toMatch(/width: 36px;/)
+		expect(rule).toMatch(/border: 1px solid var\(--cn-board-control-border\);/)
+		expect(rule).toMatch(/background: var\(--color-main-background\);/)
 	})
 })

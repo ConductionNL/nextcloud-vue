@@ -104,6 +104,7 @@ import '../CnRecordListWidget/index.js'
 import '../CnStatGridWidget/index.js'
 import '../CnSavedViewsWidget/index.js'
 import '../CnNotepadWidget/index.js'
+import '../CnAppTilesWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectGeoWidget/dashboardRegistration.js'
 import '../CnWidgetObjectTable/dashboardRegistration.js'
@@ -333,7 +334,6 @@ registerDashboardWidget('plan', {
 	displayName: 'Plan',
 	icon: 'FormatListChecks',
 	surfaces: ['detail-page'],
-	ownsTitle: true,
 })
 
 registerDashboardWidget('work-queue', {

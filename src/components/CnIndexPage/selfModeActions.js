@@ -318,13 +318,18 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			await runSelfImportRequest({
+			const dryRun = !!(payload && payload.options && payload.options.dryRun)
+			const report = await runSelfImportRequest({
 				register: ctx.register(),
 				schema: ctx.schema(),
 				file: payload && payload.file,
+				dryRun,
 			})
-			ctx.setResults.massImport({ success: true })
-			refreshList(ctx)
+			const summary = report && typeof report === 'object' ? (report.summary || null) : null
+			ctx.setResults.massImport({ success: true, dryRun, ...(summary ? { summary } : {}) })
+			if (!dryRun) {
+				refreshList(ctx)
+			}
 		} catch (err) {
 			ctx.setResults.massImport({ error: (err && err.message) || 'Import failed' })
 		}

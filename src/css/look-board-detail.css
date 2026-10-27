@@ -18,9 +18,10 @@
 	/* The notice's text and icon. */
 	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
 	/* The done marker of the next-step card. */
-	--cn-board-success-tint: var(--color-success-light, #e7f3ea);
-	/* The ink on that tint: a completed plan row's state. */
-	--cn-board-success-ink: var(--color-success-text, #1e6b2a);
+	--cn-board-success-tint: var(--nl-color-green-light, var(--color-success-light, #e7f3ea));
+	/* The ink on that tint: a completed plan row's state. The theme's green
+	   text first, as a success badge reads it. */
+	--cn-board-success-ink: var(--nl-color-green-text, var(--color-success-text, #1e6b2a));
 	/* The ink on the light primary fill: an active plan row's state. */
 	--cn-board-primary-light-ink: var(--color-primary-element-light-text, #234a78);
 	/* The teal badge of a public history entry. */
@@ -144,6 +145,15 @@
 	gap: 8px;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+/* A case header (with its phase strip) sets the pills and the breadcrumb
+   22px under the title row, as every Dq case board draws it; the header's
+   own 6px row gap stays between the breadcrumb and the Follow row (r32: the
+   whole case page 16px high on DqZaak and its tabs).
+   @spec openspec/changes/board-follow-row/specs/board-follow-row/spec.md#requirement-the-board-follow-control-sits-under-the-breadcrumb */
+.cn-look-board .cn-detail-page__header--with-widget .cn-detail-page__header-row2 {
+	margin-top: 16px;
 }
 
 /* Row 2: pills, breadcrumb, dot, meta, chips. */
@@ -1024,6 +1034,16 @@
 	line-height: normal;
 }
 
+/* A person's initials in a lead (DqZaak "Aanvrager": SV) are 16px bold in
+   the soft ink on the grey ground, as the case boards draw them (r32: 14px
+   in the main ink).
+   @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead-tile--initials:not(.cn-look-nextcloud *) {
+	background: var(--color-background-hover);
+	color: var(--cn-board-text-soft);
+	font-size: 16px;
+}
+
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
    the board draws it. The card-fit wrapper is flush, and the wrapper's own
    flush rule loads after this sheet and outranked the side card's padding,
@@ -1679,7 +1699,15 @@
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	column-gap: 12px;
+	row-gap: 0;
 	align-items: center;
+}
+
+/* The actions span the card's rows, so a 2px row gap left an empty third
+   row; the meta line takes its 2px under the title itself (task card 55px,
+   DqZaaktype "Fasen en taken"). */
+.cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > .cn-grouped-cards__item-meta:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
 }
 
 .cn-look-board .cn-grouped-cards__item:has(> .cn-grouped-cards__item-actions) > :not(.cn-grouped-cards__item-actions):not(.cn-look-nextcloud *) {
@@ -2031,6 +2059,7 @@
    @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
 .cn-look-board .cn-contacts-tab .cn-contacts-tab__avatar .avatardiv__initials-wrapper {
 	background-color: var(--color-background-hover) !important;
+	color: var(--cn-board-text-soft);
 }
 
 .cn-look-board .cn-contacts-tab .cn-contacts-tab__avatar .avatardiv__initials {
@@ -2222,6 +2251,7 @@
 
 .cn-look-board .cn-events-card__when:not(.cn-look-nextcloud *),
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *),
+.cn-look-board .cn-events-card__who:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__author:not(.cn-look-nextcloud *),
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *) {
 	color: var(--color-text-maxcontrast);
@@ -2230,6 +2260,7 @@
 }
 
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
+.cn-look-board .cn-events-card__who:not(.cn-look-nextcloud *)::before,
 .cn-look-board .cn-notes-card__time:not(.cn-look-nextcloud *)::before {
 	content: ' · ';
 	white-space: pre;
@@ -2352,8 +2383,20 @@
 	gap: 16px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px 0;
+	padding: 10px 0;
 	border-top: 1px solid var(--cn-board-hairline);
+}
+
+/* Only the rule above each row: the calendar card's own rule under a row and
+   the Deck card's boxed card come off (r32: Afspraken 196.8 against 179, the
+   Deck card boxed). */
+.cn-look-board .cn-detail-page .cn-calendar-card__row:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row:not(.cn-look-nextcloud *) {
+	border-right: 0;
+	border-bottom: 0;
+	border-left: 0;
+	border-radius: 0;
+	background: transparent;
 }
 
 .cn-look-board .cn-detail-page .cn-calendar-card__row-main,
@@ -2378,6 +2421,26 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The Deck card's title is a link the theme inks as one with !important
+   (blue, underlined); the board draws it as the row's title, so the theme's
+   own link variables are set to the title ink here. */
+.cn-look-board .cn-detail-page a.cn-deck-card__row-title:not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
+	color: var(--color-main-text);
+	text-decoration: none;
+}
+
+/* The title and the meta line on the font's own leading, as the boards
+   draw them: a row 56px high, not 72. */
+.cn-look-board .cn-detail-page .cn-calendar-card__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row-title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-calendar-card__meta:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-deck-card__row-meta:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 .cn-look-board .cn-object-parties--board .cn-object-parties__end {
 	display: flex;
 	flex: none;
@@ -2399,6 +2462,13 @@
 	font-size: 14px;
 	font-weight: 600;
 	text-decoration: underline;
+}
+
+/* A chart's notice sits 12px under the chart and ends the card (DqHandhaving
+   "Advies: last onder dwangsom"): NcNoteCard's 15px margin above and below
+   made the matrix card 19px taller than the board's 446. */
+.cn-look-board .cn-chart-widget .cn-chart-widget__notice.notecard:not(.cn-look-nextcloud *) {
+	margin: 12px 0 0;
 }
 
 /* Facts and their lines sit on the font's own leading, as the boards draw
@@ -2513,10 +2583,12 @@
 
 /* A table in a detail page card names each row in the link colour at 14px,
    as DqZaakGerelateerd draws "Deelzaken" and "Objecten" (r31: 15px in the
-   body ink). The row opens the record, so its name reads as the link.
+   body ink). The row opens the record, so its name reads as the link. A
+   plain log (`rowTitle: "text"`, DqZaakAssistent's AI log) keeps it in the
+   body ink.
    @spec openspec/changes/board-detail-table-title-cells/specs/board-tables/spec.md */
-.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *),
-.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *),
+.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *) {
 	font-size: 14px;
 	line-height: 1.2;
 	color: var(--color-primary-element);
@@ -2551,13 +2623,33 @@
 /* A checklist's boxes are the boards' 18px, an open one in the control
    border grey and a ticked one in the primary colour (DqTaak "Checklist").
    @spec openspec/changes/board-r31-side-buttons-checklist-boxes/specs/board-r31-side-buttons-checklist-boxes/spec.md#requirement-a-board-checklist-box-is-18px-and-grey-while-open */
-.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon {
+	position: relative;
+	flex: none;
 	width: 18px;
 	height: 18px;
 }
 
-.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.checkbox-radio-switch--checked):not(.cn-look-nextcloud *) .checkbox-content__icon {
-	color: var(--color-border-maxcontrast);
+/* The box is drawn as the boards' native checkbox: an 18px square with a 2px
+   corner, a grey 1px edge while open, filled in the primary colour with a
+   white tick once checked. The icon glyph stays for its size but is hidden. */
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+	visibility: hidden;
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch:not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 2px;
+	background: var(--color-main-background);
+	content: '';
+}
+
+.cn-look-board .cn-checklist-widget__item .checkbox-radio-switch--checked:not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 /* In a side card the pill and its date stand 8px apart, as the boards draw
@@ -2687,4 +2779,65 @@
 
 .cn-look-board .cn-timeline-manage .cn-timeline-manage__entry .cn-timeline-manage__head:not(.cn-look-nextcloud *) {
 	order: 0;
+}
+
+/* An appointment's status pill stands at the row's end, centred on its two
+   lines (DqTaak Afspraken "Uitgenodigd").
+   @spec openspec/changes/events-card-board-row/specs/events-card/spec.md#requirement-an-appointment-row-names-who-is-invited-and-where-they-stand */
+.cn-look-board .cn-events-card__status:not(.cn-look-nextcloud *) {
+	align-self: center;
+	margin-inline-start: auto;
+}
+
+/* A joined paragraph in a side card (DqContact "Bereikbaar via": the last
+   contact and the registration note) is 14px muted on a 1.45 line, and the
+   value beside an icon reads in the regular weight, as the board draws them.
+   @spec openspec/changes/facts-line-joins-previous/specs/facts-widget/spec.md#requirement-a-line-can-join-the-line-before-it */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__line--joined:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__label--icon:not(.cn-look-nextcloud *) + .cn-facts-widget__value {
+	font-weight: 400;
+}
+
+/* A list's empty sentence reads as the boards write it under a card title:
+   14px muted on the font's own line (DqSociaalDomein "Andere zaken van dit
+   huishouden": "Geen andere zaken in dit huishouden die u mag zien").
+   @spec openspec/changes/facts-line-joins-previous/specs/facts-widget/spec.md#requirement-a-board-lists-empty-sentence-is-14px-muted */
+.cn-look-board .cn-detail-page .cn-record-list__empty:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: normal;
+}
+
+/* A page card's facts (DqZaaktype "Termijnen", DqZaaktypeOverzicht
+   "Privacy") start 12px into the content, their rows at normal line height
+   carrying no half-leading to take off. */
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child) {
+	padding-top: 12px;
+}
+
+/* The group of acts that are always available (DqZaaktype "Altijd
+   beschikbaar") is not a phase: the boards draw it as a dashed outline
+   with a muted 14px line of acts, not on the phases' grey ground. */
+.cn-look-board .cn-grouped-cards__group.cn-grouped-cards__group--extra:not(.cn-look-nextcloud *) {
+	background: transparent;
+	border: 1px dashed var(--color-border-maxcontrast);
+}
+
+.cn-look-board .cn-grouped-cards__extra-text:not(.cn-look-nextcloud *) {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	line-height: normal;
+}
+
+/* A main contact's initials on its 40px grey tile in the boards' soft ink,
+   16px bold (DqOrganisatie "Hoofdcontact").
+   @spec openspec/changes/board-r32-tiles-and-boxes/specs/board-r32-tiles-and-boxes/spec.md#requirement-a-main-contacts-initials-are-in-the-soft-ink */
+.cn-look-board .cn-object-parties__main-initials:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
+	font-size: 16px;
 }
