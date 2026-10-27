@@ -20,8 +20,8 @@ import '../../src/components/CnLinkedWidget/index.js'
 jest.mock('../../src/utils/boardReferenceColumns.js', () => ({ __esModule: true, fetchReferenceObjects: jest.fn() }))
 jest.mock('../../src/utils/appInstalled.js', () => ({ __esModule: true, isAppInstalled: jest.fn(() => true) }))
 
-const { fetchReferenceObjects } = require('../../src/utils/boardReferenceColumns.js')
 const { isAppInstalled } = require('../../src/utils/appInstalled.js')
+const { fetchReferenceObjects } = require('../../src/utils/boardReferenceColumns.js')
 
 /**
  * Register a mount-mode leaf that records what it was handed.

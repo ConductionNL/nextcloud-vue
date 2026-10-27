@@ -119,6 +119,11 @@ export default {
 
 	components: { CnIcon, CnLeafMountHost },
 
+	inject: {
+		/** The host app's translate (CnAppRoot `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** `{ leaves: Array<string|object> }`: integration ids or record leaves, in the order to list them. */
 		content: {
@@ -143,11 +148,6 @@ export default {
 			type: String,
 			default: '',
 		},
-	},
-
-	inject: {
-		/** The host app's translate (CnAppRoot `cnTranslate`). */
-		cnTranslate: { default: () => (key) => key },
 	},
 
 	setup() {
@@ -265,6 +265,7 @@ export default {
 			handler() {
 				this.recordLeaves.forEach((leaf) => this.readRecordLeaf(leaf))
 			},
+
 			immediate: true,
 		},
 
