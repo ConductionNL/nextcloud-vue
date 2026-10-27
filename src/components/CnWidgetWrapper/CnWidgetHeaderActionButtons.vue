@@ -15,6 +15,17 @@
 				@click="action.run()">
 				{{ action.label }}
 			</button>
+			<!-- `variant: "tonal"`: the card's pill button (PqLoyaliteit
+			     "Exporteren als CSV"). -->
+			<button
+				v-else-if="action.variant === 'tonal'"
+				type="button"
+				class="cn-widget-header-actions__tonal"
+				data-testid="cn-widget-header-action"
+				@click="action.run()">
+				<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
+				{{ action.label }}
+			</button>
 			<NcButton
 				v-else
 				:variant="action.variant === 'primary' ? 'primary' : 'secondary'"
@@ -77,7 +88,30 @@ export default {
 	cursor: pointer;
 }
 
-.cn-widget-header-actions__link:focus-visible {
+.cn-widget-header-actions__tonal {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	min-height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.cn-widget-header-actions__tonal:hover {
+	background: var(--color-primary-element-light-hover);
+}
+
+.cn-widget-header-actions__link:focus-visible,
+.cn-widget-header-actions__tonal:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }

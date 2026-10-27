@@ -450,7 +450,7 @@
 		     in the emitted layout. -->
 		<CnKpiGrid
 			v-if="gridSectionsShown && kpiRowItems.length > 0"
-			columns="auto"
+			:columns="kpiColumns"
 			class="cn-dashboard-page__kpi-row"
 			data-testid="cn-dashboard-page-kpi-row">
 			<div
@@ -1348,6 +1348,7 @@ export default {
 		 * registry dialogs, as on a detail page. Null outside the renderer.
 		 *
 		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
+		 * @spec openspec/changes/widget-header-action-tonal/specs/widget-header-action-tonal/spec.md#requirement-a-dashboard-card-header-action-reads-the-page-filters
 		 */
 		cnDispatchAction: { default: null },
 		/**
@@ -1452,6 +1453,20 @@ export default {
 		kpiRow: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The columns of the KPI row (manifest `config.kpiColumns`): 2, 3 or 4
+		 * at full width (PqLoyaliteit draws eight tiles in two rows of four),
+		 * or `"auto"` for as many 200px columns as fit.
+		 *
+		 * @spec openspec/changes/widget-header-action-tonal/specs/dashboard-page/spec.md#requirement-a-kpi-row-can-have-a-fixed-number-of-columns
+		 * @type {number|string}
+		 */
+		kpiColumns: {
+			type: [Number, String],
+			default: 'auto',
+			validator: (v) => [2, 3, 4, 'auto'].includes(v),
 		},
 
 		/**
@@ -4797,10 +4812,11 @@ export default {
 		 */
 		getWidgetHeaderActions(item) {
 			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
+				workspace: this.workspaceContext,
 				translate: (key) => this.effectiveTranslate(key),
-				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
-					? this.cnDispatchAction(action)
-					: dispatchAction(action, { router: this.$router || null })),
+				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action, extra)
+					: dispatchAction(action, { router: this.$router || null, ...extra })),
 			})
 		},
 
