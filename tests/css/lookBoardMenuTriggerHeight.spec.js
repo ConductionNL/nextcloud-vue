@@ -35,9 +35,16 @@ function ruleFor(selector) {
 
 describe('look-board.css: labelled menu buttons', () => {
 	it('draws a labelled menu button 40px tall', () => {
-		const body = ruleFor('.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *))')
+		const body = ruleFor('.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)):where(:not(.cn-actions-bar__filter-menu *))')
 		expect(body).not.toBeNull()
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')
 		expect(body).toContain('min-height: var(--cn-board-control-height);')
+	})
+
+	it('leaves the toolbar Filter menu at the toolbar\'s 36px', () => {
+		const index = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+		const bodies = [...index.matchAll(/\.cn-look-board \.cn-actions-bar__filter-menu \.button-vue\s*\{([^}]*)\}/g)].map((m) => m[1]).join('')
+		expect(bodies).toContain('--button-size: 36px;')
+		expect(bodies).toContain('height: 36px;')
 	})
 })
