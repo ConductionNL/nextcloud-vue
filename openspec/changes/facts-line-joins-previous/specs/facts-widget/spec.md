@@ -22,3 +22,11 @@ In the board look, a record list's empty sentence on a detail page SHALL be 14px
 #### Scenario: DqSociaalDomein Andere zaken van dit huishouden
 
 - **THEN** "Geen andere zaken in dit huishouden die u mag zien" starts about 31px under the card title (probed 31.8; it was 33.8)
+
+### Requirement: A text joined with a line break keeps the break
+
+A `text` entry joined on with `joinSeparator: "\n"` SHALL show the break, so two lines read as one block without the gap between entries.
+
+#### Scenario: DqOrganisatie KvK en adres
+
+- **THEN** "Oosthavenweg 12" and "2999 AJ Zuiddrecht" are two lines of one block, 22px apart
