@@ -2824,6 +2824,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: normal;
 }
 
+/* Beside such a line the text keeps 260px, as the Dq boards size it, so a short
+   line ("vandaag") wraps under it in a 360px card too. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:has(> .cn-record-list__aside > .cn-record-list__trailing:only-child) > .cn-record-list__main {
+	flex-basis: 260px;
+}
+
 /* The title and meta take the room the pill and the date leave, and a long
    title wraps inside it: the pill and the date stay on the title line, as the
    board draws them. They drop under the text only when the card is too narrow

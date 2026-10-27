@@ -19,4 +19,11 @@ describe('look-board.css: a lone trailing line', () => {
 		expect(body).toContain('margin-inline-start: 0;')
 		expect(body).toContain('line-height: normal;')
 	})
+
+	it('keeps 260px of text beside it', () => {
+		const main = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__row:has(> .cn-record-list__aside > .cn-record-list__trailing:only-child) > .cn-record-list__main'
+		const at = css.indexOf(main + ' {')
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('flex-basis: 260px;')
+	})
 })

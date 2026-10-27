@@ -15,7 +15,7 @@ A record-list row whose only aside content is its trailing text draws it as the 
 ### Requirement: A lone trailing line wraps under the text at its start
 
 In the board look, a dashboard `CnRecordListWidget` row aside that holds only the trailing text SHALL not push itself to
-the row's end and SHALL sit at the font's normal line height.
+the row's end and SHALL sit at the font's normal line height; the row's text block SHALL keep a 260px basis beside it.
 
 #### Scenario: DqDashboard "Vastgelopen zaken"
 
