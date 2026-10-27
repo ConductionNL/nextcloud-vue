@@ -687,6 +687,14 @@
    button ("Uit menu halen") is an outlined secondary button, and the select
    that adds a row runs the field's full width.
    @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+/* A row's buttons sit on its 10px padding with no margin of their own, so a
+   row is 61px as the board draws it (Nextcloud's 3px button margin made it
+   66, DqPersoonlijkeInstellingen "Weergaven in mijn menu").
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__button:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	height: 34px;
