@@ -1153,6 +1153,22 @@
 					<template v-if="$slots['list-item']" #list-item="{ object, selected }">
 						<slot name="list-item" :object="object" :selected="selected" />
 					</template>
+					<template v-else-if="expandableRows" #list-item="{ object }">
+						<CnExpandableRow
+							:object="object"
+							:layout="expandableRows"
+							:open="expandableRows.open === 'all' || (expandableRows.open === 'first' && displayObjects[0] === object)"
+							@action="onExpandableRowAction">
+							<template v-if="hasRowActions" #actions>
+								<CnRowActions
+									:actions="rowMenuActionsFor(object)"
+									:row="object"
+									:rowLabel="rowTitleFor(object)"
+									:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+									@action="onRowAction" />
+							</template>
+						</CnExpandableRow>
+					</template>
 					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
 						<component
 							:is="resolvedListComponent"
@@ -1514,6 +1530,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnExpandableRow } from '../CnExpandableRow/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -1920,6 +1937,7 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnExpandableRow,
 		CnBoardView,
 		CnDateAxisView,
 		CnObjectCalendar,
@@ -2284,6 +2302,20 @@ export default {
 		 */
 		cardFields: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * List view: every row opens to a sub-table (`CnExpandableRow`).
+		 * `{ title, badge?, description?, chips?, meta?, table?, buttons?,
+		 * open?: 'first' | 'all' }`; a header button or the footer action names
+		 * a row action by its id, which runs as in the row's menu. Manifest key
+		 * `config.expandableRows` (index-expandable-rows).
+		 *
+		 * @spec openspec/changes/index-expandable-rows/specs/index-expandable-rows/spec.md
+		 */
+		expandableRows: {
+			type: Object,
 			default: null,
 		},
 
@@ -12793,6 +12825,24 @@ export default {
 		 *
 		 * @param {{action: string, row: object, id?: string, builtin?: boolean}} payload The bubbled action payload.
 		 */
+		/**
+		 * A button or the footer action of an expandable row: run the row
+		 * action with that id as its menu entry would, else emit it.
+		 *
+		 * @param {{id: string, row: object}} payload The action id and the row.
+		 * @return {void}
+		 * @spec openspec/changes/index-expandable-rows/specs/index-expandable-rows/spec.md
+		 */
+		onExpandableRowAction({ id, row }) {
+			const entry = this.rowMenuActionsFor(row).find((action) => action.id === id)
+			if (entry && typeof entry.handler === 'function') {
+				entry.handler(row)
+			}
+			this.onRowAction(entry
+				? { action: entry.label, row, id, ...(entry.builtin ? { builtin: true } : {}) }
+				: { action: id, row, id })
+		},
+
 		onRowAction(payload) {
 			const matched = payload.builtin === true
 				? this.mergedActions.find((a) => a.builtin === true && a.id === payload.id)

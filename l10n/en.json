@@ -2436,7 +2436,9 @@
     "Shows which rows would fail and why.": "Shows which rows would fail and why.",
     "Checked. Nothing is imported yet.": "Checked. Nothing is imported yet.",
     "{rows} rows · {columns} columns · {size}": "{rows} rows · {columns} columns · {size}",
-    "Field for column {column}": "Field for column {column}"
+    "Field for column {column}": "Field for column {column}",
+    "Open {name}": "Open {name}",
+    "Close {name}": "Close {name}"
   },
   "plurals": {
     "{count} member": [
