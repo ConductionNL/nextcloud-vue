@@ -54,6 +54,11 @@ describe('CnObjectDataWidget columns in the board look', () => {
 		expect(w.vm.gridStyle['grid-template-columns']).toBe('minmax(0, 1fr)')
 	})
 
+	it('keeps the declared columns when fixedColumns asks for it (PqAfspraak, two columns row by row)', () => {
+		const w = mountWith({ assignee: 'pieter' }, { columns: 2, fixedColumns: true }, { cnLook: 'board' })
+		expect(w.vm.gridStyle['grid-template-columns']).toBe('repeat(2, minmax(0, 1fr))')
+	})
+
 	it('fits 200px columns otherwise', () => {
 		const w = mountWith({ assignee: 'pieter' }, { columns: 2 }, { cnLook: 'board' })
 		expect(w.vm.gridStyle['grid-template-columns']).toBe('repeat(auto-fit, minmax(200px, 1fr))')
