@@ -645,11 +645,28 @@
 	box-sizing: border-box;
 	height: 34px;
 	min-height: 34px;
-	padding: 0 14px;
+	padding: 0 12px;
 	border: 1px solid var(--cn-board-control-border);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
+}
+
+/* A row is 10px 12px in with 12px between its parts, the drag handle a
+   plain 20px column at the row's edge (DqPersoonlijkeInstellingen: content
+   13px in and 11.6px down; live sat 17px in and 5px down).
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__row:not(.cn-look-nextcloud *) {
+	gap: 12px;
+	padding: 10px 12px;
+}
+
+.cn-look-board .cn-ordered-list-field__handle:not(.cn-look-nextcloud *) {
+	width: 20px;
+	min-width: 20px;
+	height: 20px;
+	min-height: 20px;
+	margin: 0;
 }
 
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
