@@ -821,6 +821,13 @@
 	padding-top: 14px;
 }
 
+/* Facts that open on plain rows (DqZaak "Prioriteit": Afgeleid, Overschreven)
+   sit 12px below the title's box: the rows are set at the normal line height,
+   so no leading comes off (r32 9.8 against 12). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child):not(.cn-detail-page__side *) {
+	padding-top: 12px;
+}
+
 /* A table (an object list) starts 12px below the title's box: its head has
    a fill and no leading, so the glyph-to-glyph gap above left it 2px short
    (DqZaaktypeStatussen "Statussen", "Resultaten"). */

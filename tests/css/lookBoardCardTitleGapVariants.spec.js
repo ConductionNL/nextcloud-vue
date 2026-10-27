@@ -42,6 +42,11 @@ describe('look-board-detail.css: card title gap per body kind', () => {
 			.toContain('padding-top: 14px')
 	})
 
+	it('starts a body card whose facts open on plain rows 12px below its title (DqZaak "Prioriteit")', () => {
+		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__rows:not(.cn-facts-widget__rows--columns):first-child):not(.cn-detail-page__side *)'))
+			.toContain('padding-top: 12px')
+	})
+
 	it('starts a body card that opens on running text 12px below its title, the text at 1.6', () => {
 		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child):not(.cn-detail-page__side *)')).toContain('padding-top: 12px')
 		expect(rule('.cn-look-board .cn-detail-page .cn-facts-widget__text:not(.cn-detail-page__side *)')).toContain('line-height: 1.6')
