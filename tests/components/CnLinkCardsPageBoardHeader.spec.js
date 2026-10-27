@@ -5,7 +5,8 @@
  * In the board look a links page draws the page's own header as the boards do
  * (PqModules "Modules en meer", PqReports "Rapportages"): the title as the
  * page's h1 with the buildiq square on its row and the line under it. The
- * plain look keeps its h2. pl2: "pageHeader missing on live", "buildiq
+ * plain look draws the same h1 without the row (fix/pq-link-cards-board-look made the
+ * page title the h1 above the categories' h2). pl2: "pageHeader missing on live", "buildiq
  * missing on live".
  *
  * @spec openspec/changes/links-page-board-header/specs/links-page-board-header/spec.md#requirement-a-board-links-page-draws-the-page-header
@@ -42,10 +43,10 @@ describe('CnLinkCardsPage: the board header', () => {
 		expect(wrapper.find('.cn-link-cards-page__description').text()).toBe('Every page.')
 	})
 
-	it('keeps the plain h2 header in the Nextcloud look', () => {
+	it('keeps a plain h1 header without the row in the Nextcloud look', () => {
 		const wrapper = mountPage('nextcloud')
-		expect(wrapper.find('h1').exists()).toBe(false)
-		expect(wrapper.find('h2.cn-link-cards-page__title').text()).toBe('Modules and more')
+		expect(wrapper.find('.cn-link-cards-page__title-row').exists()).toBe(false)
+		expect(wrapper.find('h1.cn-link-cards-page__title').text()).toBe('Modules and more')
 		expect(wrapper.find('.cn-buildiq-edit-stub').exists()).toBe(false)
 	})
 })
