@@ -1068,6 +1068,15 @@
 	text-decoration: none;
 }
 
+
+/* A date widget in that column takes the main ink too: it kept the link colour
+   (DqZaakContact "14 okt, 09:15" read primary; r32 cell colour 27,28,29 vs
+   54,105,165, probed: TIME.cn-cell-renderer__date).
+   @spec openspec/changes/board-log-table-date-ink/specs/board-log-table-date-ink/spec.md#requirement-a-plain-logs-date-reads-in-the-main-ink */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-table-col--title .cn-cell-renderer__date:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text);
+}
+
 /* In such a plain log an icon-and-name cell is regular too (DqZaakContact
    Kanaal "Mijn Zuiddrecht"); elsewhere the icon label stays 600.
    @spec openspec/changes/board-log-table-icon-label-regular/specs/board-log-table-icon-label-regular/spec.md#requirement-a-plain-logs-icon-label-cell-is-regular */
