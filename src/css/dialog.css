@@ -664,6 +664,28 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	line-height: normal;
 }
 
+/* A transition field stacks its label, control and lines 6px apart on the
+   normal line, as DqVolgendeStap's Opschorten draws them: NcInputField pads
+   its wrapper 2px above and below, the help line sat at 1.3, and a field set
+   as a block ran its label and note inline (r33 Opschorten 280.5 against 274,
+   every option under it 8 to 11px low; probed with all but the note rule:
+   277.1, the note on the normal line takes 3.9 more off). */
+.cn-dialog-board .cn-transition-input-fields .input-field__main-wrapper {
+	height: auto;
+	padding-block: 0;
+}
+
+.cn-dialog-board .cn-transition-input-fields .input-field__helper-text-message,
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__muted {
+	line-height: normal;
+}
+
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
 /* A setup step's parts are 16px apart, as the boards draw them (DqInstellen:
    intro, choices and note sat 11 to 26px apart), and a note inside it adds no
    margin of its own.
