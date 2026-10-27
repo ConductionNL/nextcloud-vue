@@ -449,14 +449,14 @@
 					class="cn-data-table__view-all"
 					:href="viewAllHref"
 					@click="onViewAll">
-					{{ viewAllLabel }}
+					{{ viewAllText }}
 				</a>
 				<button
 					v-else
 					type="button"
 					class="cn-data-table__view-all"
 					@click="onViewAll">
-					{{ viewAllLabel }}
+					{{ viewAllText }}
 				</button>
 			</slot>
 		</div>
@@ -1201,6 +1201,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The footer's "View all" label in the user's language: a label a
+		 * manifest writes in English goes through the host app's `cnTranslate`.
+		 *
+		 * @return {string}
+		 */
+		viewAllText() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(this.viewAllLabel) : this.viewAllLabel
+		},
+
 		/**
 		 * The leading icon tile's tone, one the board look draws.
 		 *

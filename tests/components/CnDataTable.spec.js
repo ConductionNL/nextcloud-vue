@@ -645,3 +645,25 @@ describe('CnDataTable — built-in "View all" footer control', () => {
 		expect(wrapper.find('button.cn-data-table__view-all[type="button"]').exists()).toBe(true)
 	})
 })
+
+// A manifest writes the footer label in English ("View all clients"); the
+// host app's cnTranslate turns it into the user's language, as it does for
+// column headers.
+describe('CnDataTable — "View all" footer label translation', () => {
+	it('translates a configured view-all label through the injected cnTranslate', () => {
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: ['name'], limit: 1, viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients' },
+			global: { provide: { cnTranslate: (key) => (key === 'View all clients' ? 'Alle klanten bekijken' : key) } },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		expect(wrapper.find('.cn-data-table__view-all').text()).toBe('Alle klanten bekijken')
+	})
+
+	it('keeps the label as given without a host translator', () => {
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: ['name'], limit: 1, viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients' },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		expect(wrapper.find('.cn-data-table__view-all').text()).toBe('View all clients')
+	})
+})
