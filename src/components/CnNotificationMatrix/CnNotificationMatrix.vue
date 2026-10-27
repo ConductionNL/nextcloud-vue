@@ -186,6 +186,7 @@
 			class="cn-notification-matrix__channels"
 			data-testid="cn-nm-channel-settings">
 			<summary class="cn-notification-matrix__channels-summary">
+				<ChevronRight :size="16" class="cn-notification-matrix__channels-chevron" />
 				{{ channelSettingsTitle }}
 			</summary>
 			<div
@@ -265,6 +266,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import {
 	channelAvailability,
@@ -350,6 +352,8 @@ function appDefaultFor(event, channel) {
 
 export default {
 	name: 'CnNotificationMatrix',
+
+	components: { ChevronRight },
 
 	inject: {
 		/** The look CnAppRoot (or the page) draws in. */
@@ -1194,10 +1198,26 @@ export default {
 		margin-block-start: 16px;
 	}
 
+	/* A disclosure line: a 16px chevron 6px before the words, turned down when
+	   open, in place of the browser's marker (as DqPersoonlijkeInstellingen
+	   draws "Bundeling en testbericht"). */
 	.cn-notification-matrix__channels-summary {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		font-size: 14px;
 		font-weight: 600;
+		line-height: normal;
+		list-style: none;
 		cursor: pointer;
+	}
+
+	.cn-notification-matrix__channels-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.cn-notification-matrix__channels[open] .cn-notification-matrix__channels-chevron {
+		transform: rotate(90deg);
 	}
 
 	.cn-notification-matrix__channel {
