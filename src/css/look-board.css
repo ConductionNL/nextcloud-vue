@@ -366,6 +366,17 @@
 	text-transform: none;
 }
 
+/* A dashboard banner's reason line is 15px at the font's normal line height
+   (DqMijnWerk "2026-4837 · Woo-verzoek · de termijn loopt vandaag af"; live
+   14px at 1.5). The stacked banner keeps its 14px.
+   @spec openspec/changes/board-banner-reason-15/specs/board-banner-reason-15/spec.md#requirement-a-board-dashboard-banners-reason-is-15px-at-normal-leading */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-banner-widget:not(.cn-banner-widget--stacked) .cn-banner-widget__reason {
+	--nldesign-component-paragraph-font-size: 15px;
+	--nldesign-component-paragraph-line-height: normal;
+	font-size: 15px;
+	line-height: normal;
+}
+
 /* ---- A workspace filter form (CnWorkspaceFilterWidget) ----------------- */
 /* The boards draw the form's field and its load button 40px tall, the button
    16px in at both sides (DqTermijnen "Jaar" with "Rapport laden"); the form

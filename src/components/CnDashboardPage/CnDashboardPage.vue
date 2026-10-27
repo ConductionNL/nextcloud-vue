@@ -5485,13 +5485,15 @@ export default {
 }
 
 /* A header with a breadcrumb trail ends 8px under it, as the boards pad
-   their header (DqCatalogus: 167). */
+   their header (DqCatalogus: 167), and the trail row sits at normal leading
+   (DqDagAfsluiten: 75, live 79 at 1.5). */
 .cn-dashboard-page--board .cn-dashboard-page__header:has(.cn-header-trail) {
 	padding-bottom: 8px;
 }
 
 .cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail) {
 	margin-bottom: 0;
+	line-height: normal;
 }
 
 .cn-dashboard-page__kpi-cell {
