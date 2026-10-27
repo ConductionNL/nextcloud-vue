@@ -12,14 +12,14 @@ import axios from '@nextcloud/axios'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnAssignDialog from '../../src/components/CnAssignDialog/CnAssignDialog.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
-import { groupSublines } from '../../src/utils/groupSublines.js'
+import { describedGroupIds, groupSublines } from '../../src/utils/groupSublines.js'
 import { searchNextcloudGroups, searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/nc${p}`, generateOcsUrl: (p) => p }))
 jest.mock('@nextcloud/event-bus', () => ({ emit: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() }))
 jest.mock('../../src/utils/userAutocomplete.js', () => ({ searchNextcloudGroups: jest.fn(), searchNextcloudUsers: jest.fn() }))
-jest.mock('../../src/utils/groupSublines.js', () => ({ groupSublines: jest.fn(async (ids) => Object.fromEntries(ids.map((id) => [id, '']))) }))
+jest.mock('../../src/utils/groupSublines.js', () => ({ describedGroupIds: jest.fn(async () => new Set()), groupSublines: jest.fn(async (ids) => Object.fromEntries(ids.map((id) => [id, '']))) }))
 
 const HANDOVER = {
 	title: 'Hand this case to another team',
@@ -141,6 +141,24 @@ describe('CnAssignDialog', () => {
 		expect(groupSublines).toHaveBeenLastCalledWith(['legal'], 'Jur', describe)
 		const legal = w.findComponent(SearchSelect).props('options').find((o) => o.id === 'legal')
 		expect(legal.secondary).toBe('6 members · bezwaar, beroep en Woo-advies')
+		w.unmount()
+	})
+
+	it('lists only the teams the app keeps a record for when describe.only is set (DqOverdragen)', async () => {
+		searchNextcloudGroups.mockResolvedValue([
+			{ id: 'juridische-dienst', label: 'juridische-dienst', subline: '' },
+			{ id: 'legal', label: 'Juridische zaken', subline: '' },
+			{ id: 'app_juridisch', label: 'app_juridisch', subline: '' },
+		])
+		const describe = { register: 'dossiq', schema: 'organisatieRol', only: true }
+		describedGroupIds.mockResolvedValueOnce(new Set(['legal']))
+		const w = await mountDialog({ ...HANDOVER, assignee: { ...HANDOVER.assignee, describe } })
+		await type(w, 'juri')
+		expect(w.findComponent(SearchSelect).props('options').filter((o) => o.kind === 'group').map((o) => o.id)).toEqual(['legal'])
+
+		describedGroupIds.mockResolvedValueOnce(new Set())
+		await type(w, 'jurid')
+		expect(w.findComponent(SearchSelect).props('options').filter((o) => o.kind === 'group')).toHaveLength(3)
 		w.unmount()
 	})
 

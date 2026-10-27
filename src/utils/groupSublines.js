@@ -52,15 +52,16 @@ async function memberCounts(query) {
 }
 
 /**
- * Descriptions by group id from the app's records. Read once per source.
+ * The app's records about groups, read once per source: the description by
+ * group id, and every group id a record names (with or without a text).
  *
  * @param {{register?: string, schema?: string, groupField?: string, textField?: string}|null} describe The source.
- * @return {Promise<Record<string, string>>} Descriptions by group id.
+ * @return {Promise<{texts: Record<string, string>, ids: Set<string>}>} What the records say.
  * @spec openspec/changes/assign-team-option-subline/specs/assign-dialog/spec.md
  */
-async function descriptions(describe) {
+async function groupRecords(describe) {
 	if (!describe || !describe.register || !describe.schema) {
-		return {}
+		return { texts: {}, ids: new Set() }
 	}
 	const groupField = describe.groupField || 'ncGroupId'
 	const textField = describe.textField || 'description'
@@ -68,22 +69,39 @@ async function descriptions(describe) {
 	if (!descriptionCache.has(key)) {
 		descriptionCache.set(key, fetchReferenceObjects({ register: describe.register, schema: describe.schema, limit: 500 })
 			.then((rows) => {
-				const out = {}
+				const texts = {}
+				const ids = new Set()
 				for (const row of rows) {
 					const gid = row && row[groupField]
-					const text = row && typeof row[textField] === 'string' ? row[textField].trim() : ''
-					if (gid && text && out[String(gid)] === undefined) {
-						out[String(gid)] = text
+					if (!gid) {
+						continue
+					}
+					ids.add(String(gid))
+					const text = typeof row[textField] === 'string' ? row[textField].trim() : ''
+					if (text && texts[String(gid)] === undefined) {
+						texts[String(gid)] = text
 					}
 				}
-				return out
+				return { texts, ids }
 			})
 			.catch(() => {
 				descriptionCache.delete(key)
-				return {}
+				return { texts: {}, ids: new Set() }
 			}))
 	}
 	return descriptionCache.get(key)
+}
+
+/**
+ * The groups an app keeps a record for (its teams), for a picker that lists
+ * only those. Empty when the app names no source or holds no record.
+ *
+ * @param {object|null} describe Where the app keeps its groups' records.
+ * @return {Promise<Set<string>>} The group ids.
+ * @spec openspec/changes/assign-team-option-subline/specs/assign-dialog/spec.md
+ */
+export async function describedGroupIds(describe) {
+	return (await groupRecords(describe)).ids
 }
 
 /**
@@ -100,7 +118,7 @@ export async function groupSublines(ids, query, describe = null) {
 	if (!Array.isArray(ids) || ids.length === 0) {
 		return {}
 	}
-	const [counts, texts] = await Promise.all([memberCounts(query), descriptions(describe)])
+	const [counts, { texts }] = await Promise.all([memberCounts(query), groupRecords(describe)])
 	const out = {}
 	for (const id of ids) {
 		const parts = []
