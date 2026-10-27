@@ -1094,6 +1094,14 @@
 	line-height: normal;
 }
 
+/* Another wrapping column's secondary line (DqTaken Onderwerp "2026-4853")
+   is a 14px muted line 2px under its value. */
+.cn-look-board .cn-table-container--board .cn-data-table td.cn-cell--wrap:not(.cn-table-col--title) .cn-table-cell__secondary {
+	margin-top: 2px;
+	font-size: 14px;
+	line-height: normal;
+}
+
 /* `rowTitle: "plain"` (PqTickets, OcPublicaties): the title is bold text in
    the main text colour without an underline, the secondary line 13px muted,
    2px under it. The row stays clickable through its stretched row link. */

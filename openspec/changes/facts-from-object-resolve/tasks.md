@@ -1,0 +1,3 @@
+- [x] refSpecs reads a from-object entry off the page object
+- [x] loadLabels runs with only the page object
+- [x] Jest
