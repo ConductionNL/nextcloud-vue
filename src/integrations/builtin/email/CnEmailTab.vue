@@ -80,6 +80,27 @@
 						</div>
 					</div>
 				</component>
+				<NcActions
+					class="cn-email-tab__menu"
+					:ariaLabel="moreActionsLabel"
+					:forceMenu="true">
+					<NcActionLink
+						v-if="row.href"
+						:href="row.href"
+						target="_blank"
+						:closeAfterClick="true">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ openInMailLabel }}
+					</NcActionLink>
+					<NcActionButton :closeAfterClick="true" @click="unlink(row)">
+						<template #icon>
+							<LinkVariantOff :size="20" />
+						</template>
+						{{ unlinkLabel }}
+					</NcActionButton>
+				</NcActions>
 			</li>
 		</ul>
 		<NcButton
@@ -105,9 +126,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
@@ -127,12 +150,17 @@ export default {
 	name: 'CnEmailTab',
 
 	components: {
+		NcActionButton,
+		NcActionLink,
+		NcActions,
 		NcAvatar,
 		NcButton,
 		NcDateTime,
 		NcLoadingIcon,
 		EmailEditOutline,
 		LinkVariant,
+		LinkVariantOff,
+		OpenInNew,
 		CnEmailPicker,
 	},
 
@@ -161,6 +189,12 @@ export default {
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing email') },
 		/** Pre-translated compose-in-Mail CTA label. */
 		composeLabel: { type: String, default: () => t('nextcloud-vue', 'Compose in Mail') },
+		/** Pre-translated label of a mail's "more actions" menu. */
+		moreActionsLabel: { type: String, default: () => t('nextcloud-vue', 'More actions for this mail') },
+		/** Pre-translated label of the menu's open-in-Mail item. */
+		openInMailLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Mail') },
+		/** Pre-translated label of the menu's unlink item. */
+		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink mail') },
 		/** Base path for the Mail app (for the compose deep-link). */
 		mailAppPath: { type: String, default: '/index.php/apps/mail' },
 		/**
@@ -429,6 +463,34 @@ export default {
 			this.pickerOpen = true
 		},
 
+		/**
+		 * Remove a mail's link to the record (the mail stays in Mail), then
+		 * reload the list.
+		 *
+		 * @param {object} row A view row from `rows`.
+		 */
+		async unlink(row) {
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
+			try {
+				const response = await fetch(
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails/${encodeURIComponent(row.id)}`),
+					{ method: 'DELETE', headers: buildHeaders() },
+				)
+				if (response.ok === true) {
+					this.reset()
+					await this.fetchMessages()
+				} else {
+					this.errored = true
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnEmailTab] unlink failed', err)
+				this.errored = true
+			}
+		},
+
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			if (!this.register || !this.schema || !this.objectId) {
@@ -504,7 +566,16 @@ export default {
 	flex-direction: column;
 }
 
+/* The row's link and its "more actions" menu, side by side. */
+.cn-email-tab__item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
 .cn-email-tab__row {
+	flex: 1 1 auto;
+	min-width: 0;
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;

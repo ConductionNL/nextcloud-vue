@@ -1,0 +1,3 @@
+- [x] tests/css/lookBoardLinkedMailRows.spec.js and tests/components/CnEmailTabRowMenu.spec.js (red first)
+- [x] CnEmailTab row menu (Open in Mail, Unlink mail) and l10n en/nl
+- [x] src/css/look-board-detail.css board rows
