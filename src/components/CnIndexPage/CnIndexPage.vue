@@ -1497,7 +1497,7 @@ import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
-import { mapListItems } from '../../utils/mapList.js'
+import { mapListItems, mapMissingTitleText } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fillMyTeamToken, loadMyTeam, peekMyTeam, peekMyTeamName } from '../../utils/myTeam.js'
@@ -3097,10 +3097,12 @@ export default {
 		 * - `zoom` — the map's initial zoom level.
 		 * - `list` — a numbered list beside the map, map and list in one card
 		 *   (DqZakenKaart): `{ title, sub?, pills?: [{ path?, text?, map?,
-		 *   colorMap? }], due? }`, field templates read per row. The pins carry the
-		 *   list's numbers, the row under the pointer is marked on both, the rows
-		 *   without a place are counted under the list with a link to the table,
-		 *   and the page's count line adds how many are on the map.
+		 *   colorMap? }], due?, missingTitle? }`, field templates read per row. The
+		 *   pins carry the list's numbers, the row under the pointer is marked on
+		 *   both, the rows without a place are counted under the list with a link
+		 *   to the table (titled by `missingTitle`, `{ singular, plural }` with
+		 *   `{total}`, else "8 without an address"), and the page's count line
+		 *   adds how many are on the map.
 		 *
 		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number], zoom?: number, list?: object }}
 		 */
@@ -7443,7 +7445,8 @@ export default {
 
 		/** @return {string} The card under the list, for the rows without a place. */
 		mapMissingTitle() {
-			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+			const list = this.mapConfig && this.mapConfig.list
+			return mapMissingTitleText(list ? list.missingTitle : undefined, this.mapList.missing.length, { translate: this.cnTranslate, appId: this.cnAppId })
 		},
 
 		/**
