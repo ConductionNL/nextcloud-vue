@@ -3031,7 +3031,8 @@ export default {
 		 * The side column's order in the board look (manifest
 		 * `config.sideColumnOrder`): `board` puts a notice first and the
 		 * History card last; `declared` keeps the order of `sideColumn`, for a
-		 * board that draws History on top.
+		 * board that draws History on top. A list the record picks
+		 * (`sideColumnFrom`) keeps its own order either way.
 		 *
 		 * @spec openspec/changes/detail-side-column-order/specs/detail-page/spec.md#requirement-a-detail-page-can-keep-its-side-column-in-the-declared-order
 		 */
@@ -4376,10 +4377,11 @@ export default {
 		 * @return {Array<object>} The definitions that resolve, each with an `id`.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 * @spec openspec/changes/side-column-from-keeps-its-order/specs/detail-page/spec.md#requirement-a-listed-side-column-keeps-its-order-in-the-board-look
 		 */
 		sideColumnWidgets() {
 			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
-			if (!this.isBoard || this.sideColumnOrder === 'declared') {
+			if (!this.isBoard || this.sideColumnOrder === 'declared' || this.sideColumnPickedIds !== null) {
 				return resolved
 			}
 			// The board look: the notice first, the History card last.
@@ -4400,16 +4402,28 @@ export default {
 		 */
 		pickedSideWidgets() {
 			const declared = this.declaredSideWidgets
-			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+			if (this.sideColumnPickedIds === null) {
 				return declared
 			}
-			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
-			if (!Array.isArray(ids) || ids.length === 0) {
-				return declared
-			}
-			return ids
+			return this.sideColumnPickedIds
 				.map((id) => declared.find((widget) => widget.id === id) || null)
 				.filter(Boolean)
+		},
+
+		/**
+		 * The ids the record lists for its side column (`sideColumnFrom`), or
+		 * null when it lists none or edit mode shows every entry. A listed
+		 * order is the record's own, so the board look keeps it as listed.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/side-column-from-keeps-its-order/specs/detail-page/spec.md#requirement-a-listed-side-column-keeps-its-order-in-the-board-look
+		 */
+		sideColumnPickedIds() {
+			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+				return null
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
+			return Array.isArray(ids) && ids.length > 0 ? ids : null
 		},
 
 		/**
