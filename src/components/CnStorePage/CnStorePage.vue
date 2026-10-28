@@ -47,8 +47,29 @@
   may carry the word Store at all.
 -->
 <template>
-	<div class="cn-store-page" data-testid="store-page">
-		<div class="cn-store-page__header">
+	<div class="cn-store-page" :class="{ 'cn-store-page--board': isBoardLook }" data-testid="store-page">
+		<!-- Board look (board PqStore): the page header, buildiq and Publish. -->
+		<CnPageHeader
+			v-if="isBoardLook"
+			:title="resolvedTitle"
+			:description="boardDescription">
+			<template #extra>
+				<div class="cn-store-page__header-actions">
+					<CnBuildiqEditButton />
+					<NcButton
+						v-if="showPublish"
+						variant="primary"
+						data-testid="store-publish"
+						:to="publishTarget">
+						<template #icon>
+							<Upload :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Publish') }}
+					</NcButton>
+				</div>
+			</template>
+		</CnPageHeader>
+		<div v-else class="cn-store-page__header">
 			<div class="cn-store-page__heading">
 				<h2 class="cn-store-page__title" :lang="langOf(resolvedTitle)">
 					{{ shown(resolvedTitle) }}
@@ -66,7 +87,34 @@
 			</p>
 		</div>
 
-		<div class="cn-store-page__controls">
+		<div v-if="isBoardLook" class="cn-store-page__lens-row">
+			<div
+				class="cn-store-page__lenses"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Show')">
+				<button
+					v-for="option in lensOptions"
+					:key="option.value"
+					type="button"
+					class="cn-store-page__lens"
+					:class="{ 'cn-store-page__lens--active': option.value === lens }"
+					:aria-pressed="option.value === lens ? 'true' : 'false'"
+					:disabled="offline"
+					:data-testid="`store-lens-${option.value}`"
+					@click="lens = option.value">
+					{{ option.label }}
+					<span class="cn-store-page__lens-count">{{ option.count }}</span>
+				</button>
+			</div>
+			<NcTextField
+				v-model="query"
+				class="cn-store-page__lens-search"
+				:label="t('nextcloud-vue', 'Search the store')"
+				:disabled="offline"
+				data-testid="store-search"
+				@update:modelValue="onSearchInput" />
+		</div>
+		<div v-else class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
 				:label="t('nextcloud-vue', 'Search the store')"
@@ -90,155 +138,218 @@
 			</div>
 		</div>
 
-		<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
+		<div :class="{ 'cn-store-page__layout': isBoardLook }">
+			<div class="cn-store-page__main">
+				<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
 
-		<NcNoteCard
-			v-else-if="offline"
-			type="info"
-			data-testid="store-not-configured">
-			{{ notConfiguredMessage }}
-		</NcNoteCard>
+				<NcNoteCard
+					v-else-if="offline"
+					type="info"
+					data-testid="store-not-configured">
+					{{ notConfiguredMessage }}
+				</NcNoteCard>
 
-		<NcNoteCard
-			v-else-if="unreachable"
-			type="warning"
-			data-testid="store-unreachable">
-			{{ unreachableMessage }}
-		</NcNoteCard>
+				<NcNoteCard
+					v-else-if="unreachable"
+					type="warning"
+					data-testid="store-unreachable">
+					{{ unreachableMessage }}
+				</NcNoteCard>
 
-		<NcEmptyContent
-			v-else-if="cards.length === 0"
-			:name="t('nextcloud-vue', 'Nothing matches that search')"
-			:description="
-				t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
-			" />
+				<NcEmptyContent
+					v-else-if="visibleCards.length === 0"
+					:name="t('nextcloud-vue', 'Nothing matches that search')"
+					:description="
+						t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
+					" />
 
-		<ul
-			v-if="!loading && cards.length > 0"
-			class="cn-store-page__grid"
-			:style="gridStyle"
-			data-testid="store-results">
-			<li
-				v-for="card in cards"
-				:key="card.slug"
-				class="cn-store-page__card"
-				:class="{ 'cn-store-page__card--board': isBoardLook }">
-				<!--
+				<ul
+					v-if="!loading && visibleCards.length > 0"
+					class="cn-store-page__grid"
+					:style="gridStyle"
+					data-testid="store-results">
+					<li
+						v-for="card in visibleCards"
+						:key="card.slug"
+						class="cn-store-page__card"
+						:class="{ 'cn-store-page__card--board': isBoardLook }">
+						<!--
 					Board look: an icon chip, the title, "<kind> · <publisher>" and a
 					state pill, then the description, then a footer with the version
 					and one named action. The same card without the look is the
 					plain one below.
 				-->
-				<template v-if="isBoardLook">
-					<div class="cn-store-page__card-head">
-						<span class="cn-store-page__card-chip" aria-hidden="true">
-							<CnIcon v-if="card.icon" :name="card.icon" :size="22" />
-							<PackageVariantClosed v-else :size="22" />
-						</span>
-						<div class="cn-store-page__card-heading">
+						<template v-if="isBoardLook">
+							<div class="cn-store-page__card-head">
+								<span class="cn-store-page__card-chip" aria-hidden="true">
+									<CnIcon v-if="card.icon" :name="card.icon" :size="22" />
+									<PackageVariantClosed v-else :size="22" />
+								</span>
+								<div class="cn-store-page__card-heading">
+									<h3 class="cn-store-page__card-title">
+										{{ card.title || card.slug }}
+									</h3>
+									<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
+										{{ cardKindLine(card) }}
+									</p>
+								</div>
+								<span
+									v-if="cardState(card)"
+									class="cn-store-page__card-state"
+									:class="`cn-store-page__card-state--${cardState(card)}`"
+									data-testid="store-card-state">
+									{{ cardState(card) === 'update' ? t('nextcloud-vue', 'Update') : t('nextcloud-vue', 'Installed') }}
+								</span>
+							</div>
+							<p class="cn-store-page__card-description">
+								{{ card.description }}
+							</p>
+							<div class="cn-store-page__card-footer" data-testid="store-card-footer">
+								<span v-if="card.version" class="cn-store-page__card-version">
+									{{ cardVersion(card) }}
+								</span>
+								<NcButton
+									v-if="cardAction(card)"
+									variant="secondary"
+									class="cn-store-page__card-action"
+									data-testid="store-card-action"
+									:href="cardAction(card).href"
+									:disabled="installing === card.slug"
+									:aria-label="`${cardAction(card).label} ${card.title || card.slug}`"
+									@click="onCardAction(card, cardAction(card))">
+									{{ cardAction(card).label }}
+								</NcButton>
+							</div>
+						</template>
+						<template v-else>
 							<h3 class="cn-store-page__card-title">
 								{{ card.title || card.slug }}
 							</h3>
-							<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
-								{{ cardKindLine(card) }}
+							<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
+								{{ card.typeName || kindLabel(card.kind) }}
 							</p>
-						</div>
-						<span
-							v-if="cardState(card)"
-							class="cn-store-page__card-state"
-							:class="`cn-store-page__card-state--${cardState(card)}`"
-							data-testid="store-card-state">
-							{{ cardState(card) === 'update' ? t('nextcloud-vue', 'Update') : t('nextcloud-vue', 'Installed') }}
-						</span>
-					</div>
-					<p class="cn-store-page__card-description">
-						{{ card.description }}
-					</p>
-					<div class="cn-store-page__card-footer" data-testid="store-card-footer">
-						<span v-if="card.version" class="cn-store-page__card-version">
-							{{ t('nextcloud-vue', 'Version {version}', { version: card.version }) }}
-						</span>
-						<NcButton
-							v-if="cardAction(card)"
-							variant="secondary"
-							class="cn-store-page__card-action"
-							data-testid="store-card-action"
-							:href="cardAction(card).href"
-							:disabled="installing === card.slug"
-							:aria-label="`${cardAction(card).label} ${card.title || card.slug}`"
-							@click="onCardAction(card, cardAction(card))">
-							{{ cardAction(card).label }}
-						</NcButton>
-					</div>
-				</template>
-				<template v-else>
-					<h3 class="cn-store-page__card-title">
-						{{ card.title || card.slug }}
+							<p class="cn-store-page__card-description">
+								{{ card.description }}
+							</p>
+							<div class="cn-store-page__card-footer">
+								<span v-if="card.publisher" class="cn-store-page__card-publisher">
+									{{ card.publisher }}
+								</span>
+								<span v-if="card.version" class="cn-store-page__card-version">
+									{{ card.version }}
+								</span>
+								<NcButton
+									v-if="showInstall"
+									variant="primary"
+									data-testid="store-install"
+									:disabled="installing === card.slug"
+									@click="install(card)">
+									{{
+										installing === card.slug
+											? t('nextcloud-vue', 'Installing…')
+											: t('nextcloud-vue', 'Install')
+									}}
+								</NcButton>
+							</div>
+						</template>
+					</li>
+				</ul>
+
+				<div
+					v-if="!loading && visibleBuiltIn.length > 0"
+					class="cn-store-page__builtin">
+					<h3 class="cn-store-page__builtin-title">
+						{{ builtInHeading }}
 					</h3>
-					<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
-						{{ card.typeName || kindLabel(card.kind) }}
-					</p>
-					<p class="cn-store-page__card-description">
-						{{ card.description }}
-					</p>
-					<div class="cn-store-page__card-footer">
-						<span v-if="card.publisher" class="cn-store-page__card-publisher">
-							{{ card.publisher }}
-						</span>
-						<span v-if="card.version" class="cn-store-page__card-version">
-							{{ card.version }}
-						</span>
-						<NcButton
-							v-if="showInstall"
-							variant="primary"
-							data-testid="store-install"
-							:disabled="installing === card.slug"
-							@click="install(card)">
-							{{
-								installing === card.slug
-									? t('nextcloud-vue', 'Installing…')
-									: t('nextcloud-vue', 'Install')
-							}}
-						</NcButton>
-					</div>
-				</template>
-			</li>
-		</ul>
+					<ul class="cn-store-page__grid" :style="gridStyle" data-testid="store-builtin">
+						<li
+							v-for="item in visibleBuiltIn"
+							:key="item.slug"
+							class="cn-store-page__card">
+							<h4 class="cn-store-page__card-title" :lang="langOf(item.title)">
+								{{ shown(item.title) || item.slug }}
+							</h4>
+							<p class="cn-store-page__card-description" :lang="langOf(item.description)">
+								{{ shown(item.description) }}
+							</p>
+						</li>
+					</ul>
+				</div>
 
-		<div
-			v-if="!loading && visibleBuiltIn.length > 0"
-			class="cn-store-page__builtin">
-			<h3 class="cn-store-page__builtin-title">
-				{{ builtInHeading }}
-			</h3>
-			<ul class="cn-store-page__grid" :style="gridStyle" data-testid="store-builtin">
-				<li
-					v-for="item in visibleBuiltIn"
-					:key="item.slug"
-					class="cn-store-page__card">
-					<h4 class="cn-store-page__card-title" :lang="langOf(item.title)">
-						{{ shown(item.title) || item.slug }}
-					</h4>
-					<p class="cn-store-page__card-description" :lang="langOf(item.description)">
-						{{ shown(item.description) }}
+				<NcNoteCard
+					v-if="report"
+					:type="report.type"
+					data-testid="store-install-report">
+					{{ report.message }}
+				</NcNoteCard>
+			</div>
+			<!-- Board look: what is installed, the update check, what ships with the app. -->
+			<aside v-if="isBoardLook && !loading && !offline && !unreachable" class="cn-store-page__aside">
+				<section class="cn-store-page__side-card" data-testid="store-installed">
+					<h2 class="cn-store-page__side-title">
+						{{ t('nextcloud-vue', 'Installed from this store') }}
+					</h2>
+					<p v-if="installedCards.length === 0" class="cn-store-page__side-note">
+						{{ t('nextcloud-vue', 'Nothing from this store is installed yet.') }}
 					</p>
-				</li>
-			</ul>
+					<ul v-else class="cn-store-page__installed">
+						<li v-for="card in installedCards" :key="card.slug">
+							<span class="cn-store-page__installed-title">{{ card.title || card.slug }}</span>
+							<span class="cn-store-page__installed-version">{{ card.installedVersion || card.version }}</span>
+							<span
+								v-if="card.updateAvailable === true"
+								class="cn-store-page__card-state cn-store-page__card-state--update"
+								data-testid="store-installed-update">
+								{{ t('nextcloud-vue', 'Update') }}
+							</span>
+						</li>
+					</ul>
+				</section>
+				<section class="cn-store-page__side-card" data-testid="store-updates">
+					<h2 class="cn-store-page__side-title">
+						{{ t('nextcloud-vue', 'Updates') }}
+					</h2>
+					<p v-if="checkedLabel" class="cn-store-page__side-meta">
+						<ClockOutline :size="16" />
+						{{ t('nextcloud-vue', 'Last checked {when}', { when: checkedLabel }) }}
+					</p>
+					<p class="cn-store-page__side-note" data-testid="store-updates-count">
+						{{ updateCount === 0
+							? t('nextcloud-vue', 'Everything is up to date.')
+							: n('nextcloud-vue', '%n update is ready. An update keeps your own changes.', '%n updates are ready. An update keeps your own changes.', updateCount) }}
+					</p>
+					<NcButton
+						variant="secondary"
+						wide
+						:disabled="loading"
+						data-testid="store-check-now"
+						@click="search">
+						<template #icon>
+							<Refresh :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Check now') }}
+					</NcButton>
+				</section>
+				<section v-if="includedLine" class="cn-store-page__side-card" data-testid="store-included">
+					<h2 class="cn-store-page__side-title">
+						{{ builtInHeading }}
+					</h2>
+					<p class="cn-store-page__side-text">
+						{{ includedLine }}
+					</p>
+					<p class="cn-store-page__side-note">
+						{{ t('nextcloud-vue', 'Only administrators install. An administrator connects the registry under Administration settings.') }}
+					</p>
+				</section>
+			</aside>
 		</div>
-
-		<NcNoteCard
-			v-if="report"
-			:type="report.type"
-			data-testid="store-install-report">
-			{{ report.message }}
-		</NcNoteCard>
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { t } from '@nextcloud/l10n'
+import { n, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
@@ -247,7 +358,12 @@ import {
 	NcNoteCard,
 	NcTextField,
 } from '@nextcloud/vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -269,8 +385,13 @@ export default {
 	name: 'CnStorePage',
 
 	components: {
+		ClockOutline,
+		CnBuildiqEditButton,
 		CnIcon,
+		CnPageHeader,
 		PackageVariantClosed,
+		Refresh,
+		Upload,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -404,6 +525,16 @@ export default {
 			type: [String, Object],
 			default: '',
 		},
+
+		/**
+		 * Extra lens chips under the board look, one per item kind:
+		 * `[{ kind: 'connector', label: 'Connectors' }]` (board PqStore). The
+		 * label goes through the app's translate.
+		 */
+		kindLenses: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	data() {
@@ -424,6 +555,10 @@ export default {
 			// manifest block. Null until the first response, so "not asked
 			// yet" stays distinguishable from "the app declares none".
 			servedBuiltIn: null,
+			// The board look's lens: all, installed, updates or an item kind.
+			lens: 'all',
+			// When the registry last answered (`checkedAt` from the engine).
+			checkedAt: '',
 		}
 	},
 
@@ -665,6 +800,85 @@ export default {
 		 *
 		 * @return {string} The built-in section heading.
 		 */
+		/**
+		 * The cards the chosen lens shows (board look); every card otherwise.
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleCards() {
+			if (!this.isBoardLook || this.lens === 'all') {
+				return this.cards
+			}
+			if (this.lens === 'installed') {
+				return this.installedCards
+			}
+			if (this.lens === 'updates') {
+				return this.cards.filter((card) => card.updateAvailable === true)
+			}
+			return this.cards.filter((card) => card.kind === this.lens)
+		},
+
+		installedCards() {
+			return this.cards.filter((card) => card.installed === true)
+		},
+
+		updateCount() {
+			return this.cards.filter((card) => card.updateAvailable === true).length
+		},
+
+		/**
+		 * The lens chips with their counts.
+		 *
+		 * @return {Array<{value: string, label: string, count: number}>}
+		 */
+		lensOptions() {
+			return [
+				{ value: 'all', label: t('nextcloud-vue', 'All'), count: this.cards.length },
+				{ value: 'installed', label: t('nextcloud-vue', 'Installed'), count: this.installedCards.length },
+				{ value: 'updates', label: t('nextcloud-vue', 'Updates available'), count: this.updateCount },
+				...this.kindLenses.map((entry) => ({
+					value: entry.kind,
+					label: this.shown(entry.label),
+					count: this.cards.filter((card) => card.kind === entry.kind).length,
+				})),
+			]
+		},
+
+		/**
+		 * The description, with `{count}` filled by the number of items the
+		 * registry holds.
+		 *
+		 * @return {string}
+		 */
+		boardDescription() {
+			return this.shown(this.resolvedDescription).replace('{count}', String(this.cards.length))
+		},
+
+		checkedLabel() {
+			if (!this.checkedAt) {
+				return ''
+			}
+			const date = new Date(this.checkedAt)
+			return isNaN(date.getTime()) ? '' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+		},
+
+		/**
+		 * "A, B and C ship with {app}. They show here when no registry is
+		 * connected.", or '' when the app ships nothing.
+		 *
+		 * @return {string}
+		 */
+		includedLine() {
+			const titles = this.effectiveBuiltIn.map((item) => this.shown(item.title) || item.slug).filter(Boolean)
+			if (titles.length === 0) {
+				return ''
+			}
+			const list = titles.length === 1
+				? titles[0]
+				: t('nextcloud-vue', '{list} and {last}', { list: titles.slice(0, -1).join(', '), last: titles[titles.length - 1] })
+			return t('nextcloud-vue', '{items} ship with the app. They show here when no registry is connected.', { items: list })
+		},
+
 		builtInHeading() {
 			return this.resolvedApp
 				? t('nextcloud-vue', 'Included with {app}', { app: this.resolvedApp })
@@ -725,6 +939,22 @@ export default {
 		 * @param {object} card The card.
 		 * @return {string} The line, or ''.
 		 */
+		/**
+		 * The footer version: the installed one and the newer one when an
+		 * update is out, else the registry's.
+		 *
+		 * @param {object} card The store item.
+		 * @return {string}
+		 */
+		cardVersion(card) {
+			if (card.updateAvailable === true && card.installedVersion) {
+				return t('nextcloud-vue', 'Version {version}, {latest} is out', { version: card.installedVersion, latest: card.version })
+			}
+			return t('nextcloud-vue', 'Version {version}', { version: card.version })
+		},
+
+		n,
+
 		cardKindLine(card) {
 			return [card.typeName || this.kindLabel(card.kind), card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')
 		},
@@ -902,6 +1132,7 @@ export default {
 				// answers, so an app's own items survive a registry that is
 				// down — which is exactly when they are all there is to show.
 				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
+				this.checkedAt = typeof body.checkedAt === 'string' ? body.checkedAt : ''
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []

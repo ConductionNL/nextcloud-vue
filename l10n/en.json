@@ -2433,7 +2433,21 @@
     "Shows which rows would fail and why.": "Shows which rows would fail and why.",
     "Checked. Nothing is imported yet.": "Checked. Nothing is imported yet.",
     "{rows} rows · {columns} columns · {size}": "{rows} rows · {columns} columns · {size}",
-    "Field for column {column}": "Field for column {column}"
+    "Field for column {column}": "Field for column {column}",
+    "Installed from this store": "Installed from this store",
+    "Nothing from this store is installed yet.": "Nothing from this store is installed yet.",
+    "Updates": "Updates",
+    "Last checked {when}": "Last checked {when}",
+    "Everything is up to date.": "Everything is up to date.",
+    "Check now": "Check now",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Only administrators install. An administrator connects the registry under Administration settings.",
+    "Updates available": "Updates available",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} ship with the app. They show here when no registry is connected.",
+    "Version {version}, {latest} is out": "Version {version}, {latest} is out",
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update is ready. An update keeps your own changes.",
+      "%n updates are ready. An update keeps your own changes."
+    ]
   },
   "plurals": {
     "{count} member": [

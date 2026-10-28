@@ -2698,7 +2698,21 @@
     "Shows which rows would fail and why.": "Laat zien welke rijen zouden mislukken en waarom.",
     "Checked. Nothing is imported yet.": "Gecontroleerd. Er is nog niets geïmporteerd.",
     "{rows} rows · {columns} columns · {size}": "{rows} rijen · {columns} kolommen · {size}",
-    "Field for column {column}": "Veld voor kolom {column}"
+    "Field for column {column}": "Veld voor kolom {column}",
+    "Installed from this store": "Geïnstalleerd uit deze store",
+    "Nothing from this store is installed yet.": "Er is nog niets uit deze store geïnstalleerd.",
+    "Updates": "Updates",
+    "Last checked {when}": "Laatst gecontroleerd {when}",
+    "Everything is up to date.": "Alles is bijgewerkt.",
+    "Check now": "Nu controleren",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Alleen beheerders installeren. Een beheerder koppelt de registry onder Beheerinstellingen.",
+    "Updates available": "Updates beschikbaar",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} komen mee met de app. Ze staan hier als er geen registry is gekoppeld.",
+    "Version {version}, {latest} is out": "Versie {version}, {latest} is uit",
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update staat klaar. Een update bewaart je eigen wijzigingen.",
+      "%n updates staan klaar. Een update bewaart je eigen wijzigingen."
+    ]
   },
   "plurals": {
     "{count} member": [
