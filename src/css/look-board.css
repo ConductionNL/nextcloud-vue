@@ -2605,9 +2605,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* Over a list that rules above its first row (record list ruleAbove, task
    list, decision list) the rule stands 6px under the title and the row's own
    12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
-   "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt").
+   "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt"). An app's own list
+   that rules above its first row marks itself `cn-board-ruled-rows`.
+   @spec openspec/changes/board-ruled-rows-marker/specs/board-card-title-above-ruled-list/spec.md#requirement-an-apps-own-ruled-list-starts-6px-under-the-card-title
    @spec openspec/changes/board-card-title-above-ruled-list/specs/board-card-title-above-ruled-list/spec.md#requirement-a-ruled-list-starts-6px-under-the-card-title */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows, > .cn-widget-wrapper__content .cn-nc-widget-widget__body--vertical) .cn-widget-wrapper__header {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows, > .cn-widget-wrapper__content .cn-nc-widget-widget__body--vertical, > .cn-widget-wrapper__content .cn-board-ruled-rows) .cn-widget-wrapper__header {
 	padding-bottom: 6px;
 }
 
