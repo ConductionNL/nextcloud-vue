@@ -306,7 +306,8 @@
 
 		<!-- Built-in "switch" widget: an on/off switch with the value as its
 		     label. widgetProps { checked(row) => boolean, onToggle(row, on) =>
-		     Promise }. The switch shows the new state at once and returns to
+		     Promise, ariaLabel?: string | (row) => string }; with `ariaLabel`
+		     the switch shows no value and is named for screen readers only. The switch shows the new state at once and returns to
 		     the old one when onToggle rejects. Clicks stay in the cell, so
 		     toggling never opens the row. -->
 		<template v-else-if="widget === 'switch'">
@@ -319,7 +320,10 @@
 					:modelValue="switchChecked"
 					:disabled="switchBusy || typeof (widgetProps && widgetProps.onToggle) !== 'function'"
 					@update:modelValue="onSwitchToggle">
-					{{ hasValue ? labelledValue : '' }}
+					<span v-if="switchAriaLabel" class="hidden-visually">{{ switchAriaLabel }}</span>
+					<template v-else>
+						{{ hasValue ? labelledValue : '' }}
+					</template>
 				</NcCheckboxRadioSwitch>
 			</span>
 		</template>
@@ -718,6 +722,19 @@ export default {
 				variant: item.variant || 'secondary',
 				disabled: item.disabled === true,
 			}))
+		},
+
+		/**
+		 * The `switch` widget's name for screen readers (`widgetProps.ariaLabel`,
+		 * a string or a function of the row), or '' to show the value instead.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/switch-cell-row-label/specs/switch-cell-row-label/spec.md#requirement-a-switch-cell-can-be-named-per-row-without-showing-the-name
+		 */
+		switchAriaLabel() {
+			const label = this.widgetProps && this.widgetProps.ariaLabel
+			const text = typeof label === 'function' ? label(this.row) : label
+			return typeof text === 'string' ? text.trim() : ''
 		},
 
 		/**
