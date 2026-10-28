@@ -343,7 +343,7 @@ export default {
 		auditWords() {
 			const actions = this.content.actionLabels && typeof this.content.actionLabels === 'object' ? this.content.actionLabels : null
 			return {
-				actionLabels: actions ? Object.fromEntries(Object.entries(actions).map(([key, label]) => [key, this.translate(label)])) : null,
+				actionLabels: actions ? Object.fromEntries(Object.entries(actions).map(([key, label]) => [key, Array.isArray(label) ? label.map((option) => ({ ...option, text: this.translate(option && option.text) })) : this.translate(label)])) : null,
 				changeLabels: (Array.isArray(this.content.changeLabels) ? this.content.changeLabels : []).map((rule) => ({ ...rule, label: this.translate(rule && rule.label) })),
 				valueLabels: this.content.valueLabels && typeof this.content.valueLabels === 'object' ? this.content.valueLabels : null,
 			}

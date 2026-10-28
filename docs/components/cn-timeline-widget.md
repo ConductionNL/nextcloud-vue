@@ -52,6 +52,8 @@ The audit trail takes the History card's words: `actionLabels` (by action), `cha
 
 `resolve` (`{ "<field>": { "register"?, "schema", "labelField"? } }`) names the record a reference points at: a label's `{object.<field>}` reads that record's label instead of its id, read once through the shared reference resolver ("Event created in campaign {object.campaign}" with `"resolve": { "campaign": { "schema": "campaign" } }`). The id stays until the label is known.
 
+An `actionLabels` value may also be a list of `{ when?, text }`: the first entry whose local visibleWhen condition holds for the record gives the words, and one without `when` is the fallback (`"create": [{ "when": { "field": "campaign", "op": "notEmpty" }, "text": "Event created in campaign {object.campaign}" }, { "text": "Event created" }]`). The History card (`audit-trail`) reads the same form.
+
 ## Manage mode
 
 `manage: true` replaces the read view with a working view over OpenRegister's

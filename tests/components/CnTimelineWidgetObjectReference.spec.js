@@ -61,3 +61,24 @@ describe('CnTimelineWidget resolve', () => {
 		expect(labels(w)).toEqual(['Event created in campaign c1'])
 	})
 })
+
+describe('CnTimelineWidget label by condition', () => {
+	it('reads the fallback words for an event without a campaign', async () => {
+		axios.get.mockResolvedValue({ data: { results: AUDIT } })
+		const w = mount(CnTimelineWidget, {
+			props: {
+				register: 'pipelinq',
+				schema: 'campaignEvent',
+				objectId: 'e2',
+				object: { id: 'e2' },
+				content: {
+					auditTrail: true,
+					actionLabels: { create: [{ when: { field: 'campaign', op: 'notEmpty' }, text: 'Event created in campaign {object.campaign}' }, { text: 'Event created' }] },
+					resolve: { campaign: { schema: 'campaign' } },
+				},
+			},
+		})
+		await flushPromises()
+		expect(labels(w)).toEqual(['Event created'])
+	})
+})

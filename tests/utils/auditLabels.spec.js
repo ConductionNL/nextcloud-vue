@@ -43,3 +43,23 @@ describe('auditLabel', () => {
 		expect(auditLabel({ action: 'delete' }, rules, {})).toBeNull()
 	})
 })
+
+describe('auditLabel with a label that depends on the record', () => {
+	const rules = {
+		actionLabels: {
+			create: [
+				{ when: { field: 'campaign', op: 'notEmpty' }, text: 'Event created in campaign {object.campaign}' },
+				{ text: 'Event created' },
+			],
+		},
+	}
+
+	it('takes the first entry whose condition holds for the record', () => {
+		expect(auditLabel({ action: 'create' }, rules, { object: { campaign: 'Warmtenet Oost 2026' } })).toBe('Event created in campaign Warmtenet Oost 2026')
+	})
+
+	it('falls back to an entry without a condition', () => {
+		expect(auditLabel({ action: 'create' }, rules, { object: { campaign: '' } })).toBe('Event created')
+		expect(auditLabel({ action: 'create' }, rules, {})).toBe('Event created')
+	})
+})

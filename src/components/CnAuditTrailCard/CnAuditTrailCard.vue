@@ -503,7 +503,7 @@ export default {
 		 * @spec openspec/changes/audit-trail-action-labels/specs/audit-trail/spec.md#requirement-a-trail-can-say-what-happened-in-words
 		 */
 		labelFor(entry) {
-			return actionLabelFor(entry, this.actionLabels)
+			return actionLabelFor(entry, this.actionLabels, this.object)
 		},
 
 		/**

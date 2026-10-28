@@ -8,6 +8,7 @@
  */
 
 import { readPath } from './readPath.js'
+import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
 /**
  * The new side of an `{ old, new }` pair, or the value itself.
@@ -81,12 +82,17 @@ export function changeLabelFor(entry, rules) {
 /**
  * The `actionLabels` entry for an entry: by action and state first, then by
  * action; a related record's entry (`relatedAs`) tries its prefixed keys first.
+ * A label may be a list of `{ when?, text }`: the first entry whose local
+ * visibleWhen condition holds for the record (one without `when` always does)
+ * gives the words ("Event created in campaign …", else "Event created").
  *
  * @param {object} entry The entry.
- * @param {{[key: string]: string}|null} labels The labels.
+ * @param {{[key: string]: string|Array<{when?: object, text: string}>}|null} labels The labels.
+ * @param {object|null} [object] The record a label's condition reads.
  * @return {string|null} The label, or null.
+ * @spec openspec/changes/audit-label-when/specs/audit-trail/spec.md#requirement-an-action-label-can-depend-on-the-record
  */
-export function actionLabelFor(entry, labels) {
+export function actionLabelFor(entry, labels, object = null) {
 	const action = entry && (entry.action || entry.event)
 	if (!labels || !action) {
 		return null
@@ -95,6 +101,23 @@ export function actionLabelFor(entry, labels) {
 	const prefix = entry.relatedAs ? `${entry.relatedAs}.` : ''
 	const label = (prefix ? (labels[`${prefix}${action}:${state}`] ?? labels[`${prefix}${action}`]) : undefined)
 		?? labels[`${action}:${state}`] ?? labels[action]
+	return labelForRecord(label, object)
+}
+
+/**
+ * The words of a label for a record: a string as it is, or from a list of
+ * `{ when?, text }` the first entry whose condition holds; null for none.
+ *
+ * @param {unknown} label The label.
+ * @param {object|null} object The record.
+ * @return {string|null} The words.
+ */
+function labelForRecord(label, object) {
+	if (Array.isArray(label)) {
+		const chosen = label.find((option) => option && typeof option.text === 'string' && option.text !== ''
+			&& (!option.when || evaluateVisibleWhenLocal(option.when, object || {})))
+		return chosen ? chosen.text : null
+	}
 	return typeof label === 'string' && label !== '' ? label : null
 }
 
@@ -129,6 +152,6 @@ export function fillAuditLabel(label, entry, { actor = '', object = null, valueL
  * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
  */
 export function auditLabel(entry, rules, context = {}) {
-	const label = changeLabelFor(entry, rules && rules.changeLabels) ?? actionLabelFor(entry, rules && rules.actionLabels)
+	const label = changeLabelFor(entry, rules && rules.changeLabels) ?? actionLabelFor(entry, rules && rules.actionLabels, context.object || null)
 	return label === null ? null : fillAuditLabel(label, entry, { ...context, valueLabels: rules && rules.valueLabels })
 }
