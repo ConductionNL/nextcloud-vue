@@ -1100,6 +1100,7 @@ export default {
 	color: var(--color-main-text);
 	font-size: 17px;
 	font-weight: 700;
+	line-height: normal;
 	letter-spacing: normal;
 	text-transform: none;
 }
