@@ -251,6 +251,7 @@ export default {
 		 * buble-compiled Vue 2 template stays free of `?.` / `??`.
 		 *
 		 * @return {object[]} One descriptor per message.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
 		 */
 		rows() {
 			return this.messages.map((message) => {
@@ -476,6 +477,7 @@ export default {
 		 *
 		 * @param {unknown} value The value.
 		 * @return {string} The text.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
 		 */
 		text(value) {
 			return typeof value === 'string' ? value.trim() : ''
