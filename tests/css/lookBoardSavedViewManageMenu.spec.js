@@ -54,8 +54,8 @@ describe('look-board.css: saved view manage menu', () => {
 		expect(body).toContain('font-weight: 400;')
 	})
 
-	it('draws Delete in the error red', () => {
-		expect(ruleFor(`${MENU} li.action[data-testid="cn-saved-views-delete"] > .action-button`)).toContain('color: var(--color-error-text);')
+	it('draws Delete in the error tag\'s red (#a30000), not Nextcloud\'s darker error text', () => {
+		expect(ruleFor(`${MENU} li.action[data-testid="cn-saved-views-delete"] > .action-button`)).toContain('color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));')
 	})
 
 	it('marks the row whose menu is open as the applied one', () => {

@@ -61,8 +61,9 @@ const PAGE_REFRESH = 'cn:page:refresh'
  * retry, never an empty plan. Any app whose records run on OpenRegister's
  * case layer uses it; dossiq's case plan is the first.
  *
- * `content`: `emptyText`, and `stateLabels` (`{ active: 'Active' }`, the word
- * for a state), both through the host translate.
+ * `content`: `emptyText`, `stateLabels` (`{ active: 'Active' }`, the word
+ * for a state) and `headerNote` (the card's note at the right of its title,
+ * reported through the `header` event), all through the host translate.
  *
  * The record's id comes from `objectId`, else the bound record.
  */
@@ -104,6 +105,8 @@ export default {
 		},
 	},
 
+	emits: ['header'],
+
 	data() {
 		return {
 			loading: true,
@@ -139,6 +142,7 @@ export default {
 
 	mounted() {
 		subscribe(PAGE_REFRESH, this.load)
+		this.reportHeader()
 		this.load()
 	},
 
@@ -157,6 +161,23 @@ export default {
 		 */
 		text(value) {
 			return typeof value === 'string' && value !== '' ? this.cnTranslate(value) : ''
+		},
+
+		/**
+		 * Report `content.headerNote` to the card around the plan, which draws
+		 * it at the right of the title.
+		 *
+		 * @spec openspec/changes/plan-header-note/specs/plan-widget/spec.md#requirement-a-plan-card-can-carry-a-note-beside-its-title
+		 */
+		reportHeader() {
+			const note = this.text(this.content?.headerNote)
+			if (note !== '') {
+				/**
+				 * @event header The card header's note at the right of the title.
+				 * @type {{note: string}}
+				 */
+				this.$emit('header', { note })
+			}
 		},
 
 		/**

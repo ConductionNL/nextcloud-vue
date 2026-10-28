@@ -39,3 +39,18 @@ export function countLine(subtitle, total, options = {}) {
 	}
 	return fill(tr(total === 1 ? singular : plural))
 }
+
+/**
+ * The footer note for the open view: its entry in `footerNoteByView` when it
+ * has a non-empty one, else the page's `footerNote`.
+ *
+ * @param {object|null|undefined} byView The notes per view (`{ table?, cards?, list?, board?, map? }`).
+ * @param {string} view The open view.
+ * @param {string} footerNote The page's note.
+ * @return {string} The note template, untranslated.
+ * @spec openspec/changes/footer-note-per-view/specs/footer-note-per-view/spec.md
+ */
+export function footerNoteForView(byView, view, footerNote) {
+	const own = byView && typeof byView === 'object' ? byView[view] : undefined
+	return typeof own === 'string' && own !== '' ? own : footerNote
+}

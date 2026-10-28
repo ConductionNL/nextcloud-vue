@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.161.0",
+	"version": "2.162.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2912,6 +2912,7 @@
 												"items": { "type": "object", "additionalProperties": true },
 												"description": "With `layout: \"bar\"`: the bar's controls, each a workspace-filter content (chips, a toggle, a select) with its own `writes`. `align: \"end\"` pushes a control to the right edge (2.88.0)."
 											},
+											"control": { "type": "string", "enum": ["switch", "checkbox"], "description": "style 'toggle': draw it as a switch (default) or a checkbox." },
 											"onValue": { "description": "style 'toggle': the value written while the switch is on. Default true (2.88.0)." },
 											"offValue": { "description": "style 'toggle': the value written while the switch is off. Default false (2.88.0)." },
 											"align": { "type": "string", "enum": ["start", "end"], "description": "In a bar: 'end' pushes this control to the right edge (2.88.0)." },
@@ -4305,7 +4306,7 @@
 										"additionalProperties": false,
 										"properties": {
 											"key": { "type": "string", "minLength": 1 },
-											"format": { "enum": ["text", "mono", "badge", "user", "date"] },
+											"format": { "enum": ["text", "mono", "badge", "user", "date", "strong"] },
 											"labelField": { "type": "string" },
 											"colorField": { "type": "string" },
 											"warnWhenPast": { "type": "boolean" }
@@ -4790,6 +4791,11 @@
 									}
 								]
 							}
+						},
+						"bandDensity": {
+							"type": "string",
+							"enum": ["", "compact"],
+							"description": "type='detail': the band's density. compact draws 12px between tiles and 20px between rows, tiles down to 120px, and a stat figure as a small white tile (13px label over a 20px value), as boards PqKlant and PqOrganisatie draw their figures (detail-band-compact)."
 						},
 						"sideColumn": {
 							"type": "array",
@@ -5690,6 +5696,7 @@
 									"defaultSort": { "type": "array", "description": "The default sort while the preset applies; same shape as config.defaultSort." },
 									"viewSwitch": { "type": "array", "items": { "type": "string", "enum": ["table", "cards", "board", "map", "list"] }, "description": "The drawn view segments while the preset applies." },
 									"addLabel": { "type": "string", "minLength": 1, "description": "The add button label while the preset applies (index-scope-presentation)." },
+									"showAdd": { "type": "boolean", "description": "Whether the Add button shows while the preset applies: false hides it on a view whose own header button adds something else (query-preset-show-add)." },
 									"headerButtons": { "type": "array", "description": "The header buttons while the preset applies; same shape as config.headerButtons (index-scope-presentation)." },
 									"breadcrumb": { "description": "The breadcrumb while the preset applies; same shape as config.breadcrumb (index-scope-presentation).", "anyOf": [{ "$ref": "#/$defs/breadcrumbCrumb" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/breadcrumbCrumb" } }] },
 									"headerMeta": { "type": "string", "minLength": 1, "description": "The note after the breadcrumb while the preset applies (index-scope-presentation)." },
@@ -5764,7 +5771,7 @@
 							"description": "type='index': the property keys the cards view shows as the facts list of each card, in order; defaults to the first four list columns under the board look (screens-card-parity). Maps to CnIndexPage `cardFields`.",
 							"items": { "type": "string", "minLength": 1 }
 						},
-						"expandableRows": { "type": "object", "additionalProperties": false, "description": "type='index', list view: every row opens to a sub-table (CnExpandableRow, index-expandable-rows). Closed: title, a badge while `badge.when` holds, description, a list field as chips (`tones` colour each by its entry) and meta templates. Open: the list as a table (columns `as` text, order, bar, check, yesNo or pill), a note and a footer action. A button or the footer action names a row action by id. `open` first or all opens rows at the start. Maps to CnIndexPage `expandableRows`.", "required": ["title"], "properties": { "title": { "type": "string", "minLength": 1 }, "badge": { "type": "object", "additionalProperties": false, "required": ["label"], "properties": { "when": { "type": "object" }, "label": { "type": "string", "minLength": 1 } } }, "description": { "type": "string", "minLength": 1 }, "chips": { "type": "object", "additionalProperties": false, "required": ["field"], "properties": { "field": { "type": "string", "minLength": 1 }, "each": { "type": "string", "minLength": 1 }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "tones": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["when", "variant"], "properties": { "when": { "type": "object" }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "text": { "type": "string" } } } } } }, "meta": { "type": "array", "items": { "type": "string", "minLength": 1 } }, "table": { "type": "object", "additionalProperties": false, "required": ["field", "columns"], "properties": { "field": { "type": "string", "minLength": 1 }, "columns": { "type": "array", "items": { "type": "object", "additionalProperties": false, "properties": { "key": { "type": "string", "minLength": 1 }, "label": { "type": "string" }, "as": { "type": "string", "enum": ["text", "order", "bar", "check", "yesNo", "pill"] }, "template": { "type": "string", "minLength": 1 }, "strong": { "type": "boolean" }, "text": { "type": "string" }, "tones": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["when", "variant"], "properties": { "when": { "type": "object" }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "text": { "type": "string" } } } } } } }, "note": { "type": "string" }, "action": { "type": "object", "additionalProperties": false, "required": ["id"], "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string" } } } } }, "buttons": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["action"], "properties": { "action": { "type": "string", "minLength": 1 }, "label": { "type": "string" } } } }, "open": { "type": "string", "enum": ["first", "all", "none"] } } },
+						"expandableRows": { "type": "object", "additionalProperties": false, "description": "type='index', list view: every row opens to a sub-table (CnExpandableRow, index-expandable-rows). Closed: title, a badge while `badge.when` holds, description, a list field as chips (`tones` colour each by its entry) and meta templates. Open: the list as a table (columns `as` text, order, bar, check, yesNo or pill), a note and a footer action. A button or the footer action names a row action by id. `open` first or all opens rows at the start. Maps to CnIndexPage `expandableRows`.", "required": ["title"], "properties": { "title": { "type": "string", "minLength": 1 }, "badge": { "type": "object", "additionalProperties": false, "required": ["label"], "properties": { "when": { "type": "object" }, "label": { "type": "string", "minLength": 1 } } }, "description": { "type": "string", "minLength": 1 }, "chips": { "type": "object", "additionalProperties": false, "required": ["field"], "properties": { "field": { "type": "string", "minLength": 1 }, "each": { "type": "string", "minLength": 1 }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "tones": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["when", "variant"], "properties": { "when": { "type": "object" }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "text": { "type": "string" } } } } } }, "meta": { "type": "array", "items": { "type": "string", "minLength": 1 } }, "table": { "type": "object", "additionalProperties": false, "required": ["field", "columns"], "properties": { "field": { "type": "string", "minLength": 1 }, "columns": { "type": "array", "items": { "type": "object", "additionalProperties": false, "properties": { "key": { "type": "string", "minLength": 1 }, "label": { "type": "string" }, "as": { "type": "string", "enum": ["text", "order", "bar", "check", "yesNo", "pill"] }, "template": { "type": "string", "minLength": 1 }, "strong": { "type": "boolean" }, "text": { "type": "string" }, "tones": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["when", "variant"], "properties": { "when": { "type": "object" }, "variant": { "type": "string", "enum": ["default", "primary", "success", "warning", "error", "info", "purple", "teal"] }, "text": { "type": "string" } } } } } } }, "note": { "type": "string" }, "action": { "type": "object", "additionalProperties": false, "required": ["id"], "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string" } } } } }, "buttons": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["action"], "properties": { "action": { "type": "string", "minLength": 1 }, "label": { "type": "string" }, "icon": { "type": "string", "minLength": 1, "description": "A CnIcon name drawn before the label." } } } }, "open": { "type": "string", "enum": ["first", "all", "none"] } } },
 						"tableTitle": { "type": "string", "minLength": 1, "description": "type='index', table view: a title at the top of the table card, an i18n key; under the board look the head row then reads on white with a rule under it (index-table-title). Maps to CnIndexPage `tableTitle`." },
 						"cardLayout": {
 							"type": "object",

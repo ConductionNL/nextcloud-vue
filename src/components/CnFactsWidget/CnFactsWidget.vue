@@ -931,18 +931,19 @@ export default {
 		 * The foot link, resolved, or null. A `sidebarTab` link needs the
 		 * page's object sidebar and is null without one.
 		 *
-		 * @return {{label: string, to?: object, href?: string, sidebarTab?: string}|null}
+		 * @return {{label: string, icon: string, to?: object, href?: string, sidebarTab?: string}|null}
 		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
+		 * @spec openspec/changes/facts-route-link-icon/specs/facts-widget/spec.md#requirement-a-route-link-keeps-its-icon
 		 */
 		link() {
 			const link = this.content?.link
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
 			}
-			const linkView = this.linkWords(link)
+			const linkView = { ...this.linkWords(link), icon: typeof link.icon === 'string' ? link.icon : '' }
 			if (typeof link.sidebarTab === 'string' && link.sidebarTab !== '') {
 				return this.objectSidebarState
-					? { ...linkView, sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
+					? { ...linkView, sidebarTab: link.sidebarTab }
 					: null
 			}
 			if (link.route) {
@@ -951,7 +952,7 @@ export default {
 			}
 			if (typeof link.href === 'string' && link.href !== '') {
 				const href = this.linkHref(link, this.record)
-				return href ? { ...linkView, href, target: link.target === '_blank' ? '_blank' : '', icon: typeof link.icon === 'string' ? link.icon : '' } : null
+				return href ? { ...linkView, href, target: link.target === '_blank' ? '_blank' : '' } : null
 			}
 			return null
 		},
@@ -2090,6 +2091,7 @@ export default {
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
 		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-facts-amount-can-be-stored-in-cents
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -2187,7 +2189,9 @@ export default {
 				return new Intl.NumberFormat(metricLocale(), digits).format(number)
 			}
 			if (format === 'currency') {
-				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
+				// `minorUnits: true`: the value is stored in cents.
+				const amount = spec.minorUnits === true && raw !== '' && Number.isFinite(Number(raw)) ? Number(raw) / 100 : raw
+				const money = formatMoney(amount, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
 				if (money !== '') {
 					return money
 				}
