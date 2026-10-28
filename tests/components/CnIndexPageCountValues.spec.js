@@ -71,6 +71,13 @@ describe('CnIndexPage count values', () => {
 		expect(c.countValueResults).toEqual({ pipeline: 509928, weighted: 246122 })
 	})
 
+	it('sends the active filters to an endpoint that follows them', async () => {
+		cnFetchJson.mockClear()
+		const c = ctx({ countValues: { weighted: { endpoint: '/apps/pipelinq/api/analytics/commercial', path: 'weightedForecast', followFilters: true } } })
+		await loadCountValues.call(c)
+		expect(cnFetchJson).toHaveBeenCalledWith('/apps/pipelinq/api/analytics/commercial?filter%5Bstatus%5D=open&filter%5Bpipeline%5D=p-sales')
+	})
+
 	it('fills the tokens with their format and leaves other text alone', () => {
 		const c = ctx({
 			presentation: { countText: '{shown} of {total} open leads · {pipeline|currency:EUR} in the pipeline, {weighted|currency:EUR} weighted · {other}' },

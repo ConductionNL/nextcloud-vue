@@ -14,3 +14,9 @@ token empty while its value is unknown.
   `countValues: { pipeline: { metric: "sum", field: "value" } }`
 - **WHEN** the open leads of the sales pipeline sum to 509928
 - **THEN** the line reads "15 van 15 open leads · € 509.928 in de pijplijn"
+
+#### Scenario: An endpoint value that follows the filters
+
+- **GIVEN** `countValues: { weighted: { endpoint: "/apps/pipelinq/api/analytics/commercial", path: "weightedForecast", followFilters: true } }`
+- **WHEN** the list filters on `pipeline = p-sales`
+- **THEN** the endpoint is asked with `filter[pipeline]=p-sales`

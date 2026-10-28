@@ -1883,6 +1883,29 @@ function namedSourceSorts(vm) {
 	return Boolean(vm.isNamedSource && vm.namedSource
 		&& (vm.namedSource.sortsRows === true || typeof vm.namedSource.sortParam === 'function'))
 }
+/**
+ * An endpoint with a filter map added as `filter[<field>]=<value>` query
+ * parameters (a list value repeats the parameter as `filter[<field>][]`).
+ *
+ * @param {string} endpoint The app-absolute endpoint.
+ * @param {object} filter The filter map.
+ * @return {string} The endpoint with the filter in its query.
+ */
+function withFilterQuery(endpoint, filter) {
+	const parts = []
+	for (const [key, value] of Object.entries(filter || {})) {
+		if (Array.isArray(value)) {
+			value.forEach((item) => parts.push(`${encodeURIComponent(`filter[${key}][]`)}=${encodeURIComponent(String(item))}`))
+		} else if (value !== null && value !== undefined && typeof value !== 'object' && value !== '') {
+			parts.push(`${encodeURIComponent(`filter[${key}]`)}=${encodeURIComponent(String(value))}`)
+		}
+	}
+	if (parts.length === 0) {
+		return endpoint
+	}
+	return endpoint + (endpoint.includes('?') ? '&' : '?') + parts.join('&')
+}
+
 export default {
 	name: 'CnIndexPage',
 
@@ -2267,7 +2290,8 @@ export default {
 		 * count over this page's register and schema, under the list's active
 		 * filters plus its own `filter` (`{ metric: 'sum', field: 'value',
 		 * filter? }`), or a field read from an app endpoint (`{ endpoint,
-		 * path }`). A value not read (yet) leaves its token empty (board PqLeads
+		 * path, followFilters? }`; `followFilters: true` sends the active
+		 * filters along as `filter[<field>]=<value>`). A value not read (yet) leaves its token empty (board PqLeads
 		 * "€ 509.928 in de pijplijn").
 		 *
 		 * @spec openspec/changes/index-count-values/specs/index-page/spec.md#requirement-the-count-line-can-name-sums-and-values
@@ -10160,7 +10184,7 @@ export default {
 				try {
 					let value
 					if (cfg && typeof cfg.endpoint === 'string' && cfg.endpoint !== '') {
-						const body = await cnFetchJson(cfg.endpoint)
+						const body = await cnFetchJson(cfg.followFilters === true ? withFilterQuery(cfg.endpoint, { ...base, ...resolveFilterMap(cfg.filter, params, ctx) }) : cfg.endpoint)
 						value = String(cfg.path || '').split('.').filter(Boolean).reduce((acc, part) => (acc && typeof acc === 'object' ? acc[part] : undefined), body)
 					} else {
 						value = await fetchAggregateValue({
