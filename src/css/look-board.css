@@ -575,6 +575,27 @@
 	padding-inline: 10px 30px;
 }
 
+/* With an option chosen the search box is empty and NcSelect lays the choice
+   over it, so the select shrank to 47px under "Laatste 12 maanden" (r34
+   DqProcesanalyse). The choice stays in flow and gives the width; the search
+   box, which draws the frame, lies over the whole select beneath it.
+   @spec openspec/changes/board-description-select-sized-to-choice/specs/board-description-select-sized-to-choice/spec.md#requirement-a-description-select-is-sized-to-its-choice */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select.vs--single:not(.vs--open) .vs__selected {
+	position: relative;
+	z-index: 2;
+	padding-inline: 10px 30px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select.vs--single:not(.vs--open):has(.vs__selected) .vs__search {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	width: 100%;
+	max-width: none;
+}
+
 /* ---- A table on a dashboard card ------------------------------------------ */
 /* The card is the frame: a table on it draws no border of its own, and its
    pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
@@ -2723,10 +2744,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 /* Over a list that rules above its first row (record list ruleAbove, task
    list, decision list) the rule stands 6px under the title and the row's own
    12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
-   "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt").
+   "Vastgelopen zaken", DqMijnWerk "Zaken die u volgt"). An app's own list
+   that rules above its first row marks itself `cn-board-ruled-rows`.
+   @spec openspec/changes/board-ruled-rows-marker/specs/board-card-title-above-ruled-list/spec.md#requirement-an-apps-own-ruled-list-starts-6px-under-the-card-title
    @spec openspec/changes/board-card-title-above-ruled-list/specs/board-card-title-above-ruled-list/spec.md#requirement-a-ruled-list-starts-6px-under-the-card-title */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows, > .cn-widget-wrapper__content .cn-nc-widget-widget__body--vertical) .cn-widget-wrapper__header {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content .cn-record-list--rule-above, > .cn-widget-wrapper__content .cn-tasks-widget__list, > .cn-widget-wrapper__content .cn-decision-list__rows, > .cn-widget-wrapper__content .cn-nc-widget-widget__body--vertical, > .cn-widget-wrapper__content .cn-board-ruled-rows) .cn-widget-wrapper__header {
 	padding-bottom: 6px;
+}
+
+/* Over a table the title stands the full 12px above it: the leading
+   allowance above is for a first text line, and a table's head row has a box
+   of its own (DqDoorlooptijd "Wettelijke Woo-termijnen", "Zaken met risico",
+   "Prestaties per zaaktype"; r34 19.8 vs 22).
+   @spec openspec/changes/board-card-title-above-table/specs/board-card-title-above-table/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content > .cn-widget-object-table__host) .cn-widget-wrapper__header {
+	padding-bottom: 12px;
 }
 
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
@@ -3181,6 +3213,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    @spec openspec/changes/board-close-day-pair-as-drawn/specs/board-close-day-pair-as-drawn/spec.md#requirement-the-board-closing-pair-is-drawn-as-the-board */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue {
 	--button-padding: 14px;
+}
+
+/* The pair placed at the foot of its own card (`recordAll.placement`,
+   DqDagAfsluiten "Klaar voor vandaag?"): 24px under the card's sentence, a
+   rule across the whole card, the buttons 15px under it.
+   @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all.cn-record-notes__all--placed {
+	margin: 24px -22px 0;
+	padding: 15px 22px 0;
+	border-top: 1px solid var(--color-border);
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
@@ -4526,7 +4568,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    13px below the title (PqForecast: the title read 30px/300 and the line sat
    4px below it).
    @spec openspec/changes/board-standalone-page-header/specs/board-standalone-page-header/spec.md#requirement-a-standalone-board-page-header-takes-the-board-title */
-.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *) .cn-page-header__title {
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .cn-page-header__title {
 	font-size: 28px;
 	font-weight: 700;
 	line-height: 1.2;
@@ -4610,8 +4652,38 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	border-radius: var(--cn-board-card-radius);
 }
 
-.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *) .cn-page-header__description {
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .cn-page-header__description {
 	margin-top: 9px;
 	font-size: 15px;
 	line-height: normal;
+}
+
+/* ---- The tonal pill in the board look ------------------------------------ */
+/* `cn-button--tonal` outweighs the board look's neutral secondary and
+   tertiary buttons (CnActionButtons, settings rows, card actions), which
+   would otherwise draw it white with a grey edge.
+   @spec openspec/changes/board-tonal-button/specs/board-tonal-button/spec.md */
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *),
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *) {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--cn-tonal-bg);
+	color: var(--cn-tonal-ink);
+	--nldesign-color-on-surface: var(--cn-tonal-ink);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *) .button-vue__text,
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
+	color: var(--cn-tonal-ink);
+	font-weight: 600;
+}
+
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *):hover:not(:disabled),
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *):hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
 }

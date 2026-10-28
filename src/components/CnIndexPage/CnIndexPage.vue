@@ -1163,7 +1163,8 @@
 							:object="object"
 							:layout="expandableRows"
 							:open="expandableRows.open === 'all' || (expandableRows.open === 'first' && displayObjects[0] === object)"
-							@action="onExpandableRowAction">
+							@action="onExpandableRowAction"
+							@reorder="onExpandableRowReorder">
 							<template v-if="hasRowActions" #actions>
 								<CnRowActions
 									:actions="rowMenuActionsFor(object)"
@@ -1518,6 +1519,7 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterView
 import { savedViewIcon } from '../../utils/savedViewMenu.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
@@ -4597,6 +4599,7 @@ export default {
 		'page-size-changed',
 		'quick-filter-change',
 		'refresh',
+		'reorder',
 		'row-click',
 		'row-aux-click',
 		'search',
@@ -13029,6 +13032,36 @@ export default {
 			this.onRowAction(entry
 				? { action: entry.label, row, id, ...(entry.builtin ? { builtin: true } : {}) }
 				: { action: id, row, id })
+		},
+
+		/**
+		 * An entry of an expandable row's sub-table moved: save the row with
+		 * the list in its new order (the page's own store in self-fetch mode,
+		 * else the `store` prop), then reload.
+		 *
+		 * @param {{row: object, field: string, entries: Array}} payload The row, the list field and the list.
+		 * @return {Promise<void>} Nothing.
+		 * @spec openspec/changes/expandable-row-table-tools/specs/expandable-row-table-tools/spec.md
+		 */
+		async onExpandableRowReorder(payload) {
+			const values = { ...payload.row, [payload.field]: payload.entries }
+			const self = await this.selfActions.handleRowSave(payload.row, values)
+			const viaStore = !self && Boolean(this.store && this.objectType)
+			let saved = self ? self.saved : null
+			if (viaStore) {
+				saved = await saveEdited(this.store, this.objectType, payload.row, values)
+				if (saved) {
+					await this.onRefreshEvent()
+				}
+			}
+			if ((self || viaStore) && !saved) {
+				this.toastSavedView('error', t('nextcloud-vue', 'The new order could not be saved'))
+			}
+			/**
+			 * @event reorder An expandable row's sub-table was reordered. Payload: `{ row, field, entries }`.
+			 * @type {{ row: object, field: string, entries: Array }}
+			 */
+			this.$emit('reorder', payload)
 		},
 
 		onRowAction(payload) {

@@ -15,7 +15,7 @@
 			:disabled="!canWrite"
 			data-testid="cn-record-notes-text"
 			@input="scheduleSave" />
-		<div class="cn-record-notes__foot">
+		<div class="cn-record-notes__foot" :class="{ 'cn-record-notes__foot--below': content.outcomeBelow === true }">
 			<span class="cn-record-notes__status" role="status" data-testid="cn-record-notes-status">{{ statusText }}</span>
 			<div v-if="outcome" class="cn-record-notes__outcome">
 				<label class="cn-record-notes__outcome-label" :for="selectId">{{ tr(outcome.label || '') || t('nextcloud-vue', 'Outcome') }}</label>
@@ -33,7 +33,7 @@
 					</option>
 				</select>
 				<NcButton
-					variant="secondary"
+					:variant="outcome.saveVariant === 'primary' ? 'primary' : 'secondary'"
 					:disabled="!canWrite || choice === '' || saving"
 					data-testid="cn-record-notes-outcome-save"
 					@click="saveOutcome">
@@ -60,9 +60,11 @@ let instances = 0
  *
  * `content`: `{ field?, label?, hideLabel?, rows?, placeholder?, savedText?,
  * savingText?, failedText?, debounceMs?, outcome?: { field, label?,
- * placeholder?, saveLabel?, options: [{ value, label }] } }`. `field` defaults
+ * placeholder?, saveLabel?, saveVariant?, options: [{ value, label }] } }`.
+ * `saveVariant: "primary"` makes the outcome button the primary one. `field` defaults
  * to `notes`. `hideLabel` keeps the label for screen readers only, for a
- * field under a heading that already names it.
+ * field under a heading that already names it. `outcomeBelow: true` puts the
+ * outcome on its own line under the save status, at the start (PqContactmoment).
  * `savedText` takes `{time}`, the time of the last save. A write is a PATCH
  * of only the edited key on the record's OpenRegister object, so a change
  * somebody else made to another key stays. Without a record id, register and
@@ -312,6 +314,16 @@ export default {
 	gap: 8px 16px;
 	align-items: center;
 	justify-content: space-between;
+}
+
+.cn-record-notes__foot--below {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-record-notes__foot--below .cn-record-notes__outcome {
+	gap: 10px;
 }
 
 .cn-record-notes__status {

@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-segmented-control"
-		:class="{ 'cn-segmented-control--stretch': stretch, 'cn-segmented-control--compact': size === 'compact' }"
+		:class="{ 'cn-segmented-control--stretch': stretch, 'cn-segmented-control--compact': size === 'compact', 'cn-segmented-control--phone-pills': phonePills }"
 		:role="isToggle ? 'group' : 'radiogroup'"
 		:aria-label="ariaLabel || null"
 		:aria-labelledby="ariaLabelledby || null"
@@ -137,6 +137,18 @@ export default {
 
 		/** Stretch the control to the full width, with options of equal width. */
 		stretch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * On a phone (under 640px) draw the options as separate pills in one
+		 * row that scrolls sideways, the chosen one filled (PqMobiel's lens
+		 * chips). Wider windows keep the segmented group.
+		 *
+		 * @spec openspec/changes/phone-list-look/specs/phone-list-look/spec.md
+		 */
+		phonePills: {
 			type: Boolean,
 			default: false,
 		},
@@ -379,6 +391,50 @@ export default {
 
 	.cn-segmented-control.cn-segmented-control--compact .cn-segmented-control__option {
 		min-height: 44px;
+	}
+}
+
+/* Pills on a phone (phonePills): one row that scrolls sideways, each option
+   a 34px pill, the chosen one filled in the main ink. */
+@media (max-width: 639px) {
+	.cn-segmented-control.cn-segmented-control--phone-pills {
+		flex-wrap: nowrap;
+		gap: 8px;
+		max-width: 100%;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.cn-segmented-control.cn-segmented-control--phone-pills .cn-segmented-control__option {
+		flex: none;
+		min-height: 34px;
+		height: 34px;
+		padding: 0 12px;
+		border: 1px solid var(--color-border-maxcontrast, var(--color-border-dark));
+		border-radius: 17px;
+		background-color: var(--color-main-background);
+		box-shadow: none;
+		font-size: 14px;
+	}
+
+	.cn-segmented-control.cn-segmented-control--phone-pills .cn-segmented-control__count {
+		color: var(--color-text-maxcontrast);
+	}
+
+	.cn-segmented-control.cn-segmented-control--phone-pills .cn-segmented-control__option--checked,
+	.cn-segmented-control.cn-segmented-control--phone-pills .cn-segmented-control__option--checked:hover {
+		border-color: var(--color-main-text);
+		background-color: var(--color-main-text);
+		box-shadow: none;
+		color: var(--color-main-background);
+	}
+
+	.cn-segmented-control.cn-segmented-control--phone-pills .cn-segmented-control__option--checked .cn-segmented-control__count {
+		color: inherit;
+		opacity: .8;
 	}
 }
 </style>

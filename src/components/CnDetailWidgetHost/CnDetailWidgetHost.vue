@@ -387,6 +387,21 @@
 				v-bind="rendererProps"
 				@header="onRendererHeader"
 				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 		</CnWidgetWrapper>
 
 		<!-- Registry "card" widgets (stat / gauge / delta) render bare tile
@@ -502,6 +517,21 @@
 				v-bind="rendererProps"
 				@header="onRendererHeader"
 				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 		</CnWidgetWrapper>
 
 		<!-- A titled `sections` widget in the side column or a tab stack: its
@@ -544,6 +574,21 @@
 				ref="renderer"
 				v-bind="rendererProps"
 				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 		</CnWidgetWrapper>
 
 		<!-- A library widget that draws its own title row and asks for the
@@ -1002,15 +1047,19 @@ export default {
 		 * @spec openspec/changes/widget-lead-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-lead-with-other-widgets
 		 */
 		leadWidgets() {
-			const ids = this.content && Array.isArray(this.content.leadWidgetIds) ? this.content.leadWidgetIds : []
-			if (ids.length === 0) {
-				return []
-			}
-			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
-			const data = this.object ? { ...this.object, '@context': rows || {} } : null
-			return ids
-				.map((id) => (this.availableWidgets || []).find((def) => def && def.id === id))
-				.filter((def) => def && (!def.visibleWhen || (data !== null && evaluateVisibleWhenLocal(def.visibleWhen, data))))
+			return this.widgetsNamed(this.content && this.content.leadWidgetIds)
+		},
+
+		/**
+		 * The widgets `content.trailWidgetIds` names, drawn inside this card after
+		 * its own content (DqZaak Zaakplan: the case's goals under the plan),
+		 * those whose `visibleWhen` holds against the record.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-trail-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-end-with-other-widgets
+		 */
+		trailWidgets() {
+			return this.widgetsNamed(this.content && this.content.trailWidgetIds)
 		},
 
 		/** @return {boolean} Whether the reported header has anything for the title row. */
@@ -1880,6 +1929,25 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The available widgets with the given ids, in that order, those whose
+		 * `visibleWhen` holds against the record and its page context.
+		 *
+		 * @param {unknown} list The ids.
+		 * @return {object[]}
+		 */
+		widgetsNamed(list) {
+			const ids = Array.isArray(list) ? list : []
+			if (ids.length === 0) {
+				return []
+			}
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const data = this.object ? { ...this.object, '@context': rows || {} } : null
+			return ids
+				.map((id) => (this.availableWidgets || []).find((def) => def && def.id === id))
+				.filter((def) => def && (!def.visibleWhen || (data !== null && evaluateVisibleWhenLocal(def.visibleWhen, data))))
+		},
+
 		/**
 		 * Take the header a content-only renderer, an app widget in the
 		 * titled card, or a carded mount-mode leaf (`onHeader`) reports.

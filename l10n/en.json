@@ -146,6 +146,7 @@
     "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.": "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.",
     "Nothing matches that search": "Nothing matches that search",
     "Search the store": "Search the store",
+    "All items": "All items",
     "Some parts were not installed: {schemas}": "Some parts were not installed: {schemas}",
     "Store": "Store",
     "The item could not be installed.": "The item could not be installed.",
@@ -542,6 +543,8 @@
     "No conditions yet — add at least one condition": "No conditions yet — add at least one condition",
     "No data available": "No data available",
     "No details available": "No details available",
+    "The file could not be added. Try again.": "The file could not be added. Try again.",
+    "Add file": "Add file",
     "No files attached": "No files attached",
     "No items found": "No items found",
     "No items selected for copying.": "No items selected for copying.",
@@ -2501,7 +2504,12 @@
     "The store registry is busy. Try again in a minute.": "The store registry is busy. Try again in a minute.",
     "The store registry refused the item.": "The store registry refused the item.",
     "What the template carries": "What the template carries",
-    "You may not publish to this store.": "You may not publish to this store."
+    "You may not publish to this store.": "You may not publish to this store.",
+    "Move {name}": "Move {name}",
+    "Filter on {name}": "Filter on {name}",
+    "(empty)": "(empty)",
+    "Drag, or use the arrow keys, to move": "Drag, or use the arrow keys, to move",
+    "The new order could not be saved": "The new order could not be saved"
   },
   "plurals": {
     "{count} member": [

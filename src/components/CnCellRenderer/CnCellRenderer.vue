@@ -320,17 +320,17 @@
 
 		<!-- Built-in "switch" widget: an on/off switch with the value as its
 		     label. widgetProps { checked(row) => boolean, onToggle(row, on) =>
-		     Promise, ariaLabel?: string | (row) => string }; with `ariaLabel`
+		     Promise, ariaLabel?: string | (row) => string, type?: 'checkbox' }; with `ariaLabel`
 		     the switch shows no value and is named for screen readers only. The switch shows the new state at once and returns to
 		     the old one when onToggle rejects. Clicks stay in the cell, so
-		     toggling never opens the row. -->
+		     toggling never opens the row. `type: 'checkbox'` draws a checkbox. -->
 		<template v-else-if="widget === 'switch'">
 			<span class="cn-cell-renderer__switch"
 				data-testid="cn-cell-switch"
 				@click.stop
 				@keydown.stop>
 				<NcCheckboxRadioSwitch
-					type="switch"
+					:type="switchType"
 					:modelValue="switchChecked"
 					:disabled="switchBusy || typeof (widgetProps && widgetProps.onToggle) !== 'function'"
 					@update:modelValue="onSwitchToggle">
@@ -769,9 +769,11 @@ export default {
 
 		/**
 		 * Whether the "switch" widget is on: the pending state while a toggle
-		 * is in flight, else `widgetProps.checked(row)`, else the value.
+		 * is in flight, else `widgetProps.checked(row)`, else what a formatter
+		 * answers when it answers true or false, else the value.
 		 *
 		 * @return {boolean} The switch state.
+		 * @spec openspec/changes/cell-toggle-request/specs/cell-renderer/spec.md#requirement-a-switch-cell-can-draw-a-checkbox-whose-state-a-formatter-answers
 		 */
 		switchChecked() {
 			if (this.switchPending !== null) {
@@ -781,7 +783,23 @@ export default {
 			if (typeof checked === 'function') {
 				return checked(this.row) === true
 			}
+			if (this.formatterFn !== null) {
+				const answer = this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined, this.formatterContext)
+				if (typeof answer === 'boolean') {
+					return answer
+				}
+			}
 			return this.value === true
+		},
+
+		/**
+		 * The "switch" widget's look: `checkbox` with `widgetProps.type`, else a switch.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-toggle-request/specs/cell-renderer/spec.md#requirement-a-switch-cell-can-draw-a-checkbox-whose-state-a-formatter-answers
+		 */
+		switchType() {
+			return this.widgetProps && this.widgetProps.type === 'checkbox' ? 'checkbox' : 'switch'
 		},
 
 		/**

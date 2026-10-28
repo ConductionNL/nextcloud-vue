@@ -822,6 +822,22 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			expect(kill.classes()).not.toContain('cn-action-buttons__button--error-outline')
 		})
 
+		it('draws `variant: "tonal"` as the board\'s tonal pill', async () => {
+			// The boards' light-blue side-card action ("Herinnering versturen"):
+			// a borderless tertiary button carrying the shared tonal class.
+			const wrapper = mountBar([
+				{ id: 'remind', label: 'Send reminder', variant: 'tonal', icon: 'Send', type: 'api-call', url: '/r' },
+				{ id: 'plain', label: 'Plain', type: 'api-call', url: '/p' },
+			])
+			await flush()
+			const remind = wrapper.findComponent('[data-testid="cn-action-remind"]')
+			expect(remind.props('variant')).toBe('tertiary')
+			expect(remind.classes()).toContain('cn-button--tonal')
+			const plain = wrapper.findComponent('[data-testid="cn-action-plain"]')
+			expect(plain.props('variant')).toBe('secondary')
+			expect(plain.classes()).not.toContain('cn-button--tonal')
+		})
+
 		it('names the overflow menu from overflowLabel', async () => {
 			const wrapper = mountBar(four, { inline: 1, overflowLabel: 'More' })
 			await flush()

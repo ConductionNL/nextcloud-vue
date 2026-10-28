@@ -111,4 +111,25 @@ describe('the index page edit save', () => {
 		expect(store.patchObject).toHaveBeenCalledWith(expect.any(String), 's1', { name: 'Review' })
 		expect(store.saveObject).not.toHaveBeenCalled()
 	})
+
+	it('patches a row with a reordered list and reloads (expandable row reorder)', async () => {
+		const store = { saveObject: jest.fn(), patchObject: jest.fn(async (type, id, changes) => ({ ...STATUS, ...changes })), getError: () => null }
+		const refresh = jest.fn()
+		const actions = createSelfModeActions({
+			isSelfFetchMode: () => true,
+			selfObjectStore: () => store,
+			selfObjectType: () => 'status',
+			list: () => ({ refresh }),
+		})
+		const checklist = [{ title: 'Mail' }, { title: 'Call' }]
+		const result = await actions.handleRowSave(STATUS, { ...STATUS, checklist })
+		expect(store.patchObject).toHaveBeenCalledWith('status', 's1', { checklist })
+		expect(result.saved.checklist).toEqual(checklist)
+		expect(refresh).toHaveBeenCalled()
+	})
+
+	it('leaves a reorder to the host outside self-fetch mode', async () => {
+		const actions = createSelfModeActions({ isSelfFetchMode: () => false, selfObjectStore: () => null, selfObjectType: () => '' })
+		expect(await actions.handleRowSave(STATUS, STATUS)).toBeUndefined()
+	})
 })

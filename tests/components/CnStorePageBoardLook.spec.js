@@ -51,10 +51,10 @@ describe('CnStorePage catalogue card (board look)', () => {
 		expect(card.find('[data-testid="store-card-action"]').text()).toBe('Update')
 	})
 
-	it('shows no pill and an Install action for an item that is not installed', async () => {
+	it('shows the Available pill and an Install action for an item that is not installed', async () => {
 		const w = await mountStore('board')
 		const card = w.findAll('[data-testid="store-results"] .cn-store-page__card')[2]
-		expect(card.find('[data-testid="store-card-state"]').exists()).toBe(false)
+		expect(card.find('[data-testid="store-card-state"]').text()).toBe('Available')
 		expect(card.find('[data-testid="store-card-action"]').text()).toBe('Install')
 	})
 

@@ -719,6 +719,12 @@ export default {
 			}
 			const payload = this.endpointMode ? this.epData : null
 			return translated.replace(/\{([A-Za-z0-9_.]+)(\|[A-Za-z]+(?::[^{}\s]+)?)?\}/g, (whole, path, format) => {
+				// `{path|tile}`: the value written as the tile writes its own
+				// number (`content.format`), e.g. a previous period's rate.
+				if (format === '|tile') {
+					const v = payload === null ? undefined : getByPath(payload, path)
+					return (v === undefined || v === null || v === '') ? '' : String(formatMetricValue(v, this.content.format, this.configCtx, this.objectCtx?.object || null, this.effectiveTranslate))
+				}
 				// `{path|format}`: the token formatted as a template token is
 				// (`{annualValue|currency}`, `{noticeDate|longdate}`).
 				if (format) {

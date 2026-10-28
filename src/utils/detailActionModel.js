@@ -249,6 +249,7 @@ export function resolveNextStep(config, object, stageField = 'status') {
 		title: templateOf(declared.title) || templateOf(config.title) || '',
 		items,
 		after: templateOf(declared.after) || '',
+		afterTitle: templateOf(declared.afterTitle) || '',
 	}
 }
 

@@ -788,7 +788,7 @@
 				},
 				"props": {
 					"type": "object",
-					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type, so it stays open — only the few keys whose VALUE is a closed enum are typed below, to catch a misspelt value that would otherwise fall back to the default in silence. For type='chart' the forwarded keys are: chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, horizontal, legendPosition, valueFormat, valueAxisBaseline, colorMap, emptyLabel, unavailableLabel, views, endpointSource. Note that a misspelt KEY cannot be caught here (the bag is open by design) and is dropped at render time.",
+					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type, so it stays open — only the few keys whose VALUE is a closed enum are typed below, to catch a misspelt value that would otherwise fall back to the default in silence. For type='chart' the forwarded keys are: chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, horizontal, legendPosition, legendValues, valueFormat, valueAxisBaseline, colorMap, emptyLabel, unavailableLabel, views, endpointSource. Note that a misspelt KEY cannot be caught here (the bag is open by design) and is dropped at render time.",
 					"additionalProperties": true,
 					"properties": {
 						"valueAxisBaseline": {

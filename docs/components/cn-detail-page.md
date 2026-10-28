@@ -83,7 +83,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the page's primary action. A value is an action in the `headerActions` shape, or the id of a declared header action. A stage without an entry falls back to `primaryAction`. |
+| `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the page's primary action. A value is an action in the `headerActions` shape, or the id of a declared header action. A stage without an entry falls back to `primaryAction`. The action's `primaryLabel` (a `headerMeta`-style template such as `"Call {phone}"`) is what the button says, filled from the record; it falls back to `label`. |
 | `stageField` | String | `'status'` | Dot-path to the field that holds the record's stage. Read by `primaryActionByStage` and `nextStep`. |
 | `quickActions` | Array | `[]` | Always visible header buttons. At most three render. An entry is an action object or the id of a declared header action, which then leaves the menu. `{ id, tabs?, notTabs? }` is a button only beside those body tabs and stays in the menu on the others. |
 | `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, showMarkUnread?, showOpenSidebar?, label? }`. `showRefresh: false` removes Refresh. `showHelpLinks: false` removes Request a feature, Report a bug and Documentation. `showMarkUnread: false` and `showOpenSidebar: false` remove those built-in entries (DqZaakMeer draws neither). `label` names the menu. In the board look each `adminOnly` entry carries a muted "admin" tag at the end of its row ("beheerder"). |
@@ -236,6 +236,8 @@ A widget definition may carry `titleWhen: [{ when?, text }]`. The page resolves 
 ## Widgets inside another widget's card
 
 `content.leadWidgetIds` names other widgets on the page that a widget's card draws inside itself, after its title row and before its own content, each without a card of its own and only while its own `visibleWhen` holds. dossiq draws the review summary ("4 van 7 beoordeeld") inside the case Files card (DqZaakDocumenten): `"content": { "view": "tab", "leadWidgetIds": ["case-document-verdicts-card"] }`, with the summary left out of the tab's own `widgetIds` so it does not draw twice.
+
+`content.trailWidgetIds` does the same after the card's own content. dossiq ends the Zaakplan card with the case's goals (DqZaak): `"content": { "trailWidgetIds": ["case-goals"] }`.
 
 ## A body widget's own cards in the side column
 
