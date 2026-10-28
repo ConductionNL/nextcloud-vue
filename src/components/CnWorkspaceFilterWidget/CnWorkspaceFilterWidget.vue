@@ -118,6 +118,7 @@
 			:options="chipOptions"
 			:modelValue="selected === undefined || selected === null ? null : String(selected)"
 			:ariaLabel="tr(label) || writeKey"
+			:phonePills="content.chipsOnPhone === 'pills'"
 			data-testid="cn-workspace-filter-chips"
 			@update:modelValue="applySelection" />
 

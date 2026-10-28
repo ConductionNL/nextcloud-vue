@@ -4952,6 +4952,11 @@ export default {
 		 * exactly that reason; there is now one rule for every family, so a
 		 * custom slot and a registered widget cannot disagree about it.
 		 *
+		 * A widget definition's own `borderless` is read when the placement
+		 * says nothing: `true`, or `"narrow"` / `"wide"` to drop the card on a
+		 * phone / a wider window only (PqMobiel's filter bar, a kpiRow widget
+		 * that has no placement).
+		 *
 		 * A greeting header that declares `content.ground: true` sits on the
 		 * page ground, so it asks for no card either: one key on the widget
 		 * instead of a second one on its placement.
@@ -4965,6 +4970,9 @@ export default {
 				return true
 			}
 			const def = this.getWidgetDef(item.widgetId)
+			if (item.borderless === undefined && def && def.borderless !== undefined) {
+				return def.borderless === true || ((def.borderless === 'narrow' || def.borderless === 'wide') && this.isOffViewport({ viewport: def.borderless === 'narrow' ? 'wide' : 'narrow' }))
+			}
 			return Boolean(def && def.type === 'header' && this.getWidgetContent(item).ground === true)
 		},
 

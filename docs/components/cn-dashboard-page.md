@@ -664,6 +664,8 @@ In the board look the page view switch (`views`) sits on the same row, left of t
 
 Under the board look, below 640px, the grid reflows to one column in reading order (top to bottom, then left to right) and the page does not scroll sideways. A widget that grows when its content wraps, such as a bar of chips, sets `sizeToContent: true` in its layout item. The compact chips wrap and are 44px high, the bar's switch and select are 44px, and record-list rows, KPI tiles and the widget Actions button are at least 44px. Without the board look the grid keeps its fixed columns.
 
+A widget definition's `borderless` drops its card: `true` everywhere, `"narrow"` on a phone only, `"wide"` on a wider window only. It applies when the layout placement sets no `borderless` of its own, and it is the only way for a `kpiRow` widget, which has no placement (PqMobiel's filter bar).
+
 ## A title per view (`views[].title`)
 
 A view can carry a `title`: while that view is open, the page heading reads it instead of the page's own title
