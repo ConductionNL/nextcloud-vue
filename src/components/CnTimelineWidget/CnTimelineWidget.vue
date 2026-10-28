@@ -95,6 +95,7 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
+import { useRefLabels } from '../../composables/useRefLabels.js'
 import { keepAuditEntries } from '../../utils/auditEntries.js'
 import { auditLabel } from '../../utils/auditLabels.js'
 import { readPath } from '../../utils/readPath.js'
@@ -142,6 +143,21 @@ import { userLocale } from '../../utils/userLocale.js'
  *
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md#requirement-a-timeline-widget-shows-an-objects-dated-events-in-order
  */
+/** The reference resolver every timeline shares, so a label is read once. */
+let refLabels = null
+
+/**
+ * The shared reference resolver, made on first use.
+ *
+ * @return {object} The resolver.
+ */
+function sharedRefLabels() {
+	if (!refLabels) {
+		refLabels = useRefLabels()
+	}
+	return refLabels
+}
+
 export default {
 	name: 'CnTimelineWidget',
 
@@ -191,6 +207,7 @@ export default {
 			timelineEntries: [],
 			failedSources: [],
 			fetchedObject: null,
+			referenceLabels: {},
 			loadSeq: 0,
 			endpointItems: [],
 			endpointPage: 0,
@@ -289,6 +306,34 @@ export default {
 		},
 
 		/**
+		 * The references `resolve` names (`{ <field>: { register?, schema,
+		 * labelField? } }`) with the id the record holds there, as one key, so
+		 * a change reads the labels again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		referenceKey() {
+			const resolve = this.content.resolve && typeof this.content.resolve === 'object' ? this.content.resolve : {}
+			const object = this.resolvedObject || {}
+			return JSON.stringify(Object.keys(resolve).map((field) => [field, readPath(object, field)]))
+		},
+
+		/**
+		 * The record with each `resolve` field's id replaced by the label of the
+		 * record it points at, for a label's `{object.<field>}`; the id stays
+		 * until its label is known.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		labelledObject() {
+			const object = this.resolvedObject || {}
+			const labels = Object.fromEntries(Object.entries(this.referenceLabels).filter(([, label]) => typeof label === 'string' && label !== ''))
+			return Object.keys(labels).length > 0 ? { ...object, ...labels } : object
+		},
+
+		/**
 		 * The History card's words for audit entries (`actionLabels`,
 		 * `changeLabels`, `valueLabels`), their labels in the host's translation.
 		 *
@@ -376,9 +421,43 @@ export default {
 				this.load()
 			},
 		},
+		referenceKey: {
+			immediate: true,
+			handler() {
+				this.loadReferenceLabels()
+			},
+		},
 	},
 
 	methods: {
+		/**
+		 * Read the label of every record a `resolve` field points at, one
+		 * batched request per schema through the shared reference resolver.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		async loadReferenceLabels() {
+			const resolve = this.content.resolve && typeof this.content.resolve === 'object' ? this.content.resolve : {}
+			const object = this.resolvedObject || {}
+			const found = {}
+			await Promise.all(Object.entries(resolve).map(async ([field, ref]) => {
+				const id = readPath(object, field)
+				if (!ref || typeof ref.schema !== 'string' || typeof id !== 'string' || id === '') {
+					return
+				}
+				try {
+					const labels = await sharedRefLabels().resolve(ref.register || this.resolvedRegister, ref.schema, [id], ref.labelField || '')
+					if (labels && typeof labels[id] === 'string') {
+						found[field] = labels[id]
+					}
+				} catch {
+					// An unreadable reference keeps its id in the label.
+				}
+			}))
+			this.referenceLabels = found
+		},
+
 		translate(text) {
 			return text ? this.cnTranslate(text) : ''
 		},
@@ -410,7 +489,7 @@ export default {
 		 * @return {string}
 		 */
 		describeAudit(action, actor, entry) {
-			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.resolvedObject }) : null
+			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.labelledObject }) : null
 			if (words !== null) {
 				return words
 			}
