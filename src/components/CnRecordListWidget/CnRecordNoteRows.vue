@@ -79,31 +79,38 @@
 			data-testid="cn-record-list-notes-error">
 			{{ error }}
 		</p>
-		<div v-if="recordAll" class="cn-record-notes__all" data-testid="cn-record-list-record-all">
-			<div class="cn-record-notes__all-text">
-				<h3 v-if="recordAll.title" class="cn-record-notes__all-title">
-					{{ recordAll.title }}
-				</h3>
-				<p v-if="recordAll.text" class="cn-record-notes__all-sentence">
-					{{ recordAll.text }}
-				</p>
+		<!-- `recordAll.placement.widget`: the pair goes to the foot of that
+		     dashboard card, which carries the title and sentence itself. -->
+		<Teleport v-if="recordAll" :to="placedTarget || 'body'" :disabled="!placedTarget">
+			<div
+				class="cn-record-notes__all"
+				:class="{ 'cn-record-notes__all--placed': !!placedTarget }"
+				data-testid="cn-record-list-record-all">
+				<div v-if="!placedTarget" class="cn-record-notes__all-text">
+					<h3 v-if="recordAll.title" class="cn-record-notes__all-title">
+						{{ recordAll.title }}
+					</h3>
+					<p v-if="recordAll.text" class="cn-record-notes__all-sentence">
+						{{ recordAll.text }}
+					</p>
+				</div>
+				<div class="cn-record-notes__all-actions">
+					<NcButton v-if="recordAll.cancel" variant="secondary" :to="recordAll.cancel.to">
+						{{ recordAll.cancel.label }}
+					</NcButton>
+					<NcButton
+						variant="primary"
+						:disabled="busy || readyCount === 0"
+						data-testid="cn-record-list-record-all-button"
+						@click="recordEvery">
+						<template v-if="recordAll.icon" #icon>
+							<CnIcon :name="recordAll.icon" :size="20" />
+						</template>
+						{{ recordAll.label }}
+					</NcButton>
+				</div>
 			</div>
-			<div class="cn-record-notes__all-actions">
-				<NcButton v-if="recordAll.cancel" variant="secondary" :to="recordAll.cancel.to">
-					{{ recordAll.cancel.label }}
-				</NcButton>
-				<NcButton
-					variant="primary"
-					:disabled="busy || readyCount === 0"
-					data-testid="cn-record-list-record-all-button"
-					@click="recordEvery">
-					<template v-if="recordAll.icon" #icon>
-						<CnIcon :name="recordAll.icon" :size="20" />
-					</template>
-					{{ recordAll.label }}
-				</NcButton>
-			</div>
-		</div>
+		</Teleport>
 	</div>
 </template>
 
@@ -163,7 +170,7 @@ export default {
 			required: true,
 		},
 
-		/** `recordAll`, already translated: `{ label, title?, text?, icon?, cancel?: { label, to } }`, or null. */
+		/** `recordAll`, already translated: `{ label, title?, text?, icon?, cancel?: { label, to }, placement?: { widget } }`, or null. */
 		recordAll: {
 			type: Object,
 			default: null,
@@ -182,7 +189,7 @@ export default {
 	},
 
 	data() {
-		return { drafts: this.readDrafts(), busy: false, error: '' }
+		return { drafts: this.readDrafts(), busy: false, error: '', placedTarget: null }
 	},
 
 	computed: {
@@ -258,7 +265,34 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.findPlacedTarget()
+		this.$nextTick(() => this.findPlacedTarget())
+		this.placedTimer = setTimeout(() => this.findPlacedTarget(), 0)
+	},
+
+	beforeUnmount() {
+		clearTimeout(this.placedTimer)
+	},
+
 	methods: {
+		/**
+		 * The content of the dashboard card `recordAll.placement.widget` names,
+		 * once it is on the page; until then (or without one) the pair stays
+		 * under the rows.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md
+		 */
+		findPlacedTarget() {
+			const widget = this.recordAll?.placement?.widget
+			if (this.placedTarget || typeof widget !== 'string' || widget === '' || typeof document === 'undefined') {
+				return
+			}
+			const card = [...document.querySelectorAll('[data-cn-widget-id]')].find((el) => el.getAttribute('data-cn-widget-id') === widget)
+			this.placedTarget = card ? (card.querySelector('.cn-widget-wrapper__content') || null) : null
+		},
+
 		/**
 		 * The drafts this browser session kept, by row key.
 		 *

@@ -3058,6 +3058,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--button-padding: 14px;
 }
 
+/* The pair placed at the foot of its own card (`recordAll.placement`,
+   DqDagAfsluiten "Klaar voor vandaag?"): 24px under the card's sentence, a
+   rule across the whole card, the buttons 15px under it.
+   @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all.cn-record-notes__all--placed {
+	margin: 24px -22px 0;
+	padding: 15px 22px 0;
+	border-top: 1px solid var(--color-border);
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
 	--button-padding: 16px;
 }

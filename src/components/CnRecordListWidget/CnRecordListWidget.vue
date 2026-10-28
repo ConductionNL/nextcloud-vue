@@ -1538,6 +1538,7 @@ export default {
 				text: all.text ? this.translate(all.text) : '',
 				icon: all.icon || '',
 				cancel,
+				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget } : null,
 			}
 		},
 
