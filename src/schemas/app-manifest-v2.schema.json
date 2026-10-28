@@ -2912,6 +2912,7 @@
 												"items": { "type": "object", "additionalProperties": true },
 												"description": "With `layout: \"bar\"`: the bar's controls, each a workspace-filter content (chips, a toggle, a select) with its own `writes`. `align: \"end\"` pushes a control to the right edge (2.88.0)."
 											},
+											"control": { "type": "string", "enum": ["switch", "checkbox"], "description": "style 'toggle': draw it as a switch (default) or a checkbox." },
 											"onValue": { "description": "style 'toggle': the value written while the switch is on. Default true (2.88.0)." },
 											"offValue": { "description": "style 'toggle': the value written while the switch is off. Default false (2.88.0)." },
 											"align": { "type": "string", "enum": ["start", "end"], "description": "In a bar: 'end' pushes this control to the right edge (2.88.0)." },
