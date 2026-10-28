@@ -126,6 +126,7 @@
 			:showContracts="content.showContracts"
 			:excludeIntegrations="content.excludeIntegrations"
 			:extraSources="content.extraSources"
+			:links="content.links || []"
 			:referenceSections="content.referenceSections"
 			:footerActions="content.footerActions"
 			:showAddFooter="content.showAddFooter"
