@@ -2389,14 +2389,14 @@
 	font-weight: 700;
 }
 
-/* A waiting age takes the inks a card's deadline takes (DqTeamwachtrij "6
-   dagen" #a30000), not the theme's brighter text-error. */
+/* A waiting age takes the inks of an error or warning tag (DqTeamwachtrij "6
+   dagen" #a30000), not Nextcloud's darker error text or brighter text-error. */
 .cn-look-board .cn-cell-renderer__age--error:not(.cn-look-nextcloud *) {
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 .cn-look-board .cn-cell-renderer__age--warning:not(.cn-look-nextcloud *) {
-	color: var(--color-warning-text);
+	color: var(--nldesign-component-status-badge-warning-color, var(--nl-color-orange-text, var(--color-warning-text)));
 }
 
 /* A pill in a trailing cell stays inside the cell's width and ends in an
