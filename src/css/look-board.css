@@ -3674,6 +3674,38 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	height: 34px;
 }
 
+/* A delete in a settings row does not shout. In a list row an app draws
+   itself it is the soft error tint with red text and no edge (PqBeheer
+   "Verwijderen"); in a settings table row it is white with a red edge and red
+   text (PqBeheerKassa, DqTokens "Verwijderen"). NcButton fills its error
+   variant; the repeated class outranks that fill.
+   @spec openspec/changes/board-settings-row-delete/specs/board-settings-row-delete/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) {
+	--cn-board-error-tint: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error {
+	background-color: var(--cn-board-error-tint);
+	color: var(--color-error-text);
+	border: 0;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error {
+	background-color: var(--color-main-background);
+	border: 1px solid var(--color-error);
+	color: var(--color-error-text);
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error:hover:not(:disabled),
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error:hover:not(:disabled) {
+	background-color: color-mix(in srgb, var(--color-error) 14%, var(--color-main-background));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue--error .button-vue__text,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue--error .button-vue__text {
+	color: var(--color-error-text);
+}
+
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
 .cn-look-board .cn-version-info--board:not(.cn-look-nextcloud *) .cn-version-info__footer-row .button-vue {
 	height: var(--cn-field-height, 40px);
