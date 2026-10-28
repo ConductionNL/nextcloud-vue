@@ -134,7 +134,7 @@ Give the chips a full-width cell with `showTitle: false` to get the board's bar.
 
 ## Toggle, select and bar
 
-A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
+A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off; `control: "checkbox"` draws it as a checkbox instead. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
 
 ```jsonc
 {
