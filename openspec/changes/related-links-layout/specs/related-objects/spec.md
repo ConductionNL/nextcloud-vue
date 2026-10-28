@@ -17,7 +17,8 @@ Show a record's few related records as plain links, the way the boards draw a si
 A related widget with `layout: "links"` SHALL list the rows of the host's sections as plain links, one per line, the
 label and the meta joined by a comma, and SHALL fall back to the related objects when the host declares no sections.
 It SHALL offer "Show all" when the record has relations of its own, which opens the tabbed view. A reference section
-with `labelTemplate` SHALL be named by that template filled from the referenced record.
+with `labelTemplate` SHALL be named by that template filled from the referenced record, and `sectionOrder` (keys) SHALL
+order the host's sections, the keys it leaves out after the named ones in their declared order.
 
 #### Scenario: A receipt's related records
 

@@ -106,6 +106,14 @@ describe('CnRelatedObjectsWidget: layout links', () => {
 		expect(w.find('.cn-related-objects-widget__count').exists()).toBe(false)
 	})
 
+	it('lists the sections in a declared order', async () => {
+		serve()
+		const w = await mountWidget({ ...CONTENT, sectionOrder: ['shift', 'refunds'] })
+		const links = w.findAll('[data-testid="cn-related-links"] li').map((li) => li.text())
+		expect(links[0]).toMatch(/^Shift (7 okt|Oct 7), Balie 2$/)
+		expect(links[1]).toBe('Refund RF-2026-0058, pending')
+	})
+
 	it('opens the full view with Show all', async () => {
 		serve()
 		const w = await mountWidget()

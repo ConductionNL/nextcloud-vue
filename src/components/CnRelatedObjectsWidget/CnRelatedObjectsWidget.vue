@@ -812,6 +812,19 @@ export default {
 		},
 
 		/**
+		 * The order of the `extraSources` and `referenceSections` by key
+		 * (`["shift", "refunds"]`): a parent can come before the lists. A key
+		 * left out keeps its declared place after the named ones.
+		 *
+		 * @type {string[]}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		sectionOrder: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Buttons under the widget (`[{ label, icon?, type, ... }]`), page
 		 * actions dispatched with the record's tokens resolved ("Plan
 		 * follow-up" opening a dialog).
@@ -2341,9 +2354,14 @@ export default {
 					console.warn(`[CnRelatedObjectsWidget] the record ${ref.field} names could not be read`, error)
 				}
 			}))
+			const declared = Array.isArray(this.sectionOrder) ? this.sectionOrder : []
 			const order = (key) => {
+				const named = declared.findIndex((entry) => entry === key || String(key).startsWith(`${entry}:`))
+				if (named !== -1) {
+					return named
+				}
 				const at = [...sources, ...references].findIndex((entry) => entry && (entry.key === key || String(key).startsWith(`${entry.key}:`)))
-				return at === -1 ? Number.MAX_SAFE_INTEGER : at
+				return at === -1 ? Number.MAX_SAFE_INTEGER : declared.length + at
 			}
 			this.sourcedSections = sections.sort((a, b) => order(a.key) - order(b.key))
 		},

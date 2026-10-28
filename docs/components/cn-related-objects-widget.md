@@ -176,3 +176,6 @@ other relation stay one click away.
   }
 }
 ```
+
+`sectionOrder` (keys) orders the host's sections: `["shift", "refunds", "audit"]` puts the referenced shift before the
+lists. Keys it leaves out follow in their declared order.

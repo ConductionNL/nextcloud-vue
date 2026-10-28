@@ -2474,6 +2474,7 @@
 										"type": "object",
 										"properties": {
 											"groupByRelation": { "type": "boolean", "description": "Split the Objects group by the relation label OpenRegister answers per direction." },
+											"sectionOrder": { "type": "array", "items": { "type": "string" }, "description": "The order of extraSources and referenceSections by key." },
 											"layout": { "type": "string", "enum": ["tabs", "list", "sections", "links"], "description": "`sections` draws every group under its own heading in one list; `links` shows the host's sections as plain links with Show all." },
 											"groupActions": { "type": "object", "additionalProperties": { "type": "object" }, "description": "An action on a group's heading in `layout: \"sections\"`, keyed by the group's key (DqZaakGerelateerd \"Vervolg plannen\")." }
 										}

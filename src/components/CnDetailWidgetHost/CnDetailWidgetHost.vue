@@ -126,6 +126,7 @@
 			:excludeIntegrations="content.excludeIntegrations"
 			:extraSources="content.extraSources"
 			:referenceSections="content.referenceSections"
+			:sectionOrder="content.sectionOrder"
 			:footerActions="content.footerActions"
 			:showAddFooter="content.showAddFooter"
 			:emptyLabel="content.emptyLabel"
