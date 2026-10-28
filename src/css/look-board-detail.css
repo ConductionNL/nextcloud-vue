@@ -1067,6 +1067,23 @@
 	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
 }
 
+/* A related-objects side card is a flush wrapper whose rows, group titles and
+   status lines carry 8px of their own, so the content takes the other 14px
+   and they sit on the card's 22px inset (PqTicket "Gerelateerd": 9px in,
+   board 23). Its link rows and "show all" carry 16px, so they take 8.
+   @spec openspec/changes/board-related-side-inset/specs/board-related-side-inset/spec.md#requirement-a-related-side-card-puts-its-rows-on-the-cards-inset */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-related-objects-widget):not(.cn-look-nextcloud *) {
+	padding-inline: 14px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links:not(.cn-look-nextcloud *) {
+	padding-inline: 8px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__show-all:not(.cn-look-nextcloud *) {
+	margin-inline: 8px;
+}
+
 /* A side card that opens on a list draws its first row's hairline 10px below
    the title box; the row has no leading for the glyph gap above to subtract
    (DqZaaktypeRegels, DqZaaktypeStatussen "Versies").
