@@ -41,12 +41,13 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles, 'cn-facts-widget__rows--figures': tiles && figures }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles, 'cn-facts-widget__rows--tile-grid': tileColumns > 0, 'cn-facts-widget__rows--figures': tiles && figures }"
+					:style="tileColumns > 0 ? { '--cn-facts-tile-columns': tileColumns } : null">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
 						class="cn-facts-widget__row"
-						:class="{ 'cn-facts-widget__row--inline': row.inline }"
+						:class="{ 'cn-facts-widget__row--inline': row.inline, 'cn-facts-widget__row--wide': row.wide && tileColumns > 0 }"
 						:data-testid="`cn-fact-${row.key}`">
 						<dt class="cn-facts-widget__label" :class="{ 'cn-facts-widget__label--icon': row.icon }">
 							<CnIcon
@@ -529,7 +530,7 @@ export default {
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
-		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
+		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps). With `columns` (2 or more) the tiles sit in that many columns, and a field with `wide: true` spans the whole row (PqJourney's Actie tile).
 		 * - `tileStyle` — `"figures"` with `layout: "tiles"`: white tiles, a plain label above a large value (board PqKassadienst "Kasverschil"). A row's `note` (`{ parts, separator? }`, as a line's parts) is written under its value; its `tone` (`[{ when: { field, op, value }, variant }]`) colours the value with the first variant whose condition the record meets.
 		 * - `notice.visibleWhen` — a condition on the record shown; the band shows only while it holds.
 		 * - A row's `pill` (`{ variantMap }`) draws its value as a status pill toned by the raw value.
@@ -617,7 +618,7 @@ export default {
 		 * @return {boolean}
 		 */
 		twoColumns() {
-			return [2, 3].includes(Number(this.content?.columns))
+			return !this.tiles && [2, 3].includes(Number(this.content?.columns))
 		},
 
 		/**
@@ -627,7 +628,7 @@ export default {
 		 * @return {boolean}
 		 */
 		threeColumns() {
-			return Number(this.content?.columns) === 3
+			return !this.tiles && Number(this.content?.columns) === 3
 		},
 
 		/**
@@ -648,6 +649,18 @@ export default {
 		 */
 		tiles() {
 			return this.content?.layout === 'tiles'
+		},
+
+		/**
+		 * How many columns the tiles sit in (`columns` with `layout: "tiles"`,
+		 * board PqJourney's steps), or 0 when they wrap freely.
+		 *
+		 * @spec openspec/changes/facts-tiles-columns/specs/facts-widget/spec.md#requirement-tiles-can-sit-in-columns-and-a-tile-can-span-the-row
+		 * @return {number}
+		 */
+		tileColumns() {
+			const columns = Number(this.content?.columns)
+			return this.tiles && Number.isInteger(columns) && columns >= 2 ? columns : 0
 		},
 
 		/**
@@ -874,7 +887,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, wide: field.wide === true, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -2754,6 +2767,17 @@ export default {
 	font-weight: 400;
 }
 
+/* Tiles in columns (board PqJourney's steps): `columns` tiles a row, a wide
+   tile across the whole row. */
+.cn-facts-widget__rows--tile-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-facts-tile-columns), minmax(0, 1fr));
+}
+
+.cn-facts-widget__rows--tile-grid .cn-facts-widget__row--wide {
+	grid-column: 1 / -1;
+}
+
 /* `tileStyle: "figures"` (board PqKassadienst "Kasverschil"): white tiles,
    a plain label above a large figure, a muted note under it. */
 .cn-facts-widget__rows--figures .cn-facts-widget__row {
@@ -2816,7 +2840,8 @@ export default {
 
 @media (max-width: 640px) {
 	.cn-facts-widget__rows--columns,
-	.cn-facts-widget__rows--three {
+	.cn-facts-widget__rows--three,
+	.cn-facts-widget__rows--tile-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
