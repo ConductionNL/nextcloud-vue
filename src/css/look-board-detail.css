@@ -1937,6 +1937,90 @@
 	line-height: normal;
 }
 
+/* ---- The linked mail list (CnEmailTab in CnMailTab) -------------------- */
+/* DqZaakEmail draws each linked mail as a row under a hairline, 12px above
+   and below: a 32px initials tile on the grey chip in the soft ink, 12px
+   bold, 12px before the subject (15px/600, main ink) over the sender (13px,
+   muted, 2px under it), and a 34px bordered "more actions" button at the
+   end. A theme's `a { color; text-decoration }` carries `!important`
+   (thematiq), as do NcAvatar's inline size and tint, hence the same here.
+   An unread mail keeps its dot; a read one gives up the dot's room.
+   @spec openspec/changes/board-linked-mail-rows/specs/board-linked-mail-rows/spec.md */
+.cn-look-board .cn-email-tab:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-email-tab__item:not(.cn-look-nextcloud *) {
+	display: flex;
+	align-items: center;
+	gap: 8px 16px;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-email-tab__row:not(.cn-look-nextcloud *) {
+	align-items: center;
+	gap: 12px;
+	padding: 0;
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+}
+
+.cn-look-board a.cn-email-tab__row:not(.cn-look-nextcloud *):hover {
+	background: none;
+}
+
+.cn-look-board a.cn-email-tab__row:not(.cn-look-nextcloud *):hover .cn-email-tab__subject {
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-email-tab__unread-dot:not(.is-shown):not(.cn-look-nextcloud *) {
+	display: none;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) {
+	width: 32px !important;
+	height: 32px !important;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials-wrapper {
+	background-color: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials {
+	color: var(--cn-board-text-soft) !important;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-email-tab__subject:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text) !important;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-email-tab__date:not(.cn-look-nextcloud *),
+.cn-look-board .cn-email-tab__sender:not(.cn-look-nextcloud *),
+.cn-look-board .cn-email-tab__snippet:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-email-tab__sender:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-email-tab__menu:not(.cn-look-nextcloud *) .action-item__menutoggle {
+	--button-size: 34px;
+	box-sizing: border-box;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: 8px;
+	background: var(--color-main-background);
+	color: var(--cn-board-text-soft);
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
