@@ -56,6 +56,9 @@
 					variant="secondary"
 					:data-testid="`cn-expandable-row-button-${button.action}`"
 					@click="emitAction(button.action)">
+					<template v-if="button.icon" #icon>
+						<CnIcon :name="button.icon" :size="16" />
+					</template>
 					{{ tr(button.label || button.action) }}
 				</NcButton>
 				<!-- @slot actions Extra controls after the header buttons. Scope: `{ row }`. -->
@@ -133,6 +136,7 @@ import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -151,7 +155,7 @@ function toneOf(tones, entry) {
 export default {
 	name: 'CnExpandableRow',
 
-	components: { Check, ChevronDown, ChevronRight, CnStatusBadge, NcButton, Plus },
+	components: { Check, ChevronDown, ChevronRight, CnIcon, CnStatusBadge, NcButton, Plus },
 
 	inject: {
 		cnTranslate: { default: null },
@@ -167,7 +171,8 @@ export default {
 		/**
 		 * What the row draws: `{ title, badge?: { when, label }, description?,
 		 * chips?: { field, each, tones? }, meta?: Array<string>, table?: { field,
-		 * columns, note?, action?: { id, label } }, buttons?: Array<{ action, label? }> }`.
+		 * columns, note?, action?: { id, label } }, buttons?: Array<{ action, label?, icon? }> }`.
+		 * A button's `icon` is a CnIcon name drawn before its label.
 		 * A table column is `{ key?, label, as?, template?, strong?, text?, tones? }`,
 		 * `as` one of `text` (default), `order`, `bar`, `check`, `yesNo`, `pill`.
 		 */

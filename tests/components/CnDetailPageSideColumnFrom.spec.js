@@ -23,6 +23,7 @@ const CASE_TYPES = {
 	'ct-plain': { id: 'ct-plain', category: 'Vergunningen' },
 	'ct-empty': { id: 'ct-empty', category: 'Vergunningen', sideCards: [] },
 	'ct-youth': { id: 'ct-youth', category: 'Sociaal domein', sideCards: ['consent', 'people', 'deadline', 'unknown'] },
+	'ct-history': { id: 'ct-history', category: 'Sociaal domein', sideCards: ['notice', 'consent', 'history', 'deadline'] },
 }
 
 const WIDGETS = [
@@ -30,6 +31,8 @@ const WIDGETS = [
 	{ id: 'requester', type: 'stat', title: 'Requester' },
 	{ id: 'consent', type: 'stat', title: 'Consent', visibleWhen: { field: '@context.caseType.category', op: 'eq', value: 'Sociaal domein' } },
 	{ id: 'people', type: 'stat', title: 'People', visibleWhen: { field: '@context.caseType.category', op: 'eq', value: 'Vergunningen' } },
+	{ id: 'history', type: 'audit-trail', title: 'History' },
+	{ id: 'notice', type: 'banner', title: 'Notice' },
 ]
 
 function makeStore(object) {
@@ -92,6 +95,18 @@ describe('CnDetailPage: a record picks the side column and its order', () => {
 		await flushPromises()
 		// `people` is listed but its own visibleWhen does not hold; `unknown` names no entry.
 		expect(sideIds(youth)).toEqual(['consent', 'deadline'])
+	})
+
+	it('keeps the listed order in the board look, a History card included', async () => {
+		const listed = mountPage('ct-history', { look: 'board', sideColumn: ['deadline', 'requester', 'consent', 'history', 'notice'] })
+		await flushPromises()
+		expect(sideIds(listed)).toEqual(['notice', 'consent', 'history', 'deadline'])
+	})
+
+	it('still orders the declared column in the board look when the record lists nothing', async () => {
+		const plain = mountPage('ct-plain', { look: 'board', sideColumn: ['history', 'deadline', 'notice'] })
+		await flushPromises()
+		expect(sideIds(plain)).toEqual(['notice', 'deadline', 'history'])
 	})
 
 	it('changes nothing without sideColumnFrom', async () => {

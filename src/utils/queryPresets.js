@@ -31,6 +31,7 @@ export const QUERY_PRESET_KEYS = Object.freeze([
 	'defaultSort',
 	'viewSwitch',
 	'addLabel',
+	'showAdd',
 	'headerButtons',
 	'breadcrumb',
 	'headerMeta',
@@ -98,6 +99,10 @@ export function applyQueryPreset(config, preset) {
 	// A preset's own count line stands in every view, over the page's per-view lines.
 	if (preset.countText !== undefined) {
 		out.countTextByView = null
+	}
+	// Likewise its own footer note, over the page's per-view notes.
+	if (preset.footerNote !== undefined) {
+		out.footerNoteByView = null
 	}
 	// The query pairs that chose the preset scope the list: the page shows
 	// them as no removable filter chip.

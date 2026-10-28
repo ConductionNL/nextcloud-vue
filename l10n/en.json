@@ -1,5 +1,9 @@
 {
   "translations": {
+    "All categories": "All categories",
+    "Category": "Category",
+    "Reports": "Reports",
+    "No reports in this category.": "No reports in this category.",
     "Channel": "Channel",
     "Outcome": "Outcome",
     "Chat": "Chat",
@@ -864,6 +868,8 @@
     "No linked emails yet": "No linked emails yet",
     "Could not load emails": "Could not load emails",
     "Open in Mail": "Open in Mail",
+    "More actions for this mail": "More actions for this mail",
+    "Unlink mail": "Unlink mail",
     "Open in Office": "Open in Office",
     "(no subject)": "(no subject)",
     "Unknown sender": "Unknown sender",

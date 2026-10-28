@@ -46,4 +46,20 @@ describe('CnObjectListWidget column emptyValue', () => {
 		})
 		expect(w.vm.resolvedColumns[1].emptyValueBy).toEqual(by)
 	})
+	it('keeps a column\'s formatterOptions for its formatter (DqTenant Mandaten "Bezwaar beslissen")', () => {
+		const options = { token: 'bezwaar', yes: 'Yes', no: 'No' }
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: {
+				content: {
+					register: 'dossiq',
+					schema: 'tenantMandate',
+					columns: [{ key: 'mandateMatrixRef', label: 'Role' }, { key: 'terms.decisionTypes', label: 'Decides objections', formatter: 'containsLabel', formatterOptions: options }],
+				},
+			},
+			stubs: { CnDataTable: true, CnFormDialog: true },
+			mocks: { t: (_app, s) => s },
+		})
+		expect(w.vm.resolvedColumns[1].formatterOptions).toEqual(options)
+		expect(w.vm.resolvedColumns[0].formatterOptions).toBeUndefined()
+	})
 })

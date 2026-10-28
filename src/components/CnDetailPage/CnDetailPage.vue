@@ -54,7 +54,7 @@
 		<div
 			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
-			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
+			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetShown, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
 			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
@@ -262,6 +262,9 @@
 					:disabled="primaryActionDisabled"
 					data-testid="cn-detail-page-primary-action"
 					@click="onPrimaryActionClick">
+					<template v-if="primaryActionIconName" #icon>
+						<CnIcon :name="primaryActionIconName" :size="20" />
+					</template>
 					{{ effectivePrimaryLabel }}
 				</NcButton>
 				<!-- The record source's own verbs (a task's claim, hand back,
@@ -561,7 +564,7 @@
 			     and taken out of the body grid. Nothing renders without the
 			     key. -->
 			<div
-				v-if="headerWidgetDef !== null"
+				v-if="headerWidgetShown"
 				class="cn-detail-page__header-widget"
 				data-testid="cn-detail-page-header-widget">
 				<!--
@@ -651,6 +654,9 @@
 					:disabled="primaryActionDisabled"
 					data-testid="cn-detail-page-primary-action"
 					@click="onPrimaryActionClick">
+					<template v-if="primaryActionIconName" #icon>
+						<CnIcon :name="primaryActionIconName" :size="20" />
+					</template>
 					{{ effectivePrimaryLabel }}
 				</NcButton>
 			</template>
@@ -663,6 +669,7 @@
 		<div
 			v-if="showsBand"
 			class="cn-detail-page__band"
+			:class="{ 'cn-detail-page__band--compact': bandDensity === 'compact' }"
 			data-testid="cn-detail-page-band">
 			<!-- The page filters (`config.pageFilters`), right-aligned above the
 			     band's widgets; each writes the page's workspace context. -->
@@ -2242,6 +2249,19 @@ export default {
 		},
 
 		/**
+		 * The config of a record source that needs one (manifest
+		 * `config.sourceConfig`). With `entitySource: "endpoint"`: `url`, an
+		 * app path with `{id}` for the record id, and optional `recordPath`,
+		 * where the record sits in the answer.
+		 *
+		 * @type {object|null}
+		 */
+		sourceConfig: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * App routes that replace a record source's own route for a verb, by
 		 * verb id (manifest `config.verbEndpoints`), such as
 		 * `{ "complete": "/apps/dossiq/api/case-tasks/{id}/complete" }` for an
@@ -2878,7 +2898,7 @@ export default {
 		/**
 		 * Fields shown as chips under the title (manifest `config.headerFields`):
 		 * each entry a property key, or `{ key, format, labelField, colorField,
-		 * warnWhenPast }`. `format` is `text` (default), `mono`, `badge`, `user`
+		 * warnWhenPast }`. `format` is `text` (default), `mono`, `strong` (bold text, no chip frame), `badge`, `user`
 		 * or `date`. An empty value shows no chip; no row without chips.
 		 *
 		 * @type {Array<string|{key: string, format?: string, labelField?: string, colorField?: string, warnWhenPast?: boolean}>}
@@ -2997,6 +3017,21 @@ export default {
 		},
 
 		/**
+		 * The band's density (manifest `config.bandDensity`). `compact` draws
+		 * it as boards PqKlant and PqOrganisatie do: 12px between tiles, 20px
+		 * between rows, tiles down to 120px, and a figure as a small white
+		 * tile (13px label over a 20px value). Empty keeps the default band.
+		 *
+		 * @type {'' | 'compact'}
+		 * @spec openspec/changes/detail-band-compact/specs/detail-page/spec.md#requirement-a-detail-band-can-be-compact
+		 */
+		bandDensity: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'compact'].includes(value),
+		},
+
+		/**
 		 * Page-level filters (manifest `config.pageFilters`), the same a
 		 * dashboard takes: each writes its choice into the page's workspace
 		 * context, which every widget on the page reads through
@@ -3031,7 +3066,8 @@ export default {
 		 * The side column's order in the board look (manifest
 		 * `config.sideColumnOrder`): `board` puts a notice first and the
 		 * History card last; `declared` keeps the order of `sideColumn`, for a
-		 * board that draws History on top.
+		 * board that draws History on top. A list the record picks
+		 * (`sideColumnFrom`) keeps its own order either way.
 		 *
 		 * @spec openspec/changes/detail-side-column-order/specs/detail-page/spec.md#requirement-a-detail-page-can-keep-its-side-column-in-the-declared-order
 		 */
@@ -3962,6 +3998,16 @@ export default {
 		},
 
 		/**
+		 * The icon of the stage's primary action, as a quick action draws it.
+		 *
+		 * @return {string} An MDI icon name, or '' for none.
+		 * @spec openspec/changes/stage-primary-icon/specs/detail-page/spec.md#requirement-the-stage-primary-button-draws-its-actions-icon
+		 */
+		primaryActionIconName() {
+			return this.stagePrimaryEntry?.iconName || ''
+		},
+
+		/**
 		 * What the primary button says: the stage's action when the stage
 		 * declares one, the page's `primaryAction` otherwise. Empty gates
 		 * both the button and the skip link.
@@ -4367,6 +4413,19 @@ export default {
 		},
 
 		/**
+		 * Whether the header draws its widget beside the open body tab: it
+		 * follows `tabs` / `notTabs` on the definition as a side card does
+		 * (DqZaakAssistent: no stages bars beside AI oversight). Standing
+		 * aside does not put it back in the body grid. Edit mode shows it.
+		 *
+		 * @spec openspec/changes/header-widget-follows-tab/specs/detail-page/spec.md#requirement-the-header-widget-can-stand-aside-for-a-tab
+		 * @return {boolean}
+		 */
+		headerWidgetShown() {
+			return this.headerWidgetDef !== null && (this.editingBody || onTab(this.headerWidgetDef, this.activeBodyTab))
+		},
+
+		/**
 		 * The side column's widget definitions. A string names a widget
 		 * declared in `widgets`; an object is a definition of its own. A
 		 * definition whose `visibleWhen` does not hold for the record (or the
@@ -4376,10 +4435,11 @@ export default {
 		 * @return {Array<object>} The definitions that resolve, each with an `id`.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 * @spec openspec/changes/detail-side-visible-when/specs/detail-page/spec.md#requirement-a-side-column-widget-shows-only-while-its-visiblewhen-holds
+		 * @spec openspec/changes/side-column-from-keeps-its-order/specs/detail-page/spec.md#requirement-a-listed-side-column-keeps-its-order-in-the-board-look
 		 */
 		sideColumnWidgets() {
 			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
-			if (!this.isBoard || this.sideColumnOrder === 'declared') {
+			if (!this.isBoard || this.sideColumnOrder === 'declared' || this.sideColumnPickedIds !== null) {
 				return resolved
 			}
 			// The board look: the notice first, the History card last.
@@ -4400,16 +4460,28 @@ export default {
 		 */
 		pickedSideWidgets() {
 			const declared = this.declaredSideWidgets
-			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+			if (this.sideColumnPickedIds === null) {
 				return declared
 			}
-			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
-			if (!Array.isArray(ids) || ids.length === 0) {
-				return declared
-			}
-			return ids
+			return this.sideColumnPickedIds
 				.map((id) => declared.find((widget) => widget.id === id) || null)
 				.filter(Boolean)
+		},
+
+		/**
+		 * The ids the record lists for its side column (`sideColumnFrom`), or
+		 * null when it lists none or edit mode shows every entry. A listed
+		 * order is the record's own, so the board look keeps it as listed.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/side-column-from-keeps-its-order/specs/detail-page/spec.md#requirement-a-listed-side-column-keeps-its-order-in-the-board-look
+		 */
+		sideColumnPickedIds() {
+			if (!this.sideColumnFrom || this.editingBody || !this.widgetVisibilityData) {
+				return null
+			}
+			const ids = readVisibleWhenPath(this.widgetVisibilityData, this.sideColumnFrom)
+			return Array.isArray(ids) && ids.length > 0 ? ids : null
 		},
 
 		/**
@@ -4703,16 +4775,22 @@ export default {
 
 		/**
 		 * The record source named by `entitySource`, or null. An unknown name,
-		 * or a source that cannot read one record, is null with a warning.
+		 * or a source that cannot read one record, is null with a warning. A
+		 * source that takes a config gets `sourceConfig`.
 		 *
 		 * @return {object|null}
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
 		 */
 		recordSource() {
 			if (!this.entitySource) {
 				return null
 			}
 			try {
-				return resolveRecordSource(this.entitySource)
+				const source = resolveRecordSource(this.entitySource)
+				if (source && typeof source.configure === 'function') {
+					source.configure(this.sourceConfig)
+				}
+				return source
 			} catch (err) {
 				// eslint-disable-next-line no-console -- the console is the only channel a host app can read the detail on
 				console.warn('[CnDetailPage] the record source could not start; no record is shown.', err)

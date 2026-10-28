@@ -27,7 +27,7 @@
 			</header>
 			<div class="cn-device-frames-widget__body">
 				<CnSectionsWidget
-					:content="{ sections: frame.sections, cards: false, hideEmpty: true }"
+					:content="{ sections: frame.sections, cards: false, dividers: false, gap: 12, hideEmpty: true }"
 					:availableWidgets="availableWidgets"
 					:objectId="objectId"
 					:objectData="objectData"
@@ -60,11 +60,11 @@ let instanceCounter = 0
  * "Inspectie in het veld": the day offline, a checklist question with a
  * photo, and the sync queue).
  *
- * Each frame stacks widgets of the surface, as the `sections` widget does,
- * under a header with the frame's title and an optional status line. The
- * status can follow the connection ("Offline · synced at 07:42" while the
- * device is offline). The frames wrap onto the next row when the page is
- * narrower, and a frame takes the full width on a phone.
+ * Each frame stacks widgets of the surface as plain sections, 12px apart
+ * without a rule, under a header with the frame's title and an optional
+ * status line. The status can follow the connection ("Offline · synced at
+ * 07:42" while the device is offline). The frames wrap onto the next row
+ * when the page is narrower, and a frame takes the full width on a phone.
  *
  * ```json
  * {

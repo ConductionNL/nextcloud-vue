@@ -467,10 +467,12 @@
    card's: Nextcloud and the theme paint it white, primary when checked and
    grey when disabled (the latter two `!important`), which a native radio does
    not draw but its computed style still reports. A board card's selection
-   checkbox keeps its own 16px and its collapsed quiet state (board.css).
+   checkbox keeps its own 16px and its collapsed quiet state (board.css);
+   the notification matrix draws its checkbox as an icon whose colour is
+   that ground, so it keeps its own too.
    @spec openspec/changes/board-native-choice-size/specs/board-native-choice-size/spec.md#requirement-a-native-radio-or-checkbox-is-18px-in-the-board-look */
 .cn-look-board input[type="radio"]:not(.checkbox-radio-switch__input):not(.cn-look-nextcloud *),
-.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-board-view__select):not(.cn-look-nextcloud *) {
+.cn-look-board input[type="checkbox"]:not(.checkbox-radio-switch__input):not(.cn-board-view__select):not(.cn-notification-matrix__checkbox):not(.cn-look-nextcloud *) {
 	box-sizing: border-box;
 	width: 18px;
 	min-width: 18px;
@@ -782,6 +784,19 @@
 	height: 20px;
 	min-height: 20px;
 	margin: 0;
+}
+
+/* A row's name is 15px at 600 on a normal line, its description 13px at
+   1.45, so a two-line row is the board's 78px (DqPersoonlijkeInstellingen
+   "Termijn deze week": live drew 22.5px and 19.5px lines, 82.5px).
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__name:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-ordered-list-field__description:not(.cn-look-nextcloud *) {
+	line-height: 1.45;
 }
 
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
@@ -1184,7 +1199,79 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+}
+
+/* ---- A search select's open list (CnSearchSelect) ------------------------ */
+/* NcSelect teleports its list to <body>, so the rules key on the body as the
+   menus above do. The board draws the list as a card 4px under the field: a
+   hairline all round, radius 8, a soft shadow, where NcSelect hangs a 2px
+   frame with no top edge from the field. The highlighted row sits on the
+   light primary ground, its lead white; the other leads grey in the soft ink.
+   A person (initials) is a compact row, 8px 10px in with a 28px chip, 14px
+   name and 12px line (DqNieuweZaak "Aanvrager"); a row with an icon is 10px
+   12px in (DqOverdragen "Nieuw team"). NcSelect's frame carries `!important`.
+   @spec openspec/changes/board-search-select-list/specs/board-search-select-list/spec.md#requirement-a-board-search-selects-open-list-is-a-card-under-the-field */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) {
+	margin-top: 4px;
+	border: 1px solid var(--color-border) !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 16px color-mix(in srgb, var(--color-main-text) 12%, transparent) !important;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row).vs__dropdown-menu--floating-placement-top {
+	margin-top: 0;
+	margin-bottom: 4px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight {
+	background: var(--color-primary-element-light);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead {
+	background: var(--color-background-hover);
+	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight .cn-search-select__lead {
+	background: var(--color-main-background);
+	color: var(--color-primary-element-light-text);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) {
+	padding: 8px 10px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead--avatar {
+	flex-basis: 28px;
+	width: 28px;
+	height: 28px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__name {
+	font-size: 14px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__secondary {
+	font-size: 12px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) {
+	padding: 10px 12px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) .cn-search-select__row {
+	gap: 12px;
+}
+
+/* The open search field takes the board's 2px edge in the primary colour
+   (DqNieuweZaak "Aanvrager", DqOverdragen "Nieuw team"); a board dialog's
+   fields are drawn 1px. */
+.cn-look-board .cn-search-select .v-select.select.vs--open:not(.cn-look-nextcloud *) .input-field__input {
+	border-width: 2px;
+	border-color: var(--color-primary-element);
 }
 
 /* ---- The navigation ---------------------------------------------------- */
@@ -1561,6 +1648,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 .cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .cn-admin-settings-shell__header {
 	margin-bottom: 0;
 	padding: 4px 0 8px;
+}
+
+/* The header's buttons keep their width (the board draws them `flex: none`),
+   so a long path note wraps under the title instead of pushing the buildiq
+   square onto a second row (DqBeheerGeavanceerd).
+   @spec openspec/changes/admin-header-buttons-keep-their-width/specs/admin-header-buttons-keep-their-width/spec.md#requirement-the-admin-header-buttons-stay-on-one-row */
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) {
+	flex: none;
 }
 
 .cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {
@@ -2441,6 +2536,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.5;
 }
 
+/* A shell with `plainNotes` draws its cards' notes as the NcBeheerInstellingen
+   boards do: no icon, and a warning on the peach ground with its own edge
+   (DqBeheerGeavanceerd "KCC-werkplek-integratie", "Financiële integratie").
+   @spec openspec/changes/admin-settings-plain-notes/specs/admin-settings-plain-notes/spec.md */
+.cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard:not(.cn-look-nextcloud *) .notecard__icon,
+.cn-look-board.cn-admin-settings-shell--plain-notes .settings-section .notecard:not(.cn-look-nextcloud *) .notecard__icon {
+	display: none;
+}
+
+.cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: var(--cn-board-note-warning-ground);
+	--cn-banner-edge: var(--cn-board-note-warning-edge);
+}
+
 /* A stat-row cell that holds only a banner is the banner: no card around it. */
 .cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) {
 	border: none;
@@ -2602,6 +2712,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* Under a subtitle the content starts 12px down: the leading taken off above
+   belongs to a title-only head, whose title line carries it (DqCatalogus
+   "Objecttypen", DqProcesanalyse, DqTermijnen sat 2.3px high).
+   @spec openspec/changes/board-dashboard-card-subtitle-gap/specs/board-dashboard-card-subtitle-gap/spec.md#requirement-a-board-dashboard-cards-content-starts-12px-under-its-subtitle */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) .cn-widget-wrapper__header {
+	padding-bottom: 12px;
+}
+
 /* Over a list that rules above its first row (record list ruleAbove, task
    list, decision list) the rule stands 6px under the title and the row's own
    12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
@@ -2735,6 +2853,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 .cn-look-board .cn-audit-card__row--stacked .cn-audit-card__when:not(.cn-look-nextcloud *) {
 	color: var(--color-text-maxcontrast);
+}
+
+/* A compact stacked row (DqZaaktype "Historie", `content.density:
+   "compact"`): 10px above and below, a two-line row 56px.
+   @spec openspec/changes/audit-card-compact-stacked-rows/specs/audit-trail/spec.md#requirement-a-stacked-audit-card-can-draw-compact-rows */
+.cn-look-board .cn-audit-card__row--stacked.cn-audit-card__row--compact:not(.cn-look-nextcloud *) {
+	padding: 10px 0;
 }
 
 /* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
@@ -3468,6 +3593,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-size: 13px;
 }
 
+/* A case of the day is the board's card: 12px in, 8px round, its title at
+   14px (DqMijnWerk r34: 10/12px in, 12px round, 14.25px title).
+   @spec openspec/changes/board-week-strip-fits/specs/week-strip-board-look/spec.md#requirement-a-board-week-strip-fits-its-card */
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__item {
+	padding: 12px;
+	border-radius: 8px;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__title {
+	font-size: 14px;
+}
+
 @media (forced-colors: active) {
 	.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
 		border-color: CanvasText;
@@ -3672,6 +3810,38 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	--button-padding: 12px;
 	min-height: 34px;
 	height: 34px;
+}
+
+/* A delete in a settings row does not shout. In a list row an app draws
+   itself it is the soft error tint with red text and no edge (PqBeheer
+   "Verwijderen"); in a settings table row it is white with a red edge and red
+   text (PqBeheerKassa, DqTokens "Verwijderen"). NcButton fills its error
+   variant; the repeated class outranks that fill.
+   @spec openspec/changes/board-settings-row-delete/specs/board-settings-row-delete/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) {
+	--cn-board-error-tint: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error {
+	background-color: var(--cn-board-error-tint);
+	color: var(--color-error-text);
+	border: 0;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error {
+	background-color: var(--color-main-background);
+	border: 1px solid var(--color-error);
+	color: var(--color-error-text);
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error:hover:not(:disabled),
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error:hover:not(:disabled) {
+	background-color: color-mix(in srgb, var(--color-error) 14%, var(--color-main-background));
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue--error .button-vue__text,
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue--error .button-vue__text {
+	color: var(--color-error-text);
 }
 
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
@@ -4128,6 +4298,26 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 
 .cn-look-board .cn-saved-view-share > .v-select:not(.cn-look-nextcloud *) {
 	margin-bottom: 0;
+}
+
+/* The share field's suggestions are the board's list (DqFilterDelen): a 1px
+   edge under the field, rows 14px in, and the kind pill at 18px in the soft
+   ink. The list floats on the body, outside the look's root, so the rules key
+   on the page holding the look and the soft ink is spelled out. NcSelect
+   sets the list's edge and padding with !important.
+   @spec openspec/changes/board-share-suggestions/specs/board-share-suggestions/spec.md */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) {
+	border-width: 0 1px 1px !important;
+	padding: 4px 6px !important;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .vs__dropdown-option {
+	padding-inline: 14px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .cn-saved-view-share__pill {
+	line-height: normal;
+	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }
 
 /* The edit view dialog (DqFilterBewerken): field labels at a normal line

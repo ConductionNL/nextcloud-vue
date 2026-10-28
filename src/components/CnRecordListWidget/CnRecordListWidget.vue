@@ -3674,6 +3674,12 @@ export default {
 	padding: 12px 14px;
 }
 
+/* Compact cards stand 12px apart, as DqInspectie draws its day cards and
+   its outbox (16 between the larger cards). */
+.cn-record-list--cards.cn-record-list--compact .cn-record-list__list {
+	gap: 12px;
+}
+
 .cn-record-list--compact .cn-record-list__card-head {
 	align-items: flex-start;
 }
@@ -3701,9 +3707,11 @@ export default {
 	display: contents;
 }
 
+/* The pill spans the title and meta rows, so a 21px pill does not make the
+   18px title row taller (DqInspectie outbox 61px, 64 before). */
 .cn-record-list--pill-aside .cn-record-list__card-pills {
 	grid-column: 2;
-	grid-row: 1;
+	grid-row: 1 / span 2;
 	align-self: start;
 }
 

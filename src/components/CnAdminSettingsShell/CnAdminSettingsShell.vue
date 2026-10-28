@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="cn-admin-settings-shell"
-		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '']"
+		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '', { 'cn-admin-settings-shell--plain-notes': plainNotes }]"
 		:style="shellStyle">
 		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
@@ -790,6 +790,16 @@ export default {
 		descGap: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * The board look draws the cards' notes without an icon, a warning
+		 * on the peach ground with its own edge, as the boards drawn from
+		 * NcBeheerInstellingen do (DqBeheerGeavanceerd, DqBeheerinstellingen).
+		 */
+		plainNotes: {
+			type: Boolean,
+			default: false,
 		},
 	},
 

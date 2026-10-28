@@ -123,18 +123,27 @@
 						{{ name }}
 					</li>
 				</ul>
-				<label class="cn-checklist-run__photo-button">
-					<input
-						class="cn-checklist-run__photo-input"
-						type="file"
-						accept="image/*"
-						capture="environment"
-						:aria-describedby="missingPhoto.includes(question.id) ? `${uid}-photo-${question.id}` : null"
-						data-testid="cn-checklist-run-photo-input"
-						@change="addPhotos($event, question.id)">
+				<!-- A button that opens the hidden file input, so the control is
+				     a button to every reader; the input stays out of the tab
+				     order and the accessibility tree. -->
+				<button
+					type="button"
+					class="cn-checklist-run__photo-button"
+					:aria-describedby="missingPhoto.includes(question.id) ? `${uid}-photo-${question.id}` : null"
+					data-testid="cn-checklist-run-photo-button"
+					@click="openPhotoPicker">
 					<CameraOutline :size="16" />
 					{{ photoNamesFor(question).length || (storedPhotos[question.id] || []).length ? morePhotoLabel : addPhotoLabel }}
-				</label>
+				</button>
+				<input
+					class="cn-checklist-run__photo-input"
+					type="file"
+					accept="image/*"
+					capture="environment"
+					tabindex="-1"
+					aria-hidden="true"
+					data-testid="cn-checklist-run-photo-input"
+					@change="addPhotos($event, question.id)">
 				<p
 					v-if="missingPhoto.includes(question.id)"
 					:id="`${uid}-photo-${question.id}`"
@@ -914,6 +923,20 @@ export default {
 		},
 
 		/**
+		 * Open the file picker of the photo button's own question: the hidden
+		 * input that follows the button.
+		 *
+		 * @param {MouseEvent} event The button's click.
+		 * @return {void}
+		 */
+		openPhotoPicker(event) {
+			const input = event.currentTarget.nextElementSibling
+			if (input && input.type === 'file') {
+				input.click()
+			}
+		},
+
+		/**
 		 * Hold the photos picked for a question until the page saves.
 		 *
 		 * @param {Event} event The file input's change event.
@@ -1286,27 +1309,30 @@ export default {
 	padding-inline-start: 18px;
 }
 
-.cn-checklist-run__photo-button {
+/* The photo button is the board's 34px secondary control across its card
+   (DqInspectie, 272px), its 14px/600 label after a camera. The doubled class
+   outranks Nextcloud's `button:not(.button-vue)` margin, padding and height,
+   and a theme's bold label weight set with !important. */
+.cn-checklist-run__photo-button.cn-checklist-run__photo-button {
 	align-items: center;
-	align-self: flex-start;
+	align-self: stretch;
+	background: var(--color-main-background);
 	border: 1px solid var(--cn-board-control-border, var(--color-border-dark));
 	border-radius: var(--border-radius-element, 8px);
+	box-sizing: border-box;
+	color: var(--color-main-text);
 	cursor: pointer;
-	display: inline-flex;
+	display: flex;
+	font-size: 14px;
+	font-weight: 600 !important;
 	gap: 8px;
+	height: 34px;
+	margin: 0;
 	min-height: 34px;
 	padding: 0 14px;
 }
 
-/* A theme sets every label bold and at the body size, the weight with
-   !important (thematiq's form-field label token); the photo button is the
-   board's 14px/600 control with a camera before its label (DqInspectie). */
-.cn-checklist-run__photo-button.cn-checklist-run__photo-button {
-	font-size: 14px;
-	font-weight: 600 !important;
-}
-
-.cn-checklist-run__photo-button:focus-within {
+.cn-checklist-run__photo-button:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }
@@ -1324,10 +1350,11 @@ export default {
 	justify-content: space-between;
 }
 
-/* Previous and Next are as wide as the board draws them: NcButton pads its
-   label 4px a side inside the button's own padding, the board 2px. */
+/* Previous and Next are as wide as the board draws them: the board pads the
+   button 14px and the label not at all (Vorige 70.3px); NcButton's label
+   padding made them 4px wider. */
 .cn-checklist-run__nav :deep(.button-vue__text) {
-	padding-inline: 2px;
+	padding-inline: 0;
 }
 
 .cn-checklist-run__error {

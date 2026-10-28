@@ -25,6 +25,7 @@ Place it only where a plan can exist, with the widget's `visibleWhen`, so record
 |-----|-------------|
 | `emptyText` | Text when the record has no plan, through the app's translate |
 | `stateLabels` | The word per state (`{ "active": "Active" }`), through the app's translate. Without it a state reads Waiting, Can start, In progress, Done, Stopped or Not needed; a completed milestone reads Reached, and an optional item nobody has started reads Optional |
+| `headerNote` | A note at the right of the card's title row ("Milestones and parts of this case"), through the app's translate. Use it instead of the widget's `subtitle` where the board draws the line beside the title |
 
 ## Props
 

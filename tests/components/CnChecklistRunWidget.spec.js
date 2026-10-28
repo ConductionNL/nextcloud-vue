@@ -390,3 +390,20 @@ describe('CnChecklistRunWidget photo rule and a record picked by filter', () => 
 		w.unmount()
 	})
 })
+
+describe('CnChecklistRunWidget photo button (r34)', () => {
+	it('is a real button that opens the hidden file input, which stays out of the tab order', async () => {
+		const w = mountRun()
+		await flush()
+		const button = w.find('[data-testid="cn-checklist-run-photo-button"]')
+		expect(button.element.tagName).toBe('BUTTON')
+		expect(button.attributes('type')).toBe('button')
+		const input = w.find('[data-testid="cn-checklist-run-photo-input"]')
+		expect(input.attributes('tabindex')).toBe('-1')
+		expect(input.attributes('aria-hidden')).toBe('true')
+		const click = jest.spyOn(input.element, 'click').mockImplementation(() => {})
+		await button.trigger('click')
+		expect(click).toHaveBeenCalledTimes(1)
+		w.unmount()
+	})
+})

@@ -46,7 +46,7 @@
 				v-for="entry in displayedEntries"
 				:key="entry.id"
 				class="cn-audit-card__row"
-				:class="{ 'cn-audit-card__row--stacked': layout === 'stacked' }">
+				:class="{ 'cn-audit-card__row--stacked': layout === 'stacked', 'cn-audit-card__row--compact': density === 'compact' }">
 				<div class="cn-audit-card__row-head">
 					<strong class="cn-audit-card__action">{{ formatAction(entry) }}</strong>
 					<span v-if="layout !== 'stacked'" class="cn-audit-card__when">{{ formatWhen(entry) }}</span>
@@ -184,6 +184,14 @@ export default {
 		 * label names them (`{actor}`).
 		 */
 		layout: { type: String, default: '' },
+		/**
+		 * `compact` draws the rows closer together: in the board look a
+		 * stacked row 10px above and below (DqZaaktype "Historie") instead of
+		 * 12px (DqTaak). Default: the layout's own spacing.
+		 *
+		 * @spec openspec/changes/audit-card-compact-stacked-rows/specs/audit-trail/spec.md#requirement-a-stacked-audit-card-can-draw-compact-rows
+		 */
+		density: { type: String, default: '' },
 		/**
 		 * Actions the card leaves out (case-insensitive), such as `['read']`
 		 * for a history of what changed. It then reads more entries than it

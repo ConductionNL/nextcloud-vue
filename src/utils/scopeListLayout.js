@@ -15,11 +15,12 @@ const SCOPE_LAYOUT_KEYS = ['columns', 'defaultSort', 'searchFields']
 /**
  * The presentation keys a scope may carry beside its list layout: the keys a
  * query preset may set (`QUERY_PRESET_KEYS`), less the two the list layout
- * resolves itself (`columns`, `defaultSort`).
+ * resolves itself (`columns`, `defaultSort`) and `showAdd`, which only a
+ * query preset sets.
  *
  * @type {ReadonlyArray<string>}
  */
-const SCOPE_PRESENTATION_KEYS = Object.freeze(QUERY_PRESET_KEYS.filter((key) => key !== 'columns' && key !== 'defaultSort'))
+const SCOPE_PRESENTATION_KEYS = Object.freeze(QUERY_PRESET_KEYS.filter((key) => key !== 'columns' && key !== 'defaultSort' && key !== 'showAdd'))
 
 /**
  * The key of a column entry, in either of the two shapes the manifest accepts:
