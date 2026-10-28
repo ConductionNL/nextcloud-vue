@@ -550,13 +550,14 @@
 		<div
 			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
-			:class="{ 'cn-record-list__footer--wide': footerAction.wide }"
+			:class="{ 'cn-record-list__footer--wide': footerAction.wide, 'cn-record-list__footer--row': footerAction.row }"
 			data-testid="cn-record-list-footer">
 			<p
-				v-if="footerAction.note"
+				v-if="footerAction.lead || footerNoteText"
 				class="cn-record-list__footer-note"
 				data-testid="cn-record-list-footer-note">
-				{{ footerAction.note }}
+				<strong v-if="footerAction.lead" class="cn-record-list__footer-lead" data-testid="cn-record-list-footer-lead">{{ footerAction.lead }}</strong>
+				{{ footerNoteText }}
 			</p>
 			<NcButton
 				variant="secondary"
@@ -845,7 +846,32 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
+		// A footer prompt that reads another part of the same answer
+		// (`footerAction.note: { path, lead }`), through the same cache.
+		const footerNoteSource = useEndpointSource(
+			() => {
+				const action = props.content?.footerAction
+				const note = action && !Array.isArray(action) ? action.note : null
+				const source = props.content?.endpointSource
+				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: note.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch, footerNoteValue: footerNoteSource.data }
 	},
 
 	data() {
@@ -947,6 +973,8 @@ export default {
 				icon: typeof action.icon === 'string' ? action.icon : '',
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
 				note: typeof action.note === 'string' && action.note !== '' ? this.translate(action.note) : '',
+				lead: action.note && typeof action.note === 'object' && typeof action.note.lead === 'string' && action.note.lead !== '' ? this.translate(action.note.lead) : '',
+				row: action.layout === 'row',
 				wide: action.wide === true,
 				action,
 			}
@@ -1348,6 +1376,25 @@ export default {
 		 */
 		dueBelow() {
 			return this.content?.duePlacement === 'below'
+		},
+
+		/**
+		 * The footer's note: a text, or with `note: { path, lead }` the value at
+		 * `path` of the list's own answer, translated, while the list has no rows.
+		 *
+		 * @return {string} The note, or ''.
+		 * @spec openspec/changes/record-list-footer-prompt/specs/record-list/spec.md#requirement-a-record-lists-footer-can-be-a-row-with-a-lead-and-a-prompt-from-the-answer
+		 */
+		footerNoteText() {
+			const action = this.footerAction
+			if (!action) {
+				return ''
+			}
+			if (action.note !== '') {
+				return action.note
+			}
+			const value = this.footerNoteValue
+			return this.rows.length === 0 && typeof value === 'string' && value !== '' ? this.translate(value) : ''
 		},
 
 		/** @return {string} The note under the list (`footnote`), translated. */
@@ -3202,6 +3249,27 @@ export default {
 
 .cn-record-list__footer--wide {
 	align-items: stretch;
+}
+
+/* `footerAction.layout: "row"`: the note and the action share one ruled row,
+   the action at its end (DqZaak Zaakplan "Doelen ... Doel toevoegen"). */
+.cn-record-list__footer--row {
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-list__footer--row .cn-record-list__footer-note {
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-record-list__footer-lead {
+	color: var(--color-main-text);
 }
 
 .cn-record-list__footer-note {
