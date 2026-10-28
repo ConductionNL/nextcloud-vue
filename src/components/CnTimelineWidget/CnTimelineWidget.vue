@@ -95,6 +95,8 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
+import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { auditLabel } from '../../utils/auditLabels.js'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -260,12 +262,46 @@ export default {
 			const all = [
 				...fieldEvents(this.resolvedObject || {}, this.fieldsConfig, now),
 				...listEvents(this.resolvedObject || {}, this.content.lists, now),
-				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now)),
-				...auditEvents(this.auditEntries, this.describeAudit, now),
+				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now, (text) => this.translate(text))),
+				...auditEvents(this.shownAuditEntries, this.describeAudit, now),
 				...timelineEntryEvents(this.timelineEntries, t('nextcloud-vue', 'Note'), now),
 				...(this.endpointSource ? endpointEvents(this.endpointItems, this.endpointSource, (type) => this.typeLabel(type), t('nextcloud-vue', '(no title)'), now) : []),
 			]
-			return sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
+			const sorted = sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
+			const limit = Number(this.content.limit)
+			return Number.isInteger(limit) && limit > 0 ? sorted.slice(0, limit) : sorted
+		},
+
+		/**
+		 * The audit entries the timeline shows: without the actions and actors
+		 * `excludeActions` / `excludeActors` leave out, by the History card's
+		 * rule; every entry when neither is set.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
+		 */
+		shownAuditEntries() {
+			const { excludeActions, excludeActors } = this.content
+			if (!Array.isArray(excludeActions) && !Array.isArray(excludeActors)) {
+				return this.auditEntries
+			}
+			return keepAuditEntries(this.auditEntries, { excludeActions, excludeActors })
+		},
+
+		/**
+		 * The History card's words for audit entries (`actionLabels`,
+		 * `changeLabels`, `valueLabels`), their labels in the host's translation.
+		 *
+		 * @return {{actionLabels: object|null, changeLabels: Array<object>, valueLabels: object|null}}
+		 * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
+		 */
+		auditWords() {
+			const actions = this.content.actionLabels && typeof this.content.actionLabels === 'object' ? this.content.actionLabels : null
+			return {
+				actionLabels: actions ? Object.fromEntries(Object.entries(actions).map(([key, label]) => [key, this.translate(label)])) : null,
+				changeLabels: (Array.isArray(this.content.changeLabels) ? this.content.changeLabels : []).map((rule) => ({ ...rule, label: this.translate(rule && rule.label) })),
+				valueLabels: this.content.valueLabels && typeof this.content.valueLabels === 'object' ? this.content.valueLabels : null,
+			}
 		},
 
 		/**
@@ -366,11 +402,18 @@ export default {
 		/**
 		 * The label of an audit event, from its action and who did it.
 		 *
+		 * The words a manifest declares (`actionLabels`, `changeLabels`) win.
+		 *
 		 * @param {string} action The audit action (create, update, delete).
 		 * @param {string} actor Who did it.
+		 * @param {object} [entry] The audit entry.
 		 * @return {string}
 		 */
-		describeAudit(action, actor) {
+		describeAudit(action, actor, entry) {
+			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.resolvedObject }) : null
+			if (words !== null) {
+				return words
+			}
 			const known = {
 				create: t('nextcloud-vue', 'Created'),
 				update: t('nextcloud-vue', 'Updated'),

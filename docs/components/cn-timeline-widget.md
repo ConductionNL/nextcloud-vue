@@ -37,6 +37,19 @@ All five are optional and end up in one list.
 
 `order: "desc"` lists newest first; the default is oldest first.
 
+## A history in words
+
+The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one) and `{object.<path>}`. `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("{name} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
+
+```json
+{ "type": "timeline", "content": {
+  "auditTrail": true, "order": "desc", "limit": 4, "excludeActions": ["read"],
+  "actionLabels": { "create": "Event created" },
+  "changeLabels": [{ "field": "capacity", "label": "Places raised from {changed.capacity.old} to {changed.capacity.new}" }],
+  "related": [{ "schema": "eventRegistration", "field": "event", "label": "{name} is on the waiting list", "when": { "field": "status", "value": "waitlist" } }]
+} }
+```
+
 ## Manage mode
 
 `manage: true` replaces the read view with a working view over OpenRegister's

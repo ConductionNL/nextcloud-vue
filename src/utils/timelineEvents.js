@@ -15,6 +15,9 @@
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md
  */
 
+import { fillTemplate } from './fillTemplate.js'
+import { evaluateVisibleWhenLocal } from './visibleWhen.js'
+
 /**
  * Read a dotted path off an object (`@self.created`, `payment.clearedAt`).
  *
@@ -142,10 +145,27 @@ export function listEvents(object, lists, now = new Date()) {
 		.filter(Boolean)
 }
 
-export function relatedEvents(rows, config, now = new Date()) {
+/**
+ * Events from related records: each row becomes one event at its `dateField`
+ * (default `@self.created`), labelled `label` with the row's title as the
+ * line under it. A `label` with `{path}` tokens names the row itself ("{name}
+ * is on the waiting list"): it is translated, filled from the row and stands
+ * alone. `when` (a local visibleWhen condition) keeps only the rows it holds
+ * for.
+ *
+ * @param {Array<object>} rows The related rows.
+ * @param {object} config The `related` entry.
+ * @param {Date} [now] The reference moment.
+ * @param {(text: string) => string} [translate] The host translate, for a label with tokens.
+ * @return {Array<object>} The events.
+ * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-related-records-event-can-name-the-record
+ */
+export function relatedEvents(rows, config, now = new Date(), translate = (text) => text) {
 	const cfg = config || {}
 	const dateField = cfg.dateField || '@self.created'
+	const named = typeof cfg.label === 'string' && /\{[^{}]+\}/.test(cfg.label)
 	return (Array.isArray(rows) ? rows : [])
+		.filter((row) => !cfg.when || evaluateVisibleWhenLocal(cfg.when, row || {}))
 		.map((row, i) => {
 			const self = (row && row['@self']) || {}
 			const id = String(self.id || row.id || i)
@@ -153,8 +173,8 @@ export function relatedEvents(rows, config, now = new Date()) {
 			return makeEvent({
 				id: `related:${cfg.schema || ''}:${id}`,
 				raw: readPath(row, dateField),
-				label: cfg.label || '',
-				detail: title === undefined || title === null ? '' : String(title),
+				label: named ? fillTemplate(translate(cfg.label), row, now) : (cfg.label || ''),
+				detail: named || title === undefined || title === null ? '' : String(title),
 				source: 'related',
 			}, now)
 		})
@@ -165,7 +185,7 @@ export function relatedEvents(rows, config, now = new Date()) {
  * Events from audit-trail entries.
  *
  * @param {Array<object>} entries The audit-trail rows.
- * @param {(action: string, actor: string) => string} describe Builds the label from action and actor.
+ * @param {(action: string, actor: string, entry: object) => string} describe Builds the label from action, actor and the entry.
  * @param {Date} [now] The reference moment.
  * @return {Array<object>} The events.
  */
@@ -174,7 +194,7 @@ export function auditEvents(entries, describe, now = new Date()) {
 		.map((e, i) => makeEvent({
 			id: `audit:${e && (e.id || e.uuid) ? (e.id || e.uuid) : i}`,
 			raw: e && (e.created || e.creationDateTime || e.timestamp),
-			label: describe(String((e && (e.action || e.event)) || ''), String((e && (e.actorDisplayName || e.userName || e.user || e.actor)) || '')),
+			label: describe(String((e && (e.action || e.event)) || ''), String((e && (e.actorDisplayName || e.userName || e.user || e.actor)) || ''), e),
 			source: 'audit',
 		}, now))
 		.filter(Boolean)
