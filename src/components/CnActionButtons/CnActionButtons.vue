@@ -722,9 +722,10 @@ export default {
 
 	methods: {
 		/**
-		 * The NcButton variant of an entry. `error-outline` is not one of
-		 * NcButton's variants: it is a secondary button that
-		 * `buttonClass` outlines in red.
+		 * The NcButton variant of an entry. `error-outline` and `tonal` are
+		 * not NcButton variants: `error-outline` is a secondary button that
+		 * `buttonClass` outlines in red, `tonal` a tertiary one that
+		 * `buttonClass` draws as the tonal pill.
 		 *
 		 * @param {object} entry The action entry.
 		 * @return {string} The variant.
@@ -734,19 +735,25 @@ export default {
 			if (!entry.variant || entry.variant === 'error-outline') {
 				return 'secondary'
 			}
+			if (entry.variant === 'tonal') {
+				return 'tertiary'
+			}
 			return entry.variant
 		},
 
 		/**
 		 * The extra class of an entry's button: the red outline for
-		 * `variant: "error-outline"`.
+		 * `variant: "error-outline"`, the tonal pill for `variant: "tonal"`.
 		 *
 		 * @param {object} entry The action entry.
 		 * @return {object} The class map.
 		 * @spec openspec/changes/action-error-outline/specs/action-buttons/spec.md#requirement-an-action-can-be-an-outlined-red-button
 		 */
 		buttonClass(entry) {
-			return { 'cn-action-buttons__button--error-outline': entry.variant === 'error-outline' }
+			return {
+				'cn-action-buttons__button--error-outline': entry.variant === 'error-outline',
+				'cn-button--tonal': entry.variant === 'tonal',
+			}
 		},
 
 		/**
