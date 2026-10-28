@@ -82,9 +82,17 @@
 
 		<!-- An object picker (`objectSource`): searches OpenRegister on the
 		     server, so it reaches every object, not a fetched page. -->
+		<!-- The start card draws the picker as a search: a person-search
+		     icon in front and no open chevron (PqDashboard "Contact starten"). -->
+		<AccountSearch
+			v-if="isStart && !isBar && style !== 'input' && objectSource"
+			:size="20"
+			class="cn-workspace-filter-widget__search-icon"
+			aria-hidden="true" />
 		<CnResourceSelect
 			v-if="!isBar && style !== 'input' && objectSource"
 			class="cn-workspace-filter-widget__control"
+			:class="{ 'cn-workspace-filter-widget__control--search': isStart }"
 			:register="objectSource.register"
 			:schema="objectSource.schema"
 			:labelField="objectSource.labelField || 'title'"
@@ -162,9 +170,17 @@
 			</li>
 		</ul>
 
+		<button
+			v-if="startLink && startLink.value !== undefined"
+			type="button"
+			class="cn-workspace-filter-widget__link cn-workspace-filter-widget__link--pick"
+			data-testid="cn-workspace-filter-link"
+			@click="applySelection(startLink.value)">
+			{{ startLink.label }}
+		</button>
 		<component
 			:is="startLink.to ? 'router-link' : 'a'"
-			v-if="startLink"
+			v-else-if="startLink"
 			:to="startLink.to || undefined"
 			:href="startLink.href || undefined"
 			class="cn-workspace-filter-widget__link"
@@ -178,6 +194,7 @@
 import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import AccountSearch from 'vue-material-design-icons/AccountSearch.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
@@ -223,7 +240,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { CnResourceSelect, CnSegmentedControl, NcButton, NcSelect, NcCheckboxRadioSwitch },
+	components: { AccountSearch, CnResourceSelect, CnSegmentedControl, NcButton, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -243,7 +260,9 @@ export default {
 		 *
 		 * Start card keys (abstract-start-card): `layout: "start"` draws
 		 * `title` and `description` beside the control, and `link`
-		 * (`{ label, route? | href? }`) after it. `objectSource`
+		 * (`{ label, route? | href? | value? }`) after it; with `value` the link
+		 * picks that value (`"@config.example_client?"` names an app setting,
+		 * and an unset one draws no link). `objectSource`
 		 * (`{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`)
 		 * makes the control an OpenRegister object picker that searches on the
 		 * server and writes the picked object's id; without a selection and
@@ -327,6 +346,14 @@ export default {
 			const link = this.content.link
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
+			}
+			// `value`: the link picks that value, as if chosen in the control
+			// (an example client, often from an app setting); none, no link.
+			if ('value' in link) {
+				const value = link.value
+				return (typeof value === 'string' && value !== '' && !value.startsWith('@')) || typeof value === 'number'
+					? { label: this.tr(link.label), value }
+					: null
 			}
 			if (link.route && typeof link.route === 'object' && link.route.name) {
 				return { label: this.tr(link.label), to: link.route }
@@ -1141,11 +1168,45 @@ export default {
 	min-width: 240px;
 }
 
+/* The search look: the icon sits over the field's start, the field makes
+   room for it, and the chevron goes. */
+.cn-workspace-filter-widget__search-icon {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	width: 0;
+	overflow: visible;
+	color: var(--color-text-maxcontrast);
+	/* The row gap (20px) plus the 12px inset inside the field. */
+	transform: translateX(32px);
+}
+
+.cn-workspace-filter-widget__control--search :deep(.vs__dropdown-toggle) {
+	padding-inline-start: 36px;
+}
+
+.cn-workspace-filter-widget__control--search :deep(.vs__open-indicator-button),
+.cn-workspace-filter-widget__control--search :deep(.vs__open-indicator) {
+	display: none;
+}
+
 .cn-workspace-filter-widget__link {
 	font-weight: 600;
 	color: var(--color-primary-element);
 	text-decoration: underline;
 	white-space: nowrap;
+}
+
+/* A link that picks a value is a button drawn as the link. */
+.cn-workspace-filter-widget__link--pick {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
 }
 
 .cn-workspace-filter-widget__count {
