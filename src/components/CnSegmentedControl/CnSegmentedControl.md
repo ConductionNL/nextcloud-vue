@@ -43,4 +43,4 @@ export default {
 </script>
 ```
 
-Props: `options` lists the choices, `modelValue` is the chosen value (use `v-model`), `aria-label` names the group (or point `aria-labelledby` at a visible heading), `controls` names the id of the element the options switch (set as `aria-controls` on every option), and `stretch` fills the width. `size` is `normal` or `compact` (the board's 34px segments), and `mode` is `radio` or `toggle` (buttons with `aria-pressed`).
+Props: `options` lists the choices, `modelValue` is the chosen value (use `v-model`), `aria-label` names the group (or point `aria-labelledby` at a visible heading), `controls` names the id of the element the options switch (set as `aria-controls` on every option), and `stretch` fills the width. `size` is `normal` or `compact` (the board's 34px segments), and `mode` is `radio` or `toggle` (buttons with `aria-pressed`). `phonePills` draws the options on a phone (under 640px) as separate pills in one row that scrolls sideways, the chosen one filled; wider windows keep the segmented group.

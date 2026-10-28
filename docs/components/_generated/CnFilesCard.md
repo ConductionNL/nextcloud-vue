@@ -8,24 +8,27 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name           | Type      | Required | Default                                            | Description                                                      |
-| -------------- | --------- | -------- | -------------------------------------------------- | ---------------------------------------------------------------- |
-| `register`     | `string`  | ✓        | —                                                  | OpenRegister register id (slug or uuid).                         |
-| `schema`       | `string`  | ✓        | —                                                  | OpenRegister schema id (slug or uuid).                           |
-| `objectId`     | `string`  | ✓        | —                                                  | Parent object id.                                                |
-| `surface`      | `string`  |          | `'detail-page'`                                    | Rendering surface — passed for AD-19 surface fallback consumers. |
-| `apiBase`      | `string`  |          | `'/apps/openregister/api'`                         | Base API URL.                                                    |
-| `maxDisplay`   | `number`  |          | `5`                                                | Maximum rows to render.                                          |
-| `collapsible`  | `boolean` |          | `false`                                            | Whether the card collapses.                                      |
-| `title`        | `string`  |          | `''`                                               | Override the card title (defaults to the translated label).      |
-| `noFilesLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'No files attached')` | Pre-translated empty label.                                      |
-| `showAllLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`          | Pre-translated overflow label.                                   |
+| Name           | Type      | Required | Default                                            | Description                                                                     |
+| -------------- | --------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `register`     | `string`  | ✓        | —                                                  | OpenRegister register id (slug or uuid).                                        |
+| `schema`       | `string`  | ✓        | —                                                  | OpenRegister schema id (slug or uuid).                                          |
+| `objectId`     | `string`  | ✓        | —                                                  | Parent object id.                                                               |
+| `surface`      | `string`  |          | `'detail-page'`                                    | Rendering surface — passed for AD-19 surface fallback consumers.                |
+| `apiBase`      | `string`  |          | `'/apps/openregister/api'`                         | Base API URL.                                                                   |
+| `maxDisplay`   | `number`  |          | `5`                                                | Maximum rows to render.                                                         |
+| `collapsible`  | `boolean` |          | `false`                                            | Whether the card collapses.                                                     |
+| `title`        | `string`  |          | `''`                                               | Override the card title (defaults to the translated label).                     |
+| `noFilesLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'No files attached')` | Pre-translated empty label.                                                     |
+| `showAllLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`          | Pre-translated overflow label.                                                  |
+| `addable`      | `boolean` |          | `false`                                            | Show an add button in the card header that attaches picked files to the object. |
+| `addLabel`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'Add file')`          | Pre-translated label of the add button.                                         |
 
 ### Events
 
 | Name       | Payload | Description                                                                                                                             |
 | ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `show-all` | —       | User clicked the "show all" footer button — emitted with no payload. Parents typically open the host app's full files view in response. |
+| `uploaded` | —       | Files were attached to the object. Payload: their names.                                                                                |
 
 ### Slots
 

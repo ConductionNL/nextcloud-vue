@@ -6,5 +6,5 @@
 | ----------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `items`     | `array`  |          | `[]`    | The list's rows as the record list builds them (`key`, `row`, `tag`, `attrs`, `title`, `meta`, `pill`, `due`).                            |
 | `action`    | `object` | ✓        | —       | `noteAction`, already translated: `{ urlField?, url?, bodyField?, label, fieldLabel, placeholder?, readyLabel, draftsKey?, errorText? }`. |
-| `recordAll` | `object` |          | `null`  | `recordAll`, already translated: `{ label, title?, text?, icon?, cancel?: { label, to } }`, or null.                                      |
+| `recordAll` | `object` |          | `null`  | `recordAll`, already translated: `{ label, title?, text?, icon?, cancel?: { label, to }, placement?: { widget } }`, or null.              |
 | `leaf`      | `object` |          | `null`  | `rowLeaf`: `{ id, app?, register?, objectIdField, schemaField?, schema?, unavailableText? }`, or null.                                    |

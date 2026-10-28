@@ -366,6 +366,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `legendValues` | Boolean | `false` | Write each slice's value after its name in a pie or donut legend ("Afval 18"), in the value format of the chart. |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
 | `matrixLabelWidth` | Number | `null` | `matrix`: the row-label column's width in px; a long label wraps (DqProcesanalyse "Dagen per fase": 240). Null sizes the column to its longest label, at least 120px |
 | `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |

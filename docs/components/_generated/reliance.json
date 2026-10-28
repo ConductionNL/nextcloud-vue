@@ -10,7 +10,7 @@
 		},
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 119,
+			"transitive": 120,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -66,7 +66,7 @@
 		},
 		"CnActionsBar": {
 			"direct": 0,
-			"transitive": 26,
+			"transitive": 27,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -104,7 +104,7 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -173,7 +173,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -223,7 +223,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 245,
+			"transitive": 246,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -473,7 +473,7 @@
 		},
 		"CnBuildiqEditButton": {
 			"direct": 1,
-			"transitive": 25,
+			"transitive": 26,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -611,7 +611,7 @@
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 118,
+			"transitive": 119,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -871,7 +871,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 222,
+			"transitive": 223,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -992,7 +992,7 @@
 		},
 		"CnDataTable": {
 			"direct": 4,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1124,7 +1124,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 222,
+			"transitive": 223,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1237,7 +1237,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 138,
+			"transitive": 139,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1299,7 +1299,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 140,
+			"transitive": 141,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1486,7 +1486,7 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1550,7 +1550,7 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1575,7 +1575,7 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1593,7 +1593,7 @@
 		},
 		"CnFeaturesBoard": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1686,7 +1686,7 @@
 		},
 		"CnFilesPage": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1778,7 +1778,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 220,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1912,7 +1912,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 139,
+			"transitive": 140,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1982,7 +1982,7 @@
 		},
 		"CnFormDialog": {
 			"direct": 7,
-			"transitive": 118,
+			"transitive": 119,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2084,7 +2084,7 @@
 		},
 		"CnGroupedCardsWidget": {
 			"direct": 0,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2218,7 +2218,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 220,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2331,7 +2331,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 217,
+			"transitive": 218,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2672,7 +2672,7 @@
 		},
 		"CnLinkCardsPage": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 28,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2761,7 +2761,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2962,7 +2962,7 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2976,7 +2976,7 @@
 		},
 		"CnNcDashboardQuickCreate": {
 			"direct": 2,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3109,7 +3109,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3216,7 +3216,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 8,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3400,7 +3400,7 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 122,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3497,7 +3497,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 238,
+			"transitive": 239,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3636,7 +3636,7 @@
 		},
 		"CnPartyActionsWidget": {
 			"direct": 0,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3884,7 +3884,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 121,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4007,7 +4007,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 223,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4227,7 +4227,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 122,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4305,7 +4305,7 @@
 		},
 		"CnSchemaFormDialog": {
 			"direct": 1,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4353,7 +4353,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 140,
+			"transitive": 141,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4463,7 +4463,7 @@
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 29,
+			"transitive": 30,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4517,7 +4517,7 @@
 		},
 		"CnSlotGrid": {
 			"direct": 1,
-			"transitive": 121,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4716,7 +4716,7 @@
 		},
 		"CnStorePage": {
 			"direct": 3,
-			"transitive": 26,
+			"transitive": 27,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4740,7 +4740,7 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 119,
+			"transitive": 120,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4817,7 +4817,7 @@
 		},
 		"CnTableWidget": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4837,7 +4837,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 1,
-			"transitive": 142,
+			"transitive": 143,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4928,7 +4928,7 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 119,
+			"transitive": 120,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4991,7 +4991,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 120,
+			"transitive": 121,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5296,7 +5296,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 220,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5419,7 +5419,7 @@
 		},
 		"CnWidgetObjectTable": {
 			"direct": 3,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
