@@ -821,6 +821,14 @@
 	padding-top: 6px;
 }
 
+/* With compact rows (DqZaaktype "Historie") the list opens 10px under the
+   title, the row's own 10px above its text: 21px from the title to the
+   first action, as drawn.
+   @spec openspec/changes/audit-card-compact-stacked-rows/specs/audit-trail/spec.md#requirement-a-stacked-audit-card-can-draw-compact-rows */
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-audit-card__list > .cn-audit-card__row--compact:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
 /* A data card (labels over values) starts 14px below its title (DqZaak
    "Zaakgegevens", DqContact "Contact"); its first label sits at the top of
    its line box, so no leading comes off. A side card keeps its 10px.
