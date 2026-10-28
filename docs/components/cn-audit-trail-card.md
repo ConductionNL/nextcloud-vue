@@ -40,6 +40,7 @@ Pass pre-translated labels when your app handles i18n:
 | `title` | String | `''` | Override the card title (defaults to the translated label). |
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
 | `layout` | String | `''` | `stacked` (DqTaak "Historie"): the action, then one muted line under it with the moment ("6 okt 09:05") and who, when the action does not already name them. Empty: the moment beside the action, who under it. |
+| `density` | String | `''` | `compact` (DqZaaktype "Historie"): the rows closer together, a stacked row 10px above and below in the board look instead of 12px. The audit-trail widget reads it from `content.density`. |
 | `excludeActions` (`exclude-actions`) | Array | `[]` | Actions left out, case-insensitive (`['read']` for a history of what changed). The card then reads up to ten times `maxDisplay` entries (at most 100), so the rows it leaves out do not crowd the rest away. |
 | `excludeActors` (`exclude-actors`) | Array | `[]` | Actors left out by user id, case-insensitive (`['System']` for a history of what people did): the bookkeeping a background job writes is not shown. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |

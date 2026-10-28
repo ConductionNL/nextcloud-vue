@@ -2737,6 +2737,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--color-text-maxcontrast);
 }
 
+/* A compact stacked row (DqZaaktype "Historie", `content.density:
+   "compact"`): 10px above and below, a two-line row 56px.
+   @spec openspec/changes/audit-card-compact-stacked-rows/specs/audit-trail/spec.md#requirement-a-stacked-audit-card-can-draw-compact-rows */
+.cn-look-board .cn-audit-card__row--stacked.cn-audit-card__row--compact:not(.cn-look-nextcloud *) {
+	padding: 10px 0;
+}
+
 /* ---- Managed timeline rows (DqZaakHistorie "Historie van de zaak") ------ */
 /* The board draws a timeline entry as a rail row: a 34px circle on a 2px
    line, the message first at 15px weight 600, the kind, author and moment
