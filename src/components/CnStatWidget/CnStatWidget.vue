@@ -727,7 +727,7 @@ export default {
 				// `{count}` is the caption's own count; `{ratio}` the same
 				// for a ratio caption, as a percentage.
 				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
-					return this.isCaptionRatio ? this.formatCaptionRatio(count) : String(count)
+					return this.isCaptionRatio ? this.formatCaptionRatio(count) : new Intl.NumberFormat(metricLocale()).format(Number(count))
 				}
 				// `{value}` is the tile's own number, so a caption can read
 				// "{value} due today" on a register-counted tile that has no
