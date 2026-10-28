@@ -28,7 +28,11 @@ This replaces the hand-written transition strip an app used to ship as its own c
 
 The lifecycle says what is reachable **now**. It does not say what the whole process looks like, and a timeline that only showed the next step would not be a timeline. So the list of stages is configured, and it is display only: it grants nothing.
 
-Configure exactly one of two sources.
+Configure exactly one of three sources.
+
+`stages` declares a fixed list in the manifest: `[{ id, label, hint?, final? }]`, the ids being the values `currentField` holds. Labels and hints go through the host translate. Nothing is read. A quote's Concept, Verzonden, Geaccepteerd, Afgewezen and Verlopen (board PqOfferte) are a fixed process, so they need no endpoint.
+
+`variant: "list"` draws the stages as a list of rows (board PqOfferte "Status"): a round marker filled on the current stage, "you are here" beside it and a stage's `hint` beside the others ("after 30 days").
 
 `stagesEndpoint` reads an app endpoint: `{ url, method?, path, params?, idField?, labelField?, descriptionField?, orderField?, finalField? }`. The url and the params take the shared token grammar (`@objectId`, `@object.<field>`), so `/apps/myapp/api/types/@object.type/stages` names the record's own type. `path` points at the array in the response, and `method` is `GET` unless the endpoint wants otherwise.
 

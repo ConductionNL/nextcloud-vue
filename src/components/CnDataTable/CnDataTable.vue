@@ -636,6 +636,9 @@ export default {
 		 * values on that line, `{ field: { value: label, '*': label } }`
 		 * (i18n keys; `'*'` for any other value).
 		 *
+		 * `firstOf` (a list of fields, dotted paths allowed) shows the first that
+		 * holds a value, instead of the column's key.
+		 *
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
@@ -2244,7 +2247,7 @@ export default {
 			if (col && typeof col.template === 'string' && col.template !== '') {
 				return this.cellLineValue(row, this.translateLabel(col.template), col)
 			}
-			const value = this.getCellValue(row, this.columnValueField(col))
+			const value = Array.isArray(col && col.firstOf) ? this.firstValueOf(row, col.firstOf) : this.getCellValue(row, this.columnValueField(col))
 			const empty = value === null || value === undefined || value === ''
 			// `emptyValueBy`: what an empty cell means depends on another field
 			// of the row (a retention period left empty on a result that is
@@ -2301,6 +2304,26 @@ export default {
 			const cached = this.aggregateValues[String(row[this.rowKey])]
 			const v = cached ? cached[col.key] : undefined
 			return v === 0 || v === '0' || v === null
+		},
+
+		/**
+		 * The first of a column's `firstOf` fields (dotted paths allowed) that
+		 * holds a value other than an object: a line's own name, else its
+		 * linked product's name, else its description. Undefined when none does.
+		 *
+		 * @param {object} row The row data.
+		 * @param {Array<string>} paths The fields, in order.
+		 * @return {unknown} The value.
+		 * @spec openspec/changes/column-first-of/specs/data-table/spec.md#requirement-a-cell-shows-the-first-field-that-has-a-value
+		 */
+		firstValueOf(row, paths) {
+			for (const path of paths) {
+				const value = this.getCellValue(row, path)
+				if (value !== null && value !== undefined && value !== '' && typeof value !== 'object') {
+					return value
+				}
+			}
+			return undefined
 		},
 
 		/**

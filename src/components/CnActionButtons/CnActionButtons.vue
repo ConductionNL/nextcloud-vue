@@ -41,7 +41,8 @@
 			<NcButton
 				v-else-if="entry.href"
 				:key="entry.id"
-				:variant="entry.variant || 'secondary'"
+				:variant="buttonVariant(entry)"
+				:class="buttonClass(entry)"
 				:href="entry.href"
 				:target="linkTargetOf(entry)"
 				:data-testid="`cn-action-${entry.id}`"
@@ -64,7 +65,8 @@
 			<NcButton
 				v-else
 				:key="entry.id"
-				:variant="entry.variant || 'secondary'"
+				:variant="buttonVariant(entry)"
+				:class="buttonClass(entry)"
 				:disabled="Boolean(actionPending[entry.id])"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
@@ -719,6 +721,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The NcButton variant of an entry. `error-outline` is not one of
+		 * NcButton's variants: it is a secondary button that
+		 * `buttonClass` outlines in red.
+		 *
+		 * @param {object} entry The action entry.
+		 * @return {string} The variant.
+		 * @spec openspec/changes/action-error-outline/specs/action-buttons/spec.md#requirement-an-action-can-be-an-outlined-red-button
+		 */
+		buttonVariant(entry) {
+			if (!entry.variant || entry.variant === 'error-outline') {
+				return 'secondary'
+			}
+			return entry.variant
+		},
+
+		/**
+		 * The extra class of an entry's button: the red outline for
+		 * `variant: "error-outline"`.
+		 *
+		 * @param {object} entry The action entry.
+		 * @return {object} The class map.
+		 * @spec openspec/changes/action-error-outline/specs/action-buttons/spec.md#requirement-an-action-can-be-an-outlined-red-button
+		 */
+		buttonClass(entry) {
+			return { 'cn-action-buttons__button--error-outline': entry.variant === 'error-outline' }
+		},
+
 		/**
 		 * Heuristic MDI-name check (an `icon-`-prefixed string is a CSS class).
 		 *
@@ -1422,6 +1452,17 @@ export default {
 </script>
 
 <style scoped>
+/* A red action that does not shout: white, a red border and red text. */
+.cn-action-buttons__button--error-outline {
+	border-color: var(--color-error-text, #a30000) !important;
+	color: var(--color-error-text, #a30000) !important;
+	background-color: var(--color-main-background) !important;
+}
+
+.cn-action-buttons__button--error-outline:hover:not(:disabled) {
+	background-color: var(--color-error-hover, #fcedec) !important;
+}
+
 .cn-action-buttons {
 	display: inline-flex;
 	align-items: center;

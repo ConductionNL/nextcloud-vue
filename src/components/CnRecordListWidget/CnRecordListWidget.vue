@@ -240,6 +240,7 @@
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
+							:class="{ 'cn-record-list__dot--small': dotSmall }"
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
@@ -309,6 +310,7 @@
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
+							:class="{ 'cn-record-list__dot--small': dotSmall }"
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
@@ -672,8 +674,6 @@ function unwrap(value) {
  * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
  * payload, after `responsePath`, is the array of rows, as on the object table), or `objectRows`
  * (`{ path, where?, valuePath?, refs? }`: rows the page record holds, such as one answer of a case; `refs` `[{ field, register, schema, as }]` reads the record a row names and puts it on the row as `as`); `avatar` puts a circle with the initials of a name
- * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten); what differs is the drawing: `presentation` is `rows`, `feed`
- * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
  * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten; `size: 40` the record card's person chip, 16px initials on grey, as a main contact); what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
@@ -756,6 +756,8 @@ export default {
 		 * 15px/700 with the pill at its end (DqInspectie).
 		 * `density: "stacked"` stands the rows 10px apart with no rule and no
 		 * row padding (DqDagAfsluiten "Morgen eerst").
+		 * `rowHrefField` names a row field holding a URL: a row without a
+		 * route opens that page (a case in another app), as a plain link.
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -875,6 +877,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the row dot is the small list marker (`dot.size: 10`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 */
+		dotSmall() {
+			const dot = this.content?.dot
+			return Boolean(dot && typeof dot === 'object' && dot.size === 10)
+		},
+
 		/**
 		 * Whether the avatar is the 32px circle (`avatar.size: 32`).
 		 *
@@ -1164,12 +1177,13 @@ export default {
 			return this.rows.slice(0, this.limit).map((raw, index) => {
 				const row = this.withAggregates(scalarRow(raw))
 				const link = this.rowLink(row)
+				const href = link ? '' : this.rowHref(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
 					row,
 					action: this.rowActionOf(row),
-					tag: link ? 'router-link' : 'div',
-					attrs: link ? { to: link } : {},
+					tag: link ? 'router-link' : (href ? 'a' : 'div'),
+					attrs: link ? { to: link } : (href ? { href } : {}),
 					initials: this.initialsFor(row),
 					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
@@ -1759,14 +1773,21 @@ export default {
 		dotOf(row) {
 			const dot = this.content?.dot
 			const def = typeof dot === 'string' ? { field: dot } : dot
-			if (!def || typeof def !== 'object' || typeof def.field !== 'string' || def.field === '') {
+			if (!def || typeof def !== 'object') {
 				return ''
 			}
-			const raw = readPath(row, def.field)
-			if (raw === null || raw === undefined || raw === '') {
-				return ''
+			let mapped = ''
+			if (typeof def.field === 'string' && def.field !== '') {
+				const raw = readPath(row, def.field)
+				if (raw === null || raw === undefined || raw === '') {
+					return ''
+				}
+				mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
+			} else if (typeof def.color === 'string') {
+				// `color` without a `field`: the same dot on every row, a list
+				// marker (PqDashboard "Laatste contact").
+				mapped = def.color
 			}
-			const mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
 			return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([^;{}]*\)|var\(--[a-z0-9-]+(,[^;{}]*)?\))$/i.test(mapped.trim()) ? mapped.trim() : ''
 		},
 
@@ -2148,6 +2169,24 @@ export default {
 				return this.cnDispatchAction(wrapped)
 			}
 			return dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row), source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
+		/**
+		 * The page a row opens outside this app (`rowHrefField`: the row field
+		 * holding a URL, such as a case in another app). Only a path on this
+		 * server or an http(s) URL is taken; anything else leaves the row unlinked.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The URL, or ''.
+		 * @spec openspec/changes/record-list-row-href/specs/record-list/spec.md#requirement-a-record-list-row-can-open-a-page-outside-the-app
+		 */
+		rowHref(row) {
+			const field = this.content?.rowHrefField
+			const href = field && row ? readPath(row, field) : null
+			if (typeof href !== 'string' || !/^(\/(?!\/)|https?:\/\/)/i.test(href)) {
+				return ''
+			}
+			return href
 		},
 
 		rowLink(row) {
@@ -3271,6 +3310,15 @@ export default {
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
+}
+
+/* `dot.size: 10`: the small list marker, level with the first text line. */
+.cn-record-list__dot.cn-record-list__dot--small {
+	flex-basis: 10px;
+	align-self: flex-start;
+	width: 10px;
+	height: 10px;
+	margin-top: 6px;
 }
 
 .cn-record-list__flag {

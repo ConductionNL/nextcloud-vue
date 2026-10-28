@@ -192,8 +192,8 @@ export default {
 			}
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
 			return Object.fromEntries(Object.entries(labels)
-				.filter(([, text]) => typeof text === 'string' && text !== '')
-				.map(([key, text]) => [key, translate(text)]))
+				.filter(([, text]) => (typeof text === 'string' && text !== '') || Array.isArray(text))
+				.map(([key, text]) => [key, Array.isArray(text) ? text.map((option) => ({ ...option, text: translate(option && option.text) })) : translate(text)]))
 		},
 
 		/**

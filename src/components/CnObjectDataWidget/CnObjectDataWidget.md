@@ -143,3 +143,4 @@ export default {
 | `chromeless` | Boolean | `false` | Draw no card at all: what a tab panel wants, in one prop instead of three. Implies `show-title="false"`, `borderless` and `flush`, and drops the header divider too. The Save button keeps its header. Forwarded to `CnWidgetWrapper`. |
 | `footnote` | String | `''` | A muted line under the fields, through the host translate (DqZaakContact "Ontvangstbevestiging"). |
 | `fixedColumns` | Boolean | `false` | Keep `columns` under the board look too, instead of fitting 200px columns (manifest `content.fixedColumns`). |
+| `fieldLook` | String | `''` | `input` draws each value as an input box under its label; a click still edits it in place. Empty draws plain values. |

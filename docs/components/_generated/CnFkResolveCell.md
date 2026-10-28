@@ -10,16 +10,18 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name            | Type                            | Required | Default  | Description                                                                                                                |
-| --------------- | ------------------------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `value`         | `union`                         |          | `null`   | The reference value: a single object uuid/id, or an array of them (multi-reference properties render comma-joined labels). |
-| `register`      | `string`                        |          | `''`     | OpenRegister register slug (or id) the reference points into.                                                              |
-| `schema`        | `string`                        |          | `''`     | OpenRegister schema slug (or id) the reference points into.                                                                |
-| `labelField`    | `string`                        |          | `'name'` | Property on the referenced object used as the display label. Falls back to `title`, then `@self.name`, then the raw id.    |
-| `matchField`    | `string`                        |          | `''`     | Property the value is matched against instead of the id (`ncUserId`).                                                      |
-| `refValue`      | `string&#124;number&#124;array` |          | `null`   | The row's own reference id(s), tried before the `matchField` lookup.                                                       |
-| `labelTemplate` | `string`                        |          | `''`     | A template over the referenced object for the label (`{givenName} {familyName}`).                                          |
-| `labelPath`     | `string`                        |          | `''`     | A dot path on the referenced object for the label (`applicant.name`).                                                      |
+| Name                | Type                            | Required | Default  | Description                                                                                                                                  |
+| ------------------- | ------------------------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `union`                         |          | `null`   | The reference value: a single object uuid/id, or an array of them (multi-reference properties render comma-joined labels).                   |
+| `register`          | `string`                        |          | `''`     | OpenRegister register slug (or id) the reference points into.                                                                                |
+| `schema`            | `string`                        |          | `''`     | OpenRegister schema slug (or id) the reference points into.                                                                                  |
+| `labelField`        | `string`                        |          | `'name'` | Property on the referenced object used as the display label. Falls back to `title`, then `@self.name`, then the raw id.                      |
+| `matchField`        | `string`                        |          | `''`     | Property the value is matched against instead of the id (`ncUserId`).                                                                        |
+| `refValue`          | `string&#124;number&#124;array` |          | `null`   | The row's own reference id(s), tried before the `matchField` lookup.                                                                         |
+| `labelTemplate`     | `string`                        |          | `''`     | A template over the referenced object for the label (`{givenName} {familyName}`).                                                            |
+| `labelPath`         | `string`                        |          | `''`     | A dot path on the referenced object for the label (`applicant.name`).                                                                        |
+| `secondaryTemplate` | `string`                        |          | `''`     | A muted line under the label, filled from the referenced object (`"{type}"`): a destination's kind under its name.                           |
+| `secondaryLabels`   | `object`                        |          | `\{\}`   | Words for the stored values the secondary line reads, by field: `{ type: { postgres: 'PostgreSQL' } }`. A value without one shows as stored. |
 
 ### Slots
 

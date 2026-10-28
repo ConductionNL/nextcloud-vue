@@ -210,6 +210,8 @@
     "View": "View",
     "Views": "Views",
     "current step": "current step",
+    "you are here": "you are here",
+    "Totals": "Totals",
     "{app} not available": "{app} not available",
     "{app} not configured": "{app} not configured",
     "This integration is not available or not configured yet.": "This integration is not available or not configured yet.",
@@ -2168,6 +2170,7 @@
     "Visible to the applicant": "Visible to the applicant",
     "Internal only": "Internal only",
     "That note could not be saved.": "That note could not be saved.",
+    "The email could not be linked. Try again.": "The email could not be linked. Try again.",
     "The timeline could not be read. Try again, or ask an administrator to check OpenRegister.": "The timeline could not be read. Try again, or ask an administrator to check OpenRegister.",
     "When": "When",
     "Who": "Who",
@@ -2469,7 +2472,30 @@
     "Saved automatically as you type.": "Saved automatically as you type.",
     "Could not save. Your text is kept here; it is saved again when you type.": "Could not save. Your text is kept here; it is saved again when you type.",
     "Skip this step": "Skip this step",
-    "{label} (optional)": "{label} (optional)"
+    "{label} (optional)": "{label} (optional)",
+    "Installed from this store": "Installed from this store",
+    "Nothing from this store is installed yet.": "Nothing from this store is installed yet.",
+    "Updates": "Updates",
+    "Everything is up to date.": "Everything is up to date.",
+    "Check now": "Check now",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Only administrators install. An administrator connects the registry under Administration settings.",
+    "Updates available": "Updates available",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} ship with the app. They show here when no registry is connected.",
+    "Version {version}, {latest} is out": "Version {version}, {latest} is out",
+    "No store registry is configured. An administrator connects one under Administration settings.": "No store registry is configured. An administrator connects one under Administration settings.",
+    "Nothing of this kind on this instance yet.": "Nothing of this kind on this instance yet.",
+    "Publish to the store": "Publish to the store",
+    "Published to the store.": "Published to the store.",
+    "Publisher": "Publisher",
+    "Publishing…": "Publishing…",
+    "Share a template built from your own configuration with the registry.": "Share a template built from your own configuration with the registry.",
+    "The item could not be published.": "The item could not be published.",
+    "The item is too large to publish.": "The item is too large to publish.",
+    "The store registry did not answer. Try again later.": "The store registry did not answer. Try again later.",
+    "The store registry is busy. Try again in a minute.": "The store registry is busy. Try again in a minute.",
+    "The store registry refused the item.": "The store registry refused the item.",
+    "What the template carries": "What the template carries",
+    "You may not publish to this store.": "You may not publish to this store."
   },
   "plurals": {
     "{count} member": [
@@ -2690,6 +2716,10 @@
     "%n attachment": [
       "%n attachment",
       "%n attachments"
+    ],
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update is ready. An update keeps your own changes.",
+      "%n updates are ready. An update keeps your own changes."
     ]
   }
 }

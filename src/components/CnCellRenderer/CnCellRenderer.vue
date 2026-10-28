@@ -64,7 +64,18 @@
 		     value shows its label (x-enum-labels, translated) unless a formatter
 		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
-			<CnStatusBadge v-if="hasValue"
+			<!-- A list (a job's datasets) draws one chip per entry. -->
+			<template v-if="badgeList !== null">
+				<span v-if="badgeList.length > 0" class="cn-cell-renderer__badges">
+					<CnStatusBadge
+						v-for="(entry, index) in badgeList"
+						:key="`${index}-${entry}`"
+						:label="entry"
+						:variant="(widgetProps && widgetProps.variant) || 'default'" />
+				</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</template>
+			<CnStatusBadge v-else-if="hasValue"
 				:label="shownLabel"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
@@ -80,7 +91,8 @@
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
 		     Config: widgetProps { register, schema, labelField, matchField?,
-		     refField?, labelTemplate?, labelPath? }, or schemaFrom { field,
+		     refField?, labelTemplate?, labelPath?, secondaryTemplate?,
+		     secondaryLabels? }, or schemaFrom { field,
 		     map } to read the schema off the row. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
@@ -92,7 +104,9 @@
 				:matchField="(widgetProps && widgetProps.matchField) || ''"
 				:refValue="fkRefValue"
 				:labelTemplate="(widgetProps && widgetProps.labelTemplate) || ''"
-				:labelPath="(widgetProps && widgetProps.labelPath) || ''" />
+				:labelPath="(widgetProps && widgetProps.labelPath) || ''"
+				:secondaryTemplate="(widgetProps && widgetProps.secondaryTemplate) || ''"
+				:secondaryLabels="(widgetProps && widgetProps.secondaryLabels) || {}" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -306,7 +320,8 @@
 
 		<!-- Built-in "switch" widget: an on/off switch with the value as its
 		     label. widgetProps { checked(row) => boolean, onToggle(row, on) =>
-		     Promise }. The switch shows the new state at once and returns to
+		     Promise, ariaLabel?: string | (row) => string }; with `ariaLabel`
+		     the switch shows no value and is named for screen readers only. The switch shows the new state at once and returns to
 		     the old one when onToggle rejects. Clicks stay in the cell, so
 		     toggling never opens the row. -->
 		<template v-else-if="widget === 'switch'">
@@ -319,7 +334,10 @@
 					:modelValue="switchChecked"
 					:disabled="switchBusy || typeof (widgetProps && widgetProps.onToggle) !== 'function'"
 					@update:modelValue="onSwitchToggle">
-					{{ hasValue ? labelledValue : '' }}
+					<span v-if="switchAriaLabel" class="hidden-visually">{{ switchAriaLabel }}</span>
+					<template v-else>
+						{{ hasValue ? labelledValue : '' }}
+					</template>
 				</NcCheckboxRadioSwitch>
 			</span>
 		</template>
@@ -718,6 +736,35 @@ export default {
 				variant: item.variant || 'secondary',
 				disabled: item.disabled === true,
 			}))
+		},
+
+		/**
+		 * The `switch` widget's name for screen readers (`widgetProps.ariaLabel`,
+		 * a string or a function of the row), or '' to show the value instead.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/switch-cell-row-label/specs/switch-cell-row-label/spec.md#requirement-a-switch-cell-can-be-named-per-row-without-showing-the-name
+		 */
+		switchAriaLabel() {
+			const label = this.widgetProps && this.widgetProps.ariaLabel
+			const text = typeof label === 'function' ? label(this.row) : label
+			return typeof text === 'string' ? text.trim() : ''
+		},
+
+		/**
+		 * The `badge` widget's entries when the value is a list, each as text;
+		 * null for a single value.
+		 *
+		 * @return {string[]|null}
+		 * @spec openspec/changes/badge-cell-list/specs/badge-cell-list/spec.md#requirement-a-badge-cell-draws-one-chip-per-entry-of-a-list
+		 */
+		badgeList() {
+			if (!Array.isArray(this.value)) {
+				return null
+			}
+			return this.value
+				.filter((entry) => entry !== null && entry !== undefined && entry !== '' && typeof entry !== 'object')
+				.map((entry) => String(entry))
 		},
 
 		/**
@@ -2077,6 +2124,12 @@ export default {
 
 .cn-cell-renderer__date-state--past {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__badges {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 6px;
 }
 
 .cn-cell-renderer__dash {

@@ -12,6 +12,7 @@
 			'cn-sections-widget--grid': gridColumns > 1,
 			'cn-sections-widget--plain': plain,
 		}"
+		:style="gapStyle"
 		data-testid="cn-sections-widget">
 		<div
 			v-for="column in columns"
@@ -145,9 +146,10 @@ export default {
 		 *
 		 * - `columns` — lay the sections out side by side in this many columns (2 to 4), one column on a narrow
 		 *   screen. Ignored when a section asks for the side column.
-		 * - `footnote` — a line of muted text under the sections.
+		 * - `gap` — the space between plain sections in pixels (`dividers: false`), 8 by default.
+ * - `footnote` — a line of muted text under the sections.
 		 *
-		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean, columns?: number, footnote?: string}}
+		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean, columns?: number, gap?: number, footnote?: string}}
 		 */
 		content: {
 			type: Object,
@@ -261,6 +263,19 @@ export default {
 		 */
 		plain() {
 			return !this.cards && this.content?.dividers === false
+		},
+
+		/**
+		 * The space between plain sections (`content.gap`, in pixels), as the
+		 * custom property the column reads; null without a size. Board
+		 * PqJourney: the steps 14px under the facts.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/sections-gap/specs/sections-widget/spec.md#requirement-plain-sections-can-set-the-space-between-them
+		 */
+		gapStyle() {
+			const gap = Number(this.content?.gap)
+			return typeof this.content?.gap === 'number' && Number.isFinite(gap) && gap >= 0 ? { '--cn-sections-gap': `${gap}px` } : null
 		},
 
 		/**
@@ -560,7 +575,7 @@ export default {
 
 /* No rule: strips that each say one thing, 8px apart. */
 .cn-sections-widget--plain .cn-sections-widget__column {
-	gap: calc(var(--default-grid-baseline, 4px) * 2);
+	gap: var(--cn-sections-gap, calc(var(--default-grid-baseline, 4px) * 2));
 }
 
 .cn-sections-widget.cn-sections-widget--plain .cn-sections-widget__section:not(.cn-sections-widget__section--empty) ~ .cn-sections-widget__section {

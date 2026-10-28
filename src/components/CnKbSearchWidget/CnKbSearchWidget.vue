@@ -3,12 +3,19 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-kb-search-widget">
+	<div class="cn-kb-search-widget" :class="{ 'cn-kb-search-widget--board': isBoard }">
 		<div class="cn-kb-search-widget__search">
 			<NcTextField
 				:modelValue="term"
 				:label="searchLabel"
-				@update:modelValue="onTermInput" />
+				:labelVisible="!isBoard"
+				:placeholder="isBoard ? placeholder : undefined"
+				type="search"
+				@update:modelValue="onTermInput">
+				<template v-if="isBoard" #icon>
+					<Magnify :size="16" />
+				</template>
+			</NcTextField>
 		</div>
 
 		<p v-if="boundLabel" class="cn-kb-search-widget__bound">
@@ -45,11 +52,27 @@
 			</li>
 		</ul>
 
+		<ul v-else-if="showSuggestions" class="cn-kb-search-widget__results cn-kb-search-widget__suggestions">
+			<li
+				v-for="(article, idx) in suggestions"
+				:key="article.id || article.url || idx"
+				class="cn-kb-search-widget__result">
+				<a
+					:href="article.url || undefined"
+					:target="externalOpen ? '_blank' : '_self'"
+					:rel="externalOpen ? 'noopener noreferrer' : null"
+					class="cn-kb-search-widget__result-title">
+					<BookOpenVariant v-if="isBoard" :size="16" class="cn-kb-search-widget__result-icon" />
+					{{ article.title || article.url }}
+				</a>
+			</li>
+		</ul>
+
 		<div v-else-if="hasQuery" class="cn-kb-search-widget__empty">
 			{{ emptyLabel }}
 		</div>
 
-		<div v-else class="cn-kb-search-widget__hint">
+		<div v-else-if="!isBoard && !content.suggestFrom" class="cn-kb-search-widget__hint">
 			{{ hintLabel }}
 		</div>
 	</div>
@@ -58,7 +81,12 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField } from '@nextcloud/vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
+import { readPath } from '../../utils/readPath.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnKbSearchWidget — a summary-driven knowledge-base search widget.
@@ -106,7 +134,7 @@ import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '..
 export default {
 	name: 'CnKbSearchWidget',
 
-	components: { NcTextField },
+	components: { BookOpenVariant, Magnify, NcTextField },
 
 	inject: {
 		/**
@@ -124,6 +152,11 @@ export default {
 		 * (`{ default }`) when no CnAppRoot ancestor provides one.
 		 */
 		cnKbSearchProviders: { default: () => BUILT_IN_KB_PROVIDERS },
+		cnLook: { default: 'nextcloud' },
+		/** The page's record (`{ objectId, object }`), for `suggestFrom`. */
+		cnObjectContext: { default: null },
+		/** The records the detail page reads beside its record, for `@context.<name>` in `suggestFrom`. */
+		cnDetailVisibilityRows: { default: null },
 	},
 
 	props: {
@@ -148,6 +181,7 @@ export default {
 			// Tracks whether the agent typed manually — manual input wins over the
 			// bound summary until the box is cleared.
 			manual: false,
+			suggestions: [],
 		}
 	},
 
@@ -187,6 +221,26 @@ export default {
 		},
 
 		/** Label noting the search is following the live summary. */
+		/**
+		 * Whether the suggestions show: there are some and nothing is typed.
+		 *
+		 * @return {boolean}
+		 */
+		showSuggestions() {
+			return this.suggestions.length > 0 && this.term.trim() === ''
+		},
+
+		/**
+		 * The page's record and its id, as the filter tokens read them.
+		 *
+		 * @return {object}
+		 */
+		tokenCtx() {
+			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+			const injected = unwrap(this.cnObjectContext) || {}
+			return { ...injected, workspace: this.workspaceCtx || {} }
+		},
+
 		boundLabel() {
 			if (this.manual || !this.boundSummary) {
 				return ''
@@ -210,6 +264,29 @@ export default {
 				return this.content.externalOpen
 			}
 			return Boolean(this.resolvedProvider && this.resolvedProvider.externalOpen)
+		},
+
+		/**
+		 * Whether the page takes the board look: the field then carries a
+		 * placeholder and a search icon, its label is read by assistive
+		 * technology only, and the typing hint is left out.
+		 *
+		 * @return {boolean}
+		 */
+		isBoard() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(look) === 'board'
+		},
+
+		/**
+		 * The placeholder in the board look (`content.placeholder`, else the label).
+		 *
+		 * @return {string}
+		 */
+		placeholder() {
+			return typeof this.content.placeholder === 'string' && this.content.placeholder !== ''
+				? this.content.placeholder
+				: this.searchLabel
 		},
 
 		searchLabel() {
@@ -246,6 +323,12 @@ export default {
 			}
 			this.scheduleSearch(val || '')
 		},
+	},
+
+	mounted() {
+		if (this.content.suggestFrom) {
+			this.loadSuggestions()
+		}
 	},
 
 	beforeUnmount() {
@@ -293,6 +376,83 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * The text to suggest articles for (`content.suggestFrom`): a token
+		 * path into the page record (`@object.<path>`, `@context.<name>.<path>`),
+		 * or `{ register, schema, filter?, sort?, path }`, the field at `path`
+		 * of the first record that query finds.
+		 *
+		 * @return {Promise<string>} The text, or '' when there is none.
+		 */
+		async suggestionText() {
+			const from = this.content.suggestFrom
+			if (typeof from === 'string') {
+				const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+				const match = /^@(object|context)\.(.+)$/.exec(from)
+				if (!match) {
+					return ''
+				}
+				const source = match[1] === 'object' ? this.tokenCtx.object : unwrap(this.cnDetailVisibilityRows)
+				const value = source ? readPath(source, match[2]) : ''
+				return typeof value === 'string' ? value.trim() : ''
+			}
+			if (!from || typeof from !== 'object' || !from.register || !from.schema || !from.path) {
+				return ''
+			}
+			const filter = resolveFilterTokens(from.filter || {}, this.tokenCtx)
+			if (hasUnresolvedTokens(filter)) {
+				return ''
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(filter)) {
+				if (value && typeof value === 'object' && !Array.isArray(value)) {
+					for (const [op, operand] of Object.entries(value)) {
+						params[`${key}[${op}]`] = operand
+					}
+				} else if (value !== '' && value !== null && value !== undefined) {
+					params[key] = value
+				}
+			}
+			if (from.sort && typeof from.sort.field === 'string' && from.sort.field !== '') {
+				params[`_order[${from.sort.field}]`] = from.sort.dir === 'desc' ? 'desc' : 'asc'
+			}
+			params._limit = 1
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: from.register, schema: from.schema }), { params })
+			const first = data && Array.isArray(data.results) ? data.results[0] : null
+			const value = first ? readPath(first, from.path) : ''
+			return typeof value === 'string' ? value.trim() : ''
+		},
+
+		/**
+		 * Search the knowledge base for the record's text and keep the best
+		 * matches (`content.suggestLimit`, 2 by default). Nothing shows when
+		 * there is no text, no match or no knowledge base.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSuggestions() {
+			const provider = this.resolvedProvider
+			try {
+				const text = await this.suggestionText()
+				if (text === '' || !provider || typeof provider.search !== 'function') {
+					this.suggestions = []
+					return
+				}
+				const limit = typeof this.content.suggestLimit === 'number' ? this.content.suggestLimit : 2
+				const articles = await provider.search(text, {
+					endpoint: this.content.endpoint,
+					queryParam: this.content.queryParam,
+					space: this.content.space,
+					tags: this.content.tags,
+					limit,
+				})
+				this.suggestions = this.normalise(articles).slice(0, limit)
+			} catch {
+				this.suggestions = []
+			}
+		},
+
 		async runSearch() {
 			const provider = this.resolvedProvider
 			if (!provider || typeof provider.search !== 'function') {

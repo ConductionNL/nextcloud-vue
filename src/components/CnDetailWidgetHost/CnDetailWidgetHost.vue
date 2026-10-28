@@ -102,6 +102,7 @@
 			:fixedColumns="content.fixedColumns === true"
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
+			:fieldLook="content.fieldLook || ''"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
@@ -126,7 +127,9 @@
 			:showContracts="content.showContracts"
 			:excludeIntegrations="content.excludeIntegrations"
 			:extraSources="content.extraSources"
+			:links="content.links || []"
 			:referenceSections="content.referenceSections"
+			:sectionOrder="content.sectionOrder"
 			:footerActions="content.footerActions"
 			:showAddFooter="content.showAddFooter"
 			:emptyLabel="content.emptyLabel"
@@ -309,20 +312,47 @@
 					variant="secondary"
 					class="cn-detail-page__catalog-add"
 					data-testid="cn-detail-widget-catalog-add"
-					@click="invokeCatalogAdd">
+					@click="invokeCatalogAdd()">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ addLabel }}
 				</NcButton>
+				<template v-if="catalogAddInHeader">
+					<NcButton
+						v-for="(entry, index) in catalogAddActions"
+						:key="`add-action-${index}`"
+						variant="secondary"
+						class="cn-detail-page__catalog-add"
+						data-testid="cn-detail-widget-catalog-add-action"
+						@click="invokeCatalogAdd(entry.createDefaults)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+							<Plus v-else :size="20" />
+						</template>
+						{{ entry.label }}
+					</NcButton>
+				</template>
 			</template>
 			<template v-if="catalogAddInMenu || rendererHeader.menuActions.length > 0" #action-items>
-				<NcActionButton v-if="catalogAddInMenu" @click="invokeCatalogAdd">
+				<NcActionButton v-if="catalogAddInMenu" @click="invokeCatalogAdd()">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ addLabel }}
 				</NcActionButton>
+				<template v-if="catalogAddInMenu">
+					<NcActionButton
+						v-for="(entry, index) in catalogAddActions"
+						:key="`add-action-menu-${index}`"
+						@click="invokeCatalogAdd(entry.createDefaults)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+							<Plus v-else :size="20" />
+						</template>
+						{{ entry.label }}
+					</NcActionButton>
+				</template>
 				<!-- `menuActions` a renderer reports: items in the card's Actions menu. -->
 				<NcActionButton
 					v-for="(action, index) in rendererHeader.menuActions"
@@ -581,7 +611,7 @@ import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLi
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
-import { createActionState, listCreateAction } from '../../utils/listCreateAction.js'
+import { createActionState, listAddActions, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
@@ -1328,9 +1358,9 @@ export default {
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
 				recordEdit: this.cnRecordEdit,
-				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
-					? this.cnDispatchAction(action)
-					: dispatchAction(action, { router: this.$router || null })),
+				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action, extra)
+					: dispatchAction(action, { router: this.$router || null, ...extra })),
 			}
 		},
 
@@ -1746,6 +1776,18 @@ export default {
 		},
 
 		/**
+		 * A list's extra adds (`content.addActions`), drawn beside the catalog
+		 * Add wherever it stands; none while a declared `createAction` replaces
+		 * the list's create form.
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 * @return {Array<{label: string, icon: string, createDefaults: object|null}>}
+		 */
+		catalogAddActions() {
+			return listAddActions(this.content, this.catalogAddEnabled && !listCreateAction(this.content), this.cnTranslate)
+		},
+
+		/**
 		 * Whether the widget's overflow Actions menu renders: the definition's
 		 * own `showActions` when it is a boolean, else the surface's
 		 * `showActions`.
@@ -1967,13 +2009,17 @@ export default {
 		/**
 		 * Delegate to the rendered list widget's own create affordance, so the
 		 * card's Add action and the widget's footer button open the same form.
+		 * An extra add (`content.addActions`) passes its `createDefaults`.
 		 *
+		 * @param {object|null} [defaults] The extra add's defaults.
 		 * @return {void}
 		 */
-		invokeCatalogAdd() {
+		invokeCatalogAdd(defaults = null) {
 			const child = this.$refs.renderer
 			const target = Array.isArray(child) ? child[0] : child
-			if (target && typeof target.openCreate === 'function') {
+			if (defaults && target && typeof target.openCreateWith === 'function') {
+				target.openCreateWith(defaults)
+			} else if (target && typeof target.openCreate === 'function') {
 				target.openCreate()
 			}
 		},

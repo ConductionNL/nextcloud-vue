@@ -54,7 +54,7 @@
 		<div
 			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
-			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
+			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
 			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
@@ -1451,7 +1451,7 @@ import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
-import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -3070,6 +3070,18 @@ export default {
 		},
 
 		/**
+		 * The header buttons on a row of their own under the title (manifest
+		 * `config.headerActionsBelow`), as board PqLead draws them, instead of
+		 * beside it.
+		 *
+		 * @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title
+		 */
+		headerActionsBelow: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The id of a widget declared in `widgets` to render inside the header,
 		 * on its own row under the title and the actions (manifest
 		 * `config.headerWidget`), e.g. the stages bars. It renders without a
@@ -3172,6 +3184,20 @@ export default {
 		headerMeta: {
 			type: [String, Object],
 			default: '',
+		},
+
+		/**
+		 * Header lines that depend on the record (manifest
+		 * `config.headerMetaWhen`): `[{ when, text }]`, a local `visibleWhen`
+		 * condition on the record and a template like `headerMeta`'s. The first
+		 * entry whose condition holds replaces `headerMeta`; none leaves it.
+		 * PqOfferte: "not sent yet" on a draft.
+		 *
+		 * @spec openspec/changes/header-meta-when/specs/detail-page/spec.md#requirement-a-header-line-can-depend-on-the-record
+		 */
+		headerMetaWhen: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -3621,6 +3647,12 @@ export default {
 		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
 		 */
 		headerMetaForm() {
+			const record = this.resolvedObject || {}
+			const chosen = (Array.isArray(this.headerMetaWhen) ? this.headerMetaWhen : [])
+				.find((entry) => entry && typeof entry.text === 'string' && entry.when && evaluateVisibleWhenLocal(entry.when, record))
+			if (chosen) {
+				return chosen.text
+			}
 			const meta = this.headerMeta
 			if (!meta || typeof meta !== 'object') {
 				return typeof meta === 'string' ? meta : ''

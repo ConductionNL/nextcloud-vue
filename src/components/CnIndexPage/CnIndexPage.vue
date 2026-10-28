@@ -1483,7 +1483,7 @@ import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
-import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
+import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
@@ -1905,6 +1905,29 @@ function namedSourceSorts(vm) {
 	return Boolean(vm.isNamedSource && vm.namedSource
 		&& (vm.namedSource.sortsRows === true || typeof vm.namedSource.sortParam === 'function'))
 }
+/**
+ * An endpoint with a filter map added as `filter[<field>]=<value>` query
+ * parameters (a list value repeats the parameter as `filter[<field>][]`).
+ *
+ * @param {string} endpoint The app-absolute endpoint.
+ * @param {object} filter The filter map.
+ * @return {string} The endpoint with the filter in its query.
+ */
+function withFilterQuery(endpoint, filter) {
+	const parts = []
+	for (const [key, value] of Object.entries(filter || {})) {
+		if (Array.isArray(value)) {
+			value.forEach((item) => parts.push(`${encodeURIComponent(`filter[${key}][]`)}=${encodeURIComponent(String(item))}`))
+		} else if (value !== null && value !== undefined && typeof value !== 'object' && value !== '') {
+			parts.push(`${encodeURIComponent(`filter[${key}]`)}=${encodeURIComponent(String(value))}`)
+		}
+	}
+	if (parts.length === 0) {
+		return endpoint
+	}
+	return endpoint + (endpoint.includes('?') ? '&' : '?') + parts.join('&')
+}
+
 export default {
 	name: 'CnIndexPage',
 
@@ -2294,6 +2317,25 @@ export default {
 		savedViewCountText: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Named values the board count line can carry besides `{shown}` and
+		 * `{total}` (manifest `config.countValues`), each written as a template
+		 * token with a format: `{pipeline|currency:EUR}`. An entry is a sum or
+		 * count over this page's register and schema, under the list's active
+		 * filters plus its own `filter` (`{ metric: 'sum', field: 'value',
+		 * filter? }`), or a field read from an app endpoint (`{ endpoint,
+		 * path, followFilters? }`; `followFilters: true` sends the active
+		 * filters along as `filter[<field>]=<value>`). A value not read (yet) leaves its token empty (board PqLeads
+		 * "€ 509.928 in de pijplijn").
+		 *
+		 * @spec openspec/changes/index-count-values/specs/index-page/spec.md#requirement-the-count-line-can-name-sums-and-values
+		 * @type {Record<string, object>|null}
+		 */
+		countValues: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -4674,6 +4716,7 @@ export default {
 			refLooks: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
+			countValueResults: {},
 			// The counts of the `filterStrip` pills, by pill key ('all', 'v0', ...).
 			filterStripCounts: null,
 			/** The `countFrom` counts of the manifest page tabs, by index. */
@@ -9062,6 +9105,19 @@ export default {
 			return text.charAt(0).toLowerCase() + text.slice(1)
 		},
 
+		/**
+		 * What the count values are read for: the declared values, the
+		 * page's filter and the active filters; '' without `countValues`.
+		 *
+		 * @return {string}
+		 */
+		countValuesKey() {
+			if (!this.countValues || Object.keys(this.countValues).length === 0) {
+				return ''
+			}
+			return JSON.stringify({ values: this.countValues, filter: this.filter, active: this.effectiveActiveFilters, register: this.register, schema: this.exportSchemaSlug })
+		},
+
 		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
 			// Board look: the count line is a template over the rows on this page
@@ -9086,6 +9142,7 @@ export default {
 						.replace('{total}', String(total))
 						.replace(/\{term\}/g, this.sourceTerm)
 						.replace(/\{view\}/g, this.appliedViewConditionsText)
+						.replace(/\{(\w+)\|[^}]*\}|\{(\w+)\}/g, (token, a, b) => this.countValueToken(token, a || b))
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}
@@ -9475,6 +9532,14 @@ export default {
 			/** @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip */
 			handler() {
 				this.loadFilterStripCounts()
+			},
+		},
+
+		countValuesKey: {
+			immediate: true,
+			/** @spec openspec/changes/index-count-values/specs/index-page/spec.md#requirement-the-count-line-can-name-sums-and-values */
+			handler() {
+				this.loadCountValues()
 			},
 		},
 
@@ -10149,6 +10214,70 @@ export default {
 		 */
 		onFilterStripPick(value) {
 			this.onFilterEvent({ key: this.filterStrip.field, values: value === '' ? [] : [value] })
+		},
+
+		/**
+		 * Fill one count-line token from `countValues`; a token that names no
+		 * value stays as written, one whose value is not read yet is empty.
+		 *
+		 * @param {string} token The token as written, `{name|format}` or `{name}`.
+		 * @param {string} name The value's name.
+		 * @return {string} The text.
+		 */
+		countValueToken(token, name) {
+			if (!this.countValues || !Object.hasOwn(this.countValues, name)) {
+				return token
+			}
+			if (!Object.hasOwn(this.countValueResults, name)) {
+				return ''
+			}
+			return fillTemplate(token, this.countValueResults)
+		},
+
+		/**
+		 * Read every `countValues` entry: an aggregation over this page's
+		 * register and schema under the active filters, or a field of an app
+		 * endpoint. A failed read leaves that value out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-count-values/specs/index-page/spec.md#requirement-the-count-line-can-name-sums-and-values
+		 */
+		async loadCountValues() {
+			const key = this.countValuesKey
+			const entries = Object.entries(this.countValues || {})
+			if (key === '' || entries.length === 0) {
+				this.countValueResults = {}
+				return
+			}
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const base = { ...resolveFilterMap(this.filter, params, ctx), ...(this.effectiveActiveFilters || {}) }
+			const results = {}
+			await Promise.all(entries.map(async ([name, cfg]) => {
+				try {
+					let value
+					if (cfg && typeof cfg.endpoint === 'string' && cfg.endpoint !== '') {
+						const body = await cnFetchJson(cfg.followFilters === true ? withFilterQuery(cfg.endpoint, { ...base, ...resolveFilterMap(cfg.filter, params, ctx) }) : cfg.endpoint)
+						value = String(cfg.path || '').split('.').filter(Boolean).reduce((acc, part) => (acc && typeof acc === 'object' ? acc[part] : undefined), body)
+					} else {
+						value = await fetchAggregateValue({
+							register: cfg.register || this.register,
+							schema: cfg.schema || this.exportSchemaSlug,
+							metric: cfg.metric || 'sum',
+							field: cfg.field,
+							filter: { ...base, ...resolveFilterMap(cfg.filter, params, ctx) },
+						}, ctx)
+					}
+					if (value !== null && value !== undefined && value !== '') {
+						results[name] = value
+					}
+				} catch {
+					// A value that cannot be read leaves its token out.
+				}
+			}))
+			if (key === this.countValuesKey) {
+				this.countValueResults = results
+			}
 		},
 
 		/**
