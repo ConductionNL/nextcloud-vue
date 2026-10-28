@@ -775,9 +775,9 @@ import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
-import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
 
 /**
  * Recognised registry kinds and their required metadata fields.
