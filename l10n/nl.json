@@ -2767,7 +2767,12 @@
     "The store registry is busy. Try again in a minute.": "De store-registry is bezig. Probeer het over een minuut opnieuw.",
     "The store registry refused the item.": "De store-registry weigerde het item.",
     "What the template carries": "Wat het sjabloon meeneemt",
-    "You may not publish to this store.": "Je mag niet publiceren in deze store."
+    "You may not publish to this store.": "Je mag niet publiceren in deze store.",
+    "Move {name}": "{name} verplaatsen",
+    "Filter on {name}": "Filteren op {name}",
+    "(empty)": "(leeg)",
+    "Drag, or use the arrow keys, to move": "Sleep, of gebruik de pijltjestoetsen, om te verplaatsen",
+    "The new order could not be saved": "De nieuwe volgorde kon niet worden opgeslagen"
   },
   "plurals": {
     "{count} member": [

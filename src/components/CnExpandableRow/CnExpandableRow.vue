@@ -69,37 +69,121 @@
 			<table class="cn-expandable-row__table" data-testid="cn-expandable-row-table">
 				<thead>
 					<tr>
-						<th v-for="(column, c) in table.columns" :key="c" scope="col">
-							{{ tr(column.label || '') }}
+						<th v-if="reorder" scope="col" class="cn-expandable-row__handle-head">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Move') }}</span>
+						</th>
+						<th
+							v-for="(column, c) in table.columns"
+							:key="c"
+							scope="col"
+							:aria-sort="sortIndex === c ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined">
+							<span v-if="sortableAt(c) || filterableAt(c)" class="cn-expandable-row__th">
+								<button
+									v-if="sortableAt(c)"
+									type="button"
+									class="cn-expandable-row__sort"
+									:class="{ 'cn-expandable-row__sort--active': sortIndex === c, 'cn-expandable-row__sort--desc': sortIndex === c && sortDir === 'desc' }"
+									data-testid="cn-expandable-row-sort"
+									@click="toggleSort(c)">
+									{{ tr(column.label || '') }}
+									<ChevronDown :size="14" class="cn-expandable-row__sort-icon" />
+								</button>
+								<template v-else>{{ tr(column.label || '') }}</template>
+								<span v-if="filterableAt(c)" class="cn-expandable-row__filter-anchor">
+									<button
+										type="button"
+										class="cn-expandable-row__filter"
+										:class="{ 'cn-expandable-row__filter--active': isFiltered(c) }"
+										aria-haspopup="dialog"
+										:aria-expanded="filterOpen === c ? 'true' : 'false'"
+										:aria-pressed="isFiltered(c) ? 'true' : 'false'"
+										:aria-label="t('nextcloud-vue', 'Filter on {name}', { name: tr(column.label || '') })"
+										:title="t('nextcloud-vue', 'Filter on {name}', { name: tr(column.label || '') })"
+										data-testid="cn-expandable-row-filter"
+										@click="filterOpen = filterOpen === c ? null : c">
+										<FilterOutline :size="14" />
+									</button>
+									<span
+										v-if="filterOpen === c"
+										role="dialog"
+										class="cn-expandable-row__filter-panel"
+										:aria-label="t('nextcloud-vue', 'Filter on {name}', { name: tr(column.label || '') })"
+										@keydown.esc="filterOpen = null">
+										<label
+											v-for="value in valuesOf(c)"
+											:key="value"
+											class="cn-expandable-row__filter-option"
+											data-testid="cn-expandable-row-filter-option">
+											<input
+												type="checkbox"
+												:checked="isChosen(c, value)"
+												@change="toggleValue(c, value, $event.target.checked)">
+											{{ value === '' ? t('nextcloud-vue', '(empty)') : value }}
+										</label>
+										<button
+											type="button"
+											class="cn-expandable-row__filter-clear"
+											data-testid="cn-expandable-row-filter-clear"
+											@click="clearFilter(c)">
+											{{ t('nextcloud-vue', 'Clear filter') }}
+										</button>
+									</span>
+								</span>
+							</span>
+							<template v-else>
+								{{ tr(column.label || '') }}
+							</template>
 						</th>
 					</tr>
 				</thead>
 				<tbody>
-					<tr v-for="(entry, r) in tableRows" :key="r">
+					<tr
+						v-for="item in viewRows"
+						:key="item.index"
+						:draggable="canReorder ? 'true' : undefined"
+						:class="{ 'cn-expandable-row__tr--drop': dropIndex === item.index }"
+						@dragstart="onDragStart(item.index, $event)"
+						@dragover="onDragOver(item.index, $event)"
+						@dragleave="dropIndex = null"
+						@drop="onDrop(item.index, $event)"
+						@dragend="dragIndex = null; dropIndex = null">
+						<td v-if="reorder" class="cn-expandable-row__cell--handle">
+							<button
+								type="button"
+								class="cn-expandable-row__handle"
+								:disabled="!canReorder"
+								:aria-label="t('nextcloud-vue', 'Move {name}', { name: entryName(item.entry) })"
+								:title="t('nextcloud-vue', 'Drag, or use the arrow keys, to move')"
+								data-testid="cn-expandable-row-handle"
+								@keydown.up.prevent="moveBy(item.index, -1)"
+								@keydown.down.prevent="moveBy(item.index, 1)">
+								<DragVertical :size="18" />
+							</button>
+						</td>
 						<td v-for="(column, c) in table.columns" :key="c" :class="`cn-expandable-row__cell--${column.as || 'text'}`">
-							<span v-if="column.as === 'order'" class="cn-expandable-row__order">{{ r + 1 }}</span>
+							<span v-if="column.as === 'order'" class="cn-expandable-row__order">{{ item.index + 1 }}</span>
 							<span v-else-if="column.as === 'bar'" class="cn-expandable-row__bar">
 								<span class="cn-expandable-row__bar-track">
-									<span class="cn-expandable-row__bar-fill" :style="{ width: percent(entry, column) + '%' }" />
+									<span class="cn-expandable-row__bar-fill" :style="{ width: percent(item.entry, column) + '%' }" />
 								</span>
-								<span class="cn-expandable-row__bar-value">{{ percent(entry, column) }}%</span>
+								<span class="cn-expandable-row__bar-value">{{ percent(item.entry, column) }}%</span>
 							</span>
 							<span v-else-if="column.as === 'check'" class="cn-expandable-row__check">
-								<template v-if="readPath(entry, column.key)">
+								<template v-if="readPath(item.entry, column.key)">
 									<Check :size="16" />
 									{{ tr(column.text || '') }}
 								</template>
 							</span>
 							<template v-else-if="column.as === 'yesNo'">
-								{{ readPath(entry, column.key) ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No') }}
+								{{ readPath(item.entry, column.key) ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No') }}
 							</template>
 							<CnStatusBadge
-								v-else-if="column.as === 'pill' && pillOf(entry, column)"
-								:label="pillOf(entry, column).label"
-								:variant="pillOf(entry, column).variant" />
-							<strong v-else-if="column.strong">{{ cellText(entry, column) }}</strong>
+								v-else-if="column.as === 'pill' && pillOf(item.entry, column)"
+								:label="pillOf(item.entry, column).label"
+								:variant="pillOf(item.entry, column).variant" />
+							<strong v-else-if="column.strong">{{ cellText(item.entry, column) }}</strong>
 							<template v-else-if="column.as !== 'pill'">
-								{{ cellText(entry, column) }}
+								{{ cellText(item.entry, column) }}
 							</template>
 						</td>
 					</tr>
@@ -131,6 +215,8 @@ import { NcButton } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
@@ -152,10 +238,24 @@ function toneOf(tones, entry) {
 		: undefined
 }
 
+/**
+ * Numbers by value, everything else by locale.
+ *
+ * @param {number|string} a One value.
+ * @param {number|string} b The other.
+ * @return {number} The order.
+ */
+function compareValues(a, b) {
+	if (typeof a === 'number' && typeof b === 'number') {
+		return a - b
+	}
+	return String(a).localeCompare(String(b), undefined, { numeric: true })
+}
+
 export default {
 	name: 'CnExpandableRow',
 
-	components: { Check, ChevronDown, ChevronRight, CnIcon, CnStatusBadge, NcButton, Plus },
+	components: { Check, ChevronDown, ChevronRight, CnIcon, CnStatusBadge, DragVertical, FilterOutline, NcButton, Plus },
 
 	inject: {
 		cnTranslate: { default: null },
@@ -175,6 +275,11 @@ export default {
 		 * A button's `icon` is a CnIcon name drawn before its label.
 		 * A table column is `{ key?, label, as?, template?, strong?, text?, tones? }`,
 		 * `as` one of `text` (default), `order`, `bar`, `check`, `yesNo`, `pill`.
+		 * `table.sortable` / `table.filterable` put a sort button and a filter
+		 * button on every column header (a column's own `sortable` /
+		 * `filterable: false` opts it out). `table.reorder: { key? }` draws a
+		 * drag handle per entry; a move emits `reorder` with the list
+		 * renumbered in `key` (default `order`).
 		 */
 		layout: {
 			type: Object,
@@ -188,10 +293,18 @@ export default {
 		},
 	},
 
-	emits: ['action'],
+	emits: ['action', 'reorder'],
 
 	data() {
-		return { isOpen: this.open }
+		return {
+			isOpen: this.open,
+			sortIndex: null,
+			sortDir: 'asc',
+			filters: {},
+			filterOpen: null,
+			dragIndex: null,
+			dropIndex: null,
+		}
 	},
 
 	computed: {
@@ -250,6 +363,37 @@ export default {
 			return Array.isArray(rows) ? rows : []
 		},
 
+		/**
+		 * The entries to draw, each with its position in the list, filtered
+		 * and sorted as the headers ask.
+		 *
+		 * @return {Array<{entry: object, index: number}>} The rows.
+		 */
+		viewRows() {
+			const columns = this.table ? this.table.columns : []
+			let rows = this.tableRows.map((entry, index) => ({ entry, index }))
+			Object.keys(this.filters).forEach((c) => {
+				const chosen = this.filters[c]
+				rows = rows.filter((row) => chosen.includes(this.displayValue(row, columns[c])))
+			})
+			if (this.sortIndex !== null && columns[this.sortIndex]) {
+				const column = columns[this.sortIndex]
+				const sign = this.sortDir === 'desc' ? -1 : 1
+				rows = [...rows].sort((a, b) => sign * compareValues(this.sortValue(a, column), this.sortValue(b, column)))
+			}
+			return rows
+		},
+
+		reorder() {
+			const reorder = this.table && this.table.reorder
+			return reorder && typeof reorder === 'object' ? reorder : null
+		},
+
+		/** Moving is off while the table is sorted or filtered: the drawn order is not the list's. */
+		canReorder() {
+			return this.reorder !== null && this.sortIndex === null && Object.keys(this.filters).length === 0
+		},
+
 		buttons() {
 			return Array.isArray(this.layout.buttons) ? this.layout.buttons.filter((b) => b && b.action) : []
 		},
@@ -301,6 +445,201 @@ export default {
 			}
 			const value = column.key ? readPath(entry || {}, column.key) : ''
 			return value === null || value === undefined ? '' : String(value)
+		},
+
+		/**
+		 * @param {number} c The column index.
+		 * @return {boolean} Whether the column header sorts.
+		 */
+		sortableAt(c) {
+			const column = this.table.columns[c]
+			return this.table.sortable === true && column.sortable !== false && (Boolean(column.key) || column.as === 'order' || column.as === 'pill')
+		},
+
+		/**
+		 * @param {number} c The column index.
+		 * @return {boolean} Whether the column header filters.
+		 */
+		filterableAt(c) {
+			const column = this.table.columns[c]
+			return this.table.filterable === true && column.filterable !== false && (Boolean(column.key) || column.as === 'order' || column.as === 'pill')
+		},
+
+		/**
+		 * Ascending on the first click, descending on the second, unsorted on the third.
+		 *
+		 * @param {number} c The column index.
+		 * @return {void}
+		 */
+		toggleSort(c) {
+			if (this.sortIndex !== c) {
+				this.sortIndex = c
+				this.sortDir = 'asc'
+			} else if (this.sortDir === 'asc') {
+				this.sortDir = 'desc'
+			} else {
+				this.sortIndex = null
+			}
+		},
+
+		/**
+		 * @param {{entry: object, index: number}} row The row.
+		 * @param {object} column The column.
+		 * @return {number|string} What the column sorts the row by.
+		 */
+		sortValue(row, column) {
+			if (column.as === 'order') {
+				return row.index
+			}
+			if (column.as === 'bar') {
+				return this.percent(row.entry, column)
+			}
+			if (column.as === 'check' || column.as === 'yesNo') {
+				return readPath(row.entry || {}, column.key) ? 1 : 0
+			}
+			return this.displayValue(row, column)
+		},
+
+		/**
+		 * @param {{entry: object, index: number}} row The row.
+		 * @param {object} column The column.
+		 * @return {string} The cell as the user reads it.
+		 */
+		displayValue(row, column) {
+			const entry = row.entry
+			switch (column.as) {
+				case 'order':
+					return String(row.index + 1)
+				case 'bar':
+					return this.percent(entry, column) + '%'
+				case 'check':
+					return readPath(entry || {}, column.key) ? this.tr(column.text || '') || t('nextcloud-vue', 'Yes') : ''
+				case 'yesNo':
+					return readPath(entry || {}, column.key) ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No')
+				case 'pill': {
+					const pill = this.pillOf(entry, column)
+					return pill ? pill.label : ''
+				}
+				default:
+					return this.cellText(entry, column)
+			}
+		},
+
+		/**
+		 * @param {number} c The column index.
+		 * @return {Array<string>} The distinct values the column holds, sorted.
+		 */
+		valuesOf(c) {
+			const column = this.table.columns[c]
+			const values = new Set(this.tableRows.map((entry, index) => this.displayValue({ entry, index }, column)))
+			return [...values].sort(compareValues)
+		},
+
+		isFiltered(c) {
+			return Array.isArray(this.filters[c])
+		},
+
+		isChosen(c, value) {
+			return this.isFiltered(c) && this.filters[c].includes(value)
+		},
+
+		/**
+		 * @param {number} c The column index.
+		 * @param {string} value The value.
+		 * @param {boolean} on Whether the value is chosen.
+		 * @return {void}
+		 */
+		toggleValue(c, value, on) {
+			const chosen = (this.filters[c] || []).filter((v) => v !== value)
+			if (on) {
+				chosen.push(value)
+			}
+			const filters = { ...this.filters }
+			if (chosen.length > 0) {
+				filters[c] = chosen
+			} else {
+				delete filters[c]
+			}
+			this.filters = filters
+		},
+
+		clearFilter(c) {
+			const filters = { ...this.filters }
+			delete filters[c]
+			this.filters = filters
+			this.filterOpen = null
+		},
+
+		/**
+		 * @param {object} entry The list entry.
+		 * @return {string} The entry's name for the move button.
+		 */
+		entryName(entry) {
+			const named = (this.table.columns || []).find((column) => column.key && !column.as)
+			return named ? this.cellText(entry, named) : ''
+		},
+
+		onDragStart(index, event) {
+			if (!this.canReorder) {
+				return
+			}
+			this.dragIndex = index
+			if (event && event.dataTransfer) {
+				event.dataTransfer.effectAllowed = 'move'
+				event.dataTransfer.setData('text/plain', String(index))
+			}
+		},
+
+		onDragOver(index, event) {
+			if (this.dragIndex === null) {
+				return
+			}
+			event.preventDefault()
+			this.dropIndex = index
+		},
+
+		onDrop(index, event) {
+			if (event) {
+				event.preventDefault()
+			}
+			const from = this.dragIndex
+			this.dragIndex = null
+			this.dropIndex = null
+			if (from !== null) {
+				this.moveTo(from, index)
+			}
+		},
+
+		/**
+		 * @param {number} index The entry's position.
+		 * @param {number} step -1 up, 1 down.
+		 * @return {void}
+		 */
+		moveBy(index, step) {
+			this.moveTo(index, index + step)
+		},
+
+		/**
+		 * Emit the list with one entry moved, renumbered in the reorder key.
+		 * The list itself is left alone; the host saves and reloads it.
+		 *
+		 * @param {number} from The entry's position.
+		 * @param {number} to Its new position.
+		 * @return {void}
+		 */
+		moveTo(from, to) {
+			const list = this.tableRows
+			if (!this.canReorder || from === to || to < 0 || to >= list.length) {
+				return
+			}
+			const moved = [...list]
+			moved.splice(to, 0, moved.splice(from, 1)[0])
+			const key = this.reorder.key || 'order'
+			const entries = moved.map((entry, i) => (entry && typeof entry === 'object' ? { ...entry, [key]: i + 1 } : entry))
+			/**
+			 * @event reorder An entry of the sub-table moved. Payload: `{ row, field, entries }`, the list in its new order.
+			 */
+			this.$emit('reorder', { row: this.object, field: this.table.field, entries })
 		},
 
 		/**
@@ -493,5 +832,130 @@ export default {
 .cn-expandable-row__note {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-expandable-row__th {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.cn-expandable-row__sort {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-expandable-row__sort-icon {
+	color: var(--color-text-maxcontrast);
+	opacity: .6;
+}
+
+.cn-expandable-row__sort--active .cn-expandable-row__sort-icon {
+	color: var(--color-primary-element);
+	opacity: 1;
+}
+
+.cn-expandable-row__sort--active:not(.cn-expandable-row__sort--desc) .cn-expandable-row__sort-icon {
+	transform: rotate(180deg);
+}
+
+.cn-expandable-row__filter-anchor {
+	position: relative;
+	display: inline-flex;
+}
+
+.cn-expandable-row__filter {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	cursor: pointer;
+}
+
+.cn-expandable-row__filter:hover,
+.cn-expandable-row__filter--active {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+}
+
+.cn-expandable-row__filter-panel {
+	position: absolute;
+	inset-block-start: calc(100% + 4px);
+	inset-inline-start: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 180px;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-main-background);
+	box-shadow: 0 2px 8px var(--color-box-shadow);
+	color: var(--color-main-text);
+	font-weight: 400;
+}
+
+.cn-expandable-row__filter-option {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	white-space: nowrap;
+}
+
+.cn-expandable-row__filter-clear {
+	align-self: flex-start;
+	min-height: 0;
+	margin: 4px 0 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-primary-element);
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-expandable-row__table th.cn-expandable-row__handle-head,
+.cn-expandable-row__table td.cn-expandable-row__cell--handle {
+	width: 18px;
+	padding-inline: 18px 6px;
+}
+
+.cn-expandable-row__handle {
+	display: inline-flex;
+	align-items: center;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+}
+
+.cn-expandable-row__handle:disabled {
+	cursor: default;
+	opacity: .4;
+}
+
+.cn-expandable-row__tr--drop td {
+	box-shadow: inset 0 2px 0 var(--color-primary-element);
 }
 </style>

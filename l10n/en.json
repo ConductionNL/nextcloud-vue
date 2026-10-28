@@ -2502,7 +2502,12 @@
     "The store registry is busy. Try again in a minute.": "The store registry is busy. Try again in a minute.",
     "The store registry refused the item.": "The store registry refused the item.",
     "What the template carries": "What the template carries",
-    "You may not publish to this store.": "You may not publish to this store."
+    "You may not publish to this store.": "You may not publish to this store.",
+    "Move {name}": "Move {name}",
+    "Filter on {name}": "Filter on {name}",
+    "(empty)": "(empty)",
+    "Drag, or use the arrow keys, to move": "Drag, or use the arrow keys, to move",
+    "The new order could not be saved": "The new order could not be saved"
   },
   "plurals": {
     "{count} member": [

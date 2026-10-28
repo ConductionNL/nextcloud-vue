@@ -18,7 +18,7 @@ A list row that opens to a sub-table. [CnIndexPage](./cn-index-page.md) draws on
 }
 ```
 
-A column's `as` is `text` (the default), `order`, `bar`, `check`, `yesNo` or `pill`. A header button or the footer action names a row action by its id, and it runs as it would from the row's menu. `open` is `first` or `all`.
+A column's `as` is `text` (the default), `order`, `bar`, `check`, `yesNo` or `pill`. `table.sortable` and `table.filterable` put a sort button and a filter button on every column header; a column opts out with `sortable: false` or `filterable: false`. `table.reorder: { key? }` draws a drag handle per entry: dragging, or the arrow keys on the handle, emits `reorder` with the list renumbered in `key` (default `order`). Moving is off while the table is sorted or filtered, and CnIndexPage saves a reorder through its store. A header button or the footer action names a row action by its id, and it runs as it would from the row's menu. `open` is `first` or `all`.
 
 ## Props
 
@@ -33,6 +33,7 @@ A column's `as` is `text` (the default), `order`, `bar`, `check`, `yesNo` or `pi
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `action` | `{ id, row }` | A header button or the footer action. |
+| `reorder` | `{ row, field, entries }` | An entry moved; `entries` is the list in its new order. |
 
 ## Slots
 
