@@ -1392,15 +1392,26 @@
 }
 
 /* Under the card grid the footer is a row of its own, not a card's edge: no
-   hairline, 4px 0 (DqAanMijToegewezen, BqAgents, BqStore).
-   @spec openspec/changes/board-pagination-under-card-grid/specs/board-pagination-under-card-grid/spec.md#requirement-the-page-footer-under-a-card-grid-is-a-plain-row */
+   hairline, 4px 0 (DqAanMijToegewezen, BqAgents, BqStore), the page column's
+   gap under the cards (`--cn-board-pager-gap`; BqAgents 12, the dossiq
+   boards 20).
+   @spec openspec/changes/board-pagination-under-card-grid/specs/board-pagination-under-card-grid/spec.md#requirement-the-page-footer-under-a-card-grid-is-a-plain-row
+   @spec openspec/changes/board-card-grid-flush/specs/board-card-grid-flush/spec.md */
 .cn-look-board .cn-index-page__main:not(.cn-index-page__main--table):not(.cn-index-page__main--list):not(.cn-index-page__main--map) > .cn-pagination--board {
-	margin-top: 8px;
+	margin-top: var(--cn-board-pager-gap, 12px);
 	padding: 4px 0;
 	border-top: 0;
 }
 
 /* ------------------------------------------------------------------- cards */
+
+/* The grid stands flush with the page column, as the boards draw it
+   (DqAanMijToegewezen, DqZakenSorteren: first card at 292); card.css pads it
+   0.25rem.
+   @spec openspec/changes/board-card-grid-flush/specs/board-card-grid-flush/spec.md */
+.cn-look-board .cn-card-grid:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
 
 .cn-look-board .cn-card-grid__item {
 	display: flex;
