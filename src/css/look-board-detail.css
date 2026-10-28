@@ -1820,6 +1820,14 @@
 	display: none;
 }
 
+/* ---- A file list's bar (CnFilesBrowser) -------------------------------- */
+/* The boards draw the bar's buttons 16px over the list (DqZaakDocumenten,
+   DqZaakDocumentenSlepen); the browser stacks its parts 8px apart.
+   @spec openspec/changes/board-files-bar-16-above-list/specs/board-files-bar-16-above-list/spec.md#requirement-a-board-file-lists-bar-stands-16px-above-the-list */
+.cn-look-board .cn-files-browser__bar:not(.cn-look-nextcloud *) {
+	margin-block-end: 8px;
+}
+
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */
 /* The board's compact card table (DqDocumentenBeheer): a near-white header at
    14px/600 in the muted ink, 10px 12px; 14px cells, 11px 12px, a hairline
