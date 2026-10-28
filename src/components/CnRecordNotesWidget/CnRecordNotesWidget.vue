@@ -268,6 +268,9 @@ export default {
 				const response = await axios.patch(url, changes)
 				this.failed = false
 				this.savedAt = new Date()
+				/**
+				 * @event saved The record took the change. Payload: `{ changes, object }`, the patched fields and the saved record (or null).
+				 */
 				this.$emit('saved', { changes, object: response?.data ?? null })
 				return true
 			} catch {

@@ -2464,7 +2464,10 @@
     "Categories": "Categories",
     "Opens a page of its own": "Opens a page of its own",
     "Open {report}": "Open {report}",
-    "Could not create the item": "Could not create the item"
+    "Could not create the item": "Could not create the item",
+    "Save outcome": "Save outcome",
+    "Saved automatically as you type.": "Saved automatically as you type.",
+    "Could not save. Your text is kept here; it is saved again when you type.": "Could not save. Your text is kept here; it is saved again when you type."
   },
   "plurals": {
     "{count} member": [

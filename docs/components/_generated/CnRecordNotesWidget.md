@@ -15,6 +15,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `saved` | —       |             |
+| Name    | Payload | Description                                                                                                    |
+| ------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `saved` | —       | The record took the change. Payload: `{ changes, object }`, the patched fields and the saved record (or null). |

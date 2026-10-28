@@ -58,6 +58,7 @@
 					@click="emitAction(button.action)">
 					{{ tr(button.label || button.action) }}
 				</NcButton>
+				<!-- @slot actions Extra controls after the header buttons. Scope: `{ row }`. -->
 				<slot name="actions" :row="object" />
 			</div>
 		</div>

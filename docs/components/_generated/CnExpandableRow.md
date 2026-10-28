@@ -22,6 +22,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `actions` | `row`    |             |
+| Name      | Bindings | Description                                                        |
+| --------- | -------- | ------------------------------------------------------------------ |
+| `actions` | `row`    | actions Extra controls after the header buttons. Scope: `{ row }`. |

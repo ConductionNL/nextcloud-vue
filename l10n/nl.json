@@ -2729,7 +2729,10 @@
     "Categories": "Categorieën",
     "Opens a page of its own": "Opent een eigen pagina",
     "Open {report}": "{report} openen",
-    "Could not create the item": "Het item kon niet worden aangemaakt"
+    "Could not create the item": "Het item kon niet worden aangemaakt",
+    "Save outcome": "Uitkomst opslaan",
+    "Saved automatically as you type.": "Wordt automatisch opgeslagen terwijl u typt.",
+    "Could not save. Your text is kept here; it is saved again when you type.": "Opslaan is mislukt. Uw tekst blijft hier staan en wordt opnieuw opgeslagen zodra u typt."
   },
   "plurals": {
     "{count} member": [

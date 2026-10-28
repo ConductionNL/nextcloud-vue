@@ -61,6 +61,9 @@ with the card's `icon` in a 44px tile, its title at 17px and its description at 
 | `look` | String | `null` | `board` or `nextcloud`. Absent: the look `CnAppRoot` provides. |
 | `translate` | Function | `null` | Translate function. Falls back to the one `CnAppRoot` provides. |
 | `page` | Object | `{}` | The whole manifest page, for a host that mounts the component itself. The props above win. |
+| `catalogue` | Boolean | `null` | In the board look, draw the catalogue: category chips with counts, article cards and an aside with the category index (manifest `config.catalogue`). Without it the board look draws its sections. |
+| `cardMeta` | String | `null` | The catalogue card's footer line (`config.cardMeta`), default "Opens a page of its own"; a card's own `meta` wins. |
+| `asideNote` | Object | `null` | The catalogue aside's closing card (`config.asideNote`): `{ title, text }`. |
 
 ## Related
 

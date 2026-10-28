@@ -662,7 +662,7 @@
 			"transitive": 2,
 			"tier": "light",
 			"via": [],
-			"page": null
+			"page": "cn-connections-panel"
 		},
 		"CnContactCreate": {
 			"direct": 0,
@@ -1376,7 +1376,7 @@
 			"transitive": 3,
 			"tier": "light",
 			"via": [],
-			"page": null
+			"page": "cn-expandable-row"
 		},
 		"CnExportWizard": {
 			"direct": 0,
@@ -3651,7 +3651,7 @@
 			"transitive": 3,
 			"tier": "medium",
 			"via": [],
-			"page": null
+			"page": "cn-record-notes-widget"
 		},
 		"CnRedactionEditor": {
 			"direct": 1,
