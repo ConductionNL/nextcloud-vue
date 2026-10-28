@@ -754,6 +754,8 @@ export default {
 		 * 15px/700 with the pill at its end (DqInspectie).
 		 * `density: "stacked"` stands the rows 10px apart with no rule and no
 		 * row padding (DqDagAfsluiten "Morgen eerst").
+		 * `rowHrefField` names a row field holding a URL: a row without a
+		 * route opens that page (a case in another app), as a plain link.
 		 * In `rows`, `text` is a line under the meta line ("12 dagen stil"),
 		 * and `chevron: false` leaves the chevron off a linked row
 		 * (DqDashboard).
@@ -1149,12 +1151,13 @@ export default {
 			return this.rows.slice(0, this.limit).map((raw, index) => {
 				const row = this.withAggregates(scalarRow(raw))
 				const link = this.rowLink(row)
+				const href = link ? '' : this.rowHref(row)
 				return {
 					key: (row && (row.id || row['@self']?.id)) || `row-${index}`,
 					row,
 					action: this.rowActionOf(row),
-					tag: link ? 'router-link' : 'div',
-					attrs: link ? { to: link } : {},
+					tag: link ? 'router-link' : (href ? 'a' : 'div'),
+					attrs: link ? { to: link } : (href ? { href } : {}),
 					initials: this.initialsFor(row),
 					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
@@ -2133,6 +2136,24 @@ export default {
 				return this.cnDispatchAction(wrapped)
 			}
 			return dispatchAction(wrapped, { router: this.$router || null, row, tokenCtx: this.rowTokenCtx(row), source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
+		/**
+		 * The page a row opens outside this app (`rowHrefField`: the row field
+		 * holding a URL, such as a case in another app). Only a path on this
+		 * server or an http(s) URL is taken; anything else leaves the row unlinked.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The URL, or ''.
+		 * @spec openspec/changes/record-list-row-href/specs/record-list/spec.md#requirement-a-record-list-row-can-open-a-page-outside-the-app
+		 */
+		rowHref(row) {
+			const field = this.content?.rowHrefField
+			const href = field && row ? readPath(row, field) : null
+			if (typeof href !== 'string' || !/^(\/(?!\/)|https?:\/\/)/i.test(href)) {
+				return ''
+			}
+			return href
 		},
 
 		rowLink(row) {
