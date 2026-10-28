@@ -1052,6 +1052,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { inject, provide, ref, watch } from 'vue'
@@ -1284,6 +1285,13 @@ function filledContent(content, config) {
 	filledByContent.set(content, { key, value })
 	return value
 }
+
+/**
+ * The event-bus event that makes a dashboard read its `descriptionSource`
+ * again, for a header line that follows something the reader changes on the
+ * page (an availability toggle).
+ */
+const DESCRIPTION_REFRESH_EVENT = 'cn:dashboard:description-refresh'
 
 export default {
 	name: 'CnDashboardPage',
@@ -3174,9 +3182,11 @@ export default {
 		this.loadUserLayout()
 		this.watchViewport()
 		this.loadDescription()
+		subscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 	},
 
 	beforeUnmount() {
+		unsubscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
 			this.viewportQuery.removeEventListener('change', this.onViewportChange)
 		}
