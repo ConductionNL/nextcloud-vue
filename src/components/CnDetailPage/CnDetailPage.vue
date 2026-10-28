@@ -3964,13 +3964,25 @@ export default {
 		/**
 		 * What the primary button says: the stage's action when the stage
 		 * declares one, the page's `primaryAction` otherwise. Empty gates
-		 * both the button and the skip link.
+		 * both the button and the skip link. A stage action's `primaryLabel`
+		 * is a template filled from the record, as `headerMeta` is ("Call
+		 * {phone}"); the button falls back to `label` when nothing fills it.
 		 *
 		 * @return {string} The label, or an empty string.
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		effectivePrimaryLabel() {
-			return this.stagePrimaryEntry ? this.stagePrimaryEntry.label : this.primaryActionLabel
+			if (!this.stagePrimaryEntry) {
+				return this.primaryActionLabel
+			}
+			const id = this.stagePrimary.id
+			const definition = this.stagePrimary.inline
+				|| (Array.isArray(this.headerActions) ? this.headerActions : []).find((action) => action && action.id === id)
+			const template = definition && typeof definition.primaryLabel === 'string' ? definition.primaryLabel : ''
+			const filled = template
+				? resolveHeaderMeta(this.effectiveTranslate(template), this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
+				: ''
+			return filled || this.stagePrimaryEntry.label
 		},
 
 		/**
