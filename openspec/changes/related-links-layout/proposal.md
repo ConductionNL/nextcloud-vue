@@ -13,4 +13,4 @@ a count and tabs, so a page that wants the board's card had to drop the widget a
   files, integrations and every relation.
 - A `referenceSections` entry can name its record with `labelTemplate` ("Shift {floatAt|date}, {drawer}").
 
-Schema 2.159.0 adds "links" to the related widget's layout values. Without the key nothing changes.
+Schema 2.160.0 adds "links" to the related widget's layout values. Without the key nothing changes.
