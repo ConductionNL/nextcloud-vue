@@ -13122,7 +13122,10 @@ export default {
 			// with only `openRow` opens the row in place on a ctrl/cmd/shift
 			// click and ignores a middle click. The event is marked so the host
 			// hearing `row-click` does not open a second tab.
-			if (this.isNamedSource) {
+			// A page with a split view opens its rows beside the list: the host
+			// that owns the split address handles `row-click`, so a named
+			// source's `rowRoute` or `openRow` must not navigate away first.
+			if (this.isNamedSource && !this.splitViewEnabled) {
 				const id = row?.id || row?.uuid
 				const source = this.namedSource
 				const newTab = isNewTabClick(event)
