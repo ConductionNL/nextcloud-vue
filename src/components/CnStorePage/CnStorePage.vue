@@ -60,7 +60,8 @@
 						v-if="showPublish"
 						variant="primary"
 						data-testid="store-publish"
-						:to="publishTarget">
+						:to="publishable ? undefined : publishTarget"
+						@click="onPublishClick">
 						<template #icon>
 							<Upload :size="18" />
 						</template>
@@ -78,7 +79,8 @@
 					v-if="showPublish"
 					variant="secondary"
 					data-testid="store-publish"
-					:to="publishTarget">
+					:to="publishable ? undefined : publishTarget"
+					@click="onPublishClick">
 					{{ t('nextcloud-vue', 'Publish') }}
 				</NcButton>
 			</div>
@@ -343,6 +345,13 @@
 				</section>
 			</aside>
 		</div>
+		<CnStorePublishDialog
+			v-if="publishOpen"
+			:app="resolvedApp"
+			:kinds="effectiveKinds"
+			:kindLabel="kindLabel"
+			@close="publishOpen = false"
+			@published="onPublished" />
 	</div>
 </template>
 
@@ -364,6 +373,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
+import CnStorePublishDialog from './CnStorePublishDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -389,6 +399,7 @@ export default {
 		CnBuildiqEditButton,
 		CnIcon,
 		CnPageHeader,
+		CnStorePublishDialog,
 		PackageVariantClosed,
 		Refresh,
 		Upload,
@@ -535,6 +546,16 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * The app accepts a publish at `/api/store/publish` (and lists what may
+		 * be published at `/api/store/publishable`): Publish opens the publish
+		 * dialog instead of following `publishRoute`.
+		 */
+		publishable: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -557,6 +578,7 @@ export default {
 			servedBuiltIn: null,
 			// The board look's lens: all, installed, updates or an item kind.
 			lens: 'all',
+			publishOpen: false,
 			// When the registry last answered (`checkedAt` from the engine).
 			checkedAt: '',
 		}
@@ -701,7 +723,7 @@ export default {
 		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
 		 */
 		showPublish() {
-			if (this.publishTarget === null) {
+			if (this.publishTarget === null && this.publishable !== true) {
 				return false
 			}
 
@@ -954,6 +976,17 @@ export default {
 		},
 
 		n,
+
+		onPublishClick() {
+			if (this.publishable) {
+				this.publishOpen = true
+			}
+		},
+
+		onPublished() {
+			this.publishOpen = false
+			this.search()
+		},
 
 		cardKindLine(card) {
 			return [card.typeName || this.kindLabel(card.kind), card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')

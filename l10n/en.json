@@ -2447,7 +2447,21 @@
     "%n update is ready. An update keeps your own changes.": [
       "%n update is ready. An update keeps your own changes.",
       "%n updates are ready. An update keeps your own changes."
-    ]
+    ],
+    "No store registry is configured. An administrator connects one under Administration settings.": "No store registry is configured. An administrator connects one under Administration settings.",
+    "Nothing of this kind on this instance yet.": "Nothing of this kind on this instance yet.",
+    "Publish to the store": "Publish to the store",
+    "Published to the store.": "Published to the store.",
+    "Publisher": "Publisher",
+    "Publishing…": "Publishing…",
+    "Share a template built from your own configuration with the registry.": "Share a template built from your own configuration with the registry.",
+    "The item could not be published.": "The item could not be published.",
+    "The item is too large to publish.": "The item is too large to publish.",
+    "The store registry did not answer. Try again later.": "The store registry did not answer. Try again later.",
+    "The store registry is busy. Try again in a minute.": "The store registry is busy. Try again in a minute.",
+    "The store registry refused the item.": "The store registry refused the item.",
+    "What the template carries": "What the template carries",
+    "You may not publish to this store.": "You may not publish to this store."
   },
   "plurals": {
     "{count} member": [
