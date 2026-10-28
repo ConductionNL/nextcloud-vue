@@ -2467,7 +2467,9 @@
     "Could not create the item": "Could not create the item",
     "Save outcome": "Save outcome",
     "Saved automatically as you type.": "Saved automatically as you type.",
-    "Could not save. Your text is kept here; it is saved again when you type.": "Could not save. Your text is kept here; it is saved again when you type."
+    "Could not save. Your text is kept here; it is saved again when you type.": "Could not save. Your text is kept here; it is saved again when you type.",
+    "Skip this step": "Skip this step",
+    "{label} (optional)": "{label} (optional)"
   },
   "plurals": {
     "{count} member": [
