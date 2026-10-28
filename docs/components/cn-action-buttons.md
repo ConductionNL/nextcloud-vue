@@ -162,6 +162,13 @@ current record without extra wiring.
 | `router` | `Object` | `null` | Explicit Vue Router for `navigate` / `onSuccessRoute` (falls back to `this.$router`). |
 | `display` | `String` | `'buttons'` | Where the actions are drawn. `buttons` puts one `NcButton` per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs. |
 
+## Variants
+
+`variant` styles a button: `primary`, `secondary` (the default), `tertiary`,
+`error` (filled red, for the button that confirms a destructive step) and
+`error-outline` (white with a red border and red text, for a red action that
+is not the main one, such as reversing a payment).
+
 ## Overflow and sub-actions
 
 `inline` caps how many actions stay visible as buttons. It defaults to `0`,
