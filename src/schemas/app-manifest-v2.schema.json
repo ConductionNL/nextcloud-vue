@@ -5652,6 +5652,11 @@
 							"minLength": 1,
 							"description": "type='index', board look: the count line under the title, a template with `{shown}` (rows on this page), `{total}` (all rows) and free text, e.g. \"{shown} of {total} open cases in your teams\"; defaults to `countSubtitle`, else \"{shown} of {total}\" (screens-index-list-parity). Maps to CnIndexPage `countText`."
 						},
+						"countValues": {
+							"type": "object",
+							"additionalProperties": { "type": "object" },
+							"description": "type='index', board look: named values the count line (`countText`) can carry, written as template tokens with a format (`{pipeline|currency:EUR}`). An entry is a sum or count over this page's register and schema under the active filters plus its own `filter` (`{ metric: 'sum', field: 'value', filter? }`), or a field of an app endpoint (`{ endpoint, path, followFilters? }`; `followFilters: true` sends the active filters as `filter[<field>]=<value>`). A value not read yet leaves its token empty. Maps to CnIndexPage `countValues`."
+						},
 						"footerNote": {
 							"type": "string",
 							"minLength": 1,
