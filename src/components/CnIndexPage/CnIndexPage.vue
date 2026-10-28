@@ -1481,7 +1481,7 @@ import {
 } from '../../utils/boardReferenceColumns.js'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
-import { countLine } from '../../utils/countLine.js'
+import { countLine, footerNoteForView } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -2426,6 +2426,21 @@ export default {
 		footerNote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the footer note per view (manifest
+		 * `config.footerNoteByView`), `{ table?, cards?, list?, board?, map? }`,
+		 * each a template as `footerNote`: DqZakenSorteren's cards say "sorted by
+		 * deadline, ascending · sort in the side panel" where the table says
+		 * "click a column header to sort". A view it does not name keeps
+		 * `footerNote`; a scope's, saved view's or preset's own note comes first.
+		 *
+		 * @spec openspec/changes/footer-note-per-view/specs/footer-note-per-view/spec.md
+		 */
+		footerNoteByView: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -8407,10 +8422,10 @@ export default {
 		 * @return {string} The note, translated, or ''.
 		 */
 		effectiveFooterNote() {
-			// The scope's note, else the page's (a preset may have set it),
-			// else the named source's.
+			// The scope's note, else the open view's (`footerNoteByView`), else
+			// the page's (a preset may have set it), else the named source's.
 			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
-			const footerNote = scoped !== undefined ? scoped : this.footerNote
+			const footerNote = scoped !== undefined ? scoped : footerNoteForView(this.footerNoteByView, this.currentViewMode, this.footerNote)
 			if (footerNote) {
 				return this.fillConfigTokens(this.cnTranslate(footerNote))
 			}

@@ -99,6 +99,10 @@ export function applyQueryPreset(config, preset) {
 	if (preset.countText !== undefined) {
 		out.countTextByView = null
 	}
+	// Likewise its own footer note, over the page's per-view notes.
+	if (preset.footerNote !== undefined) {
+		out.footerNoteByView = null
+	}
 	// The query pairs that chose the preset scope the list: the page shows
 	// them as no removable filter chip.
 	if (preset.match && typeof preset.match === 'object') {
