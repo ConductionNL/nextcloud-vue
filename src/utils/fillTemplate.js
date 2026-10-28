@@ -4,7 +4,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatSoon, formatTimeOfDay, isoWeek } from './boardDate.js'
 import { parseDateValue } from './dateVariant.js'
-import { formatMoney } from './formatMetric.js'
+import { formatMoney, metricLocale } from './formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from './groupAutocomplete.js'
 import { readPath } from './readPath.js'
 import { userDisplayName } from './userDisplayName.js'
@@ -188,6 +188,17 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'lower') {
 		return String(value).toLocaleLowerCase()
+	}
+	// `{name|lowerfirst}`: a name inside a sentence, "Verenigingen in Zuiddrecht"
+	// read as "verenigingen in Zuiddrecht".
+	if (format === 'lowerfirst') {
+		const text = String(value)
+		return text.charAt(0).toLocaleLowerCase() + text.slice(1)
+	}
+	// `{count|number}`: grouped in the user's locale, "2.180" in Dutch.
+	if (format === 'number') {
+		const number = Number(value)
+		return Number.isFinite(number) ? new Intl.NumberFormat(metricLocale()).format(number) : String(value)
 	}
 	if (format === 'days') {
 		// Whole days from the date to now (0 for today; negative for a future date).

@@ -490,11 +490,12 @@ import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
-import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { fetchRowAggregate } from '../../utils/rowAggregate.js'
+import { loadSecondaryRefs, rowWithRefs } from '../../utils/secondaryRefs.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -635,6 +636,12 @@ export default {
 		 * resolves to nothing is not drawn. `secondaryLabels` names a field's
 		 * values on that line, `{ field: { value: label, '*': label } }`
 		 * (i18n keys; `'*'` for any other value).
+		 *
+		 * `secondary` may also list templates: the first whose fields all hold
+		 * a value is drawn. `secondaryRefs` (`{ alias: { field, register,
+		 * schema, counts } }`) reads the records a row points at, once per id,
+		 * so the line can name them (`{segment.name}`); `counts` adds, per
+		 * referenced record, a count aggregate of what points at it.
 		 *
 		 * `firstOf` (a list of fields, dotted paths allowed) shows the first that
 		 * holds a value, instead of the column's key.
@@ -1174,6 +1181,15 @@ export default {
 			 */
 			aggregateValues: {},
 			/**
+			 * Records the secondary lines reference, by column key, then alias,
+			 * then id. Populated by `loadSecondaryRefLines()`.
+			 *
+			 * @type {{[colKey: string]: {[alias: string]: {[id: string]: object}}}}
+			 */
+			secondaryRefValues: {},
+			/** Monotonic id of the latest `loadSecondaryRefLines()` batch. */
+			secondaryRefRequestId: 0,
+			/**
 			 * Columns whose endpoint aggregate answered `available: false`, by
 			 * column key; such a column is not drawn.
 			 *
@@ -1556,6 +1572,7 @@ export default {
 		rows: {
 			handler() {
 				this.loadAggregates()
+				this.loadSecondaryRefLines()
 			},
 		},
 
@@ -1568,6 +1585,7 @@ export default {
 		effectiveColumns: {
 			handler() {
 				this.loadAggregates()
+				this.loadSecondaryRefLines()
 			},
 
 			deep: false,
@@ -1587,6 +1605,7 @@ export default {
 
 	mounted() {
 		this.loadAggregates()
+		this.loadSecondaryRefLines()
 		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
 		// are given and no external rows were passed (folded from CnTableWidget).
 		if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
@@ -2124,7 +2143,36 @@ export default {
 		 * @return {string} The secondary text, or ''.
 		 */
 		secondaryValue(row, col) {
+			if (Array.isArray(col?.secondary) || (col?.secondaryRefs && typeof col.secondaryRefs === 'object')) {
+				const context = col.secondaryRefs
+					? rowWithRefs(row, col.secondaryRefs, this.secondaryRefValues[col.key], (r, path) => this.getCellValue(r, path))
+					: row
+				return firstFilled(col.secondary, context, (key) => this.translateLabel(key))
+			}
 			return this.cellLineValue(row, col?.secondary, col)
+		},
+
+		/**
+		 * Read the records the columns' secondary lines reference
+		 * (`secondaryRefs`), once per id, into `secondaryRefValues`. A stale
+		 * answer (rows or columns changed meanwhile) is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/secondary-line-from-references/specs/data-table/spec.md
+		 */
+		async loadSecondaryRefLines() {
+			const cols = this.effectiveColumns.filter((c) => c && c.secondaryRefs && typeof c.secondaryRefs === 'object')
+			const id = ++this.secondaryRefRequestId
+			if (cols.length === 0) {
+				return
+			}
+			const next = {}
+			await Promise.all(cols.map(async (col) => {
+				next[col.key] = await loadSecondaryRefs(col.secondaryRefs, this.rows, (r, path) => this.getCellValue(r, path))
+			}))
+			if (id === this.secondaryRefRequestId) {
+				this.secondaryRefValues = next
+			}
 		},
 
 		/**
