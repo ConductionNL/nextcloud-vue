@@ -2750,6 +2750,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding-bottom: 6px;
 }
 
+/* Over a table the title stands the full 12px above it: the leading
+   allowance above is for a first text line, and a table's head row has a box
+   of its own (DqDoorlooptijd "Wettelijke Woo-termijnen", "Zaken met risico",
+   "Prestaties per zaaktype"; r34 19.8 vs 22).
+   @spec openspec/changes/board-card-title-above-table/specs/board-card-title-above-table/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content > .cn-widget-object-table__host) .cn-widget-wrapper__header {
+	padding-bottom: 12px;
+}
+
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
 /* A macro reads as the boards draw a card's list row: the name 15px at
    weight 500 over its 13px line, both at the font's normal line height, 56px a row
