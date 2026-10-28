@@ -284,6 +284,7 @@ export {
 	CnRadioCardsWidget,
 	CnReadinessChecklist,
 	CnRecordListWidget,
+	CnIndexListWidget,
 	CnRedactionEditor,
 	CnReferencePreview,
 	CnRegisterMapping,
