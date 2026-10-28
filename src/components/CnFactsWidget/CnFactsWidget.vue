@@ -69,6 +69,10 @@
 								class="cn-facts-widget__value-link">
 								{{ shownValue(row) }}
 							</router-link>
+							<CnStatusBadge v-else-if="row.pill"
+								:label="shownValue(row)"
+								:variant="row.pill"
+								size="small" />
 							<span v-else :class="row.tone ? `cn-facts-widget__value-text--${row.tone}` : null">{{ shownValue(row) }}</span>
 							<button
 								v-if="row.reveal && !revealed[row.key]"
@@ -517,6 +521,7 @@ export default {
 		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
 		 * - `tileStyle` — `"figures"` with `layout: "tiles"`: white tiles, a plain label above a large value (board PqKassadienst "Kasverschil"). A row's `note` (`{ parts, separator? }`, as a line's parts) is written under its value; its `tone` (`[{ when: { field, op, value }, variant }]`) colours the value with the first variant whose condition the record meets.
 		 * - `notice.visibleWhen` — a condition on the record shown; the band shows only while it holds.
+		 * - A row's `pill` (`{ variantMap }`) draws its value as a status pill toned by the raw value.
 		 * - `input` — `{ key, label, placeholder?, visibleWhen? }`, one labelled text field under the facts (only while the record meets `visibleWhen`); an action reads what was typed as `@input.<key>` ('' when empty).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
@@ -1551,6 +1556,23 @@ export default {
 		},
 
 		/**
+		 * The pill tone of a row drawn as a pill (`pill: { variantMap }`): the
+		 * raw value's variant, else `default`; '' for a row that is text.
+		 *
+		 * @param {object} record The object shown.
+		 * @param {object} field The entry.
+		 * @return {string}
+		 * @spec openspec/changes/facts-figures-and-input/specs/facts-widget/spec.md#requirement-tiles-can-show-figures-with-a-note-and-a-tone
+		 */
+		rowPillOf(record, field) {
+			if (!field.pill || typeof field.pill !== 'object') {
+				return ''
+			}
+			const variant = (field.pill.variantMap || {})[String(readPath(record, field.path))]
+			return isBadgeVariant(variant) ? variant : 'default'
+		},
+
+		/**
 		 * Put what the reader typed in the card's input into an action:
 		 * every `@input.<key>` becomes the typed text ('' when nothing was typed).
 		 *
@@ -1589,6 +1611,7 @@ export default {
 			const extras = {
 				note: field.note && typeof field.note === 'object' && Array.isArray(field.note.parts) ? this.lineValue(record, field.note) : '',
 				tone: this.toneOf(record, field),
+				pill: this.rowPillOf(record, field),
 				icon: typeof field.icon === 'string' ? field.icon : '',
 				path: field.path || '',
 				raw: readPath(record, field.path),

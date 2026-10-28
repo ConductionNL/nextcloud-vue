@@ -123,6 +123,19 @@ describe('CnFactsWidget: one input the actions send', () => {
 	})
 })
 
+describe('CnFactsWidget: a row value as a pill', () => {
+	it('draws the value as a pill toned by the raw value', () => {
+		const w = mount(CnFactsWidget, {
+			propsData: { objectData: { status: 'closed' }, content: { fields: [{ path: 'status', label: 'Status', map: { closed: 'Counted' }, pill: { variantMap: { closed: 'warning' } } }] } },
+			provide: { cnTranslate: (key) => key },
+			stubs: { NcLoadingIcon: true, CnStatusBadge: { name: 'CnStatusBadge', props: ['label', 'variant'], template: '<span>{{ label }}</span>' } },
+		})
+		const badge = w.find('[data-testid="cn-fact-status"]').findComponent({ name: 'CnStatusBadge' })
+		expect(badge.props('label')).toBe('Counted')
+		expect(badge.props('variant')).toBe('warning')
+	})
+})
+
 describe('CnFactsWidget: an input with a condition', () => {
 	it('is drawn only while the record meets it', () => {
 		const content = { fields: FIELDS, input: { key: 'reason', label: 'Reason', visibleWhen: { field: 'status', value: 'pending' } } }

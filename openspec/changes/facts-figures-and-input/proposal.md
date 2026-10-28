@@ -14,6 +14,7 @@ unfilled token, so the pipelinq shift page said "not counted yet" beside a count
 - A row's `note` (parts under the value) and `tone` (a variant by condition) on its value.
 - `notice.visibleWhen`: the band shows only while the record meets the condition.
 - `input`: one labelled text field; actions read it as `@input.<key>`.
+- A row's `pill` (`{ variantMap }`): the value as a status pill.
 - A source's `sort` is not checked for unfilled tokens.
 
 Without the new keys nothing changes. No schema change.
