@@ -54,7 +54,7 @@
 		<div
 			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
-			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard }"
+			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
 			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
@@ -3065,6 +3065,18 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
 		 */
 		headerCard: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The header buttons on a row of their own under the title (manifest
+		 * `config.headerActionsBelow`), as board PqLead draws them, instead of
+		 * beside it.
+		 *
+		 * @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title
+		 */
+		headerActionsBelow: {
 			type: Boolean,
 			default: false,
 		},

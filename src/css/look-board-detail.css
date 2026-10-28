@@ -79,6 +79,22 @@
 	justify-content: flex-end;
 }
 
+/* `headerActionsBelow`: the title takes the whole first row and the buttons
+   start a row of their own under it, from the left (PqLead).
+   @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title */
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below {
+	flex-wrap: wrap;
+}
+
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below > :first-child {
+	flex: 1 1 100%;
+}
+
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below .cn-detail-page__header-actions {
+	flex: 1 1 100%;
+	justify-content: flex-start;
+}
+
 /* The header buttons are 40px secondary controls on the board's radius. */
 .cn-look-board .cn-detail-page__header-actions.cn-detail-page__header-actions .button-vue {
 	block-size: var(--cn-board-control-height);
