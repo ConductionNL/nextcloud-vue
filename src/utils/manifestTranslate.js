@@ -55,9 +55,12 @@ function fill(text, vars) {
  * @param {() => string} options.getLanguage The language to show.
  * @param {(text: string, vars?: object) => string} [options.translate] The host's translate.
  * @param {(text: string, vars?: object) => string} [options.library] The library's translate, asked when the host has no translation.
+ * @param {(text: string) => boolean} [options.hostHas] Whether the host's catalogue holds `text`. A held key is
+ *   the host's answer even when it reads as the key ("Open" is "Open" in Dutch), so the library's own meaning
+ *   ("Openen") does not replace it.
  * @return {Function} `(text, vars) => string`, with `lookup`, `fellBack` and `sourceLanguage` attached.
  */
-export function createManifestTranslate({ getManifest, getLanguage, translate, library }) {
+export function createManifestTranslate({ getManifest, getLanguage, translate, library, hostHas }) {
 	const host = typeof translate === 'function' ? translate : (text) => text
 
 	const i18n = () => {
@@ -83,7 +86,8 @@ export function createManifestTranslate({ getManifest, getLanguage, translate, l
 		}
 		const answer = host(text, vars)
 		let shown = typeof answer === 'string' && answer !== '' ? answer : fill(text, vars)
-		if (shown === fill(text, vars) && typeof library === 'function') {
+		const held = typeof hostHas === 'function' && hostHas(text) === true
+		if (!held && shown === fill(text, vars) && typeof library === 'function') {
 			const own = library(text, vars)
 			if (typeof own === 'string' && own !== '') {
 				shown = own

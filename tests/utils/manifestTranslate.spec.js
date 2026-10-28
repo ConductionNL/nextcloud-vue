@@ -64,6 +64,14 @@ describe('createManifestTranslate', () => {
 		expect(createManifestTranslate({ getManifest: () => null, getLanguage: () => 'nl', translate: () => 'Bestemming', library }).lookup('Open AI chat').text).toBe('Bestemming')
 	})
 
+	it('keeps a key the host holds, also when it reads as the key (Open is Open in Dutch)', () => {
+		const library = (text) => (text === 'Open' ? 'Openen' : text)
+		const base = { getManifest: () => null, getLanguage: () => 'nl', translate: (text) => text, library }
+		expect(createManifestTranslate({ ...base, hostHas: (text) => text === 'Open' })('Open')).toBe('Open')
+		expect(createManifestTranslate({ ...base, hostHas: () => false })('Open')).toBe('Openen')
+		expect(createManifestTranslate(base)('Open')).toBe('Openen')
+	})
+
 	it('fills placeholders, in a manifest translation and in the host\'s answer', () => {
 		expect(make().fn('Hallo {name}', { name: 'Jan' })).toBe('Hello Jan')
 		expect(make({ language: 'de', translate: (t, v) => t.replace('{name}', v.name) }).fn('Dag {name}', { name: 'Jan' })).toBe('Dag Jan')

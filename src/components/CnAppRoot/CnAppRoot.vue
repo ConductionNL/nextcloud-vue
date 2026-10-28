@@ -2281,6 +2281,11 @@ export default {
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
 				library: (text, vars) => t('nextcloud-vue', text, vars),
+				hostHas: (text) => {
+					// The catalogue Nextcloud registers the app's translations in.
+					const table = globalThis._oc_l10n_registry_translations?.[this.appId]
+					return !!table && Object.hasOwn(table, text)
+				},
 			})
 		},
 
