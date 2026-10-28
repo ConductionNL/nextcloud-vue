@@ -12,7 +12,7 @@ import { nextTick } from 'vue'
 import CnRecordListWidget from '../../src/components/CnRecordListWidget/CnRecordListWidget.vue'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
-jest.mock('@nextcloud/router', () => ({ generateUrl: (path) => path }))
+jest.mock('@nextcloud/router', () => ({ generateUrl: (path, params = {}) => path.replace(/\{(\w+)\}/g, (m, key) => params[key] ?? m) }))
 
 const STEPS = [
 	{ kind: 'gesprek', date: '2026-10-08', summary: 'Gesprek met de ouders' },
@@ -67,5 +67,24 @@ describe('CnRecordListWidget objectRows', () => {
 		await w.setProps({ objectData: { id: 'c1', sensitiveProperties: [{ name: 'onderzoeksstappen', value: JSON.stringify(STEPS.slice(0, 1)) }] } })
 		await flush()
 		expect(w.findAll('.cn-record-list__title')).toHaveLength(1)
+	})
+
+	it('reads the record a row names (refs) once and puts it on the row', async () => {
+		axios.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith('/p-1') ? { name: 'Veldonderhoud, per veld' } : { name: 'Winterdienst' } }))
+		const w = mount(CnRecordListWidget, {
+			props: {
+				objectData: { id: 'k1', lineItems: [{ productRef: 'p-1', quantity: 4 }, { productRef: 'p-2', quantity: 1 }, { productRef: 'p-1', quantity: 2 }] },
+				content: {
+					objectRows: { path: 'lineItems', refs: [{ field: 'productRef', register: 'pipelinq', schema: 'product', as: 'product' }] },
+					title: '{product.name}',
+					meta: '{quantity}',
+					limit: 10,
+				},
+			},
+		})
+		await flush()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(axios.get).toHaveBeenCalledWith('/apps/openregister/api/objects/pipelinq/product/p-1')
+		expect(w.findAll('.cn-record-list__title').map((t) => t.text())).toEqual(['Veldonderhoud, per veld', 'Winterdienst', 'Veldonderhoud, per veld'])
 	})
 })
