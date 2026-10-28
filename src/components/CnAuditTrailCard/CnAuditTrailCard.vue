@@ -340,6 +340,7 @@ export default {
 			if (!this.register || !this.schema || !this.objectId) {
 				return ''
 			}
+			this.addExclusions(params)
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${params.toString()}`
 		},
 	},
@@ -356,6 +357,26 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Ask an object trail to leave out the excluded actions and actors in
+		 * the query (`action[notIn]`, `user[notIn]`), so its pages hold what the
+		 * card shows. `keepAuditEntries` still filters what comes back.
+		 *
+		 * @param {URLSearchParams} params The trail query, changed in place.
+		 * @return {void}
+		 * @spec openspec/changes/audit-card-exclusions-in-the-query/specs/audit-trail/spec.md#requirement-a-history-card-asks-the-trail-to-leave-out-what-it-hides
+		 */
+		addExclusions(params) {
+			const actions = this.excludeActions.map(String).filter(Boolean)
+			const actors = this.excludeActors.map(String).filter(Boolean)
+			if (actions.length > 0) {
+				params.set('action[notIn]', actions.join(','))
+			}
+			if (actors.length > 0) {
+				params.set('user[notIn]', actors.join(','))
+			}
+		},
+
 		/**
 		 * Read the entries from `fetchUrl`. The readable feed answers
 		 * `{ rows, nextCursor }`, the object trail `{ results }`.
@@ -463,7 +484,9 @@ export default {
 						}
 						const objects = await read(`${this.apiBase}/objects/${source.register}/${source.schema}?${params.toString()}`)
 						const ids = objects.map((object) => object?.id || object?.['@self']?.id || object?.uuid).filter(Boolean)
-						const trails = await Promise.all(ids.map((id) => read(`${this.apiBase}/objects/${source.register}/${source.schema}/${id}/audit-trails?limit=${limit}`).catch(() => [])))
+						const trailParams = new URLSearchParams({ limit: String(limit) })
+						this.addExclusions(trailParams)
+						const trails = await Promise.all(ids.map((id) => read(`${this.apiBase}/objects/${source.register}/${source.schema}/${id}/audit-trails?${trailParams.toString()}`).catch(() => [])))
 						return trails.flat().map((entry) => ({ ...entry, relatedAs: source.as || source.schema }))
 					} catch {
 						return []
