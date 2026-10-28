@@ -1,0 +1,2 @@
+- [x] CnFactsWidget format today-time
+- [x] jest CnFactsWidgetTodayTime
