@@ -105,6 +105,9 @@
 					:controls="viewRegionId"
 					data-testid="cn-dashboard-page-view-switch"
 					@update:modelValue="selectView" />
+				<!-- Board look with `actionsPlacement: "start"`: the page's own
+				     actions component (an availability toggle) leads the row. -->
+				<slot v-if="isBoardLook && actionsFirst" name="actions" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
 				     `headerActions[]` renders as buttons (open-form / api-call /
 				     toggle / navigate / refresh) with visibleWhen gating,
@@ -193,7 +196,7 @@
 						:actions="boardPrimaryHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
-					<slot name="actions" />
+					<slot v-if="!actionsFirst" name="actions" />
 				</template>
 			</div>
 		</div>
@@ -1846,6 +1849,20 @@ export default {
 		},
 
 		/**
+		 * Where the page's own actions component (`actionsComponent`, the
+		 * `#actions` slot) sits in the board-look header row: `end` (default,
+		 * rightmost) or `start` (first, before the secondary actions and the
+		 * buildiq square), as PqDashboard draws its availability toggle.
+		 *
+		 * @type {'end'|'start'}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsPlacement: {
+			type: String,
+			default: 'end',
+		},
+
+		/**
 		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
 		 * in the dashboard header via CnActionButtons — `open-form` (schema
 		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
@@ -2268,6 +2285,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the `#actions` slot leads the board header row.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsFirst() {
+			return this.actionsPlacement === 'start'
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
