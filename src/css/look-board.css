@@ -2602,6 +2602,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 20px var(--cn-board-dashboard-card-inset) calc(12px - var(--cn-board-first-line-leading, 0.15em));
 }
 
+/* Under a subtitle the content starts 12px down: the leading taken off above
+   belongs to a title-only head, whose title line carries it (DqCatalogus
+   "Objecttypen", DqProcesanalyse, DqTermijnen sat 2.3px high).
+   @spec openspec/changes/board-dashboard-card-subtitle-gap/specs/board-dashboard-card-subtitle-gap/spec.md#requirement-a-board-dashboard-cards-content-starts-12px-under-its-subtitle */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) .cn-widget-wrapper__header {
+	padding-bottom: 12px;
+}
+
 /* Over a list that rules above its first row (record list ruleAbove, task
    list, decision list) the rule stands 6px under the title and the row's own
    12px follows it: the boards' card is title, 6px, rule, row (DqMijnTeam
