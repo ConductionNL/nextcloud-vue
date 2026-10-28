@@ -41,6 +41,26 @@ describe('CnRecordListWidget avatar size', () => {
 		expect(w.find('.cn-record-list__list').classes()).not.toContain('cn-record-list__list--avatar-small')
 	})
 
+	it('marks the list for the person chip with avatar.size 40', async () => {
+		const w = await mountList({ register: 'r', schema: 's', title: '{subject}', avatar: { text: '{advisor}', size: 40 } })
+		expect(w.find('.cn-record-list__list').classes()).toContain('cn-record-list__list--avatar-person')
+		expect(w.find('.cn-record-list__list').classes()).not.toContain('cn-record-list__list--avatar-small')
+	})
+
+	it('draws the person chip 40px, 16px bold on the grey ground, in a side column too', () => {
+		const at = sfc.indexOf('.cn-record-list__list--avatar-person .cn-record-list__avatar {')
+		expect(at).toBeGreaterThan(-1)
+		const body = sfc.slice(at, sfc.indexOf('}', at))
+		expect(body).toContain('width: 40px')
+		expect(body).toContain('font-size: 16px')
+		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8')
+		const side = css.indexOf('.cn-detail-page__side .cn-record-list__list--avatar-person .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {')
+		expect(side).toBeGreaterThan(-1)
+		const sideBody = css.slice(side, css.indexOf('}', side))
+		expect(sideBody).toContain('width: 40px')
+		expect(sideBody).toContain('background: var(--color-background-hover)')
+	})
+
 	it('draws the small circle 32px and 12px from the title', () => {
 		const at = sfc.indexOf('.cn-record-list__list--avatar-small .cn-record-list__avatar {')
 		const body = sfc.slice(at, sfc.indexOf('}', at))
