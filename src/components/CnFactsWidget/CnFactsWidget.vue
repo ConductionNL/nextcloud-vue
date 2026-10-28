@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles, 'cn-facts-widget__rows--figures': tiles && figures }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -69,7 +69,7 @@
 								class="cn-facts-widget__value-link">
 								{{ shownValue(row) }}
 							</router-link>
-							<span v-else>{{ shownValue(row) }}</span>
+							<span v-else :class="row.tone ? `cn-facts-widget__value-text--${row.tone}` : null">{{ shownValue(row) }}</span>
 							<button
 								v-if="row.reveal && !revealed[row.key]"
 								type="button"
@@ -97,6 +97,9 @@
 								<Check v-if="copied === row.key" :size="16" aria-hidden="true" />
 								<ContentCopy v-else :size="16" aria-hidden="true" />
 							</button>
+							<span v-if="row.note"
+								class="cn-facts-widget__value-note"
+								:data-testid="`cn-fact-note-${row.key}`">{{ row.note }}</span>
 						</dd>
 					</div>
 				</dl>
@@ -241,6 +244,15 @@
 			<CnIcon v-if="action.icon" :name="action.icon" :size="16" />
 			{{ action.label }}
 		</button>
+		<div v-if="input && record" class="cn-facts-widget__input">
+			<label :for="inputId" class="cn-facts-widget__input-label">{{ input.label }}</label>
+			<input :id="inputId"
+				v-model="inputValues[input.key]"
+				type="text"
+				class="cn-facts-widget__input-field"
+				:placeholder="input.placeholder"
+				data-testid="cn-facts-input">
+		</div>
 		<CnActionButtons
 			v-if="drawnActions.length > 0"
 			class="cn-facts-widget__actions"
@@ -503,6 +515,9 @@ export default {
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
 		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
+		 * - `tileStyle` — `"figures"` with `layout: "tiles"`: white tiles, a plain label above a large value (board PqKassadienst "Kasverschil"). A row's `note` (`{ parts, separator? }`, as a line's parts) is written under its value; its `tone` (`[{ when: { field, op, value }, variant }]`) colours the value with the first variant whose condition the record meets.
+		 * - `notice.visibleWhen` — a condition on the record shown; the band shows only while it holds.
+		 * - `input` — `{ key, label, placeholder? }`, one labelled text field under the facts; an action reads what was typed as `@input.<key>` ('' when empty).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -532,6 +547,8 @@ export default {
 
 	data() {
 		return {
+			/** What the reader typed in the card's `input`, by key. */
+			inputValues: {},
 			fetched: null,
 			loading: false,
 			error: false,
@@ -793,7 +810,7 @@ export default {
 				if (condition && !isLocallyDecidableVisibleWhen(condition) && this.remoteVisibility[id] !== true) {
 					return
 				}
-				const { value, unresolved } = resolveSourceTokens(action, record)
+				const { value, unresolved } = resolveSourceTokens(this.resolveInputTokens(action), record)
 				if (unresolved) {
 					return
 				}
@@ -991,7 +1008,46 @@ export default {
 			if (text === '') {
 				return null
 			}
+			if (notice.visibleWhen && !(this.record && evaluateVisibleWhenLocal(notice.visibleWhen, this.record))) {
+				return null
+			}
 			return { text, type: ['success', 'warning', 'error'].includes(notice.variant) ? notice.variant : 'info' }
+		},
+
+		/**
+		 * The card's one text field (`content.input`): `{ key, label, placeholder }`,
+		 * translated, or null without a key. Actions read what was typed as
+		 * `@input.<key>`.
+		 *
+		 * @return {{key: string, label: string, placeholder: string}|null}
+		 * @spec openspec/changes/facts-figures-and-input/specs/facts-widget/spec.md#requirement-a-facts-card-can-ask-for-one-value-its-actions-send
+		 */
+		input() {
+			const input = this.content?.input
+			if (!input || typeof input.key !== 'string' || input.key === '') {
+				return null
+			}
+			return {
+				key: input.key,
+				label: typeof input.label === 'string' ? this.tr(input.label) : '',
+				placeholder: typeof input.placeholder === 'string' ? this.tr(input.placeholder) : '',
+			}
+		},
+
+		/** @return {string} The id that ties the input's label to its field. */
+		inputId() {
+			return `cn-facts-input-${this._uid ?? this.$?.uid ?? 0}-${this.input ? this.input.key : ''}`
+		},
+
+		/**
+		 * Whether tiles draw as figures: a plain label above a large value
+		 * (`tileStyle: "figures"`, board PqKassadienst "Kasverschil").
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/facts-figures-and-input/specs/facts-widget/spec.md#requirement-tiles-can-show-figures-with-a-note-and-a-tone
+		 */
+		figures() {
+			return this.content?.tileStyle === 'figures'
 		},
 
 		/** @return {string} The translated footnote, or '' when none is set. */
@@ -1476,6 +1532,47 @@ export default {
 		},
 
 		/**
+		 * The tone of a row's value: the first `tone` entry whose `when` the
+		 * record meets (`[{ when: { field, op, value }, variant: "error" }]`),
+		 * so a shortage reads in red.
+		 *
+		 * @param {object} record The object shown.
+		 * @param {object} field The entry.
+		 * @return {string} `success`, `warning` or `error`, or ''.
+		 * @spec openspec/changes/facts-figures-and-input/specs/facts-widget/spec.md#requirement-tiles-can-show-figures-with-a-note-and-a-tone
+		 */
+		toneOf(record, field) {
+			const tones = Array.isArray(field.tone) ? field.tone : []
+			const hit = tones.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, record))
+			return hit && ['success', 'warning', 'error'].includes(hit.variant) ? hit.variant : ''
+		},
+
+		/**
+		 * Put what the reader typed in the card's input into an action:
+		 * every `@input.<key>` becomes the typed text ('' when nothing was typed).
+		 *
+		 * @param {object} action The action declaration.
+		 * @return {object} The action with its input tokens filled.
+		 * @spec openspec/changes/facts-figures-and-input/specs/facts-widget/spec.md#requirement-a-facts-card-can-ask-for-one-value-its-actions-send
+		 */
+		resolveInputTokens(action) {
+			const values = this.inputValues
+			const walk = (node) => {
+				if (typeof node === 'string') {
+					return node.replace(/@input\.([\w-]+)/g, (match, key) => String(values[key] ?? '').trim())
+				}
+				if (Array.isArray(node)) {
+					return node.map(walk)
+				}
+				if (node && typeof node === 'object') {
+					return Object.fromEntries(Object.entries(node).map(([key, entry]) => [key, walk(entry)]))
+				}
+				return node
+			}
+			return walk(action)
+		},
+
+		/**
 		 * What a row adds to its value: an icon, a link for the email, phone
 		 * and url formats, the masked text, and the copy and reveal buttons.
 		 *
@@ -1487,6 +1584,8 @@ export default {
 		 */
 		rowExtras(record, field, value) {
 			const extras = {
+				note: field.note && typeof field.note === 'object' && Array.isArray(field.note.parts) ? this.lineValue(record, field.note) : '',
+				tone: this.toneOf(record, field),
 				icon: typeof field.icon === 'string' ? field.icon : '',
 				path: field.path || '',
 				raw: readPath(record, field.path),
@@ -1896,7 +1995,9 @@ export default {
 			if (typeof source.url === 'string') {
 				return source.url
 			}
-			if (hasUnresolvedDeepTokens(source)) {
+			// The sort names a field ("@self.created"), not a token to fill.
+			const tokens = Object.fromEntries(Object.entries(source).filter(([key]) => key !== 'sort'))
+			if (hasUnresolvedDeepTokens(tokens)) {
 				return ''
 			}
 			const { register, schema, id } = source
@@ -2515,6 +2616,66 @@ export default {
 
 .cn-facts-widget__rows--tiles .cn-facts-widget__value.cn-facts-widget__value {
 	font-weight: 400;
+}
+
+/* `tileStyle: "figures"` (board PqKassadienst "Kasverschil"): white tiles,
+   a plain label above a large figure, a muted note under it. */
+.cn-facts-widget__rows--figures .cn-facts-widget__row {
+	padding: 16px 18px;
+	background: var(--color-main-background);
+}
+
+.cn-facts-widget__rows--figures .cn-facts-widget__label.cn-facts-widget__label {
+	font-size: 14px;
+	font-weight: 400;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-facts-widget__rows--figures .cn-facts-widget__value.cn-facts-widget__value {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-facts-widget__value-note {
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-facts-widget__value-text--error {
+	color: var(--color-error-text);
+}
+
+.cn-facts-widget__value-text--warning {
+	color: var(--color-warning-text);
+}
+
+.cn-facts-widget__value-text--success {
+	color: var(--color-success-text);
+}
+
+.cn-facts-widget__input {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 16px;
+}
+
+.cn-facts-widget__input-label {
+	font-weight: 600;
+}
+
+.cn-facts-widget__input-field {
+	width: 100%;
+	min-height: 40px;
+	margin: 0;
 }
 
 @media (max-width: 640px) {
