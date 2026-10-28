@@ -2441,6 +2441,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 1.5;
 }
 
+/* A shell with `plainNotes` draws its cards' notes as the NcBeheerInstellingen
+   boards do: no icon, and a warning on the peach ground with its own edge
+   (DqBeheerGeavanceerd "KCC-werkplek-integratie", "Financiële integratie").
+   @spec openspec/changes/admin-settings-plain-notes/specs/admin-settings-plain-notes/spec.md */
+.cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard:not(.cn-look-nextcloud *) .notecard__icon,
+.cn-look-board.cn-admin-settings-shell--plain-notes .settings-section .notecard:not(.cn-look-nextcloud *) .notecard__icon {
+	display: none;
+}
+
+.cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *),
+.cn-look-board.cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-banner-ground: var(--cn-board-note-warning-ground, #fff4e5);
+	--cn-banner-edge: var(--cn-board-note-warning-edge, #f0c987);
+}
+
 /* A stat-row cell that holds only a banner is the banner: no card around it. */
 .cn-look-board .cn-index-page-widgets__cell .cn-widget-wrapper:has(.cn-banner-widget):not(:has(.cn-widget-wrapper__header)):not(.cn-look-nextcloud *) {
 	border: none;
