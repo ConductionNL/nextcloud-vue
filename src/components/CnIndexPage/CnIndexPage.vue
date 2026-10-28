@@ -1163,7 +1163,8 @@
 							:object="object"
 							:layout="expandableRows"
 							:open="expandableRows.open === 'all' || (expandableRows.open === 'first' && displayObjects[0] === object)"
-							@action="onExpandableRowAction">
+							@action="onExpandableRowAction"
+							@reorder="onExpandableRowReorder">
 							<template v-if="hasRowActions" #actions>
 								<CnRowActions
 									:actions="rowMenuActionsFor(object)"
@@ -4580,6 +4581,7 @@ export default {
 		'page-size-changed',
 		'quick-filter-change',
 		'refresh',
+		'reorder',
 		'row-click',
 		'row-aux-click',
 		'search',
@@ -13011,6 +13013,30 @@ export default {
 			this.onRowAction(entry
 				? { action: entry.label, row, id, ...(entry.builtin ? { builtin: true } : {}) }
 				: { action: id, row, id })
+		},
+
+		/**
+		 * An entry of an expandable row's sub-table moved: save the row with
+		 * the list in its new order through the store, then reload.
+		 *
+		 * @param {{row: object, field: string, entries: Array}} payload The row, the list field and the list.
+		 * @return {Promise<void>} Nothing.
+		 * @spec openspec/changes/expandable-row-table-tools/specs/expandable-row-table-tools/spec.md
+		 */
+		async onExpandableRowReorder(payload) {
+			if (this.store && this.objectType) {
+				const saved = await this.store.saveObject(this.objectType, { ...payload.row, [payload.field]: payload.entries })
+				if (saved) {
+					await this.onRefreshEvent()
+				} else {
+					this.toastSavedView('error', t('nextcloud-vue', 'The new order could not be saved'))
+				}
+			}
+			/**
+			 * @event reorder An expandable row's sub-table was reordered. Payload: `{ row, field, entries }`.
+			 * @type {{ row: object, field: string, entries: Array }}
+			 */
+			this.$emit('reorder', payload)
 		},
 
 		onRowAction(payload) {

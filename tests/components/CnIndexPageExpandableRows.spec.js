@@ -39,6 +39,18 @@ describe('CnIndexPage — expandable rows', () => {
 		expect(handler).toHaveBeenCalledWith(ROWS[1])
 		expect(wrapper.emitted('action')[0][0]).toEqual({ action: 'Edit', row: ROWS[1], id: 'edit', builtin: true })
 	})
+
+	it('saves a reordered sub-table through the store and emits it', async () => {
+		const saveObject = jest.fn().mockResolvedValue({ id: 'p1' })
+		const wrapper = mount(CnIndexPage, {
+			props: { objects: ROWS, schema: { title: 'Pipeline', properties: {} }, viewMode: 'list', expandableRows: LAYOUT, store: { saveObject }, objectType: 'pipeline' },
+			global: { stubs: { CnRowActions: true } },
+		})
+		const entries = [{ name: 'B', order: 1 }, { name: 'A', order: 2 }]
+		await wrapper.vm.onExpandableRowReorder({ row: ROWS[0], field: 'stages', entries })
+		expect(saveObject).toHaveBeenCalledWith('pipeline', { ...ROWS[0], stages: entries })
+		expect(wrapper.emitted('reorder')[0][0]).toEqual({ row: ROWS[0], field: 'stages', entries })
+	})
 })
 
 describe('app-manifest-v2 — expandableRows', () => {
@@ -52,6 +64,11 @@ describe('app-manifest-v2 — expandableRows', () => {
 
 	it('accepts a row layout with chips, a sub-table and buttons', () => {
 		const result = validateManifestV2(manifest({ ...LAYOUT, badge: { when: { field: 'isDefault', op: 'eq', value: true }, label: 'Default' }, chips: { field: 'stages', each: 'name', tones: [{ when: { field: 'isWon', op: 'eq', value: true }, variant: 'success' }] } }))
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts sort, filter and reorder on the sub-table', () => {
+		const result = validateManifestV2(manifest({ title: 'title', table: { field: 'stages', sortable: true, filterable: true, reorder: { key: 'order' }, columns: [{ key: 'name', label: 'Stage', sortable: false, filterable: false }] } }))
 		expect(result.errors).toEqual([])
 	})
 
