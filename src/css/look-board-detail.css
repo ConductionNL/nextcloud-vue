@@ -1535,6 +1535,15 @@
 .cn-look-board .cn-retention .cn-retention__fact dd {
 	font-size: 15px;
 	font-weight: 500;
+	line-height: normal;
+}
+
+/* The legal hold mark takes the board's red tag ink and ground (#a30000 on
+   #fcedec, DqZaakArchivering "LH"), as a toned board tag does; the theme's
+   text-error is darker. */
+.cn-look-board .cn-retention .cn-retention__mark--hold:not(.cn-look-nextcloud *) {
+	background: var(--nl-color-red-light, var(--color-error-light, #fcedec));
+	color: var(--nl-color-red-text, var(--color-error-text));
 }
 
 /* "Bewaren voor een procedure" and "Overdracht naar het e-Depot" are 15px/600
