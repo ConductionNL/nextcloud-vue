@@ -181,6 +181,11 @@ export default {
 		cnObjectContext: { default: null },
 		/** The page's pre-bound action dispatcher (CnPageRenderer), for an action with a `type`. */
 		cnDispatchAction: { default: null },
+		/**
+		 * The app's named formatters (CnAppRoot), so a subject token can name
+		 * one: `{subject.channel|channelWord}`.
+		 */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -572,7 +577,7 @@ export default {
 		 */
 		displayTitle() {
 			const title = this.title || (this.content && this.content.title) || ''
-			return title ? this.fillValue(this.tl(title)) : this.displayText
+			return title ? this.withFallback(this.fillValue(this.tl(title)), title, 'fallbackTitle') : this.displayText
 		},
 
 		/**
@@ -822,8 +827,8 @@ export default {
 		},
 
 		/**
-		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`) from
-		 * the card's subject row. A token with no value empties the whole text,
+		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`, or an
+		 * app formatter `|<name>`) from the card's subject row. A token with no value empties the whole text,
 		 * as in a record list. Text without a subject token is untouched.
 		 *
 		 * @param {string} text The text.
@@ -836,7 +841,7 @@ export default {
 			}
 			// `{value}` is not a subject token: keep it out of the template fill.
 			const guard = '\u0000value\u0000'
-			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} })
+			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} }, new Date(), { formatters: this.cnFormatters })
 			return filled.replaceAll(guard, '{value}')
 		},
 
