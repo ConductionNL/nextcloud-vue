@@ -79,6 +79,47 @@
 					</span>
 				</li>
 			</ol>
+			<!-- The list variant (`variant: "list"`, board PqOfferte "Status"):
+			     one row per stage, a round marker filled on the current one,
+			     "you are here" beside it and a stage's hint beside the others. -->
+			<ol
+				v-else-if="isList"
+				class="cn-stages-widget__list"
+				:aria-label="ariaLabel"
+				data-testid="cn-stages-widget-list">
+				<li
+					v-for="stage in barStages"
+					:key="stage.id"
+					class="cn-stages-widget__list-step"
+					:class="`cn-stages-widget__list-step--${stage.state}`"
+					:aria-current="stage.state === 'current' ? 'step' : null"
+					:data-testid="`cn-stages-widget-list-${stage.id}`">
+					<span class="cn-stages-widget__list-marker" aria-hidden="true" />
+					<component
+						:is="stage.clickable ? 'button' : 'span'"
+						:type="stage.clickable ? 'button' : null"
+						class="cn-stages-widget__list-label"
+						:title="stage.hint || null"
+						:aria-disabled="stage.disabled && stage.clickable ? 'true' : null"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`"
+						@click="onBarClick(stage)">
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage" />
+						{{ stage.label }}
+					</component>
+					<span v-if="stage.state === 'current'" class="cn-stages-widget__list-note">{{ tr('you are here') }}</span>
+					<span v-else-if="stage.subtitle" class="cn-stages-widget__list-note">{{ stage.subtitle }}</span>
+					<span
+						v-if="stage.reason"
+						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'">
+						{{ stage.reason }}
+					</span>
+				</li>
+			</ol>
 			<CnTimelineStages
 				v-else
 				:stages="timelineStages"
@@ -278,8 +319,11 @@ function userError(message) {
  * be a timeline. So the list of stages is configured, and it is display only:
  * it grants nothing.
  *
- * One of two sources:
+ * One of three sources:
  *
+ * - `stages`: `[{ id, label, hint?, final? }]`, a fixed list declared in the
+ *   manifest (labels and hints through the host translate). It wins over the
+ *   other two and reads nothing.
  * - `stagesEndpoint`: `{ url, method?, path, params?, idField?, labelField?,
  *   descriptionField?, orderField?, finalField? }`. The url and params take
  *   the shared token grammar (`@objectId`, `@object.<field>`), so
@@ -392,7 +436,7 @@ export default {
 		 * `label`, the placement's own title, so a titled card does not have to
 		 * repeat itself, and then to "Stages".
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars'), datesSource?: {url: string, method?: string, params?: object, path?: string, idField?: string, dateField?: string}}}
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars'|'list'), stages?: Array<{id: string, label: string, hint?: string, final?: boolean}>, datesSource?: {url: string, method?: string, params?: object, path?: string, idField?: string, dateField?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -643,6 +687,30 @@ export default {
 		},
 
 		/**
+		 * The stages the manifest declares (`content.stages`: `[{ id, label,
+		 * hint? }]`), labels and hints through the host translate; null when
+		 * the stages are read from an endpoint or a source. They win over both:
+		 * a fixed process needs no read.
+		 *
+		 * @return {Array<{id: string, label: string, subtitle: string, date: string, final: boolean}>|null} The stages.
+		 * @spec openspec/changes/stages-declared-list/specs/stages-widget/spec.md#requirement-stages-can-be-declared-in-the-manifest
+		 */
+		declaredStages() {
+			if (!Array.isArray(this.content.stages)) {
+				return null
+			}
+			return this.content.stages
+				.filter((stage) => stage && stage.id !== undefined && stage.id !== null && stage.id !== '')
+				.map((stage) => ({
+					id: String(stage.id),
+					label: this.effectiveTranslate(String(stage.label || stage.id)),
+					subtitle: stage.hint ? this.effectiveTranslate(String(stage.hint)) : '',
+					date: '',
+					final: Boolean(stage.final),
+				}))
+		},
+
+		/**
 		 * Whether the stages come from an endpoint (it wins over a source).
 		 *
 		 * @return {boolean} True for `stagesEndpoint`.
@@ -666,6 +734,9 @@ export default {
 		 * @return {Array<{id: string, label: string, subtitle: string, final: boolean}>} The stages.
 		 */
 		stages() {
+			if (this.declaredStages) {
+				return this.declaredStages
+			}
 			const cfg = this.stageConfig
 			const rows = this.endpointStages ? getByPath(this.stagesBody, cfg.path) : this.sourceRows
 			const orderField = cfg.orderField || (this.endpointStages ? '' : cfg.orderBy)
@@ -714,6 +785,9 @@ export default {
 		 * @return {boolean} True while loading.
 		 */
 		stagesPending() {
+			if (this.declaredStages) {
+				return false
+			}
 			if (!this.endpointStages) {
 				return this.sourceLoading
 			}
@@ -746,6 +820,9 @@ export default {
 		 * @return {boolean} True on a failed read.
 		 */
 		stagesError() {
+			if (this.declaredStages) {
+				return false
+			}
 			return Boolean(this.endpointStages ? this.stagesBodyError : this.sourceError)
 		},
 
@@ -880,6 +957,16 @@ export default {
 		 */
 		isBars() {
 			return this.content.variant === 'bars'
+		},
+
+		/**
+		 * Whether the list variant is on (`content.variant: "list"`).
+		 *
+		 * @spec openspec/changes/stages-declared-list/specs/stages-widget/spec.md#requirement-stages-can-be-drawn-as-a-list
+		 * @return {boolean}
+		 */
+		isList() {
+			return this.content.variant === 'list'
 		},
 
 		/**
@@ -1615,6 +1702,64 @@ export default {
 	margin-top: 2px;
 	font-size: 0.8em;
 	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The list variant (board PqOfferte "Status"): one row per stage, 10px
+   apart; a 14px round marker, filled with a light ring on the current stage
+   and outlined on the others; the current label bold, a 13px muted note. */
+.cn-stages-widget__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-stages-widget__list-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-stages-widget__list-marker {
+	flex: none;
+	box-sizing: border-box;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: 50%;
+	background: var(--color-main-background);
+}
+
+.cn-stages-widget__list-step--current .cn-stages-widget__list-marker {
+	border: 0;
+	background: var(--color-primary-element);
+	box-shadow: 0 0 0 3px var(--color-primary-element-light);
+}
+
+.cn-stages-widget__list-label {
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: color-mix(in srgb, var(--color-main-text) 80%, var(--color-text-maxcontrast));
+	text-align: start;
+}
+
+button.cn-stages-widget__list-label {
+	cursor: pointer;
+}
+
+.cn-stages-widget__list-step--current .cn-stages-widget__list-label {
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-stages-widget__list-note {
+	font-size: 13px;
 	color: var(--color-text-maxcontrast);
 }
 
