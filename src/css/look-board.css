@@ -4130,6 +4130,24 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	margin-bottom: 0;
 }
 
+/* The share field's suggestions are the board's list (DqFilterDelen): a 1px
+   edge under the field, rows 14px in, and the kind pill at 18px in the soft
+   ink. The list floats on the body, outside the look's root, so the rules key
+   on the page holding the look and the soft ink is spelled out.
+   @spec openspec/changes/board-share-suggestions/specs/board-share-suggestions/spec.md */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) {
+	border-width: 0 1px 1px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .vs__dropdown-option {
+	padding-inline: 14px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .cn-saved-view-share__pill {
+	line-height: normal;
+	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
+}
+
 /* The edit view dialog (DqFilterBewerken): field labels at a normal line
    height, the sharing note 16px under the choices at 13px, the
    description's hint 6px under its field, the icon group 16px
