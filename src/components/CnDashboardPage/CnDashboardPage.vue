@@ -1136,6 +1136,7 @@ const CHART_PROP_KEYS = [
 	// keys forwarded verbatim to CnChartWidget.
 	'horizontal',
 	'legendPosition',
+	'legendValues',
 	'valueFormat',
 	// Value-axis baseline guard: lets a manifest opt a chart out of the
 	// zero-baseline default (`'fit'`) when its series lives far from zero.
