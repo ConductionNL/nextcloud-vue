@@ -219,3 +219,11 @@ reload on every edit start for the same reason.
 ## A key inside an object
 
 An `overrides` key or an `include` entry can be a dotted path such as `handling.teams`: the widget shows and edits that key inside the `handling` object, and saves `handling` with its other keys kept. See [`CnFormDialog`](./cn-form-dialog.md#a-key-inside-an-object-handlingteams).
+
+## A value as a pill
+
+A field override `pill: { variantMap }` draws the shown value as a status pill, toned by the raw value:
+
+```json
+{ "status": { "enumLabels": { "settled": "Settled" }, "pill": { "variantMap": { "settled": "success", "parked": "warning" } } } }
+```

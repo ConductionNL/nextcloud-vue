@@ -281,10 +281,17 @@
 							:value="displayValues[field.key]"
 							:raw="(objectData || {})[field.key]" />
 						<template v-else>
+							<!-- `pill`: the shown value as a status pill, toned by the raw value. -->
+							<CnStatusBadge
+								v-if="pillOf(field) && !isValueEmpty(field.key)"
+								:label="String(displayValues[field.key])"
+								:variant="pillOf(field)"
+								size="small"
+								:data-testid="`cn-object-data-pill-${field.key}`" />
 							<!-- A Nextcloud group (or list): its display name, cached
 							     per id; the id while the name loads or when unknown. -->
 							<span
-								v-if="isGroupPicker(field) && groupIdsOf(field).length"
+								v-else-if="isGroupPicker(field) && groupIdsOf(field).length"
 								class="cn-object-data-widget__groups">
 								<template v-for="(gid, gi) in groupIdsOf(field)" :key="gid">
 									<span v-if="gi > 0">, </span>
@@ -435,6 +442,7 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
@@ -443,6 +451,7 @@ import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { readPath } from '../../utils/readPath.js'
@@ -501,6 +510,7 @@ export default {
 		NcSelect,
 		NcSelectUsers,
 		CnGroupNameCell,
+		CnStatusBadge,
 		NcCheckboxRadioSwitch,
 		NcActionButton,
 		CnWidgetWrapper,
@@ -1259,6 +1269,24 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The pill tone of a field whose override asks for a pill
+		 * (`pill: { variantMap }`): the raw value's variant, else `default`;
+		 * '' when the field is not a pill.
+		 *
+		 * @param {object} field The resolved field.
+		 * @return {string} The badge variant, or ''.
+		 * @spec openspec/changes/data-widget-value-pill/specs/object-data-widget/spec.md#requirement-a-field-can-show-its-value-as-a-pill
+		 */
+		pillOf(field) {
+			const pill = this.resolvedOverrides[field.key]?.pill
+			if (!pill || typeof pill !== 'object') {
+				return ''
+			}
+			const variant = (pill.variantMap || {})[String((this.objectData || {})[field.key])]
+			return isBadgeVariant(variant) ? variant : 'default'
+		},
+
 		/**
 		 * Publish or withdraw this widget's items on the host surface.
 		 *
