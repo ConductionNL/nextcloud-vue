@@ -79,6 +79,22 @@
 	justify-content: flex-end;
 }
 
+/* `headerActionsBelow`: the title takes the whole first row and the buttons
+   start a row of their own under it, from the left (PqLead).
+   @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title */
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below {
+	flex-wrap: wrap;
+}
+
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below > :first-child {
+	flex: 1 1 100%;
+}
+
+.cn-look-board .cn-detail-page__header--board.cn-detail-page__header--actions-below .cn-detail-page__header-actions {
+	flex: 1 1 100%;
+	justify-content: flex-start;
+}
+
 /* The header buttons are 40px secondary controls on the board's radius. */
 .cn-look-board .cn-detail-page__header-actions.cn-detail-page__header-actions .button-vue {
 	block-size: var(--cn-board-control-height);
@@ -2904,4 +2920,17 @@
 .cn-look-board .cn-tasks-widget__table-row--done .cn-status-badge--default:not(.cn-look-nextcloud *) {
 	--cn-status-badge-ink: var(--color-text-maxcontrast);
 	color: var(--cn-status-badge-ink);
+}
+
+/* An activity card's feed (PqKlant / PqOrganisatie "Activiteit"): the row
+   icon on the sunken ground in the soft ink, the type chips outlined in the
+   control border, as the boards draw them.
+   @spec openspec/changes/timeline-activity-card/specs/timeline-widget/spec.md */
+.cn-look-board .cn-timeline-widget__feed-icon:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-sunken-ground);
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-timeline-widget__chip:not(.cn-timeline-widget__chip--active):not(.cn-look-nextcloud *) {
+	border-color: var(--cn-board-control-border);
 }

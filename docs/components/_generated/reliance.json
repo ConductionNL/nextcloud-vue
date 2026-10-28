@@ -801,7 +801,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 220,
+			"transitive": 222,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -890,6 +890,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -1053,7 +1054,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 220,
+			"transitive": 222,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1142,6 +1143,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -1165,7 +1167,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 137,
+			"transitive": 138,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1227,7 +1229,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 139,
+			"transitive": 140,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1336,6 +1338,15 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-duration-field"
+		},
+		"CnEmailLinkDialog": {
+			"direct": 1,
+			"transitive": 8,
+			"tier": "medium",
+			"via": [
+				"CnEmailPicker"
+			],
+			"page": "cn-email-link-dialog"
 		},
 		"CnEmailPicker": {
 			"direct": 1,
@@ -1697,7 +1708,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 218,
+			"transitive": 220,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1786,6 +1797,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -1830,7 +1842,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 138,
+			"transitive": 139,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2136,7 +2148,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 218,
+			"transitive": 220,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2225,6 +2237,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -2248,7 +2261,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 215,
+			"transitive": 217,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2336,6 +2349,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -2521,9 +2535,9 @@
 			"page": "cn-json-viewer"
 		},
 		"CnKbSearchWidget": {
-			"direct": 1,
-			"transitive": 2,
-			"tier": "light",
+			"direct": 2,
+			"transitive": 3,
+			"tier": "medium",
 			"via": [],
 			"page": "cn-kb-search-widget"
 		},
@@ -3413,7 +3427,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 235,
+			"transitive": 238,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3512,6 +3526,7 @@
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
 				"CnStorePage",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -3922,7 +3937,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 221,
+			"transitive": 223,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4012,6 +4027,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
@@ -4267,7 +4283,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 139,
+			"transitive": 140,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4629,10 +4645,20 @@
 			"page": null
 		},
 		"CnStorePage": {
-			"direct": 2,
-			"transitive": 0,
-			"tier": "light",
-			"via": [],
+			"direct": 3,
+			"transitive": 26,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnBuildiqEditButton",
+				"CnCellRenderer",
+				"CnDataTable",
+				"CnFkResolveCell",
+				"CnFlowDetail",
+				"CnGraphCanvas",
+				"CnIndexPage",
+				"CnSchemaFormDialog"
+			],
 			"page": "cn-store-page"
 		},
 		"CnStructuredDocReview": {
@@ -4740,8 +4766,8 @@
 			"page": "cn-tabs"
 		},
 		"CnTabsWidget": {
-			"direct": 0,
-			"transitive": 141,
+			"direct": 1,
+			"transitive": 142,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5036,9 +5062,13 @@
 		},
 		"CnTimelineWidget": {
 			"direct": 5,
-			"transitive": 1,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnIndexPage",
+				"CnNoteComposer"
+			],
 			"page": "cn-timeline-widget"
 		},
 		"CnToggleTableWidget": {
@@ -5196,7 +5226,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 218,
+			"transitive": 220,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5285,6 +5315,7 @@
 				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
 				"CnStatsBlockWidgetForm",
+				"CnTabsWidget",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",

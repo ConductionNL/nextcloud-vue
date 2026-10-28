@@ -146,3 +146,24 @@ describe('CnIndexPage defaultFilters', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('CnIndexPage defaultFilters from app config that arrives later (PqLeads "Pijplijn: Verkoop")', () => {
+	const PIPELINE = { pipeline: '@config.defaultPipeline?' }
+
+	it('opens without the filter while the value is unknown, then applies it once it arrives', async () => {
+		const { wrapper } = mountPage({}, { defaultFilters: PIPELINE, appConfig: {} })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.effectiveActiveFilters).toEqual({})
+		await wrapper.setProps({ appConfig: { defaultPipeline: 'p-sales' } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.effectiveActiveFilters).toEqual({ pipeline: 'p-sales' })
+	})
+
+	it('leaves a filter the person set alone', async () => {
+		const { wrapper } = mountPage({ status: 'open' }, { defaultFilters: PIPELINE, appConfig: {} })
+		await wrapper.vm.$nextTick()
+		await wrapper.setProps({ appConfig: { defaultPipeline: 'p-sales' } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.effectiveActiveFilters).not.toHaveProperty('pipeline')
+	})
+})

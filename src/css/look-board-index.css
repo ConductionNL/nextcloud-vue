@@ -1812,6 +1812,167 @@
 	border-radius: 8px;
 }
 
+/* The store page around its cards (board PqStore): header actions, the lens
+   chips with the search beside them, and the side column. */
+.cn-look-board .cn-store-page.cn-store-page--board {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	max-width: 1240px;
+	padding: 24px 28px;
+}
+
+.cn-look-board .cn-store-page__header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-look-board .cn-store-page__lens-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.cn-look-board .cn-store-page__lenses {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-look-board .cn-store-page__lens {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 34px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 17px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-look-board .cn-store-page__lens--active {
+	border-color: var(--color-main-text);
+	background: var(--color-main-text);
+	color: var(--color-main-background);
+}
+
+.cn-look-board .cn-store-page__lens-count {
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.cn-look-board .cn-store-page__lens-search {
+	flex: 0 1 296px;
+}
+
+.cn-look-board .cn-store-page__layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 256px;
+	align-items: start;
+	gap: 16px;
+}
+
+@media (max-width: 1024px) {
+	.cn-look-board .cn-store-page__layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-look-board .cn-store-page__layout .cn-store-page__grid {
+	margin: 0;
+}
+
+.cn-look-board .cn-store-page__aside {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.cn-look-board .cn-store-page__side-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-store-page__side-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-store-page__installed {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-store-page__installed li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+	font-size: 14px;
+}
+
+.cn-look-board .cn-store-page__installed-title {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-look-board .cn-store-page__installed-version {
+	font-size: 13px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-store-page__installed .cn-store-page__card-state {
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-store-page__installed .cn-store-page__card-state--update {
+	background: var(--color-warning-light, var(--color-background-dark));
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-look-board .cn-store-page__side-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-store-page__side-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-store-page__side-note {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--cn-board-text-soft);
+}
+
 /* The sidebar's own open toggle (NcAppSidebar's `.app-sidebar__toggle`, drawn
    when the sidebar is closed) sits over the content's top-right corner, which
    on an index page is the primary header button: a stray dark square on

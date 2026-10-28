@@ -26,6 +26,8 @@ every key below can be written in the manifest.
 | `canPublish` | `Boolean\|null` | `null` | Whether the signed-in user sees Publish, as the app resolved it. `null` means administrators only. Needs `publishRoute` as well. |
 | `publishRoute` | `String\|Object` | `''` | Where Publish takes the user. A string is a route name; an object is a vue-router location. Empty means no Publish button. |
 | `page` | Object | `{}` | A whole manifest page, for a host that renders the component directly. The flattened props win. |
+| `kindLenses` | Array | `[]` | Extra lens chips under the board look, one per item kind (`[{ kind, label }]`); the label goes through the app's translate. |
+| `publishable` | Boolean | `false` | The app accepts a publish at `/api/store/publish`: Publish opens the publish dialog instead of following `publishRoute`. |
 
 ## Who sees Install and Publish
 

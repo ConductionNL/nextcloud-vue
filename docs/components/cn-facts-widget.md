@@ -270,3 +270,38 @@ joins them like a line, and a part can be a group of parts with its own separato
   }
 }
 ```
+
+## Figures, a conditional notice and one input
+
+Board PqKassadienst draws the cash difference as three figures with a note under the last one, a red band only when the
+difference is outside the margin, and a reason field that the reject button sends.
+
+```json
+{
+  "type": "facts",
+  "title": "Kasverschil",
+  "content": {
+    "layout": "tiles",
+    "tileStyle": "figures",
+    "fields": [
+      { "path": "expectedAmount", "label": "Expected amount", "format": "currency" },
+      { "path": "actualAmount", "label": "Counted amount", "format": "currency" },
+      {
+        "path": "diffAmount", "label": "Difference", "format": "currency",
+        "tone": [{ "when": { "field": "diffAmount", "op": "lt", "value": 0 }, "variant": "error" }],
+        "note": { "separator": ", ", "parts": [
+          { "separator": "", "parts": [{ "path": "diffPercentage", "format": "number", "decimals": 1 }, { "text": "%" }] },
+          { "path": "withinTolerance", "map": { "true": "within the margin", "false": "outside the margin" } }
+        ] }
+      }
+    ],
+    "notice": { "text": "Outside the margin.", "variant": "error", "visibleWhen": { "field": "withinTolerance", "value": false } },
+    "input": { "key": "reason", "label": "Reason for rejection", "placeholder": "Needed to reject" },
+    "actions": [
+      { "id": "reject", "label": "Reject", "type": "api-call", "url": "/apps/x/reject", "payload": { "reason": "@input.reason" } }
+    ]
+  }
+}
+```
+
+A source's `sort.field` names a field, so `"@self.created"` sorts on the creation moment and is not read as a token.

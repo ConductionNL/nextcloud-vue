@@ -85,3 +85,29 @@ export function createActionState(content, record) {
 	}
 	return { action, visible: false, note: hiddenNoteFor(action.hiddenNote, record) }
 }
+
+/**
+ * The extra adds a list offers beside its own (`content.addActions`:
+ * `[{ label, icon?, createDefaults? }]`), each opening the list's create form
+ * with its own defaults. Labels go through `translate`; an entry without a
+ * label is left out. Empty when the list cannot create.
+ *
+ * @param {object|null} content The list's content.
+ * @param {boolean} canCreate Whether the list's own create form is offered.
+ * @param {Function|null} translate The host translate function.
+ * @return {Array<{label: string, icon: string, createDefaults: object|null}>} The extra adds.
+ * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+ */
+export function listAddActions(content, canCreate, translate) {
+	if (!canCreate || !content || !Array.isArray(content.addActions)) {
+		return []
+	}
+	const tr = typeof translate === 'function' ? translate : (key) => key
+	return content.addActions
+		.filter((entry) => entry && typeof entry.label === 'string' && entry.label !== '')
+		.map((entry) => ({
+			label: tr(entry.label),
+			icon: typeof entry.icon === 'string' ? entry.icon : '',
+			createDefaults: entry.createDefaults && typeof entry.createDefaults === 'object' && !Array.isArray(entry.createDefaults) ? entry.createDefaults : null,
+		}))
+}
