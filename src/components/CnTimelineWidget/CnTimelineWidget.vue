@@ -82,11 +82,12 @@
 					:data-source="event.source"
 					data-testid="cn-timeline-widget-event">
 					<span class="cn-timeline-widget__feed-icon" aria-hidden="true">
-						<CnIcon
-							:name="event.icon || 'TimelineTextOutline'"
+						<CnIcon v-if="event.icon"
+							:name="event.icon"
 							:size="18"
 							:data-icon="event.icon"
 							data-testid="cn-timeline-widget-icon" />
+						<span v-else class="cn-timeline-widget__feed-dot" />
 					</span>
 					<div class="cn-timeline-widget__feed-body">
 						<span class="cn-timeline-widget__feed-meta">
@@ -805,6 +806,13 @@ export default {
 	border-radius: 50%;
 	background: var(--color-background-hover);
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-timeline-widget__feed-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: currentColor;
 }
 
 .cn-timeline-widget__feed-body {
