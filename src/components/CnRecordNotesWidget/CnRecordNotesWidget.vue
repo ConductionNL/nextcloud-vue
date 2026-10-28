@@ -33,7 +33,7 @@
 					</option>
 				</select>
 				<NcButton
-					variant="secondary"
+					:variant="outcome.saveVariant === 'primary' ? 'primary' : 'secondary'"
 					:disabled="!canWrite || choice === '' || saving"
 					data-testid="cn-record-notes-outcome-save"
 					@click="saveOutcome">
@@ -60,7 +60,8 @@ let instances = 0
  *
  * `content`: `{ field?, label?, hideLabel?, rows?, placeholder?, savedText?,
  * savingText?, failedText?, debounceMs?, outcome?: { field, label?,
- * placeholder?, saveLabel?, options: [{ value, label }] } }`. `field` defaults
+ * placeholder?, saveLabel?, saveVariant?, options: [{ value, label }] } }`.
+ * `saveVariant: "primary"` makes the outcome button the primary one. `field` defaults
  * to `notes`. `hideLabel` keeps the label for screen readers only, for a
  * field under a heading that already names it.
  * `savedText` takes `{time}`, the time of the last save. A write is a PATCH
