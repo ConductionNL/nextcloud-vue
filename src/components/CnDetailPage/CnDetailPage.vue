@@ -3028,6 +3028,20 @@ export default {
 		},
 
 		/**
+		 * The side column's order in the board look (manifest
+		 * `config.sideColumnOrder`): `board` puts a notice first and the
+		 * History card last; `declared` keeps the order of `sideColumn`, for a
+		 * board that draws History on top.
+		 *
+		 * @spec openspec/changes/detail-side-column-order/specs/detail-page/spec.md#requirement-a-detail-page-can-keep-its-side-column-in-the-declared-order
+		 */
+		sideColumnOrder: {
+			type: String,
+			default: 'board',
+			validator: (value) => ['board', 'declared'].includes(value),
+		},
+
+		/**
 		 * A field path, read like a `visibleWhen` field, whose list of
 		 * declared header action ids picks this record's quick actions
 		 * (manifest `config.quickActionsFrom`, e.g.
@@ -4333,7 +4347,7 @@ export default {
 		 */
 		sideColumnWidgets() {
 			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
-			if (!this.isBoard) {
+			if (!this.isBoard || this.sideColumnOrder === 'declared') {
 				return resolved
 			}
 			// The board look: the notice first, the History card last.
