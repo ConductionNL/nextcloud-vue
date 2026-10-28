@@ -48,6 +48,7 @@
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
 				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
+				:data-cn-widget-id="item.widgetId || undefined"
 				:style="filling ? fillItemStyle(item) : undefined"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
