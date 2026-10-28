@@ -753,6 +753,20 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
+/* The side cards' texts read at the font's normal leading, as the boards draw
+   them; at Nextcloud's 1.5 each card stood taller and pushed the cards under it.
+   @spec openspec/changes/side-card-text-normal-leading/specs/side-card-text-normal-leading/spec.md#requirement-a-side-cards-texts-read-at-normal-leading */
+.cn-look-board .cn-detail-page__side .cn-countdown-widget__sub,
+.cn-look-board .cn-detail-page__side .cn-facts-widget__link,
+.cn-look-board .cn-detail-page__side .cn-facts-widget__link-note,
+.cn-look-board .cn-detail-page__side .cn-linked-widget__empty,
+.cn-look-board .cn-detail-page__side .cn-status-explainer__muted,
+.cn-look-board .cn-detail-page__side .cn-status-explainer__dwell,
+.cn-look-board .cn-detail-page__side .cn-attention-flag__heading,
+.cn-look-board .cn-detail-page__side .cn-attention-flag__hint {
+	line-height: normal;
+}
+
 /* ---- Body cards and side cards ----------------------------------------- */
 
 /* A CnDetailCard takes the board card wherever it sits, not only on a detail
