@@ -368,6 +368,7 @@ export { CnCalendarEventCreate } from './CnCalendarEventCreate/index.js'
 
 // Email integration leaf (Tier-2)
 export { CnEmailPicker } from './CnEmailPicker/index.js'
+export { CnEmailLinkDialog } from './CnEmailLinkDialog/index.js'
 
 // Polls integration leaf (Tier-2)
 export { CnPollPicker } from './CnPollPicker/index.js'

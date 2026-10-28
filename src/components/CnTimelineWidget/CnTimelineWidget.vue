@@ -9,6 +9,7 @@
 		:content="content" />
 	<section v-else
 		class="cn-timeline-widget"
+		:class="{ 'cn-timeline-widget--feed': isFeed }"
 		data-testid="cn-timeline-widget"
 		:aria-busy="loading ? 'true' : 'false'">
 		<h3 v-if="resolvedTitle" class="cn-timeline-widget__title">
@@ -19,16 +20,44 @@
 			class="cn-timeline-widget__chips"
 			role="toolbar"
 			:aria-label="chipsLabel">
-			<NcButton
+			<button
 				v-for="chip in typeChips"
 				:key="chip.value"
-				:variant="activeType === chip.value ? 'primary' : 'secondary'"
-				:ariaPressed="activeType === chip.value ? 'true' : 'false'"
+				type="button"
+				class="cn-timeline-widget__chip"
+				:class="{ 'cn-timeline-widget__chip--active': activeType === chip.value }"
+				:aria-pressed="activeType === chip.value ? 'true' : 'false'"
 				:data-testid="`cn-timeline-widget-chip-${chip.value || 'all'}`"
 				@click="chooseType(chip.value)">
 				{{ chip.label }}
+			</button>
+		</div>
+
+		<div v-if="composer" class="cn-timeline-widget__composer">
+			<CnNoteComposer
+				v-model="noteText"
+				class="cn-timeline-widget__composer-input"
+				:placeholder="composer.placeholder"
+				:label="composer.label"
+				:register="resolvedRegister"
+				:schema="resolvedSchema"
+				:objectId="resolvedObjectId"
+				:apiBase="apiBase"
+				@submit="addNote" />
+			<NcButton
+				variant="primary"
+				:disabled="savingNote || noteText.trim() === ''"
+				data-testid="cn-timeline-widget-add-note"
+				@click="addNote">
+				{{ composer.submitLabel }}
 			</NcButton>
 		</div>
+		<p v-if="noteError"
+			class="cn-timeline-widget__note-error"
+			role="alert"
+			data-testid="cn-timeline-widget-note-error">
+			{{ noteError }}
+		</p>
 
 		<div v-if="loading && events.length === 0" class="cn-timeline-widget__loading">
 			<NcLoadingIcon :size="24" aria-hidden="true" />
@@ -44,6 +73,27 @@
 			<p v-if="events.length === 0" class="cn-timeline-widget__empty" data-testid="cn-timeline-widget-empty">
 				{{ emptyLabel }}
 			</p>
+
+			<ol v-else-if="isFeed" class="cn-timeline-widget__list">
+				<li
+					v-for="event in events"
+					:key="event.id"
+					class="cn-timeline-widget__feed-row"
+					:data-source="event.source"
+					data-testid="cn-timeline-widget-event">
+					<span class="cn-timeline-widget__feed-icon" aria-hidden="true">
+						<CnIcon :name="event.icon || 'TimelineTextOutline'" :size="18" :data-icon="event.icon" data-testid="cn-timeline-widget-icon" />
+					</span>
+					<div class="cn-timeline-widget__feed-body">
+						<span class="cn-timeline-widget__feed-meta">
+							<time :datetime="event.at.toISOString()">{{ formatFeedMoment(event) }}</time><template v-if="event.meta">
+								· {{ event.meta }}</template>
+						</span>
+						<span class="cn-timeline-widget__feed-text">{{ translate(event.label) }}</span>
+						<span v-if="event.detail && event.detail !== event.label" class="cn-timeline-widget__feed-detail">{{ event.detail }}</span>
+					</div>
+				</li>
+			</ol>
 
 			<ol v-else class="cn-timeline-widget__list">
 				<li
@@ -91,13 +141,20 @@
 </template>
 
 <script>
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
+
+/** Event-bus channel: a record's timeline changed (`{ objectId, source }`), shared with CnTimelineManage. */
+const TIMELINE_CHANGED = 'cn:timeline:changed'
+
+let instanceCount = 0
 
 /**
  * CnTimelineWidget — an object's dated events in time order (`timeline`
@@ -116,6 +173,12 @@ import { userLocale } from '../../utils/userLocale.js'
  *
  * Oldest first by default (`order: 'desc'` flips it). A moment after now is
  * marked upcoming, in words as well as style.
+ *
+ * `layout: 'feed'` draws each event as a round icon, a meta line (when, kind,
+ * who) and the text, as an activity card does. `composer` (`{ placeholder,
+ * label, submitLabel }`) puts a note box above the list: the note is written
+ * on the record (OpenRegister notes) and the timeline reads again. Any
+ * `cn:timeline:changed` for the record makes it read again too.
  *
  * `manage: true` swaps the read view for the manage view (CnTimelineManage)
  * over OpenRegister's timeline alone: kind chips, a visibility filter, pin,
@@ -145,6 +208,7 @@ export default {
 
 	components: {
 		CnIcon,
+		CnNoteComposer,
 		CnTimelineManage,
 		NcButton,
 		NcLoadingIcon,
@@ -194,6 +258,10 @@ export default {
 			endpointPage: 0,
 			endpointPages: 0,
 			activeType: '',
+			noteText: '',
+			savingNote: false,
+			noteError: '',
+			uid: `cn-timeline-widget-${++instanceCount}`,
 		}
 	},
 
@@ -235,6 +303,29 @@ export default {
 		 */
 		manage() {
 			return this.content.manage === true
+		},
+
+		/** @return {boolean} Whether events are drawn as feed rows. */
+		isFeed() {
+			return this.content.layout === 'feed'
+		},
+
+		/**
+		 * The note box, translated, when configured and the record is known.
+		 *
+		 * @return {{placeholder: string, label: string, submitLabel: string}|null}
+		 * @spec openspec/changes/timeline-activity-card/specs/timeline-widget/spec.md#requirement-the-read-view-can-take-a-note
+		 */
+		composer() {
+			const raw = this.content.composer
+			if (!raw || typeof raw !== 'object' || !this.resolvedObjectId || !this.resolvedRegister || !this.resolvedSchema) {
+				return null
+			}
+			return {
+				placeholder: raw.placeholder ? this.translate(raw.placeholder) : t('nextcloud-vue', 'Write a note…'),
+				label: raw.label ? this.translate(raw.label) : t('nextcloud-vue', 'Note'),
+				submitLabel: raw.submitLabel ? this.translate(raw.submitLabel) : t('nextcloud-vue', 'Add note'),
+			}
 		},
 
 		resolvedTitle() {
@@ -342,7 +433,80 @@ export default {
 		},
 	},
 
+	created() {
+		subscribe(TIMELINE_CHANGED, this.onTimelineChanged)
+	},
+
+	beforeUnmount() {
+		unsubscribe(TIMELINE_CHANGED, this.onTimelineChanged)
+	},
+
 	methods: {
+		/**
+		 * Read again when another part of the page changed this record's timeline.
+		 *
+		 * @param {object} payload `{ objectId, source }`.
+		 */
+		onTimelineChanged(payload) {
+			if (payload && payload.source !== this.uid && String(payload.objectId) === String(this.resolvedObjectId) && !this.manage) {
+				this.load()
+			}
+		},
+
+		/**
+		 * Write the note on the record, then read the timeline again. A note
+		 * that is not saved keeps its text.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/timeline-activity-card/specs/timeline-widget/spec.md#requirement-the-read-view-can-take-a-note
+		 */
+		async addNote() {
+			const message = this.noteText.trim()
+			if (!this.composer || message === '' || this.savingNote) {
+				return
+			}
+			this.savingNote = true
+			this.noteError = ''
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				await axios.post(generateUrl(`${this.apiBase}/objects/${this.resolvedRegister}/${this.resolvedSchema}/${this.resolvedObjectId}/notes`), { message })
+				this.noteText = ''
+				emit(TIMELINE_CHANGED, { objectId: this.resolvedObjectId, source: this.uid })
+				await this.load()
+			} catch {
+				this.noteError = t('nextcloud-vue', 'That note could not be saved.')
+			} finally {
+				this.savingNote = false
+			}
+		},
+
+		/**
+		 * A feed row's moment: day and short month, with the time unless the
+		 * moment is a calendar day, and the year only when it is not this year.
+		 *
+		 * @param {object} event The event.
+		 * @return {string}
+		 */
+		formatFeedMoment(event) {
+			const locale = (typeof getLanguage === 'function' && getLanguage()) || undefined
+			const options = { day: 'numeric', month: 'short' }
+			if (event.at.getFullYear() !== new Date().getFullYear()) {
+				options.year = 'numeric'
+			}
+			if (!event.dateOnly) {
+				options.hour = '2-digit'
+				options.minute = '2-digit'
+			}
+			try {
+				return new Intl.DateTimeFormat(locale, options).format(event.at)
+			} catch {
+				return event.at.toLocaleString(userLocale())
+			}
+		},
+
 		translate(text) {
 			return text ? this.cnTranslate(text) : ''
 		},
@@ -571,6 +735,96 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
+}
+
+/* Type chips are pills, as the manage view's kind chips. */
+.cn-timeline-widget__chip {
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+	height: 36px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 18px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-timeline-widget__chip--active {
+	border: 0;
+	background: var(--color-main-text);
+	color: var(--color-main-background);
+}
+
+.cn-timeline-widget__chip:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-timeline-widget__composer {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-timeline-widget__composer-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.cn-timeline-widget__note-error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
+/* feed: a round icon, a meta line and the text, a hairline above each row. */
+.cn-timeline-widget__feed-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 12px 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-timeline-widget__feed-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-timeline-widget__feed-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.cn-timeline-widget__feed-meta {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-timeline-widget__feed-text {
+	font-size: 15px;
+	overflow-wrap: anywhere;
+}
+
+.cn-timeline-widget__feed-detail {
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+	overflow-wrap: anywhere;
 }
 
 .cn-timeline-widget__meta {

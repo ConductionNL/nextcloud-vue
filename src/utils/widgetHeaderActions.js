@@ -80,10 +80,9 @@ export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerAc
 				if (typeof context.dispatch !== 'function') {
 					return undefined
 				}
-				const resolved = resolveDeepTokens(entry.action, tokenCtx)
-				// A dashboard also hands the token context on, so an api-call
-				// fills `@workspace.<key>` in its url.
-				return context.workspace ? context.dispatch(resolved, { tokenCtx }) : context.dispatch(resolved)
+				// The token context goes along, so a url or target fills
+				// `@object.<field>` and `@workspace.<key>` inside the string.
+				return context.dispatch(resolveDeepTokens(entry.action, tokenCtx), { tokenCtx })
 			},
 		}))
 }

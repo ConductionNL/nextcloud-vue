@@ -43,8 +43,8 @@ describe('resolveWidgetHeaderActions', () => {
 		const [run, edit] = resolveWidgetHeaderActions(WIDGET, { object: { id: 'c1', status: 'open' }, objectId: 'c1', dispatch })
 		run.run()
 		edit.run()
-		expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'open-modal', target: 'CnActionDialog', props: { objectId: 'c1' } })
-		expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'navigate', route: 'CaseEdit', params: { id: 'c1' } })
+		expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'open-modal', target: 'CnActionDialog', props: { objectId: 'c1' } }, expect.objectContaining({ tokenCtx: expect.objectContaining({ objectId: 'c1' }) }))
+		expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'navigate', route: 'CaseEdit', params: { id: 'c1' } }, expect.objectContaining({ tokenCtx: expect.objectContaining({ objectId: 'c1' }) }))
 	})
 
 	it('answers nothing for a widget without headerActions', () => {
