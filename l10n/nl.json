@@ -2736,7 +2736,34 @@
     "Saved automatically as you type.": "Wordt automatisch opgeslagen terwijl u typt.",
     "Could not save. Your text is kept here; it is saved again when you type.": "Opslaan is mislukt. Uw tekst blijft hier staan en wordt opnieuw opgeslagen zodra u typt.",
     "Skip this step": "Deze stap overslaan",
-    "{label} (optional)": "{label} (optioneel)"
+    "{label} (optional)": "{label} (optioneel)",
+    "Installed from this store": "Geïnstalleerd uit deze store",
+    "Nothing from this store is installed yet.": "Er is nog niets uit deze store geïnstalleerd.",
+    "Updates": "Updates",
+    "Everything is up to date.": "Alles is bijgewerkt.",
+    "Check now": "Nu controleren",
+    "Only administrators install. An administrator connects the registry under Administration settings.": "Alleen beheerders installeren. Een beheerder koppelt de registry onder Beheerinstellingen.",
+    "Updates available": "Updates beschikbaar",
+    "{items} ship with the app. They show here when no registry is connected.": "{items} komen mee met de app. Ze staan hier als er geen registry is gekoppeld.",
+    "Version {version}, {latest} is out": "Versie {version}, {latest} is uit",
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update staat klaar. Een update bewaart je eigen wijzigingen.",
+      "%n updates staan klaar. Een update bewaart je eigen wijzigingen."
+    ],
+    "No store registry is configured. An administrator connects one under Administration settings.": "Er is geen store-registry ingesteld. Een beheerder koppelt er een onder Beheerinstellingen.",
+    "Nothing of this kind on this instance yet.": "Hier is nog niets van deze soort.",
+    "Publish to the store": "Publiceren in de store",
+    "Published to the store.": "Gepubliceerd in de store.",
+    "Publisher": "Uitgever",
+    "Publishing…": "Publiceren…",
+    "Share a template built from your own configuration with the registry.": "Deel een sjabloon uit je eigen inrichting met de registry.",
+    "The item could not be published.": "Het item kon niet worden gepubliceerd.",
+    "The item is too large to publish.": "Het item is te groot om te publiceren.",
+    "The store registry did not answer. Try again later.": "De store-registry antwoordde niet. Probeer het later opnieuw.",
+    "The store registry is busy. Try again in a minute.": "De store-registry is bezig. Probeer het over een minuut opnieuw.",
+    "The store registry refused the item.": "De store-registry weigerde het item.",
+    "What the template carries": "Wat het sjabloon meeneemt",
+    "You may not publish to this store.": "Je mag niet publiceren in deze store."
   },
   "plurals": {
     "{count} member": [
