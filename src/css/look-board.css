@@ -1187,6 +1187,78 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
+/* ---- A search select's open list (CnSearchSelect) ------------------------ */
+/* NcSelect teleports its list to <body>, so the rules key on the body as the
+   menus above do. The board draws the list as a card 4px under the field: a
+   hairline all round, radius 8, a soft shadow, where NcSelect hangs a 2px
+   frame with no top edge from the field. The highlighted row sits on the
+   light primary ground, its lead white; the other leads grey in the soft ink.
+   A person (initials) is a compact row, 8px 10px in with a 28px chip, 14px
+   name and 12px line (DqNieuweZaak "Aanvrager"); a row with an icon is 10px
+   12px in (DqOverdragen "Nieuw team"). NcSelect's frame carries `!important`.
+   @spec openspec/changes/board-search-select-list/specs/board-search-select-list/spec.md#requirement-a-board-search-selects-open-list-is-a-card-under-the-field */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) {
+	margin-top: 4px;
+	border: 1px solid var(--color-border) !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 16px color-mix(in srgb, var(--color-main-text) 12%, transparent) !important;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row).vs__dropdown-menu--floating-placement-top {
+	margin-top: 0;
+	margin-bottom: 4px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight {
+	background: var(--color-primary-element-light);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead {
+	background: var(--color-background-hover);
+	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight .cn-search-select__lead {
+	background: var(--color-main-background);
+	color: var(--color-primary-element-light-text);
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) {
+	padding: 8px 10px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead--avatar {
+	flex-basis: 28px;
+	width: 28px;
+	height: 28px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__name {
+	font-size: 14px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__secondary {
+	font-size: 12px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) {
+	padding: 10px 12px;
+}
+
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) .cn-search-select__row {
+	gap: 12px;
+}
+
+/* The open search field takes the board's 2px edge in the primary colour
+   (DqNieuweZaak "Aanvrager", DqOverdragen "Nieuw team"); a board dialog's
+   fields are drawn 1px. */
+.cn-look-board .cn-search-select .v-select.select.vs--open:not(.cn-look-nextcloud *) .input-field__input {
+	border-width: 2px;
+	border-color: var(--color-primary-element);
+}
+
 /* ---- The navigation ---------------------------------------------------- */
 .cn-look-board .app-navigation[data-testid="cn-nav"] {
 	--app-navigation-padding: 0px;
