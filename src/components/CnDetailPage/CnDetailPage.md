@@ -215,6 +215,7 @@ export default {
 | `includeFields` (`include-fields`) | Array | `null` | Fields the create and edit forms ask for, in this order. `null` asks for every property the schema declares. Same three keys as `CnIndexPage`, so one manifest describes the record's form wherever it opens rather than the list page and the detail page each carrying their own. |
 | `excludeFields` (`exclude-fields`) | Array | `[]` | Fields the create and edit forms never ask for. Applied after `includeFields`. |
 | `fieldOverrides` (`field-overrides`) | Object | `{}` | Per-field widget / label overrides for the create and edit forms, keyed by field name. Forwarded to `CnFormDialog`. |
+| `sideColumnOrder` | String | `'board'` | Board look: the side column's order (manifest `config.sideColumnOrder`). `board` puts a notice first and the History card last; `declared` keeps the order of `sideColumn`. |
 
 ## Each view arranged per user
 

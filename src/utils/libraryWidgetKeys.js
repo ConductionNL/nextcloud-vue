@@ -124,6 +124,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'handoff',
 	'header',
 	'image',
+	'index-list',
 	'interaction-form',
 	'kb-search',
 	'label',

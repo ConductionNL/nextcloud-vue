@@ -113,6 +113,7 @@ Each `#step-{id}` slot receives:
 | `successText` | String | `'Done.'` | Default success-banner text when `result.message` is empty. |
 | `nextDisabled` | Boolean | `false` | Disable Next and Submit, whatever `validate` would say. `next()` and `submit()` from a slot scope do nothing either. `CnSetupWizard` sets it while a required app is missing. |
 | `cancellable` | Boolean | `true` | Whether the dialog can be dismissed (Cancel button, ESC, backdrop click) before reaching the result phase. `false` hides Cancel and disables all other close affordances — use for a step that must be completed, not merely skipped. The result-phase Close button is always available. |
+| `skipLabel` | String | `'Skip this step'` | Skip-button label, on a step marked `skippable`. |
 
 ## Events
 
