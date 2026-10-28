@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.158.0",
+	"version": "2.159.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2474,7 +2474,7 @@
 										"type": "object",
 										"properties": {
 											"groupByRelation": { "type": "boolean", "description": "Split the Objects group by the relation label OpenRegister answers per direction." },
-											"layout": { "type": "string", "enum": ["tabs", "list", "sections"], "description": "`sections` draws every group under its own heading in one list." },
+											"layout": { "type": "string", "enum": ["tabs", "list", "sections", "links"], "description": "`sections` draws every group under its own heading in one list; `links` shows the host's sections as plain links with Show all." },
 											"groupActions": { "type": "object", "additionalProperties": { "type": "object" }, "description": "An action on a group's heading in `layout: \"sections\"`, keyed by the group's key (DqZaakGerelateerd \"Vervolg plannen\")." }
 										}
 									}
