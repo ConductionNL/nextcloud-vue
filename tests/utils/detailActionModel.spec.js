@@ -148,6 +148,7 @@ describe('detailActionModel', () => {
 				stage: 'handling',
 				title: 'Step 2: handling',
 				after: 'Then: decision',
+				afterTitle: '',
 				items: [
 					{ label: 'Confirm receipt', done: true, hint: '' },
 					{ label: 'Review the documents', done: false, hint: '2 of 5 done' },

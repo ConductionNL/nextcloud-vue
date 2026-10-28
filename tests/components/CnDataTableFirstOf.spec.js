@@ -36,6 +36,6 @@ describe('CnDataTable firstOf', () => {
 
 	it('is passed through by the object list, with secondaryLabels', () => {
 		const source = readFileSync(resolve(__dirname, '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'), 'utf8')
-		expect(source).toMatch(/'emptyValueBy', 'firstOf', 'secondaryLabels', 'secondaryRefs'\]/)
+		expect(source).toMatch(/'emptyValueBy', 'emptyLabel', 'firstOf', 'secondaryLabels', 'secondaryRefs'\]/)
 	})
 })
