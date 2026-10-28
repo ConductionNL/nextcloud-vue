@@ -34,7 +34,7 @@ export function flattenAggFilter(target, filter, ctx) {
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object') {
 			for (const [op, ov] of Object.entries(v)) {
-				target[`filter[${k}][${op}]`] = ov
+				target[`filter[${aggFieldKey(k)}][${op}]`] = ov
 			}
 		} else if (v !== '' && v !== null && v !== undefined) {
 			target[aggFilterParam(k)] = v
@@ -48,6 +48,20 @@ export function flattenAggFilter(target, filter, ctx) {
  * @type {RegExp}
  */
 const OPERATOR_KEY = /^(.+)\[([A-Za-z_]+)\]$/
+const METADATA_KEY = /^@self(?:\[(\w+)\]|\.(\w+))$/
+
+/**
+ * The aggregation endpoint's name for a field: a metadata field written as
+ * the list endpoint takes it (`@self[updated]`, `@self.updated`) is the
+ * endpoint's `_updated` column; any other field is itself.
+ *
+ * @param {string} field The field as a filter names it.
+ * @return {string} The field as the aggregation endpoint names it.
+ */
+export function aggFieldKey(field) {
+	const match = METADATA_KEY.exec(field)
+	return match ? `_${match[1] || match[2]}` : field
+}
 
 /**
  * The query parameter of one plain filter key. A key that spells its operator
@@ -62,7 +76,7 @@ const OPERATOR_KEY = /^(.+)\[([A-Za-z_]+)\]$/
  */
 export function aggFilterParam(key) {
 	const match = OPERATOR_KEY.exec(key)
-	return match ? `filter[${match[1]}][${match[2]}]` : `filter[${key}]`
+	return match ? `filter[${aggFieldKey(match[1])}][${match[2]}]` : `filter[${aggFieldKey(key)}]`
 }
 
 /**
