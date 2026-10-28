@@ -58,6 +58,7 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	subject: 'CnBannerWidget (action route)',
 	context: 'detailWidgetVisible (utils/detailWidgetVisibility.js)',
 	source: 'CnFactsWidget (a fact row\'s route params)',
+	input: 'CnFactsWidget (action url and payload)',
 })
 
 /**

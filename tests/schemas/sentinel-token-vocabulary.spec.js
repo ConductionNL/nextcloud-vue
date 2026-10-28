@@ -30,6 +30,7 @@ const DEF_FOR_CONTEXT = {
 	subject: 'sentinelSubjectToken',
 	context: 'sentinelContextToken',
 	source: 'sentinelSourceToken',
+	input: 'sentinelInputToken',
 	deprecated: 'sentinelDeprecatedToken',
 	link: 'sentinelLinkToken',
 }

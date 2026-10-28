@@ -966,6 +966,11 @@
 			"pattern": "^@source\\.[A-Za-z][A-Za-z0-9_.@]*$",
 			"description": "Facts source: a field of the object a facts widget shows (@source.<field>, dot path allowed), read by a fact row's `route` params. Mirrors SENTINEL_TOKEN_PATTERNS.source."
 		},
+		"sentinelInputToken": {
+			"type": "string",
+			"pattern": "^@input\\.[A-Za-z][A-Za-z0-9_]*$",
+			"description": "Facts input: what the user typed into a facts widget's `input` field (@input.<key>), read by its actions' url and payload ('' when nothing was typed). Mirrors SENTINEL_TOKEN_PATTERNS.input."
+		},
 		"sentinelSubjectToken": {
 			"type": "string",
 			"pattern": "^@subject\\.[A-Za-z][A-Za-z0-9_.]*$",
@@ -987,6 +992,7 @@
 				{ "$ref": "#/$defs/sentinelSubjectToken" },
 				{ "$ref": "#/$defs/sentinelContextToken" },
 				{ "$ref": "#/$defs/sentinelSourceToken" },
+				{ "$ref": "#/$defs/sentinelInputToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
