@@ -10,9 +10,9 @@
  *
  * @spec openspec/changes/detail-band-compact/specs/detail-page/spec.md#requirement-a-detail-band-can-be-compact
  */
+import { flushPromises, shallowMount } from '@vue/test-utils'
 import fs from 'fs'
 import path from 'path'
-import { flushPromises, shallowMount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
