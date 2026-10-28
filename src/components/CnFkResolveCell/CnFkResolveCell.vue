@@ -9,6 +9,12 @@
 		:label="display"
 		:ids="ids"
 		:resolved="resolved" />
+	<span v-else-if="secondaryDisplay"
+		class="cn-fk-resolve-cell cn-fk-resolve-cell--two-line"
+		:title="ids.join(', ')">
+		<span class="cn-fk-resolve-cell__label">{{ display }}</span>
+		<span class="cn-fk-resolve-cell__secondary">{{ secondaryDisplay }}</span>
+	</span>
 	<span v-else class="cn-fk-resolve-cell" :title="ids.join(', ')">{{ display }}</span>
 </template>
 
@@ -127,6 +133,26 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * A muted line under the label, filled from the referenced object
+		 * (`"{type}"`): a destination's kind under its name.
+		 *
+		 * @spec openspec/changes/fk-resolve-secondary-line/specs/fk-resolve-secondary-line/spec.md#requirement-a-reference-cell-can-carry-a-muted-line-from-the-record-it-resolves
+		 */
+		secondaryTemplate: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Words for the stored values the secondary line reads, by field:
+		 * `{ type: { postgres: 'PostgreSQL' } }`. A value without one shows as stored.
+		 */
+		secondaryLabels: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	data() {
@@ -144,6 +170,12 @@ export default {
 			 * @type {Record<string, boolean>}
 			 */
 			settled: {},
+			/**
+			 * The secondary line per lookup, keyed like `labels`.
+			 *
+			 * @type {Record<string, string>}
+			 */
+			seconds: {},
 		}
 	},
 
@@ -196,6 +228,22 @@ export default {
 		},
 
 		/**
+		 * The muted line under the label: each lookup's secondary text,
+		 * comma-joined; '' without a `secondaryTemplate`.
+		 *
+		 * @return {string}
+		 */
+		secondaryDisplay() {
+			if (!this.secondaryTemplate) {
+				return ''
+			}
+			return this.lookups
+				.map((lookup) => this.seconds[lookup.key] || '')
+				.filter((text) => text !== '')
+				.join(', ')
+		},
+
+		/**
 		 * Whether every lookup has a resolved label (false while fetching, and
 		 * for one that could not be resolved, which shows as its value).
 		 *
@@ -238,7 +286,12 @@ export default {
 				let label = ''
 				if (lookup.ref && store) {
 					const cached = store.objects && store.objects[type] && store.objects[type][lookup.ref]
-					label = this.pickLabel(cached || await this.fetchOne(store, type, lookup.ref))
+					const obj = cached || await this.fetchOne(store, type, lookup.ref)
+					label = this.pickLabel(obj)
+					const second = this.pickSecondary(obj)
+					if (second !== '') {
+						this.seconds[lookup.key] = second
+					}
 				}
 				if (!label && lookup.match) {
 					label = this.pickLabel(await findByMatch(this.register, this.schema, this.matchField, lookup.match))
@@ -265,6 +318,28 @@ export default {
 			} catch {
 				return null
 			}
+		},
+
+		/**
+		 * The secondary line off a resolved object: `secondaryTemplate` filled
+		 * after `secondaryLabels` turned the values it names into words.
+		 *
+		 * @param {object|null} obj The referenced object.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/fk-resolve-secondary-line/specs/fk-resolve-secondary-line/spec.md#requirement-a-reference-cell-can-carry-a-muted-line-from-the-record-it-resolves
+		 */
+		pickSecondary(obj) {
+			if (!this.secondaryTemplate || !obj || typeof obj !== 'object') {
+				return ''
+			}
+			const labelled = { ...obj }
+			for (const [field, words] of Object.entries(this.secondaryLabels || {})) {
+				const value = obj[field]
+				if (words && typeof words === 'object' && (typeof value === 'string' || typeof value === 'number') && typeof words[value] === 'string') {
+					labelled[field] = words[value]
+				}
+			}
+			return fillTemplate(this.secondaryTemplate, labelled).trim()
 		},
 
 		/**
@@ -320,6 +395,19 @@ export default {
 </script>
 
 <style scoped>
+.cn-fk-resolve-cell--two-line {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-fk-resolve-cell__secondary {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 400;
+}
+
 .cn-fk-resolve-cell {
 	white-space: nowrap;
 	overflow: hidden;

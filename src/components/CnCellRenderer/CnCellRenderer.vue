@@ -80,7 +80,8 @@
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
 		     Config: widgetProps { register, schema, labelField, matchField?,
-		     refField?, labelTemplate?, labelPath? }, or schemaFrom { field,
+		     refField?, labelTemplate?, labelPath?, secondaryTemplate?,
+		     secondaryLabels? }, or schemaFrom { field,
 		     map } to read the schema off the row. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
@@ -92,7 +93,9 @@
 				:matchField="(widgetProps && widgetProps.matchField) || ''"
 				:refValue="fkRefValue"
 				:labelTemplate="(widgetProps && widgetProps.labelTemplate) || ''"
-				:labelPath="(widgetProps && widgetProps.labelPath) || ''" />
+				:labelPath="(widgetProps && widgetProps.labelPath) || ''"
+				:secondaryTemplate="(widgetProps && widgetProps.secondaryTemplate) || ''"
+				:secondaryLabels="(widgetProps && widgetProps.secondaryLabels) || {}" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
