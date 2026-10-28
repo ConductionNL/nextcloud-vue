@@ -54,7 +54,7 @@
 		<div
 			v-if="!objectNotFound && !contentWithheld"
 			class="cn-detail-page__header"
-			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
+			:class="{ 'cn-detail-page__header--card': headerCard && !isBoard, 'cn-detail-page__header--with-widget': headerWidgetShown, 'cn-detail-page__header--board': isBoard, 'cn-detail-page__header--actions-below': headerActionsBelow }"
 			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
@@ -564,7 +564,7 @@
 			     and taken out of the body grid. Nothing renders without the
 			     key. -->
 			<div
-				v-if="headerWidgetDef !== null"
+				v-if="headerWidgetShown"
 				class="cn-detail-page__header-widget"
 				data-testid="cn-detail-page-header-widget">
 				<!--
@@ -4394,6 +4394,19 @@ export default {
 			}
 			const declared = Array.isArray(this.widgets) ? this.widgets : []
 			return declared.find((widget) => widget && widget.id === this.headerWidget) || null
+		},
+
+		/**
+		 * Whether the header draws its widget beside the open body tab: it
+		 * follows `tabs` / `notTabs` on the definition as a side card does
+		 * (DqZaakAssistent: no stages bars beside AI oversight). Standing
+		 * aside does not put it back in the body grid. Edit mode shows it.
+		 *
+		 * @spec openspec/changes/header-widget-follows-tab/specs/detail-page/spec.md#requirement-the-header-widget-can-stand-aside-for-a-tab
+		 * @return {boolean}
+		 */
+		headerWidgetShown() {
+			return this.headerWidgetDef !== null && (this.editingBody || onTab(this.headerWidgetDef, this.activeBodyTab))
 		},
 
 		/**
