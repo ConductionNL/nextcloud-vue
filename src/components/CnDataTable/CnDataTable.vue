@@ -358,6 +358,10 @@
 										v-if="isTextZero(row, col)"
 										class="cn-table-cell__zero"
 										data-testid="cn-cell-zero">{{ cellValue(row, col) }}</span>
+									<span
+										v-else-if="emptyLabelFor(row, col) !== ''"
+										class="cn-table-cell__empty-label"
+										data-testid="cn-cell-empty-label">{{ emptyLabelFor(row, col) }}</span>
 									<CnCellRenderer
 										v-else
 										:value="cellValue(row, col)"
@@ -645,7 +649,8 @@ export default {
 		 * `emptyValueBy` (`{ field, values }`) names what an empty cell holds by
 		 * another field of the row, translated; it goes before `emptyValue`.
 		 * `emptyValue` is what a row without a value holds in that column, so a
-		 * `badge` column draws a pill on every row.
+		 * `badge` column draws a pill on every row. `emptyLabel` is the words an
+		 * empty cell reads, translated, as plain text past the format.
 		 *
 		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
@@ -2263,6 +2268,27 @@ export default {
 				return col.emptyValue
 			}
 			return value
+		},
+
+		/**
+		 * The words an empty cell reads (`col.emptyLabel`, translated), shown as
+		 * text past the column's format and widget; '' when the cell has a
+		 * value or the column has no label.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {string} The words, or ''.
+		 * @spec openspec/changes/column-empty-label/specs/data-table/spec.md
+		 */
+		emptyLabelFor(row, col) {
+			if (!col || typeof col.emptyLabel !== 'string' || col.emptyLabel === '') {
+				return ''
+			}
+			const value = this.cellValue(row, col)
+			if (value !== null && value !== undefined && value !== '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(col.emptyLabel) : col.emptyLabel
 		},
 
 		/**
