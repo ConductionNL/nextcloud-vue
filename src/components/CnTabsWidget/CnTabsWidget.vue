@@ -229,11 +229,13 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { keepAuditEntries } from '../../utils/auditEntries.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { setSubResourceRead } from '../../utils/recordInteractions.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -418,7 +420,9 @@ export default {
 		 * own list (`content.register`, `schema`, `filter`, tokens such as
 		 * `@objectId` resolved), an object `{ register, schema, filter? }`
 		 * names the list, and `{ endpoint, field? }` counts the list (or reads
-		 * the number) an endpoint answers with, `@objectId` resolved; `count`
+		 * the number) an endpoint answers with, `@objectId` resolved, and
+		 * `{ auditTrail: true, excludeActions?, excludeActors? }` counts the
+		 * record's history as the History card shows it; `count`
 		 * and `countField` win over it. `overflow: true`
 		 * lists the tab under "More".
 		 *
@@ -436,7 +440,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -1364,6 +1368,13 @@ export default {
 					.filter((content) => content && content.register && content.schema)
 				source = lists.length ? lists[0] : null
 			} else if (from && typeof from === 'object') {
+				if (from.auditTrail === true) {
+					return {
+						auditTrail: true,
+						excludeActions: Array.isArray(from.excludeActions) ? from.excludeActions : [],
+						excludeActors: Array.isArray(from.excludeActors) ? from.excludeActors : [],
+					}
+				}
 				if (typeof from.endpoint === 'string' && from.endpoint !== '') {
 					return { endpoint: from.endpoint, field: typeof from.field === 'string' ? from.field : '' }
 				}
@@ -1393,13 +1404,46 @@ export default {
 				if (!source) {
 					return
 				}
-				const total = source.endpoint
-					? await this.countEndpoint(source, ctx)
-					: await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				let total
+				if (source.auditTrail) {
+					total = await this.countAuditTrail(source)
+				} else if (source.endpoint) {
+					total = await this.countEndpoint(source, ctx)
+				} else {
+					total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+				}
 				if (seq === this.countSeq) {
 					this.widgetCounts = { ...this.widgetCounts, [index]: total }
 				}
 			}))
+		},
+
+		/**
+		 * Count the record's history (`countFrom: { auditTrail: true,
+		 * excludeActions?, excludeActors? }`): its audit entries the History
+		 * card would show, read up to 100. Null without a record or when the
+		 * trail cannot be read.
+		 *
+		 * @param {{excludeActions: Array<string>, excludeActors: Array<string>}} source What to leave out.
+		 * @return {Promise<number|null>} The count.
+		 * @spec openspec/changes/tab-count-audit-trail/specs/tab-counts/spec.md#requirement-a-history-tab-can-count-the-records-changes
+		 */
+		async countAuditTrail(source) {
+			const register = typeof this.register === 'object' && this.register ? (this.register.slug || this.register.id) : this.register
+			const schema = typeof this.schema === 'object' && this.schema ? (this.schema.slug || this.schema.id) : this.schema
+			if (!register || !schema || !this.objectId) {
+				return null
+			}
+			try {
+				const response = await fetch(prefixUrl(`/apps/openregister/api/objects/${register}/${schema}/${this.objectId}/audit-trails?limit=100`), { headers: buildHeaders() })
+				if (!response.ok) {
+					return null
+				}
+				const data = await response.json()
+				return keepAuditEntries(data.results || data.rows || data, source).length
+			} catch {
+				return null
+			}
 		},
 
 		/**

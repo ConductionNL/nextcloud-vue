@@ -95,6 +95,9 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
+import { useRefLabels } from '../../composables/useRefLabels.js'
+import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { auditLabel } from '../../utils/auditLabels.js'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -141,6 +144,21 @@ import { userLocale } from '../../utils/userLocale.js'
  *
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md#requirement-a-timeline-widget-shows-an-objects-dated-events-in-order
  */
+/** The reference resolver every timeline shares, so a label is read once. */
+let refLabels = null
+
+/**
+ * The shared reference resolver, made on first use.
+ *
+ * @return {object} The resolver.
+ */
+function sharedRefLabels() {
+	if (!refLabels) {
+		refLabels = useRefLabels()
+	}
+	return refLabels
+}
+
 export default {
 	name: 'CnTimelineWidget',
 
@@ -190,6 +208,7 @@ export default {
 			timelineEntries: [],
 			failedSources: [],
 			fetchedObject: null,
+			referenceLabels: {},
 			loadSeq: 0,
 			endpointItems: [],
 			endpointPage: 0,
@@ -261,14 +280,74 @@ export default {
 			const all = [
 				...fieldEvents(this.resolvedObject || {}, this.fieldsConfig, now),
 				...listEvents(this.resolvedObject || {}, this.content.lists, now),
-				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now)),
-				...auditEvents(this.auditEntries, this.describeAudit, now),
+				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now, (text) => this.translate(text))),
+				...auditEvents(this.shownAuditEntries, this.describeAudit, now),
 				...timelineEntryEvents(this.timelineEntries, t('nextcloud-vue', 'Note'), now),
 				...(this.endpointSource ? endpointEvents(this.endpointItems, this.endpointSource, (type) => this.typeLabel(type), t('nextcloud-vue', '(no title)'), now) : []),
 			]
 			const sorted = sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
 			const limit = Number(this.content.limit)
 			return Number.isInteger(limit) && limit > 0 ? sorted.slice(0, limit) : sorted
+		},
+
+		/**
+		 * The audit entries the timeline shows: without the actions and actors
+		 * `excludeActions` / `excludeActors` leave out, by the History card's
+		 * rule; every entry when neither is set.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
+		 */
+		shownAuditEntries() {
+			const { excludeActions, excludeActors } = this.content
+			if (!Array.isArray(excludeActions) && !Array.isArray(excludeActors)) {
+				return this.auditEntries
+			}
+			return keepAuditEntries(this.auditEntries, { excludeActions, excludeActors })
+		},
+
+		/**
+		 * The references `resolve` names (`{ <field>: { register?, schema,
+		 * labelField? } }`) with the id the record holds there, as one key, so
+		 * a change reads the labels again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		referenceKey() {
+			const resolve = this.content.resolve && typeof this.content.resolve === 'object' ? this.content.resolve : {}
+			const object = this.resolvedObject || {}
+			return JSON.stringify(Object.keys(resolve).map((field) => [field, readPath(object, field)]))
+		},
+
+		/**
+		 * The record with each `resolve` field's id replaced by the label of the
+		 * record it points at, for a label's `{object.<field>}`; the id stays
+		 * until its label is known.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		labelledObject() {
+			const object = this.resolvedObject || {}
+			const labels = Object.fromEntries(Object.entries(this.referenceLabels).filter(([, label]) => typeof label === 'string' && label !== ''))
+			return Object.keys(labels).length > 0 ? { ...object, ...labels } : object
+		},
+
+		/**
+		 * The History card's words for audit entries (`actionLabels`,
+		 * `changeLabels`, `valueLabels`), their labels in the host's translation.
+		 *
+		 * @return {{actionLabels: object|null, changeLabels: Array<object>, valueLabels: object|null}}
+		 * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
+		 */
+		auditWords() {
+			const actions = this.content.actionLabels && typeof this.content.actionLabels === 'object' ? this.content.actionLabels : null
+			return {
+				actionLabels: actions ? Object.fromEntries(Object.entries(actions).map(([key, label]) => [key, Array.isArray(label) ? label.map((option) => ({ ...option, text: this.translate(option && option.text) })) : this.translate(label)])) : null,
+				changeLabels: (Array.isArray(this.content.changeLabels) ? this.content.changeLabels : []).map((rule) => ({ ...rule, label: this.translate(rule && rule.label) })),
+				valueLabels: this.content.valueLabels && typeof this.content.valueLabels === 'object' ? this.content.valueLabels : null,
+			}
 		},
 
 		/**
@@ -343,9 +422,43 @@ export default {
 				this.load()
 			},
 		},
+		referenceKey: {
+			immediate: true,
+			handler() {
+				this.loadReferenceLabels()
+			},
+		},
 	},
 
 	methods: {
+		/**
+		 * Read the label of every record a `resolve` field points at, one
+		 * batched request per schema through the shared reference resolver.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/timeline-label-reads-a-reference/specs/timeline-widget/spec.md#requirement-a-label-can-name-the-record-a-reference-points-at
+		 */
+		async loadReferenceLabels() {
+			const resolve = this.content.resolve && typeof this.content.resolve === 'object' ? this.content.resolve : {}
+			const object = this.resolvedObject || {}
+			const found = {}
+			await Promise.all(Object.entries(resolve).map(async ([field, ref]) => {
+				const id = readPath(object, field)
+				if (!ref || typeof ref.schema !== 'string' || typeof id !== 'string' || id === '') {
+					return
+				}
+				try {
+					const labels = await sharedRefLabels().resolve(ref.register || this.resolvedRegister, ref.schema, [id], ref.labelField || '')
+					if (labels && typeof labels[id] === 'string') {
+						found[field] = labels[id]
+					}
+				} catch {
+					// An unreadable reference keeps its id in the label.
+				}
+			}))
+			this.referenceLabels = found
+		},
+
 		translate(text) {
 			return text ? this.cnTranslate(text) : ''
 		},
@@ -369,11 +482,18 @@ export default {
 		/**
 		 * The label of an audit event, from its action and who did it.
 		 *
+		 * The words a manifest declares (`actionLabels`, `changeLabels`) win.
+		 *
 		 * @param {string} action The audit action (create, update, delete).
 		 * @param {string} actor Who did it.
+		 * @param {object} [entry] The audit entry.
 		 * @return {string}
 		 */
-		describeAudit(action, actor) {
+		describeAudit(action, actor, entry) {
+			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.labelledObject }) : null
+			if (words !== null) {
+				return words
+			}
 			const known = {
 				create: t('nextcloud-vue', 'Created'),
 				update: t('nextcloud-vue', 'Updated'),
