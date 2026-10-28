@@ -2240,6 +2240,18 @@
 	padding: 0;
 }
 
+/* Its row reads as the boards draw it: the meta line 4px under the title,
+   the pill and date 10px under the meta (r34 DqOrganisatie "Lopende zaken"
+   and "Open tickets" each stood 6px short).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-a-side-stacked-row-keeps-the-boards-gaps */
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row:not(.cn-record-list__row--action) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__main {
+	gap: 4px;
+}
+
 /* Its rows are titled as links: bold, in the link colour, underlined
    (DqOrganisatie "Subsidie buurtfeest Oosthaven"). */
 .cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__title {
@@ -2253,10 +2265,19 @@
 }
 
 /* Main contact (DqOrganisatie Hoofdcontact): the e-mail and the link to all
-   contact persons are 14px lines under the 15px name. */
+   contact persons are 14px lines under the 15px name, at the font's normal
+   leading; the e-mail reads in the ink, a link only on hover (r34: the card
+   stood 8px taller than the board).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-the-main-contacts-lines-read-at-normal-leading */
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-email,
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-link {
 	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-email:not(.cn-look-nextcloud *):not(:hover):not(:focus-visible) {
+	color: var(--color-main-text);
+	text-decoration: none;
 }
 
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
@@ -2323,6 +2344,15 @@
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	font-weight: 400;
+	line-height: normal;
+}
+
+/* An appointments card starts its first row's rule 8px under the title, as
+   DqTaak "Afspraken" draws it (r34: the row 64.5 against 60, the first
+   appointment 44.8 under the title against 41).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *) {
+	padding-top: 8px;
 }
 
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
@@ -2569,6 +2599,29 @@
 
 .cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__label.cn-facts-widget__label {
 	line-height: normal;
+}
+
+/* Three-column facts (`columns: 3`, DqSociaalDomein "De melding") keep their
+   rule: each fact is a label 3px over a 500-weight value with 10px and a soft
+   hairline under it (r34: the card stood 30px short of the board).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-three-column-facts-are-ruled */
+.cn-look-board .cn-facts-widget__rows--columns.cn-facts-widget__rows--three:not(.cn-look-nextcloud *) .cn-facts-widget__row {
+	gap: 3px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-facts-widget__rows--columns.cn-facts-widget__rows--three:not(.cn-look-nextcloud *) .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 500;
+}
+
+/* A title with the lines under it is one block in a side card: each line
+   2px under the one above, not the card's 10px between facts (DqTaak "Zaak":
+   the case title, its number line and its handler line; r34 +23.8).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-a-title-and-its-lines-are-one-block */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__title:not(.cn-look-nextcloud *) + .cn-facts-widget__line,
+.cn-look-board .cn-detail-page__side .cn-facts-widget__title:not(.cn-look-nextcloud *) + .cn-facts-widget__line + .cn-facts-widget__line {
+	margin-top: -8px;
 }
 
 /* A ruled list in a page card (`ruleAbove`, DqContact and DqOrganisatie
