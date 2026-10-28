@@ -649,7 +649,8 @@
 				"href": { "type": "string" },
 				"icon": { "type": "string", "minLength": 1, "description": "Optional MDI icon name (e.g. `Home`) drawn as the first crumb instead of the label, which then becomes its accessible name (zuiddrecht-pixel-gaps-2). Without it the label shows as text." },
 				"currentField": { "type": "string", "minLength": 1, "description": "A field of the record (dotted path, e.g. `identifier`) whose value is the current crumb instead of the display name; an empty value falls back to the display name (zuiddrecht-pixel-gaps-3)." },
-				"separator": { "type": "string", "minLength": 1, "maxLength": 3, "description": "Text drawn between the crumbs (e.g. `/`) instead of the chevron (zuiddrecht-pixel-gaps-3)." }
+				"separator": { "type": "string", "minLength": 1, "maxLength": 3, "description": "Text drawn between the crumbs (e.g. `/`) instead of the chevron (zuiddrecht-pixel-gaps-3)." },
+				"visibleWhen": { "type": "object", "description": "A local visibleWhen condition read off the record; the crumb shows only while it holds, so one page can name a different list per kind of record (detail-record-kind-variants)." }
 			}
 		},
 		"rowIndicator": {
@@ -4687,6 +4688,21 @@
 									"type": "string",
 									"minLength": 1,
 									"description": "A field path, read like a `visibleWhen` field, whose value holds the stages in the `stages` shape, e.g. `@context.caseType.nextStep`, so each case type keeps its own stage texts and checklist. The declared `stages` apply otherwise (2.129.0)."
+								},
+								"variants": {
+									"type": "array",
+									"minItems": 1,
+									"description": "Per kind of record: the first variant whose `when` holds replaces the declared `title` and `stages` (a contact moment's own steps on the ticket page; detail-record-kind-variants).",
+									"items": {
+										"type": "object",
+										"additionalProperties": false,
+										"required": ["when", "stages"],
+										"properties": {
+											"when": { "type": "object", "description": "A local visibleWhen condition read off the record." },
+											"title": { "anyOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }], "description": "As `title`." },
+											"stages": { "type": "object", "description": "As `stages`: keys are stage values." }
+										}
+									}
 								},
 								"title": {
 									"anyOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }],
