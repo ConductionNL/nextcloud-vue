@@ -26,6 +26,21 @@
 		<div v-else-if="shownEntries.length === 0" class="cn-audit-card__empty">
 			{{ noEntriesLabel }}
 		</div>
+		<!-- `dated` (PqJourney "Geschiedenis"): the short date beside what
+		     happened, one line per entry. -->
+		<dl v-else-if="layout === 'dated'" class="cn-audit-card__dated">
+			<template v-for="entry in displayedEntries" :key="entry.id">
+				<dt class="cn-audit-card__date">
+					{{ shortDate(entry) }}
+				</dt>
+				<dd class="cn-audit-card__dated-text">
+					{{ formatAction(entry) }}<span
+						v-if="entry.authorized === false"
+						class="cn-audit-card__refused"
+						data-testid="cn-audit-card-refused">{{ refusedLabel }}</span>
+				</dd>
+			</template>
+		</dl>
 		<ul v-else class="cn-audit-card__list">
 			<li
 				v-for="entry in displayedEntries"
@@ -194,6 +209,9 @@ export default {
 		 * `stacked` (DqTaak "Historie"): the action, then one muted line under
 		 * it with the moment ("6 okt 09:05") and who, when the action does not
 		 * already name them. Default: the moment beside the action, who under it.
+		 * `dated` (PqJourney "Geschiedenis"): a two-column list, the short date
+		 * ("2 okt") beside what happened; who shows only where the action's
+		 * label names them (`{actor}`).
 		 */
 		layout: { type: String, default: '' },
 		/**
@@ -591,6 +609,17 @@ export default {
 		},
 
 		/**
+		 * The date of a dated list's entry in the board's short form ("2 okt").
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The date, or '' without one.
+		 * @spec openspec/changes/audit-card-dated-layout/specs/audit-trail/spec.md#requirement-an-audit-list-can-put-the-date-beside-what-happened
+		 */
+		shortDate(entry) {
+			return formatBoardDate(entry.creationDateTime || entry.created || entry.timestamp)
+		},
+
+		/**
 		 * The muted line of a stacked row: the moment in the board's short
 		 * form ("6 okt 09:05") and who, unless the action names them already.
 		 *
@@ -644,6 +673,32 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+}
+
+/* Nextcloud core pads and aligns `dt` / `dd`; the list resets both. */
+.cn-audit-card__dated {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+}
+
+.cn-audit-card__dated .cn-audit-card__date {
+	width: auto;
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	white-space: nowrap;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-audit-card__dated .cn-audit-card__dated-text {
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	overflow-wrap: anywhere;
 }
 
 .cn-audit-card__row {
