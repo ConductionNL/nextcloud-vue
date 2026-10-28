@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -502,6 +502,7 @@ export default {
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
+		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -603,6 +604,17 @@ export default {
 		 */
 		stacked() {
 			return Number(this.content?.columns) === 1
+		},
+
+		/**
+		 * Whether each fact is a tile, a small caps label above its value
+		 * (`layout: "tiles"`, board PqJourney's steps).
+		 *
+		 * @spec openspec/changes/facts-tiles/specs/facts-widget/spec.md#requirement-facts-can-be-drawn-as-tiles
+		 * @return {boolean}
+		 */
+		tiles() {
+			return this.content?.layout === 'tiles'
 		},
 
 		/**
@@ -2470,6 +2482,39 @@ export default {
 
 .cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
 	margin-bottom: 8px;
+}
+
+/* `layout: "tiles"` (board PqJourney "Stappen"): each fact a box of its
+   own, the label in small caps above the value, side by side and wrapping. */
+.cn-facts-widget__rows--tiles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__row {
+	display: flex;
+	flex: 1 1 160px;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__label.cn-facts-widget__label {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cn-board-primary-light-ink, var(--color-primary-element-light-text, var(--color-primary-element)));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 400;
 }
 
 @media (max-width: 640px) {
