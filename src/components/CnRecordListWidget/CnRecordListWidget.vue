@@ -240,6 +240,7 @@
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
+							:class="{ 'cn-record-list__dot--small': dotSmall }"
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
@@ -309,6 +310,7 @@
 							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
+							:class="{ 'cn-record-list__dot--small': dotSmall }"
 							:style="{ background: item.dot }"
 							aria-hidden="true"
 							data-testid="cn-record-list-dot" />
@@ -875,6 +877,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the row dot is the small list marker (`dot.size: 10`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-dot-flags/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-colour-dot-and-flag-text
+		 */
+		dotSmall() {
+			const dot = this.content?.dot
+			return Boolean(dot && typeof dot === 'object' && dot.size === 10)
+		},
+
 		/**
 		 * Whether the avatar is the 32px circle (`avatar.size: 32`).
 		 *
@@ -1760,14 +1773,21 @@ export default {
 		dotOf(row) {
 			const dot = this.content?.dot
 			const def = typeof dot === 'string' ? { field: dot } : dot
-			if (!def || typeof def !== 'object' || typeof def.field !== 'string' || def.field === '') {
+			if (!def || typeof def !== 'object') {
 				return ''
 			}
-			const raw = readPath(row, def.field)
-			if (raw === null || raw === undefined || raw === '') {
-				return ''
+			let mapped = ''
+			if (typeof def.field === 'string' && def.field !== '') {
+				const raw = readPath(row, def.field)
+				if (raw === null || raw === undefined || raw === '') {
+					return ''
+				}
+				mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
+			} else if (typeof def.color === 'string') {
+				// `color` without a `field`: the same dot on every row, a list
+				// marker (PqDashboard "Laatste contact").
+				mapped = def.color
 			}
-			const mapped = def.colorMap && typeof def.colorMap === 'object' && typeof def.colorMap[String(raw)] === 'string' ? def.colorMap[String(raw)] : String(raw)
 			return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([^;{}]*\)|var\(--[a-z0-9-]+(,[^;{}]*)?\))$/i.test(mapped.trim()) ? mapped.trim() : ''
 		},
 
@@ -3290,6 +3310,15 @@ export default {
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
+}
+
+/* `dot.size: 10`: the small list marker, level with the first text line. */
+.cn-record-list__dot.cn-record-list__dot--small {
+	flex-basis: 10px;
+	align-self: flex-start;
+	width: 10px;
+	height: 10px;
+	margin-top: 6px;
 }
 
 .cn-record-list__flag {
