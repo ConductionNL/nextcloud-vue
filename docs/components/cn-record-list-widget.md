@@ -54,6 +54,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 - `pillAt: "start"` draws a `rows` row's pill before its title instead of at its end, and `ruleAbove: true` rules above the first row too, as DqZaakDocumenten draws "Weigeringsgronden tot nu toe" (the ground's code, then its name, under a hairline).
 - A `rows` list can lead with an avatar: `avatar` is a name template (`"{client.name}"`, or `{ "text": "{client.name}" }`), drawn as a 36px circle with the initials of its first and last word ("Sanne de Vries" reads "SV"). A row whose name is empty has no circle. The second line is `meta`: `"meta": "{client.name} · {channel}"` with `"extend": ["client"]` puts the customer under the title. The circle is decoration (`aria-hidden`); the name is in the meta text.
 - `avatar` as `{ text, size: 32, tone: "primary" }`: the initials on the primary tint, as board DqZaakGerelateerd draws a related case's type.
+- `avatar` as `{ text, size: 40 }`: the person chip of a record card, 40px with the initials 16px bold on the grey ground, also in a detail page's side column (PqOrganisatie "Hoofdcontact").
 - `rows` with `iconTile: true` and an `icon`: each row leads with the icon in a 36px round tile, as board DqZaakTaken draws "Wat hierna komt".
 - `feed`: a round `icon`, a `meta` line and a `text` line. `icon` is an icon name, or `{ field, map, default }` to pick one per row ("phone" to `Phone`).
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.

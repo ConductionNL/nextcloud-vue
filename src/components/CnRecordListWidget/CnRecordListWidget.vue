@@ -217,7 +217,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-primary': avatarPrimary }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -672,7 +672,7 @@ function unwrap(value) {
  * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
  * payload, after `responsePath`, is the array of rows, as on the object table), or `objectRows`
  * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
- * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten); what differs is the drawing: `presentation` is `rows`, `feed`
+ * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten; `size: 40` the record card's person chip, 16px initials on grey, as a main contact); what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
  * grid, with `trailing` as the large figure (board ShBank's accounts).
@@ -882,6 +882,19 @@ export default {
 		avatarSmall() {
 			const avatar = this.content?.avatar
 			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
+		},
+
+		/**
+		 * Whether the avatar is the person chip of a record card (`avatar.size:
+		 * 40`): 40px, the initials 16px bold on the grey ground, as the boards
+		 * draw a main contact (DqOrganisatie, PqOrganisatie "Hoofdcontact").
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-person-avatar/specs/record-list-avatar/spec.md
+		 */
+		avatarPerson() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 40)
 		},
 
 		/**
@@ -3220,6 +3233,15 @@ export default {
 .cn-record-list__list--avatar-small .cn-record-list__avatar {
 	width: 32px;
 	height: 32px;
+	margin-inline-end: -4px;
+}
+
+/* `avatar.size: 40`: a record card's person chip, 40px with the initials
+   16px bold, 12px from the name (DqOrganisatie, PqOrganisatie "Hoofdcontact"). */
+.cn-record-list__list--avatar-person .cn-record-list__avatar {
+	width: 40px;
+	height: 40px;
+	font-size: 16px;
 	margin-inline-end: -4px;
 }
 
