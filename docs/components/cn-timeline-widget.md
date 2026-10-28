@@ -158,3 +158,35 @@ An app that merges its own sources answers them from one endpoint. `endpointSour
 
 `endpointSource.icons` (`{ path?, map?, typeMap?, default? }`) gives each event an icon instead of the dot: the value at `path` through `map` (a contact moment's channel: `{ "phone": "Phone", "email": "Email" }`), else its type through `typeMap`, else `default`. `emptyText` replaces "Nothing has happened yet." when there is nothing to show. Each item becomes an event: the label (an item without one reads "(no title)"), the detail cut at 120 characters, and a meta line of its type label and author. `pageParam` (default `_page`) and `limitParam` (default `_limit`) name the paging parameters; "Load more" reads the next page while the answer's `pages` is higher. A chip sends its value in `typesParam` and reads from page 1; All sends none. A failed read says that the activities could not load.
 
+
+## An activity card: feed rows and a note box
+
+`layout: "feed"` draws each event as one row: a round icon, a meta line of the
+moment, the kind and the author ("2 Oct, 09:30 · contact moment · Fatma
+Yildiz") and the text. A detail that says more than the text stands under it.
+`composer` puts a note box above the list; a note is written on the record
+(`POST /objects/{register}/{schema}/{id}/notes`) and the timeline reads again.
+The read view also reads again whenever `cn:timeline:changed` names its record.
+
+```json
+{
+  "type": "timeline",
+  "title": "Activity",
+  "headerActions": [
+    { "label": "Link email", "icon": "EmailOutline", "variant": "tonal", "action": { "type": "open-modal", "target": "EmailLinkDialog", "props": { "register": "pipelinq", "schema": "client", "objectId": "@objectId" } } },
+    { "label": "Compose in Mail", "icon": "EmailArrowRightOutline", "variant": "tonal", "action": { "type": "navigate", "target": "/index.php/apps/mail/compose?uri=mailto:@object.email" } }
+  ],
+  "content": {
+    "order": "desc",
+    "layout": "feed",
+    "composer": { "placeholder": "Add an internal note. Type @ to mention a colleague.", "label": "Add note", "submitLabel": "Add note" },
+    "endpointSource": { "url": "/apps/pipelinq/api/timeline", "params": { "entityType": "client", "entityId": "@objectId" } },
+    "typeChips": [{ "value": "interaction", "label": "Contact moments" }, { "value": "note", "label": "Notes" }]
+  }
+}
+```
+
+A header action's `navigate` target fills `@object.<field>` inside the URL.
+`CnEmailLinkDialog` (`register`, `schema`, `objectId`) is the "Link an existing
+email" picker on its own; register it in the app's registry as a modal to open
+it from a button.

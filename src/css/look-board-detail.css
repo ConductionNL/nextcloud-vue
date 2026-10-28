@@ -2921,3 +2921,16 @@
 	--cn-status-badge-ink: var(--color-text-maxcontrast);
 	color: var(--cn-status-badge-ink);
 }
+
+/* An activity card's feed (PqKlant / PqOrganisatie "Activiteit"): the row
+   icon on the sunken ground in the soft ink, the type chips outlined in the
+   control border, as the boards draw them.
+   @spec openspec/changes/timeline-activity-card/specs/timeline-widget/spec.md */
+.cn-look-board .cn-timeline-widget__feed-icon:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-sunken-ground);
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-timeline-widget__chip:not(.cn-timeline-widget__chip--active):not(.cn-look-nextcloud *) {
+	border-color: var(--cn-board-control-border);
+}

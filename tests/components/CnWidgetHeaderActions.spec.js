@@ -92,7 +92,7 @@ describe('CnDetailWidgetHost: a widget\'s headerActions', () => {
 		const buttons = w.findAll('[data-testid="cn-widget-header-action"]')
 		expect(buttons.map((b) => b.text())).toEqual(['Run flow'])
 		await buttons[0].trigger('click')
-		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'CnActionDialog', props: { objectId: 'c1' } })
+		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'CnActionDialog', props: { objectId: 'c1' } }, expect.objectContaining({ tokenCtx: expect.objectContaining({ objectId: 'c1' }) }))
 	})
 
 	it('provides none in bare mode, where the tab panel draws them', () => {
@@ -127,7 +127,7 @@ describe('CnTabsWidget: a bare panel\'s headerActions', () => {
 		const button = w.find('[data-testid="cn-tabs-widget-panel-heading"] [data-testid="cn-widget-header-action"]')
 		expect(button.text()).toBe('Add note')
 		await button.trigger('click')
-		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'X', props: { id: 'c1' } })
+		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'X', props: { id: 'c1' } }, expect.objectContaining({ tokenCtx: expect.objectContaining({ objectId: 'c1' }) }))
 	})
 
 	it('draws them on a row of their own when the panel has no heading', async () => {

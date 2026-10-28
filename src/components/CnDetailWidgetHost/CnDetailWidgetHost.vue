@@ -1358,9 +1358,9 @@ export default {
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
 				recordEdit: this.cnRecordEdit,
-				dispatch: (action) => (typeof this.cnDispatchAction === 'function'
-					? this.cnDispatchAction(action)
-					: dispatchAction(action, { router: this.$router || null })),
+				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action, extra)
+					: dispatchAction(action, { router: this.$router || null, ...extra })),
 			}
 		},
 
