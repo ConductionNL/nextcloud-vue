@@ -1,5 +1,9 @@
 {
   "translations": {
+    "All categories": "Alle categorieën",
+    "Category": "Categorie",
+    "Reports": "Rapporten",
+    "No reports in this category.": "Geen rapporten in deze categorie.",
     "Channel": "Kanaal",
     "Outcome": "Uitkomst",
     "Chat": "Chat",
