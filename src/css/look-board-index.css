@@ -2400,6 +2400,31 @@
 	font-weight: 700;
 }
 
+/* ---- A list view row (DqTeamwachtrij) ----------------------------------- */
+/* 12px 18px (the selection box's 6px margin makes up the left), 14px between
+   the cells, the 15px title over its 13px meta line, 2px apart, both at the
+   normal leading and wrapping inside the title column: 75px rows.
+   @spec openspec/changes/board-queue-rows-as-drawn/specs/board-queue-rows-as-drawn/spec.md */
+.cn-look-board .cn-index-page__main--list .cn-object-row:not(.cn-look-nextcloud *) {
+	gap: 14px;
+	padding: 12px 18px 12px 12px;
+}
+
+.cn-look-board .cn-index-page__main--list .cn-object-row:not(.cn-look-nextcloud *) .cn-object-row__main {
+	gap: 2px;
+}
+
+.cn-look-board .cn-index-page__main--list .cn-object-row:not(.cn-look-nextcloud *) .cn-object-row__title {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-index-page__main--list .cn-object-row:not(.cn-look-nextcloud *) .cn-object-row__title,
+.cn-look-board .cn-index-page__main--list .cn-object-row:not(.cn-look-nextcloud *) .cn-object-row__subtitle {
+	overflow: visible;
+	white-space: normal;
+	line-height: normal;
+}
+
 /* A waiting age takes the inks of an error or warning tag (DqTeamwachtrij "6
    dagen" #a30000), not Nextcloud's darker error text or brighter text-error. */
 .cn-look-board .cn-cell-renderer__age--error:not(.cn-look-nextcloud *) {
@@ -2829,6 +2854,14 @@
 /* The team-today initials are the soft ink on the grey chip (DqTeamwachtrij). */
 .cn-look-board .cn-team-workload__avatar:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
+}
+
+/* Team today's name and availability line sit at their normal leading: 58px a
+   person (DqTeamwachtrij; the body's 1.5 made it 66).
+   @spec openspec/changes/board-queue-rows-as-drawn/specs/board-queue-rows-as-drawn/spec.md */
+.cn-look-board .cn-team-workload__name:not(.cn-look-nextcloud *),
+.cn-look-board .cn-team-workload__state:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 /* A titled table card (CnIndexPage `tableTitle`, board PqInloop "In de
