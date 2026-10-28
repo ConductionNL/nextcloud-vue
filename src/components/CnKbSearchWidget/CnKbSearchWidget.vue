@@ -3,12 +3,19 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-kb-search-widget">
+	<div class="cn-kb-search-widget" :class="{ 'cn-kb-search-widget--board': isBoard }">
 		<div class="cn-kb-search-widget__search">
 			<NcTextField
 				:modelValue="term"
 				:label="searchLabel"
-				@update:modelValue="onTermInput" />
+				:labelVisible="!isBoard"
+				:placeholder="isBoard ? placeholder : undefined"
+				type="search"
+				@update:modelValue="onTermInput">
+				<template v-if="isBoard" #icon>
+					<Magnify :size="16" />
+				</template>
+			</NcTextField>
 		</div>
 
 		<p v-if="boundLabel" class="cn-kb-search-widget__bound">
@@ -49,7 +56,7 @@
 			{{ emptyLabel }}
 		</div>
 
-		<div v-else class="cn-kb-search-widget__hint">
+		<div v-else-if="!isBoard" class="cn-kb-search-widget__hint">
 			{{ hintLabel }}
 		</div>
 	</div>
@@ -58,6 +65,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField } from '@nextcloud/vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
 
 /**
@@ -106,7 +115,7 @@ import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '..
 export default {
 	name: 'CnKbSearchWidget',
 
-	components: { NcTextField },
+	components: { Magnify, NcTextField },
 
 	inject: {
 		/**
@@ -124,6 +133,7 @@ export default {
 		 * (`{ default }`) when no CnAppRoot ancestor provides one.
 		 */
 		cnKbSearchProviders: { default: () => BUILT_IN_KB_PROVIDERS },
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -210,6 +220,29 @@ export default {
 				return this.content.externalOpen
 			}
 			return Boolean(this.resolvedProvider && this.resolvedProvider.externalOpen)
+		},
+
+		/**
+		 * Whether the page takes the board look: the field then carries a
+		 * placeholder and a search icon, its label is read by assistive
+		 * technology only, and the typing hint is left out.
+		 *
+		 * @return {boolean}
+		 */
+		isBoard() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(look) === 'board'
+		},
+
+		/**
+		 * The placeholder in the board look (`content.placeholder`, else the label).
+		 *
+		 * @return {string}
+		 */
+		placeholder() {
+			return typeof this.content.placeholder === 'string' && this.content.placeholder !== ''
+				? this.content.placeholder
+				: this.searchLabel
 		},
 
 		searchLabel() {

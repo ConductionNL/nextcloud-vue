@@ -55,10 +55,16 @@ createApp(App).use(...).provide(...) // or:
     "minChars": 3,
     "limit": 8,
     "externalOpen": true,           // result links open in a new tab
+    "placeholder": "Search the knowledge base", // board look only
     "unavailableFallback": "Knowledge base is not configured."
   }
 }
 ```
+
+In the board look (a page or app with `look: "board"`) the field carries a
+search icon and a placeholder (`placeholder`, else the label), its label is
+read by assistive technology only, and the typing hint is left out: the
+side-card search of PqKlant and PqOrganisatie "Kennisbank".
 
 `externalOpen` defaults to the provider's own `externalOpen` flag and is
 overridable per widget. `unavailableFallback` replaces the default
