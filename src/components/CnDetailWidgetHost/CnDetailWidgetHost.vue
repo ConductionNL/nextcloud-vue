@@ -128,6 +128,7 @@
 			:extraSources="content.extraSources"
 			:links="content.links || []"
 			:referenceSections="content.referenceSections"
+			:sectionOrder="content.sectionOrder"
 			:footerActions="content.footerActions"
 			:showAddFooter="content.showAddFooter"
 			:emptyLabel="content.emptyLabel"

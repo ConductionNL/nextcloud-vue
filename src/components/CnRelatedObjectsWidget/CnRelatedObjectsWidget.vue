@@ -35,7 +35,7 @@
 		flush>
 		<!-- Total beside the card title. Carries the count that the tab strip
 		     would otherwise show — notably when `hideSingleTabTitle` hid it. -->
-		<template v-if="useTabs && showTotalCount && totalCount > 0" #title-meta>
+		<template v-if="useTabs && showTotalCount && totalCount > 0 && !linksCompact" #title-meta>
 			<span class="cn-related-objects-widget__count">{{ totalCount }}</span>
 		</template>
 
@@ -59,7 +59,34 @@
 			<template v-if="useTabs">
 				<!-- `layout: "sections"`: every group under its own heading in one
 				     list, a heading action beside it (DqZaakGerelateerd). -->
-				<template v-if="layout === 'sections'">
+				<!-- `layout: "links"`: the host's sections as plain links, one per
+				     line ("Dienst 7 okt, Balie 2"), with "Show all" opening the
+				     full tabbed view (files, integrations, every relation). -->
+				<template v-if="linksCompact">
+					<ul v-if="linkItems.length" class="cn-related-objects-widget__links" data-testid="cn-related-links">
+						<li v-for="entry in linkItems" :key="`link-${entry.group.key}-${entry.item.id}`">
+							<router-link v-if="entry.item.raw && entry.item.raw.route && $router"
+								class="cn-related-objects-widget__link"
+								:to="entry.item.raw.route">
+								{{ linkText(entry.item) }}
+							</router-link>
+							<button v-else
+								type="button"
+								class="cn-related-objects-widget__link"
+								@click="onSelectGroupItem(entry.group, entry.item)">
+								{{ linkText(entry.item) }}
+							</button>
+						</li>
+					</ul>
+					<button v-if="hasLoaded && visibleGroups.some((group) => !group.isExtra)"
+						type="button"
+						class="cn-related-objects-widget__show-all"
+						data-testid="cn-related-show-all"
+						@click="linksExpanded = true">
+						{{ t('nextcloud-vue', 'Show all') }}
+					</button>
+				</template>
+				<template v-else-if="layout === 'sections'">
 					<section v-for="group in visibleGroups"
 						:key="`section-${group.key}`"
 						class="cn-related-objects-widget__section"
@@ -110,7 +137,7 @@
 						</ul>
 					</section>
 				</template>
-				<div v-if="layout !== 'sections' && tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
+				<div v-if="layout !== 'sections' && !linksCompact && tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -125,7 +152,7 @@
 					</button>
 				</div>
 
-				<section v-if="layout !== 'sections' && activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
+				<section v-if="layout !== 'sections' && !linksCompact && activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in activeGroup.items"
 							:key="`item-${activeGroup.key}-${item.id || i}`">
@@ -202,7 +229,7 @@
 				<div v-if="loading && !visibleGroups.length && !anySectionAnswered" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
+				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length && !(linksCompact && linkItems.length)"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
@@ -634,15 +661,16 @@ export default {
 		/**
 		 * Render mode. `'tabs'` (default) self-fetches from OpenRegister and
 		 * renders a tab per non-empty group. `'sections'` renders every group
-		 * under its own heading in one list. `'list'` forces the deprecated
+		 * under its own heading in one list. `'links'` shows the host's
+		 * sections as plain links, one per line, and "Show all" opens the tabs. `'list'` forces the deprecated
 		 * store-action list path.
 		 *
-		 * @type {'tabs'|'list'|'sections'}
+		 * @type {'tabs'|'list'|'sections'|'links'}
 		 */
 		layout: {
 			type: String,
 			default: 'tabs',
-			validator: (value) => ['tabs', 'list', 'sections'].includes(value),
+			validator: (value) => ['tabs', 'list', 'sections', 'links'].includes(value),
 		},
 
 		/**
@@ -803,12 +831,26 @@ export default {
 		/**
 		 * Sections naming the record one of this record's fields points at
 		 * (a parent): `[{ key, label, icon?, field, register, schema,
-		 * labelField?, route? }]`. Shown only when the record has a readable
+		 * labelField?, labelTemplate?, route? }]` (`labelTemplate`, such as
+		 * "Shift {floatAt|date}, {drawer}", names it from several fields). Shown only when the record has a readable
 		 * title, never as a bare id.
 		 *
 		 * @type {Array<object>}
 		 */
 		referenceSections: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The order of the `extraSources` and `referenceSections` by key
+		 * (`["shift", "refunds"]`): a parent can come before the lists. A key
+		 * left out keeps its declared place after the named ones.
+		 *
+		 * @type {string[]}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		sectionOrder: {
 			type: Array,
 			default: () => [],
 		},
@@ -926,6 +968,8 @@ export default {
 
 	data() {
 		return {
+			/** Whether the reader opened the full view of a `layout: "links"` card. */
+			linksExpanded: false,
 			/** Sections read from `extraSources` and `referenceSections`. */
 			sourcedSections: [],
 			/** The key of the row action that is running, or ''. */
@@ -1029,7 +1073,7 @@ export default {
 
 		/** True when the tabbed self-fetch path is usable. */
 		useTabs() {
-			return (this.layout === 'tabs' || this.layout === 'sections')
+			return (this.layout === 'tabs' || this.layout === 'sections' || this.layout === 'links')
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
@@ -1069,6 +1113,31 @@ export default {
 						action: section.action && typeof section.action === 'object' ? section.action : null,
 					}
 				})
+		},
+
+		/**
+		 * Whether the card shows the plain link list: `layout: "links"` until
+		 * the reader asks for everything.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linksCompact() {
+			return this.layout === 'links' && !this.linksExpanded
+		},
+
+		/**
+		 * The rows the link list shows: the host's sections (`extraSources`,
+		 * `referenceSections`, `extraSections`) in their order, else the
+		 * related objects.
+		 *
+		 * @return {Array<{group: object, item: object}>}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linkItems() {
+			const extra = this.extraGroups
+			const groups = extra.length > 0 ? extra : this.visibleGroups.filter((group) => group.key === 'objects')
+			return groups.flatMap((group) => group.items.map((item) => ({ group, item })))
 		},
 
 		/**
@@ -1266,7 +1335,7 @@ export default {
 
 		/** Whether the Add footer renders (prop + tabbed path with a real object). */
 		addFooterVisible() {
-			return this.showAddFooter && this.useTabs && this.addableGroups.length > 0
+			return this.showAddFooter && this.useTabs && !this.linksCompact && this.addableGroups.length > 0
 		},
 
 		/**
@@ -1571,6 +1640,18 @@ export default {
 			 * @event group-action A group's heading action was pressed. Payload: `{ group, action }`, the group key and the declared action.
 			 */
 			this.$emit('group-action', { group: group.key, action: resolved.action })
+		},
+
+		/**
+		 * The text of a link-list row: its label, and its meta after a comma
+		 * ("Retour RF-2026-0058, in afwachting").
+		 *
+		 * @param {object} item The row.
+		 * @return {string}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linkText(item) {
+			return [item.label, item.meta].filter((part) => typeof part === 'string' && part.trim() !== '').join(', ')
 		},
 
 		/**
@@ -2374,7 +2455,9 @@ export default {
 				}
 				try {
 					const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: ref.register, schema: ref.schema, id: id.trim() }))
-					const label = String(readPath(data || {}, ref.labelField || 'title') ?? '').trim()
+					const label = (ref.labelTemplate
+						? this.fillRow(ref.labelTemplate, data || {})
+						: String(readPath(data || {}, ref.labelField || 'title') ?? '')).trim()
 					if (label === '' || BARE_UUID.test(label)) {
 						return
 					}
@@ -2389,9 +2472,14 @@ export default {
 					console.warn(`[CnRelatedObjectsWidget] the record ${ref.field} names could not be read`, error)
 				}
 			}))
+			const declared = Array.isArray(this.sectionOrder) ? this.sectionOrder : []
 			const order = (key) => {
+				const named = declared.findIndex((entry) => entry === key || String(key).startsWith(`${entry}:`))
+				if (named !== -1) {
+					return named
+				}
 				const at = [...sources, ...references].findIndex((entry) => entry && (entry.key === key || String(key).startsWith(`${entry.key}:`)))
-				return at === -1 ? Number.MAX_SAFE_INTEGER : at
+				return at === -1 ? Number.MAX_SAFE_INTEGER : declared.length + at
 			}
 			this.sourcedSections = sections.sort((a, b) => order(a.key) - order(b.key))
 		},
@@ -2828,5 +2916,38 @@ export default {
 
 .cn-related-objects-widget__file-input {
 	display: none;
+}
+
+/* `layout: "links"`: plain links one per line, "Show all" under them. */
+.cn-related-objects-widget__links {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0 16px;
+	list-style: none;
+}
+
+.cn-related-objects-widget__link {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element-text-dark, var(--color-primary-element));
+	font: inherit;
+	font-weight: 600;
+	text-align: start;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.cn-related-objects-widget__show-all {
+	margin: 12px 16px 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
 }
 </style>
