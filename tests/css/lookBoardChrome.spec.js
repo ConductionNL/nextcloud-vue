@@ -43,7 +43,7 @@ describe('look-board.css: scope', () => {
 	const TELEPORTED_ROOT = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
 	const isTeleported = (selector) => selector.startsWith('body:has(.cn-look-board)')
 
-	it('puts every selector under .cn-look-board, or a teleported popper under a body holding one', () => {
+	it('puts every selector under .cn-look-board, or a teleported popper or select list under a body holding one', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g
 		let m
 		let count = 0
@@ -51,7 +51,8 @@ describe('look-board.css: scope', () => {
 			for (const selector of m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).filter(Boolean)) {
 				count++
 				if (isTeleported(selector)) {
-					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)).toBe(true)
+					expect(selector.startsWith(`${TELEPORTED_ROOT} .v-popper__popper`)
+						|| selector.startsWith(`${TELEPORTED_ROOT} .vs__dropdown-menu`)).toBe(true)
 				} else {
 					// `html :where(.cn-look-board)` scopes a rule that must weigh no more
 					// than its elements (the inner heading size).
