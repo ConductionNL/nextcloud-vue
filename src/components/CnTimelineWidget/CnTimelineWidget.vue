@@ -153,7 +153,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
 import { useRefLabels } from '../../composables/useRefLabels.js'
-import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { auditLabel } from '../../utils/auditLabels.js'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
@@ -813,7 +813,7 @@ export default {
 			})
 
 			if (this.content.auditTrail === true) {
-				jobs.push(axios.get(generateUrl(`${base}/audit-trails`), { params: { limit: this.content.auditLimit || 50 } })
+				jobs.push(axios.get(generateUrl(`${base}/audit-trails`), { params: { limit: this.content.auditLimit || 50, ...auditExclusionParams(this.content) } })
 					.then((r) => {
 						const data = r && r.data
 						this.auditEntries = (data && (data.results || data)) || []
