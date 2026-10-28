@@ -217,7 +217,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-primary': avatarPrimary }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -671,8 +671,10 @@ function unwrap(value) {
  * `@object.<field>` / `@workspace.<key>` tokens, `sort`, `limit`, `extend`,
  * `rowRoute`, `pageControls`), or `endpointSource` (an app endpoint whose
  * payload, after `responsePath`, is the array of rows, as on the object table), or `objectRows`
- * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
+ * (`{ path, where?, valuePath?, refs? }`: rows the page record holds, such as one answer of a case; `refs` `[{ field, register, schema, as }]` reads the record a row names and puts it on the row as `as`); `avatar` puts a circle with the initials of a name
  * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten); what differs is the drawing: `presentation` is `rows`, `feed`
+ * (`{ path, where?, valuePath? }`: rows the page record holds, such as one answer of a case); `avatar` puts a circle with the initials of a name
+ * template before the title (`{ text, size: 32 }` draws the 32px circle 12px from the title, as DqZaakBesluiten; `size: 40` the record card's person chip, 16px initials on grey, as a main contact); what differs is the drawing: `presentation` is `rows`, `feed`
  * or `inline`, and each line is a template (`"{identifier} · {caseTypeName}"`,
  * `"Termijn {deadline|date}"`). `cards` draws a framed card per row in a
  * grid, with `trailing` as the large figure (board ShBank's accounts).
@@ -882,6 +884,19 @@ export default {
 		avatarSmall() {
 			const avatar = this.content?.avatar
 			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 32)
+		},
+
+		/**
+		 * Whether the avatar is the person chip of a record card (`avatar.size:
+		 * 40`): 40px, the initials 16px bold on the grey ground, as the boards
+		 * draw a main contact (DqOrganisatie, PqOrganisatie "Hoofdcontact").
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-person-avatar/specs/record-list-avatar/spec.md
+		 */
+		avatarPerson() {
+			const avatar = this.content?.avatar
+			return Boolean(avatar && typeof avatar === 'object' && Number(avatar.size) === 40)
 		},
 
 		/**
@@ -2458,6 +2473,54 @@ export default {
 		},
 
 		/**
+		 * `objectRows.refs` (`[{ field, register, schema, as }]`): read the
+		 * record each row names in `field` and put it on the row as `as`, so a
+		 * template reaches `{product.name}` for a line's `productRef`. Each
+		 * record is read once, fifty at most; a record that cannot be read
+		 * leaves the row without it.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-list-row-refs/specs/record-list/spec.md#requirement-object-rows-can-read-the-records-they-name
+		 */
+		async loadRowRefs() {
+			const refs = (Array.isArray(this.content?.objectRows?.refs) ? this.content.objectRows.refs : [])
+				.filter((ref) => ref && ref.field && ref.register && ref.schema && ref.as)
+			if (refs.length === 0 || this.rows.length === 0) {
+				return
+			}
+			const key = this.objectRowsKey
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const found = {}
+			await Promise.all(refs.map(async (ref) => {
+				const ids = [...new Set(this.rows.map((row) => readPath(row, ref.field)).filter((id) => typeof id === 'string' && id !== ''))].slice(0, 50)
+				found[ref.as] = {}
+				await Promise.all(ids.map(async (id) => {
+					try {
+						const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: ref.register, schema: ref.schema, id }))
+						if (data && typeof data === 'object') {
+							found[ref.as][id] = data
+						}
+					} catch {
+						// The row stays without this record.
+					}
+				}))
+			}))
+			if (key !== this.objectRowsKey) {
+				return
+			}
+			this.rows = this.rows.map((row) => {
+				const extra = {}
+				for (const ref of refs) {
+					const record = found[ref.as]?.[readPath(row, ref.field)]
+					if (record) {
+						extra[ref.as] = record
+					}
+				}
+				return Object.keys(extra).length > 0 ? { ...row, ...extra } : row
+			})
+		},
+
+		/**
 		 * Read the labels of the records the `links` lines name, ten at most.
 		 * A record that cannot be read keeps the fallback; its link still opens.
 		 *
@@ -2905,6 +2968,7 @@ export default {
 				this.error = false
 				this.lenses = {}
 				this.emitHeader()
+				this.loadRowRefs()
 				return
 			}
 			if (!c.register || !c.schema || this.waiting) {
@@ -3220,6 +3284,15 @@ export default {
 .cn-record-list__list--avatar-small .cn-record-list__avatar {
 	width: 32px;
 	height: 32px;
+	margin-inline-end: -4px;
+}
+
+/* `avatar.size: 40`: a record card's person chip, 40px with the initials
+   16px bold, 12px from the name (DqOrganisatie, PqOrganisatie "Hoofdcontact"). */
+.cn-record-list__list--avatar-person .cn-record-list__avatar {
+	width: 40px;
+	height: 40px;
+	font-size: 16px;
 	margin-inline-end: -4px;
 }
 

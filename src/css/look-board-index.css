@@ -447,6 +447,13 @@
 	font-weight: 600;
 }
 
+/* The Filter menu (board look, no filter sidebar) is an NcActions trigger,
+   which sizes itself from --button-size. */
+.cn-look-board .cn-actions-bar__filter-menu .button-vue {
+	--button-size: 36px;
+	height: 36px;
+}
+
 /* With the sidebar open the Filter button is pressed: the board draws it on
    the light primary ground with a primary edge and the main ink, not as a
    filled primary button (DqFilterBeheren). Its count badge stays the filled
@@ -2643,4 +2650,21 @@
 /* The team-today initials are the soft ink on the grey chip (DqTeamwachtrij). */
 .cn-look-board .cn-team-workload__avatar:not(.cn-look-nextcloud *) {
 	color: var(--cn-board-text-soft);
+}
+
+/* A titled table card (CnIndexPage `tableTitle`, board PqInloop "In de
+   wachtrij"): the title at 17px/700 at the top of the card, the head row on
+   the card's white with a rule under it.
+   @spec openspec/changes/index-table-title/specs/index-table-title/spec.md */
+.cn-look-board .cn-index-page__table-title {
+	margin: 0;
+	padding: 16px 18px 6px;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-index-page__main--titled .cn-data-table thead th:not(.cn-look-nextcloud *) {
+	background-color: var(--color-main-background);
+	border-bottom: 1px solid var(--color-border);
 }

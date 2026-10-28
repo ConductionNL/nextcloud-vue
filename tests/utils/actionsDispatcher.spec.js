@@ -303,6 +303,20 @@ describe('dispatchAction — object-op type', () => {
 		expect(result).toEqual({ id: '42' })
 	})
 
+	it('patch fills the dynamic tokens in its values (`@now` stamps the moment)', async () => {
+		const store = makeStore({ patchObject: jest.fn().mockResolvedValue({ id: '42' }) })
+		const before = Date.now()
+		await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { checkedInAt: '@now', note: 'at the door' } },
+			{ objectStore: store, source, row: { id: '42' } },
+		)
+		const [, id, values] = store.patchObject.mock.calls[0]
+		expect(id).toBe('42')
+		expect(values.note).toBe('at the door')
+		expect(values.checkedInAt).not.toBe('@now')
+		expect(Date.parse(values.checkedInAt)).toBeGreaterThanOrEqual(before - 1000)
+	})
+
 	it('patch reuses an already-registered type whose config matches the source', async () => {
 		const store = makeStore()
 		store.objectTypeRegistry = {

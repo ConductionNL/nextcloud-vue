@@ -75,8 +75,8 @@ describe('CnLinkCardsPage', () => {
 
 	it('translates the title, the captions, the labels and the descriptions', () => {
 		const { wrapper } = mountPage()
-		expect(wrapper.find('h2').text()).toBe('Modules en meer')
-		expect(wrapper.findAll('h3').map((heading) => heading.text())).toEqual(['Verkoop', 'Marketing'])
+		expect(wrapper.find('h1').text()).toBe('Modules en meer')
+		expect(wrapper.findAll('h2').map((heading) => heading.text())).toEqual(['Verkoop', 'Marketing'])
 		const leads = wrapper.find('[data-card-id="Leads"]')
 		expect(leads.text()).toContain('Leads NL')
 		expect(leads.text()).toContain('Elke deal.')
@@ -85,7 +85,7 @@ describe('CnLinkCardsPage', () => {
 	it('renders each group as a labelled region holding a list of links', () => {
 		const { wrapper } = mountPage()
 		const sales = groupsOf(wrapper)[1]
-		expect(sales.attributes('aria-labelledby')).toBe(sales.find('h3').attributes('id'))
+		expect(sales.attributes('aria-labelledby')).toBe(sales.find('h2').attributes('id'))
 		expect(sales.find('ul').findAll('li')).toHaveLength(2)
 		expect(sales.findAll('li > a')).toHaveLength(2)
 	})
@@ -139,6 +139,13 @@ describe('CnLinkCardsPage', () => {
 		expect(wrapper.find('[data-card-id="Pipeline"]').attributes('aria-describedby')).toBeUndefined()
 	})
 
+	it('ends a card with a chevron, or an open-in-new mark when it opens a new tab', () => {
+		const { wrapper } = mountPage()
+		for (const card of wrapper.findAll('[data-testid="cn-link-card"]')) {
+			expect(card.find('.cn-link-cards-page__trailing').exists()).toBe(true)
+		}
+	})
+
 	it('says so when no card is visible', () => {
 		const { wrapper } = mountPage({ cards: [] })
 		expect(wrapper.find('[data-testid="cn-link-cards-empty"]').text()).toBe('Nothing to open here.')
@@ -148,7 +155,7 @@ describe('CnLinkCardsPage', () => {
 
 	it('reads its config from a whole page when a host mounts it by hand', () => {
 		const { wrapper } = mountPage({ title: null, categories: null, cards: null, page: { title: 'Own', config: { cards: [cards[0]] } } })
-		expect(wrapper.find('h2').text()).toBe('Own')
+		expect(wrapper.find('h1').text()).toBe('Own')
 		expect(cardIds(wrapper)).toEqual(['Leads'])
 	})
 })

@@ -23,3 +23,15 @@ out while it fails or while no record is known.
 - **GIVEN** an item with `visibleIf { "object.articleBody": { truthy: true } }`
 - **WHEN** the campaign's `articleBody` is empty
 - **THEN** the item SHALL NOT render
+
+### Requirement: A menu widget in a detail page's side column reads the record and carries its card title
+
+The menu widget SHALL take the detail page's `objectId` and `objectData` props, as the side column passes them to every
+renderer, for `@objectId` in a `countFrom` filter and an item's `visibleIf` on `object.<field>`, ahead of an injected
+object context. It SHALL show the card `title` the host passes it as a heading above the items.
+
+#### Scenario: In deze campagne
+
+- **GIVEN** the campaign page's side card "In deze campagne" as a menu widget
+- **WHEN** the page renders campaign camp-2
+- **THEN** the counts SHALL be asked for campaign camp-2 and the card SHALL be titled "In deze campagne"

@@ -70,7 +70,9 @@
 <script>
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
 import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
+import { isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
 
 /** Counter for unique heading ids across instances. */
 let instanceCounter = 0
@@ -296,6 +298,9 @@ export default {
 				if (!widget || !widget.type) {
 					return
 				}
+				if (this.hiddenByRecord(widget)) {
+					return
+				}
 				out.push({
 					key: String(entry.key || widget.id || entry.widgetId || `${widget.type}-${index}`),
 					title: this.tr(entry.title || entry.label || ''),
@@ -400,6 +405,23 @@ export default {
 				return widget
 			}
 			return { ...widget, content: { ...content, fit: false } }
+		},
+
+		/**
+		 * Whether the record hides a section: its widget's own `visibleWhen`
+		 * reads a field of the record and does not hold. Without a record, and
+		 * for a workspace condition or one that needs a request, nothing hides.
+		 *
+		 * @param {object} widget The section's widget definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/sections-child-visible-when/specs/sections-child-visible-when/spec.md#requirement-a-section-on-a-detail-page-follows-its-widgets-condition
+		 */
+		hiddenByRecord(widget) {
+			const cond = widget.visibleWhen
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+				return false
+			}
+			return !detailWidgetVisible(widget, this.objectData)
 		},
 
 		/**

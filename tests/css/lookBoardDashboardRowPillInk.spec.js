@@ -44,7 +44,7 @@ describe('look-board: a dashboard row keeps its pills in their own ink', () => {
 		for (const selector of inheritingSelectors().filter((s) => s.startsWith(`${PREFIX} *`))) {
 			// Inside :where, so the exemption adds no specificity and the rest of
 			// the row still inherits as before.
-			expect(selector).toContain(':where(:not(.cn-status-badge, .cn-status-badge *, .cn-record-list__due))')
+			expect(selector).toContain(':where(:not(.cn-status-badge, .cn-status-badge *, .cn-record-list__due, .cn-record-list__avatar))')
 		}
 	})
 })

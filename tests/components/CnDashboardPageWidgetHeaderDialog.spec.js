@@ -35,7 +35,8 @@ describe('CnDashboardPage card header actions', () => {
 		const [action] = wrapper.vm.getWidgetHeaderActions(LAYOUT[0])
 		expect(action.label).toBe('Import')
 		action.run()
-		expect(dispatch).toHaveBeenCalledWith(IMPORT)
+		// The page filters travel along, for an api-call's `@workspace.<key>` url.
+		expect(dispatch).toHaveBeenCalledWith(IMPORT, { tokenCtx: expect.objectContaining({ workspace: {} }) })
 	})
 
 	it('still resolve without a provided dispatcher', () => {

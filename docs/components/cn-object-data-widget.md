@@ -46,6 +46,7 @@ A plain-object value shows as a definition list, with one nested list for an obj
 | `documentation-url` | `String` | `''` | Documentation link surfaced in the widget's overflow Actions menu (empty hides the Documentation item). |
 | `widget-id` | `String` | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`). |
 | `metadata-label` | `String` | `'Metadata'` | Label for the Metadata item in the overflow Actions menu. |
+| `fixedColumns` | Boolean | `false` | Keep `columns` under the board look too, instead of fitting 200px columns (manifest `content.fixedColumns`). |
 
 ## Slots
 

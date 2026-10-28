@@ -1,0 +1,2 @@
+- [x] fillTemplate: `fulldate` format (formatFullDate)
+- [x] tests/utils/fillTemplateFullDate.spec.js

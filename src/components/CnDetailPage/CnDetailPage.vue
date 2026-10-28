@@ -1327,6 +1327,7 @@
 				:register="register"
 				:dialogTitle="editFormTitle"
 				:subtitle="editFormSubtitle"
+				:confirmLabel="editFormConfirmLabel"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -2479,6 +2480,12 @@ export default {
 			default: '',
 		},
 
+		/** The edit form's save button, run through the host translate. Empty keeps the form's own label. */
+		editConfirmLabel: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Whether a header refresh is in flight. Disables the Refresh entry
 		 * and swaps its icon for a spinner. Wire this to the same flag the
@@ -3018,6 +3025,20 @@ export default {
 		sideColumnFrom: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The side column's order in the board look (manifest
+		 * `config.sideColumnOrder`): `board` puts a notice first and the
+		 * History card last; `declared` keeps the order of `sideColumn`, for a
+		 * board that draws History on top.
+		 *
+		 * @spec openspec/changes/detail-side-column-order/specs/detail-page/spec.md#requirement-a-detail-page-can-keep-its-side-column-in-the-declared-order
+		 */
+		sideColumnOrder: {
+			type: String,
+			default: 'board',
+			validator: (value) => ['board', 'declared'].includes(value),
 		},
 
 		/**
@@ -4158,6 +4179,30 @@ export default {
 		},
 
 		/**
+		 * `nextStep` for this kind of record: the first of `variants`
+		 * (`[{ when, title?, stages }]`) whose `when` holds for the record
+		 * replaces the declared title and stages (a contact moment's own
+		 * steps on the ticket page); without one that holds, as declared.
+		 *
+		 * @spec openspec/changes/detail-record-kind-variants/specs/detail-page/spec.md#requirement-the-next-step-can-differ-per-kind-of-record
+		 * @return {object|null}
+		 */
+		nextStepVariant() {
+			const config = this.nextStep
+			if (!config || typeof config !== 'object' || !Array.isArray(config.variants)) {
+				return config
+			}
+			const match = config.variants.find((variant) => variant && typeof variant === 'object' && variant.when
+				&& detailWidgetVisible({ visibleWhen: variant.when }, this.widgetVisibilityData))
+			if (!match) {
+				return config
+			}
+			const override = { ...match }
+			delete override.when
+			return { ...config, ...override }
+		},
+
+		/**
 		 * `nextStep` with its stages read from the record when `stagesFrom`
 		 * names a stages map there (a case type's own texts), else as declared.
 		 *
@@ -4165,7 +4210,7 @@ export default {
 		 * @return {object|null}
 		 */
 		effectiveNextStep() {
-			const config = this.nextStep
+			const config = this.nextStepVariant
 			if (!config || typeof config !== 'object' || typeof config.stagesFrom !== 'string' || config.stagesFrom === '' || !this.widgetVisibilityData) {
 				return config
 			}
@@ -4302,7 +4347,7 @@ export default {
 		 */
 		sideColumnWidgets() {
 			const resolved = this.pickedSideWidgets.filter((widget) => this.sideWidgetOnTab(widget) && this.sideWidgetVisible(widget))
-			if (!this.isBoard) {
+			if (!this.isBoard || this.sideColumnOrder === 'declared') {
 				return resolved
 			}
 			// The board look: the notice first, the History card last.
@@ -4857,6 +4902,11 @@ export default {
 			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
 		},
 
+		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
+		editFormConfirmLabel() {
+			return this.editConfirmLabel ? this.effectiveTranslate(this.editConfirmLabel) : ''
+		},
+
 		/**
 		 * The create archetype: a schema-bound page (`register` + `schema`) whose
 		 * route carries NO object id, and which has no hand-authored body of its
@@ -5331,14 +5381,18 @@ export default {
 
 		/**
 		 * The declared crumbs: `config.breadcrumb` as one crumb or a list,
-		 * without the crumbs that have no label.
+		 * without the crumbs that have no label, and without a crumb whose
+		 * `visibleWhen` does not hold for the record (a contact moment's
+		 * "Contactmomenten" where a request's "Vragen en meldingen" stands).
 		 *
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @spec openspec/changes/detail-record-kind-variants/specs/detail-page/spec.md#requirement-a-crumb-can-show-for-one-kind-of-record
 		 * @return {Array<object>}
 		 */
 		declaredCrumbs() {
 			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
-			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== ''
+				&& (!crumb.visibleWhen || detailWidgetVisible({ visibleWhen: crumb.visibleWhen }, this.widgetVisibilityData)))
 		},
 
 		/**

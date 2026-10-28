@@ -149,4 +149,11 @@ describe('CnTimelineWidget', () => {
 		await flushPromises()
 		expect(labels(wrapper)[0]).toBe('Ends')
 	})
+
+	it('keeps the first `limit` events of the order', async () => {
+		const wrapper = mountWidget({ fields, order: 'desc', limit: 2 }, { object: booking })
+		await flushPromises()
+		expect(labels(wrapper)).toHaveLength(2)
+		expect(labels(wrapper)[0]).toBe('Ends')
+	})
 })

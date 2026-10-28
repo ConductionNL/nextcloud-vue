@@ -771,8 +771,13 @@
 					'cn-index-page__main--list': currentViewMode === 'list',
 					'cn-index-page__main--table': currentViewMode === 'table',
 					'cn-index-page__main--split': splitLayout === 'split',
+					'cn-index-page__main--titled': tableTitleShown,
 				}"
 				@scroll="onListScroll">
+				<!-- The table card's own title (board PqInloop "In de wachtrij"). -->
+				<h2 v-if="tableTitleShown" class="cn-index-page__table-title" data-testid="cn-index-page-table-title">
+					{{ cnTranslate(tableTitle) }}
+				</h2>
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
@@ -1153,6 +1158,22 @@
 					<template v-if="$slots['list-item']" #list-item="{ object, selected }">
 						<slot name="list-item" :object="object" :selected="selected" />
 					</template>
+					<template v-else-if="expandableRows" #list-item="{ object }">
+						<CnExpandableRow
+							:object="object"
+							:layout="expandableRows"
+							:open="expandableRows.open === 'all' || (expandableRows.open === 'first' && displayObjects[0] === object)"
+							@action="onExpandableRowAction">
+							<template v-if="hasRowActions" #actions>
+								<CnRowActions
+									:actions="rowMenuActionsFor(object)"
+									:row="object"
+									:rowLabel="rowTitleFor(object)"
+									:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+									@action="onRowAction" />
+							</template>
+						</CnExpandableRow>
+					</template>
 					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
 						<component
 							:is="resolvedListComponent"
@@ -1514,6 +1535,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnExpandableRow } from '../CnExpandableRow/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -1920,6 +1942,7 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnExpandableRow,
 		CnBoardView,
 		CnDateAxisView,
 		CnObjectCalendar,
@@ -2193,6 +2216,19 @@ export default {
 		},
 
 		/**
+		 * Whether the list writes its filters, search and sort into the
+		 * address (`$route.query`), so a reload or a shared link shows the same
+		 * view. A list embedded in another page (the `index-list` widget in a
+		 * detail tab) sets this false: the address belongs to the page.
+		 *
+		 * @spec openspec/changes/index-list-widget/specs/index-list-widget/spec.md#requirement-an-embedded-list-leaves-the-address-alone
+		 */
+		routeState: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Whether the page header draws its icon before the title. `false`
 		 * (manifest `config.showTitleIcon: false`) drops it, for a title that
 		 * stands alone as the board draws it. True by default.
@@ -2285,6 +2321,33 @@ export default {
 		cardFields: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * List view: every row opens to a sub-table (`CnExpandableRow`).
+		 * `{ title, badge?, description?, chips?, meta?, table?, buttons?,
+		 * open?: 'first' | 'all' }`; a header button or the footer action names
+		 * a row action by its id, which runs as in the row's menu. Manifest key
+		 * `config.expandableRows` (index-expandable-rows).
+		 *
+		 * @spec openspec/changes/index-expandable-rows/specs/index-expandable-rows/spec.md
+		 */
+		expandableRows: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A title at the top of the table view's card (manifest key
+		 * `config.tableTitle`), in the host's translation. Under the board look
+		 * the head row of a titled table reads on the card's white with a rule
+		 * under it (board PqInloop "In de wachtrij").
+		 *
+		 * @spec openspec/changes/index-table-title/specs/index-table-title/spec.md
+		 */
+		tableTitle: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -4738,6 +4801,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the table card draws its title.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/index-table-title/specs/index-table-title/spec.md
+		 */
+		tableTitleShown() {
+			return this.currentViewMode === 'table' && typeof this.tableTitle === 'string' && this.tableTitle !== ''
+		},
+
 		/**
 		 * The quick-filter placement in the current view: its entry in
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
@@ -11221,7 +11294,7 @@ export default {
 		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
 		 */
 		persistViewStateToRoute(state, { savedView } = {}) {
-			if (!this.$router || !this.$route) {
+			if (!this.routeState || !this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
@@ -11931,7 +12004,7 @@ export default {
 		 * @return {void}
 		 */
 		persistNamedFiltersToRoute(filters) {
-			if (!this.$router || !this.$route) {
+			if (!this.routeState || !this.$router || !this.$route) {
 				return
 			}
 			const properties = declaredFilterFields(this)
@@ -12793,6 +12866,24 @@ export default {
 		 *
 		 * @param {{action: string, row: object, id?: string, builtin?: boolean}} payload The bubbled action payload.
 		 */
+		/**
+		 * A button or the footer action of an expandable row: run the row
+		 * action with that id as its menu entry would, else emit it.
+		 *
+		 * @param {{id: string, row: object}} payload The action id and the row.
+		 * @return {void}
+		 * @spec openspec/changes/index-expandable-rows/specs/index-expandable-rows/spec.md
+		 */
+		onExpandableRowAction({ id, row }) {
+			const entry = this.rowMenuActionsFor(row).find((action) => action.id === id)
+			if (entry && typeof entry.handler === 'function') {
+				entry.handler(row)
+			}
+			this.onRowAction(entry
+				? { action: entry.label, row, id, ...(entry.builtin ? { builtin: true } : {}) }
+				: { action: id, row, id })
+		},
+
 		onRowAction(payload) {
 			const matched = payload.builtin === true
 				? this.mergedActions.find((a) => a.builtin === true && a.id === payload.id)

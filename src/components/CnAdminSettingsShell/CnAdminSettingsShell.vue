@@ -55,7 +55,7 @@
 					</template>
 					{{ documentationLabel }}
 				</NcButton>
-				<CnBuildiqEditButton />
+				<CnBuildiqEditButton :available="buildiqAvailable" :href="buildiqHref" />
 			</div>
 		</div>
 
@@ -245,6 +245,7 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
 import { useEnvironment } from '../../composables/useEnvironment.js'
 import { normalizeLook, useLook } from '../../composables/useLook.js'
 import { ensureTranslations } from '../../l10n/index.js'
@@ -815,7 +816,12 @@ export default {
 		// No CnAppRoot provides the cell formatters on an admin page either.
 		const hostFormatters = inject('cnFormatters', null)
 		provide('cnFormatters', { ...BUILT_IN_FORMATTERS, ...(hostFormatters || {}), ...props.formatters })
-		return { environmentName, isBoard, ownLookClass }
+		// The buildiq square in the board header: no CnAppRoot provides its
+		// availability on an admin page, so the shell reads it, and the square
+		// links to the app opened in edit mode.
+		const { available: buildiqAvailable } = useBuildiqEditAvailability()
+		const buildiqHref = computed(() => generateUrl(`/apps/${props.appId}/`) + '?cn_edit=1')
+		return { environmentName, isBoard, ownLookClass, buildiqAvailable, buildiqHref }
 	},
 
 	data() {

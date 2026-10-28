@@ -224,6 +224,26 @@ page's own object instead, so one card can show the client's name and the ticket
 
 When the `source` finds nothing, the `from: "object"` entries still show and the others are left out, so a card does not lose the page object's own facts (DqTenant's Status card for an organisation without a subscription record).
 
+## Tiles (`layout: "tiles"`)
+
+`layout: "tiles"` draws each fact as a tile of its own: a bordered box with the label in small caps above the value, the
+tiles side by side and wrapping. The board PqJourney draws a journey's steps this way:
+
+```json
+{
+  "type": "facts",
+  "content": {
+    "layout": "tiles",
+    "fields": [
+      { "path": "trigger.label", "label": "Trigger" },
+      { "path": "waitFor", "label": "Wait", "format": "duration" },
+      { "path": "condition.field", "label": "Condition" },
+      { "path": "action.label", "label": "Action" }
+    ]
+  }
+}
+```
+
 ## Two columns, label above value (`columns: 2`)
 
 `columns: 2` lays the rows out in two columns with the label above the value and a hairline under each fact (one
