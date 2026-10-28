@@ -509,6 +509,7 @@ export default {
 		 *   A lead's `title` or `subtitle` may be `{ firstOf: [spec, ...] }`: the first spec that gives text ("Logged in with DigiD", else the requester's kind).
 		 *   Any other entry may carry `firstOf: [spec, ...]` in place of `path`: it shows the first spec that gives text (a call's own subject, else the request's category).
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
+		 *   `format: 'days-since'` counts the whole days from a date until today; a part's `phrase` (`phraseOne`, `phraseZero`) writes that count in words ("waiting {n} days"), and a part's `empty` is the text when its value is not there ("not assigned").
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
@@ -2105,7 +2106,11 @@ export default {
 					if (!spec.path && Array.isArray(spec.parts)) {
 						return this.lineValue(record, spec)
 					}
-					const value = this.format(readPath(record, spec.path), spec, record)
+					const raw = readPath(record, spec.path)
+					if ((raw === null || raw === undefined || raw === '') && typeof spec.empty === 'string') {
+						return this.tr(spec.empty)
+					}
+					const value = this.phraseOf(this.format(raw, spec, record), spec)
 					if (value === '') {
 						return ''
 					}
@@ -2113,6 +2118,30 @@ export default {
 				})
 				.filter((value) => value !== '')
 				.join(separator)
+		},
+
+		/**
+		 * A count in words: `phrase` ("waiting {n} days") with `{n}` filled,
+		 * `phraseOne` for 1 and `phraseZero` for 0 when set. The value as it
+		 * is without a phrase or when it is not a count.
+		 *
+		 * @param {string} value The formatted value.
+		 * @param {object} spec `{ phrase?, phraseOne?, phraseZero? }`.
+		 * @return {string} The text.
+		 * @spec openspec/changes/facts-days-since-phrase/specs/facts-days-since-phrase/spec.md#requirement-a-facts-part-can-say-how-many-days-ago-and-name-an-empty-value
+		 */
+		phraseOf(value, spec) {
+			if (typeof spec.phrase !== 'string' || value === '' || !/^\d+$/.test(value)) {
+				return value
+			}
+			const count = Number(value)
+			let phrase = spec.phrase
+			if (count === 0 && typeof spec.phraseZero === 'string') {
+				phrase = spec.phraseZero
+			} else if (count === 1 && typeof spec.phraseOne === 'string') {
+				phrase = spec.phraseOne
+			}
+			return this.tr(phrase).replace(/\{n\}/g, value)
 		},
 
 		/**
@@ -2140,6 +2169,17 @@ export default {
 					.map((item) => this.format(item, { ...spec, format: spec.itemFormat || 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
+			}
+			// Whole calendar days from the date until today, never below 0.
+			if (format === 'days-since') {
+				const date = parseDateValue(raw)
+				if (date === null) {
+					return ''
+				}
+				const today = new Date()
+				const start = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+				const end = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+				return String(Math.max(0, Math.round((end - start) / 86400000)))
 			}
 			if (format === 'year') {
 				const date = parseDateValue(raw)
