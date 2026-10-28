@@ -28,5 +28,7 @@ array to "Array" and answers an empty trail, so this lands AFTER it.
 
 ## Scope
 
-`src/components/CnAuditTrailCard/CnAuditTrailCard.vue` (and so `CnAuditTrailWidget`, which wraps it). The app-wide
+`src/components/CnAuditTrailCard/CnAuditTrailCard.vue` (and so `CnAuditTrailWidget`, which wraps it), and the same
+parameters from `CnTimelineWidget` (audit read) and `CnTabsWidget` (`countFrom.auditTrail`), through one helper,
+`auditExclusionParams` in `src/utils/auditEntries.js`. The app-wide
 readable feed is unchanged.

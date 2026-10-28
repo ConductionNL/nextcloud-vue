@@ -20,3 +20,15 @@ before the page limit. The card SHALL keep filtering what the trail answers.
 
 - **WHEN** the card names no exclusions
 - **THEN** its trail reads carry no `action[notIn]` or `user[notIn]`
+
+### Requirement: A timeline and a tab count ask the trail to leave out what they hide
+
+A timeline that shows the audit trail (`CnTimelineWidget`, `auditTrail: true`) and a tab that counts it
+(`CnTabsWidget`, `countFrom: { auditTrail: true }`) SHALL send their `excludeActions` and `excludeActors` to the trail as
+`action[notIn]` and `user[notIn]`, as the History card does, and SHALL keep filtering what the trail answers.
+
+#### Scenario: A history tab on a busy case
+
+- **GIVEN** a case whose newest 100 trail entries are all reads
+- **WHEN** its History tab counts with `countFrom: { auditTrail: true, excludeActions: ["read"] }`
+- **THEN** the count read asks `action[notIn]=read` and counts the changes, not 0

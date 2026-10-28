@@ -81,7 +81,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { actionLabelFor, changedValue, changeLabelFor, fillAuditLabel } from '../../utils/auditLabels.js'
 import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
@@ -375,13 +375,8 @@ export default {
 		 * @spec openspec/changes/audit-card-exclusions-in-the-query/specs/audit-trail/spec.md#requirement-a-history-card-asks-the-trail-to-leave-out-what-it-hides
 		 */
 		addExclusions(params) {
-			const actions = this.excludeActions.map(String).filter(Boolean)
-			const actors = this.excludeActors.map(String).filter(Boolean)
-			if (actions.length > 0) {
-				params.set('action[notIn]', actions.join(','))
-			}
-			if (actors.length > 0) {
-				params.set('user[notIn]', actors.join(','))
+			for (const [key, value] of Object.entries(auditExclusionParams({ excludeActions: this.excludeActions, excludeActors: this.excludeActors }))) {
+				params.set(key, value)
 			}
 		},
 
