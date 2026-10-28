@@ -1451,7 +1451,7 @@ import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
-import { evaluateVisibleWhen, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -3187,6 +3187,20 @@ export default {
 		},
 
 		/**
+		 * Header lines that depend on the record (manifest
+		 * `config.headerMetaWhen`): `[{ when, text }]`, a local `visibleWhen`
+		 * condition on the record and a template like `headerMeta`'s. The first
+		 * entry whose condition holds replaces `headerMeta`; none leaves it.
+		 * PqOfferte: "not sent yet" on a draft.
+		 *
+		 * @spec openspec/changes/header-meta-when/specs/detail-page/spec.md#requirement-a-header-line-can-depend-on-the-record
+		 */
+		headerMetaWhen: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The lists `headerMeta` counts (manifest `config.headerMetaCounts`), as
 		 * on a list page: `{ <name>: { register, schema, filter? } | { entitySource } }`,
 		 * each read as one total and filled in for `{count:<name>}` ("een van
@@ -3633,6 +3647,12 @@ export default {
 		 * @spec openspec/changes/header-meta-plural/specs/detail-page/spec.md#requirement-a-header-line-can-name-a-count-in-the-singular-or-the-plural
 		 */
 		headerMetaForm() {
+			const record = this.resolvedObject || {}
+			const chosen = (Array.isArray(this.headerMetaWhen) ? this.headerMetaWhen : [])
+				.find((entry) => entry && typeof entry.text === 'string' && entry.when && evaluateVisibleWhenLocal(entry.when, record))
+			if (chosen) {
+				return chosen.text
+			}
 			const meta = this.headerMeta
 			if (!meta || typeof meta !== 'object') {
 				return typeof meta === 'string' ? meta : ''
