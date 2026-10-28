@@ -4785,6 +4785,11 @@
 								]
 							}
 						},
+						"bandDensity": {
+							"type": "string",
+							"enum": ["", "compact"],
+							"description": "type='detail': the band's density. compact draws 12px between tiles and 20px between rows, tiles down to 120px, and a stat figure as a small white tile (13px label over a 20px value), as boards PqKlant and PqOrganisatie draw their figures (detail-band-compact)."
+						},
 						"sideColumn": {
 							"type": "array",
 							"description": "type='detail': a column of cards beside the body, for the record's facts. An item is a widget definition, or the id of a widget declared on the page. The column stacks under the body on a narrow page.",

@@ -663,6 +663,7 @@
 		<div
 			v-if="showsBand"
 			class="cn-detail-page__band"
+			:class="{ 'cn-detail-page__band--compact': bandDensity === 'compact' }"
 			data-testid="cn-detail-page-band">
 			<!-- The page filters (`config.pageFilters`), right-aligned above the
 			     band's widgets; each writes the page's workspace context. -->
@@ -2994,6 +2995,21 @@ export default {
 		band: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The band's density (manifest `config.bandDensity`). `compact` draws
+		 * it as boards PqKlant and PqOrganisatie do: 12px between tiles, 20px
+		 * between rows, tiles down to 120px, and a figure as a small white
+		 * tile (13px label over a 20px value). Empty keeps the default band.
+		 *
+		 * @type {'' | 'compact'}
+		 * @spec openspec/changes/detail-band-compact/specs/detail-page/spec.md#requirement-a-detail-band-can-be-compact
+		 */
+		bandDensity: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'compact'].includes(value),
 		},
 
 		/**
