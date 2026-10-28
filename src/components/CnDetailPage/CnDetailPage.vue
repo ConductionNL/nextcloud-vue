@@ -643,6 +643,7 @@
 			:titleTag="isBoard ? 'h2' : 'h3'"
 			:items="nextStepCard.items"
 			:after="nextStepCard.after"
+			:afterTitle="nextStepCard.afterTitle"
 			data-testid="cn-detail-page-next-step">
 			<template v-if="effectivePrimaryLabel" #action>
 				<NcButton
@@ -4327,6 +4328,7 @@ export default {
 				...card,
 				title: firstFilled(card.title, this.currentObject, tr),
 				after: firstFilled(card.after, this.currentObject, tr),
+				afterTitle: firstFilled(card.afterTitle, this.currentObject, tr),
 				items: card.items.map((item) => ({ ...item, label: tr(item.label), hint: tr(item.hint) })),
 			}
 		},

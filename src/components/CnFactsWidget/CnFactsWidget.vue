@@ -129,9 +129,12 @@
 					:data-testid="`cn-fact-${block.key}`">
 					{{ block.value }}
 				</span>
-				<div
+				<component
+					:is="block.to ? 'router-link' : 'div'"
 					v-else-if="block.kind === 'lead'"
 					class="cn-facts-widget__lead"
+					:class="{ 'cn-facts-widget__lead--card': block.card }"
+					:to="block.to || undefined"
 					:data-testid="`cn-fact-${block.key}`">
 					<span
 						class="cn-facts-widget__lead-tile"
@@ -144,7 +147,13 @@
 						<strong class="cn-facts-widget__lead-title">{{ block.value }}</strong>
 						<span v-if="block.subtitle" class="cn-facts-widget__lead-subtitle">{{ block.subtitle }}</span>
 					</span>
-				</div>
+					<CnStatusBadge
+						v-if="block.pill"
+						class="cn-facts-widget__lead-pill"
+						:label="block.pill.label"
+						:variant="block.pill.variant"
+						size="small" />
+				</component>
 				<div
 					v-else-if="block.kind === 'meter'"
 					class="cn-facts-widget__meter"
@@ -891,6 +900,9 @@ export default {
 					block.icon = typeof field.icon === 'string' ? field.icon : ''
 					block.initials = block.icon ? '' : this.initialsOf(readPath(record, field.initialsPath))
 					block.tone = ['success', 'info', 'warning', 'error'].includes(field.tone) ? field.tone : 'neutral'
+					block.card = field.card === true
+					block.to = field.route ? this.resolveRoute(field.route, record) : null
+					block.pill = this.leadPillOf(record, field.pill)
 				}
 				if (kind === 'meter') {
 					Object.assign(block, this.meterOf(record, field))
@@ -1555,6 +1567,29 @@ export default {
 			const tones = Array.isArray(field.tone) ? field.tone : []
 			const hit = tones.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, record))
 			return hit && ['success', 'warning', 'error'].includes(hit.variant) ? hit.variant : ''
+		},
+
+		/**
+		 * The status pill at the end of a lead (`pill: { path, map?, variantMap?, variant? }`):
+		 * the value's mapped label, toned by the raw value. Null without a value.
+		 *
+		 * @param {object} record The record the lead reads.
+		 * @param {object} spec The lead's `pill`.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/contact-moment-parts/specs/contact-moment-parts/spec.md
+		 */
+		leadPillOf(record, spec) {
+			if (!spec || typeof spec !== 'object' || typeof spec.path !== 'string') {
+				return null
+			}
+			const raw = readPath(record, spec.path)
+			if (raw === undefined || raw === null || raw === '') {
+				return null
+			}
+			const key = String(raw)
+			const mapped = spec.map && Object.hasOwn(spec.map, key) ? spec.map[key] : key
+			const variant = (spec.variantMap && Object.hasOwn(spec.variantMap, key) ? spec.variantMap[key] : spec.variant) || 'default'
+			return { label: this.tr(mapped), variant: isBadgeVariant(variant) ? variant : 'default' }
 		},
 
 		/**
@@ -2500,6 +2535,24 @@ export default {
 	height: 40px;
 	justify-content: center;
 	width: 40px;
+}
+
+/* A lead drawn as a card: a bordered row that opens its record (PqContactmoment "Over dit verzoek"). */
+.cn-facts-widget__lead--card {
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	color: var(--color-main-text);
+	flex-wrap: wrap;
+	padding: 14px 16px;
+	text-decoration: none;
+}
+
+.cn-facts-widget__lead--card .cn-facts-widget__lead-text {
+	flex: 1 1 240px;
+}
+
+.cn-facts-widget__lead-pill {
+	flex: none;
 }
 
 /* Initials stand for a person: round, as an avatar. */

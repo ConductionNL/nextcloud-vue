@@ -41,7 +41,7 @@
 				</li>
 			</ul>
 		</div>
-		<div v-if="actionLabel || $slots.action || after" class="cn-next-step-card__side">
+		<div v-if="actionLabel || $slots.action || after || afterTitle" class="cn-next-step-card__side">
 			<!-- @slot action Replace the primary button, for a host that renders its own control. -->
 			<slot name="action">
 				<NcButton
@@ -54,6 +54,7 @@
 					{{ actionLabel }}
 				</NcButton>
 			</slot>
+			<span v-if="afterTitle" class="cn-next-step-card__after-title">{{ afterTitle }}</span>
 			<span v-if="after" class="cn-next-step-card__after">{{ after }}</span>
 		</div>
 	</section>
@@ -146,6 +147,12 @@ export default {
 
 		/** One line under the button saying what follows, for example "Then: step 3, decision". */
 		after: {
+			type: String,
+			default: '',
+		},
+
+		/** A bold sentence above `after`, for a stage whose side has no button but a statement (PqContactmoment "Een contactmoment heeft geen klant om te beantwoorden."). */
+		afterTitle: {
 			type: String,
 			default: '',
 		},
@@ -344,5 +351,11 @@ export default {
 .cn-next-step-card__after {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
+}
+
+.cn-next-step-card__after-title {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 600;
 }
 </style>

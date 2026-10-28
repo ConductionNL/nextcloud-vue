@@ -4739,6 +4739,7 @@
 										"properties": {
 											"title": { "anyOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }], "description": "i18n key / heading of the card for this stage. May name record fields as `{path}` tokens (`What now? Step 2: {statusPublicLabel|lower}`); a list is candidates, the first whose fields all have a value is used." },
 											"after": { "anyOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }], "description": "i18n key / one line under the button saying what follows. Takes `{path}` tokens and candidates as `title` does." },
+											"afterTitle": { "anyOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }], "description": "i18n key / a bold sentence above `after`, for a stage whose side states something instead of offering a button (contact-moment-parts). Takes tokens and candidates as `after` does." },
 											"checklist": {
 												"type": "array",
 												"description": "What this stage still needs. An empty list shows no card.",
