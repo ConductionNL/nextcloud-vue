@@ -784,6 +784,19 @@
 	margin: 0;
 }
 
+/* A row's name is 15px at 600 on a normal line, its description 13px at
+   1.45, so a two-line row is the board's 78px (DqPersoonlijkeInstellingen
+   "Termijn deze week": live drew 22.5px and 19.5px lines, 82.5px).
+   @spec openspec/changes/board-ordered-list-field/specs/board-ordered-list-field/spec.md */
+.cn-look-board .cn-ordered-list-field__name:not(.cn-look-nextcloud *) {
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-ordered-list-field__description:not(.cn-look-nextcloud *) {
+	line-height: 1.45;
+}
+
 .cn-look-board .cn-ordered-list-field__button--text:not(.cn-look-nextcloud *):hover:not(:disabled) {
 	background: var(--color-background-hover);
 }

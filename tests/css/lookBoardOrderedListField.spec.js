@@ -45,4 +45,11 @@ describe('look-board.css: an ordered list field', () => {
 		expect(rule(`.cn-look-board .cn-ordered-list-field__handle${guard}`)).toContain('width: 20px;')
 		expect(rule(`.cn-look-board .cn-ordered-list-field__button--text${guard}`)).toContain('padding: 0 12px;')
 	})
+
+	it('draws a row\'s name at 600 on a normal line and its description at 1.45', () => {
+		const name = rule(`.cn-look-board .cn-ordered-list-field__name${guard}`)
+		expect(name).toContain('font-weight: 600;')
+		expect(name).toContain('line-height: normal;')
+		expect(rule(`.cn-look-board .cn-ordered-list-field__description${guard}`)).toContain('line-height: 1.45;')
+	})
 })
