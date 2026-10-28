@@ -1036,9 +1036,12 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 			const type = resolveObjectOpType(store, source)
+			// The values take the dynamic tokens a filter takes (`@now`, `@me`,
+			// `@objectId`, ...), so "check in" can stamp the moment it was pressed.
+			const values = resolveDeepTokens({ ...(action.values || {}) }, context.tokenCtx || {})
 
 			if (op === 'create') {
-				return store.saveObject(type, { ...(action.values || {}) })
+				return store.saveObject(type, values)
 			}
 
 			const row = context.row
@@ -1055,9 +1058,9 @@ export function dispatchAction(action, context = {}) {
 			// keeps its stored value. A store without patchObject writes the
 			// row's object merged with the values.
 			if (typeof store.patchObject === 'function') {
-				return store.patchObject(type, id, { ...(action.values || {}) })
+				return store.patchObject(type, id, values)
 			}
-			return store.saveObject(type, { ...row, ...(action.values || {}), id })
+			return store.saveObject(type, { ...row, ...values, id })
 		}
 
 		default:
