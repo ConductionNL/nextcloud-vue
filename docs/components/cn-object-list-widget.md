@@ -271,6 +271,12 @@ A column's `cellClass` reaches the table: `"cn-cell--wrap"` wraps a column of pr
 
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
+## More than one Add, and totals under the list
+
+`content.addActions` (`[{ label, icon?, createDefaults? }]`) offers extra adds beside the list's own. Each opens the same create form with its `createDefaults` merged over the list's, so one list of quote lines offers "Add product" (`createDefaults: { "kind": "catalogue" }`) and "Add own line" (`{ "kind": "own" }`), as board PqOfferte draws. In the board look they stand in the card's title row next to the Add; in the Nextcloud look they join the card's Actions menu and the footer. Labels go through the host translate.
+
+`content.totals` (`[{ label, path, format?, currency?, currencyField?, emphasis? }]`) ends the list with the totals of the record it sits on, in a box beside the `footnote`: a quote's subtotal, VAT and total under its lines. `format: "currency"` writes a money amount in the reader's language; `emphasis: true` sets a row apart with a rule above it (the total). A row without a value is left out.
+
 ## Sorting and filtering from the column heads
 
 `content.sortable` (`true`, or the column keys) makes the column heads sort.

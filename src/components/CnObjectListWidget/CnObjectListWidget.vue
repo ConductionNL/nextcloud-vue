@@ -270,11 +270,32 @@
 			{{ resolvedSummary }}
 		</p>
 		<p
-			v-if="resolvedFootnote && !waitingForContext && !error"
+			v-if="resolvedFootnote && totalRows.length === 0 && !waitingForContext && !error"
 			class="cn-object-list-widget__footnote"
 			data-testid="cn-object-list-widget-footnote">
 			{{ resolvedFootnote }}
 		</p>
+		<!-- `content.totals` (board PqOfferte "Regels"): the footnote on the
+		     left and the totals of the record the list sits on in a box on the
+		     right. -->
+		<div
+			v-if="totalRows.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__foot"
+			data-testid="cn-object-list-widget-foot">
+			<p v-if="resolvedFootnote" class="cn-object-list-widget__footnote">
+				{{ resolvedFootnote }}
+			</p>
+			<dl class="cn-object-list-widget__totals" :aria-label="t('nextcloud-vue', 'Totals')">
+				<template v-for="row in totalRows" :key="row.key">
+					<dt :class="{ 'cn-object-list-widget__total--emphasis': row.emphasis }">
+						{{ row.label }}
+					</dt>
+					<dd :class="{ 'cn-object-list-widget__total--emphasis': row.emphasis }">
+						{{ row.value }}
+					</dd>
+				</template>
+			</dl>
+		</div>
 		<!-- `content.footerLinks`: a row of links under the list, each with
 		     an optional muted note ("Objecttypen beheren (alleen voor
 		     beheerders)"). -->
@@ -315,6 +336,19 @@
 					<Plus :size="20" />
 				</template>
 				{{ addLabel }}
+			</NcButton>
+			<NcButton
+				v-for="(entry, index) in addActions"
+				:key="`add-action-${index}`"
+				variant="tertiary"
+				wide
+				data-testid="cn-object-list-widget-add-action"
+				@click="openCreateWith(entry.createDefaults)">
+				<template #icon>
+					<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+					<Plus v-else :size="20" />
+				</template>
+				{{ entry.label }}
 			</NcButton>
 		</div>
 		<!-- Upload affordance. A `dropZone` action already accepts a dropped
@@ -365,6 +399,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
@@ -372,10 +407,11 @@ import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
+import { formatMoney } from '../../utils/formatMetric.js'
 import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
-import { createActionState } from '../../utils/listCreateAction.js'
+import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
@@ -421,7 +457,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
+	components: { CnDataTable, CnFormDialog, CnIcon, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
 
 	mixins: [innerHeading],
 
@@ -616,6 +652,8 @@ export default {
 			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
+			/** The `createDefaults` of the extra add (`content.addActions`) that opened the form, or null. */
+			addActionDefaults: null,
 			/** The row the form edits (`content.editable`), or null while it creates. */
 			editingRow: null,
 			/**
@@ -1476,14 +1514,62 @@ export default {
 			const declared = this.content && this.content.createDefaults
 			// Tokens resolve as the filter's do: `@objectId` is the page's object.
 			const defaults = declared && typeof declared === 'object' && !Array.isArray(declared) ? resolveFilterTokens(declared, this.tokenCtx) : null
-			if (defaults) {
-				for (const [key, value] of Object.entries(defaults)) {
+			const extra = this.addActionDefaults ? resolveFilterTokens(this.addActionDefaults, this.tokenCtx) : null
+			for (const set of [defaults, extra]) {
+				if (!set) {
+					continue
+				}
+				for (const [key, value] of Object.entries(set)) {
 					if (key in props && value !== undefined) {
 						out[key] = value
 					}
 				}
 			}
 			return out
+		},
+
+		/**
+		 * The totals under the list (`content.totals`: `[{ label, path, format?,
+		 * currency?, currencyField?, emphasis? }]`), read from the record the
+		 * list sits on: a quote's subtotal, VAT and total under its lines.
+		 * `format: "currency"` writes a money amount in the reader's language;
+		 * a row without a value is left out. Labels go through the app's
+		 * translate.
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-end-in-the-totals-of-the-record-it-sits-on
+		 * @return {Array<{key: string, label: string, value: string, emphasis: boolean}>}
+		 */
+		totalRows() {
+			const rows = Array.isArray(this.content.totals) ? this.content.totals : []
+			const record = this.objectCtx ? (this.objectCtx.object || this.objectCtx.objectData || null) : null
+			if (rows.length === 0 || !record) {
+				return []
+			}
+			const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			return rows
+				.filter((row) => row && typeof row.path === 'string' && row.path !== '')
+				.map((row, index) => {
+					const raw = readPath(record, row.path)
+					const value = row.format === 'currency'
+						? formatMoney(raw, { currency: row.currency, currencyField: row.currencyField }, record, null)
+						: (raw === null || raw === undefined ? '' : String(raw))
+					return { key: `${index}-${row.path}`, label: tr(String(row.label || row.path)), value, emphasis: row.emphasis === true }
+				})
+				.filter((row) => row.value !== '')
+		},
+
+		/**
+		 * The extra adds (`content.addActions`: `[{ label, icon?, createDefaults? }]`),
+		 * each opening this list's create form with its own defaults over the
+		 * list's (board PqOfferte "Eigen regel toevoegen"). Labels go through the
+		 * app's translate. Empty without create, or while a declared
+		 * `createAction` replaces the form.
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 * @return {Array<{label: string, icon: string, createDefaults: object|null}>}
+		 */
+		addActions() {
+			return listAddActions(this.content, this.allowCreate && !this.createState.action, this.cnTranslate)
 		},
 
 		/**
@@ -2324,7 +2410,29 @@ export default {
 			}
 		},
 
+		/**
+		 * Open the create form with an extra add's defaults
+		 * (`content.addActions`) merged over the list's.
+		 *
+		 * @param {object|null} defaults The extra add's `createDefaults`.
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 */
+		async openCreateWith(defaults) {
+			await this.startCreate(defaults && typeof defaults === 'object' && !Array.isArray(defaults) ? defaults : null)
+		},
+
 		async openCreate() {
+			await this.startCreate(null)
+		},
+
+		/**
+		 * Open the create form (or run the declared `createAction`), with the
+		 * extra add's defaults set before the form reads its initial data.
+		 *
+		 * @param {object|null} defaults The extra add's `createDefaults`, or null.
+		 */
+		async startCreate(defaults) {
+			this.addActionDefaults = defaults
 			const c = this.content || {}
 			const { action, visible } = this.createState
 			if (action) {
@@ -3091,6 +3199,63 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	margin: 8px 0 0;
+}
+
+/* `content.totals`: the footnote and a totals box side by side, wrapping on a
+   narrow card (board PqOfferte "Regels"). */
+.cn-object-list-widget__foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px 24px;
+	padding-top: 18px;
+}
+
+.cn-object-list-widget__foot .cn-object-list-widget__footnote {
+	flex: 1 1 260px;
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-object-list-widget__totals {
+	display: grid;
+	flex: 0 1 300px;
+	grid-template-columns: 1fr max-content;
+	gap: 8px 24px;
+	margin: 0;
+	padding: 14px 16px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--cn-board-sunken-ground, var(--color-background-hover));
+	font-size: 15px;
+}
+
+.cn-object-list-widget__totals dt,
+.cn-object-list-widget__totals dd {
+	width: auto;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-object-list-widget__totals dt {
+	color: color-mix(in srgb, var(--color-main-text) 80%, var(--color-text-maxcontrast));
+	text-align: start;
+}
+
+.cn-object-list-widget__totals dd {
+	text-align: end;
+}
+
+.cn-object-list-widget__totals .cn-object-list-widget__total--emphasis {
+	padding-top: 8px;
+	border-top: 1px solid var(--color-border-dark, var(--color-border));
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-object-list-widget__totals dd.cn-object-list-widget__total--emphasis {
+	font-size: 18px;
 }
 
 /* Footer Add — same pattern as the integration leaves' footer action
