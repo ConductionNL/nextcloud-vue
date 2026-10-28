@@ -82,7 +82,11 @@
 					:data-source="event.source"
 					data-testid="cn-timeline-widget-event">
 					<span class="cn-timeline-widget__feed-icon" aria-hidden="true">
-						<CnIcon :name="event.icon || 'TimelineTextOutline'" :size="18" :data-icon="event.icon" data-testid="cn-timeline-widget-icon" />
+						<CnIcon
+							:name="event.icon || 'TimelineTextOutline'"
+							:size="18"
+							:data-icon="event.icon"
+							data-testid="cn-timeline-widget-icon" />
 					</span>
 					<div class="cn-timeline-widget__feed-body">
 						<span class="cn-timeline-widget__feed-meta">

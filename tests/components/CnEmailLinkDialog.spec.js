@@ -10,8 +10,8 @@
 jest.mock('@nextcloud/event-bus', () => ({ emit: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() }))
 jest.mock('@nextcloud/dialogs', () => ({ showError: jest.fn() }))
 
-const { emit } = require('@nextcloud/event-bus')
 const { showError } = require('@nextcloud/dialogs')
+const { emit } = require('@nextcloud/event-bus')
 const { mount, flushPromises } = require('@vue/test-utils')
 const CnEmailLinkDialog = require('../../src/components/CnEmailLinkDialog/CnEmailLinkDialog.vue').default
 

@@ -51,7 +51,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async link(pick) {
-			let linked = false
+			let linked
 			try {
 				const response = await fetch(
 					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails`),
