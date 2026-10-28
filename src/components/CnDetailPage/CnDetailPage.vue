@@ -2878,7 +2878,7 @@ export default {
 		/**
 		 * Fields shown as chips under the title (manifest `config.headerFields`):
 		 * each entry a property key, or `{ key, format, labelField, colorField,
-		 * warnWhenPast }`. `format` is `text` (default), `mono`, `badge`, `user`
+		 * warnWhenPast }`. `format` is `text` (default), `mono`, `strong` (bold text, no chip frame), `badge`, `user`
 		 * or `date`. An empty value shows no chip; no row without chips.
 		 *
 		 * @type {Array<string|{key: string, format?: string, labelField?: string, colorField?: string, warnWhenPast?: boolean}>}

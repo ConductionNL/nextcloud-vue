@@ -322,6 +322,16 @@ export default {
 	background: transparent;
 }
 
+/* `strong`: the value as bold text in the header line, without a chip
+   frame (DqTenant "waterland"). */
+.cn-detail-header-chips__chip--strong {
+	padding: 0;
+	border: none;
+	background: transparent;
+	font-size: inherit;
+	font-weight: 700;
+}
+
 .cn-detail-header-chips__value--mono {
 	font-family: var(--font-family-monospace, ui-monospace, monospace);
 }
