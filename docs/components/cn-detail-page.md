@@ -237,6 +237,8 @@ A widget definition may carry `titleWhen: [{ when?, text }]`. The page resolves 
 
 `content.leadWidgetIds` names other widgets on the page that a widget's card draws inside itself, after its title row and before its own content, each without a card of its own and only while its own `visibleWhen` holds. dossiq draws the review summary ("4 van 7 beoordeeld") inside the case Files card (DqZaakDocumenten): `"content": { "view": "tab", "leadWidgetIds": ["case-document-verdicts-card"] }`, with the summary left out of the tab's own `widgetIds` so it does not draw twice.
 
+`content.trailWidgetIds` does the same after the card's own content. dossiq ends the Zaakplan card with the case's goals (DqZaak): `"content": { "trailWidgetIds": ["case-goals"] }`.
+
 ## A body widget's own cards in the side column
 
 A widget in the body can show cards about what is selected in it in the side column, in place of the generic side cards (DqDocumentenBeheer: `Wie mag dit zien: <file>` and "Controlegetal" while files are ticked). The page provides `cnDetailSideColumn`:

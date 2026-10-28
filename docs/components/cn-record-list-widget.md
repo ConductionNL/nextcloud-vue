@@ -137,6 +137,8 @@ candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 }
 ```
 
+`footerAction.layout: "row"` draws the note and the action in one ruled row, the action at its end. `footerAction.note` may be `{ path, lead }` instead of a text: `lead` is a bold label before the note, and the note is the value at `path` of the same endpoint answer the rows come from (one request), shown while the list has no rows. Board DqZaak ends Zaakplan this way: "**Doelen** nog geen doelen: wat wil de verzoeker dat er verandert?" and "Doel toevoegen", the prompt read from the case type through the goals endpoint. Lead and value go through the app's translate.
+
 With `groupBy`, `footerAction.group` names a group value: the action then ends that group's heading instead of standing under the list, and the heading is drawn even when no row is in that group (after the other groups, or under the empty text). `footerAction.variant: "tonal"` draws the action as a tonal pill (primary-light, 34px, fully rounded, 13px semibold) instead of a secondary button. Board DqZaakGerelateerd puts "Vervolg plannen" at the end of "Gepland vervolg" this way.
 
 ```json
