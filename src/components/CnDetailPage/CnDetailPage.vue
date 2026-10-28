@@ -262,6 +262,9 @@
 					:disabled="primaryActionDisabled"
 					data-testid="cn-detail-page-primary-action"
 					@click="onPrimaryActionClick">
+					<template v-if="primaryActionIconName" #icon>
+						<CnIcon :name="primaryActionIconName" :size="20" />
+					</template>
 					{{ effectivePrimaryLabel }}
 				</NcButton>
 				<!-- The record source's own verbs (a task's claim, hand back,
@@ -651,6 +654,9 @@
 					:disabled="primaryActionDisabled"
 					data-testid="cn-detail-page-primary-action"
 					@click="onPrimaryActionClick">
+					<template v-if="primaryActionIconName" #icon>
+						<CnIcon :name="primaryActionIconName" :size="20" />
+					</template>
 					{{ effectivePrimaryLabel }}
 				</NcButton>
 			</template>
@@ -3960,6 +3966,16 @@ export default {
 				.filter((pinned) => onTab(pinned, this.activeBodyTab))
 				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
 				.filter(Boolean)
+		},
+
+		/**
+		 * The icon of the stage's primary action, as a quick action draws it.
+		 *
+		 * @return {string} An MDI icon name, or '' for none.
+		 * @spec openspec/changes/stage-primary-icon/specs/detail-page/spec.md#requirement-the-stage-primary-button-draws-its-actions-icon
+		 */
+		primaryActionIconName() {
+			return this.stagePrimaryEntry?.iconName || ''
 		},
 
 		/**
