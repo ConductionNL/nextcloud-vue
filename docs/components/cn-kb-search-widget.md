@@ -56,6 +56,8 @@ createApp(App).use(...).provide(...) // or:
     "limit": 8,
     "externalOpen": true,           // result links open in a new tab
     "placeholder": "Search the knowledge base", // board look only
+    "suggestFrom": "@object.topic",  // or { register, schema, filter?, sort?, path }
+    "suggestLimit": 2,
     "unavailableFallback": "Knowledge base is not configured."
   }
 }
@@ -65,6 +67,14 @@ In the board look (a page or app with `look: "board"`) the field carries a
 search icon and a placeholder (`placeholder`, else the label), its label is
 read by assistive technology only, and the typing hint is left out: the
 side-card search of PqKlant and PqOrganisatie "Kennisbank".
+
+`suggestFrom` searches on load for a text the page gives: a token path into
+the page record (`@object.<path>`, `@context.<name>.<path>`), or the field at
+`path` of the first record a query finds (`filter` takes the shared tokens,
+`@objectId` among them; `sort` is `{ field, dir }`). The best `suggestLimit`
+matches (2 by default) show under the empty field. Without a text, a match or
+a knowledge base nothing shows. Client page "Kennisbank": the subject of the
+client's most recent open ticket or contact moment.
 
 `externalOpen` defaults to the provider's own `externalOpen` flag and is
 overridable per widget. `unavailableFallback` replaces the default
