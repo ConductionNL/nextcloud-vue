@@ -2585,6 +2585,21 @@
 	color: var(--color-primary-element-light-text);
 }
 
+/* A record card's person chip (`avatar.size: 40`) keeps its 40px and the grey
+   ground in the side column, 12px before the name (PqOrganisatie "Hoofdcontact").
+   @spec openspec/changes/record-list-person-avatar/specs/record-list-avatar/spec.md */
+.cn-look-board .cn-detail-page__side .cn-record-list__list--avatar-person .cn-record-list__row:not(.cn-look-nextcloud *) > .cn-record-list__avatar {
+	width: 40px;
+	height: 40px;
+	background: var(--color-background-hover);
+	color: var(--cn-board-text-soft);
+	font-size: 16px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list__list--avatar-person .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
 .cn-look-board .cn-detail-page__side .cn-record-list__row:has(> .cn-record-list__avatar):not(.cn-look-nextcloud *) .cn-record-list__title {
 	font-weight: 400;
 }
