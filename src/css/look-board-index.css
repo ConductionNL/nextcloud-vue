@@ -2179,12 +2179,14 @@
 
 /* A record list drawn as a table (DqTeamwachtrij "Werkvoorraad per
    zaaktype") is the board's compact grid: a 13px muted header at regular
-   weight, rows 8px apart, no rules between them. Line heights differ from
+   weight on no ground of its own (the theme draws table heads grey), rows
+   8px apart, no rules between them. Line heights differ from
    the board's normal ones, so the cell padding sets the board's row pitch.
    One class more than the component's scoped rules, which load later.
    @spec openspec/changes/board-index-side-panel-cards/specs/board-index-side-panel-cards/spec.md#requirement-a-board-record-list-table-is-the-boards-compact-grid */
 .cn-look-board .cn-record-list--table .cn-record-list__table th {
 	border-bottom: none;
+	background-color: transparent;
 	font-size: 13px;
 	font-weight: 400;
 	padding-block: 0 2px;
@@ -2397,6 +2399,19 @@
 
 .cn-look-board .cn-cell-renderer__age--warning:not(.cn-look-nextcloud *) {
 	color: var(--color-warning-text);
+}
+
+/* A queue row's deadline reads in the tag inks, late at 700 and soon at 600
+   (DqTeamwachtrij "nog 4 dagen" #a30000, "nog 6 dagen" #7a4f00).
+   @spec openspec/changes/board-queue-inks/specs/board-queue-inks/spec.md */
+.cn-look-board .cn-object-row__trail .cn-cell-renderer__date--error:not(.cn-look-nextcloud *) {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+	font-weight: 700;
+}
+
+.cn-look-board .cn-object-row__trail .cn-cell-renderer__date--warning:not(.cn-look-nextcloud *) {
+	color: var(--nldesign-component-status-badge-warning-color, var(--nl-color-orange-text, var(--color-warning-text)));
+	font-weight: 600;
 }
 
 /* A pill in a trailing cell stays inside the cell's width and ends in an

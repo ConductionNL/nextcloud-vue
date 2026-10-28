@@ -2,7 +2,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
+import { translatePlural as n } from '@nextcloud/l10n'
 import { isBadgeVariant } from './badgeVariants.js'
+import { countLine } from './countLine.js'
 import { pillLook } from './detailActionModel.js'
 import { fillTemplate, firstFilled } from './fillTemplate.js'
 import { readPath } from './readPath.js'
@@ -79,4 +81,23 @@ export function mapListItems(rows, spec, { rowKey, located, translate = (text) =
 		})
 	}
 	return { items, missing }
+}
+
+/**
+ * The title of the card under a map list that counts the rows without a
+ * place: the app's `mapConfig.list.missingTitle` (`{ singular, plural }` with
+ * `{total}`, through the app's plural forms, DqZakenKaart "8 zaken zonder
+ * adres"), else the library's "8 without an address".
+ *
+ * @param {{singular: string, plural: string}|undefined} declared The app's title.
+ * @param {number} count The rows without a place.
+ * @param {object} [options] Options.
+ * @param {(text: string) => string} [options.translate] The app's translate.
+ * @param {string} [options.appId] The app id, for its plural forms.
+ * @return {string} The title.
+ * @spec openspec/changes/map-missing-title-names-the-rows/specs/map-missing-title-names-the-rows/spec.md
+ */
+export function mapMissingTitleText(declared, count, options = {}) {
+	const own = declared && typeof declared === 'object' ? countLine(declared, count, options) : ''
+	return own !== '' ? own : n('nextcloud-vue', '%n without an address', '%n without an address', count)
 }
