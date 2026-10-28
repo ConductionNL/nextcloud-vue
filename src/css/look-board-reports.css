@@ -179,6 +179,9 @@
    with their counts; the sections in a main column beside an aside with the
    category index and a note; each card a column of its icon tile, title and
    category, description, and a footer with its line and an Open link.
+   Its text lines run at the font's normal line height, and the category
+   rows and Open are in the main ink, also under a theme that forces every
+   link into the link colour through --nldesign-color-on-surface.
    @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue */
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__header {
 	gap: 6px;
@@ -186,6 +189,7 @@
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__description {
 	font-size: 15px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__chips {
@@ -247,6 +251,7 @@
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__section-title {
 	font-size: 13px;
+	line-height: normal;
 	font-weight: 700;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -289,6 +294,7 @@
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__card-category {
 	font-size: 13px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -316,6 +322,7 @@
 }
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__card-open {
+	--nldesign-color-on-surface: var(--color-main-text);
 	display: inline-flex;
 	align-items: center;
 	height: 34px;
@@ -356,6 +363,7 @@
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__aside-title {
 	margin: 0;
 	font-size: 17px;
+	line-height: normal;
 	font-weight: 700;
 }
 
@@ -372,11 +380,13 @@
 }
 
 .cn-look-board .cn-reports-page--catalogue:not(.cn-look-nextcloud *) .cn-reports-page__index-link {
+	--nldesign-color-on-surface: var(--color-main-text);
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	padding: 8px 0;
 	font-size: 14px;
+	line-height: normal;
 	color: var(--color-main-text);
 	text-decoration: none !important;
 }
