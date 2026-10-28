@@ -1428,6 +1428,21 @@ export default {
 		},
 
 		/**
+		 * The description read from an app endpoint (manifest
+		 * `config.descriptionSource`): `{ url, path? }`, the text at `path`
+		 * (default `text`) of the answer replaces `description` once it
+		 * arrives (PqMijnWerk "negen items liggen bij jou: ..."). An unreadable
+		 * answer keeps `description`.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @type {{url: string, path?: string}|null}
+		 */
+		descriptionSource: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the header row renders: title, description, header actions
 		 * and the edit toggle. `false` (manifest `config.showHeader: false`)
 		 * drops it for a page whose first widget is its heading; the title
@@ -2139,6 +2154,8 @@ export default {
 			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
 			narrowViewport: false,
 			viewportQuery: null,
+			/** The description `descriptionSource` answered; '' until then. */
+			fetchedDescription: '',
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
 			 *
@@ -2352,7 +2369,7 @@ export default {
 		},
 
 		subtitleText() {
-			const description = this.description ? this.resolvedDescription : ''
+			const description = this.description || this.fetchedDescription !== '' ? this.resolvedDescription : ''
 			const dateOnly = this.greeting === 'date'
 			const greeting = this.greetingLine
 			if (greeting === '' && !dateOnly) {
@@ -2431,6 +2448,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedDescription() {
+			if (this.fetchedDescription !== '') {
+				return this.fetchedDescription
+			}
 			if (!this.description) {
 				return this.description
 			}
@@ -3106,6 +3126,7 @@ export default {
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
 		this.watchViewport()
+		this.loadDescription()
 	},
 
 	beforeUnmount() {
@@ -3140,6 +3161,33 @@ export default {
 		},
 
 		/**
+		 * Read the description from `descriptionSource`, once.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @return {Promise<void>}
+		 */
+		async loadDescription() {
+			const source = this.descriptionSource
+			if (!source || typeof source.url !== 'string' || source.url === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = /^https?:/.test(source.url) ? source.url : generateUrl(source.url.replace(/^\/index\.php/, ''))
+				const { data } = await axios.get(url)
+				const text = String(source.path || 'text').split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), data)
+				if (typeof text === 'string') {
+					this.fetchedDescription = text
+				}
+			} catch {
+				// An unreadable answer keeps the manifest description.
+			}
+		},
+
+		/**
 		 * The window crossed the phone breakpoint.
 		 *
 		 * @param {{matches: boolean}} event The media query change.
@@ -3166,6 +3214,10 @@ export default {
 				return this.narrowViewport
 			}
 			return false
+		},
+
+		/**
+			}
 		},
 
 		/**
