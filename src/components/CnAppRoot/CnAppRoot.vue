@@ -777,6 +777,7 @@ import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../.
 import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -3722,6 +3723,13 @@ export default {
 			// declaring both is contradictory; visibility wins, matching what
 			// CnPageRenderer already warns about.
 			if (page?.sidebar?.show === false) {
+				return null
+			}
+
+			// In the board look a flow page is CnFlowBoard, which carries the
+			// flow's controls behind its own side panel button.
+			const pageLook = page.config?.look === 'board' || page.config?.look === 'nextcloud' ? page.config.look : this.resolvedLook
+			if (pageLook === 'board' && defaultPageSidebars[page.type]) {
 				return null
 			}
 
