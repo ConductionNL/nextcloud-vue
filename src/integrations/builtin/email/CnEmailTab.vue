@@ -468,6 +468,7 @@ export default {
 		 * reload the list.
 		 *
 		 * @param {object} row A view row from `rows`.
+		 * @spec openspec/changes/board-linked-mail-rows/specs/board-linked-mail-rows/spec.md#requirement-every-linked-mail-carries-a-more-actions-menu
 		 */
 		async unlink(row) {
 			if (!this.register || !this.schema || !this.objectId) {
