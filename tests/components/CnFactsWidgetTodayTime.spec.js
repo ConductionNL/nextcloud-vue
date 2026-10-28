@@ -19,7 +19,6 @@ jest.mock('@nextcloud/router', () => ({
 	generateUrl: (url) => `/index.php${url}`,
 }))
 
-
 import { mount } from '@vue/test-utils'
 
 import '../../src/components/CnFactsWidget/index.js'
