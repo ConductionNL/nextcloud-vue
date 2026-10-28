@@ -1,0 +1,2 @@
+- [x] CnDashboardPage follows the 640px breakpoint and hides a widget off its `viewport`
+- [x] jest CnDashboardPageWidgetViewport

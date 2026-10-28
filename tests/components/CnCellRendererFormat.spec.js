@@ -51,6 +51,17 @@ describe('CnCellRenderer — declarative format', () => {
 			expect(wrapper.text().replace(/[^\d]/g, '')).toBe('1000')
 		})
 
+		it('reads a value in cents as the amount with `minorUnits`', () => {
+			const wrapper = mountRenderer({
+				value: -990,
+				property: { type: 'number' },
+				format: { style: 'currency', currency: 'EUR', minorUnits: true },
+			})
+			expect(wrapper.text()).toContain('€')
+			expect(wrapper.text().replace(/[^\d-]/g, '')).toBe('-990')
+			expect(wrapper.text()).toMatch(/9[,.]90/)
+		})
+
 		it('renders an em-dash for an empty value', () => {
 			const wrapper = mountRenderer({
 				value: null,

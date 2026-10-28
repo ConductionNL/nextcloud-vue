@@ -256,6 +256,7 @@ import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
@@ -823,7 +824,9 @@ export default {
 		/**
 		 * One chip per entry of a list field (`{ field: 'stages', each: 'name' }`):
 		 * `each` names the entry's field, or is a template filled from the entry
-		 * (`'{name} {probability}%'`). Empty entries are left out.
+		 * (`'{name} {probability}%'`). Empty entries are left out. `tones`
+		 * (`[{ when, variant }]`) colours a chip by the first condition its
+		 * entry meets (a won stage green, a closed one red).
 		 *
 		 * @param {object} def The chip definition.
 		 * @return {Array<object>} The chips, marked `listChip`.
@@ -840,7 +843,10 @@ export default {
 					const label = template !== ''
 						? fillTemplate(template, item || {})
 						: String(readPath(item || {}, def.each) ?? '')
-					return { ...def, listChip: true, key: def.field + '.' + index, label }
+					const tone = Array.isArray(def.tones)
+						? def.tones.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, item || {}))
+						: undefined
+					return { ...def, listChip: true, key: def.field + '.' + index, label, variant: tone ? tone.variant : def.variant }
 				})
 				.filter((chip) => chip.label !== '')
 		},

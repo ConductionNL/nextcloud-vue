@@ -12,7 +12,29 @@
   Edit menu…, Edit sidebar…. Save emits `@save(delta)` with the minimal delta.
 -->
 <template>
-	<div v-if="isAvailable" class="cn-buildiq-edit">
+	<!-- `href` without an editor (an admin settings page has no CnAppRoot):
+	     the square is a link that opens the app in edit mode. -->
+	<div v-if="isAvailable && href && !activeEditor" class="cn-buildiq-edit">
+		<span class="cn-buildiq-edit__actions">
+			<NcButton
+				:href="href"
+				:aria-label="t('nextcloud-vue', 'Edit in Buildiq')"
+				:title="t('nextcloud-vue', 'Edit in Buildiq')"
+				data-testid="cn-buildiq-edit-link">
+				<template #icon>
+					<svg class="cn-buildiq-edit__glyph"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						aria-hidden="true">
+						<path d="M12 0L3 7L4.63 8.27L12 14L19.36 8.27L21 7L12 0M19.37 10.73L12 16.47L4.62 10.74L3 12L12 19L21 12L19.37 10.73M19.37 15.73L12 21.47L4.62 15.74L3 17L12 24L21 17L19.37 15.73Z" />
+					</svg>
+				</template>
+			</NcButton>
+		</span>
+	</div>
+	<div v-else-if="isAvailable" class="cn-buildiq-edit">
 		<NcActions
 			v-model:open="menuOpen"
 			aria-label="buildiq"
@@ -175,7 +197,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Database from 'vue-material-design-icons/Database.vue'
@@ -206,6 +228,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcButton,
 		NcLoadingIcon,
 		Pencil,
 		ContentSave,
@@ -275,6 +298,18 @@ export default {
 		 * @type {string}
 		 */
 		pageId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Where the square leads when there is no manifest editor on the page
+		 * (an admin settings page): the app with `cn_edit=1`, which CnAppRoot
+		 * opens in edit mode. Ignored where an editor is available.
+		 *
+		 * @type {string}
+		 */
+		href: {
 			type: String,
 			default: '',
 		},

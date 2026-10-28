@@ -37,6 +37,8 @@ options, in either look. Both go through the app's own translations.
 
 `noteStyle: "card"` draws the note as an info note card instead of the muted line (board DqInstellen, step 4).
 
+On a `config-fields` step, `optionalLabels: true` puts "(optional)" after every field label the step's schema does not require, and `note` closes the step with a muted line ("Saved per field as you continue."). Any step with `skippable: true` gets a "Skip this step" button in the footer: it moves on without validating or saving the step (board PqInstellen, step 4).
+
 ```json
 {
   "id": "case-types",

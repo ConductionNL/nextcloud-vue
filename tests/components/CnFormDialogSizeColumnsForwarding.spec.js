@@ -245,6 +245,29 @@ describe('CnFormDialog size/columns forwarding — every host', () => {
 			expect(dialogProps(plain).dialogTitle).toBe('nl:Edit')
 		})
 
+		it('labels the record EDIT form\'s save button as configured, translated, and keeps the form\'s own by default', async () => {
+			const mountEdit = (extra) => mount(CnDetailPage, {
+				propsData: {
+					title: 'Case type',
+					register: 'dossiq',
+					schema: 'caseType',
+					objectId: 'ct-1',
+					objectStore: makeStore(),
+					...extra,
+				},
+				provide: { cnTranslate: (key) => `nl:${key}` },
+				mocks: { $route: { params: {}, query: {} }, $router: { push: jest.fn(), back: jest.fn() } },
+				stubs: { CnFormDialog: { name: 'CnFormDialog', props: ['confirmLabel'], template: '<div />' } },
+			})
+			const configured = mountEdit({ editConfirmLabel: 'Save changes' })
+			await configured.setData({ editFormOpen: true })
+			expect(dialogProps(configured).confirmLabel).toBe('nl:Save changes')
+
+			const plain = mountEdit({})
+			await plain.setData({ editFormOpen: true })
+			expect(dialogProps(plain).confirmLabel).toBe('')
+		})
+
 		it('refuses a column count the dialog cannot lay out', () => {
 			const validator = CnDetailPage.props.formColumns.validator
 

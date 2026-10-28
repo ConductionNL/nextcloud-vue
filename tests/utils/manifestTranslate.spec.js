@@ -4,7 +4,7 @@
  *
  * @spec openspec/changes/manifest-i18n-labels/tasks.md#task-2
  */
-import { baseLanguage, createManifestTranslate, labelLang } from '../../src/utils/manifestTranslate.js'
+import { appCatalogHas, baseLanguage, createManifestTranslate, labelLang } from '../../src/utils/manifestTranslate.js'
 
 const i18n = {
 	sourceLanguage: 'nl',
@@ -62,6 +62,33 @@ describe('createManifestTranslate', () => {
 		expect(fn('Open AI chat')).toBe('AI-chat openen')
 		expect(fn('Vergunningen')).toBe('Vergunningen')
 		expect(createManifestTranslate({ getManifest: () => null, getLanguage: () => 'nl', translate: () => 'Bestemming', library }).lookup('Open AI chat').text).toBe('Bestemming')
+	})
+
+	it('a host translation that reads the same as its key stands, and the library catalog is not asked', () => {
+		// pipelinq nl "Open" -> "Open" (the status); the library's "Open" is the verb "Openen".
+		const library = (text) => (text === 'Open' ? 'Openen' : text)
+		const hostKnows = new Set(['Open'])
+		const fn = createManifestTranslate({
+			getManifest: () => null,
+			getLanguage: () => 'nl',
+			translate: (text) => text,
+			hasTranslation: (text) => hostKnows.has(text),
+			library,
+		})
+		expect(fn('Open')).toBe('Open')
+		expect(fn.fellBack('Open')).toBe(false)
+		// A text the host does not know still reaches the library.
+		hostKnows.delete('Open')
+		expect(fn('Open')).toBe('Openen')
+	})
+
+	it('reads whether an app catalog holds a text from Nextcloud\'s l10n registry', () => {
+		window._oc_l10n_registry_translations = { pipelinq: { Open: 'Open' } }
+		expect(appCatalogHas('pipelinq', 'Open')).toBe(true)
+		expect(appCatalogHas('pipelinq', 'Close')).toBe(false)
+		expect(appCatalogHas('dossiq', 'Open')).toBe(false)
+		delete window._oc_l10n_registry_translations
+		expect(appCatalogHas('pipelinq', 'Open')).toBe(false)
 	})
 
 	it('fills placeholders, in a manifest translation and in the host\'s answer', () => {

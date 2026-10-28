@@ -2350,7 +2350,13 @@ export default {
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
 					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
 				}
+				// `otherBucket`: what falls past `limit` is one "Other" slice, as
+				// `aggregate.otherBucket` does, so a donut keeps its total.
+				let other = null
 				if (gb.limit) {
+					if (gb.otherBucket === true && groups.length > gb.limit) {
+						other = groups.slice(gb.limit).reduce((sum, g) => sum + (Number(g.value) || 0), 0)
+					}
 					groups = groups.slice(0, gb.limit)
 				}
 				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
@@ -2365,6 +2371,17 @@ export default {
 					if (requestKey !== this.groupByKey) {
 						return
 					}
+				}
+				// `labels`: words for an enum's raw values ({ in_progress: 'In
+				// progress' }), through the app's catalogue; a value without one
+				// keeps its key.
+				if (gb.labels && typeof gb.labels === 'object') {
+					keys = keys.map((key, i) => (typeof gb.labels[rawKeys[i]] === 'string' ? this.cnTranslate(gb.labels[rawKeys[i]]) : key))
+				}
+				if (other !== null) {
+					keys = [...keys, t('nextcloud-vue', 'Other')]
+					rawKeys.push(OTHER_BUCKET_KEY)
+					values.push(other)
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }

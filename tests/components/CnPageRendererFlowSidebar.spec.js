@@ -30,11 +30,12 @@ const manifest = {
  * Mount the renderer on one route.
  *
  * @param {string} routeName The route.
+ * @param {string} [look] The app's look.
  * @return {import('@vue/test-utils').VueWrapper}
  */
-function mountRenderer(routeName) {
+function mountRenderer(routeName, look = 'nextcloud') {
 	return shallowMount(CnPageRenderer, {
-		provide: { cnManifest: manifest, cnCustomComponents: { OwnSidebar }, cnTranslate: (k) => k },
+		provide: { cnManifest: manifest, cnCustomComponents: { OwnSidebar }, cnTranslate: (k) => k, cnLook: look },
 		mocks: { $route: { name: routeName, params: { id: 'f1' } } },
 	})
 }
@@ -49,5 +50,11 @@ describe('CnPageRenderer flow sidebar default', () => {
 		expect(mountRenderer('own').vm.currentPageSidebarComponent).toBe(OwnSidebar)
 		expect(mountRenderer('none').vm.currentPageSidebarComponent).toBeNull()
 		expect(mountRenderer('index').vm.currentPageSidebarComponent).toBeNull()
+	})
+
+	it('mounts no app sidebar on a flow page in the board look, where the flow board carries the controls', () => {
+		expect(mountRenderer('flow', 'board').vm.currentPageSidebarComponent).toBeNull()
+		expect(mountRenderer('own', 'board').vm.currentPageSidebarComponent).toBeNull()
+		expect(mountRenderer('index', 'board').vm.currentPageSidebarComponent).toBeNull()
 	})
 })

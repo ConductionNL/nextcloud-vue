@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * The rows a record holds in one of its fields, as `objectRows` names them:
- * `{ path, where?, valuePath? }`. The list at `path`, narrowed to the entry
+ * `{ path, where?, valuePath?, refs? }`. The list at `path`, narrowed to the entry
  * matching `where` when set (`{ name: "onderzoeksstappen" }` in a case's
  * answers), its `valuePath` taken; a JSON string is decoded. Anything that is
  * not a list of objects is no rows. The record is read as the page read it, so

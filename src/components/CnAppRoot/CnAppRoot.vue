@@ -768,7 +768,7 @@ import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
-import { createManifestTranslate } from '../../utils/manifestTranslate.js'
+import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { loadMyTeam } from '../../utils/myTeam.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
@@ -2281,6 +2281,7 @@ export default {
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
 				library: (text, vars) => t('nextcloud-vue', text, vars),
+				hasTranslation: (text) => appCatalogHas(this.appId, text),
 			})
 		},
 
@@ -3419,6 +3420,10 @@ export default {
 		// nested CnAppRoot in Buildiq's BuilderHost is safe.
 		installModalStack()
 
+		// `?cn_edit=1` (the buildiq square on the app's admin page) opens the
+		// app in edit mode, once Buildiq reports itself available.
+		this.$watch(() => this.buildiqAvailable, (available) => this.enterEditFromUrl(available), { immediate: true })
+
 		// Guard against silently losing unsaved in-app edits. The manifest
 		// editor stays `dirty` for the whole Save (the persist PUT can take a
 		// few seconds), so a refresh mid-save would drop the edit before the
@@ -3480,6 +3485,29 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Enter edit mode when the URL asks for it (`cn_edit=1`) and Buildiq
+		 * is available, then drop the parameter so a reload stays out of it.
+		 *
+		 * @param {boolean} available Whether Buildiq editing is available.
+		 * @return {void}
+		 * @spec openspec/changes/admin-buildiq-square/specs/admin-buildiq-square/spec.md#requirement-the-app-opens-in-edit-mode-from-the-admin-square
+		 */
+		enterEditFromUrl(available) {
+			if (!available || !this.manifestEditor || typeof window === 'undefined') {
+				return
+			}
+			const url = new URL(window.location.href)
+			if (url.searchParams.get('cn_edit') !== '1') {
+				return
+			}
+			url.searchParams.delete('cn_edit')
+			window.history.replaceState(window.history.state, '', url.toString())
+			if (!this.manifestEditor.editing.value) {
+				this.manifestEditor.enter()
+			}
+		},
+
 		/**
 		 * Read the saved views this user added to the menu.
 		 *

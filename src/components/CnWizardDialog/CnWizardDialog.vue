@@ -82,6 +82,15 @@
 			     Dutch one, reporting a broken dialog rather than a missing
 			     string. -->
 			<template v-else>
+				<!-- A step marked `skippable` moves on without validating or
+				     saving (PqInstellen "Deze stap overslaan"). -->
+				<NcButton v-if="currentStep && currentStep.skippable === true && !isLast"
+					variant="tertiary"
+					data-testid="cn-wizard-skip"
+					:disabled="loading"
+					@click="skip">
+					{{ skipLabel }}
+				</NcButton>
 				<NcButton v-if="cancellable" data-testid="cn-wizard-cancel" @click="onClose">
 					{{ cancelLabel }}
 				</NcButton>
@@ -192,7 +201,7 @@ export default {
 		 * navigates linearly between adjacent steps unless the
 		 * consumer calls `jumpTo()` from a slot scope.
 		 *
-		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string }>}
+		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string, skippable?: boolean }>}
 		 */
 		steps: {
 			type: Array,
@@ -288,6 +297,8 @@ export default {
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Back-button label. */
 		backLabel: { type: String, default: () => t('nextcloud-vue', 'Back') },
+		/** Skip-button label, on a step marked `skippable`. */
+		skipLabel: { type: String, default: () => t('nextcloud-vue', 'Skip this step') },
 		/** Next-button label (intermediate steps). */
 		nextLabel: { type: String, default: () => t('nextcloud-vue', 'Next') },
 		/** Submit-button label (last step). */
@@ -488,6 +499,26 @@ export default {
 			 *   (next / back / jumpTo / submit).
 			 * @type {{ stepId: string, stepIndex: number, direction: 'next'|'back'|'jump' }}
 			 */
+			this.$emit('step-change', {
+				stepId: this.currentStep.id,
+				stepIndex: this.currentIndex,
+				direction: 'next',
+			})
+		},
+
+		/**
+		 * Move past a `skippable` step without validating it, so nothing
+		 * of it is saved.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-be-skipped
+		 */
+		skip() {
+			if (this.isLast || this.currentStep?.skippable !== true) {
+				return
+			}
+			this.validationError = ''
+			this.currentIndex += 1
 			this.$emit('step-change', {
 				stepId: this.currentStep.id,
 				stepIndex: this.currentIndex,
