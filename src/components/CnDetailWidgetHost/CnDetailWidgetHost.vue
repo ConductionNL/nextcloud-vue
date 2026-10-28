@@ -102,6 +102,7 @@
 			:fixedColumns="content.fixedColumns === true"
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
+			:fieldLook="content.fieldLook || ''"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into

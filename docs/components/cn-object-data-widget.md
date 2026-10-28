@@ -228,3 +228,7 @@ A field override `pill: { variantMap }` draws the shown value as a status pill, 
 ```json
 { "status": { "enumLabels": { "settled": "Settled" }, "pill": { "variantMap": { "settled": "success", "parked": "warning" } } } }
 ```
+
+## Values as inputs, with a hint (`fieldLook: "input"`, `overrides[key].hint`)
+
+`fieldLook: "input"` draws each value as a 40px input box under its label, as board PqOfferte draws the quote's facts; a click still edits the field in place and saves it. `overrides[key].hint` adds a muted line under a value, translated ("Staat op de pdf", "Wordt gezet bij verzenden"), in either look.

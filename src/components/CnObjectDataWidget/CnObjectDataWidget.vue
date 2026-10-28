@@ -74,7 +74,11 @@
 		<!-- Collapsed, the grid shows the fields that fit the cell (or the
 		     first `collapsedFields`); "Show all N fields" renders the rest. -->
 		<div v-else class="cn-object-data-widget__grid-wrap">
-			<div ref="grid" class="cn-object-data-widget__grid" :style="gridStyle">
+			<div
+				ref="grid"
+				class="cn-object-data-widget__grid"
+				:class="{ 'cn-object-data-widget__grid--inputs': fieldLook === 'input' }"
+				:style="gridStyle">
 				<div
 					v-for="field in visibleFields"
 					:key="field.key"
@@ -390,6 +394,7 @@
 							class="cn-object-data-widget__edit-icon"
 							:size="14" />
 					</div>
+					<span v-if="hintFor(field)" class="cn-object-data-widget__hint">{{ hintFor(field) }}</span>
 				</div>
 			</div>
 			<NcButton
@@ -735,6 +740,7 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `emptyValue` (string) — Words shown, translated, for an empty or false value instead of a dash
+		 * - `hint` (string) — A muted line under the value, translated ("Staat op de pdf")
 		 * - `widget` (string) — Override the widget type for editing
 		 * - `formatter` (string) — Display the value through the formatter
 		 *   registered under this id on CnAppRoot (`cnFormatters`), called as
@@ -859,6 +865,18 @@ export default {
 		discardLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Discard'),
+		},
+
+		/**
+		 * How the values are drawn: `input` draws each one as an input box under
+		 * its label (board PqOfferte's quote form); a click still edits it in
+		 * place. Empty (the default) draws plain values.
+		 *
+		 * @spec openspec/changes/data-fields-as-inputs/specs/data-widget/spec.md#requirement-a-data-card-can-draw-its-values-as-inputs-with-a-hint
+		 */
+		fieldLook: {
+			type: String,
+			default: '',
 		},
 
 		/** Label shown when no properties to display */
@@ -1915,6 +1933,19 @@ export default {
 		},
 
 		/**
+		 * The line under a field's value (`overrides[key].hint`, translated), or ''.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 * @spec openspec/changes/data-fields-as-inputs/specs/data-widget/spec.md#requirement-a-data-card-can-draw-its-values-as-inputs-with-a-hint
+		 */
+		hintFor(field) {
+			const override = this.resolvedOverrides[field.key]
+			const hint = override && typeof override.hint === 'string' ? override.hint : ''
+			return hint ? this.cnTranslate(hint) : ''
+		},
+
+		/**
 		 * The words an override gives an empty or false value
 		 * (`overrides[key].emptyValue`, translated), or null to format it as usual.
 		 *
@@ -2566,6 +2597,33 @@ export default {
 	overflow-wrap: anywhere;
 	position: relative;
 	padding-right: 20px;
+}
+
+/* `overrides[key].hint`: a muted line under the value ("Staat op de pdf"). */
+.cn-object-data-widget__hint {
+	display: block;
+	margin-top: 6px;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* `fieldLook: "input"` (board PqOfferte): each value is a 40px input box under
+   its label; a click edits it in place as before. */
+.cn-object-data-widget__grid--inputs .cn-object-data-widget__label {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-object-data-widget__grid--inputs .cn-object-data-widget__value {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	min-height: 40px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-main-background);
+	font-size: 15px;
 }
 
 /* The hover box bleeds 4px past the text on the top, bottom and start so the
