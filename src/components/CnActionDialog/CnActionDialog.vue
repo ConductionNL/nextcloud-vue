@@ -68,90 +68,101 @@
 				</ul>
 			</section>
 
-			<!-- Fields the action asks for, sent beside the reason. -->
-			<div v-for="field in fields"
-				:key="field.field"
-				class="cn-action-dialog__field"
-				:data-testid="`cn-action-dialog-field-${field.field}`">
-				<!-- A checkbox field: a tinted box, the label filled from the
-				     record, a hint under it (DqArchiveren "Sanne de Vries laten
-				     weten..."). -->
-				<NcCheckboxRadioSwitch v-if="field.type === 'checkbox'"
-					class="cn-action-dialog__checkbox"
-					:modelValue="checkboxValue(field)"
-					type="checkbox"
-					@update:modelValue="(on) => setChecked(field.field, on)">
-					<span class="cn-action-dialog__checkbox-text">
-						<strong class="cn-action-dialog__checkbox-label">{{ fill(field.label) || field.field }}</strong>
-						<span v-if="field.hint" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
-					</span>
-				</NcCheckboxRadioSwitch>
-				<!-- A search field: records of `source` found as the reader
-				     types (DqZaakKoppelen "Zaak koppelen"). -->
-				<CnSearchSelect v-else-if="field.type === 'search'"
-					:modelValue="values[field.field] || null"
-					:options="searchOptions[field.field] || []"
-					:inputLabel="fill(field.label) || field.field"
-					:labelOutside="true"
-					:loading="searching === field.field"
-					:filterable="false"
-					:placeholder="fill(field.placeholder)"
-					@search="(typed) => onSearch(field, typed)"
-					@update:modelValue="(value) => setValue(field.field, value && typeof value === 'object' ? value.id : value)" />
-				<!-- An optional select or text field: its label above the control,
-				     "(optional)" in grey after it (DqUwWachtrij "Sjabloon (niet
-				     verplicht)"). -->
-				<CnFormField v-if="labelsOutside(field)"
-					:controlId="controlId(field)"
-					:text="fill(field.label) || field.field"
-					:optional="true" />
-				<NcSelect v-if="field.type === 'select'"
-					:modelValue="selectedOption(field)"
-					:options="optionsOf(field)"
-					:inputId="controlId(field)"
-					:inputLabel="fill(field.label) || field.field"
-					:labelOutside="labelsOutside(field)"
-					:placeholder="fill(field.placeholder)"
-					:clearable="field.required === false"
-					@update:modelValue="(option) => pick(field, option)" />
-				<NcTextField v-else-if="field.type === 'secret'"
-					:modelValue="values[field.field] || ''"
-					type="password"
-					autocomplete="new-password"
-					:label="text(field.label) || field.field"
-					:placeholder="secretStored(field) ? t('nextcloud-vue', 'Stored. Type a new value to replace it.') : ''"
-					@update:modelValue="(value) => setValue(field.field, value)" />
-				<NcTextField v-else-if="field.type !== 'checkbox' && field.type !== 'search'"
-					:id="controlId(field)"
-					:modelValue="values[field.field] || ''"
-					:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
-					:label="fill(field.label) || field.field"
-					:labelOutside="labelsOutside(field)"
-					@update:modelValue="(value) => setValue(field.field, value)" />
-				<span v-if="field.hint && field.type !== 'checkbox'" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
-			</div>
+			<!-- The fields, the reason and the note, in the order `bodyParts`
+			     gives: the fields first, or after the note with
+			     `fieldsAfterNote` (DqArchiveren's "let the requester know"). -->
+			<template v-for="part in bodyParts" :key="part">
+				<template v-if="part === 'fields'">
+					<!-- Fields the action asks for, sent beside the reason. -->
+					<div v-for="field in fields"
+						:key="field.field"
+						class="cn-action-dialog__field"
+						:data-testid="`cn-action-dialog-field-${field.field}`">
+						<!-- A checkbox field: a tinted box, the label filled from the
+						     record, a hint under it (DqArchiveren "Sanne de Vries laten
+						     weten..."). -->
+						<NcCheckboxRadioSwitch v-if="field.type === 'checkbox'"
+							class="cn-action-dialog__checkbox"
+							:modelValue="checkboxValue(field)"
+							type="checkbox"
+							@update:modelValue="(on) => setChecked(field.field, on)">
+							<span class="cn-action-dialog__checkbox-text">
+								<strong class="cn-action-dialog__checkbox-label">{{ fill(field.label) || field.field }}</strong>
+								<span v-if="field.hint" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
+							</span>
+						</NcCheckboxRadioSwitch>
+						<!-- A search field: records of `source` found as the reader
+						     types (DqZaakKoppelen "Zaak koppelen"). -->
+						<CnSearchSelect v-else-if="field.type === 'search'"
+							:modelValue="values[field.field] || null"
+							:options="searchOptions[field.field] || []"
+							:inputLabel="fill(field.label) || field.field"
+							:labelOutside="true"
+							:loading="searching === field.field"
+							:filterable="false"
+							:placeholder="fill(field.placeholder)"
+							@search="(typed) => onSearch(field, typed)"
+							@update:modelValue="(value) => setValue(field.field, value && typeof value === 'object' ? value.id : value)" />
+						<!-- An optional select or text field: its label above the control,
+						     "(optional)" in grey after it (DqUwWachtrij "Sjabloon (niet
+						     verplicht)"). -->
+						<CnFormField v-if="labelsOutside(field)"
+							:controlId="controlId(field)"
+							:text="fill(field.label) || field.field"
+							:optional="true" />
+						<NcSelect v-if="field.type === 'select'"
+							:modelValue="selectedOption(field)"
+							:options="optionsOf(field)"
+							:inputId="controlId(field)"
+							:inputLabel="fill(field.label) || field.field"
+							:labelOutside="labelsOutside(field)"
+							:placeholder="fill(field.placeholder)"
+							:clearable="field.required === false"
+							@update:modelValue="(option) => pick(field, option)" />
+						<NcTextField v-else-if="field.type === 'secret'"
+							:modelValue="values[field.field] || ''"
+							type="password"
+							autocomplete="new-password"
+							:label="text(field.label) || field.field"
+							:placeholder="secretStored(field) ? t('nextcloud-vue', 'Stored. Type a new value to replace it.') : ''"
+							@update:modelValue="(value) => setValue(field.field, value)" />
+						<NcTextField v-else-if="field.type !== 'checkbox' && field.type !== 'search'"
+							:id="controlId(field)"
+							:modelValue="values[field.field] || ''"
+							:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
+							:label="fill(field.label) || field.field"
+							:labelOutside="labelsOutside(field)"
+							@update:modelValue="(value) => setValue(field.field, value)" />
+						<span v-if="field.hint && field.type !== 'checkbox'" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
+					</div>
 
-			<div v-if="config.reason" class="cn-action-dialog__field">
-				<NcTextArea
-					:id="reasonId"
-					v-model="reason"
-					:label="reasonLabel"
-					:labelOutside="false"
-					:rows="config.reason.rows || 2"
-					resize="vertical"
-					data-testid="cn-action-dialog-reason" />
-				<span v-if="config.reason.hint" class="cn-action-dialog__muted">{{ text(config.reason.hint) }}</span>
-			</div>
-
-			<NcNoteCard v-if="config.note"
-				:type="noteType"
-				:heading="text(config.note.title)"
-				data-testid="cn-action-dialog-note">
-				<template v-if="config.note.icon" #icon>
-					<CnIcon class="cn-action-dialog__note-icon" :name="config.note.icon" :size="20" />
 				</template>
-				{{ text(config.note.text) }}
-			</NcNoteCard>
+				<template v-else-if="part === 'reason'">
+					<div v-if="config.reason" class="cn-action-dialog__field cn-action-dialog__reason">
+						<NcTextArea
+							:id="reasonId"
+							v-model="reason"
+							:label="reasonLabel"
+							:labelOutside="false"
+							:rows="config.reason.rows || 2"
+							resize="vertical"
+							data-testid="cn-action-dialog-reason" />
+						<span v-if="config.reason.hint" class="cn-action-dialog__muted cn-action-dialog__hint">{{ text(config.reason.hint) }}</span>
+					</div>
+
+				</template>
+				<template v-else>
+					<NcNoteCard v-if="config.note"
+						:type="noteType"
+						:heading="text(config.note.title)"
+						data-testid="cn-action-dialog-note">
+						<template v-if="config.note.icon" #icon>
+							<CnIcon class="cn-action-dialog__note-icon" :name="config.note.icon" :size="20" />
+						</template>
+						{{ text(config.note.text) }}
+					</NcNoteCard>
+				</template>
+			</template>
 
 			<p v-if="refusal"
 				class="cn-action-dialog__error"
@@ -251,6 +262,8 @@ let reasonSeq = 0
  *   (default 2; board DqBesluit draws 4).
  * - `note`: `{ variant?, title?, text, icon? }`: a read-only note; `icon` an
  *   icon name in place of the variant's own ("LockOutline").
+ * - `fieldsAfterNote`: true draws the fields after the reason and the note
+ *   instead of before them (DqArchiveren's checkbox at the end).
  * - `confirm`: `{ label, icon?, request?: { method?, url, body? }, action? }`.
  *   `request` posts itself (`body` templates filled with the record and
  *   `{reason}`); `action` dispatches a manifest action through the page.
@@ -364,6 +377,11 @@ export default {
 			const wanted = mapped || def.badgeVariant
 			const badgeVariant = variants.includes(wanted) ? wanted : ''
 			return title ? { title, meta: this.fill(def.meta), badge, badgeVariant } : null
+		},
+
+		/** @return {Array<string>} The order of the fields, the reason and the note. */
+		bodyParts() {
+			return this.config.fieldsAfterNote === true ? ['reason', 'note', 'fields'] : ['fields', 'reason', 'note']
 		},
 
 		/** @return {Array<{title: string, facts: Array<{label: string, value: string}>}>} The fact groups. */
@@ -881,10 +899,12 @@ export default {
 	margin: 0 0 8px;
 	font-size: 14px;
 	font-weight: 600;
+	line-height: normal;
 }
 
 /* Facts in columns of at least 200px, each a label over its value above a
-   hairline (DqArchiveren "Bewaring volgens het zaaktype"). */
+   hairline, both on the font's normal line (DqArchiveren "Bewaring volgens
+   het zaaktype", rows 59px). */
 .cn-action-dialog__facts {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -915,6 +935,7 @@ export default {
 	padding: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-action-dialog__facts dd {
@@ -922,6 +943,7 @@ export default {
 	padding: 0;
 	font-size: 15px;
 	font-weight: 500;
+	line-height: normal;
 }
 
 /* Checklist rows divided by hairlines, the detail at the row's end
@@ -1016,6 +1038,22 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+}
+
+/* The reason's help line is 13px on the normal line, right under the text
+   area: the inline text area left a descender gap and NcTextArea's 2px
+   ring room came on top (DqArchiveren "Komt in de historie ..."). */
+.cn-action-dialog__hint {
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-action-dialog__reason :deep(.textarea__input) {
+	vertical-align: top;
+}
+
+.cn-action-dialog__reason :deep(.textarea) {
+	margin-block-end: -2px;
 }
 
 .cn-action-dialog__error {
