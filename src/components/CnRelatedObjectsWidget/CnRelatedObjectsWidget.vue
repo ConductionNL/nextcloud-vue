@@ -40,6 +40,21 @@
 		</template>
 
 		<div class="cn-related-objects-widget">
+			<!-- `links`: configured link rows above the related objects (PqLead
+			     "Prospectgegevens uit de KVK", "2 eerdere deals, allebei
+			     gewonnen"); a row whose label cannot fill yet is left out. -->
+			<ul v-if="shownLinks.length" class="cn-related-objects-widget__links" data-testid="cn-related-links">
+				<li v-for="(link, index) in shownLinks" :key="`link-${index}`">
+					<a class="cn-related-objects-widget__link"
+						:href="link.href"
+						:target="link.external ? '_blank' : undefined"
+						:rel="link.external ? 'noopener noreferrer' : undefined"
+						data-testid="cn-related-link">
+						<CnIcon v-if="link.icon" :name="link.icon" :size="16" />
+						{{ link.label }}
+					</a>
+				</li>
+			</ul>
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
 				<!-- `layout: "sections"`: every group under its own heading in one
@@ -170,7 +185,7 @@
 					</ul>
 				</section>
 
-				<p v-if="visibleGroups.length && pendingSections.length"
+				<p v-if="pendingSections.length && (visibleGroups.length || anySectionAnswered)"
 					class="cn-related-objects-widget__section-status"
 					data-testid="cn-related-pending"
 					role="status">
@@ -184,7 +199,7 @@
 					{{ t('nextcloud-vue', 'Could not load {section}.', { section: failed.label }) }}
 				</p>
 
-				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
+				<div v-if="loading && !visibleGroups.length && !anySectionAnswered" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
 				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
@@ -770,6 +785,22 @@ export default {
 		},
 
 		/**
+		 * Link rows drawn above the related objects (`content.links`): each
+		 * `{ label, icon?, href?, route?, endpoint?, path? }`. `label` may hold
+		 * `{field}` placeholders, filled from the answer of `endpoint` (it takes
+		 * `@objectId`; `path` picks a part of it); a row whose placeholders do
+		 * not all fill is left out. `href` (a URL or an instance path) or
+		 * `route` (`{ name, params }`) is where the row leads.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @type {Array<object>}
+		 */
+		links: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Sections naming the record one of this record's fields points at
 		 * (a parent): `[{ key, label, icon?, field, register, schema,
 		 * labelField?, route? }]`. Shown only when the record has a readable
@@ -925,6 +956,10 @@ export default {
 			sectionIdBase: `cn-related-${Math.random().toString(36).slice(2, 9)}`,
 			/** Keys of the tabbed sections whose request is still in flight (`objects`, `files`, `relations`). */
 			pendingSections: [],
+			/** How many sections the current load asks for. */
+			sectionCount: 0,
+			/** The answers of the `links` endpoints, by endpoint. */
+			linkData: {},
 			/** Tabbed sections whose request failed: `{ key, label }`. */
 			failedSections: [],
 			/** Bumped per `loadTabs()`; an answer from an older load is dropped. */
@@ -1095,6 +1130,63 @@ export default {
 		},
 
 		/** Placeholder shown in the body while the first fetch is in flight. */
+		/**
+		 * Whether a section of the current load has answered, so the card
+		 * names what is still loading instead of saying "Loading …".
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-a-related-section-shows-once-its-own-request-answered
+		 * @return {boolean}
+		 */
+		anySectionAnswered() {
+			return this.sectionCount > 0 && this.pendingSections.length < this.sectionCount
+		},
+
+		/**
+		 * The link rows that can be drawn: their labels filled, their target resolved.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @return {Array<{label: string, href: string, icon: string, external: boolean}>}
+		 */
+		shownLinks() {
+			const rows = []
+			for (const link of Array.isArray(this.links) ? this.links : []) {
+				if (!link || typeof link.label !== 'string') {
+					continue
+				}
+				let data = {}
+				if (link.endpoint) {
+					const answer = this.linkData[link.endpoint]
+					if (answer === undefined) {
+						continue
+					}
+					data = (link.path ? readPath(answer, link.path) : answer) || {}
+				}
+				let complete = true
+				const label = this.translateLabel(link.label).replace(/\{([\w.]+)\}/g, (token, key) => {
+					const value = readPath(data, key)
+					if (value === undefined || value === null || value === '') {
+						complete = false
+						return ''
+					}
+					return String(value)
+				})
+				if (!complete) {
+					continue
+				}
+				let href = '#'
+				let external = false
+				if (typeof link.href === 'string' && link.href !== '') {
+					external = /^https?:/.test(link.href)
+					href = external ? link.href : generateUrl(link.href.replace(/^\/index\.php/, ''))
+				} else if (link.route && this.$router) {
+					const resolved = this.routeFor(link.route, { id: this.resolvedId, ...(this.safeObjectData || {}) })
+					href = resolved ? this.$router.resolve(resolved).href : '#'
+				}
+				rows.push({ label, href, icon: link.icon || '', external })
+			}
+			return rows
+		},
+
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading …')
 		},
@@ -1884,6 +1976,7 @@ export default {
 		async loadAll() {
 			this.loading = true
 			this.loadSources()
+			this.loadLinks()
 			try {
 				if (this.useTabs) {
 					await this.loadTabs()
@@ -1927,6 +2020,7 @@ export default {
 				{ key: 'relations', label: t('nextcloud-vue', 'Linked items') },
 			]
 			this.pendingSections = sections.map((section) => section.key)
+			this.sectionCount = sections.length
 
 			// Lay out every group now, in its fixed order, empty. visibleGroups
 			// hides an empty group, so nothing shows until a section fills it.
@@ -2216,6 +2310,30 @@ export default {
 				params[key] = filled
 			}
 			return { name: route.name, params }
+		},
+
+		/**
+		 * Read the answers the `links` rows fill their labels from, once per endpoint.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @return {Promise<void>}
+		 */
+		async loadLinks() {
+			const endpoints = [...new Set((Array.isArray(this.links) ? this.links : []).map((link) => link && link.endpoint).filter(Boolean))]
+			if (endpoints.length === 0 || !this.resolvedId) {
+				return
+			}
+			await Promise.all(endpoints.map(async (endpoint) => {
+				try {
+					const url = generateUrl(interpolateUrlTokens(endpoint, { objectId: this.resolvedId, object: this.safeObjectData }).replace(/^\/index\.php/, ''))
+					const response = await fetch(url, { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
+					if (response.ok) {
+						this.linkData = { ...this.linkData, [endpoint]: await response.json() }
+					}
+				} catch {
+					// A link row whose answer cannot be read is left out.
+				}
+			}))
 		},
 
 		/**
@@ -2590,6 +2708,24 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+}
+
+.cn-related-objects-widget__links {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-related-objects-widget__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-primary-element-text-dark, var(--color-main-text));
+	font-weight: 600;
+	text-decoration: underline;
 }
 
 .cn-related-objects-widget__row {
