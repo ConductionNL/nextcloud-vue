@@ -3555,6 +3555,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	font-size: 13px;
 }
 
+/* A case of the day is the board's card: 12px in, 8px round, its title at
+   14px (DqMijnWerk r34: 10/12px in, 12px round, 14.25px title).
+   @spec openspec/changes/board-week-strip-fits/specs/week-strip-board-look/spec.md#requirement-a-board-week-strip-fits-its-card */
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__item {
+	padding: 12px;
+	border-radius: 8px;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__title {
+	font-size: 14px;
+}
+
 @media (forced-colors: active) {
 	.cn-look-board .cn-week-strip:not(.cn-look-nextcloud *) .cn-week-strip__day {
 		border-color: CanvasText;
