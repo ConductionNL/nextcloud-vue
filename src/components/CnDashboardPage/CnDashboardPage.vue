@@ -2136,6 +2136,9 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
+			narrowViewport: false,
+			viewportQuery: null,
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
 			 *
@@ -3102,9 +3105,13 @@ export default {
 		this.loadPageFilterOptions()
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
+		this.watchViewport()
 	},
 
 	beforeUnmount() {
+		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
+			this.viewportQuery.removeEventListener('change', this.onViewportChange)
+		}
 		if (this.cnAiContext) {
 			this.cnAiContext.pageKind = 'custom'
 			this.cnAiContext.registerSlug = undefined
@@ -3113,6 +3120,54 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Follow the phone breakpoint (640px, where the board grid stacks to
+		 * one column), so a widget declared for one `viewport` shows only
+		 * there.
+		 *
+		 * @spec openspec/changes/dashboard-widget-viewport/specs/dashboard-widget-viewport/spec.md#requirement-a-widget-can-be-drawn-on-a-phone-only-or-a-wide-screen-only
+		 * @return {void}
+		 */
+		watchViewport() {
+			if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+				return
+			}
+			this.viewportQuery = window.matchMedia('(max-width: 639px)')
+			this.narrowViewport = this.viewportQuery.matches === true
+			if (typeof this.viewportQuery.addEventListener === 'function') {
+				this.viewportQuery.addEventListener('change', this.onViewportChange)
+			}
+		},
+
+		/**
+		 * The window crossed the phone breakpoint.
+		 *
+		 * @param {{matches: boolean}} event The media query change.
+		 * @return {void}
+		 */
+		onViewportChange(event) {
+			this.narrowViewport = event && event.matches === true
+		},
+
+		/**
+		 * Whether a widget's `viewport` (`"narrow"`: a phone only, `"wide"`:
+		 * a wider window only) keeps it off the current window.
+		 *
+		 * @param {object|null} def The widget definition.
+		 * @return {boolean} True when the widget must not draw here.
+		 * @spec openspec/changes/dashboard-widget-viewport/specs/dashboard-widget-viewport/spec.md#requirement-a-widget-can-be-drawn-on-a-phone-only-or-a-wide-screen-only
+		 */
+		isOffViewport(def) {
+			const viewport = def && def.viewport
+			if (viewport === 'narrow') {
+				return !this.narrowViewport
+			}
+			if (viewport === 'wide') {
+				return this.narrowViewport
+			}
+			return false
+		},
+
 		/**
 		 * Re-emit the page-level CnActionsMenu `@refresh` to the host,
 		 * passing the synthetic event through so a host listener can
@@ -3952,6 +4007,9 @@ export default {
 			if (!def || !def.type) {
 				return false
 			}
+			if (this.isOffViewport(def)) {
+				return true
+			}
 			const { text, visibleWhen, layout } = this.widgetDisplayConfig(def)
 			if (this.isBannerDef(def) && text === '') {
 				return true
@@ -3983,6 +4041,9 @@ export default {
 			const def = this.getWidgetDef(widgetId)
 			if (!def || !def.type) {
 				return false
+			}
+			if (this.isOffViewport(def)) {
+				return true
 			}
 			const { visibleWhen } = this.widgetDisplayConfig(def)
 			return isWorkspaceCondition(visibleWhen) && !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
