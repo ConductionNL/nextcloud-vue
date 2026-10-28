@@ -216,6 +216,8 @@ export default {
 | `excludeFields` (`exclude-fields`) | Array | `[]` | Fields the create and edit forms never ask for. Applied after `includeFields`. |
 | `fieldOverrides` (`field-overrides`) | Object | `{}` | Per-field widget / label overrides for the create and edit forms, keyed by field name. Forwarded to `CnFormDialog`. |
 | `sideColumnOrder` | String | `'board'` | Board look: the side column's order (manifest `config.sideColumnOrder`). `board` puts a notice first and the History card last; `declared` keeps the order of `sideColumn`. |
+| `headerActionsBelow` | Boolean | `false` | The header buttons on a row of their own under the title (manifest `config.headerActionsBelow`), instead of beside it. |
+| `headerMetaWhen` | Array | `[]` | `[{ when, text }]` (manifest `config.headerMetaWhen`): the first entry whose local `visibleWhen` holds for the record replaces `headerMeta`; none leaves it. |
 
 ## Each view arranged per user
 

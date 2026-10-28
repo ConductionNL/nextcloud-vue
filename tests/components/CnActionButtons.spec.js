@@ -805,6 +805,23 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			expect(variantOf('plain')).toBe('secondary')
 		})
 
+		it('draws `variant: "error-outline"` as an outlined red button', async () => {
+			// The board's "Terugboeken": white, a red border and red text, with
+			// its icon. NcButton has no such variant, so it is a secondary button
+			// carrying the outline class.
+			const wrapper = mountBar([
+				{ id: 'reverse', label: 'Reverse', variant: 'error-outline', icon: 'Undo', type: 'api-call', url: '/r' },
+				{ id: 'kill', label: 'Delete', variant: 'error', type: 'api-call', url: '/d' },
+			])
+			await flush()
+			const reverse = wrapper.findComponent('[data-testid="cn-action-reverse"]')
+			expect(reverse.props('variant')).toBe('secondary')
+			expect(reverse.classes()).toContain('cn-action-buttons__button--error-outline')
+			const kill = wrapper.findComponent('[data-testid="cn-action-kill"]')
+			expect(kill.props('variant')).toBe('error')
+			expect(kill.classes()).not.toContain('cn-action-buttons__button--error-outline')
+		})
+
 		it('names the overflow menu from overflowLabel', async () => {
 			const wrapper = mountBar(four, { inline: 1, overflowLabel: 'More' })
 			await flush()

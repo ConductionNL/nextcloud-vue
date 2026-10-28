@@ -344,6 +344,28 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 
 	listHandle = list
 
+	// Default filters that name an app-config value (`@config.<key>?`) the
+	// page receives after it opened, such as a default pipeline the host reads
+	// from its settings: once the value arrives they are applied, as long as
+	// the list still shows the defaults it opened with. A filter the person
+	// set, a filter from the address or a saved view is never replaced.
+	let openedWithDefaults = (Object.keys(queryActiveFilters).length === 0 && !namesSavedView && props.defaultFilters)
+		? JSON.stringify(list.activeFilters.value)
+		: null
+	watch(appConfigSignature, () => {
+		if (openedWithDefaults === null || JSON.stringify(list.activeFilters.value) !== openedWithDefaults) {
+			openedWithDefaults = null
+			return
+		}
+		const next = resolveFilterMap(props.defaultFilters, (initialRoute && initialRoute.params) || {}, tokenCtx())
+		const signature = JSON.stringify(next)
+		if (signature !== openedWithDefaults) {
+			openedWithDefaults = signature
+			list.activeFilters.value = next
+			list.refresh(1)
+		}
+	})
+
 	// Re-fetch when the quick-filter selection changes (pre-existing), OR
 	// when the workspace/app-config bag content changes (e.g. the
 	// administration switcher writes a new `activeAdministrationId`) — a

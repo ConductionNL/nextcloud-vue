@@ -105,6 +105,9 @@
 					:controls="viewRegionId"
 					data-testid="cn-dashboard-page-view-switch"
 					@update:modelValue="selectView" />
+				<!-- Board look with `actionsPlacement: "start"`: the page's own
+				     actions component (an availability toggle) leads the row. -->
+				<slot v-if="isBoardLook && actionsFirst" name="actions" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
 				     `headerActions[]` renders as buttons (open-form / api-call /
 				     toggle / navigate / refresh) with visibleWhen gating,
@@ -193,7 +196,7 @@
 						:actions="boardPrimaryHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
-					<slot name="actions" />
+					<slot v-if="!actionsFirst" name="actions" />
 				</template>
 			</div>
 		</div>
@@ -1049,6 +1052,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { inject, provide, ref, watch } from 'vue'
@@ -1282,6 +1286,13 @@ function filledContent(content, config) {
 	return value
 }
 
+/**
+ * The event-bus event that makes a dashboard read its `descriptionSource`
+ * again, for a header line that follows something the reader changes on the
+ * page (an availability toggle).
+ */
+const DESCRIPTION_REFRESH_EVENT = 'cn:dashboard:description-refresh'
+
 export default {
 	name: 'CnDashboardPage',
 
@@ -1422,10 +1433,41 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Titles that replace `title` while a page control's value holds
+		 * (manifest `config.titleWhen`): `[{ when, title }]`, `when` a workspace
+		 * condition (`{ workspace, op?, value? }`) and `title` a template whose
+		 * `{workspace.<key>}` reads the page's workspace ("Gesprek met
+		 * {workspace.selectedClientName}" while a call is on, PqWerkplekKlant).
+		 * The first entry whose condition holds and whose tokens all fill wins.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @type {Array<{when: object, title: string}>}
+		 */
+		titleWhen: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The description read from an app endpoint (manifest
+		 * `config.descriptionSource`): `{ url, path? }`, the text at `path`
+		 * (default `text`) of the answer replaces `description` once it
+		 * arrives (PqMijnWerk "negen items liggen bij jou: ..."). An unreadable
+		 * answer keeps `description`.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @type {{url: string, path?: string}|null}
+		 */
+		descriptionSource: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -1830,6 +1872,20 @@ export default {
 		},
 
 		/**
+		 * Where the page's own actions component (`actionsComponent`, the
+		 * `#actions` slot) sits in the board-look header row: `end` (default,
+		 * rightmost) or `start` (first, before the secondary actions and the
+		 * buildiq square), as PqDashboard draws its availability toggle.
+		 *
+		 * @type {'end'|'start'}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsPlacement: {
+			type: String,
+			default: 'end',
+		},
+
+		/**
 		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
 		 * in the dashboard header via CnActionButtons — `open-form` (schema
 		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
@@ -2154,6 +2210,8 @@ export default {
 			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
 			narrowViewport: false,
 			viewportQuery: null,
+			/** The description `descriptionSource` answered; '' until then. */
+			fetchedDescription: '',
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
 			 *
@@ -2250,6 +2308,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the `#actions` slot leads the board header row.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsFirst() {
+			return this.actionsPlacement === 'start'
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
@@ -2367,7 +2435,7 @@ export default {
 		},
 
 		subtitleText() {
-			const description = this.description ? this.resolvedDescription : ''
+			const description = this.description || this.fetchedDescription !== '' ? this.resolvedDescription : ''
 			const dateOnly = this.greeting === 'date'
 			const greeting = this.greetingLine
 			if (greeting === '' && !dateOnly) {
@@ -2433,6 +2501,10 @@ export default {
 		 * @return {string}
 		 */
 		resolvedTitle() {
+			const fromWorkspace = this.titleFromWorkspace()
+			if (fromWorkspace !== '') {
+				return fromWorkspace
+			}
 			const view = this.hasViews ? this.activeView : null
 			if (view && view.title) {
 				return view.title
@@ -2446,6 +2518,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedDescription() {
+			if (this.fetchedDescription !== '') {
+				return this.fetchedDescription
+			}
 			if (!this.description) {
 				return this.description
 			}
@@ -3121,9 +3196,12 @@ export default {
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
 		this.watchViewport()
+		this.loadDescription()
+		subscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 	},
 
 	beforeUnmount() {
+		unsubscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
 			this.viewportQuery.removeEventListener('change', this.onViewportChange)
 		}
@@ -3155,6 +3233,33 @@ export default {
 		},
 
 		/**
+		 * Read the description from `descriptionSource`, once.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @return {Promise<void>}
+		 */
+		async loadDescription() {
+			const source = this.descriptionSource
+			if (!source || typeof source.url !== 'string' || source.url === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = /^https?:/.test(source.url) ? source.url : generateUrl(source.url.replace(/^\/index\.php/, ''))
+				const { data } = await axios.get(url)
+				const text = String(source.path || 'text').split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), data)
+				if (typeof text === 'string') {
+					this.fetchedDescription = text
+				}
+			} catch {
+				// An unreadable answer keeps the manifest description.
+			}
+		},
+
+		/**
 		 * The window crossed the phone breakpoint.
 		 *
 		 * @param {{matches: boolean}} event The media query change.
@@ -3181,6 +3286,35 @@ export default {
 				return this.narrowViewport
 			}
 			return false
+		},
+
+		/**
+		 * The first `titleWhen` title whose condition holds on the workspace,
+		 * its `{workspace.<key>}` tokens filled; '' when none applies.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @return {string}
+		 */
+		titleFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.titleWhen) ? this.titleWhen : []) {
+				if (!entry || typeof entry.title !== 'string' || !isWorkspaceCondition(entry.when) || !evaluateWorkspaceCondition(entry.when, workspace)) {
+					continue
+				}
+				let complete = true
+				const title = this.effectiveTranslate(entry.title).replace(/\{workspace\.([\w.-]+)\}/g, (token, key) => {
+					const value = workspace[key]
+					if (value === undefined || value === null || value === '') {
+						complete = false
+						return ''
+					}
+					return String(value)
+				})
+				if (complete) {
+					return title
+				}
+			}
+			return ''
 		},
 
 		/**

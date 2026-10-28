@@ -26,6 +26,21 @@
 		<div v-else-if="shownEntries.length === 0" class="cn-audit-card__empty">
 			{{ noEntriesLabel }}
 		</div>
+		<!-- `dated` (PqJourney "Geschiedenis"): the short date beside what
+		     happened, one line per entry. -->
+		<dl v-else-if="layout === 'dated'" class="cn-audit-card__dated">
+			<template v-for="entry in displayedEntries" :key="entry.id">
+				<dt class="cn-audit-card__date">
+					{{ shortDate(entry) }}
+				</dt>
+				<dd class="cn-audit-card__dated-text">
+					{{ formatAction(entry) }}<span
+						v-if="entry.authorized === false"
+						class="cn-audit-card__refused"
+						data-testid="cn-audit-card-refused">{{ refusedLabel }}</span>
+				</dd>
+			</template>
+		</dl>
 		<ul v-else class="cn-audit-card__list">
 			<li
 				v-for="entry in displayedEntries"
@@ -66,23 +81,13 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
+import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { actionLabelFor, changedValue, changeLabelFor, fillAuditLabel } from '../../utils/auditLabels.js'
 import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
-import { readPath } from '../../utils/readPath.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 import { userLocale } from '../../utils/userLocale.js'
-
-/**
- * A changed value as an entry records it: OpenRegister writes `{ old, new }`,
- * other sources the value itself.
- *
- * @param {unknown} value The recorded change.
- * @return {unknown} The value it changed to.
- */
-function newValueOf(value) {
-	return value !== null && typeof value === 'object' && Object.hasOwn(value, 'new') ? value.new : value
-}
 
 /**
  * @param {object} entry An audit entry.
@@ -106,26 +111,6 @@ function entryTime(entry) {
  *   surface="detail-page" />
  * ```
  */
-/**
- * Whether an audit entry is an update that changed no field: its `changed`
- * map holds only `@self` bookkeeping or pairs whose old and new are equal.
- * An entry without a `changed` map is kept, since nothing says it was empty.
- *
- * @param {object} entry The audit entry.
- * @return {boolean}
- */
-function isEmptyUpdate(entry) {
-	if (String((entry && (entry.action || entry.event)) || '').toLowerCase() !== 'update') {
-		return false
-	}
-	const changed = entry.changed
-	if (!changed || typeof changed !== 'object' || Array.isArray(changed)) {
-		return false
-	}
-	return Object.entries(changed).every(([field, pair]) => field.startsWith('@')
-		|| (pair && typeof pair === 'object' && JSON.stringify(pair.old ?? null) === JSON.stringify(pair.new ?? null)))
-}
-
 export default {
 	name: 'CnAuditTrailCard',
 
@@ -194,6 +179,9 @@ export default {
 		 * `stacked` (DqTaak "Historie"): the action, then one muted line under
 		 * it with the moment ("6 okt 09:05") and who, when the action does not
 		 * already name them. Default: the moment beside the action, who under it.
+		 * `dated` (PqJourney "Geschiedenis"): a two-column list, the short date
+		 * ("2 okt") beside what happened; who shows only where the action's
+		 * label names them (`{actor}`).
 		 */
 		layout: { type: String, default: '' },
 		/**
@@ -297,11 +285,7 @@ export default {
 		 * @return {Array<object>}
 		 */
 		shownEntries() {
-			const excluded = this.excludeActions.map((action) => String(action).toLowerCase())
-			const actors = this.excludeActors.map((actor) => String(actor).toLowerCase())
-			return this.entries.filter((entry) => !excluded.includes(String(entry.action || entry.event || '').toLowerCase())
-				&& !actors.includes(String(entry.user || '').toLowerCase())
-				&& !isEmptyUpdate(entry))
+			return keepAuditEntries(this.entries, { excludeActions: this.excludeActions, excludeActors: this.excludeActors })
 		},
 
 		/** @return {boolean} Whether the card leaves entries out, and so reads more than it shows. */
@@ -498,14 +482,7 @@ export default {
 		formatAction(entry) {
 			const label = this.changeLabelFor(entry) ?? this.labelFor(entry)
 			if (label !== null) {
-				return label
-					.replace('{actor}', this.actorName(entry))
-					.replace('{state}', entry.stateAfter || '')
-					.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => this.changedValue(entry, key))
-					.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
-						const value = this.object ? readPath(this.object, path) : undefined
-						return value === null || value === undefined || typeof value === 'object' ? '' : String(value)
-					})
+				return fillAuditLabel(label, entry, { actor: this.actorName(entry), object: this.object, valueLabels: this.valueLabels })
 			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
@@ -521,14 +498,7 @@ export default {
 		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
 		 */
 		changedValue(entry, key) {
-			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			// A dotted key reads into what the entry recorded (`data.fileName` on a file action).
-			const value = String(key).split('.').reduce((at, part) => newValueOf(at !== null && typeof at === 'object' ? at[part] : undefined), changed)
-			if (value === null || value === undefined || typeof value === 'object') {
-				return ''
-			}
-			const words = this.valueLabels && this.valueLabels[key]
-			return words && typeof words[value] === 'string' ? words[value] : String(value)
+			return changedValue(entry, key, this.valueLabels)
 		},
 
 		/**
@@ -539,21 +509,7 @@ export default {
 		 * @return {string|null} The label, or null when no rule matches.
 		 */
 		changeLabelFor(entry) {
-			const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
-			const action = entry.action || entry.event || ''
-			for (const rule of Array.isArray(this.changeLabels) ? this.changeLabels : []) {
-				if (!rule || typeof rule.label !== 'string' || rule.label === '' || typeof rule.field !== 'string' || !Object.hasOwn(changed, rule.field)) {
-					continue
-				}
-				if (rule.action && rule.action !== action) {
-					continue
-				}
-				if (Object.hasOwn(rule, 'to') && String(newValueOf(changed[rule.field])) !== String(rule.to)) {
-					continue
-				}
-				return rule.label
-			}
-			return null
+			return changeLabelFor(entry, this.changeLabels)
 		},
 
 		/**
@@ -565,16 +521,7 @@ export default {
 		 * @spec openspec/changes/audit-trail-action-labels/specs/audit-trail/spec.md#requirement-a-trail-can-say-what-happened-in-words
 		 */
 		labelFor(entry) {
-			const labels = this.actionLabels
-			const action = entry.action || entry.event
-			if (!labels || !action) {
-				return null
-			}
-			const state = entry.stateAfter || ''
-			const prefix = entry.relatedAs ? `${entry.relatedAs}.` : ''
-			const label = (prefix ? (labels[`${prefix}${action}:${state}`] ?? labels[`${prefix}${action}`]) : undefined)
-				?? labels[`${action}:${state}`] ?? labels[action]
-			return typeof label === 'string' && label !== '' ? label : null
+			return actionLabelFor(entry, this.actionLabels, this.object)
 		},
 
 		/**
@@ -588,6 +535,17 @@ export default {
 			const id = entry.actor || entry.userId || entry.user || ''
 			// A person's user id reads as their display name once it is known.
 			return (id && (!entry.performerType || entry.performerType === 'user') && userDisplayName(String(id))) || id
+		},
+
+		/**
+		 * The date of a dated list's entry in the board's short form ("2 okt").
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The date, or '' without one.
+		 * @spec openspec/changes/audit-card-dated-layout/specs/audit-trail/spec.md#requirement-an-audit-list-can-put-the-date-beside-what-happened
+		 */
+		shortDate(entry) {
+			return formatBoardDate(entry.creationDateTime || entry.created || entry.timestamp)
 		},
 
 		/**
@@ -644,6 +602,32 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+}
+
+/* Nextcloud core pads and aligns `dt` / `dd`; the list resets both. */
+.cn-audit-card__dated {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+}
+
+.cn-audit-card__dated .cn-audit-card__date {
+	width: auto;
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	white-space: nowrap;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-audit-card__dated .cn-audit-card__dated-text {
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	overflow-wrap: anywhere;
 }
 
 .cn-audit-card__row {

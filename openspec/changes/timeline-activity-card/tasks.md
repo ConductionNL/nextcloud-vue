@@ -1,0 +1,6 @@
+- [x] 1. Read view: `layout: 'feed'` rows and pill type chips
+- [x] 2. Read view: `composer`, posting an OpenRegister note and reading again
+- [x] 3. Read view: reload on `cn:timeline:changed`
+- [x] 4. Widget header actions: token context on every dispatch
+- [x] 5. `CnEmailLinkDialog`
+- [x] 6. Tests (CnTimelineWidgetFeed, widgetHeaderActionsTokens, CnEmailLinkDialog) and docs

@@ -73,6 +73,21 @@ describe('CnRecordListWidget dot and flags', () => {
 		expect(rows.map(flag)).toEqual(['Start', 'Termijn opgeschort', '', 'Eind', 'Eind'])
 	})
 
+	it('draws the same small dot on every row with a colour and no field (a list marker)', async () => {
+		const rows = (await mountList({ ...CONTENT, dot: { color: 'var(--color-primary-element)', size: 10 } })).findAll('[data-testid="cn-record-list-item"]')
+		expect(rows).toHaveLength(5)
+		for (const row of rows) {
+			const dot = row.find('[data-testid="cn-record-list-dot"]')
+			expect(dot.attributes('style')).toContain('var(--color-primary-element)')
+			expect(dot.classes()).toContain('cn-record-list__dot--small')
+		}
+	})
+
+	it('refuses an unsafe constant colour', async () => {
+		const w = await mountList({ ...CONTENT, dot: { color: 'red;background:url(x)' } })
+		expect(w.find('[data-testid="cn-record-list-dot"]').exists()).toBe(false)
+	})
+
 	it('draws neither without the keys', async () => {
 		const w = await mountList({ register: 'dossiq', schema: 'statusType', title: '{name}' })
 		expect(w.find('[data-testid="cn-record-list-dot"]').exists()).toBe(false)

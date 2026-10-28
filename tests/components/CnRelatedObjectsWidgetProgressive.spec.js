@@ -111,6 +111,55 @@ describe('CnRelatedObjectsWidget — progressive sections', () => {
 		wrapper.unmount()
 	})
 
+	it('🔴 says which sections are still loading once the fast ones answered empty', async () => {
+		// PqLead (r33): relations and files answer empty in 1 to 2 s, uses and
+		// used take 5.6 s; the card said "Loading …" until the slow ones were in.
+		const { fetch, release } = controlledFetch({
+			relations: {},
+			uses: { results: [{ id: 'o1', title: 'Account' }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+		}, ['uses', 'used'])
+		global.fetch = fetch
+
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF, hideSingleTabTitle: false }, stubs })
+		await flush()
+
+		expect(wrapper.text()).not.toContain(wrapper.vm.loadingLabel)
+		expect(wrapper.find('[data-testid="cn-related-pending"]').text()).toContain('Objects')
+
+		release()
+		await flush()
+		expect(tabLabels(wrapper)).toEqual(['Objects'])
+		wrapper.unmount()
+	})
+
+	// Board PqLead "Gerelateerd": three link rows above the related objects,
+	// each label filled from an app endpoint ("2 eerdere deals, allebei gewonnen").
+	it('draws configured link rows above the related objects, filled from an endpoint', async () => {
+		const { fetch } = controlledFetch({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } }, [])
+		global.fetch = (url, init) => (String(url).includes('/summary') ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ earlier: '2 earlier deals, both won', hours: '14.5' }) }) : fetch(url, init))
+
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: {
+				objectData: SELF,
+				links: [
+					{ label: 'Prospect data from the KVK', href: 'https://example.org/kvk' },
+					{ label: '{earlier}', endpoint: '/apps/x/api/leads/@objectId/summary' },
+					{ label: 'Hours on this lead: {hours}', endpoint: '/apps/x/api/leads/@objectId/summary' },
+					{ label: 'Hidden until known: {missing}', endpoint: '/apps/x/api/leads/@objectId/summary' },
+				],
+			},
+			stubs,
+		})
+		await flush()
+		await flush()
+
+		const rows = wrapper.findAll('[data-testid="cn-related-link"]').map((row) => row.text())
+		expect(rows).toEqual(['Prospect data from the KVK', '2 earlier deals, both won', 'Hours on this lead: 14.5'])
+		wrapper.unmount()
+	})
+
 	it('🔴 names a section whose request failed, and still shows the others', async () => {
 		const { fetch } = controlledFetch({
 			relations: { emails: { results: [{ id: 'm1', subject: 'Offer' }], total: 1 } },

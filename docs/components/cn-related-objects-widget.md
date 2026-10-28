@@ -150,3 +150,32 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
 | `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |
 | `@group-action` | `{ group, action }` | A group's heading action was pressed in the sections layout |
+
+## Plain links (`layout: "links"`)
+
+A side card that the boards draw as a few links (PqKassabon "Gerelateerd") uses `layout: "links"`. The host's sections
+(`extraSources`, `referenceSections`, `extraSections`) show as plain links, one per line, the label and the meta joined by
+a comma. Without host sections the related objects are listed. "Show all" opens the tabbed view, so files and every
+other relation stay one click away.
+
+```json
+{
+  "type": "related",
+  "title": "Gerelateerd",
+  "content": {
+    "layout": "links",
+    "referenceSections": [
+      { "key": "shift", "label": "Shift", "field": "shift", "register": "pipelinq", "schema": "cashShift",
+        "labelTemplate": "Shift {floatAt|date}, {drawer}", "route": { "name": "CashShiftDetail", "params": { "id": "{id}" } } }
+    ],
+    "extraSources": [
+      { "key": "refunds", "endpoint": "/apps/openregister/api/objects/pipelinq/posRefund?originalTransaction=@objectId",
+        "path": "results", "itemLabel": "Refund {reference}", "itemMeta": "{status}",
+        "rowRoute": { "name": "PosRefundDetail", "params": { "id": "{id}" } } }
+    ]
+  }
+}
+```
+
+`sectionOrder` (keys) orders the host's sections: `["shift", "refunds", "audit"]` puts the referenced shift before the
+lists. Keys it leaves out follow in their declared order.

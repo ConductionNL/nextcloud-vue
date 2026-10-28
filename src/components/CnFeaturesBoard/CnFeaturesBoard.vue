@@ -777,6 +777,13 @@ export default {
 	margin: 0 8px 8px 0;
 }
 
+/* The Actions menu beside the tabs is a 34px control, as the board's
+   tab-row buttons are. */
+.cn-features-board__tab-actions :deep(.action-item__menutoggle) {
+	min-height: 34px;
+	height: 34px;
+}
+
 .cn-features-board__panel {
 	display: flex;
 	flex-direction: column;
@@ -1029,7 +1036,8 @@ export default {
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius, 12px);
-	background: var(--color-background-hover);
+	/* The board's near-white side card (#fafbfc), the ground of a board table head. */
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
 }
 
 .cn-features-board__next-head {
@@ -1042,6 +1050,7 @@ export default {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-features-board__next-lead {
