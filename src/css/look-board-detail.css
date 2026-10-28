@@ -27,6 +27,11 @@
 	/* The teal badge of a public history entry. */
 	--cn-board-teal-tint: var(--nldesign-color-teal-light, #e3f1f3);
 	--cn-board-teal-ink: var(--nldesign-color-teal-dark, #1d5e66);
+	/* A red board tag's ground: the legal hold mark of the archiving card. */
+	--cn-board-red-tag-ground: var(--nl-color-red-light, var(--color-error-light, #fcedec));
+	/* A plain warning note's ground and edge (CnAdminSettingsShell plainNotes). */
+	--cn-board-note-warning-ground: #fff4e5;
+	--cn-board-note-warning-edge: #f0c987;
 	/* Card h2 and side heading. */
 	--cn-board-heading-size: 17px;
 	--cn-board-side-heading-size: 15px;
@@ -1575,11 +1580,11 @@
 	line-height: normal;
 }
 
-/* The legal hold mark takes the board's red tag ink and ground (#a30000 on
-   #fcedec, DqZaakArchivering "LH"), as a toned board tag does; the theme's
+/* The legal hold mark takes the board's red tag ink and ground
+   (DqZaakArchivering "LH"), as a toned board tag does; the theme's
    text-error is darker. */
 .cn-look-board .cn-retention .cn-retention__mark--hold:not(.cn-look-nextcloud *) {
-	background: var(--nl-color-red-light, var(--color-error-light, #fcedec));
+	background: var(--cn-board-red-tag-ground);
 	color: var(--nl-color-red-text, var(--color-error-text));
 }
 

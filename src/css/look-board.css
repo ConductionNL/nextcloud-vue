@@ -2547,8 +2547,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *),
 .cn-look-board.cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *) {
-	--cn-banner-ground: var(--cn-board-note-warning-ground, #fff4e5);
-	--cn-banner-edge: var(--cn-board-note-warning-edge, #f0c987);
+	--cn-banner-ground: var(--cn-board-note-warning-ground);
+	--cn-banner-edge: var(--cn-board-note-warning-edge);
 }
 
 /* A stat-row cell that holds only a banner is the banner: no card around it. */

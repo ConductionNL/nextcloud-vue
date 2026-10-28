@@ -23,6 +23,7 @@ const path = require('path')
 const CnAdminSettingsShell = require('../../src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue').default
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const detailCss = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8')
 const stubs = { NcSettingsSection: { template: '<div><slot /></div>' }, CnBuildiqEditButton: true, CnEnvironmentBanner: true, CnCredentials: true }
 
 /**
@@ -66,7 +67,9 @@ describe('CnAdminSettingsShell plainNotes', () => {
 
 	it('draws a warning note on the board\'s peach ground and edge', () => {
 		const body = bodyOf('.cn-look-board .cn-admin-settings-shell--plain-notes .settings-section .notecard.notecard--warning:not(.cn-look-nextcloud *)')
-		expect(body).toContain('--cn-banner-ground: var(--cn-board-note-warning-ground, #fff4e5);')
-		expect(body).toContain('--cn-banner-edge: var(--cn-board-note-warning-edge, #f0c987);')
+		expect(body).toContain('--cn-banner-ground: var(--cn-board-note-warning-ground);')
+		expect(body).toContain('--cn-banner-edge: var(--cn-board-note-warning-edge);')
+		expect(detailCss).toContain('--cn-board-note-warning-ground: #fff4e5;')
+		expect(detailCss).toContain('--cn-board-note-warning-edge: #f0c987;')
 	})
 })

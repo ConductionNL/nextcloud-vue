@@ -37,6 +37,7 @@ describe('the archiving card in the board look (r34)', () => {
 	it('draws the legal hold mark in the board\'s red tag tones', () => {
 		const mark = bodyOf('.cn-look-board .cn-retention .cn-retention__mark--hold:not(.cn-look-nextcloud *)')
 		expect(mark).toContain('color: var(--nl-color-red-text, var(--color-error-text));')
-		expect(mark).toContain('background: var(--nl-color-red-light, var(--color-error-light, #fcedec));')
+		expect(mark).toContain('background: var(--cn-board-red-tag-ground);')
+		expect(css).toContain('--cn-board-red-tag-ground: var(--nl-color-red-light, var(--color-error-light, #fcedec));')
 	})
 })
