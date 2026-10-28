@@ -275,7 +275,7 @@ The table never scrolls sideways inside its card. When its columns are wider tha
 
 `content.addActions` (`[{ label, icon?, createDefaults? }]`) offers extra adds beside the list's own. Each opens the same create form with its `createDefaults` merged over the list's, so one list of quote lines offers "Add product" (`createDefaults: { "kind": "catalogue" }`) and "Add own line" (`{ "kind": "own" }`), as board PqOfferte draws. In the board look they stand in the card's title row next to the Add; in the Nextcloud look they join the card's Actions menu and the footer. Labels go through the host translate.
 
-`content.totals` (`[{ label, path, format?, currency?, currencyField?, emphasis? }]`) ends the list with the totals of the record it sits on, in a box beside the `footnote`: a quote's subtotal, VAT and total under its lines. `format: "currency"` writes a money amount in the reader's language; `emphasis: true` sets a row apart with a rule above it (the total). A row without a value is left out.
+`content.totals` (`[{ label, path, format?, currency?, currencyField?, emphasis? }]`) ends the list with the totals of the record it sits on, in a box beside the `footnote`: a quote's subtotal, VAT and total under its lines. A label's `{path}` tokens are filled from the record after it is translated ("VAT {vatRate}%"). `format: "currency"` writes a money amount in the reader's language; `emphasis: true` sets a row apart with a rule above it (the total). A row without a value is left out.
 
 ## Sorting and filtering from the column heads
 

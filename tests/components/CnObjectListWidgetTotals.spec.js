@@ -20,7 +20,7 @@ const { resolve } = require('node:path')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnObjectListWidget.vue').default
 
-const QUOTE = { id: 'q-1', subtotal: 4428, vatAmount: 929.88, total: 5357.88, currency: 'EUR' }
+const QUOTE = { id: 'q-1', subtotal: 4428, vatRate: 21, vatAmount: 929.88, total: 5357.88, currency: 'EUR' }
 const TOTALS = [
 	{ label: 'Subtotal', path: 'subtotal', format: 'currency' },
 	{ label: 'VAT', path: 'vatAmount', format: 'currency' },
@@ -73,5 +73,13 @@ describe('CnObjectListWidget totals', () => {
 		const source = readFileSync(resolve(__dirname, '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'), 'utf8')
 		expect(source).toMatch(/\.cn-object-list-widget__totals \{[^}]*background: var\(--cn-board-sunken-ground/)
 		expect(source).toMatch(/\.cn-object-list-widget__total--emphasis \{[^}]*border-top: 1px solid/)
+	})
+})
+
+describe('CnObjectListWidget totals labels', () => {
+	it('fills a label from the record after translating it', async () => {
+		const w = mountList({ totals: [{ label: 'VAT {vatRate}%', path: 'vatAmount', format: 'currency' }] })
+		await flush()
+		expect(w.find('[data-testid="cn-object-list-widget-foot"] dt').text()).toBe('T(VAT 21%)')
 	})
 })

@@ -28,7 +28,8 @@ the list's defaults. The host SHALL draw the extra adds wherever it draws the li
 ### Requirement: A list can end in the totals of the record it sits on
 
 An object list SHALL read `content.totals` (`[{ label, path, format?, emphasis? }]`) from the record of the page it sits
-on and draw them in a box beside the footnote, a `currency` value as a money amount in the reader's language. A row
+on and draw them in a box beside the footnote, a `currency` value as a money amount in the reader's language, and a
+label translated and then filled from the record (`{path}`, "VAT {vatRate}%"). A row
 without a value SHALL be left out; without the key the footnote SHALL stay as it was.
 
 #### Scenario: Board PqOfferte

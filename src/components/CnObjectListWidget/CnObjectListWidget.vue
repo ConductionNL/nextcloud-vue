@@ -1534,7 +1534,8 @@ export default {
 		 * list sits on: a quote's subtotal, VAT and total under its lines.
 		 * `format: "currency"` writes a money amount in the reader's language;
 		 * a row without a value is left out. Labels go through the app's
-		 * translate.
+		 * translate, then their `{path}` tokens are filled from the record
+		 * ("Btw {vatRate}%").
 		 *
 		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-end-in-the-totals-of-the-record-it-sits-on
 		 * @return {Array<{key: string, label: string, value: string, emphasis: boolean}>}
@@ -1553,7 +1554,11 @@ export default {
 					const value = row.format === 'currency'
 						? formatMoney(raw, { currency: row.currency, currencyField: row.currencyField }, record, null)
 						: (raw === null || raw === undefined ? '' : String(raw))
-					return { key: `${index}-${row.path}`, label: tr(String(row.label || row.path)), value, emphasis: row.emphasis === true }
+					const label = tr(String(row.label || row.path)).replace(/\{([\w.@-]+)\}/g, (match, path) => {
+						const filled = readPath(record, path)
+						return filled === null || filled === undefined || typeof filled === 'object' ? '' : String(filled)
+					})
+					return { key: `${index}-${row.path}`, label, value, emphasis: row.emphasis === true }
 				})
 				.filter((row) => row.value !== '')
 		},
