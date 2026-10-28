@@ -123,6 +123,14 @@ describe('CnFactsWidget: one input the actions send', () => {
 	})
 })
 
+describe('CnFactsWidget: an input with a condition', () => {
+	it('is drawn only while the record meets it', () => {
+		const content = { fields: FIELDS, input: { key: 'reason', label: 'Reason', visibleWhen: { field: 'status', value: 'pending' } } }
+		expect(mountFacts(content).find('[data-testid="cn-facts-input"]').exists()).toBe(true)
+		expect(mountFacts(content, { ...DIFF, status: 'approved' }).find('[data-testid="cn-facts-input"]').exists()).toBe(false)
+	})
+})
+
 describe('CnFactsWidget: a source sorted on @self.created', () => {
 	it('is read: the sort names a field, not a token', async () => {
 		mockGet.mockResolvedValue({ data: { results: [DIFF], total: 1 } })

@@ -37,7 +37,7 @@ A `notice` with `visibleWhen` SHALL be shown only while the record shown meets t
 ### Requirement: A facts card can ask for one value its actions send
 
 A facts widget with `input: { key, label, placeholder }` SHALL draw one labelled text field under the facts, and every
-`@input.<key>` in its actions SHALL be replaced by the typed text, or by '' when nothing was typed.
+`@input.<key>` in its actions SHALL be replaced by the typed text, or by '' when nothing was typed. An input with `visibleWhen` SHALL be drawn only while the record meets it.
 
 #### Scenario: Reject with a reason
 

@@ -517,7 +517,7 @@ export default {
 		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
 		 * - `tileStyle` — `"figures"` with `layout: "tiles"`: white tiles, a plain label above a large value (board PqKassadienst "Kasverschil"). A row's `note` (`{ parts, separator? }`, as a line's parts) is written under its value; its `tone` (`[{ when: { field, op, value }, variant }]`) colours the value with the first variant whose condition the record meets.
 		 * - `notice.visibleWhen` — a condition on the record shown; the band shows only while it holds.
-		 * - `input` — `{ key, label, placeholder? }`, one labelled text field under the facts; an action reads what was typed as `@input.<key>` ('' when empty).
+		 * - `input` — `{ key, label, placeholder?, visibleWhen? }`, one labelled text field under the facts (only while the record meets `visibleWhen`); an action reads what was typed as `@input.<key>` ('' when empty).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -1025,6 +1025,9 @@ export default {
 		input() {
 			const input = this.content?.input
 			if (!input || typeof input.key !== 'string' || input.key === '') {
+				return null
+			}
+			if (input.visibleWhen && !(this.record && evaluateVisibleWhenLocal(input.visibleWhen, this.record))) {
 				return null
 			}
 			return {
