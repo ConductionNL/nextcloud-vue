@@ -1537,6 +1537,7 @@ import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnExpandableRow } from '../CnExpandableRow/index.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -13017,20 +13018,26 @@ export default {
 
 		/**
 		 * An entry of an expandable row's sub-table moved: save the row with
-		 * the list in its new order through the store, then reload.
+		 * the list in its new order (the page's own store in self-fetch mode,
+		 * else the `store` prop), then reload.
 		 *
 		 * @param {{row: object, field: string, entries: Array}} payload The row, the list field and the list.
 		 * @return {Promise<void>} Nothing.
 		 * @spec openspec/changes/expandable-row-table-tools/specs/expandable-row-table-tools/spec.md
 		 */
 		async onExpandableRowReorder(payload) {
-			if (this.store && this.objectType) {
-				const saved = await this.store.saveObject(this.objectType, { ...payload.row, [payload.field]: payload.entries })
+			const values = { ...payload.row, [payload.field]: payload.entries }
+			const self = await this.selfActions.handleRowSave(payload.row, values)
+			const viaStore = !self && Boolean(this.store && this.objectType)
+			let saved = self ? self.saved : null
+			if (viaStore) {
+				saved = await saveEdited(this.store, this.objectType, payload.row, values)
 				if (saved) {
 					await this.onRefreshEvent()
-				} else {
-					this.toastSavedView('error', t('nextcloud-vue', 'The new order could not be saved'))
 				}
+			}
+			if ((self || viaStore) && !saved) {
+				this.toastSavedView('error', t('nextcloud-vue', 'The new order could not be saved'))
 			}
 			/**
 			 * @event reorder An expandable row's sub-table was reordered. Payload: `{ row, field, entries }`.

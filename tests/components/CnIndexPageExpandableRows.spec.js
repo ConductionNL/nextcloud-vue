@@ -51,6 +51,18 @@ describe('CnIndexPage — expandable rows', () => {
 		expect(saveObject).toHaveBeenCalledWith('pipeline', { ...ROWS[0], stages: entries })
 		expect(wrapper.emitted('reorder')[0][0]).toEqual({ row: ROWS[0], field: 'stages', entries })
 	})
+
+	it('patches only the reordered list through the page store in self-fetch mode', async () => {
+		const wrapper = mount(CnIndexPage, {
+			props: { objects: ROWS, schema: { title: 'Pipeline', properties: {} }, viewMode: 'list', expandableRows: LAYOUT },
+			global: { stubs: { CnRowActions: true } },
+		})
+		const entries = [{ name: 'B', order: 1 }]
+		const handleRowSave = jest.fn().mockResolvedValue({ saved: { id: 'p2' } })
+		wrapper.vm.selfActions.handleRowSave = handleRowSave
+		await wrapper.vm.onExpandableRowReorder({ row: ROWS[1], field: 'stages', entries })
+		expect(handleRowSave).toHaveBeenCalledWith(ROWS[1], { ...ROWS[1], stages: entries })
+	})
 })
 
 describe('app-manifest-v2 — expandableRows', () => {
