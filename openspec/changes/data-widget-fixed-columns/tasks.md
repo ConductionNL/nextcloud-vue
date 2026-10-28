@@ -1,0 +1,2 @@
+- [x] CnObjectDataWidget fixedColumns + detail host passes it
+- [x] jest CnObjectDataWidgetEmptyValue

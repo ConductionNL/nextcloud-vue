@@ -99,6 +99,7 @@
 			:exclude="content.exclude || []"
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
+			:fixedColumns="content.fixedColumns === true"
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
 			:editable="content.editable !== false" />

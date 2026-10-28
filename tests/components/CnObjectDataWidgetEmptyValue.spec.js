@@ -58,4 +58,11 @@ describe('CnObjectDataWidget columns in the board look', () => {
 		const w = mountWith({ assignee: 'pieter' }, { columns: 2 }, { cnLook: 'board' })
 		expect(w.vm.gridStyle['grid-template-columns']).toBe('repeat(auto-fit, minmax(200px, 1fr))')
 	})
+
+	// PqLead's Deal card draws its eight facts in two columns at any width.
+	// @spec openspec/changes/data-widget-fixed-columns/specs/data-widget-fixed-columns/spec.md#requirement-a-data-widget-can-keep-its-columns-in-the-board-look
+	it('keeps the configured columns in the board look when they are fixed', () => {
+		const w = mountWith({ assignee: 'pieter' }, { columns: 2, fixedColumns: true }, { cnLook: 'board' })
+		expect(w.vm.gridStyle['grid-template-columns']).toBe('repeat(2, minmax(0, 1fr))')
+	})
 })

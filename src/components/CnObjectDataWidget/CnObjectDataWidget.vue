@@ -753,6 +753,17 @@ export default {
 		},
 
 		/**
+		 * Keep `columns` in the board look too, instead of fitting 200px
+		 * columns (PqLead's Deal card: eight facts in two columns).
+		 *
+		 * @spec openspec/changes/data-widget-fixed-columns/specs/data-widget-fixed-columns/spec.md#requirement-a-data-widget-can-keep-its-columns-in-the-board-look
+		 */
+		fixedColumns: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Number of fields shown while collapsed. `null` fits the cell: the
 		 * whole rows that fit stay, and only an overflowing cell gets the
 		 * "Show all N fields" button.
@@ -1146,6 +1157,9 @@ export default {
 			if (normalizeLook(this.cnLook) === 'board') {
 				if (this.columns === 1) {
 					return { 'grid-template-columns': 'minmax(0, 1fr)' }
+				}
+				if (this.fixedColumns && this.columns > 1) {
+					return { 'grid-template-columns': `repeat(${this.columns}, minmax(0, 1fr))` }
 				}
 				return {
 					'grid-template-columns': 'repeat(auto-fit, minmax(200px, 1fr))',
