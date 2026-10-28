@@ -187,6 +187,7 @@ export {
 	CnIconPicker,
 	CnImageWidget,
 	CnImageWidgetForm,
+	CnIndexListWidget,
 	CnIndexPage,
 	CnIndexSidebar,
 	CnInfoWidget,

@@ -2216,6 +2216,19 @@ export default {
 		},
 
 		/**
+		 * Whether the list writes its filters, search and sort into the
+		 * address (`$route.query`), so a reload or a shared link shows the same
+		 * view. A list embedded in another page (the `index-list` widget in a
+		 * detail tab) sets this false: the address belongs to the page.
+		 *
+		 * @spec openspec/changes/index-list-widget/specs/index-list-widget/spec.md#requirement-an-embedded-list-leaves-the-address-alone
+		 */
+		routeState: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Whether the page header draws its icon before the title. `false`
 		 * (manifest `config.showTitleIcon: false`) drops it, for a title that
 		 * stands alone as the board draws it. True by default.
@@ -11281,7 +11294,7 @@ export default {
 		 * @spec openspec/changes/saved-view-kept-in-route/specs/saved-view-kept-in-route/spec.md#requirement-the-address-keeps-naming-the-applied-view
 		 */
 		persistViewStateToRoute(state, { savedView } = {}) {
-			if (!this.$router || !this.$route) {
+			if (!this.routeState || !this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
@@ -11991,7 +12004,7 @@ export default {
 		 * @return {void}
 		 */
 		persistNamedFiltersToRoute(filters) {
-			if (!this.$router || !this.$route) {
+			if (!this.routeState || !this.$router || !this.$route) {
 				return
 			}
 			const properties = declaredFilterFields(this)
