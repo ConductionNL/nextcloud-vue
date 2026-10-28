@@ -941,23 +941,26 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table', 'cards', 'list', or 'map' */
+		/** Current view mode: 'table', 'cards', 'list', 'map', 'calendar', or 'board' (a page that is itself a board, board look only). */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar', 'board'].includes(v),
 		},
 
 		/**
 		 * Which view-mode segments to render, in order. Defaults to the
 		 * historical two-segment control; add `'list'` to expose the list view.
+		 * `'board'` offers the board view in place (board look only), for a page
+		 * that is itself a board.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'calendar'>}
+		 * @spec openspec/changes/actions-bar-board-view-mode/specs/actions-bar/spec.md#requirement-a-page-can-offer-the-board-view-in-place
+		 * @type {Array<'cards' | 'table' | 'list' | 'calendar' | 'board'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar', 'board'].includes(m)),
 		},
 
 		/** Whether to show the view-mode toggle */
