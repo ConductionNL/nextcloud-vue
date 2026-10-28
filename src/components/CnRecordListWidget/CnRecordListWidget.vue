@@ -196,7 +196,7 @@
 				</h3>
 				<NcButton
 					variant="secondary"
-					:class="{ 'cn-record-list__action--tonal': footerTonal }"
+					:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 					:disabled="footerDisabled"
 					:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 					data-testid="cn-record-list-footer-action"
@@ -529,7 +529,7 @@
 			</h3>
 			<NcButton
 				variant="secondary"
-				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -560,7 +560,7 @@
 			</p>
 			<NcButton
 				variant="secondary"
-				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 				:wide="footerAction.wide"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"

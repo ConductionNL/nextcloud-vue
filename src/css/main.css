@@ -1,3 +1,39 @@
 :root {
   --color-new: var(--color-text-maxcontrast-default);
 }
+
+/* ---- The tonal pill button --------------------------------------------- */
+/* The boards' light-blue action on a card ("Herinnering versturen",
+   "Exporteren als CSV", "Kanaal toevoegen"): any NcButton, or an NcActions
+   menu named as a button, takes `cn-button--tonal`. NcButton redefines the
+   primary light colour inside the button, so the tint is read on the body and
+   handed down.
+   @spec openspec/changes/board-tonal-button/specs/board-tonal-button/spec.md */
+body {
+	--cn-tonal-bg: var(--color-primary-element-light);
+	--cn-tonal-ink: var(--color-primary-element-light-text);
+}
+
+.cn-button--tonal.button-vue,
+.cn-button--tonal .action-item__menutoggle.button-vue {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--cn-tonal-bg, var(--color-primary-element-light));
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-button--tonal.button-vue .button-vue__text,
+.cn-button--tonal .action-item__menutoggle.button-vue .button-vue__text {
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
+	font-weight: 600;
+}
+
+.cn-button--tonal.button-vue:hover:not(:disabled),
+.cn-button--tonal .action-item__menutoggle.button-vue:hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
+}

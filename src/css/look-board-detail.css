@@ -1018,6 +1018,19 @@
 	font-weight: 600;
 }
 
+/* A side card whose widget draws its own heading (the timeline's title, an
+   app section's `cn-side-heading`) reads as every other side card title, not
+   as Nextcloud's 16.5px h3.
+   @spec openspec/changes/board-tonal-button/specs/board-side-own-heading/spec.md */
+.cn-look-board .cn-detail-page__side .cn-timeline-widget__title,
+.cn-look-board .cn-detail-page__side .cn-side-heading {
+	margin: 0;
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size);
+	font-weight: 600;
+	line-height: normal;
+}
+
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__header,
 .cn-look-board .cn-detail-page__side .cn-detail-card__header {
 	padding-bottom: 0;

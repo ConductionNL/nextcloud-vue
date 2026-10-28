@@ -4425,3 +4425,33 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	font-size: 15px;
 	line-height: normal;
 }
+
+/* ---- The tonal pill in the board look ------------------------------------ */
+/* `cn-button--tonal` outweighs the board look's neutral secondary and
+   tertiary buttons (CnActionButtons, settings rows, card actions), which
+   would otherwise draw it white with a grey edge.
+   @spec openspec/changes/board-tonal-button/specs/board-tonal-button/spec.md */
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *),
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *) {
+	min-height: 34px;
+	height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 17px;
+	background-color: var(--cn-tonal-bg);
+	color: var(--cn-tonal-ink);
+	--nldesign-color-on-surface: var(--cn-tonal-ink);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *) .button-vue__text,
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *) .button-vue__text {
+	color: var(--cn-tonal-ink);
+	font-weight: 600;
+}
+
+.cn-look-board .button-vue.cn-button--tonal.cn-button--tonal:not(.cn-look-nextcloud *):hover:not(:disabled),
+.cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *):hover:not(:disabled) {
+	background-color: var(--color-primary-element-light-hover);
+}
