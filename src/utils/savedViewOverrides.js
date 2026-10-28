@@ -166,6 +166,10 @@ export function applySavedViewOverrides(config, overrides) {
 	if (overrides.countText !== undefined) {
 		out.countTextByView = null
 	}
+	// Likewise its own footer note, over the page's per-view notes.
+	if (overrides.footerNote !== undefined) {
+		out.footerNoteByView = null
+	}
 	if (isPlainObject(overrides.lockedFilters)) {
 		out.filter = { ...(isPlainObject(out.filter) ? out.filter : {}), ...overrides.lockedFilters }
 	}
