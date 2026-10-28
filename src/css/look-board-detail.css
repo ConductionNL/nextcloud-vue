@@ -3110,3 +3110,33 @@
 .cn-look-board .cn-timeline-widget__chip:not(.cn-timeline-widget__chip--active):not(.cn-look-nextcloud *) {
 	border-color: var(--cn-board-control-border);
 }
+
+/* A compact band (`config.bandDensity: "compact"`), as boards PqKlant and
+   PqOrganisatie draw the contact strip and the six figures above the tabs:
+   12px between tiles, 20px between rows, tiles down to 120px. A figure is a
+   white tile with a hairline, radius 10, padded 12px 14px, its 13px label 2px
+   over a 20px value, both at the normal line height (67px high).
+   @spec openspec/changes/detail-band-compact/specs/detail-page/spec.md#requirement-a-detail-band-can-be-compact */
+.cn-look-board .cn-detail-page__band--compact:not(.cn-look-nextcloud *) {
+	gap: 20px 12px;
+}
+
+.cn-look-board .cn-detail-page__band--compact > .cn-detail-page__band-item:not(.cn-look-nextcloud *) {
+	min-width: min(120px, 100%);
+}
+
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked:not(.cn-look-nextcloud *) {
+	--cn-kpi-stacked-padding: 12px 14px;
+	--cn-kpi-stacked-gap: 2px;
+	--cn-kpi-stacked-title-size: 13px;
+	--cn-kpi-stacked-value-size: 20px;
+	min-height: 0;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__value:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
