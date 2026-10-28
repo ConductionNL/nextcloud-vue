@@ -2131,6 +2131,10 @@
 					"enum": ["main", "side"],
 					"description": "With the dashboard's `gridSideColumn` (2.142.0): the column this placement is drawn on, the main column sharing what the fixed-width side column leaves. A placement without it keeps the twelve shares."
 				},
+				"clear": {
+					"type": "boolean",
+					"description": "`true` starts this placement below every card that starts on an earlier row, in any column, so a row of cards after the tracks lines up under the taller one instead of rising under the shorter (DqMijnWerk, DqMijnTeam). Held in place outside edit mode."
+				},
 				"sizeToContent": {
 					"type": ["boolean", "integer"],
 					"minimum": 1,
