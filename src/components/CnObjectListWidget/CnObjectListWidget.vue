@@ -898,7 +898,7 @@ export default {
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass', 'emptyValue', 'emptyValueBy', 'firstOf', 'secondaryLabels']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'formatterOptions', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass', 'emptyValue', 'emptyValueBy', 'firstOf', 'secondaryLabels']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
