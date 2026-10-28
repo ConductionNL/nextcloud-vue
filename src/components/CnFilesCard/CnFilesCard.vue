@@ -14,13 +14,13 @@
 -->
 <template>
 	<CnDetailCard :title="resolvedTitle" :icon="Paperclip" :collapsible="collapsible">
-		<template v-if="$slots.actions || addLabel" #actions>
+		<template v-if="$slots.actions || addable" #actions>
 			<!--
 				@slot actions Header actions of the card, e.g. an Add button. Scope:
 				`{ refresh }`, which reads the files again after the host added one.
 			-->
 			<slot name="actions" :refresh="fetchFiles" />
-			<template v-if="addLabel">
+			<template v-if="addable">
 				<NcButton
 					class="cn-button--tonal"
 					variant="tertiary"
@@ -134,11 +134,10 @@ export default {
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
 		/** Pre-translated overflow label. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
-		/**
-		 * Label of an add button in the card header that attaches picked files
-		 * to the object. Empty: no button.
-		 */
-		addLabel: { type: String, default: '' },
+		/** Show an add button in the card header that attaches picked files to the object. */
+		addable: { type: Boolean, default: false },
+		/** Pre-translated label of the add button. */
+		addLabel: { type: String, default: () => t('nextcloud-vue', 'Add file') },
 	},
 
 	emits: ['show-all', 'uploaded'],

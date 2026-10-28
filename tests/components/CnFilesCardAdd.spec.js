@@ -2,9 +2,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * CnFilesCard's `addLabel`: a tonal add button in the card header that picks
+ * CnFilesCard's `addable`: a tonal add button in the card header that picks
  * files and attaches them to the object, so a manifest integration card can
  * offer "Bestand toevoegen" (pipelinq PqTaak Documenten) without a slot.
+ * `addLabel` defaults to the translated "Add file".
  *
  * @spec openspec/changes/files-card-add-button/specs/files-card-add-button/spec.md#requirement-a-files-card-can-add-a-file
  */
@@ -32,7 +33,7 @@ describe('CnFilesCard add button', () => {
 		delete global.fetch
 	})
 
-	it('draws no add button without an addLabel', async () => {
+	it('draws no add button unless addable', async () => {
 		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1' } })
 		await flushPromises()
 		expect(wrapper.find('[data-testid="cn-files-card-add"]').exists()).toBe(false)
@@ -40,7 +41,7 @@ describe('CnFilesCard add button', () => {
 	})
 
 	it('draws the add button as a tonal pill in the card header', async () => {
-		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1', addLabel: 'Bestand toevoegen' } })
+		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1', addable: true, addLabel: 'Bestand toevoegen' } })
 		await flushPromises()
 		const button = wrapper.find('.cn-detail-card__header [data-testid="cn-files-card-add"]')
 		expect(button.exists()).toBe(true)
@@ -50,7 +51,7 @@ describe('CnFilesCard add button', () => {
 	})
 
 	it('attaches a picked file to the object and reads the files again', async () => {
-		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1', addLabel: 'Bestand toevoegen' } })
+		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1', addable: true, addLabel: 'Bestand toevoegen' } })
 		await flushPromises()
 		global.fetch.mockClear()
 
@@ -68,6 +69,13 @@ describe('CnFilesCard add button', () => {
 		expect(body.content).toMatch(/^data:application\/pdf;base64,/)
 		expect(wrapper.emitted('uploaded')).toEqual([[['brief.pdf']]])
 		expect(global.fetch).toHaveBeenCalledTimes(1)
+		wrapper.unmount()
+	})
+
+	it('reads Add file by default', async () => {
+		const wrapper = mount(CnFilesCard, { props: { register: 'r1', schema: 's1', objectId: 'o1', addable: true } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-files-card-add"]').text()).toContain('Add file')
 		wrapper.unmount()
 	})
 })

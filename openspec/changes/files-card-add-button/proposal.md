@@ -6,5 +6,5 @@ Board PqTaak (pipelinq) draws "Bestand toevoegen" as a tonal pill in the header 
 
 ## What changes
 
-- CnFilesCard gains `addLabel`. When set, the card header shows a tonal add button (`cn-button--tonal`, Plus icon) that opens a file picker, attaches each picked file to the object through `POST {apiBase}/objects/{register}/{schema}/{id}/files` (the request CnObjectFilesWidget already makes), emits `uploaded` and reads the files again. A failed attach shows an error line in the card.
-- Without `addLabel` nothing changes. A manifest passes it through the widget's `props`.
+- CnFilesCard gains `addable` (and `addLabel`, default the translated "Add file"). When set, the card header shows a tonal add button (`cn-button--tonal`, Plus icon) that opens a file picker, attaches each picked file to the object through `POST {apiBase}/objects/{register}/{schema}/{id}/files` (the request CnObjectFilesWidget already makes), emits `uploaded` and reads the files again. A failed attach shows an error line in the card.
+- Without `addable` nothing changes. A manifest passes it through the widget's `props`.
