@@ -26,7 +26,7 @@ describe('widget bodyActions', () => {
 		const [button] = resolveWidgetHeaderActions(widget, { objectId: 'case-1', translate: () => 'Partij toevoegen', dispatch }, 'bodyActions')
 		expect(button.label).toBe('Partij toevoegen')
 		button.run()
-		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'CasePartyDialog', props: { caseId: 'case-1' } })
+		expect(dispatch).toHaveBeenCalledWith({ type: 'open-modal', target: 'CasePartyDialog', props: { caseId: 'case-1' } }, expect.objectContaining({ tokenCtx: expect.objectContaining({ objectId: 'case-1' }) }))
 		expect(resolveWidgetHeaderActions(widget, { dispatch })).toEqual([])
 	})
 
