@@ -768,7 +768,7 @@ import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
-import { createManifestTranslate } from '../../utils/manifestTranslate.js'
+import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { loadMyTeam } from '../../utils/myTeam.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
@@ -2281,6 +2281,7 @@ export default {
 				getLanguage: () => this.language || getLanguage(),
 				translate: (text, vars) => this.translate(text, vars),
 				library: (text, vars) => t('nextcloud-vue', text, vars),
+				hasTranslation: (text) => appCatalogHas(this.appId, text),
 			})
 		},
 
