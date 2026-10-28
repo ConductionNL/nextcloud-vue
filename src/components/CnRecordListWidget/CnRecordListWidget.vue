@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -211,6 +211,7 @@
 				v-else-if="group.label"
 				:id="group.headingId"
 				class="cn-record-list__group-heading"
+				:class="group.tone ? `cn-record-list__group-heading--${group.tone}` : null"
 				data-testid="cn-record-list-group-heading">
 				{{ group.label }}
 			</h3>
@@ -684,6 +685,18 @@ function unwrap(value) {
  * `headerLink` and `headerNote` with `{total}` filled in) for that card's
  * header.
  */
+/**
+ * A group's heading tone from `groupTones`, or '' when it has none.
+ *
+ * @param {object|undefined} tones `{ <group value>: <tone> }`.
+ * @param {string} value The group value.
+ * @return {string} One of error, warning, success, primary, or ''.
+ */
+function groupToneOf(tones, value) {
+	const tone = tones && typeof tones === 'object' ? tones[value] : ''
+	return ['error', 'warning', 'success', 'primary'].includes(tone) ? tone : ''
+}
+
 export default {
 	name: 'CnRecordListWidget',
 
@@ -1218,6 +1231,9 @@ export default {
 		 * `valueLabels` entry for that field, else the value, through the host
 		 * translate; the group without a value is headed by `groupEmptyLabel`,
 		 * or not at all. Without `groupBy` all rows are one unheaded group.
+		 * `groupTones` (`{ <value>: <tone> }`) tones a group's heading, and
+		 * `groupLook: "cards"` draws each group as its own card under an
+		 * uppercase heading (PqMobiel "TE LAAT" in the error ink).
 		 *
 		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
 		 * @return {Array<{key: string, value: string, label: string, headingId: string, items: Array<object>}>} The groups.
@@ -1258,6 +1274,7 @@ export default {
 					value,
 					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
 					headingId: `${this.groupIdBase}-${index}`,
+					tone: groupToneOf(c.groupTones, value),
 					items: buckets.get(value),
 				}
 			})
@@ -3162,6 +3179,42 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.4;
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading {
+	margin: 8px 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	letter-spacing: .06em;
+	line-height: 1.3;
+	text-transform: uppercase;
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--error {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--warning {
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--primary {
+	color: var(--color-primary-element);
+}
+
+.cn-record-list--group-cards .cn-record-list__list {
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-main-background);
+	overflow: hidden;
+}
+
+.cn-record-list--group-cards .cn-record-list__item + .cn-record-list__item {
+	border-top: 1px solid var(--color-border);
 }
 
 .cn-record-list__group-head {

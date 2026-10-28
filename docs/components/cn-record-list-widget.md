@@ -210,6 +210,8 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `groupBy` (a field path) draws the rows in groups, each under a heading (DqZaakGerelateerd: "Onderwerp van deze zaak", "Wacht op", "Gepland vervolg"). A heading is the field's `valueLabels` entry for the value, else the value, through the host translate. The groups come in `groupOrder` (a list of values) first, then in the order the rows bring them; the rows without a value come last, headed by `groupEmptyLabel` or not at all. Each group is its own list, named by its heading. Grouping applies to the list presentations (`rows`, `cards`, `feed`, `inline`); `table`, `notice` and `notes` ignore it.
 
+`groupLook: "cards"` draws each group as its own card under an uppercase heading in the soft ink (PqMobiel). `groupTones` (`{ "late": "error" }`) tones the heading of the named group: `error`, `warning`, `success` or `primary`.
+
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
 In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
