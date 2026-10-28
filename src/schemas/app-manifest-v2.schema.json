@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.158.0",
+	"version": "2.159.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -120,6 +120,8 @@
 							"optionsByParent": { "type": "object", "description": "choice: map of parent-choice value → options[] for a dependent (dependsOn) choice. Same option item shape as `options`.", "additionalProperties": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["value", "label"], "properties": { "value": {}, "label": { "type": "string" } } } } },
 							"suggestFrom": { "type": "string", "description": "choice: the configKey of an earlier choice this step pre-fills a suggestion from. When that value is set and the user has not yet picked here, the option matching suggestMap[parentValue] is auto-selected (still user-overridable)." },
 							"default": { "description": "choice: the option value chosen when the step opens (an array of values with `multiple`). Not applied to a step the server already completed." },
+							"optionalLabels": { "type": "boolean", "description": "config-fields: a field the step's schema does not require reads \"(optional)\" after its label (PqInstellen, setup-wizard-optional-skip)." },
+							"skippable": { "type": "boolean", "description": "The wizard offers \"Skip this step\": it moves on without validating or saving the step (PqInstellen, setup-wizard-optional-skip)." },
 							"noteStyle": { "type": "string", "enum": ["line", "card"], "default": "line", "description": "choice: how `note` is drawn: a muted line under the options (`line`) or an info note card (`card`)." },
 							"suggestMap": { "type": "object", "description": "choice: map of suggestFrom value → suggested option value. Used to auto-suggest a default (e.g. RGS template suggested from organisation type).", "additionalProperties": { "type": "string" } },
 							"multiple": { "type": "boolean", "default": false, "description": "choice: allow multi-select." },
