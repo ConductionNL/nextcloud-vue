@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -482,6 +482,7 @@ export default {
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain. `nameField` with `nameMap` picks the route name by the record's value at `nameField` (a person requester to ContactDetail, a company to OrganisationDetail); a value missing from the map links nowhere. The foot `link.route` takes the same.
 		 *   A lead's `title` or `subtitle` may be `{ firstOf: [spec, ...] }`: the first spec that gives text ("Logged in with DigiD", else the requester's kind).
+		 *   Any other entry may carry `firstOf: [spec, ...]` in place of `path`: it shows the first spec that gives text (a call's own subject, else the request's category).
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
@@ -502,6 +503,7 @@ export default {
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
+		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -603,6 +605,17 @@ export default {
 		 */
 		stacked() {
 			return Number(this.content?.columns) === 1
+		},
+
+		/**
+		 * Whether each fact is a tile, a small caps label above its value
+		 * (`layout: "tiles"`, board PqJourney's steps).
+		 *
+		 * @spec openspec/changes/facts-tiles/specs/facts-widget/spec.md#requirement-facts-can-be-drawn-as-tiles
+		 * @return {boolean}
+		 */
+		tiles() {
+			return this.content?.layout === 'tiles'
 		},
 
 		/**
@@ -1291,6 +1304,7 @@ export default {
 		 * @param {string} kind The entry's kind.
 		 * @return {string}
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/facts-row-first-of/specs/facts-row-first-of/spec.md#requirement-a-facts-row-can-show-the-first-value-that-gives-text
 		 */
 		bareEntryValue(record, field, kind) {
 			if (field.countFrom && typeof field.countFrom === 'object') {
@@ -1305,6 +1319,9 @@ export default {
 			}
 			if (typeof field.template === 'string' && field.template !== '') {
 				return this.templateValue(record, field.template)
+			}
+			if (Array.isArray(field.firstOf)) {
+				return this.partsValue(record, { firstOf: field.firstOf })
 			}
 			if ((kind === 'line' || kind === 'text' || kind === 'row') && Array.isArray(field.parts)) {
 				return this.lineValue(record, field)
@@ -2478,6 +2495,39 @@ export default {
 
 .cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
 	margin-bottom: 8px;
+}
+
+/* `layout: "tiles"` (board PqJourney "Stappen"): each fact a box of its
+   own, the label in small caps above the value, side by side and wrapping. */
+.cn-facts-widget__rows--tiles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__row {
+	display: flex;
+	flex: 1 1 160px;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__label.cn-facts-widget__label {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cn-board-primary-light-ink, var(--color-primary-element-light-text, var(--color-primary-element)));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 400;
 }
 
 @media (max-width: 640px) {

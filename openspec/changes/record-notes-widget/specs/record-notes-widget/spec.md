@@ -19,3 +19,14 @@ A `record-notes` widget with `outcome` SHALL offer the configured options in a s
 
 - **WHEN** the handler picks "Terugbellen afgesproken" and presses "Uitkomst noteren"
 - **THEN** the record's outcome is callbackRequest
+
+### Requirement: The label can be hidden under a heading that names the field
+
+With `content.hideLabel: true` CnRecordNotesWidget SHALL keep the text field's label, tied to the field, for assistive
+technology and SHALL NOT show it.
+
+#### Scenario: Board PqContactmoment
+
+- **GIVEN** the notes widget in a section headed "Gespreksnotities", with label "Gespreksnotities" and `hideLabel: true`
+- **THEN** the heading is the only visible "Gespreksnotities"
+- **AND** the text field is still labelled "Gespreksnotities"

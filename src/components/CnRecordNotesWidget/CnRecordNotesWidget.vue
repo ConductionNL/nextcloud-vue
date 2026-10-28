@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-record-notes" data-testid="cn-record-notes">
-		<label class="cn-record-notes__label" :for="textId">{{ tr(content.label || '') || t('nextcloud-vue', 'Notes') }}</label>
+		<label class="cn-record-notes__label" :class="{ 'hidden-visually': content.hideLabel === true }" :for="textId">{{ tr(content.label || '') || t('nextcloud-vue', 'Notes') }}</label>
 		<textarea
 			:id="textId"
 			v-model="text"
@@ -58,9 +58,11 @@ let instances = 0
  * saved with its own button (PqContactmoment: the conversation notes and
  * "Uitkomst noteren").
  *
- * `content`: `{ field?, label?, rows?, placeholder?, savedText?, savingText?,
- * failedText?, debounceMs?, outcome?: { field, label?, placeholder?,
- * saveLabel?, options: [{ value, label }] } }`. `field` defaults to `notes`.
+ * `content`: `{ field?, label?, hideLabel?, rows?, placeholder?, savedText?,
+ * savingText?, failedText?, debounceMs?, outcome?: { field, label?,
+ * placeholder?, saveLabel?, options: [{ value, label }] } }`. `field` defaults
+ * to `notes`. `hideLabel` keeps the label for screen readers only, for a
+ * field under a heading that already names it.
  * `savedText` takes `{time}`, the time of the last save. A write is a PATCH
  * of only the edited key on the record's OpenRegister object, so a change
  * somebody else made to another key stays. Without a record id, register and
