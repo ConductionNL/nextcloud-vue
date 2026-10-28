@@ -54,4 +54,11 @@ describe('CnAdminSettingsShell board header', () => {
 		expect(mountShell({}).classes()).not.toContain('cn-look-board')
 		expect(mountShell({ look: 'nextcloud' }).classes()).not.toContain('cn-look-board')
 	})
+
+	it('hands the buildiq square a link to the app opened in edit mode', () => {
+		const wrapper = mountShell({ look: 'board' })
+		const square = wrapper.findComponent({ name: 'CnBuildiqEditButton' })
+		expect(square.exists()).toBe(true)
+		expect(square.props('href')).toContain('/apps/launchpad/?cn_edit=1')
+	})
 })

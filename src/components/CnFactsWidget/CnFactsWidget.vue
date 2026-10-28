@@ -41,7 +41,7 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles }">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
@@ -266,7 +266,7 @@ import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/u
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
-import { formatBoardDate } from '../../utils/boardDate.js'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { formatTermDuration } from '../../utils/builtInFormatters.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { parseDateValue } from '../../utils/dateVariant.js'
@@ -482,6 +482,7 @@ export default {
 		 *   `resolve: { register, schema, labelField? }` on an entry or a part turns a value that is a reference (an id, or a list of ids) into the label of the referenced object (`labelField`, else `title`, then `name`): the case type or status of a task shows its name, not its uuid. The ids are fetched once per register and schema through the object store and shared by every facts widget on the page; the entry stays empty until its label is known, and when no label can be read. A resolved value works as a pill too: `map` is applied to the resolved label, and `variantMap` / `colorMap` look the tone up by the value of `resolve.toneField` on the referenced object when that is set (a status named by its `name`, coloured by its `state`), then by the resolved label, then by the stored value.
 		 *   `route` (`{ name, params?, query? }`, `@source.<path>` in a param) on a `title` or a `row` links its value to that route; a param that does not fill leaves it plain. `nameField` with `nameMap` picks the route name by the record's value at `nameField` (a person requester to ContactDetail, a company to OrganisationDetail); a value missing from the map links nowhere. The foot `link.route` takes the same.
 		 *   A lead's `title` or `subtitle` may be `{ firstOf: [spec, ...] }`: the first spec that gives text ("Logged in with DigiD", else the requester's kind).
+		 *   Any other entry may carry `firstOf: [spec, ...]` in place of `path`: it shows the first spec that gives text (a call's own subject, else the request's category).
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
@@ -493,14 +494,16 @@ export default {
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
 		 * - `notice` — `{ text, variant? }`, a note band inside the card under the facts (`info` by default; `success`, `warning` or `error`); the text is translated.
 		 * - `footnote` — a plain muted line under the facts, without a band (DqZaakBesluiten "Na het ondertekenen ..."); the text is translated.
-		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `longdatetime` (the month written out, the year and the time: "7 oktober 2026, 09:12"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
+		 *   `format` is `text` (default), `today-time` (a moment today as "10:24", another day as its board date), `date` (board short date), `date-long` (always with the year), `longdate` (the month written out, the year only outside this year: "3 oktober"), `duration` (an ISO period in words, "4 weken"; `extendBy` names the extension period on the record: "4 weken, te verdagen met 2"), `year` ("2026"), `list` (an array joined by ", ", each item read at `itemPath` and written in `itemFormat`), `group` (a Nextcloud group by its display name), `bytes` (a size, "1.5 MB"), `number` (in the reader's language, `decimals` fraction digits when set), `months` (a number of months in words, whole years as years: 240 is "20 jaar") or `currency` (a money amount in the reader's language, "€ 1.234,50": the code in `currency`, else the record's `currencyField`, else the app's reporting currency, else EUR; `decimals` defaults to 2).
 		 *   `map` turns a raw value into a label (translated). `parts` (on a `line`) lists paths, or `{ path, label?, format? }`, joined by `separator` (default " · "); empty parts are dropped.
 		 * - `source` — `{ register, schema, id }` or `{ url }`; omitted = the current object. `{ register, schema, filter, sort? }` without `id` reads the first object that matches `filter` in `sort` order (`{ field, dir }`): the latest count of a shift. An entry with `from: "object"` reads the current object even then (a client card that also shows the ticket's channel).
 		 * - `endpointSource` — `{ url, method?, params?, responsePath? }`, the block a stat or chart takes: the facts read an app endpoint, shared and cached like those.
 		 * - `emptyWhen` — a path; when the record's value there is truthy the card shows `emptyText` (an endpoint that answers `empty: true`).
-		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar).
+		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
+		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
 		 * - `emptyText` — shown when no entry has a value.
 		 *
 		 * @type {{fields?: Array<object>, source?: object, link?: object, hideEmpty?: boolean, emptyText?: string}}
@@ -605,6 +608,17 @@ export default {
 		},
 
 		/**
+		 * Whether each fact is a tile, a small caps label above its value
+		 * (`layout: "tiles"`, board PqJourney's steps).
+		 *
+		 * @spec openspec/changes/facts-tiles/specs/facts-widget/spec.md#requirement-facts-can-be-drawn-as-tiles
+		 * @return {boolean}
+		 */
+		tiles() {
+			return this.content?.layout === 'tiles'
+		},
+
+		/**
 		 * The token context: the detail object (prop, else the injected context)
 		 * and the page workspace.
 		 *
@@ -629,11 +643,20 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		countJobsKey() {
-			const fields = this.entries
-			const keys = fields
-				.filter((field) => field && field.countFrom && typeof field.countFrom === 'object' && field.countFrom.register && field.countFrom.schema)
-				.map((field) => this.countKey(field.countFrom))
+			const keys = this.countSources.map((countFrom) => this.countKey(countFrom))
 			return JSON.stringify([...new Set(keys)])
+		},
+
+		/**
+		 * Every list this card counts: the entries' `countFrom` and the link's.
+		 *
+		 * @return {Array<{register: string, schema: string, filter?: object}>}
+		 * @spec openspec/changes/facts-link-count/specs/facts-widget/spec.md#requirement-a-facts-link-can-name-a-count
+		 */
+		countSources() {
+			const linkCount = this.content?.link?.countFrom
+			return [...this.entries.map((field) => field && field.countFrom), linkCount]
+				.filter((countFrom) => countFrom && typeof countFrom === 'object' && countFrom.register && countFrom.schema)
 		},
 
 		/**
@@ -1051,9 +1074,21 @@ export default {
 		 *
 		 * @param {object} link The configured link.
 		 * @return {{label: string, note: string}}
+		 * A link with `countFrom` (`{ register, schema, filter? }`) puts that
+		 * list's total in its `{count}` ("Klantpagina, 4 eerdere contacten"),
+		 * and reads `fallbackLabel` while the count is not known.
+		 *
 		 * @spec openspec/changes/facts-link-label-from-record/specs/facts-widget/spec.md#requirement-a-facts-link-can-take-its-words-from-the-record
+		 * @spec openspec/changes/facts-link-count/specs/facts-widget/spec.md#requirement-a-facts-link-can-name-a-count
 		 */
 		linkWords(link) {
+			if (link.countFrom && typeof link.countFrom === 'object') {
+				const total = this.counts[this.countKey(link.countFrom)]
+				const counted = Number.isFinite(total)
+					? this.tr(String(link.label)).replace('{count}', String(total))
+					: this.tr(String(link.fallbackLabel || link.label).replace(/\{count\}/g, '').trim())
+				return { label: counted, note: typeof link.note === 'string' && link.note !== '' ? this.tr(link.note) : '' }
+			}
 			const fill = (text) => (text.includes('{') && this.record ? this.templateValue(this.record, text) : this.tr(text))
 			const label = fill(String(link.label))
 			return {
@@ -1232,13 +1267,8 @@ export default {
 		 * @spec openspec/changes/facts-entry-count/specs/facts-widget/spec.md#requirement-a-facts-entry-can-count-a-related-list
 		 */
 		async loadCounts() {
-			const fields = this.entries
 			const seen = new Set()
-			for (const field of fields) {
-				const countFrom = field && field.countFrom
-				if (!countFrom || typeof countFrom !== 'object' || !countFrom.register || !countFrom.schema) {
-					continue
-				}
+			for (const countFrom of this.countSources) {
 				const key = this.countKey(countFrom)
 				if (seen.has(key)) {
 					continue
@@ -1274,6 +1304,7 @@ export default {
 		 * @param {string} kind The entry's kind.
 		 * @return {string}
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/facts-row-first-of/specs/facts-row-first-of/spec.md#requirement-a-facts-row-can-show-the-first-value-that-gives-text
 		 */
 		bareEntryValue(record, field, kind) {
 			if (field.countFrom && typeof field.countFrom === 'object') {
@@ -1288,6 +1319,9 @@ export default {
 			}
 			if (typeof field.template === 'string' && field.template !== '') {
 				return this.templateValue(record, field.template)
+			}
+			if (Array.isArray(field.firstOf)) {
+				return this.partsValue(record, { firstOf: field.firstOf })
 			}
 			if ((kind === 'line' || kind === 'text' || kind === 'row') && Array.isArray(field.parts)) {
 				return this.lineValue(record, field)
@@ -1959,8 +1993,24 @@ export default {
 				const segments = String(raw).split('/').map((part) => part.trim()).filter((part) => part !== '')
 				return (format === 'first-segment' ? segments[0] : segments[segments.length - 1]) || ''
 			}
+			// A moment today as its time ("10:24"), on another day as its board date.
+			if (format === 'today-time') {
+				const date = parseDateValue(raw)
+				if (date === null) {
+					return ''
+				}
+				const now = new Date()
+				const today = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+				return today
+					? `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+					: formatBoardDate(date)
+			}
 			if (format === 'longdate') {
 				return formatLongDate(raw)
+			}
+			if (format === 'longdatetime') {
+				const date = parseDateValue(raw)
+				return date === null ? '' : `${formatLongDate(date, new Date(), true)}, ${formatTimeOfDay(date)}`
 			}
 			if (format === 'date' || format === 'date-long') {
 				const date = parseDateValue(raw)
@@ -2445,6 +2495,39 @@ export default {
 
 .cn-facts-widget__rows--stacked .cn-facts-widget__value.cn-facts-widget__value {
 	margin-bottom: 8px;
+}
+
+/* `layout: "tiles"` (board PqJourney "Stappen"): each fact a box of its
+   own, the label in small caps above the value, side by side and wrapping. */
+.cn-facts-widget__rows--tiles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__row {
+	display: flex;
+	flex: 1 1 160px;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__label.cn-facts-widget__label {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cn-board-primary-light-ink, var(--color-primary-element-light-text, var(--color-primary-element)));
+}
+
+.cn-facts-widget__rows--tiles .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 400;
 }
 
 @media (max-width: 640px) {

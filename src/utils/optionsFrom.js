@@ -69,8 +69,8 @@ export function optionsFromSource(from) {
  * A plain string or number is its own value and label.
  *
  * @param {unknown} row The row.
- * @param {{valueField?: string, labelField?: string}} [from] The `optionsFrom` block.
- * @return {{id: (string|number), label: string}|null} The option.
+ * @param {{valueField?: string, labelField?: string, keepFields?: string[]}} [from] The `optionsFrom` block.
+ * @return {{id: (string|number), label: string, data?: object}|null} The option.
  */
 export function optionFromRow(row, from = {}) {
 	if (row === null || row === undefined) {
@@ -89,6 +89,12 @@ export function optionFromRow(row, from = {}) {
 		? readPath(row, from.labelField)
 		: (row.title || row.name)
 	const option = { id, label: label === null || label === undefined || label === '' ? String(id) : String(label) }
+	// `keepFields`: values of the row the option carries along as `data`.
+	if (Array.isArray(from.keepFields) && from.keepFields.length > 0) {
+		option.data = Object.fromEntries(from.keepFields
+			.filter((field) => typeof field === 'string' && field !== '')
+			.map((field) => [field, readPath(row, field)]))
+	}
 	// `groupField`: the option's group, which keeps options of one group together.
 	if (typeof from.groupField === 'string' && from.groupField !== '') {
 		const group = readPath(row, from.groupField)

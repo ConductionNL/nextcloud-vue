@@ -32,16 +32,16 @@
   Spec: hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640).
 -->
 <template>
-	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard }">
+	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard, 'cn-reports-page--catalogue': isCatalogue }">
 		<div class="cn-reports-page__header">
 			<!-- The header buttons (`headerButtons`) beside the title, as the
 			     board's "Downloaden" and the buildiq square (board DcRapportages).
 			     Without them, and outside the board look, the title stands alone
 			     as before. -->
 			<div v-if="headerButtonsRow.length > 0" class="cn-reports-page__heading-row">
-				<h2 class="cn-reports-page__title">
+				<component :is="isBoard ? 'h1' : 'h2'" class="cn-reports-page__title">
 					{{ resolvedTitle }}
-				</h2>
+				</component>
 				<div class="cn-reports-page__header-buttons" data-testid="cn-reports-header-buttons">
 					<template v-for="button in headerButtonsRow" :key="button.key">
 						<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
@@ -60,18 +60,111 @@
 					</template>
 				</div>
 			</div>
-			<h2 v-else class="cn-reports-page__title">
+			<component :is="isBoard ? 'h1' : 'h2'" v-else class="cn-reports-page__title">
 				{{ resolvedTitle }}
-			</h2>
+			</component>
 			<p v-if="resolvedDescription" class="cn-reports-page__description">
 				{{ resolvedDescription }}
 			</p>
 		</div>
 
+		<!-- `catalogue` under the board look (board PqReports): the categories
+		     as chips with their counts, the sections in a main column, each card
+		     with its category, a footer line and an Open link, and an aside with
+		     the category index and an optional note. -->
+		<template v-if="isBoard && isCatalogue">
+			<div class="cn-reports-page__chips"
+				role="group"
+				:aria-label="resolvedCategoryLabel"
+				data-testid="cn-reports-chips">
+				<button v-for="chip in catalogueChips"
+					:key="chip.value"
+					type="button"
+					class="cn-reports-page__chip"
+					:class="{ 'cn-reports-page__chip--on': activeCategory === chip.value }"
+					:aria-pressed="activeCategory === chip.value ? 'true' : 'false'"
+					:data-testid="`cn-reports-chip-${chip.value}`"
+					@click="activeCategory = chip.value">
+					{{ chip.label }}<span class="cn-reports-page__chip-count">{{ chip.count }}</span>
+				</button>
+			</div>
+			<div class="cn-reports-page__body">
+				<div class="cn-reports-page__main">
+					<p v-if="catalogueSections.length === 0"
+						class="cn-reports-page__empty"
+						data-testid="cn-reports-empty">
+						{{ resolvedEmptyLabel }}
+					</p>
+					<section v-for="section in catalogueSections"
+						:id="sectionId(section.key)"
+						:key="section.key"
+						class="cn-reports-page__section"
+						:aria-labelledby="`${sectionId(section.key)}-title`"
+						data-testid="cn-reports-section">
+						<h2 v-if="section.label" :id="`${sectionId(section.key)}-title`" class="cn-reports-page__section-title">
+							{{ section.label }}
+						</h2>
+						<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
+							<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
+								<article class="cn-reports-page__card" data-testid="cn-report-card">
+									<div class="cn-reports-page__card-head">
+										<span v-if="card.icon" class="cn-reports-page__card-icon" aria-hidden="true">
+											<CnIcon :name="card.icon" :size="22" />
+										</span>
+										<div class="cn-reports-page__card-text">
+											<h3 class="cn-reports-page__card-title">
+												{{ card.label }}
+											</h3>
+											<span v-if="categoryName(card)" class="cn-reports-page__card-category">{{ categoryName(card) }}</span>
+										</div>
+									</div>
+									<p v-if="card.description" class="cn-reports-page__card-description">
+										{{ card.description }}
+									</p>
+									<div class="cn-reports-page__card-footer">
+										<span class="cn-reports-page__card-meta">{{ cardMetaFor(card) }}</span>
+										<a class="cn-reports-page__card-open"
+											data-testid="cn-report-open"
+											:href="hrefFor(card)"
+											:aria-label="openLabelFor(card)"
+											@click="open(card, $event)">
+											{{ resolvedOpenLabel }}
+										</a>
+									</div>
+								</article>
+							</li>
+						</ul>
+					</section>
+				</div>
+				<aside class="cn-reports-page__aside" :aria-label="resolvedAsideLabel" data-testid="cn-reports-aside">
+					<section class="cn-reports-page__aside-card">
+						<h2 class="cn-reports-page__aside-title">
+							{{ resolvedCategoriesTitle }}
+						</h2>
+						<ul class="cn-reports-page__index">
+							<li v-for="entry in catalogueIndex" :key="entry.key">
+								<a class="cn-reports-page__index-link" :href="`#${sectionId(entry.key)}`" @click="activeCategory = 'all'">
+									<span class="cn-reports-page__index-label">{{ entry.label }}</span>
+									<span class="cn-reports-page__index-count">{{ entry.count }}</span>
+								</a>
+							</li>
+						</ul>
+					</section>
+					<section v-if="resolvedAsideNote" class="cn-reports-page__aside-card" data-testid="cn-reports-aside-note">
+						<h2 class="cn-reports-page__aside-title">
+							{{ resolvedAsideNote.title }}
+						</h2>
+						<p class="cn-reports-page__aside-text">
+							{{ resolvedAsideNote.text }}
+						</p>
+					</section>
+				</aside>
+			</div>
+		</template>
 		<!-- The board look (board DcRapportages): one section per category,
 		     headed by its label, instead of the category filter; each card
 		     draws its icon in a tile. -->
-		<template v-if="isBoard">
+		<template v-else-if="isBoard">
 			<p v-if="resolvedCards.length === 0"
 				class="cn-reports-page__empty"
 				data-testid="cn-reports-empty">
@@ -343,6 +436,42 @@ export default {
 		},
 
 		/**
+		 * `true` draws the board look as a catalogue (board PqReports): the
+		 * categories as chips with counts, each card with its category, a
+		 * footer line and an Open link, and an aside with the category index
+		 * and `asideNote`. Without it the board look draws its sections (board
+		 * DcRapportages). No effect outside the board look.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @type {boolean|null}
+		 */
+		catalogue: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * The catalogue card's footer line (`config.cardMeta`), default "Opens a
+		 * page of its own"; a card's own `meta` wins.
+		 *
+		 * @type {string|null}
+		 */
+		cardMeta: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * The catalogue aside's closing card (`config.asideNote`): `{ title, text }`.
+		 *
+		 * @type {{title: string, text: string}|null}
+		 */
+		asideNote: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The look to draw in: `board` or `nextcloud`. Absent: the look
 		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
 		 *
@@ -417,6 +546,9 @@ export default {
 				'layout',
 				'headerButtons',
 				'headerActions',
+				'catalogue',
+				'cardMeta',
+				'asideNote',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -596,6 +728,87 @@ export default {
 		},
 
 		/**
+		 * Whether the board look draws the catalogue.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @return {boolean}
+		 */
+		isCatalogue() {
+			return this.isBoard && this.config.catalogue === true
+		},
+
+		/**
+		 * The catalogue's chips: all categories, then each category that holds
+		 * a card, with its count.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @return {Array<{value: string, label: string, count: number}>} The chips.
+		 */
+		catalogueChips() {
+			return [
+				{ value: 'all', label: this.allLabel, count: this.resolvedCards.length },
+				...this.catalogueIndex.map((entry) => ({ value: entry.key, label: entry.label, count: entry.count })),
+			]
+		},
+
+		/**
+		 * The catalogue's sections, narrowed to the active chip.
+		 *
+		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
+		 */
+		catalogueSections() {
+			if (this.activeCategory === 'all') {
+				return this.boardSections
+			}
+			return this.boardSections.filter((section) => section.key === this.activeCategory)
+		},
+
+		/**
+		 * The aside's category index: each category that holds a card, with its count.
+		 *
+		 * @return {Array<{key: string, label: string, count: number}>} The entries.
+		 */
+		catalogueIndex() {
+			return this.boardSections
+				.filter((section) => section.key !== '__none')
+				.map((section) => ({ key: section.key, label: section.label, count: section.cards.length }))
+		},
+
+		/**
+		 * @return {string} The Open link's text.
+		 */
+		resolvedOpenLabel() {
+			return t('nextcloud-vue', 'Open')
+		},
+
+		/**
+		 * @return {string} The aside's label.
+		 */
+		resolvedAsideLabel() {
+			return t('nextcloud-vue', 'About these reports')
+		},
+
+		/**
+		 * @return {string} The category index's title.
+		 */
+		resolvedCategoriesTitle() {
+			return t('nextcloud-vue', 'Categories')
+		},
+
+		/**
+		 * The aside's closing card, translated, or null.
+		 *
+		 * @return {{title: string, text: string}|null} The note.
+		 */
+		resolvedAsideNote() {
+			const note = this.config.asideNote
+			if (!note || typeof note !== 'object' || !note.title) {
+				return null
+			}
+			return { title: this.tr(note.title), text: this.tr(note.text || '') }
+		},
+
+		/**
 		 * The cards the active filter admits.
 		 *
 		 * @return {Array<object>} The visible cards.
@@ -664,6 +877,42 @@ export default {
 			}
 
 			return this.effectiveTranslate(value)
+		},
+
+		/**
+		 * The id of a catalogue section, the aside index's anchor.
+		 *
+		 * @param {string} key The category key.
+		 * @return {string} The id.
+		 */
+		sectionId(key) {
+			return `${this.filterId}-${key}`
+		},
+
+		/**
+		 * A catalogue card's footer line: its own `meta`, else the page's `cardMeta`, else "Opens a page of its own".
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The line.
+		 */
+		cardMetaFor(card) {
+			if (card.meta) {
+				return this.tr(card.meta)
+			}
+			if (this.config.cardMeta) {
+				return this.tr(this.config.cardMeta)
+			}
+			return t('nextcloud-vue', 'Opens a page of its own')
+		},
+
+		/**
+		 * The Open link's accessible name, naming its report.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The name.
+		 */
+		openLabelFor(card) {
+			return t('nextcloud-vue', 'Open {report}', { report: card.label })
 		},
 
 		/**

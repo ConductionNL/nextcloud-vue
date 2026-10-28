@@ -8,6 +8,11 @@
 		class="cn-menu-widget"
 		:class="rootClasses"
 		@keydown.esc.stop="closeAll">
+		<!-- The card title a detail page's side column hands a self-titled
+		     widget (PqCampagne "In deze campagne"). -->
+		<h3 v-if="title" class="cn-menu-widget__title" data-testid="cn-menu-widget-title">
+			{{ title }}
+		</h3>
 		<!-- Empty state -->
 		<div
 			v-if="isEmpty"
@@ -318,6 +323,24 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/** Card title, from the detail page host on the board look. */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/** The detail page's record id, for `@objectId` in a `countFrom` filter. */
+		objectId: {
+			type: [String, Number],
+			default: null,
+		},
+
+		/** The detail page's record, for an item's `visibleIf` on `object.<field>`. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -510,7 +533,7 @@ export default {
 		 *
 		 * @return {string|null} The id.
 		 */
-		objectId() {
+		recordId() {
 			return this.objectContext().objectId ?? null
 		},
 	},
@@ -525,7 +548,7 @@ export default {
 			immediate: true,
 		},
 
-		objectId(next, previous) {
+		recordId(next, previous) {
 			if (next !== previous) {
 				this.loadCountsFrom()
 			}
@@ -655,7 +678,12 @@ export default {
 		objectContext() {
 			const raw = this.cnObjectContext
 			const value = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
-			return value && typeof value === 'object' ? value : {}
+			const injected = value && typeof value === 'object' ? value : {}
+			return {
+				...injected,
+				objectId: this.objectId ?? injected.objectId ?? this.objectData?.id ?? null,
+				object: this.objectData || injected.object || null,
+			}
 		},
 
 		/**
@@ -1016,6 +1044,13 @@ export default {
 	padding: 4px;
 	color: var(--color-main-text);
 	font-size: 14px;
+}
+
+.cn-menu-widget__title {
+	margin: 0 0 8px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-menu-widget__empty {

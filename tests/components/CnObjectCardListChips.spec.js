@@ -50,4 +50,22 @@ describe('CnObjectCard list chips and template meta', () => {
 		const chips = mountCard({ title: 'title', chips: ['title'] }).findAll('.cn-object-card__record-pill')
 		expect(chips.map((c) => c.text())).toEqual(['Verkoop'])
 	})
+
+	it('colours a list chip by the first tone whose condition its entry meets', () => {
+		const tones = [
+			{ when: { field: 'isWon', op: 'eq', value: true }, variant: 'success' },
+			{ when: { field: 'isClosed', op: 'eq', value: true }, variant: 'error' },
+			{ when: { field: 'isDefault', op: 'eq', value: true }, variant: 'primary' },
+		]
+		const card = mount(CnObjectCard, {
+			props: {
+				object: { id: 'p2', title: 'Verkoop', stages: [{ name: 'Nieuw', isDefault: true }, { name: 'Voorstel' }, { name: 'Gewonnen', isWon: true, isClosed: true }, { name: 'Verloren', isClosed: true }] },
+				schema: { title: 'Pipeline', properties: { title: {}, stages: {} } },
+				layout: { title: 'title', chips: [{ field: 'stages', each: 'name', tones }] },
+			},
+			global: { provide: { cnLook: 'board', cnTranslate: (s) => s } },
+		})
+		const variants = card.findAllComponents({ name: 'CnStatusBadge' }).map((b) => [b.props('label'), b.props('variant')])
+		expect(variants).toEqual([['Nieuw', 'primary'], ['Voorstel', 'default'], ['Gewonnen', 'success'], ['Verloren', 'error']])
+	})
 })

@@ -35,7 +35,7 @@ All five are optional and end up in one list.
 | `lists` | A list held on the object, `[{ field, dateField, labelField?, label?, detailField? }]`, such as a status history. Each entry with a date at `dateField` becomes one event, labelled by its `labelField` value (else `label`), with `detailField` as the line under it. |
 | `timeline` | `true` adds OpenRegister's timeline of notes, calls and messages. |
 
-`order: "desc"` lists newest first; the default is oldest first.
+`order: "desc"` lists newest first; the default is oldest first. `limit: 3` keeps the first three events of that order, for a short History side card. An audit-trail read is not a change, so it is not listed.
 
 ## Manage mode
 

@@ -173,6 +173,7 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
@@ -675,6 +676,9 @@ export default {
 		 *
 		 *   caption: '{levelName} · {currentStreakDays}-day streak'
 		 *
+		 * A token may carry a template format (`{annualValue|currency}`,
+		 * `{noticeDate|longdate}`), filled as a template token is.
+		 *
 		 * WHY THIS EXISTS. Without it a tile needing a secondary line had to be
 		 * a bespoke component: it could not be expressed as config, so apps
 		 * wrote their own card, and that card then re-implemented fetching,
@@ -690,6 +694,7 @@ export default {
 		 * and showing a reader a raw token is worse than showing them less.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/stat-caption-formats/specs/stat-widget/spec.md#requirement-a-stat-caption-token-can-carry-a-format
 		 */
 		resolvedCaption() {
 			const override = this.activeOverride
@@ -713,7 +718,12 @@ export default {
 				return translated
 			}
 			const payload = this.endpointMode ? this.epData : null
-			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+			return translated.replace(/\{([A-Za-z0-9_.]+)(\|[A-Za-z]+(?::[^{}\s]+)?)?\}/g, (whole, path, format) => {
+				// `{path|format}`: the token formatted as a template token is
+				// (`{annualValue|currency}`, `{noticeDate|longdate}`).
+				if (format) {
+					return payload === null ? '' : fillTemplate(`{${path}${format}}`, payload, new Date(), { config: this.configCtx })
+				}
 				// `{count}` is the caption's own count; `{ratio}` the same
 				// for a ratio caption, as a percentage.
 				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {

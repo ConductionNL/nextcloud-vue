@@ -72,6 +72,18 @@ describe('CnMenuWidget countLabel', () => {
 		expect((await mountWith(null)).text()).not.toContain('1 article')
 	})
 
+	it('reads the record from the detail page props, as the side column passes it, and shows the card title', async () => {
+		const page = { label: '1 article, the content of the page', url: '/articles', visibleIf: { 'object.articleBody': { truthy: true } } }
+		const w = mount(CnMenuWidget, {
+			props: { content: { style: 'tree', expandedByDefault: true, items: [items[0], page] }, title: 'In deze campagne', objectId: 'camp-2', objectData: { id: 'camp-2', articleBody: 'Text' } },
+		})
+		await flushPromises()
+		expect(mockFetchJson.mock.calls[0][1].query).toEqual({ campaign: 'camp-2', _limit: 1 })
+		expect(w.find('[data-testid="cn-menu-widget-title"]').text()).toBe('In deze campagne')
+		expect(w.text()).toContain('2 newsletters')
+		expect(w.text()).toContain('1 article, the content of the page')
+	})
+
 	it('keeps the plain label while the record is not known', async () => {
 		const w = await mountMenu(null)
 		expect(mockFetchJson).not.toHaveBeenCalled()

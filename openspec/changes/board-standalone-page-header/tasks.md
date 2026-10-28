@@ -1,0 +1,2 @@
+- [x] look-board.css: standalone CnPageHeader title and description
+- [x] tests/css/lookBoardStandalonePageHeader.spec.js

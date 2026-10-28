@@ -33,6 +33,9 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | `content` | `object`  |          | `\{\}`  | Persisted widget content `{items, style, orientation, showIcons, expandedByDefault, activeItemHighlight}`. |
 | `isAdmin` | `boolean` |          | `false` | Whether the current user is an admin (pairs with `canEdit`).                                               |
 | `canEdit` | `boolean` |          | `false` | Whether the surrounding shell is in edit mode.                                                             |
+| `title` | `string` | | `''` | Card title, from the detail page host on the board look. |
+| `objectId` | `string\|number` | | `null` | The detail page's record id, for `@objectId` in a `countFrom` filter. |
+| `objectData` | `object` | | `null` | The detail page's record, for an item's `visibleIf` on `object.<field>`. |
 
 ### Events
 

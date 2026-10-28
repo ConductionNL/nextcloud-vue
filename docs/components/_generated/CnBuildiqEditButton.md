@@ -10,11 +10,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name        | Type      | Required | Default | Description                                                                                                                                  |
-| ----------- | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `available` | `boolean` |          | `false` | Whether Buildiq is available to this user. When falsey the component renders nothing. Wire from `useBuildiqEditAvailability()`.              |
-| `editor`    | `union`   |          | `null`  | The shared `useManifestEditor` instance (`{ editing, working, dirty, enter, cancel, save }`). Falls back to the injected `cnManifestEditor`. |
-| `pageId`    | `string`  |          | `''`    | The active page's id, forwarded to `CnEditSidebarModal` so it edits the right page's sidebar config.                                         |
+| Name        | Type      | Required | Default | Description                                                                                                                                                                                       |
+| ----------- | --------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `available` | `boolean` |          | `false` | Whether Buildiq is available to this user. When falsey the component renders nothing. Wire from `useBuildiqEditAvailability()`.                                                                   |
+| `editor`    | `union`   |          | `null`  | The shared `useManifestEditor` instance (`{ editing, working, dirty, enter, cancel, save }`). Falls back to the injected `cnManifestEditor`.                                                      |
+| `pageId`    | `string`  |          | `''`    | The active page's id, forwarded to `CnEditSidebarModal` so it edits the right page's sidebar config.                                                                                              |
+| `href`      | `string`  |          | `''`    | Where the square leads when there is no manifest editor on the page (an admin settings page): the app with `cn_edit=1`, which CnAppRoot opens in edit mode. Ignored where an editor is available. |
 
 ### Events
 

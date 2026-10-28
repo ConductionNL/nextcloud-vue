@@ -62,6 +62,30 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
 }
 
 /**
+ * A date written out in full, the way a letter or an invitation does:
+ * "Donderdag 12 november 2026". The weekday is capitalised, because the
+ * line starts with it.
+ *
+ * @param {unknown} value A Date, a timestamp or an ISO string.
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/template-full-date/specs/detail-page-board-look/spec.md#requirement-a-template-can-write-a-date-in-full
+ */
+export function formatFullDate(value) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+	let text
+	try {
+		text = new Intl.DateTimeFormat(boardDateLocale(), options).format(date)
+	} catch {
+		text = new Intl.DateTimeFormat(undefined, options).format(date)
+	}
+	return text.charAt(0).toLocaleUpperCase() + text.slice(1)
+}
+
+/**
  * How many entries a list holds; with a key, the entries of that list in each
  * of its entries summed (`{sections|count:items}`: the questions of every
  * section of a checklist).
@@ -81,7 +105,7 @@ function countEntries(list, key) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `fulldate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `week`, `days`, `lower`, `mailbox` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -118,6 +142,9 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'longdate') {
 		return formatLongDate(value, now, arg === 'year')
+	}
+	if (format === 'fulldate') {
+		return formatFullDate(value)
 	}
 	if (format === 'user') {
 		return userDisplayName(value)
@@ -175,7 +202,7 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * `{path|datetime}` format it as the boards write dates, `{path|weekday}` adds
  * the short weekday ("wo 7 okt"; `{path|weekday:today}` reads "Vandaag, wo 7 okt"
  * for today), `{path|longdate}` writes the month out ("7 oktober";
- * `{path|longdate:year}` always adds the year), `{path|time}` is the time
+ * `{path|longdate:year}` always adds the year), `{path|fulldate}` writes the weekday and the year too ("Donderdag 12 november 2026"), `{path|time}` is the time
  * of day ("08:45"), `{path|user}` is a user id's display name (looked up
  * once, '' until it arrives), `{path|group}` is a group id's display name
  * (the same, through the group name cache), `{path|currency}`,

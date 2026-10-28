@@ -753,6 +753,16 @@ export default {
 		},
 
 		/**
+		 * Keep `columns` under the board look too, instead of fitting 200px
+		 * columns: a card the board draws as two columns read row by row
+		 * (PqAfspraak "Afspraakgegevens"). Manifest `content.fixedColumns`.
+		 */
+		fixedColumns: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Number of fields shown while collapsed. `null` fits the cell: the
 		 * whole rows that fit stay, and only an overflowing cell gets the
 		 * "Show all N fields" button.
@@ -1139,6 +1149,8 @@ export default {
 
 		/**
 		 * CSS grid template for the container.
+		 *
+		 * @spec openspec/changes/data-widget-fixed-columns/specs/object-data-widget/spec.md#requirement-a-data-card-can-keep-its-declared-columns-in-the-board-look
 		 */
 		gridStyle() {
 			// The board look: as many 200px columns as the card has room for,
@@ -1146,6 +1158,9 @@ export default {
 			if (normalizeLook(this.cnLook) === 'board') {
 				if (this.columns === 1) {
 					return { 'grid-template-columns': 'minmax(0, 1fr)' }
+				}
+				if (this.fixedColumns) {
+					return { 'grid-template-columns': `repeat(${this.columns}, minmax(0, 1fr))` }
 				}
 				return {
 					'grid-template-columns': 'repeat(auto-fit, minmax(200px, 1fr))',

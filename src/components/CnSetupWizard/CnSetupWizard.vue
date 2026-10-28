@@ -144,11 +144,12 @@
 
 				<!-- config-fields -->
 				<template v-else-if="step.type === 'config-fields'">
-					<!-- The step's intro, drawn like choice and run-action steps.
-					     It was left out here, so pipelinq's organisation step
-					     ("Your organisation details…") showed fields with no
-					     word about what they were for. -->
-					<NcNoteCard v-if="step.body" type="info" data-testid="cn-setup-step-intro">
+					<!-- The step's intro, drawn like choice and run-action steps:
+					     a plain paragraph in the board look (PqInstellen). -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info" data-testid="cn-setup-step-intro">
 						{{ stepBody(step) }}
 					</NcNoteCard>
 					<div
@@ -163,17 +164,20 @@
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
-							:inputLabel="field.label"
+							:inputLabel="fieldLabel(step, field)"
 							:options="field.enum || []"
 							:modelValue="configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
-							:label="field.label"
+							:label="fieldLabel(step, field)"
 							:type="field.widget === 'number' ? 'number' : 'text'"
 							:modelValue="configModel[field.key] != null ? String(configModel[field.key]) : ''"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 					</div>
+					<p v-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- run-action -->
@@ -633,6 +637,7 @@ export default {
 				id: s.id,
 				label: this.stepTitle(s),
 				optional: s.required !== true,
+				skippable: s.skippable === true,
 			}))
 		},
 
@@ -834,6 +839,22 @@ export default {
 		stepNote(step) {
 			const raw = (step && (step.note || step.footnote)) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
+		},
+
+		/**
+		 * A config field's label; with the step's `optionalLabels`, a field
+		 * the step's schema does not require reads "(optional)" after it.
+		 *
+		 * @param {object} step The step.
+		 * @param {object} field The field.
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-mark-its-fields-optional
+		 */
+		fieldLabel(step, field) {
+			const required = Array.isArray(step?.schema?.required) && step.schema.required.includes(field.key)
+			return step?.optionalLabels === true && !required
+				? t('nextcloud-vue', '{label} (optional)', { label: field.label })
+				: field.label
 		},
 
 		stepSlot(step) {

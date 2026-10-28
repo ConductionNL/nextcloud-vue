@@ -114,7 +114,8 @@ import { userLocale } from '../../utils/userLocale.js'
  * - `auditTrail: true`: the object's audit trail, one event per change.
  * - `timeline: true`: OpenRegister's timeline of notes, calls and messages.
  *
- * Oldest first by default (`order: 'desc'` flips it). A moment after now is
+ * Oldest first by default (`order: 'desc'` flips it). `limit` keeps the
+ * first that many events of that order. A moment after now is
  * marked upcoming, in words as well as style.
  *
  * `manage: true` swaps the read view for the manage view (CnTimelineManage)
@@ -265,7 +266,9 @@ export default {
 				...timelineEntryEvents(this.timelineEntries, t('nextcloud-vue', 'Note'), now),
 				...(this.endpointSource ? endpointEvents(this.endpointItems, this.endpointSource, (type) => this.typeLabel(type), t('nextcloud-vue', '(no title)'), now) : []),
 			]
-			return sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
+			const sorted = sortEvents(all, this.content.order === 'desc' ? 'desc' : 'asc')
+			const limit = Number(this.content.limit)
+			return Number.isInteger(limit) && limit > 0 ? sorted.slice(0, limit) : sorted
 		},
 
 		/**

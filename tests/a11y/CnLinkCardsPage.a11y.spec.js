@@ -61,9 +61,9 @@ describe('CnLinkCardsPage: accessibility', () => {
 		}
 	})
 
-	it('keeps the headings in order: one h2, then an h3 per caption', () => {
+	it('keeps the headings in order: the page title an h1, then an h2 per caption', () => {
 		wrapper = mountPage()
 		const levels = [...wrapper.element.querySelectorAll('h1, h2, h3, h4')].map((heading) => heading.tagName)
-		expect(levels).toEqual(['H2', 'H3', 'H3'])
+		expect(levels).toEqual(['H1', 'H2', 'H2'])
 	})
 })

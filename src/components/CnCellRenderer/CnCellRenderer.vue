@@ -1950,7 +1950,8 @@ export default {
 			if (fmt.style === 'duration') {
 				return this.formatDuration()
 			}
-			const num = Number(this.value)
+			// `minorUnits` reads a currency stored in cents as the amount.
+			const num = Number(this.value) / (fmt.style === 'currency' && fmt.minorUnits === true ? 100 : 1)
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
