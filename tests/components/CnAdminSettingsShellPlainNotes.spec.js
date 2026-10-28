@@ -17,9 +17,9 @@ jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params = {}) => text.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`),
 }))
 
+const { mount } = require('@vue/test-utils')
 const fs = require('fs')
 const path = require('path')
-const { mount } = require('@vue/test-utils')
 const CnAdminSettingsShell = require('../../src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue').default
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
