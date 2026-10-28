@@ -108,13 +108,18 @@
 					<span class="cn-store-page__lens-count">{{ option.count }}</span>
 				</button>
 			</div>
-			<NcTextField
-				v-model="query"
-				class="cn-store-page__lens-search"
-				:label="t('nextcloud-vue', 'Search the store')"
-				:disabled="offline"
-				data-testid="store-search"
-				@update:modelValue="onSearchInput" />
+			<div class="cn-store-page__lens-search" role="search">
+				<Magnify :size="18" class="cn-store-page__lens-search-icon" />
+				<input
+					v-model="query"
+					type="search"
+					class="cn-store-page__lens-search-input"
+					:placeholder="t('nextcloud-vue', 'Search the store')"
+					:aria-label="t('nextcloud-vue', 'Search the store')"
+					:disabled="offline"
+					data-testid="store-search"
+					@input="onSearchInput">
+			</div>
 		</div>
 		<div v-else class="cn-store-page__controls">
 			<NcTextField
@@ -194,14 +199,13 @@
 									<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
 										{{ cardKindLine(card) }}
 									</p>
+									<span
+										class="cn-store-page__card-state"
+										:class="`cn-store-page__card-state--${cardState(card) || 'available'}`"
+										data-testid="store-card-state">
+										{{ cardStateLabel(card) }}
+									</span>
 								</div>
-								<span
-									v-if="cardState(card)"
-									class="cn-store-page__card-state"
-									:class="`cn-store-page__card-state--${cardState(card)}`"
-									data-testid="store-card-state">
-									{{ cardState(card) === 'update' ? t('nextcloud-vue', 'Update') : t('nextcloud-vue', 'Installed') }}
-								</span>
 							</div>
 							<p class="cn-store-page__card-description">
 								{{ card.description }}
@@ -214,6 +218,7 @@
 									v-if="cardAction(card)"
 									variant="secondary"
 									class="cn-store-page__card-action"
+									:class="{ 'cn-store-page__card-action--soft': cardAction(card).id !== 'open' }"
 									data-testid="store-card-action"
 									:href="cardAction(card).href"
 									:disabled="installing === card.slug"
@@ -368,6 +373,7 @@ import {
 	NcTextField,
 } from '@nextcloud/vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
@@ -400,6 +406,7 @@ export default {
 		CnIcon,
 		CnPageHeader,
 		CnStorePublishDialog,
+		Magnify,
 		PackageVariantClosed,
 		Refresh,
 		Upload,
@@ -855,7 +862,7 @@ export default {
 		 */
 		lensOptions() {
 			return [
-				{ value: 'all', label: t('nextcloud-vue', 'All'), count: this.cards.length },
+				{ value: 'all', label: t('nextcloud-vue', 'All items'), count: this.cards.length },
 				{ value: 'installed', label: t('nextcloud-vue', 'Installed'), count: this.installedCards.length },
 				{ value: 'updates', label: t('nextcloud-vue', 'Updates available'), count: this.updateCount },
 				...this.kindLenses.map((entry) => ({
@@ -1005,6 +1012,22 @@ export default {
 				return 'update'
 			}
 			return card.installed === true ? 'installed' : ''
+		},
+
+		/**
+		 * The words on a catalogue card's state pill: Update, Installed, or
+		 * Available for an item that is not installed.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The label.
+		 * @spec openspec/changes/store-page-board-as-drawn/specs/store-page/spec.md#requirement-a-board-look-store-card-shows-its-state-and-its-action-as-drawn
+		 */
+		cardStateLabel(card) {
+			const state = this.cardState(card)
+			if (state === 'update') {
+				return t('nextcloud-vue', 'Update')
+			}
+			return state === 'installed' ? t('nextcloud-vue', 'Installed') : t('nextcloud-vue', 'Available')
 		},
 
 		/**

@@ -146,6 +146,7 @@
     "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.": "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.",
     "Nothing matches that search": "Nothing matches that search",
     "Search the store": "Search the store",
+    "All items": "All items",
     "Some parts were not installed: {schemas}": "Some parts were not installed: {schemas}",
     "Store": "Store",
     "The item could not be installed.": "The item could not be installed.",

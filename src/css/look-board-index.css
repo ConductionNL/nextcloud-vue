@@ -14,7 +14,9 @@
    the count line, 6px under. The header starts 4px under the content's top
    (DqZaken: the title at 96, the count line at 142).
    @spec openspec/changes/board-page-header-top/specs/board-page-header-top/spec.md#requirement-a-board-page-title-sits-4px-under-the-content-top
+   The store page heads itself the same way (PqStore).
    @spec openspec/changes/board-list-rhythm/specs/board-list-rhythm/spec.md#requirement-a-board-list-page-keeps-the-boards-vertical-rhythm */
+.cn-look-board .cn-store-page--board .cn-page-header,
 .cn-look-board .cn-index-page .cn-page-header {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
@@ -25,14 +27,17 @@
 }
 
 /* Under a count line (no breadcrumb row) the header ends 8px lower. */
+.cn-look-board .cn-store-page--board .cn-page-header,
 .cn-look-board .cn-index-page .cn-page-header:not(:has(.cn-header-trail)) {
 	padding-bottom: 8px;
 }
 
+.cn-look-board .cn-store-page--board .cn-page-header .cn-page-header__text,
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__text {
 	display: contents;
 }
 
+.cn-look-board .cn-store-page--board .cn-page-header .cn-page-header__title,
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__title {
 	grid-column: 1;
 	grid-row: 1;
@@ -42,6 +47,7 @@
 	line-height: 1.2;
 }
 
+.cn-look-board .cn-store-page--board .cn-page-header .cn-page-header__description,
 .cn-look-board .cn-index-page .cn-page-header .cn-page-header__description {
 	--nldesign-component-paragraph-line-height: normal;
 	grid-column: 1;
@@ -71,6 +77,7 @@
 	grid-row: 3;
 }
 
+.cn-look-board .cn-store-page--board .cn-page-header .cn-store-page__header-actions,
 .cn-look-board .cn-index-page .cn-page-header .cn-index-page__header-buttons {
 	grid-column: 2;
 	grid-row: 1;
@@ -127,6 +134,7 @@
 	background: var(--color-background-hover) !important;
 }
 
+.cn-look-board .cn-store-page--board .cn-store-page__header-actions > .button-vue--primary,
 .cn-look-board .cn-index-page .cn-index-page__header-buttons > .button-vue--primary {
 	height: var(--cn-board-control-height) !important;
 	min-height: var(--cn-board-control-height) !important;
@@ -1839,22 +1847,33 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The state pill under the kind line, on a normal line: Installed green,
+   Update amber, Available neutral, in the board tag tones (PqStore). The
+   side column's Update pill takes the same tones. */
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-state {
 	flex: 0 0 auto;
+	align-self: flex-start;
 	padding: 2px 10px;
 	border-radius: 12px;
 	font-size: 13px;
 	font-weight: 600;
+	line-height: normal;
+	white-space: nowrap;
 }
 
-.cn-look-board .cn-store-page__card--board .cn-store-page__card-state--installed {
-	background: var(--color-success-light, var(--color-background-dark));
-	color: var(--color-success-text, var(--color-main-text));
+.cn-look-board .cn-store-page__card-state--installed {
+	background: var(--nldesign-component-status-badge-success-background-color, var(--nl-color-green-light, var(--color-success-light, rgba(70, 186, 97, 0.15))));
+	color: var(--nldesign-component-status-badge-success-color, var(--nl-color-green-text, var(--color-success-text)));
 }
 
-.cn-look-board .cn-store-page__card--board .cn-store-page__card-state--update {
-	background: var(--color-warning-light, var(--color-background-dark));
-	color: var(--color-warning-text, var(--color-main-text));
+.cn-look-board .cn-store-page__card-state--update {
+	background: var(--nldesign-component-status-badge-warning-background-color, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))));
+	color: var(--nldesign-component-status-badge-warning-color, var(--nl-color-orange-text, var(--color-warning-text)));
+}
+
+.cn-look-board .cn-store-page__card-state--available {
+	background: var(--color-background-hover);
+	color: var(--cn-board-text-soft);
 }
 
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-description {
@@ -1882,6 +1901,20 @@
 	border-radius: 8px;
 }
 
+/* Install and Update are soft pills in the light primary tint, without an
+   edge; Open keeps the outlined button. */
+.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue {
+	padding: 0 14px;
+	border: 0;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue:hover:not(:disabled) {
+	background: var(--color-primary-element-light-hover);
+}
+
 /* The store page around its cards (board PqStore): header actions, the lens
    chips with the search beside them, and the side column. */
 .cn-look-board .cn-store-page.cn-store-page--board {
@@ -1890,6 +1923,11 @@
 	gap: 20px;
 	max-width: 1240px;
 	padding: 24px 28px;
+}
+
+/* The page's flex gap spaces the header from the lens row. */
+.cn-look-board .cn-store-page--board .cn-page-header {
+	margin-bottom: 0;
 }
 
 .cn-look-board .cn-store-page__header-actions {
@@ -1913,15 +1951,19 @@
 	gap: 8px;
 }
 
-.cn-look-board .cn-store-page__lens {
+/* Named through the group so the rule outranks core's `button:not(...)`
+   margin (3px after every button), which put the chips 11px apart. */
+.cn-look-board .cn-store-page__lenses > .cn-store-page__lens {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	min-height: 34px;
+	box-sizing: border-box;
+	height: 36px;
+	min-height: 36px;
 	margin: 0;
 	padding: 0 14px;
 	border: 1px solid var(--color-border-maxcontrast);
-	border-radius: 17px;
+	border-radius: 18px;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 14px;
@@ -1929,7 +1971,7 @@
 	cursor: pointer;
 }
 
-.cn-look-board .cn-store-page__lens--active {
+.cn-look-board .cn-store-page__lenses > .cn-store-page__lens--active {
 	border-color: var(--color-main-text);
 	background: var(--color-main-text);
 	color: var(--color-main-background);
@@ -1940,15 +1982,38 @@
 	font-weight: 400;
 }
 
+/* The search: a 40px field with the magnifier inside and a placeholder. */
 .cn-look-board .cn-store-page__lens-search {
-	flex: 0 1 296px;
+	position: relative;
+	flex: 0 1 300px;
+}
+
+.cn-look-board .cn-store-page__lens-search-icon {
+	position: absolute;
+	top: 11px;
+	inset-inline-start: 12px;
+	color: var(--color-text-maxcontrast);
+	pointer-events: none;
+}
+
+.cn-look-board .cn-store-page__lens-search input.cn-store-page__lens-search-input:not([type='radio']):not([type='checkbox']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='color']):not([type='file']):not([type='image']) {
+	box-sizing: border-box;
+	width: 100%;
+	height: 40px;
+	min-height: 40px;
+	margin: 0;
+	padding: 0 12px 0 38px;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: 8px;
+	background: var(--color-main-background);
+	font-size: 14px;
 }
 
 .cn-look-board .cn-store-page__layout {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 256px;
+	grid-template-columns: minmax(0, 1fr) 260px;
 	align-items: start;
-	gap: 16px;
+	gap: 20px;
 }
 
 @media (max-width: 1024px) {
@@ -1970,7 +2035,7 @@
 .cn-look-board .cn-store-page__side-card {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 12px;
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius, 12px);
@@ -1981,6 +2046,7 @@
 	margin: 0;
 	font-size: 17px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-look-board .cn-store-page__installed {
@@ -1998,6 +2064,7 @@
 	padding: 8px 0;
 	border-top: 1px solid var(--cn-board-hairline);
 	font-size: 14px;
+	line-height: normal;
 }
 
 .cn-look-board .cn-store-page__installed-title {
@@ -2011,15 +2078,12 @@
 }
 
 .cn-look-board .cn-store-page__installed .cn-store-page__card-state {
-	padding: 2px 8px;
+	padding: 2px 10px;
 	border-radius: 12px;
-	font-size: 12px;
+	font-size: 13px;
 	font-weight: 600;
-}
-
-.cn-look-board .cn-store-page__installed .cn-store-page__card-state--update {
-	background: var(--color-warning-light, var(--color-background-dark));
-	color: var(--color-warning-text, var(--color-main-text));
+	line-height: normal;
+	white-space: nowrap;
 }
 
 .cn-look-board .cn-store-page__side-meta {
