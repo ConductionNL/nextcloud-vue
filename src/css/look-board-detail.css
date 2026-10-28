@@ -1102,6 +1102,21 @@
 	padding: 0;
 }
 
+/* A stat tile in the body grid or the band (PqProduct "Op deals", PqProject
+   "Voortgang") is the card itself, 16px 18px in, as drawn. The header-less
+   card's 20px 22px and the tile's own 18px 20px and 2px hover border stacked
+   to put the label 41px down and 45px in.
+   @spec openspec/changes/board-detail-stat-tile-inset/specs/board-detail-stat-tile-inset/spec.md#requirement-a-board-stat-tile-on-a-detail-page-body-sits-on-the-boards-inset */
+.cn-look-board .cn-detail-page .cn-detail-page__card-fit:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
+	justify-content: flex-start;
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-detail-page__card-fit:not(.cn-detail-page__side *) > .cn-widget-wrapper__content > .cn-kpi-card--board.cn-kpi-card--stacked {
+	--cn-kpi-stacked-padding: 16px 18px;
+	border-width: 0;
+}
+
 /* No Actions menu on a side card. */
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions {
 	display: none;
