@@ -573,6 +573,27 @@
 	padding-inline: 10px 30px;
 }
 
+/* With an option chosen the search box is empty and NcSelect lays the choice
+   over it, so the select shrank to 47px under "Laatste 12 maanden" (r34
+   DqProcesanalyse). The choice stays in flow and gives the width; the search
+   box, which draws the frame, lies over the whole select beneath it.
+   @spec openspec/changes/board-description-select-sized-to-choice/specs/board-description-select-sized-to-choice/spec.md#requirement-a-description-select-is-sized-to-its-choice */
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select.vs--single:not(.vs--open) .vs__selected {
+	position: relative;
+	z-index: 2;
+	padding-inline: 10px 30px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.cn-look-board .cn-dashboard-page__description:not(.cn-look-nextcloud *) .cn-dashboard-page__description-select.vs--single:not(.vs--open):has(.vs__selected) .vs__search {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	width: 100%;
+	max-width: none;
+}
+
 /* ---- A table on a dashboard card ------------------------------------------ */
 /* The card is the frame: a table on it draws no border of its own, and its
    pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
