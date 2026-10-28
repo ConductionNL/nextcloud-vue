@@ -9,7 +9,7 @@ a count and tabs, so a page that wants the board's card had to drop the widget a
 ## What changes
 
 - `layout: "links"` on the related widget: the host's sections (`extraSources`, `referenceSections`, `extraSections`)
-  as plain links, label and meta joined by a comma, else the related objects. "Show all" opens the tabbed view with
+  as plain links, label and meta joined by a comma, else the related objects. "Show all" opens the tabbed view (and its Add footer) with
   files, integrations and every relation.
 - A `referenceSections` entry can name its record with `labelTemplate` ("Shift {floatAt|date}, {drawer}").
 

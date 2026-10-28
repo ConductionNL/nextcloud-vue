@@ -116,6 +116,14 @@ describe('CnRelatedObjectsWidget: layout links', () => {
 		expect(w.find('.cn-related-objects-widget__panel').exists()).toBe(true)
 	})
 
+	it('keeps the Add footer for the full view', async () => {
+		serve()
+		const w = await mountWidget()
+		expect(w.vm.addFooterVisible).toBe(false)
+		await w.find('[data-testid="cn-related-show-all"]').trigger('click')
+		expect(w.vm.linksCompact).toBe(false)
+	})
+
 	it('keeps the tabs without the layout', async () => {
 		serve()
 		const { layout, ...rest } = CONTENT

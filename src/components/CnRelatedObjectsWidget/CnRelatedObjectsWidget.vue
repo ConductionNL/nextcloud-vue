@@ -1230,7 +1230,7 @@ export default {
 
 		/** Whether the Add footer renders (prop + tabbed path with a real object). */
 		addFooterVisible() {
-			return this.showAddFooter && this.useTabs && this.addableGroups.length > 0
+			return this.showAddFooter && this.useTabs && !this.linksCompact && this.addableGroups.length > 0
 		},
 
 		/**
