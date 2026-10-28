@@ -16,7 +16,11 @@ jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url) => 
 
 const CnFactsWidget = require('../../src/components/CnFactsWidget/CnFactsWidget.vue').default
 
-const daysAgo = (days) => {
+/**
+ * @param {number} days How many days back.
+ * @return {string} That moment as an ISO string.
+ */
+function daysAgo(days) {
 	const date = new Date()
 	date.setDate(date.getDate() - days)
 	return date.toISOString()
