@@ -219,3 +219,7 @@ reload on every edit start for the same reason.
 ## A key inside an object
 
 An `overrides` key or an `include` entry can be a dotted path such as `handling.teams`: the widget shows and edits that key inside the `handling` object, and saves `handling` with its other keys kept. See [`CnFormDialog`](./cn-form-dialog.md#a-key-inside-an-object-handlingteams).
+
+## Values as inputs, with a hint (`fieldLook: "input"`, `overrides[key].hint`)
+
+`fieldLook: "input"` draws each value as a 40px input box under its label, as board PqOfferte draws the quote's facts; a click still edits the field in place and saves it. `overrides[key].hint` adds a muted line under a value, translated ("Staat op de pdf", "Wordt gezet bij verzenden"), in either look.
