@@ -2734,8 +2734,8 @@
     "Open {report}": "{report} openen",
     "Could not create the item": "Het item kon niet worden aangemaakt",
     "Save outcome": "Uitkomst opslaan",
-    "Saved automatically as you type.": "Wordt automatisch opgeslagen terwijl u typt.",
-    "Could not save. Your text is kept here; it is saved again when you type.": "Opslaan is mislukt. Uw tekst blijft hier staan en wordt opnieuw opgeslagen zodra u typt.",
+    "Saved automatically as you type.": "Wordt automatisch opgeslagen terwijl je typt.",
+    "Could not save. Your text is kept here; it is saved again when you type.": "Opslaan is mislukt. Je tekst blijft hier staan en wordt opnieuw opgeslagen zodra je typt.",
     "Skip this step": "Deze stap overslaan",
     "{label} (optional)": "{label} (optioneel)",
     "Installed from this store": "Geïnstalleerd uit deze store",
@@ -2747,10 +2747,6 @@
     "Updates available": "Updates beschikbaar",
     "{items} ship with the app. They show here when no registry is connected.": "{items} komen mee met de app. Ze staan hier als er geen registry is gekoppeld.",
     "Version {version}, {latest} is out": "Versie {version}, {latest} is uit",
-    "%n update is ready. An update keeps your own changes.": [
-      "%n update staat klaar. Een update bewaart je eigen wijzigingen.",
-      "%n updates staan klaar. Een update bewaart je eigen wijzigingen."
-    ],
     "No store registry is configured. An administrator connects one under Administration settings.": "Er is geen store-registry ingesteld. Een beheerder koppelt er een onder Beheerinstellingen.",
     "Nothing of this kind on this instance yet.": "Hier is nog niets van deze soort.",
     "Publish to the store": "Publiceren in de store",
@@ -3006,6 +3002,10 @@
     "%n attachment": [
       "%n bijlage",
       "%n bijlagen"
+    ],
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update staat klaar. Een update bewaart je eigen wijzigingen.",
+      "%n updates staan klaar. Een update bewaart je eigen wijzigingen."
     ]
   }
 }

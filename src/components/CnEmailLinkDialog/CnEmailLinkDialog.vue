@@ -66,6 +66,9 @@ export default {
 				return
 			}
 			emit('cn:timeline:changed', { objectId: this.objectId, source: 'email-link' })
+			/**
+			 * @event close The dialog is done: the email was linked, or the picker was closed.
+			 */
 			this.$emit('close')
 		},
 	},

@@ -2482,10 +2482,6 @@
     "Updates available": "Updates available",
     "{items} ship with the app. They show here when no registry is connected.": "{items} ship with the app. They show here when no registry is connected.",
     "Version {version}, {latest} is out": "Version {version}, {latest} is out",
-    "%n update is ready. An update keeps your own changes.": [
-      "%n update is ready. An update keeps your own changes.",
-      "%n updates are ready. An update keeps your own changes."
-    ],
     "No store registry is configured. An administrator connects one under Administration settings.": "No store registry is configured. An administrator connects one under Administration settings.",
     "Nothing of this kind on this instance yet.": "Nothing of this kind on this instance yet.",
     "Publish to the store": "Publish to the store",
@@ -2720,6 +2716,10 @@
     "%n attachment": [
       "%n attachment",
       "%n attachments"
+    ],
+    "%n update is ready. An update keeps your own changes.": [
+      "%n update is ready. An update keeps your own changes.",
+      "%n updates are ready. An update keeps your own changes."
     ]
   }
 }
