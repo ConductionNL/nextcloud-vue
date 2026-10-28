@@ -12,7 +12,7 @@ A list row that opens to a sub-table. [CnIndexPage](./cn-index-page.md) draws on
       "field": "stages",
       "columns": [{ "key": "name", "label": "Stage" }, { "key": "probability", "label": "Chance", "as": "bar" }]
     },
-    "buttons": [{ "action": "edit", "label": "Edit" }],
+    "buttons": [{ "action": "edit", "label": "Edit", "icon": "Pencil" }],
     "open": "first"
   }
 }
@@ -25,7 +25,7 @@ A column's `as` is `text` (the default), `order`, `bar`, `check`, `yesNo` or `pi
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `object` | `object` | (required) | The row's object. |
-| `layout` | `object` | (required) | `{ title, badge?, description?, chips?, meta?, table?, buttons? }`. |
+| `layout` | `object` | (required) | `{ title, badge?, description?, chips?, meta?, table?, buttons? }`. A button is `{ action, label?, icon? }`; `icon` is a CnIcon name drawn before the label. |
 | `open` | `boolean` | `false` | Whether the row starts open. |
 
 ## Events
