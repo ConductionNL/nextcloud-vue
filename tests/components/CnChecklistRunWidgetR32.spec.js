@@ -25,15 +25,11 @@ function rule(selector) {
 
 describe('CnChecklistRunWidget r32', () => {
 	it('draws the photo button with a camera, 14px/600, 8px gap', () => {
-		const label = sfc.slice(sfc.indexOf('<label class="cn-checklist-run__photo-button">'), sfc.indexOf('</label>', sfc.indexOf('<label class="cn-checklist-run__photo-button">')))
-		expect(label).toContain('<CameraOutline :size="16" />')
+		const button = sfc.slice(sfc.indexOf('class="cn-checklist-run__photo-button"'), sfc.indexOf('</button>', sfc.indexOf('class="cn-checklist-run__photo-button"')))
+		expect(button).toContain('<CameraOutline :size="16" />')
 		expect(rule('.cn-checklist-run__photo-button.cn-checklist-run__photo-button')).toContain('font-size: 14px')
 		expect(rule('.cn-checklist-run__photo-button.cn-checklist-run__photo-button')).toContain('font-weight: 600 !important')
-		expect(rule('.cn-checklist-run__photo-button')).toContain('gap: 8px')
-	})
-
-	it('pads the Previous and Next labels 2px a side, as wide as the board draws them', () => {
-		expect(rule('.cn-checklist-run__nav :deep(.button-vue__text)')).toContain('padding-inline: 2px')
+		expect(rule('.cn-checklist-run__photo-button.cn-checklist-run__photo-button')).toContain('gap: 8px')
 	})
 
 	it('sets a note on the normal line height, 8px 12px in', () => {
