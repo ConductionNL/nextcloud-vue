@@ -1184,7 +1184,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 }
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 /* ---- The navigation ---------------------------------------------------- */
