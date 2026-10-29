@@ -848,6 +848,14 @@
 	padding-top: 10px;
 }
 
+/* The calendar and Deck cards (DqZaakTaken "Afspraken", "Kaarten") open on a
+   ruled row, so no leading comes off: the first row starts 12px under the
+   title block, as drawn. */
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-calendar-card__list:first-child):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-deck-card__rows:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+}
+
 /* A data card (labels over values) starts 14px below its title (DqZaak
    "Zaakgegevens", DqContact "Contact"); its first label sits at the top of
    its line box, so no leading comes off. A side card keeps its 10px.
