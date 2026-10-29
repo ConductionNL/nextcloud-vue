@@ -1738,6 +1738,14 @@
 	white-space: normal;
 }
 
+/* Under a task's name its meta line is 13px on the normal line, 2px down
+   (DqZaakTaken r36: rows 79.4 vs 82). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-task .cn-tasks-widget__meta {
+	font-size: 13px;
+	line-height: normal;
+	margin-top: 2px;
+}
+
 /* A row's button and its task menu stand on one line. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * {
 	display: inline-flex;
