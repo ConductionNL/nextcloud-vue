@@ -907,6 +907,17 @@
 	line-height: 1.6;
 }
 
+/* Running text over ruled three-column facts (DqSociaalDomein "De melding")
+   is a 14px column: the text 14px under the title, the facts 14px under it.
+   @spec openspec/changes/board-facts-text-over-ruled-columns/specs/board-facts-text-over-ruled-columns/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	padding-top: 14px;
+}
+
+.cn-look-board .cn-detail-page .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	gap: 14px;
+}
+
 /* A header-less card keeps the full 20px 22px. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content {
 	padding: var(--cn-board-card-padding);
