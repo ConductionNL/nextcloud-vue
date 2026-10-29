@@ -122,6 +122,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-inline: 0;
 }
 
+/* A labelled link keeps its 16px icon before the text (DqPersoonlijkeInstellingen
+   "Verwerkingsactiviteiten (AVG)", open-in-new).
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-link-keeps-its-icon */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content a.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: flex;
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+}
+
 /* The close button is the board's 44px round button, no edge
    (DqPersoonlijkeInstellingen "Sluiten").
    @spec openspec/changes/user-settings-close-button/specs/user-settings-close-button/spec.md#requirement-the-user-settings-close-button-sits-in-the-corner */
