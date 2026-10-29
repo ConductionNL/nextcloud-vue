@@ -4715,9 +4715,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 .cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .cn-page-header__description {
-	margin-top: 9px;
+	margin-top: 12.4px;
 	font-size: 15px;
 	line-height: normal;
+}
+
+/* A standalone header's labelled buttons stand at the 40px control height
+   of the Dq page headers, not 34 (PqWeekoverzicht, PqZoekinzicht,
+   PqForecast). Where the title starts is the hosting view's own padding.
+   @spec openspec/changes/board-standalone-header-rhythm/specs/board-standalone-page-header/spec.md#requirement-a-standalone-board-page-header-keeps-the-page-header-rhythm */
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* ---- The tonal pill in the board look ------------------------------------ */
