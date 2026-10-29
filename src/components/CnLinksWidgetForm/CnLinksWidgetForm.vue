@@ -187,6 +187,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 
 const VALID_LAYOUTS = Object.freeze(['card', 'inline', 'icon-only'])
 const VALID_SIZES = Object.freeze(['small', 'medium', 'large'])
@@ -488,7 +489,7 @@ export default {
 				return
 			}
 			const link = section.links[linkIndex]
-			if (!link) {
+			if (!link || isPrototypeKey(field)) {
 				return
 			}
 			link[field] = value

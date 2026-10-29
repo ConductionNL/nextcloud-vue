@@ -89,6 +89,7 @@ import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -302,6 +303,9 @@ export default {
 		 * @return {void}
 		 */
 		updateColumn(i, cell, value) {
+			if (isPrototypeKey(cell)) {
+				return
+			}
 			const col = this.columns[i]
 			if (cell === 'key') {
 				// Auto-fill the header label from the property key when the user

@@ -1054,6 +1054,7 @@ import { objectDisplayName } from '../../utils/objectName.js'
 import { fieldWithOptionsFrom, filterOptions, formTokenKeys, isOptionsFrom, loadOptionsFrom, resolveFormTokens } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 import { pruneRows } from '../../utils/pruneRows.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
@@ -4281,8 +4282,7 @@ export default {
 				return
 			}
 			const [head, ...rest] = key.split('.')
-			const unsafe = ['__proto__', 'constructor', 'prototype']
-			if (unsafe.includes(head) || rest.some((k) => unsafe.includes(k))) {
+			if (isPrototypeKey(head) || rest.some(isPrototypeKey)) {
 				return
 			}
 			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
