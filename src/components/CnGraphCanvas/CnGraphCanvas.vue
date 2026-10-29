@@ -109,22 +109,25 @@
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Zoom in')"
+				:title="t('nextcloud-vue', 'Zoom in')"
 				@click="zoomIn()">
-				+
+				<Plus :size="20" />
 			</button>
 			<button
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Zoom out')"
+				:title="t('nextcloud-vue', 'Zoom out')"
 				@click="zoomOut()">
-				−
+				<Minus :size="20" />
 			</button>
 			<button
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Fit the whole flow in view')"
+				:title="t('nextcloud-vue', 'Fit the whole flow in view')"
 				@click="fitViewNow()">
-				⤢
+				<FitToScreenOutline :size="20" />
 			</button>
 		</div>
 	</div>
@@ -134,6 +137,9 @@
 import { Background } from '@vue-flow/background'
 import { useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
+import FitToScreenOutline from 'vue-material-design-icons/FitToScreenOutline.vue'
+import Minus from 'vue-material-design-icons/Minus.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFlowEdge from './CnFlowEdge.vue'
 import CnFlowNode from './CnFlowNode.vue'
 
@@ -174,7 +180,7 @@ import CnFlowNode from './CnFlowNode.vue'
 export default {
 	name: 'CnGraphCanvas',
 
-	components: { VueFlow, Background, MiniMap, CnFlowNode, CnFlowEdge },
+	components: { VueFlow, Background, MiniMap, CnFlowNode, CnFlowEdge, FitToScreenOutline, Minus, Plus },
 
 	props: {
 		/** Nodes in Vue Flow's shape: `{ id, type, position: {x,y}, data }`. */

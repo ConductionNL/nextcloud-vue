@@ -347,7 +347,7 @@
 									:value="formData[field.key] || ''"
 									:disabled="field.readOnly"
 									:placeholder="fieldPlaceholder(field)"
-									rows="4"
+									:rows="textareaRows(field)"
 									@input="updateField(field.key, $event.target.value)" />
 								<CnFieldHelper
 									:id="helpId(field)"
@@ -4661,7 +4661,8 @@ export default {
 		 * A textarea or a JSON editor in a half-width column is worse than no
 		 * columns at all, and a checkbox pair reads as one control rather than
 		 * two. The list is deliberately about the WIDGET, not the field name,
-		 * so it needs no per-app configuration to behave.
+		 * so it needs no per-app configuration to behave. A field override may
+		 * still ask for the full width with `width: 'full'`.
 		 *
 		 * @param {object} field The resolved field.
 		 * @return {boolean} True when the field spans both columns.
@@ -4670,7 +4671,18 @@ export default {
 			if (this.columns !== 2 || !field) {
 				return false
 			}
-			return WIDE_WIDGETS.includes(field.widget)
+			return field.width === 'full' || WIDE_WIDGETS.includes(field.widget)
+		},
+
+		/**
+		 * How many rows a textarea field is high: its own `rows`, else 4.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @return {number} The rows attribute.
+		 */
+		textareaRows(field) {
+			const rows = Number(field && field.rows)
+			return Number.isInteger(rows) && rows > 0 ? rows : 4
 		},
 
 		/**

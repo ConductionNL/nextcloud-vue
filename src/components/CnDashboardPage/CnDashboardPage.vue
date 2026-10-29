@@ -1450,6 +1450,22 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * Layouts that replace `layout` while a page control's value holds
+		 * (manifest `config.layoutWhen`): `[{ when, layout }]`, `when` a
+		 * workspace condition (`{ workspace, op?, value? }`) as in `titleWhen`.
+		 * The first entry whose condition holds draws its own arrangement of
+		 * the page's widgets (PqWerkplekKlant: three columns while a call is
+		 * on). Editing the page shows the page's own layout.
+		 *
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 * @type {Array<{when: object, layout: Array<object>}>}
+		 */
+		layoutWhen: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
@@ -2650,7 +2666,8 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			const base = this.showsUserLayout ? this.userLayoutItems : this.layout
+			const fromWorkspace = this.editingBody ? null : this.layoutFromWorkspace()
+			const base = fromWorkspace || (this.showsUserLayout ? this.userLayoutItems : this.layout)
 			// The KPI row is not part of the grid.
 			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
 				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
@@ -3314,6 +3331,23 @@ export default {
 				return this.narrowViewport
 			}
 			return false
+		},
+
+		/**
+		 * The layout of the first `layoutWhen` entry whose condition holds on
+		 * the workspace, or null when none applies.
+		 *
+		 * @return {Array<object>|null}
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 */
+		layoutFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.layoutWhen) ? this.layoutWhen : []) {
+				if (entry && Array.isArray(entry.layout) && isWorkspaceCondition(entry.when) && evaluateWorkspaceCondition(entry.when, workspace)) {
+					return entry.layout
+				}
+			}
+			return null
 		},
 
 		/**

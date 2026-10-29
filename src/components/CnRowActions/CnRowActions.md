@@ -127,3 +127,4 @@ export default {
 |---|---|---|---|
 | `rowLabel` | String | `''` | The row's name; the board menu button is named "Actions for <rowLabel>" |
 | `triggerLabel` | String | `''` | The whole, translated name of the board menu button; wins over `rowLabel` |
+| `inline` | Number | `0` | How many of the visible actions show as buttons beside the menu; the first is a tonal pill, an `iconOnly` action its icon named by its label, and the menu is left out when nothing is left |

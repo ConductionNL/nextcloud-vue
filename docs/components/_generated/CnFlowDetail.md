@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `fitMaxZoom`      | `number`  |          | `0`       | The most the first fit may zoom in. 0 lets it zoom to `maxZoom`; 1 keeps a small graph at its own size instead of blowing it up.                                                                                                                                                                                                                                                                                              |
 | `nodeBadge`       | `func`    |          | `null`    | Draw each step as a card: its name, then the pill this function returns for the step (`{ label, variant }`, or null for none), in place of the type line. The board's card look passes it (DqFlow).                                                                                                                                                                                                                           |
 | `toolbarActions`  | `boolean` |          | `true`    | Show Save, Run and Check in the canvas toolbar. Off when the host draws them itself, as the board look does in its page header.                                                                                                                                                                                                                                                                                               |
+| `quietRun`        | `boolean` |          | `false`   | Show an open run without editing chrome: no add, arrange or undo buttons, and none of the editor's lock, version or setup notices. The board look passes it (PqFlowRun).                                                                                                                                                                                                                                                      |
 | `addStep`         | `boolean` |          | `true`    | Show "Add a step" in the canvas toolbar. Off when the host draws a palette beside the canvas.                                                                                                                                                                                                                                                                                                                                 |
 
 ### Events
@@ -27,3 +28,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `save` | —       | The Save button was pressed. The host persists via `useFlowStore().save()` and, for a new flow, swaps the route to the minted id — only the host knows whether one is needed. |
 | `run`  | —       | The Run button was pressed. The host queues a run via `useFlowStore().run()`.                                                                                                 |
+
+### Slots
+
+| Name            | Bindings | Description                                                                                          |
+| --------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `toolbar-start` | —        | toolbar-start What a host puts first in the toolbar (the canvas run's outcome legend).               |
+| `toolbar-end`   | —        | toolbar-end What a host adds at the end of the toolbar (the board's validity pill and panel toggle). |

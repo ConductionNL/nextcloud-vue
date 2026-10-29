@@ -907,13 +907,17 @@
    fixed layout shares the card's width: the selection and menu columns keep
    their own width, the first data column takes 18%, the others split the
    rest, and a value that does not fit is cut with an ellipsis (its full text
-   stays in the cell's tooltip). A column's own `width` still wins. */
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table {
+   stays in the cell's tooltip). A column's own `width` still wins. A widget
+   table under the list (`afterList`, PqSocial "Sociale prestaties") fits its
+   card itself (`fitWidth`) and keeps the auto layout: fixed, its 1% columns
+   cut every head to "G...".
+   @spec openspec/changes/after-list-fit-table-auto-layout/specs/narrow-object-table-widgets/spec.md#requirement-a-fit-table-under-an-index-list-keeps-its-heads-whole */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table:not(.cn-data-table--fit) {
 	table-layout: fixed;
 	width: 100%;
 }
 
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title {
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table:not(.cn-data-table--fit) th.cn-table-head--title {
 	width: 18%;
 }
 
@@ -1162,6 +1166,14 @@
    @spec openspec/changes/board-log-table-prose-line-height/specs/board-log-table-prose-line-height/spec.md#requirement-a-plain-logs-prose-cell-runs-at-line-height-1-45 */
 .cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap:not(.cn-look-nextcloud *) {
 	line-height: 1.45;
+}
+
+/* A short value that wraps (`cellClass: "cn-cell--wrap cn-cell--leading-normal"`)
+   keeps the table's normal line height, as DqZaakAssistent draws the AI log's
+   question and model over two lines in rows 57 high.
+   @spec openspec/changes/board-log-table-prose-line-height/specs/board-log-table-prose-line-height/spec.md#requirement-a-short-wrapped-value-keeps-the-normal-line-height */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap.cn-cell--leading-normal:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 /* `rowTitle: "strong"` (DqZaaktypeStatussen "Statussen", "Resultaten"): the

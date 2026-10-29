@@ -12,9 +12,14 @@
 		:class="{ 'cn-timeline-widget--feed': isFeed }"
 		data-testid="cn-timeline-widget"
 		:aria-busy="loading ? 'true' : 'false'">
-		<h3 v-if="resolvedTitle" class="cn-timeline-widget__title">
-			{{ resolvedTitle }}
-		</h3>
+		<div v-if="resolvedTitle || headerActions.length > 0"
+			class="cn-timeline-widget__header"
+			data-testid="cn-timeline-widget-header">
+			<h3 v-if="resolvedTitle" class="cn-timeline-widget__title">
+				{{ resolvedTitle }}
+			</h3>
+			<CnWidgetHeaderActionButtons v-if="headerActions.length > 0" :actions="headerActions" />
+		</div>
 
 		<div v-if="typeChips.length > 0"
 			class="cn-timeline-widget__chips"
@@ -151,6 +156,7 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
+import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
@@ -234,6 +240,7 @@ export default {
 		CnIcon,
 		CnNoteComposer,
 		CnTimelineManage,
+		CnWidgetHeaderActionButtons,
 		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
@@ -263,6 +270,11 @@ export default {
 		object: { type: Object, default: null },
 		/** Card title override. */
 		title: { type: String, default: '' },
+		/**
+		 * The manifest `headerActions`, resolved by the detail host
+		 * (`[{ key, label, icon, variant, run }]`), drawn beside the title.
+		 */
+		headerActions: { type: Array, default: () => [] },
 		/** Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`. */
 		content: { type: Object, default: () => ({}) },
 		/** OpenRegister API base. */
@@ -967,6 +979,14 @@ export default {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
+}
+
+.cn-timeline-widget__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-timeline-widget__title {

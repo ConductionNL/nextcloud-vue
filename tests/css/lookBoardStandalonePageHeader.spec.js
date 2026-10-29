@@ -33,9 +33,9 @@ describe('look-board.css: a standalone page header', () => {
 		}
 	})
 
-	it('puts the line under it 15px, 9px below the title margin', () => {
+	it('puts the line under it 15px on a normal line', () => {
 		const body = rule(STANDALONE + ' .cn-page-header__description')
-		expect(body).toContain('margin-top: 9px')
 		expect(body).toContain('font-size: 15px')
+		expect(body).toContain('line-height: normal')
 	})
 })

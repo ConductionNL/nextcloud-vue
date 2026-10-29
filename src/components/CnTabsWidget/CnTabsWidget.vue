@@ -434,13 +434,16 @@ export default {
 		 * A tab with `default: true` is the one the strip opens on, unless a
 		 * route hash names another tab or the marked tab sits under "More".
 		 *
+		 * A tab with one widget and `showTitle: true` heads its panel with the
+		 * widget's title even when the widget has no description.
+		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More" (in the
 		 * board look: into the Actions menu, with History kept in the strip).
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, showTitle?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -736,6 +739,7 @@ export default {
 					overflow,
 					pending: visibility === 'pending',
 					opensFirst: Boolean(tab && typeof tab === 'object' && tab.default === true),
+					showTitle: Boolean(tab && typeof tab === 'object' && tab.showTitle === true),
 				})
 			})
 			return resolved
@@ -1245,10 +1249,12 @@ export default {
 		 * and its description, through the app's translate. None when the
 		 * widget has no title or no description, or the tab already shows the
 		 * title: a title alone names what the tab already names, so the
-		 * widget stays bare in its panel.
+		 * widget stays bare in its panel. A tab with `showTitle: true` draws
+		 * the title without a description too (PqMailinglijst "Lijstgegevens").
 		 *
 		 * @param {object} entry A resolved tab.
 		 * @return {{title: string, subtitle: string}|null} The heading, or null.
+		 * @spec openspec/changes/tab-panel-shows-widget-title/specs/tab-panel-shows-widget-title/spec.md#requirement-a-tab-can-show-its-single-widgets-title
 		 */
 		panelHeading(entry) {
 			const widget = entry && entry.widget
@@ -1261,8 +1267,9 @@ export default {
 			if (title === entry.label) {
 				return null
 			}
-			if (!widget || typeof widget.description !== 'string' || widget.description === '') {
-				return null
+			const hasDescription = Boolean(widget) && typeof widget.description === 'string' && widget.description !== ''
+			if (!hasDescription) {
+				return entry.showTitle ? { title, subtitle: '' } : null
 			}
 			return { title, subtitle: translate(widget.description) }
 		},

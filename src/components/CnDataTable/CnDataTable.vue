@@ -148,6 +148,7 @@
 								pinClass(leadingCount + colIndex),
 								isGrowColumn(col) ? 'cn-table-col--grow' : '',
 								colIndex === titleColumnIndex ? 'cn-table-head--title' : '',
+								alignClass(col),
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -285,7 +286,7 @@
 							<td
 								v-for="(col, colIndex) in effectiveColumns"
 								:key="col.key"
-								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
+								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '', alignClass(col)]"
 								:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 								@mouseenter="titleWhenClipped">
 								<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -497,6 +498,7 @@ import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnF
 import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
+import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -653,13 +655,16 @@ export default {
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
+		 * `align: 'right'` (or `'end'`) puts the column at the end of its cells,
+		 * header included, as `class: 'cn-table-col--end'` does.
+		 *
 		 * `emptyValueBy` (`{ field, values }`) names what an empty cell holds by
 		 * another field of the row, translated; it goes before `emptyValue`.
 		 * `emptyValue` is what a row without a value holds in that column, so a
 		 * `badge` column draws a pill on every row. `emptyLabel` is the words an
 		 * empty cell reads, translated, as plain text past the format.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, align: ('left'|'right'|'end'), class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -1156,6 +1161,20 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Sort and filter the `rows` the table holds from its own headers, in
+		 * the browser: for a table that holds every row (a settings table read
+		 * from an app endpoint) and has no host keeping the state. `sort` and
+		 * `column-filter` still emit; `sortKey`, `sortKeys` and `activeFilters`
+		 * are not read.
+		 *
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		localHeaders: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
@@ -1215,6 +1234,9 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			// localHeaders: the header sort keys and filter map the table keeps itself.
+			localSortKeys: [],
+			localFilters: {},
 			/** The page shown under `pageSize`. */
 			currentPage: 1,
 			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
@@ -1328,6 +1350,10 @@ export default {
 		 */
 		sourceRows() {
 			if (this.rows && this.rows.length > 0) {
+				if (this.localHeaders) {
+					const primary = this.localSortKeys[0]
+					return localHeaderRows(this.rows, primary ? { field: primary.key, dir: primary.order } : null, this.localFilters)
+				}
 				return this.rows
 			}
 			if (this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
@@ -1509,6 +1535,9 @@ export default {
 		},
 
 		effectiveSortKeys() {
+			if (this.localHeaders) {
+				return this.localSortKeys
+			}
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
 			}
@@ -1632,6 +1661,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The end class for a column whose `align` is `right` or `end`: the
+		 * header and the cells sit at the end, as a column of numbers does.
+		 *
+		 * @param {object} col The column.
+		 * @return {string} `cn-table-col--end`, or ''.
+		 * @spec openspec/changes/data-table-column-align/specs/data-table-column-align/spec.md#requirement-a-column-can-align-to-the-end
+		 */
+		alignClass(col) {
+			return col && (col.align === 'right' || col.align === 'end') ? 'cn-table-col--end' : ''
+		},
+
 		/**
 		 * Start dragging a row (`reorderable` only).
 		 *
@@ -2754,12 +2795,45 @@ export default {
 		},
 
 		columnFilterStateFor(col) {
-			return columnFilterState(this.filterDefFor(col), this.activeFilters)
+			return columnFilterState(this.filterDefFor(col), this.headerFilters())
 		},
 
 		isColumnFiltered(col) {
 			const def = this.filterDefFor(col)
-			return !!def && isColumnFilterActive(def, this.activeFilters)
+			return !!def && isColumnFilterActive(def, this.headerFilters())
+		},
+
+		/**
+		 * The filter map the headers show: the table's own under `localHeaders`,
+		 * else the host's `activeFilters`.
+		 *
+		 * @return {object}
+		 */
+		headerFilters() {
+			return this.localHeaders ? this.localFilters : this.activeFilters
+		},
+
+		/**
+		 * Under `localHeaders`, lay a header filter's parameters over the
+		 * table's own filter map; an empty list clears its parameter.
+		 *
+		 * @param {object} params `{ paramKey: values[] }`.
+		 * @return {void}
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		applyLocalFilter(params) {
+			if (!this.localHeaders) {
+				return
+			}
+			const next = { ...this.localFilters }
+			for (const [key, values] of Object.entries(params || {})) {
+				if (Array.isArray(values) && values.length > 0) {
+					next[key] = values
+				} else {
+					delete next[key]
+				}
+			}
+			this.localFilters = next
 		},
 
 		filterButtonLabel(col) {
@@ -2852,11 +2926,13 @@ export default {
 		applyColumnFilter(col, state) {
 			const def = this.filterDefFor(col)
 			if (def) {
+				const params = columnFilterParams(def, state)
+				this.applyLocalFilter(params)
 				/**
 				 * @event column-filter A header filter was applied or cleared.
 				 * @type {{ key: string, params: object }} `params` maps each query parameter the column owns to its values; an empty list clears it.
 				 */
-				this.$emit('column-filter', { key: col.key, params: columnFilterParams(def, state) })
+				this.$emit('column-filter', { key: col.key, params })
 			}
 			this.closeColumnFilter()
 		},
@@ -2864,7 +2940,9 @@ export default {
 		clearColumnFilter(col) {
 			const def = this.filterDefFor(col)
 			if (def) {
-				this.$emit('column-filter', { key: col.key, params: clearedColumnFilterParams(def) })
+				const params = clearedColumnFilterParams(def)
+				this.applyLocalFilter(params)
+				this.$emit('column-filter', { key: col.key, params })
 			}
 		},
 
@@ -2894,6 +2972,9 @@ export default {
 		 */
 		applySort(key, append) {
 			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			if (this.localHeaders) {
+				this.localSortKeys = keys
+			}
 			const primary = keys[0] || null
 			/**
 			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).

@@ -37,3 +37,9 @@ describe('look-board-index.css: prose in a plain log', () => {
 		expect(bodyOf('.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap:not(.cn-look-nextcloud *)')).toMatch(/line-height:\s*1\.45/)
 	})
 })
+
+describe('look-board-index.css: a short wrapped value in a plain log', () => {
+	it('keeps the table\'s normal line height with cn-cell--leading-normal (DqZaakAssistent AI log rows 57, live 63.6)', () => {
+		expect(bodyOf('.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap.cn-cell--leading-normal:not(.cn-look-nextcloud *)')).toMatch(/line-height:\s*normal/)
+	})
+})

@@ -181,7 +181,7 @@
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
-			:showBuildiqButton="!buildiqInHeader"
+			:showBuildiqButton="buildiqButton && !buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
 			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
@@ -473,7 +473,7 @@
 				:class="{ 'cn-index-page__filter-strip-pill--active': entry.active }"
 				:aria-pressed="entry.active ? 'true' : 'false'"
 				:data-testid="`cn-index-filter-strip-${entry.key}`"
-				@click="onFilterStripPick(entry.value)">
+				@click="onFilterStripPick(entry.values || entry.value)">
 				<span>{{ entry.label }}</span> <span v-if="entry.count !== null" class="cn-index-page__filter-strip-count">{{ entry.count }}</span>
 			</button>
 		</div>
@@ -938,6 +938,7 @@
 								:actions="rowMenuActionsFor(row)"
 								:row="row"
 								:rowLabel="rowTitleFor(row)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1171,6 +1172,7 @@
 									:row="object"
 									:rowLabel="rowTitleFor(object)"
 									:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+									:inline="rowInlineActions"
 									@action="onRowAction" />
 							</template>
 						</CnExpandableRow>
@@ -1203,6 +1205,7 @@
 								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1256,6 +1259,7 @@
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -2533,6 +2537,18 @@ export default {
 		},
 
 		/**
+		 * Whether the actions bar may draw the buildiq square. `false` for a
+		 * list embedded in a page that draws its own (CnIndexListWidget), so a
+		 * page carries one square.
+		 *
+		 * @spec openspec/changes/embedded-list-one-buildiq-square/specs/embedded-list-one-buildiq-square/spec.md#requirement-an-index-page-can-leave-the-buildiq-square-out-of-its-toolbar
+		 */
+		buildiqButton: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Whether the toolbar draws the Actions menu (manifest
 		 * `config.showActionsMenu`): `true` keeps it beside header buttons
 		 * (DqAfdelingen: Downloaden beside the title, Acties above the
@@ -2689,13 +2705,15 @@ export default {
 		/**
 		 * A second filter strip under the toolbar, on one field (manifest
 		 * `config.filterStrip`): `{ field, label?, allLabel?, options?:
-		 * [{ value, label }], showCount? }`. It draws "All" and one pill per
-		 * value (the options, else the field's schema enum); picking one sets
-		 * the page's filter on that field, "All" clears it. With `showCount`
+		 * [{ value | values, label }], showCount? }`. It draws "All" and one pill
+		 * per value (the options, else the field's schema enum); picking one sets
+		 * the page's filter on that field, "All" clears it. An option's `values`
+		 * gathers several stored spellings under one pill. With `showCount`
 		 * each pill counts the rows it would show within the active quick
 		 * filter. Absent (the default) draws nothing.
 		 *
-		 * @type {{field: string, label?: string, allLabel?: string, options?: Array<{value: string, label?: string}>, showCount?: boolean}|null}
+		 * @type {{field: string, label?: string, allLabel?: string, options?: Array<{value?: string, values?: Array<string>, label?: string}>, showCount?: boolean}|null}
+		 * @spec openspec/changes/filter-strip-option-values/specs/index-filter-strip/spec.md#requirement-a-filter-strip-pill-can-gather-several-values
 		 * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
 		 */
 		filterStrip: {
@@ -3448,6 +3466,19 @@ export default {
 		addLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * How many of a row's actions show as buttons beside its menu, the
+		 * first as a tonal pill (manifest `config.rowInlineActions`, board
+		 * PqWachtrij "In behandeling nemen" and an eye). 0 keeps them all in
+		 * the menu.
+		 *
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		rowInlineActions: {
+			type: Number,
+			default: 0,
 		},
 
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
@@ -6500,8 +6531,15 @@ export default {
 			const raw = declared || (Array.isArray(prop.enum) ? prop.enum.map((value) => ({ value })) : [])
 			return raw
 				.map((option) => (option && typeof option === 'object' ? option : { value: option }))
-				.filter((option) => option.value !== undefined && option.value !== null && option.value !== '')
-				.map((option) => ({ value: String(option.value), label: this.cnTranslate(String(option.label ?? option.value)) }))
+				.map((option) => {
+					// `values` gathers spellings of one value under one pill ("phone", "telefoon").
+					const values = (Array.isArray(option.values) ? option.values : [option.value])
+						.filter((value) => value !== undefined && value !== null && value !== '')
+						.map(String)
+					return { values, value: values[0], label: option.label ?? values[0] }
+				})
+				.filter((option) => option.values.length > 0)
+				.map((option) => ({ value: option.value, values: option.values, label: this.cnTranslate(String(option.label)) }))
 		},
 
 		/**
@@ -6518,12 +6556,13 @@ export default {
 			}
 			const current = this.effectiveActiveFilters[this.filterStrip.field]
 			const picked = Array.isArray(current) ? current.map(String) : (current === undefined || current === null || current === '' ? [] : [String(current)])
+			const isPicked = (values) => picked.length === values.length && values.every((value) => picked.includes(value))
 			const counts = this.filterStripCounts || {}
 			const countOf = (key) => (Object.hasOwn(counts, key) && typeof counts[key] === 'number' ? counts[key] : null)
 			const allLabel = this.filterStrip.allLabel ? this.cnTranslate(this.filterStrip.allLabel) : t('nextcloud-vue', 'All')
 			return [
 				{ key: 'all', value: '', label: allLabel, active: picked.length === 0, count: countOf('all') },
-				...values.map((option, index) => ({ key: `v${index}`, value: option.value, label: option.label, active: picked.length === 1 && picked[0] === option.value, count: countOf(`v${index}`) })),
+				...values.map((option, index) => ({ key: `v${index}`, value: option.value, values: option.values, label: option.label, active: isPicked(option.values), count: countOf(`v${index}`) })),
 			]
 		},
 
@@ -10261,7 +10300,7 @@ export default {
 			const base = { ...resolveFilterMap(this.filter, params, ctx), ...resolveFilterMap(this.filterStripTabFilter, params, ctx) }
 			const entries = [
 				{ key: 'all', filter: {} },
-				...this.filterStripValues.map((option, index) => ({ key: `v${index}`, filter: { [field]: option.value } })),
+				...this.filterStripValues.map((option, index) => ({ key: `v${index}`, filter: { [field]: option.values.length === 1 ? option.values[0] : option.values } })),
 			]
 			let counts
 			try {
@@ -10276,14 +10315,15 @@ export default {
 		},
 
 		/**
-		 * A pill of the `filterStrip` was picked: filter the list on that value,
+		 * A pill of the `filterStrip` was picked: filter the list on its values,
 		 * or clear the field's filter for All.
 		 *
-		 * @param {string} value The value, '' for All.
+		 * @param {string|Array<string>} value The pill's values, '' for All.
 		 * @return {void}
 		 */
 		onFilterStripPick(value) {
-			this.onFilterEvent({ key: this.filterStrip.field, values: value === '' ? [] : [value] })
+			const values = Array.isArray(value) ? value : [value]
+			this.onFilterEvent({ key: this.filterStrip.field, values: values.filter((entry) => entry !== '') })
 		},
 
 		/**
