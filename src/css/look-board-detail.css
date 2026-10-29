@@ -2596,8 +2596,12 @@
 /* An appointments card starts its first row's rule 8px under the title, as
    DqTaak "Afspraken" draws it (r34: the row 64.5 against 60, the first
    appointment 44.8 under the title against 41).
-   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn */
-.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *) {
+   A subtitled card needs the second selector to outweigh the 12px start of
+   every subtitled card.
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn
+   @spec openspec/changes/board-events-card-under-subtitle/specs/board-events-card-under-subtitle/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *),
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-events-card) {
 	padding-top: 8px;
 }
 
