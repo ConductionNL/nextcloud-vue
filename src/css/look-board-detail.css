@@ -3285,3 +3285,31 @@
 .cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__value:not(.cn-look-nextcloud *) {
 	line-height: normal;
 }
+
+/* ---- A body section in a card (CnBodySections `card: true`) ------------- */
+/* Drawn as every board card: 20px 22px in, a 12px radius, the title 17px at
+   700 with the body 14px under it and no rule between them (PqKlant and
+   PqOrganisatie "Contactmoment registreren"; the section's own scoped title
+   was 14px 600 over a hairline). The doubled title class outranks that
+   scoped rule.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-card-is-drawn-as-a-board-card */
+.cn-look-board .cn-body-sections__section--card:not(.cn-look-nextcloud *) {
+	padding: var(--cn-board-card-padding);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-body-sections__section--card > .cn-body-sections__title.cn-body-sections__title:not(.cn-look-nextcloud *) {
+	margin: 0 0 14px;
+	padding: 0;
+	border-bottom: 0;
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
+/* Its labelled buttons are the board's 40px control (PqKlant "Annuleren",
+   "Opslaan", "Bericht versturen"); NcButton draws 34px.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-cards-labelled-buttons-are-40px */
+.cn-look-board .cn-body-sections__section--card .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
+}
