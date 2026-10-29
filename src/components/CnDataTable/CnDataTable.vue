@@ -148,6 +148,7 @@
 								pinClass(leadingCount + colIndex),
 								isGrowColumn(col) ? 'cn-table-col--grow' : '',
 								colIndex === titleColumnIndex ? 'cn-table-head--title' : '',
+								alignClass(col),
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -285,7 +286,7 @@
 							<td
 								v-for="(col, colIndex) in effectiveColumns"
 								:key="col.key"
-								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
+								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '', alignClass(col)]"
 								:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 								@mouseenter="titleWhenClipped">
 								<!-- A row with a `rowClickRoute` is a real link: this anchor
@@ -653,13 +654,16 @@ export default {
 		 * `link: true` makes that column the one that names the row: it carries
 		 * the row link and the title look. Without it the first column does.
 		 *
+		 * `align: 'right'` (or `'end'`) puts the column at the end of its cells,
+		 * header included, as `class: 'cn-table-col--end'` does.
+		 *
 		 * `emptyValueBy` (`{ field, values }`) names what an empty cell holds by
 		 * another field of the row, translated; it goes before `emptyValue`.
 		 * `emptyValue` is what a row without a value holds in that column, so a
 		 * `badge` column draws a pill on every row. `emptyLabel` is the words an
 		 * empty cell reads, translated, as plain text past the format.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, align: ('left'|'right'|'end'), class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -1632,6 +1636,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The end class for a column whose `align` is `right` or `end`: the
+		 * header and the cells sit at the end, as a column of numbers does.
+		 *
+		 * @param {object} col The column.
+		 * @return {string} `cn-table-col--end`, or ''.
+		 * @spec openspec/changes/data-table-column-align/specs/data-table-column-align/spec.md#requirement-a-column-can-align-to-the-end
+		 */
+		alignClass(col) {
+			return col && (col.align === 'right' || col.align === 'end') ? 'cn-table-col--end' : ''
+		},
+
 		/**
 		 * Start dragging a row (`reorderable` only).
 		 *
