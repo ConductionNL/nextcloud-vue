@@ -622,6 +622,7 @@
 			v-else-if="renderer"
 			ref="renderer"
 			v-bind="rendererProps"
+			@header="onRendererHeader"
 			@selectObject="onSelectObject" />
 
 		<!-- No renderer resolves: render nothing, which is what CnDetailPage has
@@ -981,7 +982,7 @@ export default {
 		},
 	},
 
-	emits: ['geo-saved', 'open-integration', 'select-object'],
+	emits: ['geo-saved', 'open-integration', 'select-object', 'panel-header'],
 
 	setup() {
 		// Every integration component this host renders goes through the
@@ -2030,6 +2031,14 @@ export default {
 			// `menuActions`: items for the card's Actions menu instead of the title row.
 			const menuActions = (header && Array.isArray(header.menuActions) ? header.menuActions : []).filter(usable)
 			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty, menuActions }
+			if (this.isBare) {
+				/**
+				 * @event panel-header What the widget reported for a title row it
+				 * does not have in bare chrome (`{ subtitle, actions, ... }`), for
+				 * the surface (a tab panel heading) to draw.
+				 */
+				this.$emit('panel-header', this.rendererHeader)
+			}
 		},
 
 		/**

@@ -196,6 +196,7 @@
 					<CnDetailWidgetHost
 						:widget="entry.widget"
 						chrome="bare"
+						@panelHeader="onPanelHeader(entry.key, $event)"
 						:availableWidgets="availableWidgets"
 						:objectId="objectId"
 						:object="objectData"
@@ -587,6 +588,9 @@ export default {
 			// than a flat list because `lazy` keeps a visited tab mounted, so
 			// more than one panel publishes at a time.
 			panelActionsByWidget: {},
+			// What each single-widget panel's widget reported for its title
+			// row (a list's counts line and Add), keyed by tab key.
+			panelHeaders: {},
 		}
 	},
 
@@ -1233,6 +1237,50 @@ export default {
 		 */
 		panelHeaderActions(entry) {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const reported = this.reportedHeader(entry).actions.map((action, index) => ({
+				key: `reported-${index}-${action.label}`,
+				label: action.label,
+				icon: action.icon || '',
+				variant: action.variant || 'secondary',
+				run: action.run,
+			}))
+			return [...this.declaredPanelActions(entry, translate), ...reported]
+		},
+
+		/**
+		 * What a showTitle panel's widget reported for its title row, with
+		 * nothing for any other panel.
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-tab-panel-heading-carries-what-its-widget-reports
+		 * @param {object} entry A resolved tab.
+		 * @return {{subtitle: string, actions: Array<object>}}
+		 */
+		reportedHeader(entry) {
+			const header = entry && entry.showTitle ? this.panelHeaders[entry.key] : null
+			return {
+				subtitle: header && typeof header.subtitle === 'string' ? header.subtitle : '',
+				actions: header && Array.isArray(header.actions) ? header.actions.filter((action) => action && action.label && typeof action.run === 'function') : [],
+			}
+		},
+
+		/**
+		 * Keep what a panel's widget reported for its title row.
+		 *
+		 * @param {string} key The tab key.
+		 * @param {object} header The reported header.
+		 */
+		onPanelHeader(key, header) {
+			this.panelHeaders = { ...this.panelHeaders, [key]: header || {} }
+		},
+
+		/**
+		 * The widget's manifest `headerActions` as buttons.
+		 *
+		 * @param {object} entry A resolved tab.
+		 * @param {Function} translate The app's translate.
+		 * @return {Array<object>} The buttons.
+		 */
+		declaredPanelActions(entry, translate) {
 			return resolveWidgetHeaderActions(entry && entry.widget, {
 				object: this.objectData || {},
 				objectId: this.objectId,
@@ -1264,6 +1312,12 @@ export default {
 			}
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 			const title = translate(raw)
+			// A widget that reports a counts line or an action needs the row,
+			// even when its title repeats the tab label (PqTicketContactmomenten).
+			const reported = this.reportedHeader(entry)
+			if (reported.subtitle !== '' || reported.actions.length > 0) {
+				return { title, subtitle: reported.subtitle || (widget.description ? translate(widget.description) : '') }
+			}
 			if (title === entry.label) {
 				return null
 			}
