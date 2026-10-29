@@ -155,6 +155,7 @@ import CnPhotoAlbumCreate from '../../../components/CnPhotoAlbumCreate/CnPhotoAl
 import CnPhotoAlbumPicker from '../../../components/CnPhotoAlbumPicker/CnPhotoAlbumPicker.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { stripMarker } from '../../utils/marker.js'
 
 /**
  * CnPhotosTab — bespoke album grid for the `photos` integration.
@@ -258,7 +259,7 @@ export default {
 		 */
 		albumName(album) {
 			const raw = (album && (album.albumName || album.title || album.name || album.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled album')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled album')
 		},
 
 		albumUrl(album) {
