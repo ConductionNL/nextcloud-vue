@@ -1438,7 +1438,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.162.0 lets a header field read as bold text (headerFields format strong; r34-header-field-strong), a query preset set showAdd (query-preset-show-add), a detail band be compact (bandDensity; detail-band-compact), a workspace-filter toggle draw a checkbox (control; workspace-toggle-as-checkbox) and an expandable row's header button carry an icon (expandableRows.buttons[].icon; expandable-row-as-drawn).
 		// 2.163.0 lets a dashboard placement start below the earlier rows (clear; dashboard-clear-row), an expandable row's sub-table sort and filter (expandableRows; expandable-row-as-drawn), a dashboard keep its header actions to one viewport (headerActionsViewport; dashboard-header-actions-viewport), a stage action name its primary button from the record (primaryLabel; action-label-from-record) and a next-step stage carry a sentence above `after` (afterTitle; contact-moment-parts).
 		// 2.164.0 lets a filterStrip option list several stored values (values; filter-strip-option-values), a flow page's `layout` be a word, `canvas` or `cards` (flow-board-canvas-chrome), and a chart write compact numbers (valueFormat compact; chart-compact-number).
-		expect(schema.version).toBe('2.164.0')
+		// 2.165.0 lets a link card open the user settings dialog (action: user-settings) and a links panel badge take a tone (link-cards-settings-action).
+		expect(schema.version).toBe('2.165.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
@@ -2817,5 +2818,22 @@ describe('app-manifest-v2 — header actions dossiq ships (dossiq Catalogue, Env
 	it('still refuses an open-form with neither a schema nor an endpoint and its fields', () => {
 		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X' }])).valid).toBe(false)
 		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X', endpoint: { url: '/x' } }])).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a link card that opens the user settings (link-cards-settings-action, 2.165.0)', () => {
+	const linksPage = (cards, config = {}) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Advanced', route: '/advanced', type: 'links', title: 'Advanced', config: { cards, ...config } }],
+	})
+
+	it('accepts action user-settings and a purple panel badge', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal settings', action: 'user-settings' }], { panel: { badge: { label: 'Administrators only', tone: 'purple' } } })).valid).toBe(true)
+	})
+
+	it('refuses an unknown action, an action beside a route and an unknown badge tone', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'admin-settings' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'user-settings', route: 'Personal' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Store', label: 'Store', route: 'Store' }], { panel: { badge: { label: 'Admins', tone: 'red' } } })).valid).toBe(false)
 	})
 })

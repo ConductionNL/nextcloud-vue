@@ -4721,6 +4721,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 .cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__trailing {
+	align-self: flex-start;
 	margin-top: 10px;
 }
 
