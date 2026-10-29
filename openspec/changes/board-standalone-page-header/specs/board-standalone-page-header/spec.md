@@ -2,7 +2,7 @@
 
 ### Requirement: A standalone board page header takes the board title
 
-In the board look, a CnPageHeader that no page primitive styles SHALL draw its title at 28px, weight 700, on a 1.2 line. Its description SHALL be 15px on a normal line, set 13px below the title.
+In the board look, a CnPageHeader that no page primitive styles SHALL draw its title at 28px, weight 700, on a 1.2 line. Its description SHALL be 15px on a normal line, set 13px below the title (see board-standalone-header-rhythm).
 
 #### Scenario: a custom view's header
 - GIVEN pipelinq's Forecast view in the board look
