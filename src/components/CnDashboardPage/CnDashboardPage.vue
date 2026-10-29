@@ -1461,6 +1461,19 @@ export default {
 		},
 
 		/**
+		 * Pills at the start of the line under the title (manifest
+		 * `config.headerPills`): `[{ label, variant?, when? }]`, `when` a
+		 * workspace condition; a pill without one always shows.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @type {Array<{label: string, variant?: string, when?: object}>}
+		 */
+		headerPills: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Titles that replace `title` while a page control's value holds
 		 * (manifest `config.titleWhen`): `[{ when, title }]`, `when` a workspace
 		 * condition (`{ workspace, op?, value? }`) and `title` a template whose
@@ -1472,19 +1485,6 @@ export default {
 		 * @type {Array<{when: object, title: string}>}
 		 */
 		titleWhen: {
-			type: Array,
-			default: () => [],
-		},
-
-		/**
-		 * Pills at the start of the line under the title (manifest
-		 * `config.headerPills`): `[{ label, variant?, when? }]`, `when` a
-		 * workspace condition; a pill without one always shows.
-		 *
-		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
-		 * @type {Array<{label: string, variant?: string, when?: object}>}
-		 */
-		headerPills: {
 			type: Array,
 			default: () => [],
 		},
