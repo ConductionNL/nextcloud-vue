@@ -43,3 +43,27 @@ export function keepAuditEntries(entries, { excludeActions = [], excludeActors =
 		&& !actors.includes(String(entry.user || '').toLowerCase())
 		&& !isEmptyUpdate(entry))
 }
+
+/**
+ * The trail query parameters that leave the excluded actions and actors out
+ * on the server (`action[notIn]`, `user[notIn]`), so a page read from the
+ * trail holds what a history shows. `keepAuditEntries` still filters what
+ * comes back. Empty when nothing is left out.
+ *
+ * @param {{excludeActions?: Array<string>, excludeActors?: Array<string>}} [options] What to leave out.
+ * @return {Object<string, string>} The parameters.
+ * @spec openspec/changes/audit-card-exclusions-in-the-query/specs/audit-trail/spec.md#requirement-a-timeline-and-a-tab-count-ask-the-trail-to-leave-out-what-they-hide
+ */
+export function auditExclusionParams({ excludeActions = [], excludeActors = [] } = {}) {
+	const list = (values) => (Array.isArray(values) ? values : []).map(String).filter(Boolean)
+	const params = {}
+	const actions = list(excludeActions)
+	const actors = list(excludeActors)
+	if (actions.length > 0) {
+		params['action[notIn]'] = actions.join(',')
+	}
+	if (actors.length > 0) {
+		params['user[notIn]'] = actors.join(',')
+	}
+	return params
+}
