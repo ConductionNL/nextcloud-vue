@@ -2559,7 +2559,8 @@
     "Archived as PDF": "Archived as PDF",
     "Archived as {format}": "Archived as {format}",
     "Collapse": "Collapse",
-    "Expand": "Expand"
+    "Expand": "Expand",
+    "Colleague": "Colleague"
   },
   "plurals": {
     "{count} member": [
