@@ -1,2 +1,3 @@
 - [x] look-board-index.css rule (probed on :8080)
 - [x] tests/css/lookBoardLogProseLineHeight.spec.js (red first)
+- [x] cn-cell--leading-normal (DqZaakAssistent AI log, probed on :8080: 63.6 -> 57)
