@@ -16,8 +16,43 @@
 		<template v-for="(action, index) in header.actions" :key="`${index}-${action.label}`">
 			<!-- `variant: 'primary'`: the card's main action as a filled button
 			     (a task table's "New task"); otherwise the quiet header link. -->
+			<!-- `variant: 'secondary'`: the card's outlined button (PqKlant
+			     Relaties "Toevoegen", as DqTaak "Notitie toevoegen"); with
+			     `items` it opens a menu of them (Contactkanalen). -->
+			<NcActions
+				v-if="action.variant === 'secondary' && Array.isArray(action.items)"
+				variant="secondary"
+				:menuName="action.label"
+				:forceMenu="true"
+				:forceName="true"
+				:ariaLabel="action.ariaLabel || action.label"
+				class="cn-detail-widget-header-items__card-button"
+				data-testid="cn-detail-widget-header-action">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="16" />
+				</template>
+				<NcActionButton
+					v-for="(item, itemIndex) in action.items"
+					:key="`${itemIndex}-${item.label}`"
+					:closeAfterClick="true"
+					@click="item.run()">
+					{{ item.label }}
+				</NcActionButton>
+			</NcActions>
 			<NcButton
-				v-if="action.variant === 'primary'"
+				v-else-if="action.variant === 'secondary'"
+				variant="secondary"
+				:ariaLabel="action.ariaLabel || undefined"
+				class="cn-detail-widget-header-items__card-button"
+				data-testid="cn-detail-widget-header-action"
+				@click="action.run()">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="16" />
+				</template>
+				{{ action.label }}
+			</NcButton>
+			<NcButton
+				v-else-if="action.variant === 'primary'"
 				variant="primary"
 				class="cn-detail-widget-header-items__primary"
 				data-testid="cn-detail-widget-header-action"
@@ -42,7 +77,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 
@@ -54,10 +89,14 @@ import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 export default {
 	name: 'CnDetailWidgetHeaderItems',
 
-	components: { CnIcon, CnStatusBadge, NcButton },
+	components: { CnIcon, CnStatusBadge, NcActionButton, NcActions, NcButton },
 
 	props: {
-		/** The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, run }] }`; `add: true` marks a list's Add. */
+		/**
+		 * The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, ariaLabel?, items?, run }] }`;
+		 * `add: true` marks a list's Add; `variant: "secondary"` is the card's outlined button, a menu of
+		 * `items` (`[{ label, run }]`) when it has them.
+		 */
 		header: {
 			type: Object,
 			required: true,

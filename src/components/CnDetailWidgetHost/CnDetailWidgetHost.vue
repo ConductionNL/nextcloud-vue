@@ -1982,7 +1982,10 @@ export default {
 		onRendererHeader(header) {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
 			const note = header && typeof header.note === 'string' ? header.note : ''
-			const usable = (action) => action && typeof action.run === 'function' && action.label
+			// A menu action (`items`) runs through its items.
+			const runs = (action) => typeof action.run === 'function'
+				|| (Array.isArray(action.items) && action.items.length > 0 && action.items.every((item) => item && item.label && typeof item.run === 'function'))
+			const usable = (action) => action && action.label && runs(action)
 			// `action` (one) and `actions` (several) both count, `action` first.
 			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
 			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
