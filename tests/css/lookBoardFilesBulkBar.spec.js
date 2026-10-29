@@ -29,6 +29,10 @@ describe('look-board-detail.css: the files bulk bar', () => {
 		expect(rule(bar + ' .cn-files-browser__bulk-count')).toMatch(/color:\s*var\(--color-primary-element-light-text\)/)
 	})
 
+	it('sets the count in bold, as the band draws it', () => {
+		expect(rule(bar + ' .cn-files-browser__bulk-count')).toMatch(/font-weight:\s*700/)
+	})
+
 	it('draws 34px buttons with words only', () => {
 		const button = rule(bar + ' .button-vue')
 		expect(button).toMatch(/height:\s*34px/)

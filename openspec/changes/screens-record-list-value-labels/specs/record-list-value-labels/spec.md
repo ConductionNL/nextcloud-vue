@@ -23,3 +23,9 @@ otherwise. The pill, the badges and the sort SHALL keep reading the stored value
 - **GIVEN** tickets with channel "phone" and "telefoon", and `valueLabels: { channel: { phone: "Phone", telefoon: "Phone" } }`
 - **WHEN** the meta line is `{client} · {channel}` for a Dutch user
 - **THEN** both rows read "… · Telefoon"
+
+#### Scenario: A boolean value
+
+- **GIVEN** agent rows with isAvailable true and false, and `valueLabels: { isAvailable: { true: "Available", false: "Not available" } }`
+- **WHEN** the meta line is `{isAvailable}` for a Dutch user
+- **THEN** the rows read "Beschikbaar" and "Niet beschikbaar", not "true" and "false"

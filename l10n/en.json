@@ -1,5 +1,11 @@
 {
   "translations": {
+    "Search the knowledge base": "Search the knowledge base",
+    "Searching…": "Searching…",
+    "Knowledge base unavailable": "Knowledge base unavailable",
+    "No articles found": "No articles found",
+    "Type to search, or fill in a summary to get suggestions.": "Type to search, or fill in a summary to get suggestions.",
+    "Suggested from the active summary": "Suggested from the active summary",
     "All categories": "All categories",
     "Category": "Category",
     "Reports": "Reports",

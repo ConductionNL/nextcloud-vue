@@ -224,6 +224,15 @@ export default {
 			default: 12,
 		},
 
+		/**
+		 * Margin under each item in pixels, in place of `margin` on that side
+		 * only; null keeps `margin` on every side.
+		 */
+		marginBottom: {
+			type: Number,
+			default: null,
+		},
+
 		/** Minimum widget width in grid units */
 		minWidth: {
 			type: Number,
@@ -860,6 +869,7 @@ export default {
 				column: this.columns,
 				cellHeight: this.cellHeight / this.rowSplit,
 				margin: this.margin,
+				...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
 				float: this.float,
 				animate: true,
 				disableDrag: !this.editable,
