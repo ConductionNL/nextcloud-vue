@@ -157,6 +157,8 @@ export default {
 		cnObjectContext: { default: null },
 		/** The records the detail page reads beside its record, for `@context.<name>` in `suggestFrom`. */
 		cnDetailVisibilityRows: { default: null },
+		/** The host app's translate, for the manifest-written placeholder. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -279,14 +281,19 @@ export default {
 		},
 
 		/**
-		 * The placeholder in the board look (`content.placeholder`, else the label).
+		 * The placeholder in the board look (`content.placeholder`, else the
+		 * label). The manifest writes it, so it reads through the host app's
+		 * catalogue.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/kb-search-board-rows/specs/kb-search-board-rows/spec.md#requirement-the-manifest-placeholder-reads-in-the-readers-language
 		 */
 		placeholder() {
-			return typeof this.content.placeholder === 'string' && this.content.placeholder !== ''
-				? this.content.placeholder
-				: this.searchLabel
+			const written = this.content.placeholder
+			if (typeof written !== 'string' || written === '') {
+				return this.searchLabel
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(written) : written
 		},
 
 		searchLabel() {
@@ -554,6 +561,29 @@ export default {
 
 .cn-kb-search-widget__result-title:hover {
 	color: var(--color-primary-element);
+}
+
+/* A board suggestion is a link row, its book icon before the title
+   (PqKlant / PqOrganisatie Kennisbank), not a bordered card. */
+.cn-kb-search-widget--board .cn-kb-search-widget__suggestions .cn-kb-search-widget__result {
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	background: transparent;
+}
+
+.cn-kb-search-widget--board .cn-kb-search-widget__suggestions .cn-kb-search-widget__result-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 400;
+	text-decoration: underline;
+}
+
+.cn-kb-search-widget--board .cn-kb-search-widget__result-icon {
+	flex: none;
 }
 
 .cn-kb-search-widget__result-snippet {
