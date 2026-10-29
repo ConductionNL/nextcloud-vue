@@ -12,6 +12,7 @@
 		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
 		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
+		:layout="layout"
 		:nodeLook="nodeLook"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:saveAsVersion="saveAsVersion"
@@ -193,8 +194,9 @@ export default {
 		},
 
 		/**
-		 * Board look: which of `trigger`, `steps` and `version` the path names
-		 * after the flow, in that order. Manifest key `config.metaParts`.
+		 * Board look: which of `trigger`, `steps`, `version` and `saved` the
+		 * path names after the flow, in that order. Manifest key
+		 * `config.metaParts`.
 		 */
 		metaParts: {
 			type: Array,
@@ -247,6 +249,17 @@ export default {
 		breadcrumb: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun
+		 * draw it (actions under the title, the canvas without a frame, a
+		 * floating inspector); `cards` keeps the DqFlow grid. Manifest key
+		 * `config.layout`.
+		 */
+		layout: {
+			type: String,
+			default: 'cards',
 		},
 	},
 

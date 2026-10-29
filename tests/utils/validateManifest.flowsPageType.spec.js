@@ -26,6 +26,19 @@ function manifestWithPage(page) {
 }
 
 describe('page type — flows / flow-detail', () => {
+	it('accepts a flow page laid out as a canvas, and refuses an unknown layout word', () => {
+		const page = (layout) => manifestWithPage({
+			id: 'FlowDetail',
+			route: '/flows/:id',
+			type: 'flow',
+			title: 'Flow',
+			config: { app: 'pipelinq', layout, metaParts: ['trigger', 'steps', 'version', 'saved'] },
+		})
+		expect(validateManifestV2(page('canvas')).valid).toBe(true)
+		expect(validateManifestV2(page('cards')).valid).toBe(true)
+		expect(validateManifestV2(page('grid')).valid).toBe(false)
+	})
+
 	it('accepts a flows page scoped to an app', () => {
 		const r = validateManifestV2(manifestWithPage({
 			id: 'Flows',

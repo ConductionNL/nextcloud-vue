@@ -374,9 +374,18 @@
 							"items": { "$ref": "#/$defs/widgetRefItem" }
 						},
 						"layout": {
-							"type": "array",
-							"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
-							"items": { "$ref": "#/$defs/layoutItem" }
+							"oneOf": [
+								{
+									"type": "array",
+									"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
+									"items": { "$ref": "#/$defs/layoutItem" }
+								},
+								{
+									"type": "string",
+									"enum": ["cards", "canvas"],
+									"description": "type='flow' / 'flow-detail' in the board look: `canvas` draws the page as boards PqFlow and PqFlowRun do; `cards` (default) keeps the DqFlow grid."
+								}
+							]
 						},
 						"pageFilters": {
 							"type": "array",
