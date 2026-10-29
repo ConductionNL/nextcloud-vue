@@ -72,7 +72,7 @@
 				"CnActionDialog",
 				"CnIndexPage"
 			],
-			"page": null
+			"page": "cn-action-tiles-widget"
 		},
 		"CnActionsBar": {
 			"direct": 0,
