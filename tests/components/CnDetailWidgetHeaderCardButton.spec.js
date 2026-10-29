@@ -1,3 +1,4 @@
+const { mount } = require('@vue/test-utils')
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -11,7 +12,6 @@
  */
 const fs = require('fs')
 const path = require('path')
-const { mount } = require('@vue/test-utils')
 const CnDetailWidgetHeaderItems = require('../../src/components/CnDetailWidgetHost/CnDetailWidgetHeaderItems.vue').default
 const CnDetailWidgetHost = require('../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue').default
 
