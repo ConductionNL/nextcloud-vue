@@ -1199,8 +1199,11 @@
 }
 
 /* A side card whose widget reports a header action (screens-relation-pages:
-   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button. */
-.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action) {
+   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button,
+   also as the outlined card button.
+   @spec openspec/changes/header-item-card-button/specs/header-item-card-button/spec.md#requirement-a-side-card-shows-its-card-button */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action),
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items__card-button) {
 	display: flex;
 }
 

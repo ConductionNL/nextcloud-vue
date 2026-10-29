@@ -22,7 +22,7 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 In card chrome outside a body grid cell (the side column, a tab stack), a widget from the app's `cnRegistry` whose entry asks for it with `chrome: "card"` (`cnRegistry['case-map'] = { component, chrome: 'card' }`) is drawn in the same titled card a catalog widget gets: the definition's `title` and `icon`, no Actions menu. Without it the widget is drawn as is, which suits a widget that draws its own card. A body grid cell draws its own card, so CnDetailPage passes `inGridCell` and the widget stays bare there.
 
-A widget in that card, or a built-in card widget, fills the card's title row by emitting `header` with `{ note?, pill?, action?, actions?, link? }`: a note ("3 open"), a status pill and its actions, each `{ label, icon?, run }`, drawn after the title in order (`action` first). This is how the first card of a tab stack draws "Taak toevoegen" and "Alles tonen" beside its title (DqZaak).
+A widget in that card, or a built-in card widget, fills the card's title row by emitting `header` with `{ note?, pill?, action?, actions?, link? }`: a note ("3 open"), a status pill and its actions, each `{ label, icon?, run }`, drawn after the title in order (`action` first). This is how the first card of a tab stack draws "Taak toevoegen" and "Alles tonen" beside its title (DqZaak). An action with `variant: "secondary"` is the card's outlined button (an `ariaLabel` names it more fully than a short label such as "Add"); give it `items: [{ label, run }]` in place of `run` and it opens a menu of those items (PqKlant Contactkanalen "Toevoegen").
 
 ## An app's own widget takes its props from the manifest
 
