@@ -11,7 +11,7 @@ Register it in a manifest as the `action-tiles` dashboard widget type:
   "content": {
     "tiles": [
       { "id": "note", "label": "Add a note", "icon": "NoteEditOutline", "action": { "type": "open-form", "schema": "note", "createDefaults": { "client": "@workspace.client" } } },
-      { "id": "ticket", "label": "Open a ticket", "icon": "TicketOutline", "action": { "type": "open-form", "schema": "ticket" }, "visibleWhen": { "workspace": "client", "op": "set" } }
+      { "id": "ticket", "label": "Open a ticket", "icon": "TicketOutline", "action": { "type": "open-form", "schema": "ticket" }, "visibleWhen": { "workspace": "client", "op": "notEmpty" } }
     ]
   }
 }
