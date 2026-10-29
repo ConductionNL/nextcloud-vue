@@ -25,6 +25,8 @@
  * else in the suggestion flow needs to change.
  */
 
+import { stripTrailingSlashes } from './trailingSlashes.js'
+
 /**
  * Default host per forge type. `forgejo`/`gitea` are self-hosted, so they
  * have no canonical public host — a `baseUrl` MUST be supplied for those.
@@ -101,7 +103,7 @@ export function resolveForge(forge) {
 	const baseUrl = (forge && forge.baseUrl)
 		|| FORGE_DEFAULT_BASE_URLS[type]
 		|| DEFAULT_FORGE.baseUrl
-	return { type, baseUrl: baseUrl.replace(/\/+$/, '') }
+	return { type, baseUrl: stripTrailingSlashes(baseUrl) }
 }
 
 /**

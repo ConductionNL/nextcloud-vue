@@ -1486,7 +1486,7 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

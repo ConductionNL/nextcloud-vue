@@ -28,4 +28,8 @@ describe('look-board.css: a table on a dashboard card', () => {
 	it('pads its pager 12px at the top only', () => {
 		expect(rule(card + ' .cn-table-container--board .cn-pagination.cn-pagination--board')).toContain('padding: 12px 0 0;')
 	})
+
+	it('stands its pager rule 12px under the table, as the card gap (DqDoorlooptijd pager y -10.2)', () => {
+		expect(rule(card + ' .cn-table-container--board .cn-pagination.cn-pagination--board')).toContain('margin: 12px 0 0;')
+	})
 })

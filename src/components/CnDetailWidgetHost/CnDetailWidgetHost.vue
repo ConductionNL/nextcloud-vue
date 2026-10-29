@@ -1585,6 +1585,27 @@ export default {
 			return title ? { titleLabel: title } : {}
 		},
 
+		/**
+		 * An integration widget's `labels` (prop name to text), translated in
+		 * the host's language: a leaf cannot translate the host app's words.
+		 *
+		 * @return {object} Prop name to translated text.
+		 * @spec openspec/changes/leaf-labels-in-the-host-language/specs/leaf-labels-in-the-host-language/spec.md#requirement-an-integration-widget-gives-its-leaf-labels-in-the-hosts-language
+		 */
+		leafLabels() {
+			const labels = this.widget?.labels
+			if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+				return {}
+			}
+			const out = {}
+			for (const [prop, text] of Object.entries(labels)) {
+				if (typeof text === 'string') {
+					out[prop] = this.translateLabel(text)
+				}
+			}
+			return out
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
@@ -1599,6 +1620,7 @@ export default {
 				// the tabs card, repeating the label the open tab already shows.
 				...(this.usesBareWidget ? { chromeless: true } : {}),
 				...this.derivedIntegrationContext,
+				...this.leafLabels,
 				...this.resolvedWidgetProps,
 			}
 		},
@@ -1618,6 +1640,7 @@ export default {
 				// reads `integrationContext.objectId` gets the same object as
 				// one that reads `objectId`.
 				integrationContext: this.widgetIntegrationContext,
+				...this.leafLabels,
 				...this.resolvedWidgetProps,
 				// A carded leaf reports its title row and empty state here.
 				...(this.wrapsMountLeaf ? { onHeader: this.onRendererHeader } : {}),

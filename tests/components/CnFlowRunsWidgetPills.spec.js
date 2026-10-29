@@ -150,6 +150,16 @@ describe('CnFlowRunsWidget status pills', () => {
 		expect(w.classes()).toContain('cn-flow-runs-widget--pills')
 	})
 
+	it('draws no empty live list above the finished runs, so they start right under the title', () => {
+		const w = mountWidget({
+			content: board,
+			completed: { results: [doneRun()], total: 1 },
+		})
+		const lists = w.findAll('.cn-flow-runs-widget__list')
+		expect(lists).toHaveLength(1)
+		expect(lists.at(0).findAll('.cn-flow-runs-widget__row--terminal')).toHaveLength(1)
+	})
+
 	it('gives a failed run the error tone and keeps the status out of the meta line', () => {
 		const w = mountWidget({
 			content: { ...board, triggerLabels: {} },

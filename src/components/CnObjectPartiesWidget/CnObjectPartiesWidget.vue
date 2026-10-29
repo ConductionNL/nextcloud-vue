@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-object-parties" :class="{ 'cn-object-parties--board': isBoard }" data-testid="cn-object-parties">
-		<div v-if="canAdd" class="cn-object-parties__manage">
+		<div v-if="canAdd && !addInTitle" class="cn-object-parties__manage">
 			<NcButton data-testid="cn-object-parties-add" @click="adding = true">
 				<template #icon>
 					<Plus :size="20" />
@@ -300,13 +300,15 @@ function defaultLabels() {
  *
  * `manage` lets a reader change the parties through OpenRegister's party
  * API, which asks the record's update right on every write: `add` (`{ label?,
- * dialogTitle?, kind?, sources, create?, primary?, confirmLabel? }`) opens a
+ * dialogTitle?, kind?, sources, create?, primary?, confirmLabel?, placement? }`) opens a
  * dialog to pick somebody known or describe somebody new (`create: {
  * register, schema, label?, fields, compose? }`, see `newPartyRecord`), choose
  * a role and optionally make them the primary party; `remove` (`{ title?,
  * message?, confirmLabel? }`, `{name}` and `{role}` in the message) takes a
  * party off in one role. Both are hidden when OpenRegister says the reader
- * may not update the schema; a refusal is shown, never swallowed.
+ * may not update the schema; a refusal is shown, never swallowed. With
+ * `add.placement: "title"` the add button is reported to the card's title
+ * row (the `header` event) instead of drawn above the parties.
  *
  * `presentation: "primary"` draws only the primary party, as a side card
  * does: initials, name and role label, its correspondence e-mail, and
@@ -368,6 +370,8 @@ export default {
 		},
 	},
 
+	emits: ['header'],
+
 	data() {
 		uid += 1
 		return {
@@ -407,6 +411,27 @@ export default {
 		/** @return {boolean} Whether the add button shows. */
 		canAdd() {
 			return Boolean(this.manage.add) && this.mayUpdate && !this.isPrimaryPresentation && !this.loading && !this.failed
+		},
+
+		/** @return {boolean} Whether the add button goes to the card's title row. */
+		addInTitle() {
+			return this.manage.add?.placement === 'title'
+		},
+
+		/**
+		 * The title-row actions: the add button when it is placed there.
+		 *
+		 * @spec openspec/changes/parties-add-in-title-row/specs/record-widgets/spec.md#requirement-a-parties-card-can-put-its-add-button-in-the-title-row
+		 * @return {Array<object>} The actions.
+		 */
+		titleActions() {
+			if (!(this.addInTitle && this.canAdd)) {
+				return []
+			}
+			const run = () => {
+				this.adding = true
+			}
+			return [{ key: 'add', label: this.manageWord('add', 'label', t('nextcloud-vue', 'Add a party')), icon: 'Plus', variant: 'secondary', run }]
 		},
 
 		/** @return {boolean} Whether each party offers its remove button. */
@@ -547,6 +572,18 @@ export default {
 	},
 
 	watch: {
+		titleActions: {
+			immediate: true,
+			handler(actions) {
+				if (this.addInTitle) {
+					/**
+					 * @event header The card's title-row actions, `{ actions }`, for the host to draw.
+					 */
+					this.$emit('header', { actions })
+				}
+			},
+		},
+
 		recordKey: {
 			immediate: true,
 			handler() {

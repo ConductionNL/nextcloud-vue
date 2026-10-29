@@ -303,6 +303,34 @@ export function firstFilled(templates, object, translate = (key) => key, now = n
 }
 
 /**
+ * Split a template into literal, field, literal, … as
+ * `template.split(/\{([^}]+)\}/)` does, in one linear pass.
+ *
+ * @param {string} template The template, with `{field}` placeholders.
+ * @return {string[]} The literals at even indexes, the field names at odd ones.
+ */
+function splitFields(template) {
+	const parts = []
+	let literalStart = 0
+	let open = template.indexOf('{')
+	while (open !== -1) {
+		const close = template.indexOf('}', open + 1)
+		if (close === -1) {
+			break
+		}
+		if (close === open + 1) {
+			open = template.indexOf('{', close + 1)
+			continue
+		}
+		parts.push(template.slice(literalStart, open), template.slice(open + 1, close))
+		literalStart = close + 1
+		open = template.indexOf('{', literalStart)
+	}
+	parts.push(template.slice(literalStart))
+	return parts
+}
+
+/**
  * Fill a template such as `"{identifier} · {requester}"` field by field
  * (a table column's `secondary` line, a detail page's meta line).
  *
@@ -319,8 +347,7 @@ export function firstFilled(templates, object, translate = (key) => key, now = n
  * @return {string} The filled template.
  */
 export function joinTemplateParts(template, valueOf) {
-	// split() with a capture group alternates literal, field, literal, …
-	const parts = template.split(/\{([^}]+)\}/)
+	const parts = splitFields(template)
 	const lead = parts[0]
 	const tail = parts[parts.length - 1]
 	let body = ''
