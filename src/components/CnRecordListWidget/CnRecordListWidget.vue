@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -263,13 +263,19 @@
 								:label="item.pill.label"
 								:variant="item.pill.variant"
 								size="small" />
-							<CnStatusBadge
-								v-for="badge in item.badges"
-								:key="badge.key"
-								:label="badge.label"
-								:variant="badge.variant"
-								size="small"
-								:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							<template v-for="badge in item.badges" :key="badge.key">
+								<span
+									v-if="badge.look === 'text'"
+									class="cn-record-list__badge-text"
+									:class="`cn-record-list__badge-text--${badge.variant}`"
+									:data-testid="`cn-record-list-badge-${badge.kind}`">{{ badge.label }}</span>
+								<CnStatusBadge
+									v-else
+									:label="badge.label"
+									:variant="badge.variant"
+									size="small"
+									:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							</template>
 						</span>
 						<span
 							v-if="item.due"
@@ -346,13 +352,19 @@
 								:label="item.pill.label"
 								:variant="item.pill.variant"
 								size="small" />
-							<CnStatusBadge
-								v-for="badge in item.badges"
-								:key="badge.key"
-								:label="badge.label"
-								:variant="badge.variant"
-								size="small"
-								:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							<template v-for="badge in item.badges" :key="badge.key">
+								<span
+									v-if="badge.look === 'text'"
+									class="cn-record-list__badge-text"
+									:class="`cn-record-list__badge-text--${badge.variant}`"
+									:data-testid="`cn-record-list-badge-${badge.kind}`">{{ badge.label }}</span>
+								<CnStatusBadge
+									v-else
+									:label="badge.label"
+									:variant="badge.variant"
+									size="small"
+									:data-testid="`cn-record-list-badge-${badge.kind}`" />
+							</template>
 							<span
 								v-if="item.due && !dueBelow"
 								class="cn-record-list__due"
@@ -432,13 +444,19 @@
 									:label="item.pill.label"
 									:variant="item.pill.variant"
 									size="small" />
-								<CnStatusBadge
-									v-for="badge in item.badges"
-									:key="badge.key"
-									:label="badge.label"
-									:variant="badge.variant"
-									size="small"
-									:data-testid="`cn-record-list-badge-${badge.kind}`" />
+								<template v-for="badge in item.badges" :key="badge.key">
+									<span
+										v-if="badge.look === 'text'"
+										class="cn-record-list__badge-text"
+										:class="`cn-record-list__badge-text--${badge.variant}`"
+										:data-testid="`cn-record-list-badge-${badge.kind}`">{{ badge.label }}</span>
+									<CnStatusBadge
+										v-else
+										:label="badge.label"
+										:variant="badge.variant"
+										size="small"
+										:data-testid="`cn-record-list-badge-${badge.kind}`" />
+								</template>
 							</span>
 						</span>
 						<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
@@ -2775,15 +2793,17 @@ export default {
 
 		/**
 		 * The row's extra badges (`badges`): a coloured badge from a field
-		 * (`{ field, labels?, colorMap?, variant?, hideValues? }`, the value
-		 * shown unless `hideValues` lists it) and an age badge
+		 * (`{ field, labels?, colorMap?, variant?, hideValues?, look? }`, the
+		 * value shown unless `hideValues` lists it; `look: "text"` draws its
+		 * words in its tone without a ground) and an age badge
 		 * (`{ kind: "stale", field, afterDays, label?, variant? }`, shown when the
 		 * date field is older than `afterDays` whole days; `{days}` in the
 		 * label is the age).
 		 *
 		 * @param {object} row The row.
-		 * @return {Array<{key: string, kind: string, label: string, variant: string}>} The badges that apply.
+		 * @return {Array<{key: string, kind: string, label: string, variant: string, look?: string}>} The badges that apply.
 		 * @spec openspec/changes/screens-record-list-badges/specs/record-list-badges/spec.md#requirement-a-record-list-row-can-carry-badges
+		 * @spec openspec/changes/record-list-board-chevron-and-text-badges/specs/record-list/spec.md
 		 */
 		badgesOf(row) {
 			const declared = Array.isArray(this.content?.badges) ? this.content.badges : []
@@ -2816,7 +2836,7 @@ export default {
 				}
 				const made = this.pillOf(row, badge)
 				if (made) {
-					out.push({ key: `field-${index}`, kind: 'field', ...made })
+					out.push({ key: `field-${index}`, kind: 'field', ...made, look: badge.look === 'text' ? 'text' : '' })
 				}
 			})
 			return out
@@ -3732,6 +3752,29 @@ export default {
 .cn-record-list__action:hover,
 .cn-record-list__action:focus-visible {
 	background: var(--color-primary-element-light-hover, var(--color-primary-element-light));
+}
+
+/* A badge with `look: "text"`: its words in its tone, no ground (PqMijnWerk
+   "Normaal priority", "Hoog priority"). */
+.cn-record-list__badge-text {
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__badge-text--error {
+	font-weight: 700;
+	color: var(--color-error-text);
+}
+
+.cn-record-list__badge-text--warning {
+	font-weight: 700;
+	color: var(--color-warning-text);
+}
+
+.cn-record-list__badge-text--success {
+	color: var(--color-success-text);
 }
 
 .cn-record-list__chevron {

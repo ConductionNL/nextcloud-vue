@@ -3369,8 +3369,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
-/* The board draws no chevron after the pill and date. */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__chevron {
+/* The board draws no chevron after the pill and date, unless the list asks
+   for it (`chevron: true`: PqMijnWerk, DqMijnWerk "Verder werken"). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list:not(.cn-record-list--chevron) .cn-record-list__chevron {
 	display: none;
 }
 
