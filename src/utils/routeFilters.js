@@ -135,3 +135,28 @@ export function resolveQueryFilters(query, ctx) {
 	}
 	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
 }
+
+/**
+ * The default filters that hold while an address names filters of its own:
+ * the `held` keys of `defaults` that the address does not name itself. A link
+ * to one case type keeps "open cases only"; a link that names that key wins.
+ *
+ * @param {object|null} defaults The page's `defaultFilters`.
+ * @param {Array<string>|null} held The page's `heldDefaultFilters`.
+ * @param {Array<string>} namedKeys The filter keys the address names.
+ *
+ * @return {object} The held subset of `defaults`, tokens unresolved.
+ * @spec openspec/changes/index-held-default-filters/specs/index-page/spec.md#requirement-a-held-default-filter-stays-under-a-links-own-filters
+ */
+export function heldDefaultFilters(defaults, held, namedKeys) {
+	if (!defaults || typeof defaults !== 'object' || !Array.isArray(held)) {
+		return {}
+	}
+	const out = {}
+	for (const key of held) {
+		if (Object.hasOwn(defaults, key) && !namedKeys.includes(key)) {
+			out[key] = defaults[key]
+		}
+	}
+	return out
+}
