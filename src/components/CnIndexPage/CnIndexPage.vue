@@ -11759,26 +11759,37 @@ export default {
 
 		/**
 		 * The field an Active chip names: the page's `filterLabels` label, the
-		 * schema property's title, the sidebar field's title, else the key.
+		 * schema property's title, the sidebar field's title, the column's
+		 * label, else the key. An operator key (`address[like]`) names its
+		 * field (`address`) unless `filterLabels` names the whole key.
 		 *
 		 * @param {string} key The filter key.
 		 * @return {string} The translated field name.
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
 		activeFilterFieldLabel(key) {
-			const named = this.filterLabels && this.filterLabels[key]
+			const whole = this.filterLabels && this.filterLabels[key]
+			if (whole && typeof whole.label === 'string' && whole.label !== '') {
+				return this.cnTranslate(whole.label)
+			}
+			const field = /^(.+)\[[a-z]+\]$/.exec(key)?.[1] ?? key
+			const named = this.filterLabels && this.filterLabels[field]
 			if (named && typeof named.label === 'string' && named.label !== '') {
 				return this.cnTranslate(named.label)
 			}
-			const prop = this.effectiveSchema?.properties?.[key]
+			const prop = this.effectiveSchema?.properties?.[field]
 			if (prop && typeof prop.title === 'string' && prop.title !== '') {
 				return this.cnTranslate(prop.title)
 			}
-			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
-			if (field && typeof field.title === 'string' && field.title !== '') {
-				return this.cnTranslate(field.title)
+			const declared = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[field]
+			if (declared && typeof declared.title === 'string' && declared.title !== '') {
+				return this.cnTranslate(declared.title)
 			}
-			return this.cnTranslate(key)
+			const column = (Array.isArray(this.columns) ? this.columns : []).find((col) => col && typeof col === 'object' && col.key === field)
+			if (column && typeof column.label === 'string' && column.label !== '') {
+				return this.cnTranslate(column.label)
+			}
+			return this.cnTranslate(field)
 		},
 
 		/**
