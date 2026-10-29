@@ -16,8 +16,8 @@ jest.mock('@nextcloud/event-bus', () => ({ __esModule: true, emit: jest.fn(), su
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url, params = {}) => url.replace(/\{(\w+)\}/g, (_m, k) => params[k] ?? `{${k}}`) }))
 
 import { mount } from '@vue/test-utils'
-
 import { registerTranslations } from '../../src/l10n/index.js'
+
 import '../../src/components/CnObjectPartiesWidget/index.js'
 
 const CnObjectPartiesWidget = require('../../src/components/CnObjectPartiesWidget/CnObjectPartiesWidget.vue').default
