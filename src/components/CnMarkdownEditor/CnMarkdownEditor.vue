@@ -60,6 +60,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
+import { guardedToastUiEditorClass } from '../../utils/toastUiRawHtmlGuard.js'
 import { toastUiSanitizer } from '../../utils/toastUiSanitizer.js'
 
 /**
@@ -394,7 +395,11 @@ export default {
 				if (!el) {
 					return
 				}
-				this.toastEditor = new Editor({
+				// customHTMLSanitizer does not reach Toast UI's raw HTML
+				// converters, paste or setHTML; the guarded class routes those
+				// through DOMPurify 3 as well (see utils/toastUiRawHtmlGuard.js).
+				const GuardedEditor = guardedToastUiEditorClass(Editor)
+				this.toastEditor = new GuardedEditor({
 					el,
 					...this.wysiwygOptions,
 					initialValue: this.localValue,
