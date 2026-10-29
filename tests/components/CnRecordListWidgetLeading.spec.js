@@ -4,7 +4,7 @@
  *
  * A `rows` record list can lead each row with a short text before the title,
  * as board PtDashboard draws "Recente inzendingen": the time of day in a
- * column of its own ("09.15"), then the title and its meta, then the pill.
+ * column of its own ("09:15"), then the title and its meta, then the pill.
  *
  * @spec openspec/changes/record-list-leading/specs/record-list-leading/spec.md#requirement-a-record-list-row-can-lead-with-a-short-text
  */

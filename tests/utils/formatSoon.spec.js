@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * When something is due, as PqDashboard's Terugbelverzoeken says it: the time
- * today ("13.00"), "morgen", the weekday later this week ("woensdag"), then
+ * today ("13:00"), "morgen", the weekday later this week ("woensdag"), then
  * the board's short date.
  *
  * @spec openspec/changes/soon-date-format/specs/soon-date-format/spec.md#requirement-a-template-reads-a-coming-moment-as-when-it-is-due
@@ -27,7 +27,7 @@ afterAll(() => setL10n('en', 'en'))
 describe('formatSoon', () => {
 	it('reads the time today, tomorrow, the weekday this week, then the short date', () => {
 		setL10n('nl', 'nl')
-		expect(formatSoon(at(0, 13), NOW)).toBe('13.00')
+		expect(formatSoon(at(0, 13), NOW)).toBe('13:00')
 		expect(formatSoon(at(1, 10), NOW)).toBe('morgen')
 		expect(formatSoon(at(2, 11), NOW)).toBe('woensdag')
 		expect(formatSoon(at(6, 11), NOW)).toBe('zondag')
@@ -36,7 +36,7 @@ describe('formatSoon', () => {
 
 	it('reads an earlier moment today as its time, and an earlier day as its short date', () => {
 		setL10n('nl', 'nl')
-		expect(formatSoon(at(0, 8, 15), NOW)).toBe('08.15')
+		expect(formatSoon(at(0, 8, 15), NOW)).toBe('08:15')
 		expect(formatSoon(at(-1, 16), NOW)).toBe('gisteren')
 		expect(formatSoon(at(-3, 16), NOW)).toBe('2 okt')
 	})
