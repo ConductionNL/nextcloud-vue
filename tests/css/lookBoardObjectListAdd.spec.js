@@ -32,7 +32,7 @@ describe('a list card\'s Add', () => {
 	it('leaves the empty state\'s own Add out of a board-look catalog card', () => {
 		const body = bodyOf(detail, '.cn-look-board .cn-detail-page__catalog-card:not(.cn-look-nextcloud *) .cn-widget-empty-state__action:has(> .cn-object-list-widget__empty-add)')
 		expect(body).toContain('display: none;')
-		expect(widget).toContain('<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">')
+		expect(widget).toMatch(/<NcButton class="cn-object-list-widget__empty-add"[^>]*@click="openCreate">/)
 	})
 
 	it('keeps the empty state\'s Add in the Nextcloud look', () => {
