@@ -1916,13 +1916,18 @@
 }
 
 /* Install and Update are soft pills in the light primary tint, without an
-   edge; Open keeps the outlined button. */
+   edge; Open keeps the outlined button. NcButton redefines the light primary
+   inside the button, so the tint comes from the body (main.css). */
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue {
 	padding: 0 14px;
 	border: 0;
 	border-radius: 17px;
-	background: var(--color-primary-element-light);
-	color: var(--color-primary-element-light-text);
+	background-color: var(--cn-tonal-bg, var(--color-primary-element-light));
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
+}
+
+.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue .button-vue__text {
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
 }
 
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue:hover:not(:disabled) {
@@ -1986,7 +1991,7 @@
 }
 
 .cn-look-board .cn-store-page__lenses > .cn-store-page__lens--active {
-	border-color: var(--color-main-text);
+	border-width: 0;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
