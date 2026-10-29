@@ -7,6 +7,7 @@
  * quick filters, the channel in this strip).
  *
  * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
+ * @spec openspec/changes/filter-strip-option-values/specs/index-filter-strip/spec.md#requirement-a-filter-strip-pill-can-gather-several-values
  */
 var mockCounts = jest.fn()
 
@@ -82,6 +83,21 @@ describe('CnIndexPage filterStrip', () => {
 		expect(w.emitted('filter-change')).toEqual([[{ key: 'channel', values: ['desk'] }], [{ key: 'channel', values: [] }]])
 	})
 
+	it('gathers several stored values under one pill: counts, presses and filters on all of them', async () => {
+		const w = await mountPage({
+			schema: 'ticket',
+			activeFilters: { channel: ['telefoon', 'phone'] },
+			filterStrip: { field: 'channel', options: [{ values: ['phone', 'telefoon'], label: 'Telefoon' }, { value: 'email', label: 'E-mail' }], showCount: true },
+		})
+		expect(pills(w)).toEqual(['All 9', 'Telefoon 5', 'E-mail 2'])
+		const last = mockCounts.mock.calls[mockCounts.mock.calls.length - 1][0]
+		expect(last.entries).toEqual([{ key: 'all', filter: {} }, { key: 'v0', filter: { channel: ['phone', 'telefoon'] } }, { key: 'v1', filter: { channel: 'email' } }])
+		expect(w.find('[data-testid="cn-index-filter-strip-v0"]').attributes('aria-pressed')).toBe('true')
+		await w.find('[data-testid="cn-index-filter-strip-v1"]').trigger('click')
+		await w.find('[data-testid="cn-index-filter-strip-v0"]').trigger('click')
+		expect(w.emitted('filter-change')).toEqual([[{ key: 'channel', values: ['email'] }], [{ key: 'channel', values: ['phone', 'telefoon'] }]])
+	})
+
 	it('is a manifest key', () => {
 		const manifest = (filterStrip) => ({
 			$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
@@ -91,5 +107,7 @@ describe('CnIndexPage filterStrip', () => {
 		})
 		expect(validateManifestV2(manifest({ field: 'channel', showCount: true, options: [{ value: 'web', label: 'Web' }] })).valid).toBe(true)
 		expect(validateManifestV2(manifest({ showCount: true })).valid).toBe(false)
+		expect(validateManifestV2(manifest({ field: 'channel', options: [{ values: ['phone', 'telefoon'], label: 'Telefoon' }] })).valid).toBe(true)
+		expect(validateManifestV2(manifest({ field: 'channel', options: [{ label: 'Telefoon' }] })).valid).toBe(false)
 	})
 })
