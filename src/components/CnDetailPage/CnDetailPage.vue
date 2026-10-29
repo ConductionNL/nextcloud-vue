@@ -920,6 +920,7 @@
 				:columns="12"
 				:columnOpts="bodyColumnOpts"
 				:float="gridFloat"
+				:marginBottom="isBoard ? 8 : null"
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
