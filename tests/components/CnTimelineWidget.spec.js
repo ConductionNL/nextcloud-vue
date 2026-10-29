@@ -130,6 +130,27 @@ describe('CnTimelineWidget', () => {
 		expect(wrapper.text()).toContain('Deposit cleared')
 	})
 
+	it('words a list entry\'s stored value through the list\'s valueLabels', async () => {
+		const withHistory = {
+			...booking,
+			statusHistory: [
+				{ status: 'pending-deposit', changedAt: '2026-09-01T09:14:00Z' },
+				{ status: 'confirmed', changedAt: '2026-09-01T09:17:00Z' },
+				{ status: 'no-show', changedAt: '2026-09-02T09:17:00Z' },
+			],
+		}
+		const wrapper = mountWidget({
+			lists: [{
+				field: 'statusHistory',
+				dateField: 'changedAt',
+				labelField: 'status',
+				valueLabels: { 'pending-deposit': 'Status: Awaiting deposit', confirmed: 'Status: Confirmed' },
+			}],
+		}, { object: withHistory })
+		await flushPromises()
+		expect(labels(wrapper)).toEqual(['Status: Awaiting deposit', 'Status: Confirmed', 'no-show'])
+	})
+
 	it('says which part failed instead of showing a shorter history as complete', async () => {
 		axios.get.mockRejectedValue(new Error('down'))
 		const wrapper = mountWidget({ fields, auditTrail: true }, { object: booking })
