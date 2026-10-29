@@ -458,25 +458,13 @@
 
 		<!-- A second filter strip on one field (`filterStrip`), under the
 		     toolbar: "All" and one pill per value, each with its count within
-		     the active quick filter (board PqWachtrij: "Soort, dan kanaal"). -->
-		<div
-			v-if="filterStripEntries.length > 0"
-			class="cn-index-page__filter-strip"
-			role="group"
-			:aria-label="filterStripLabel"
-			data-testid="cn-index-filter-strip">
-			<button
-				v-for="entry in filterStripEntries"
-				:key="entry.key"
-				type="button"
-				class="cn-index-page__filter-strip-pill"
-				:class="{ 'cn-index-page__filter-strip-pill--active': entry.active }"
-				:aria-pressed="entry.active ? 'true' : 'false'"
-				:data-testid="`cn-index-filter-strip-${entry.key}`"
-				@click="onFilterStripPick(entry.values || entry.value)">
-				<span>{{ entry.label }}</span> <span v-if="entry.count !== null" class="cn-index-page__filter-strip-count">{{ entry.count }}</span>
-			</button>
-		</div>
+		     the active quick filter. With `quickFilterPlacement: "card"` it is
+		     in the list card instead. -->
+		<CnIndexFilterStrip
+			v-if="filterStripEntries.length > 0 && !lensesInCard"
+			:entries="filterStripEntries"
+			:label="filterStripLabel"
+			@pick="onFilterStripPick" />
 
 		<!-- Header actions of `type: "open-form"` or `"open-modal"`: this
 		     instance draws nothing and owns the create dialog, as on a detail
@@ -774,6 +762,35 @@
 					'cn-index-page__main--titled': tableTitleShown,
 				}"
 				@scroll="onListScroll">
+				<!-- `quickFilterPlacement: "card"` (board PqWachtrij): the lenses as a
+				     segmented control at the top of the list card, the caption beside
+				     them and the filter strip under them. -->
+				<div v-if="lensesInCard" class="cn-index-page__card-lenses" data-testid="cn-index-card-lenses">
+					<div class="cn-index-page__card-lenses-row">
+						<CnQuickFilterBar
+							v-if="quickFilterMultiple"
+							inline
+							:tabs="tabStripEntries"
+							:fit="false"
+							multiple
+							:selectedIndices="selectedQuickFilterIndices"
+							:counts="effectiveTabCounts"
+							@update:selectedIndices="onQuickFilterMultiChange" />
+						<CnSegmentedControl
+							v-else
+							class="cn-index-page__card-lenses-control"
+							:options="cardLensOptions"
+							:modelValue="shownQuickFilterIndex"
+							:ariaLabel="t('nextcloud-vue', 'Quick filters')"
+							@update:modelValue="onQuickFilterChange" />
+						<span v-if="quickFilterCaption" class="cn-index-page__card-lenses-caption" data-testid="cn-index-card-lenses-caption">{{ cnTranslate(quickFilterCaption) }}</span>
+					</div>
+					<CnIndexFilterStrip
+						v-if="filterStripEntries.length > 0"
+						:entries="filterStripEntries"
+						:label="filterStripLabel"
+						@pick="onFilterStripPick" />
+				</div>
 				<!-- The table card's own title (board PqInloop "In de wachtrij"). -->
 				<h2 v-if="tableTitleShown" class="cn-index-page__table-title" data-testid="cn-index-page-table-title">
 					{{ cnTranslate(tableTitle) }}
@@ -1557,6 +1574,8 @@ import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
+import CnIndexFilterStrip from './CnIndexFilterStrip.vue'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
 import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
@@ -1966,6 +1985,8 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnPageHeader,
 		CnQuickFilterBar,
+		CnSegmentedControl,
+		CnIndexFilterStrip,
 		CnActionButtons,
 		CnActionsBar,
 		DotsHorizontal,
@@ -2752,19 +2773,35 @@ export default {
 		 * `'active'` draws no tabs: a chosen tab with an `activeLabel` shows
 		 * only on the Active line, where it can be removed
 		 * (DqAanMijToegewezen).
+		 * `'card'` draws them as a segmented control at the top of the list
+		 * card, with `quickFilterCaption` beside them and the `filterStrip`
+		 * under them (PqWachtrij).
 		 *
-		 * @type {''|'toolbar'|'row'|'active'}
+		 * @type {''|'toolbar'|'row'|'active'|'card'}
+		 * @spec openspec/changes/index-lenses-in-list-card/specs/index-lenses-in-list-card/spec.md#requirement-the-quick-filters-can-sit-in-the-list-card
 		 */
 		quickFilterPlacement: {
 			type: String,
 			default: '',
-			validator: (v) => ['', 'toolbar', 'row', 'active'].includes(v),
+			validator: (v) => ['', 'toolbar', 'row', 'active', 'card'].includes(v),
+		},
+
+		/**
+		 * A short text beside the lenses in the list card (manifest
+		 * `config.quickFilterCaption`, PqWachtrij "Soort, dan kanaal"). Only
+		 * drawn with `quickFilterPlacement: "card"`.
+		 *
+		 * @spec openspec/changes/index-lenses-in-list-card/specs/index-lenses-in-list-card/spec.md#requirement-the-quick-filters-can-sit-in-the-list-card
+		 */
+		quickFilterCaption: {
+			type: String,
+			default: '',
 		},
 
 		/**
 		 * The quick-filter placement per view mode (manifest
 		 * `config.quickFilterPlacementByView`): `{ table?, cards?, board?, map? }`,
-		 * each `''`, `'toolbar'`, `'row'` or `'active'`. A view it does not name keeps
+		 * each `''`, `'toolbar'`, `'row'`, `'active'` or `'card'`. A view it does not name keeps
 		 * `quickFilterPlacement` (dossiq's case list: the chips beside Filter in
 		 * its board and map views, on their own row in its table view).
 		 *
@@ -4918,12 +4955,37 @@ export default {
 		 * `quickFilterPlacementByView`, else `quickFilterPlacement`.
 		 *
 		 * @spec openspec/changes/index-quick-filter-placement-per-view/specs/index-page/spec.md#requirement-the-quick-filter-placement-can-differ-per-view
-		 * @return {''|'toolbar'|'row'|'active'} The placement.
+		 * @return {''|'toolbar'|'row'|'active'|'card'} The placement.
 		 */
 		effectiveQuickFilterPlacement() {
 			const byView = this.quickFilterPlacementByView
 			const own = byView && typeof byView === 'object' ? byView[this.currentViewMode] : undefined
-			return ['', 'toolbar', 'row', 'active'].includes(own) ? own : this.quickFilterPlacement
+			return ['', 'toolbar', 'row', 'active', 'card'].includes(own) ? own : this.quickFilterPlacement
+		},
+
+		/**
+		 * Whether the lenses and the filter strip sit in the list card.
+		 *
+		 * @spec openspec/changes/index-lenses-in-list-card/specs/index-lenses-in-list-card/spec.md#requirement-the-quick-filters-can-sit-in-the-list-card
+		 * @return {boolean}
+		 */
+		lensesInCard() {
+			return this.effectiveQuickFilterPlacement === 'card' && Boolean(this.tabStripEntries && this.tabStripEntries.length > 0)
+		},
+
+		/**
+		 * The lenses as segmented-control options: the tab index as the
+		 * value, the translated label and the tab's count.
+		 *
+		 * @spec openspec/changes/index-lenses-in-list-card/specs/index-lenses-in-list-card/spec.md#requirement-the-quick-filters-can-sit-in-the-list-card
+		 * @return {Array<{value: number, label: string, count: (number|null)}>}
+		 */
+		cardLensOptions() {
+			const counts = this.effectiveTabCounts || {}
+			return (this.tabStripEntries || []).map((tab, index) => {
+				const raw = counts[index] !== undefined && counts[index] !== null ? counts[index] : tab.count
+				return { value: index, label: this.cnTranslate(String(tab.label ?? '')), count: typeof raw === 'number' && Number.isFinite(raw) ? raw : null }
+			})
 		},
 
 		/**
@@ -4935,7 +4997,7 @@ export default {
 		 * @return {boolean} True when the toolbar draws the tabs.
 		 */
 		quickFilterTabsInToolbar() {
-			return Boolean(this.tabStripEntries && this.tabStripEntries.length > 0) && !['row', 'active'].includes(this.effectiveQuickFilterPlacement)
+			return Boolean(this.tabStripEntries && this.tabStripEntries.length > 0) && !['row', 'active', 'card'].includes(this.effectiveQuickFilterPlacement)
 		},
 
 		/**

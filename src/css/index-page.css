@@ -573,6 +573,31 @@
 	margin-bottom: 12px;
 }
 
+/* `quickFilterPlacement: "card"` (board PqWachtrij): the lenses, their
+   caption and the filter strip open the list card, 12px from its top and
+   18px in, above a hairline. */
+.cn-index-page__card-lenses {
+	flex: none;
+	padding: 12px 18px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-index-page__card-lenses-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 10px;
+}
+
+.cn-index-page__card-lenses-caption {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-index-page__card-lenses:not(:has(.cn-index-page__filter-strip)) {
+	padding-bottom: 12px;
+}
+
 /* The second filter strip (`filterStrip`, board PqWachtrij "Kanaal"): 34px
    pills, radius 17, the active one in ink, each with a muted count. */
 .cn-index-page__filter-strip {
