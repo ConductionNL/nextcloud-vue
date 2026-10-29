@@ -73,7 +73,7 @@ describe('look-board.css: choice cards', () => {
 		const selectors = css.match(/[^{}]*cn-choice-cards[^{}]*\{/g) || []
 		expect(selectors.length).toBeGreaterThan(0)
 		for (const s of selectors) {
-			for (const part of s.replace('{', '').split(',')) {
+			for (const part of s.slice(0, -1).split(',')) {
 				expect(part.trim().startsWith('.cn-look-board')).toBe(true)
 				expect(part.trim().endsWith(guard)).toBe(true)
 			}
