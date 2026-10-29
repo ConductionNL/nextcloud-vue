@@ -2656,7 +2656,7 @@
 	height: 32px;
 	border-radius: 16px;
 	background: var(--color-background-hover);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 700;
 }
