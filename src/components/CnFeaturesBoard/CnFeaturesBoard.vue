@@ -764,6 +764,12 @@ export default {
 	white-space: nowrap;
 }
 
+/* Nextcloud's core sheet gives every plain button a 3px margin, which the
+   single-class rule does not outrank: the tabs stood 7px apart, not 4px. */
+.cn-features-board__tabs .cn-features-board__tab {
+	margin: 0 0 -1px;
+}
+
 .cn-features-board__tab--active {
 	position: relative;
 	background: var(--color-main-background);
@@ -816,6 +822,7 @@ export default {
 
 .cn-features-board__filter--chips .cn-features-board__filter-option {
 	height: 36px;
+	margin: 0;
 	padding: 0 14px;
 	border: 1px solid var(--color-border-dark);
 	border-radius: 18px;
