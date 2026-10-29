@@ -120,7 +120,7 @@ function isBuiltInDateFormatter(format, formatter) {
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `fulldate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `soon`, `week`, `days`, `lower`, `mailbox` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `fulldate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `soon`, `week`, `days`, `lower`, `mailbox`, `values` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
@@ -128,12 +128,19 @@ function isBuiltInDateFormatter(format, formatter) {
  * @param {object|null} [formatters] The app's named formatters (`cnFormatters`), for any other format name.
  * @return {string} The text, '' when nothing can be shown.
  * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-reads-display-names-through-the-apps-formatters
+ * @spec openspec/changes/template-object-values/specs/record-list-table/spec.md#requirement-a-template-can-write-the-values-of-a-map
  */
 function formatValue(value, format, now, arg = '', object = null, config = null, formatters = null) {
 	// `{list|count}`: how many entries a list holds, nothing for an empty one.
 	if (format === 'count') {
 		const count = Array.isArray(value) ? countEntries(value, arg) : Number(value)
 		return Number.isFinite(count) && count > 0 ? String(count) : ''
+	}
+	// `{map|values}`: the plain values of a map or list in one line.
+	if (format === 'values' && value !== null && typeof value === 'object') {
+		return Object.values(value)
+			.filter((entry) => (typeof entry === 'string' && entry !== '') || (typeof entry === 'number' && Number.isFinite(entry)))
+			.join(' · ')
 	}
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
@@ -245,6 +252,8 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
  * whole days since that date ("has waited {createdAt|days} days"),
  * `{path|count}` is how many entries a list holds (nothing for an empty one;
  * `{path|count:key}` sums the `key` list of each entry),
+ * `{path|values}` writes the text and number values of a map or list,
+ * joined by " · " (a variant's attributes: "Huishouden · grijze en blauwe containers"),
  * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"
  * reads "Step 2: in progress" mid-sentence), and any other name is one of
  * the app's formatters, passed as `context.formatters` (`{id|caseAddress}`).
