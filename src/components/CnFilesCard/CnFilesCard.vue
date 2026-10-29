@@ -14,14 +14,39 @@
 -->
 <template>
 	<CnDetailCard :title="resolvedTitle" :icon="Paperclip" :collapsible="collapsible">
-		<template v-if="$slots.actions" #actions>
+		<template v-if="$slots.actions || addable" #actions>
 			<!--
 				@slot actions Header actions of the card, e.g. an Add button. Scope:
 				`{ refresh }`, which reads the files again after the host added one.
 			-->
 			<slot name="actions" :refresh="fetchFiles" />
+			<template v-if="addable">
+				<NcButton
+					class="cn-button--tonal"
+					variant="tertiary"
+					:disabled="uploading"
+					data-testid="cn-files-card-add"
+					@click="$refs.picker.click()">
+					<template #icon>
+						<Plus :size="16" />
+					</template>
+					{{ addLabel }}
+				</NcButton>
+				<input
+					ref="picker"
+					type="file"
+					multiple
+					class="cn-files-card__picker"
+					tabindex="-1"
+					:aria-label="addLabel"
+					data-testid="cn-files-card-input"
+					@change="onPick">
+			</template>
 		</template>
 		<NcLoadingIcon v-if="loading" />
+		<p v-else-if="uploadError" class="cn-files-card__error" role="alert">
+			{{ uploadError }}
+		</p>
 		<div v-else-if="files.length === 0" class="cn-files-card__empty">
 			{{ noFilesLabel }}
 		</div>
@@ -54,13 +79,15 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
+import { cnFetchJson } from '../../utils/cnFetch.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
@@ -79,7 +106,7 @@ import { buildHeaders, prefixUrl } from '../../utils/index.js'
 export default {
 	name: 'CnFilesCard',
 
-	components: { CnDetailCard, CnFilePreview, NcLoadingIcon, FileOutline },
+	components: { CnDetailCard, CnFilePreview, NcButton, NcLoadingIcon, FileOutline, Plus },
 
 	props: {
 		/** OpenRegister register id (slug or uuid). */
@@ -107,9 +134,13 @@ export default {
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
 		/** Pre-translated overflow label. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/** Show an add button in the card header that attaches picked files to the object. */
+		addable: { type: Boolean, default: false },
+		/** Pre-translated label of the add button. */
+		addLabel: { type: String, default: () => t('nextcloud-vue', 'Add file') },
 	},
 
-	emits: ['show-all'],
+	emits: ['show-all', 'uploaded'],
 
 	data() {
 		return {
@@ -118,6 +149,8 @@ export default {
 			files: [],
 			previewFile: null,
 			loading: false,
+			uploading: false,
+			uploadError: '',
 		}
 	},
 
@@ -202,6 +235,54 @@ export default {
 			}
 		},
 
+		/**
+		 * Attach the picked files to the object, then read the files again.
+		 *
+		 * @param {Event} event The file input's change event.
+		 */
+		async onPick(event) {
+			const picked = [...(event.target.files || [])]
+			event.target.value = ''
+			if (picked.length === 0) {
+				return
+			}
+			this.uploading = true
+			this.uploadError = ''
+			try {
+				const endpoint = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files`
+				for (const file of picked) {
+					const content = await this.readAsDataUrl(file)
+					await cnFetchJson(endpoint, { method: 'POST', body: JSON.stringify({ name: file.name, content }) })
+				}
+				/**
+				 * Files were attached to the object. Payload: their names.
+				 *
+				 * @event uploaded
+				 */
+				this.$emit('uploaded', picked.map((file) => file.name))
+				await this.fetchFiles()
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnFilesCard] failed to attach a file', err)
+				this.uploadError = t('nextcloud-vue', 'The file could not be added. Try again.')
+			} finally {
+				this.uploading = false
+			}
+		},
+
+		/**
+		 * @param {File} file A picked file.
+		 * @return {Promise<string>} Its content as a data URL.
+		 */
+		readAsDataUrl(file) {
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader()
+				reader.onload = () => resolve(String(reader.result))
+				reader.onerror = () => reject(reader.error)
+				reader.readAsDataURL(file)
+			})
+		},
+
 		formatFileSize(bytes) {
 			if (typeof bytes !== 'number' || bytes < 0) {
 				return ''
@@ -222,6 +303,15 @@ export default {
 </script>
 
 <style scoped>
+.cn-files-card__picker {
+	display: none;
+}
+
+.cn-files-card__error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
 .cn-files-card__list {
 	list-style: none;
 	margin: 0;

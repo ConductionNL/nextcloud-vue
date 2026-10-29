@@ -27,6 +27,11 @@
 	/* The teal badge of a public history entry. */
 	--cn-board-teal-tint: var(--nldesign-color-teal-light, #e3f1f3);
 	--cn-board-teal-ink: var(--nldesign-color-teal-dark, #1d5e66);
+	/* A red board tag's ground: the legal hold mark of the archiving card. */
+	--cn-board-red-tag-ground: var(--nl-color-red-light, var(--color-error-light, #fcedec));
+	/* A plain warning note's ground and edge (CnAdminSettingsShell plainNotes). */
+	--cn-board-note-warning-ground: #fff4e5;
+	--cn-board-note-warning-edge: #f0c987;
 	/* Card h2 and side heading. */
 	--cn-board-heading-size: 17px;
 	--cn-board-side-heading-size: 15px;
@@ -835,6 +840,14 @@
 	padding-top: 6px;
 }
 
+/* With compact rows (DqZaaktype "Historie") the list opens 10px under the
+   title, the row's own 10px above its text: 21px from the title to the
+   first action, as drawn.
+   @spec openspec/changes/audit-card-compact-stacked-rows/specs/audit-trail/spec.md#requirement-a-stacked-audit-card-can-draw-compact-rows */
+.cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-audit-card__list > .cn-audit-card__row--compact:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
 /* A data card (labels over values) starts 14px below its title (DqZaak
    "Zaakgegevens", DqContact "Contact"); its first label sits at the top of
    its line box, so no leading comes off. A side card keeps its 10px.
@@ -1032,6 +1045,19 @@
 	font-weight: 600;
 }
 
+/* A side card whose widget draws its own heading (the timeline's title, an
+   app section's `cn-side-heading`) reads as every other side card title, not
+   as Nextcloud's 16.5px h3.
+   @spec openspec/changes/board-tonal-button/specs/board-side-own-heading/spec.md */
+.cn-look-board .cn-detail-page__side .cn-timeline-widget__title,
+.cn-look-board .cn-detail-page__side .cn-side-heading {
+	margin: 0;
+	color: var(--color-text-maxcontrast) !important;
+	font-size: var(--cn-board-side-heading-size);
+	font-weight: 600;
+	line-height: normal;
+}
+
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__header,
 .cn-look-board .cn-detail-page__side .cn-detail-card__header {
 	padding-bottom: 0;
@@ -1039,6 +1065,23 @@
 
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content {
 	padding: calc(10px - var(--cn-board-first-line-leading)) 22px 20px;
+}
+
+/* A related-objects side card is a flush wrapper whose rows, group titles and
+   status lines carry 8px of their own, so the content takes the other 14px
+   and they sit on the card's 22px inset (PqTicket "Gerelateerd": 9px in,
+   board 23). Its link rows and "show all" carry 16px, so they take 8.
+   @spec openspec/changes/board-related-side-inset/specs/board-related-side-inset/spec.md#requirement-a-related-side-card-puts-its-rows-on-the-cards-inset */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-related-objects-widget):not(.cn-look-nextcloud *) {
+	padding-inline: 14px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links:not(.cn-look-nextcloud *) {
+	padding-inline: 8px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__show-all:not(.cn-look-nextcloud *) {
+	margin-inline: 8px;
 }
 
 /* A side card that opens on a list draws its first row's hairline 10px below
@@ -1092,6 +1135,21 @@
 
 .cn-look-board .cn-detail-page__side .cn-detail-page__card-fit > .cn-widget-wrapper__content > .cn-kpi-card--board {
 	padding: 0;
+}
+
+/* A stat tile in the body grid or the band (PqProduct "Op deals", PqProject
+   "Voortgang") is the card itself, 16px 18px in, as drawn. The header-less
+   card's 20px 22px and the tile's own 18px 20px and 2px hover border stacked
+   to put the label 41px down and 45px in.
+   @spec openspec/changes/board-detail-stat-tile-inset/specs/board-detail-stat-tile-inset/spec.md#requirement-a-board-stat-tile-on-a-detail-page-body-sits-on-the-boards-inset */
+.cn-look-board .cn-detail-page .cn-detail-page__card-fit:not(.cn-detail-page__side *) > .cn-widget-wrapper__content:has(> .cn-kpi-card--board.cn-kpi-card--stacked) {
+	justify-content: flex-start;
+	padding: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-detail-page__card-fit:not(.cn-detail-page__side *) > .cn-widget-wrapper__content > .cn-kpi-card--board.cn-kpi-card--stacked {
+	--cn-kpi-stacked-padding: 16px 18px;
+	border-width: 0;
 }
 
 /* No Actions menu on a side card. */
@@ -1549,6 +1607,15 @@
 .cn-look-board .cn-retention .cn-retention__fact dd {
 	font-size: 15px;
 	font-weight: 500;
+	line-height: normal;
+}
+
+/* The legal hold mark takes the board's red tag ink and ground
+   (DqZaakArchivering "LH"), as a toned board tag does; the theme's
+   text-error is darker. */
+.cn-look-board .cn-retention .cn-retention__mark--hold:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-red-tag-ground);
+	color: var(--nl-color-red-text, var(--color-error-text));
 }
 
 /* "Bewaren voor een procedure" and "Overdracht naar het e-Depot" are 15px/600
@@ -1834,6 +1901,14 @@
 	display: none;
 }
 
+/* ---- A file list's bar (CnFilesBrowser) -------------------------------- */
+/* The boards draw the bar's buttons 16px over the list (DqZaakDocumenten,
+   DqZaakDocumentenSlepen); the browser stacks its parts 8px apart.
+   @spec openspec/changes/board-files-bar-16-above-list/specs/board-files-bar-16-above-list/spec.md#requirement-a-board-file-lists-bar-stands-16px-above-the-list */
+.cn-look-board .cn-files-browser__bar:not(.cn-look-nextcloud *) {
+	margin-block-end: 8px;
+}
+
 /* ---- A file list (CnFilesBrowser) --------------------------------------- */
 /* The board's compact card table (DqDocumentenBeheer): a near-white header at
    14px/600 in the muted ink, 10px 12px; 14px cells, 11px 12px, a hairline
@@ -1927,6 +2002,90 @@
    @spec openspec/changes/board-mail-subtitle-line-height/specs/board-mail-subtitle-line-height/spec.md#requirement-the-mail-cards-description-runs-on-the-normal-line-height */
 .cn-look-board .cn-detail-widget-host .cn-mail-tab__subtitle.cn-mail-tab__subtitle:not(.cn-look-nextcloud *) {
 	line-height: normal;
+}
+
+/* ---- The linked mail list (CnEmailTab in CnMailTab) -------------------- */
+/* DqZaakEmail draws each linked mail as a row under a hairline, 12px above
+   and below: a 32px initials tile on the grey chip in the soft ink, 12px
+   bold, 12px before the subject (15px/600, main ink) over the sender (13px,
+   muted, 2px under it), and a 34px bordered "more actions" button at the
+   end. A theme's `a { color; text-decoration }` carries `!important`
+   (thematiq), as do NcAvatar's inline size and tint, hence the same here.
+   An unread mail keeps its dot; a read one gives up the dot's room.
+   @spec openspec/changes/board-linked-mail-rows/specs/board-linked-mail-rows/spec.md */
+.cn-look-board .cn-email-tab:not(.cn-look-nextcloud *) {
+	padding: 0;
+}
+
+.cn-look-board .cn-email-tab__item:not(.cn-look-nextcloud *) {
+	display: flex;
+	align-items: center;
+	gap: 8px 16px;
+	padding: 12px 0;
+	border-top: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-email-tab__row:not(.cn-look-nextcloud *) {
+	align-items: center;
+	gap: 12px;
+	padding: 0;
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+}
+
+.cn-look-board a.cn-email-tab__row:not(.cn-look-nextcloud *):hover {
+	background: none;
+}
+
+.cn-look-board a.cn-email-tab__row:not(.cn-look-nextcloud *):hover .cn-email-tab__subject {
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-email-tab__unread-dot:not(.is-shown):not(.cn-look-nextcloud *) {
+	display: none;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) {
+	width: 32px !important;
+	height: 32px !important;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials-wrapper {
+	background-color: var(--color-background-hover) !important;
+}
+
+.cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials {
+	color: var(--cn-board-text-soft) !important;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-email-tab__subject:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text) !important;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-email-tab__date:not(.cn-look-nextcloud *),
+.cn-look-board .cn-email-tab__sender:not(.cn-look-nextcloud *),
+.cn-look-board .cn-email-tab__snippet:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast) !important;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-email-tab__sender:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
+}
+
+.cn-look-board .cn-email-tab__menu:not(.cn-look-nextcloud *) .action-item__menutoggle {
+	--button-size: 34px;
+	box-sizing: border-box;
+	border: 1px solid var(--cn-board-control-border);
+	border-radius: 8px;
+	background: var(--color-main-background);
+	color: var(--cn-board-text-soft);
 }
 
 /* ---- The attention flag's buttons --------------------------------------- */
@@ -2232,6 +2391,18 @@
 	padding: 0;
 }
 
+/* Its row reads as the boards draw it: the meta line 4px under the title,
+   the pill and date 10px under the meta (r34 DqOrganisatie "Lopende zaken"
+   and "Open tickets" each stood 6px short).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-a-side-stacked-row-keeps-the-boards-gaps */
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__row:not(.cn-record-list__row--action) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__main {
+	gap: 4px;
+}
+
 /* Its rows are titled as links: bold, in the link colour, underlined
    (DqOrganisatie "Subsidie buurtfeest Oosthaven"). */
 .cn-look-board .cn-detail-page__side .cn-record-list--stacked.cn-record-list--rows:not(.cn-look-nextcloud *) .cn-record-list__title {
@@ -2245,10 +2416,19 @@
 }
 
 /* Main contact (DqOrganisatie Hoofdcontact): the e-mail and the link to all
-   contact persons are 14px lines under the 15px name. */
+   contact persons are 14px lines under the 15px name, at the font's normal
+   leading; the e-mail reads in the ink, a link only on hover (r34: the card
+   stood 8px taller than the board).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-the-main-contacts-lines-read-at-normal-leading */
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-email,
 .cn-look-board .cn-detail-page__side .cn-object-parties__main-link {
 	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page__side .cn-object-parties__main-email:not(.cn-look-nextcloud *):not(:hover):not(:focus-visible) {
+	color: var(--color-main-text);
+	text-decoration: none;
 }
 
 /* Appointment and note rows (DqTaak Afspraken, Notities): a hairline above
@@ -2315,6 +2495,15 @@
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
 	font-weight: 400;
+	line-height: normal;
+}
+
+/* An appointments card starts its first row's rule 8px under the title, as
+   DqTaak "Afspraken" draws it (r34: the row 64.5 against 60, the first
+   appointment 44.8 under the title against 41).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *) {
+	padding-top: 8px;
 }
 
 .cn-look-board .cn-events-card__where:not(.cn-look-nextcloud *)::before,
@@ -2561,6 +2750,29 @@
 
 .cn-look-board .cn-facts-widget__rows--columns:not(.cn-look-nextcloud *) .cn-facts-widget__label.cn-facts-widget__label {
 	line-height: normal;
+}
+
+/* Three-column facts (`columns: 3`, DqSociaalDomein "De melding") keep their
+   rule: each fact is a label 3px over a 500-weight value with 10px and a soft
+   hairline under it (r34: the card stood 30px short of the board).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-three-column-facts-are-ruled */
+.cn-look-board .cn-facts-widget__rows--columns.cn-facts-widget__rows--three:not(.cn-look-nextcloud *) .cn-facts-widget__row {
+	gap: 3px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-facts-widget__rows--columns.cn-facts-widget__rows--three:not(.cn-look-nextcloud *) .cn-facts-widget__value.cn-facts-widget__value {
+	font-weight: 500;
+}
+
+/* A title with the lines under it is one block in a side card: each line
+   2px under the one above, not the card's 10px between facts (DqTaak "Zaak":
+   the case title, its number line and its handler line; r34 +23.8).
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-a-title-and-its-lines-are-one-block */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__title:not(.cn-look-nextcloud *) + .cn-facts-widget__line,
+.cn-look-board .cn-detail-page__side .cn-facts-widget__title:not(.cn-look-nextcloud *) + .cn-facts-widget__line + .cn-facts-widget__line {
+	margin-top: -8px;
 }
 
 /* A ruled list in a page card (`ruleAbove`, DqContact and DqOrganisatie
@@ -2947,4 +3159,34 @@
 
 .cn-look-board .cn-timeline-widget__chip:not(.cn-timeline-widget__chip--active):not(.cn-look-nextcloud *) {
 	border-color: var(--cn-board-control-border);
+}
+
+/* A compact band (`config.bandDensity: "compact"`), as boards PqKlant and
+   PqOrganisatie draw the contact strip and the six figures above the tabs:
+   12px between tiles, 20px between rows, tiles down to 120px. A figure is a
+   white tile with a hairline, radius 10, padded 12px 14px, its 13px label 2px
+   over a 20px value, both at the normal line height (67px high).
+   @spec openspec/changes/detail-band-compact/specs/detail-page/spec.md#requirement-a-detail-band-can-be-compact */
+.cn-look-board .cn-detail-page__band--compact:not(.cn-look-nextcloud *) {
+	gap: 20px 12px;
+}
+
+.cn-look-board .cn-detail-page__band--compact > .cn-detail-page__band-item:not(.cn-look-nextcloud *) {
+	min-width: min(120px, 100%);
+}
+
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked:not(.cn-look-nextcloud *) {
+	--cn-kpi-stacked-padding: 12px 14px;
+	--cn-kpi-stacked-gap: 2px;
+	--cn-kpi-stacked-title-size: 13px;
+	--cn-kpi-stacked-value-size: 20px;
+	min-height: 0;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__value:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }

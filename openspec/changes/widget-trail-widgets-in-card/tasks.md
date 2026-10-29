@@ -1,0 +1,1 @@
+- [x] 1.1 trailWidgetIds (tests/components/CnDetailWidgetHostTrailWidgets.spec.js)

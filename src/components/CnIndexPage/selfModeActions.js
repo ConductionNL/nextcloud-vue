@@ -375,7 +375,27 @@ export function createSelfModeActions(ctx) {
 		return true
 	}
 
+	/**
+	 * Save a row with new values (a PATCH of what changed) and reload the
+	 * list. Undefined when the page is not in self-fetch mode.
+	 *
+	 * @param {object} row The row as loaded.
+	 * @param {object} values The row with its new values.
+	 * @return {Promise<{saved: object|null}|undefined>} The saved row, or undefined.
+	 */
+	async function handleRowSave(row, values) {
+		if (!selfModeReady(ctx)) {
+			return undefined
+		}
+		const saved = await saveEdited(ctx.selfObjectStore(), typeFor(ctx, row), row, values)
+		if (saved) {
+			refreshList(ctx)
+		}
+		return { saved }
+	}
+
 	return {
+		handleRowSave,
 		handleSingleDelete,
 		handleMassDelete,
 		handleSingleCopy,

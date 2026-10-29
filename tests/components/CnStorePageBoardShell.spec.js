@@ -64,7 +64,7 @@ describe('CnStorePage board shell', () => {
 	it('offers lens chips with counts: all, installed, updates and the kind lenses', async () => {
 		const w = await mountStore()
 		const chips = w.findAll('[data-testid^="store-lens-"]').map((chip) => chip.text().replace(/\s+/g, ' '))
-		expect(chips).toEqual(['All 5', 'Installed 3', 'Updates available 1', 'Connectors 2'])
+		expect(chips).toEqual(['All items 5', 'Installed 3', 'Updates available 1', 'Connectors 2'])
 	})
 
 	it('filters the cards by the chosen lens', async () => {

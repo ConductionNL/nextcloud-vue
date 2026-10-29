@@ -115,7 +115,7 @@
 				     right-most next to the edit toggle. -->
 				<template v-if="!isBoardLook">
 					<CnActionButtons
-						v-if="headerActions && headerActions.length"
+						v-if="linkedHeaderActions.length"
 						:actions="linkedHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
@@ -153,7 +153,7 @@
 				<!-- In-app edit button (ADR-041). Renders only when Buildiq is
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
-				<CnBuildiqEditButton v-if="!isBoardLook" />
+				<CnBuildiqEditButton v-if="!isBoardLook && !headerActionsOffViewport" />
 				<!-- Page-level overflow Actions menu (Refresh + the mandatory
 				     trio Request a feature / Report a bug / Documentation).
 				     Separate from the per-widget menus. `docs-anchor` deep-links
@@ -190,7 +190,7 @@
 				     layout, Actions, the buildiq square, then the primary header
 				     actions rightmost (screens-dashboard-parity). -->
 				<template v-if="isBoardLook">
-					<CnBuildiqEditButton />
+					<CnBuildiqEditButton v-if="!headerActionsOffViewport" />
 					<CnActionButtons
 						v-if="boardPrimaryHeaderActions.length"
 						:actions="boardPrimaryHeaderActions"
@@ -1136,6 +1136,7 @@ const CHART_PROP_KEYS = [
 	// keys forwarded verbatim to CnChartWidget.
 	'horizontal',
 	'legendPosition',
+	'legendValues',
 	'valueFormat',
 	// Value-axis baseline guard: lets a manifest opt a chart out of the
 	// zero-baseline default (`'fit'`) when its series lives far from zero.
@@ -1905,6 +1906,19 @@ export default {
 		},
 
 		/**
+		 * Where the header actions and the buildiq square draw: `"wide"` keeps
+		 * them off a phone (under 640px, PqMobiel's My work header holds only
+		 * the title), `"narrow"` off a wider window. Empty draws them always.
+		 *
+		 * @spec openspec/changes/dashboard-header-actions-viewport/specs/dashboard-header-actions-viewport/spec.md
+		 */
+		headerActionsViewport: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'wide', 'narrow'].includes(value),
+		},
+
+		/**
 		 * Optional page-level filter controls rendered in the dashboard header.
 		 * Each selection is written into the reactive page-level workspace
 		 * context (the same bag `cnWorkspaceContext` provides), so any widget can
@@ -2339,6 +2353,9 @@ export default {
 		 * @return {Array<object>}
 		 */
 		linkedHeaderActions() {
+			if (this.headerActionsOffViewport) {
+				return []
+			}
 			const workspace = Object.fromEntries(Object.entries(this.workspaceContext || {})
 				.map(([key, value]) => [key, (value === undefined || value === null) ? value : encodeURIComponent(String(value))]))
 			return (this.headerActions || [])
@@ -2346,6 +2363,17 @@ export default {
 					? { ...entry, href: interpolateUrlTokens(entry.href, { workspace }) }
 					: entry))
 				.map(headerActionAsLink)
+		},
+
+		/**
+		 * Whether `headerActionsViewport` keeps the header actions and the
+		 * buildiq square off the current window.
+		 *
+		 * @spec openspec/changes/dashboard-header-actions-viewport/specs/dashboard-header-actions-viewport/spec.md
+		 * @return {boolean}
+		 */
+		headerActionsOffViewport() {
+			return this.isOffViewport({ viewport: this.headerActionsViewport })
 		},
 
 		/**
@@ -4924,6 +4952,11 @@ export default {
 		 * exactly that reason; there is now one rule for every family, so a
 		 * custom slot and a registered widget cannot disagree about it.
 		 *
+		 * A widget definition's own `borderless` is read when the placement
+		 * says nothing: `true`, or `"narrow"` / `"wide"` to drop the card on a
+		 * phone / a wider window only (PqMobiel's filter bar, a kpiRow widget
+		 * that has no placement).
+		 *
 		 * A greeting header that declares `content.ground: true` sits on the
 		 * page ground, so it asks for no card either: one key on the widget
 		 * instead of a second one on its placement.
@@ -4937,6 +4970,9 @@ export default {
 				return true
 			}
 			const def = this.getWidgetDef(item.widgetId)
+			if (item.borderless === undefined && def && def.borderless !== undefined) {
+				return def.borderless === true || ((def.borderless === 'narrow' || def.borderless === 'wide') && this.isOffViewport({ viewport: def.borderless === 'narrow' ? 'wide' : 'narrow' }))
+			}
 			return Boolean(def && def.type === 'header' && this.getWidgetContent(item).ground === true)
 		},
 

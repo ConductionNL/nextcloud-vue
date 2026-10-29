@@ -1,0 +1,4 @@
+- [x] planClearRows
+- [x] CnDashboardGrid places and locks clear items
+- [x] schema widgetEntry.clear
+- [x] jest

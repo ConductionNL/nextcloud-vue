@@ -118,15 +118,18 @@
 			:options="chipOptions"
 			:modelValue="selected === undefined || selected === null ? null : String(selected)"
 			:ariaLabel="tr(label) || writeKey"
+			:phonePills="content.chipsOnPhone === 'pills'"
 			data-testid="cn-workspace-filter-chips"
 			@update:modelValue="applySelection" />
 
 		<!-- Toggle style (screens-page-controls): a switch that writes
-		     `onValue` / `offValue` (true / false) to the key. -->
+		     `onValue` / `offValue` (true / false) to the key; a checkbox with
+		     `control: "checkbox"`. -->
 		<NcCheckboxRadioSwitch
 			v-else-if="style === 'toggle'"
 			class="cn-workspace-filter-widget__toggle"
-			type="switch"
+			:class="{ 'cn-workspace-filter-widget__toggle--checkbox': toggleAsCheckbox }"
+			:type="toggleAsCheckbox ? 'checkbox' : 'switch'"
 			:modelValue="toggleOn"
 			data-testid="cn-workspace-filter-toggle"
 			@update:modelValue="onToggle">
@@ -372,6 +375,16 @@ export default {
 		objectSource() {
 			const src = this.content.objectSource
 			return src && typeof src === 'object' && src.register && src.schema ? src : null
+		},
+
+		/**
+		 * Whether a toggle draws as a checkbox (`control: "checkbox"`) instead of a switch.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workspace-toggle-as-checkbox/specs/workspace-filter/spec.md#requirement-a-toggle-can-draw-as-a-checkbox
+		 */
+		toggleAsCheckbox() {
+			return this.content.control === 'checkbox'
 		},
 
 		/** Choice style: 'chips', 'select' or 'radio' (default). */

@@ -48,6 +48,8 @@
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
 				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
+				:data-cn-widget-id="item.widgetId || undefined"
+				:gs-locked="item.clear === true && !editable ? 'true' : undefined"
 				:style="filling ? fillItemStyle(item) : undefined"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
@@ -77,7 +79,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
 import { toRaw } from 'vue'
-import { planGrowth } from '../../utils/gridStack.js'
+import { planClearRows, planGrowth } from '../../utils/gridStack.js'
 // `gridstack` is a peerDependency (see package.json), not bundled — this
 // component's JS and the consumer's GridStack stylesheet MUST come from the
 // exact same installed copy, because GridStack's JS writes layout state
@@ -866,6 +868,7 @@ export default {
 				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
 			this.keepOrderOnGrowth()
+			this.placeClearRows()
 
 			this.grid.on('change', (_event, items) => {
 				this.handleGridChange(items)
@@ -909,35 +912,92 @@ export default {
 			const resize = grid.resizeToContent.bind(grid)
 			const growing = new Set()
 			grid.resizeToContent = (el) => {
-				if (growing.has(el)) {
-					resize(el)
-					return
+				this.resizeKeepingOrder(grid, resize, growing, el)
+				if (growing.size === 0) {
+					this.placeClearRows()
 				}
-				const node = el && el.gridstackNode
-				const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
-				const rows = node && nodes ? this.contentRows(el, node) : null
-				const plan = rows ? planGrowth(nodes, node, rows) : []
-				if (plan.length === 0) {
-					resize(el)
-					return
+			}
+		},
+
+		/**
+		 * One `resizeToContent` with the cards under a growing cell moved down
+		 * first (`keepOrderOnGrowth`).
+		 *
+		 * @param {object} grid The raw GridStack.
+		 * @param {function(HTMLElement): void} resize GridStack's own resizeToContent.
+		 * @param {Set<HTMLElement>} growing The cells being grown now.
+		 * @param {HTMLElement} el The cell.
+		 * @return {void}
+		 */
+		resizeKeepingOrder(grid, resize, growing, el) {
+			if (growing.has(el)) {
+				resize(el)
+				return
+			}
+			const node = el && el.gridstackNode
+			const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
+			const rows = node && nodes ? this.contentRows(el, node) : null
+			const plan = rows ? planGrowth(nodes, node, rows) : []
+			if (plan.length === 0) {
+				resize(el)
+				return
+			}
+			// Inside a batch the moves are not packed until the cell has grown.
+			const batching = Boolean(grid.engine.batchMode)
+			growing.add(el)
+			try {
+				if (!batching) {
+					grid.batchUpdate()
 				}
-				// Inside a batch the moves are not packed until the cell has grown.
-				const batching = Boolean(grid.engine.batchMode)
-				growing.add(el)
-				try {
-					if (!batching) {
-						grid.batchUpdate()
-					}
-					for (const step of plan) {
-						grid.update(step.node.el, { y: step.y })
-					}
-					resize(el)
-					if (!batching) {
-						grid.batchUpdate(false)
-					}
-				} finally {
-					growing.delete(el)
+				for (const step of plan) {
+					grid.update(step.node.el, { y: step.y })
 				}
+				resize(el)
+				if (!batching) {
+					grid.batchUpdate(false)
+				}
+			} finally {
+				growing.delete(el)
+			}
+		},
+
+		/**
+		 * Put every `clear` layout item below the cards of the earlier rows
+		 * (`planClearRows`), in one batch. Runs after the grid is built and after
+		 * each cell is measured to its content; a move made here that measures a
+		 * cell again does not start another round.
+		 *
+		 * @spec openspec/changes/dashboard-clear-row/specs/dashboard-grid/spec.md
+		 * @return {void}
+		 */
+		placeClearRows() {
+			const grid = this.grid ? toRaw(this.grid) : null
+			if (this.placingClearRows || !grid || !grid.engine || !Array.isArray(grid.engine.nodes) || typeof grid.update !== 'function') {
+				return
+			}
+			const byId = new Map(this.layout.map((item) => [String(item.id), item]))
+			const nodes = grid.engine.nodes.map((n) => {
+				const item = byId.get(String(n.id))
+				return Object.assign(Object.create(null), { node: n, x: n.x, y: n.y, w: n.w, h: n.h, row: item ? this.scaledRow(item.gridY ?? 0) : 0, clear: !this.editable && item?.clear === true })
+			})
+			const plan = planClearRows(nodes)
+			if (plan.length === 0) {
+				return
+			}
+			const batching = Boolean(grid.engine.batchMode)
+			this.placingClearRows = true
+			try {
+				if (!batching && typeof grid.batchUpdate === 'function') {
+					grid.batchUpdate()
+				}
+				for (const step of plan) {
+					grid.update(step.node.node.el, { y: step.y })
+				}
+				if (!batching && typeof grid.batchUpdate === 'function') {
+					grid.batchUpdate(false)
+				}
+			} finally {
+				this.placingClearRows = false
 			}
 		},
 

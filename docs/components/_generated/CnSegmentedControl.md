@@ -18,6 +18,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `size`           | `string`  |          | `'normal'` | Size of the control: `normal` (default) or `compact` (the board group: 3px track padding, 2px gap, 34px segments).                                                                                                                      |
 | `mode`           | `string`  |          | `'radio'`  | `radio` (default) is a radio group: one option is always chosen and the arrow keys move the choice. `toggle` is a group of buttons, each with `aria-pressed`, for a set of presets (the board's period group); Tab visits every button. |
 | `stretch`        | `boolean` |          | `false`    | Stretch the control to the full width, with options of equal width.                                                                                                                                                                     |
+| `phonePills`     | `boolean` |          | `false`    | On a phone (under 640px) draw the options as separate pills in one row that scrolls sideways, the chosen one filled (PqMobiel's lens chips). Wider windows keep the segmented group.                                                    |
 
 ### Events
 

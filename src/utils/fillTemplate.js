@@ -3,8 +3,9 @@
 
 import { translate as t } from '@nextcloud/l10n'
 import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatSoon, formatTimeOfDay, isoWeek } from './boardDate.js'
+import { BUILT_IN_FORMATTERS } from './builtInFormatters.js'
 import { parseDateValue } from './dateVariant.js'
-import { formatMoney } from './formatMetric.js'
+import { formatMoney, metricLocale } from './formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from './groupAutocomplete.js'
 import { readPath } from './readPath.js'
 import { userDisplayName } from './userDisplayName.js'
@@ -102,6 +103,20 @@ function countEntries(list, key) {
 }
 
 /**
+ * Whether a named formatter is the library's own `date` or `datetime`, which
+ * CnAppRoot puts in every page's formatters: the template's board date
+ * ("28 okt") wins over it, an app's own formatter of that name does not.
+ *
+ * @param {string} format The format name.
+ * @param {(value: unknown, row?: object) => unknown} formatter The formatter found under that name.
+ * @return {boolean} True for the built-in date formatters.
+ * @spec openspec/changes/template-date-not-shadowed/specs/template-date-not-shadowed/spec.md
+ */
+function isBuiltInDateFormatter(format, formatter) {
+	return (format === 'date' || format === 'datetime') && formatter === BUILT_IN_FORMATTERS[format]
+}
+
+/**
  * Format one token value.
  *
  * @param {unknown} value The raw value.
@@ -123,7 +138,7 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
 	}
-	if (format !== '' && formatters && typeof formatters[format] === 'function') {
+	if (format !== '' && formatters && typeof formatters[format] === 'function' && !isBuiltInDateFormatter(format, formatters[format])) {
 		const shown = formatters[format](value, object)
 		return shown === null || shown === undefined ? '' : String(shown)
 	}
@@ -188,6 +203,17 @@ function formatValue(value, format, now, arg = '', object = null, config = null,
 	}
 	if (format === 'lower') {
 		return String(value).toLocaleLowerCase()
+	}
+	// `{name|lowerfirst}`: a name inside a sentence, "Verenigingen in Zuiddrecht"
+	// read as "verenigingen in Zuiddrecht".
+	if (format === 'lowerfirst') {
+		const text = String(value)
+		return text.charAt(0).toLocaleLowerCase() + text.slice(1)
+	}
+	// `{count|number}`: grouped in the user's locale, "2.180" in Dutch.
+	if (format === 'number') {
+		const number = Number(value)
+		return Number.isFinite(number) ? new Intl.NumberFormat(metricLocale()).format(number) : String(value)
 	}
 	if (format === 'days') {
 		// Whole days from the date to now (0 for today; negative for a future date).

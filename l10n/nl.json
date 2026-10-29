@@ -1,5 +1,9 @@
 {
   "translations": {
+    "All categories": "Alle categorieën",
+    "Category": "Categorie",
+    "Reports": "Rapporten",
+    "No reports in this category.": "Geen rapporten in deze categorie.",
     "Channel": "Kanaal",
     "Outcome": "Uitkomst",
     "Chat": "Chat",
@@ -560,6 +564,8 @@
     "No conditions yet — add at least one condition": "Nog geen voorwaarden — voeg minimaal één voorwaarde toe",
     "No data available": "Geen gegevens beschikbaar",
     "No details available": "Geen details beschikbaar",
+    "The file could not be added. Try again.": "Het bestand kon niet worden toegevoegd. Probeer het opnieuw.",
+    "Add file": "Bestand toevoegen",
     "No files attached": "Geen bijlagen",
     "No items found": "Geen items gevonden",
     "No items selected for copying.": "Geen items geselecteerd om te kopiëren.",
@@ -890,6 +896,8 @@
     "No linked emails yet": "Nog geen gekoppelde e-mails",
     "Could not load emails": "Kon e-mails niet laden",
     "Open in Mail": "Openen in Mail",
+    "More actions for this mail": "Meer acties voor deze mail",
+    "Unlink mail": "Mail ontkoppelen",
     "Open in Office": "Openen in Office",
     "(no subject)": "(geen onderwerp)",
     "Unknown sender": "Onbekende afzender",
@@ -1266,7 +1274,8 @@
     "Installing…": "Installeren…",
     "No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.": "Er is geen winkelregister ingesteld, dus er is niets van het netwerk opgevraagd. Een beheerder kan er een koppelen in de beheerinstellingen.",
     "Nothing matches that search": "Niets gevonden voor die zoekopdracht",
-    "Search the store": "Zoek in de winkel",
+    "Search the store": "Zoek in de store",
+    "All items": "Alle",
     "Some parts were not installed: {schemas}": "Sommige onderdelen zijn niet geïnstalleerd: {schemas}",
     "Store": "Winkel",
     "The item could not be installed.": "Het item kon niet worden geïnstalleerd.",
@@ -2760,7 +2769,12 @@
     "The store registry is busy. Try again in a minute.": "De store-registry is bezig. Probeer het over een minuut opnieuw.",
     "The store registry refused the item.": "De store-registry weigerde het item.",
     "What the template carries": "Wat het sjabloon meeneemt",
-    "You may not publish to this store.": "Je mag niet publiceren in deze store."
+    "You may not publish to this store.": "Je mag niet publiceren in deze store.",
+    "Move {name}": "{name} verplaatsen",
+    "Filter on {name}": "Filteren op {name}",
+    "(empty)": "(leeg)",
+    "Drag, or use the arrow keys, to move": "Sleep, of gebruik de pijltjestoetsen, om te verplaatsen",
+    "The new order could not be saved": "De nieuwe volgorde kon niet worden opgeslagen"
   },
   "plurals": {
     "{count} member": [

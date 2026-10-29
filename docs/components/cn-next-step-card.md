@@ -68,6 +68,7 @@ The `next-step` widget type renders the same checklist inside a detail grid or s
 | `actionId` | String | `''` | DOM id for the primary button, so a skip link can land on it. |
 | `actionDisabled` | Boolean | `false` | Disable the primary button, for example while its request runs. |
 | `after` | String | `''` | One line under the button that says what follows. |
+| `afterTitle` (`after-title`) | String | `''` | A bold sentence above `after`, for a stage whose side has no button but a statement. |
 | `doneLabel` | String | `'Done'` | Text state of a done item, read by screen readers. |
 | `todoLabel` | String | `'To do'` | Text state of an open item, read by screen readers. |
 

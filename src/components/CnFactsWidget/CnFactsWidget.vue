@@ -41,12 +41,13 @@
 				<dl
 					v-if="block.kind === 'rows'"
 					class="cn-facts-widget__rows"
-					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles, 'cn-facts-widget__rows--figures': tiles && figures }">
+					:class="{ 'cn-facts-widget__rows--columns': twoColumns, 'cn-facts-widget__rows--three': threeColumns, 'cn-facts-widget__rows--stacked': stacked, 'cn-facts-widget__rows--tiles': tiles, 'cn-facts-widget__rows--tile-grid': tileColumns > 0, 'cn-facts-widget__rows--figures': tiles && figures }"
+					:style="tileColumns > 0 ? { '--cn-facts-tile-columns': tileColumns } : null">
 					<div
 						v-for="row in block.rows"
 						:key="row.key"
 						class="cn-facts-widget__row"
-						:class="{ 'cn-facts-widget__row--inline': row.inline }"
+						:class="{ 'cn-facts-widget__row--inline': row.inline, 'cn-facts-widget__row--wide': row.wide && tileColumns > 0 }"
 						:data-testid="`cn-fact-${row.key}`">
 						<dt class="cn-facts-widget__label" :class="{ 'cn-facts-widget__label--icon': row.icon }">
 							<CnIcon
@@ -129,9 +130,12 @@
 					:data-testid="`cn-fact-${block.key}`">
 					{{ block.value }}
 				</span>
-				<div
+				<component
+					:is="block.to ? 'router-link' : 'div'"
 					v-else-if="block.kind === 'lead'"
 					class="cn-facts-widget__lead"
+					:class="{ 'cn-facts-widget__lead--card': block.card }"
+					:to="block.to || undefined"
 					:data-testid="`cn-fact-${block.key}`">
 					<span
 						class="cn-facts-widget__lead-tile"
@@ -144,7 +148,13 @@
 						<strong class="cn-facts-widget__lead-title">{{ block.value }}</strong>
 						<span v-if="block.subtitle" class="cn-facts-widget__lead-subtitle">{{ block.subtitle }}</span>
 					</span>
-				</div>
+					<CnStatusBadge
+						v-if="block.pill"
+						class="cn-facts-widget__lead-pill"
+						:label="block.pill.label"
+						:variant="block.pill.variant"
+						size="small" />
+				</component>
 				<div
 					v-else-if="block.kind === 'meter'"
 					class="cn-facts-widget__meter"
@@ -500,6 +510,7 @@ export default {
 		 *   A lead's `title` or `subtitle` may be `{ firstOf: [spec, ...] }`: the first spec that gives text ("Logged in with DigiD", else the requester's kind).
 		 *   Any other entry may carry `firstOf: [spec, ...]` in place of `path`: it shows the first spec that gives text (a call's own subject, else the request's category).
 		 *   `format: 'user'` shows a Nextcloud user id as the user's display name, read once per id; the entry stays empty until the name is known.
+		 *   `format: 'days-since'` counts the whole days from a date until today; a part's `phrase` (`phraseOne`, `phraseZero`) writes that count in words ("waiting {n} days"), and a part's `empty` is the text when its value is not there ("not assigned").
 		 *   `template` ("{available} {unit}") fills its `{path}` placeholders from the record instead of reading `path` (`{path:format}` formats one, "{from:year}"); it is empty when every placeholder is. `suffix` (" kg") is added to a value that is not empty, its words translated.
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
@@ -519,7 +530,7 @@ export default {
 		 * - `link` — `{ label, route? | href? }` at the foot. `{ label, icon?, sidebarTab }` instead opens the page's object sidebar on that tab (no link without a sidebar). With `countFrom` (`{ register, schema, filter? }`) the label's `{count}` is that list's total, and `fallbackLabel` shows while it is not known.
 		 * - `hideEmpty` — drop an entry whose value is empty (default true).
 		 * - `columns` — `2` lays the rows out in two columns with the label above the value (board DqContact), `3` in three (board DqSociaalDomein "De melding"); a row with `parts` joins them like a line (an address on one row). `1` stacks each label above its value in one column, for a narrow card with long labels (board DqHandhaving "Afwijking en definitief").
-		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps).
+		 * - `layout` — `"tiles"` draws each fact as a tile, a small caps label above its value, the tiles side by side and wrapping (board PqJourney's steps). With `columns` (2 or more) the tiles sit in that many columns, and a field with `wide: true` spans the whole row (PqJourney's Actie tile).
 		 * - `tileStyle` — `"figures"` with `layout: "tiles"`: white tiles, a plain label above a large value (board PqKassadienst "Kasverschil"). A row's `note` (`{ parts, separator? }`, as a line's parts) is written under its value; its `tone` (`[{ when: { field, op, value }, variant }]`) colours the value with the first variant whose condition the record meets.
 		 * - `notice.visibleWhen` — a condition on the record shown; the band shows only while it holds.
 		 * - A row's `pill` (`{ variantMap }`) draws its value as a status pill toned by the raw value.
@@ -607,7 +618,7 @@ export default {
 		 * @return {boolean}
 		 */
 		twoColumns() {
-			return [2, 3].includes(Number(this.content?.columns))
+			return !this.tiles && [2, 3].includes(Number(this.content?.columns))
 		},
 
 		/**
@@ -617,7 +628,7 @@ export default {
 		 * @return {boolean}
 		 */
 		threeColumns() {
-			return Number(this.content?.columns) === 3
+			return !this.tiles && Number(this.content?.columns) === 3
 		},
 
 		/**
@@ -638,6 +649,18 @@ export default {
 		 */
 		tiles() {
 			return this.content?.layout === 'tiles'
+		},
+
+		/**
+		 * How many columns the tiles sit in (`columns` with `layout: "tiles"`,
+		 * board PqJourney's steps), or 0 when they wrap freely.
+		 *
+		 * @spec openspec/changes/facts-tiles-columns/specs/facts-widget/spec.md#requirement-tiles-can-sit-in-columns-and-a-tile-can-span-the-row
+		 * @return {number}
+		 */
+		tileColumns() {
+			const columns = Number(this.content?.columns)
+			return this.tiles && Number.isInteger(columns) && columns >= 2 ? columns : 0
 		},
 
 		/**
@@ -864,7 +887,7 @@ export default {
 				}
 				if (kind === 'row') {
 					const last = out[out.length - 1]
-					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, ...this.rowExtras(record, field, value) }
+					const row = { key, label: this.labelOf(record, field), value, inline: field.inline === true, wide: field.wide === true, ...this.rowExtras(record, field, value) }
 					if (field.route && !row.href) {
 						row.to = this.resolveRoute(field.route, record)
 					}
@@ -891,6 +914,9 @@ export default {
 					block.icon = typeof field.icon === 'string' ? field.icon : ''
 					block.initials = block.icon ? '' : this.initialsOf(readPath(record, field.initialsPath))
 					block.tone = ['success', 'info', 'warning', 'error'].includes(field.tone) ? field.tone : 'neutral'
+					block.card = field.card === true
+					block.to = field.route ? this.resolveRoute(field.route, record) : null
+					block.pill = this.leadPillOf(record, field.pill)
 				}
 				if (kind === 'meter') {
 					Object.assign(block, this.meterOf(record, field))
@@ -931,18 +957,19 @@ export default {
 		 * The foot link, resolved, or null. A `sidebarTab` link needs the
 		 * page's object sidebar and is null without one.
 		 *
-		 * @return {{label: string, to?: object, href?: string, sidebarTab?: string}|null}
+		 * @return {{label: string, icon: string, to?: object, href?: string, sidebarTab?: string}|null}
 		 * @spec openspec/changes/facts-link-opens-sidebar-tab/specs/record-widgets/spec.md#requirement-a-facts-link-can-open-a-sidebar-tab
+		 * @spec openspec/changes/facts-route-link-icon/specs/facts-widget/spec.md#requirement-a-route-link-keeps-its-icon
 		 */
 		link() {
 			const link = this.content?.link
 			if (!link || typeof link !== 'object' || !link.label) {
 				return null
 			}
-			const linkView = this.linkWords(link)
+			const linkView = { ...this.linkWords(link), icon: typeof link.icon === 'string' ? link.icon : '' }
 			if (typeof link.sidebarTab === 'string' && link.sidebarTab !== '') {
 				return this.objectSidebarState
-					? { ...linkView, sidebarTab: link.sidebarTab, icon: typeof link.icon === 'string' ? link.icon : '' }
+					? { ...linkView, sidebarTab: link.sidebarTab }
 					: null
 			}
 			if (link.route) {
@@ -951,7 +978,7 @@ export default {
 			}
 			if (typeof link.href === 'string' && link.href !== '') {
 				const href = this.linkHref(link, this.record)
-				return href ? { ...linkView, href, target: link.target === '_blank' ? '_blank' : '', icon: typeof link.icon === 'string' ? link.icon : '' } : null
+				return href ? { ...linkView, href, target: link.target === '_blank' ? '_blank' : '' } : null
 			}
 			return null
 		},
@@ -1557,6 +1584,29 @@ export default {
 		},
 
 		/**
+		 * The status pill at the end of a lead (`pill: { path, map?, variantMap?, variant? }`):
+		 * the value's mapped label, toned by the raw value. Null without a value.
+		 *
+		 * @param {object} record The record the lead reads.
+		 * @param {object} spec The lead's `pill`.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/contact-moment-parts/specs/contact-moment-parts/spec.md
+		 */
+		leadPillOf(record, spec) {
+			if (!spec || typeof spec !== 'object' || typeof spec.path !== 'string') {
+				return null
+			}
+			const raw = readPath(record, spec.path)
+			if (raw === undefined || raw === null || raw === '') {
+				return null
+			}
+			const key = String(raw)
+			const mapped = spec.map && Object.hasOwn(spec.map, key) ? spec.map[key] : key
+			const variant = (spec.variantMap && Object.hasOwn(spec.variantMap, key) ? spec.variantMap[key] : spec.variant) || 'default'
+			return { label: this.tr(mapped), variant: isBadgeVariant(variant) ? variant : 'default' }
+		},
+
+		/**
 		 * The pill tone of a row drawn as a pill (`pill: { variantMap }`): the
 		 * raw value's variant, else `default`; '' for a row that is text.
 		 *
@@ -2070,7 +2120,11 @@ export default {
 					if (!spec.path && Array.isArray(spec.parts)) {
 						return this.lineValue(record, spec)
 					}
-					const value = this.format(readPath(record, spec.path), spec, record)
+					const raw = readPath(record, spec.path)
+					if ((raw === null || raw === undefined || raw === '') && typeof spec.empty === 'string') {
+						return this.tr(spec.empty)
+					}
+					const value = this.phraseOf(this.format(raw, spec, record), spec)
 					if (value === '') {
 						return ''
 					}
@@ -2078,6 +2132,30 @@ export default {
 				})
 				.filter((value) => value !== '')
 				.join(separator)
+		},
+
+		/**
+		 * A count in words: `phrase` ("waiting {n} days") with `{n}` filled,
+		 * `phraseOne` for 1 and `phraseZero` for 0 when set. The value as it
+		 * is without a phrase or when it is not a count.
+		 *
+		 * @param {string} value The formatted value.
+		 * @param {object} spec `{ phrase?, phraseOne?, phraseZero? }`.
+		 * @return {string} The text.
+		 * @spec openspec/changes/facts-days-since-phrase/specs/facts-days-since-phrase/spec.md#requirement-a-facts-part-can-say-how-many-days-ago-and-name-an-empty-value
+		 */
+		phraseOf(value, spec) {
+			if (typeof spec.phrase !== 'string' || value === '' || !/^\d+$/.test(value)) {
+				return value
+			}
+			const count = Number(value)
+			let phrase = spec.phrase
+			if (count === 0 && typeof spec.phraseZero === 'string') {
+				phrase = spec.phraseZero
+			} else if (count === 1 && typeof spec.phraseOne === 'string') {
+				phrase = spec.phraseOne
+			}
+			return this.tr(phrase).replace(/\{n\}/g, value)
 		},
 
 		/**
@@ -2090,6 +2168,7 @@ export default {
 		 * @spec openspec/changes/facts-currency-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-money-amount
 		 * @spec openspec/changes/facts-user-format/specs/facts-widget/spec.md#requirement-a-facts-entry-can-show-a-user-by-name
 		 * @spec openspec/changes/facts-actions-and-sources/specs/facts-widget/spec.md#requirement-a-facts-entry-can-fill-a-template
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-facts-amount-can-be-stored-in-cents
 		 */
 		format(raw, spec, record = null) {
 			if (raw === null || raw === undefined || raw === '') {
@@ -2105,6 +2184,17 @@ export default {
 					.map((item) => this.format(item, { ...spec, format: spec.itemFormat || 'text' }))
 					.filter((item) => item !== '')
 				return items.join(', ')
+			}
+			// Whole calendar days from the date until today, never below 0.
+			if (format === 'days-since') {
+				const date = parseDateValue(raw)
+				if (date === null) {
+					return ''
+				}
+				const today = new Date()
+				const start = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+				const end = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+				return String(Math.max(0, Math.round((end - start) / 86400000)))
 			}
 			if (format === 'year') {
 				const date = parseDateValue(raw)
@@ -2187,7 +2277,9 @@ export default {
 				return new Intl.NumberFormat(metricLocale(), digits).format(number)
 			}
 			if (format === 'currency') {
-				const money = formatMoney(raw, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
+				// `minorUnits: true`: the value is stored in cents.
+				const amount = spec.minorUnits === true && raw !== '' && Number.isFinite(Number(raw)) ? Number(raw) / 100 : raw
+				const money = formatMoney(amount, { currency: spec.currency, currencyField: spec.currencyField, decimals: spec.decimals }, record, unwrapAppConfig(this.cnAppConfig))
 				if (money !== '') {
 					return money
 				}
@@ -2498,6 +2590,24 @@ export default {
 	width: 40px;
 }
 
+/* A lead drawn as a card: a bordered row that opens its record (PqContactmoment "Over dit verzoek"). */
+.cn-facts-widget__lead--card {
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	color: var(--color-main-text);
+	flex-wrap: wrap;
+	padding: 14px 16px;
+	text-decoration: none;
+}
+
+.cn-facts-widget__lead--card .cn-facts-widget__lead-text {
+	flex: 1 1 240px;
+}
+
+.cn-facts-widget__lead-pill {
+	flex: none;
+}
+
 /* Initials stand for a person: round, as an avatar. */
 .cn-facts-widget__lead-tile--initials {
 	border-radius: 50%;
@@ -2657,6 +2767,17 @@ export default {
 	font-weight: 400;
 }
 
+/* Tiles in columns (board PqJourney's steps): `columns` tiles a row, a wide
+   tile across the whole row. */
+.cn-facts-widget__rows--tile-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-facts-tile-columns), minmax(0, 1fr));
+}
+
+.cn-facts-widget__rows--tile-grid .cn-facts-widget__row--wide {
+	grid-column: 1 / -1;
+}
+
 /* `tileStyle: "figures"` (board PqKassadienst "Kasverschil"): white tiles,
    a plain label above a large figure, a muted note under it. */
 .cn-facts-widget__rows--figures .cn-facts-widget__row {
@@ -2719,7 +2840,8 @@ export default {
 
 @media (max-width: 640px) {
 	.cn-facts-widget__rows--columns,
-	.cn-facts-widget__rows--three {
+	.cn-facts-widget__rows--three,
+	.cn-facts-widget__rows--tile-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }

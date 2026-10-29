@@ -66,4 +66,9 @@ describe('look-board-index.css: the folder pane draws folder rows', () => {
 		const count = css.slice(css.indexOf('.cn-look-board .cn-index-page__folder-pane .cn-folder-tree__count {'))
 		expect(count.slice(0, count.indexOf('}'))).toContain('background: var(--cn-board-hairline);')
 	})
+
+	it('draws Alle in the board\'s secondary ink unless it is open', () => {
+		const body = bodyOf(`${PANE} .cn-folder-sidebar__all:not(.cn-folder-sidebar__all--active)`)
+		expect(body).toContain('color: color-mix(in srgb, var(--color-text-maxcontrast) 50%, var(--color-main-text));')
+	})
 })

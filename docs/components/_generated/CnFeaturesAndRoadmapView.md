@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 28 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 29 files reached through imports.
 
 Through: `CnActionDialog`, `CnBuildiqEditButton`, `CnCellRenderer`, `CnDataTable`, `CnFkResolveCell`, `CnFlowDetail`, `CnGraphCanvas`, `CnIndexPage`, `CnRoadmapTab`, `CnSchemaFormDialog`.
 
