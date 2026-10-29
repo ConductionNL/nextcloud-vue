@@ -730,7 +730,7 @@
 					<CnDetailWidgetHost
 						:widget="titled(entry.widget)"
 						:chrome="entry.chrome"
-						:showCardTitle="true"
+						:showCardTitle="entry.showTitle"
 						:showActions="effectiveShowWidgetActions"
 						:objectId="objectId"
 						:object="currentObject"
@@ -4543,9 +4543,9 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
 		 */
 		/**
-		 * The band's widgets, resolved and visible, each with its span.
+		 * The band's widgets, resolved and visible, each with its span and whether its card is headed.
 		 *
-		 * @return {Array<{widget: object, span: number, chrome: string}>}
+		 * @return {Array<{widget: object, span: number, chrome: string, showTitle: boolean}>}
 		 * @spec openspec/changes/detail-band/specs/detail-page/spec.md#requirement-a-detail-page-can-draw-a-band-across-the-page-above-the-body-and-the-side-column
 		 */
 		bandWidgets() {
@@ -4568,7 +4568,10 @@ export default {
 						return null
 					}
 					const chrome = ['card', 'bare'].includes(entry?.chrome) ? entry.chrome : (widget.type === 'banner' ? 'bare' : 'card')
-					return { widget, span, chrome }
+					// An untitled widget gets no card header (a stat prints its own label).
+					const showTitle = entry?.showTitle !== false
+						&& (this.titled(widget)?.title !== undefined || widgetContentOf(widget).title !== undefined)
+					return { widget, span, chrome, showTitle }
 				})
 				.filter((entry) => entry && this.sideWidgetVisible(entry.widget))
 		},
