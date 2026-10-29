@@ -75,6 +75,7 @@
 						<NcButton
 							v-if="row.settingsUrl"
 							:variant="row.configured ? 'secondary' : 'tertiary'"
+							:class="{ 'cn-button--tonal': !row.configured }"
 							:href="row.settingsUrl"
 							:aria-label="row.configured ? t('nextcloud-vue', 'Open settings for {name}', { name: row.title }) : t('nextcloud-vue', 'Set up {name}', { name: row.title })">
 							{{ row.configured ? t('nextcloud-vue', 'Open settings') : t('nextcloud-vue', 'Set up') }}
