@@ -3343,6 +3343,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
+/* A card of ruled rows (a record list that rules above its rows, a task
+   list) ends 20px under its last row, the card's own padding, as the Dq
+   boards draw it (DqMijnTeam "Wachtrij van uw team", DqMijnWerk "Mijn
+   taken", "Verder werken"). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__content > .cn-record-list.cn-record-list--rule-above,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__content > .cn-tasks-widget.cn-tasks-widget--list {
+	padding-bottom: 20px;
+}
+
 /* The stacked bar's legend in the board's type: the label 14px and the
    count 22px, both at the font's normal line height, 2px apart: a 46px item
    (DqMijnWerk "Mijn 14 zaken per stap"; live drew 14.25/22.5px at 1.5 and
