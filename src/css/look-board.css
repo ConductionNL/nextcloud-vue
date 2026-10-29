@@ -598,7 +598,8 @@
 
 /* ---- A table on a dashboard card ------------------------------------------ */
 /* The card is the frame: a table on it draws no border of its own, and its
-   pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
+   pager sits on the card's inset under a hairline 12px under the table, its
+   links 12px below that (DqDoorlooptijd
    "Zaken met risico", "Prestaties per zaaktype"; r32 a second frame inside
    the card, the pager 16px in).
    @spec openspec/changes/board-dashboard-table-in-card/specs/board-dashboard-table-in-card/spec.md#requirement-a-table-on-a-board-dashboard-card-has-no-frame-of-its-own */
@@ -608,6 +609,7 @@
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container--board .cn-pagination.cn-pagination--board {
+	margin: 12px 0 0;
 	padding: 12px 0 0;
 }
 
