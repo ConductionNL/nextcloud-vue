@@ -1525,6 +1525,7 @@ import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeL
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
@@ -13450,7 +13451,7 @@ export default {
 				return !!this.$route && tab.to.name !== undefined && this.$route.name === tab.to.name
 			}
 			const path = this.$route && this.$route.path
-			return !!path && String(path).replace(/\/+$/, '') === String(tab.to).replace(/\/+$/, '')
+			return !!path && stripTrailingSlashes(String(path)) === stripTrailingSlashes(String(tab.to))
 		},
 
 		/**

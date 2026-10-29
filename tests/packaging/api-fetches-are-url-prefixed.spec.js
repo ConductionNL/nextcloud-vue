@@ -85,7 +85,7 @@ const ALLOWED = new Map([
 	// ── DAV entry points (`remote.php/dav`) are real files on disk, reached
 	//    through a helper that already carries the webroot.
 	['src/components/CnFilesBrowser/CnFilesBrowser.vue:`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`', 'getRemoteURL() resolves the DAV entry point, a real file'],
-	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${remoteUrl.replace(/\\/+$/, '')}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
+	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${stripTrailingSlashes(remoteUrl)}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
 
 	// ── Caller- or config-supplied endpoints. The value arrives from the host
 	//    app, a widget config or a server payload and may be absolute, so the

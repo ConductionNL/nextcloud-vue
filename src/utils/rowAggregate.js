@@ -27,6 +27,25 @@ export function isRowAggregate(agg) {
 }
 
 /**
+ * One row's figures in a map of rows, created on first use. Rows live in a
+ * Map and figures in a prototype-less object, so a row id or figure key such
+ * as `__proto__` stays an ordinary key.
+ *
+ * @param {Map<string, object>} rows The figures by row id.
+ * @param {string|number} rowId The row id (read as a string).
+ * @return {object} The row's figures, by key.
+ */
+export function cellsOf(rows, rowId) {
+	const key = String(rowId)
+	let cells = rows.get(key)
+	if (!cells) {
+		cells = Object.create(null)
+		rows.set(key, cells)
+	}
+	return cells
+}
+
+/**
  * Fill an aggregate's `where` for one row: a string `"@self.<path>"` reads
  * that path of the row, everything else is passed through.
  *

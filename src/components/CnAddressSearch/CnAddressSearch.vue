@@ -30,6 +30,7 @@ import axios from '@nextcloud/axios'
 import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { prefixUrl } from '../../utils/headers.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
 
 /** How long typing rests before a search runs, in ms. */
@@ -194,7 +195,7 @@ export default {
 		 */
 		baseUrl() {
 			if (this.endpoint) {
-				return this.endpoint.replace(/\/+$/, '')
+				return stripTrailingSlashes(this.endpoint)
 			}
 			const roots = (typeof window !== 'undefined' && window.OC && window.OC.appswebroots) || {}
 			const app = this.appCandidates.find((id) => Object.hasOwn(roots, id)) || this.appCandidates[0] || 'integriq'
