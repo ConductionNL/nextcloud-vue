@@ -1948,6 +1948,7 @@
 				"params": { "type": "object", "description": "Route params passed along with `route`.", "additionalProperties": { "type": ["string", "number"] } },
 				"query": { "type": "object", "description": "Query passed along with `route`.", "additionalProperties": { "type": ["string", "number", "boolean"] } },
 				"href": { "type": "string", "minLength": 1, "description": "External URL, opened in a new tab. Mutually exclusive with route." },
+				"action": { "type": "string", "enum": ["user-settings"], "description": "Built-in action instead of a link: 'user-settings' opens the user settings dialog (board PqGeavanceerdHub, Persoonlijke instellingen). Mutually exclusive with route and href. Outside a host that offers the dialog the card is left out." },
 				"permission": { "type": "string", "description": "Permission the user must hold for the card to render. Same rule as menuItem.permission." },
 				"visibleIf": { "$ref": "#/$defs/visibleIfCondition", "description": "Display condition, evaluated the way a menu entry's is." },
 				"status": {
@@ -1997,7 +1998,9 @@
 			},
 			"allOf": [
 				{ "not": { "required": ["route", "href"] } },
-				{ "anyOf": [{ "required": ["route"] }, { "required": ["href"] }] }
+				{ "not": { "required": ["route", "action"] } },
+				{ "not": { "required": ["href", "action"] } },
+				{ "anyOf": [{ "required": ["route"] }, { "required": ["href"] }, { "required": ["action"] }] }
 			]
 		},
 		"navCardEntry": {
@@ -6271,7 +6274,7 @@
 										"description": "A closing card after the groups (board PqGeavanceerdHub, the menu structure): a badge, a paragraph and a link beside a titled list of facts. Strings are translated, then {runtime.<path>} is filled.",
 										"properties": {
 											"label": { "type": "string" },
-											"badge": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "icon": { "type": "string" } } },
+											"badge": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "icon": { "type": "string" }, "tone": { "type": "string", "enum": ["primary", "purple"], "description": "The pill tone: primary (default), or purple, as the boards draw an administrators-only badge." } } },
 											"text": { "type": "string" },
 											"link": { "type": "object", "required": ["label"], "additionalProperties": false, "properties": { "label": { "type": "string", "minLength": 1 }, "route": { "type": "string", "minLength": 1 }, "href": { "type": "string", "minLength": 1 }, "params": { "type": "object" }, "query": { "type": "object" } } },
 											"title": { "type": "string" },

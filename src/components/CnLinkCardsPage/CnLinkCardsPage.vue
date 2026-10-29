@@ -86,8 +86,10 @@
 						:href="card.url"
 						:target="card.external ? '_blank' : null"
 						:rel="card.external ? 'noopener noreferrer' : null"
+						:role="card.action ? 'button' : null"
 						:aria-describedby="card.description ? card.descriptionId : null"
-						@click="open(card, $event)">
+						@click="open(card, $event)"
+						@keydown.space="open(card, $event)">
 						<span v-if="card.icon" class="cn-link-cards-page__row-icon" aria-hidden="true">
 							<CnIcon :name="card.icon" :size="20" />
 						</span>
@@ -117,8 +119,10 @@
 						:href="card.url"
 						:target="card.external ? '_blank' : null"
 						:rel="card.external ? 'noopener noreferrer' : null"
+						:role="card.action ? 'button' : null"
 						:aria-describedby="card.description ? card.descriptionId : null"
-						@click="open(card, $event)">
+						@click="open(card, $event)"
+						@keydown.space="open(card, $event)">
 						<CnIcon
 							v-if="card.icon"
 							:name="card.icon"
@@ -159,11 +163,15 @@
 			:aria-label="resolvedPanel.label || null"
 			data-testid="cn-link-cards-panel">
 			<div class="cn-link-cards-page__panel-lead">
-				<span v-if="resolvedPanel.badge" class="cn-link-cards-page__panel-badge" data-testid="cn-link-cards-panel-badge">
+				<span
+					v-if="resolvedPanel.badge"
+					class="cn-link-cards-page__panel-badge"
+					:class="`cn-link-cards-page__panel-badge--${resolvedPanel.badgeTone}`"
+					data-testid="cn-link-cards-panel-badge">
 					<CnIcon
 						v-if="resolvedPanel.badgeIcon"
 						:name="resolvedPanel.badgeIcon"
-						:size="16"
+						:size="14"
 						aria-hidden="true" />
 					{{ resolvedPanel.badge }}
 				</span>
@@ -219,6 +227,8 @@ import { CnIcon } from '../CnIcon/index.js'
 let linkCardsPageUid = 0
 
 const STATUS_TONES = ['neutral', 'error', 'warning', 'success']
+
+const BADGE_TONES = ['primary', 'purple']
 
 /**
  * The tone of a card's status pill: `status.tone` when it is one of the known
@@ -334,6 +344,8 @@ export default {
 		cnPermissions: { default: () => [] },
 		/** The look the app takes: `board` draws the page's own header. */
 		cnLook: { default: 'nextcloud' },
+		/** Opens the user settings dialog, provided by CnAppRoot. Null outside one. */
+		cnOpenUserSettings: { default: null },
 	},
 
 	props: {
@@ -531,6 +543,7 @@ export default {
 						external: target.external,
 						location: target.location,
 						url: target.url,
+						action: target.action || '',
 					}
 				})
 				.filter((card) => card.url !== '')
@@ -627,6 +640,7 @@ export default {
 		 *
 		 * @return {object|null} The panel.
 		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-links-page-can-close-with-a-panel
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-the-panel-badge-takes-a-tone
 		 */
 		resolvedPanel() {
 			const panel = this.config.panel
@@ -646,6 +660,7 @@ export default {
 				label: fill(panel.label),
 				badge: panel.badge ? fill(panel.badge.label) : '',
 				badgeIcon: panel.badge?.icon || '',
+				badgeTone: BADGE_TONES.includes(panel.badge?.tone) ? panel.badge.tone : 'primary',
 				text: fill(panel.text),
 				link: linkTarget && linkTarget.url !== '' ? { ...linkTarget, label: fill(panel.link.label) } : null,
 				title: fill(panel.title),
@@ -867,13 +882,20 @@ export default {
 		 * Where a card goes. An `href` is an external URL. A `route` is a
 		 * route name, or a path when it starts with `/`, resolved by the
 		 * router so the link carries the app's base with or without
-		 * `/index.php`.
+		 * `/index.php`. `action: "user-settings"` opens the user settings
+		 * dialog, and resolves only inside a host that offers it.
 		 *
 		 * @param {object} card The card.
-		 * @return {{external: boolean, location: object|null, url: string}} The target; `url` is '' when it cannot be resolved.
+		 * @return {{external: boolean, location: object|null, url: string, action?: string}} The target; `url` is '' when it cannot be resolved.
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-a-link-card-can-open-the-user-settings
 		 */
 		targetOf(card) {
+			if (card.action === 'user-settings') {
+				return typeof this.cnOpenUserSettings === 'function'
+					? { external: false, location: null, url: '#', action: card.action }
+					: { external: false, location: null, url: '' }
+			}
 			if (typeof card.route === 'string' && card.route !== '') {
 				const location = card.route.startsWith('/') ? { path: card.route } : { name: card.route }
 				if (card.params && typeof card.params === 'object') {
@@ -892,14 +914,25 @@ export default {
 
 		/**
 		 * Route a plain click on an in-app card. A modified or middle click,
-		 * and every click on an external card, is left to the browser.
+		 * and every click on an external card, is left to the browser. A
+		 * settings card opens the user settings dialog, on a click or on the
+		 * space key, as a button does.
 		 *
 		 * @param {object} card The resolved card.
-		 * @param {MouseEvent} event The click.
+		 * @param {MouseEvent|KeyboardEvent} event The click or key press.
 		 * @return {void}
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-a-link-card-can-open-the-user-settings
 		 */
 		open(card, event) {
+			if (card.action === 'user-settings') {
+				event.preventDefault()
+				this.cnOpenUserSettings()
+				return
+			}
+			if (event.type === 'keydown') {
+				return
+			}
 			if (card.external || !card.location) {
 				return
 			}
@@ -1265,7 +1298,13 @@ export default {
 	font-size: 13px;
 	font-weight: 600;
 	gap: 6px;
+	line-height: normal;
 	padding: 3px 10px;
+}
+
+.cn-link-cards-page__panel-badge--purple {
+	background: var(--cn-status-purple-bg);
+	color: var(--cn-status-purple-text);
 }
 
 .cn-link-cards-page__panel-text {

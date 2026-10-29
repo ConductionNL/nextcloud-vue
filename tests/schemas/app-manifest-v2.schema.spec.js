@@ -2844,4 +2844,14 @@ describe('expandableRows table entryAction (expandable-row-entry-action)', () =>
 	it('refuses an entry action without a label', () => {
 		expect(validateManifestV2(pipelines({ entryAction: { id: 'edit' } })).valid).toBe(false)
 	})
+
+	it('accepts action user-settings and a purple panel badge', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal settings', action: 'user-settings' }], { panel: { badge: { label: 'Administrators only', tone: 'purple' } } })).valid).toBe(true)
+	})
+
+	it('refuses an unknown action, an action beside a route and an unknown badge tone', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'admin-settings' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'user-settings', route: 'Personal' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Store', label: 'Store', route: 'Store' }], { panel: { badge: { label: 'Admins', tone: 'red' } } })).valid).toBe(false)
+	})
 })
