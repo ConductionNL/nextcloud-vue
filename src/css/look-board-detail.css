@@ -686,8 +686,9 @@
 }
 
 /* The reply box under a conversation (DqZaakContact): a hairline and 16px
-   above it, 10px between its parts, the field 10px 12px at 15px/1.5 with
-   room for two lines (67px), the option at 14px.
+   above it, 10px between its parts, the field 10px 12px at 15px on the
+   normal line, two lines high (58px) and growing with its text, the option
+   at 14px.
    @spec openspec/changes/board-conversation-reply-box/specs/board-conversation-reply-box/spec.md#requirement-the-board-reply-box */
 .cn-look-board .cn-conversation-thread__reply:not(.cn-look-nextcloud *) {
 	gap: 10px;
@@ -696,10 +697,11 @@
 }
 
 .cn-look-board .cn-conversation-thread__input:not(.cn-look-nextcloud *) {
-	min-height: calc(3em + 22px);
+	field-sizing: content;
+	min-height: calc(2lh + 22px);
 	padding: 10px 12px;
 	font-size: 15px;
-	line-height: 1.5;
+	line-height: normal;
 }
 
 .cn-look-board .cn-conversation-thread__reply-option:not(.cn-look-nextcloud *) {

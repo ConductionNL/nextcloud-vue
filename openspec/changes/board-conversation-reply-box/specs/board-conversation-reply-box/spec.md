@@ -26,10 +26,12 @@ SHALL carry the send icon.
 ### Requirement: The board reply box
 
 In the board look the reply box SHALL open with a `--cn-board-hairline` rule and 16px above it and keep 10px between
-its parts. The field SHALL have 10px 12px of padding, 15px text at line height 1.5 and room for two lines (67px).
-The option SHALL be 14px.
+its parts. The field SHALL have 10px 12px of padding and 15px text on the normal line height, open two lines high
+(58px) and grow with what is typed. The option SHALL be 14px.
 
 #### Scenario: DqZaakContact
 
 - **GIVEN** the Contact tab in the board look
-- **THEN** "Antwoord aan de inwoner" sits under a hairline and its field is 67px tall
+- **THEN** "Antwoord aan de inwoner" sits under a hairline and its field is 58px tall, two lines
+- **WHEN** a reply longer than two lines is typed
+- **THEN** the field grows to hold it
