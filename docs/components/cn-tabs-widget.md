@@ -155,6 +155,16 @@ An id that names no widget is skipped. Without `label` the tab takes the first
 widget's title. `countFrom: "widget"` counts the first widget of the stack that
 has a list. A `widgetId` tab renders as before.
 
+`sections: true` on a stack tab draws it as one sheet in the board look: the
+panel is the card again and every widget is a section of it, without a card of
+its own, with a hairline above a section that follows a titled one (PqLead
+"Overzicht": the stage strip, then Deal, Products, Contacts and Flow runs). A
+widget whose definition says `showTitle: false` draws no title in a stack.
+
+```json
+{ "widgetIds": ["lead-stages", "lead-deal", "lead-lines"], "label": "Overview", "sections": true }
+```
+
 A widget in a stack follows the page controls. On a dashboard, a widget whose
 `visibleWhen` is a workspace condition (`{ "workspace": "<key>", "op", "value" }`)
 draws only while the condition holds, the same rule a dashboard widget follows.
@@ -185,7 +195,7 @@ stack child; the widget draws.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout?, sections? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |

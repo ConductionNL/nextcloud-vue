@@ -117,13 +117,13 @@
 				<div
 					v-if="entry.widget && entry.isStack"
 					class="cn-tabs-widget__stack"
-					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid }"
+					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid, 'cn-tabs-widget__stack--sections': entry.sections }"
 					data-testid="cn-tabs-widget-stack">
 					<div class="cn-tabs-widget__stack-first" :style="spanStyle(entry.grid, 0)">
 						<CnDetailWidgetHost
 							:widget="entry.widget"
 							chrome="card"
-							:showCardTitle="true"
+							:showCardTitle="entry.widget.showTitle !== false"
 							:showActions="false"
 							:availableWidgets="availableWidgets"
 							:objectId="objectId"
@@ -149,7 +149,7 @@
 						<CnDetailWidgetHost
 							:widget="child"
 							chrome="card"
-							:showCardTitle="true"
+							:showCardTitle="child.showTitle !== false"
 							:showHeaderLink="true"
 							:showActions="false"
 							:availableWidgets="availableWidgets"
@@ -430,6 +430,10 @@ export default {
 		 * the other: `columns: 4` gives each a quarter of the row, and
 		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
 		 * the page grid does. Widgets wrap onto the next row.
+		 * `sections: true` draws the stack as one sheet in the board look: the
+		 * panel is the card and each widget a section of it, a rule above a
+		 * section that follows a titled one (PqLead "Overzicht"). A widget
+		 * whose definition says `showTitle: false` draws no title in a stack.
 		 *
 		 * A tab with `default: true` is the one the strip opens on, unless a
 		 * route hash names another tab or the marked tab sits under "More".
@@ -440,7 +444,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>, sections?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -729,6 +733,9 @@ export default {
 					// "De melding"): the record decides which cards show, not
 					// whether the panel is a card.
 					isStack: named.length > 1,
+					// `sections: true`: the stack is one sheet, its widgets
+					// sections of the panel rather than cards of their own.
+					sections: Boolean(tab && typeof tab === 'object' && tab.sections === true),
 					grid: this.stackGrid(tab, widgets),
 					count,
 					unreadKey: this.unreadKeyOf(tab, widgetId),
