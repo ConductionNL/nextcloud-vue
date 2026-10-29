@@ -495,6 +495,7 @@ import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
+import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTemplate.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
@@ -1160,6 +1161,20 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Sort and filter the `rows` the table holds from its own headers, in
+		 * the browser: for a table that holds every row (a settings table read
+		 * from an app endpoint) and has no host keeping the state. `sort` and
+		 * `column-filter` still emit; `sortKey`, `sortKeys` and `activeFilters`
+		 * are not read.
+		 *
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		localHeaders: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
@@ -1219,6 +1234,9 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			// localHeaders: the header sort keys and filter map the table keeps itself.
+			localSortKeys: [],
+			localFilters: {},
 			/** The page shown under `pageSize`. */
 			currentPage: 1,
 			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
@@ -1332,6 +1350,10 @@ export default {
 		 */
 		sourceRows() {
 			if (this.rows && this.rows.length > 0) {
+				if (this.localHeaders) {
+					const primary = this.localSortKeys[0]
+					return localHeaderRows(this.rows, primary ? { field: primary.key, dir: primary.order } : null, this.localFilters)
+				}
 				return this.rows
 			}
 			if (this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
@@ -1513,6 +1535,9 @@ export default {
 		},
 
 		effectiveSortKeys() {
+			if (this.localHeaders) {
+				return this.localSortKeys
+			}
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
 			}
@@ -2770,12 +2795,45 @@ export default {
 		},
 
 		columnFilterStateFor(col) {
-			return columnFilterState(this.filterDefFor(col), this.activeFilters)
+			return columnFilterState(this.filterDefFor(col), this.headerFilters())
 		},
 
 		isColumnFiltered(col) {
 			const def = this.filterDefFor(col)
-			return !!def && isColumnFilterActive(def, this.activeFilters)
+			return !!def && isColumnFilterActive(def, this.headerFilters())
+		},
+
+		/**
+		 * The filter map the headers show: the table's own under `localHeaders`,
+		 * else the host's `activeFilters`.
+		 *
+		 * @return {object}
+		 */
+		headerFilters() {
+			return this.localHeaders ? this.localFilters : this.activeFilters
+		},
+
+		/**
+		 * Under `localHeaders`, lay a header filter's parameters over the
+		 * table's own filter map; an empty list clears its parameter.
+		 *
+		 * @param {object} params `{ paramKey: values[] }`.
+		 * @return {void}
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		applyLocalFilter(params) {
+			if (!this.localHeaders) {
+				return
+			}
+			const next = { ...this.localFilters }
+			for (const [key, values] of Object.entries(params || {})) {
+				if (Array.isArray(values) && values.length > 0) {
+					next[key] = values
+				} else {
+					delete next[key]
+				}
+			}
+			this.localFilters = next
 		},
 
 		filterButtonLabel(col) {
@@ -2868,11 +2926,13 @@ export default {
 		applyColumnFilter(col, state) {
 			const def = this.filterDefFor(col)
 			if (def) {
+				const params = columnFilterParams(def, state)
+				this.applyLocalFilter(params)
 				/**
 				 * @event column-filter A header filter was applied or cleared.
 				 * @type {{ key: string, params: object }} `params` maps each query parameter the column owns to its values; an empty list clears it.
 				 */
-				this.$emit('column-filter', { key: col.key, params: columnFilterParams(def, state) })
+				this.$emit('column-filter', { key: col.key, params })
 			}
 			this.closeColumnFilter()
 		},
@@ -2880,7 +2940,9 @@ export default {
 		clearColumnFilter(col) {
 			const def = this.filterDefFor(col)
 			if (def) {
-				this.$emit('column-filter', { key: col.key, params: clearedColumnFilterParams(def) })
+				const params = clearedColumnFilterParams(def)
+				this.applyLocalFilter(params)
+				this.$emit('column-filter', { key: col.key, params })
 			}
 		},
 
@@ -2910,6 +2972,9 @@ export default {
 		 */
 		applySort(key, append) {
 			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			if (this.localHeaders) {
+				this.localSortKeys = keys
+			}
 			const primary = keys[0] || null
 			/**
 			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).
