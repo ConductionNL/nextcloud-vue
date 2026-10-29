@@ -20,6 +20,7 @@
 import axios from '@nextcloud/axios'
 import { FileType } from '@nextcloud/files'
 import { generateUrl } from '@nextcloud/router'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * A browser path (`/a/b`) as the API's relative path (`a/b`).
@@ -28,7 +29,7 @@ import { generateUrl } from '@nextcloud/router'
  * @return {string} The relative path, empty for the root.
  */
 export function toApiPath(path) {
-	return String(path || '').replace(/^\/+|\/+$/g, '')
+	return stripTrailingSlashes(String(path || '')).replace(/^\/+/, '')
 }
 
 /**

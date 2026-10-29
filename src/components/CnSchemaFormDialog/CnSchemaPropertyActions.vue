@@ -536,6 +536,7 @@ import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 
 /**
  * CnSchemaPropertyActions — NcActions dropdown for a single schema property.
@@ -685,6 +686,9 @@ export default {
 		// --- Property setting updates ---
 
 		updatePropertySetting(key, setting, value) {
+			if (isPrototypeKey(key) || isPrototypeKey(setting)) {
+				return
+			}
 			if (this.schema.properties[key]) {
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
 				this.schema.properties[key][setting] = settingValue
@@ -693,6 +697,9 @@ export default {
 		},
 
 		updatePropertyRequired(key, isRequired) {
+			if (isPrototypeKey(key)) {
+				return
+			}
 			if (this.schema.properties[key]) {
 				if (isRequired) {
 					this.schema.properties[key].required = true
@@ -1322,6 +1329,9 @@ export default {
 		},
 
 		updateFilePropertySetting(key, setting, value) {
+			if (isPrototypeKey(key) || isPrototypeKey(setting)) {
+				return
+			}
 			if (this.schema.properties[key]) {
 				if (this.schema.properties[key].type === 'file') {
 					this.schema.properties[key][setting] = value
@@ -1332,6 +1342,9 @@ export default {
 		},
 
 		updateFileProperty(key, setting, value) {
+			if (isPrototypeKey(key) || isPrototypeKey(setting)) {
+				return
+			}
 			if (this.schema.properties[key]) {
 				if (['allowedTypes', 'allowedTags', 'autoTags'].includes(setting)) {
 					const arrayValue = value ? value.split(',').map((item) => item.trim()).filter((item) => item !== '') : []
@@ -1371,6 +1384,9 @@ export default {
 		},
 
 		updateFilePropertyTags(key, setting, selectedOptions) {
+			if (isPrototypeKey(key) || isPrototypeKey(setting)) {
+				return
+			}
 			if (this.schema.properties[key]) {
 				const tags = selectedOptions ? selectedOptions.map((option) => option.id || option) : []
 
@@ -1396,6 +1412,9 @@ export default {
 		},
 
 		updatePropertyTableSetting(key, setting, value) {
+			if (isPrototypeKey(key) || isPrototypeKey(setting)) {
+				return
+			}
 			if (!this.schema.properties[key]) {
 				return
 			}
@@ -1551,6 +1570,9 @@ export default {
 		},
 
 		updatePropertyGroupPermission(key, groupId, action, hasPermission) {
+			if (isPrototypeKey(key) || isPrototypeKey(action)) {
+				return
+			}
 			if (!this.schema.properties[key]) {
 				return
 			}

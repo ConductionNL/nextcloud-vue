@@ -178,6 +178,7 @@ import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { stripMarker } from '../../utils/marker.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -292,7 +293,7 @@ export default {
 		 */
 		reportTitle(report) {
 			const raw = (report && (report.reportTitle || report.title || report.name || report.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled report')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled report')
 		},
 
 		/**
@@ -305,7 +306,7 @@ export default {
 		 */
 		reportSubheader(report) {
 			const raw = report?.subheader ?? report?.dataSource ?? report?.data?.subheader ?? ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim()
+			return stripMarker(raw)
 		},
 
 		reportType(report) {

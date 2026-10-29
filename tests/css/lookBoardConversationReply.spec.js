@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * In the board look a conversation's reply box opens with a hairline and its
- * field is the two-line 67px field (DqZaakContact; COMPDIFF r24 h 67 vs 48).
+ * field opens two lines high on the normal line (58px) and grows with its text
+ * (DqZaakContact; r34 h 58 vs 67).
  * jsdom draws no layout, so the rules are read from the stylesheet text.
  *
  * @spec openspec/changes/board-conversation-reply-box/specs/board-conversation-reply-box/spec.md#requirement-the-board-reply-box
@@ -44,8 +45,9 @@ describe('look-board-detail.css: the conversation reply box', () => {
 	it.each([
 		'padding: 10px 12px;',
 		'font-size: 15px;',
-		'line-height: 1.5;',
-		'min-height: calc(3em + 22px);',
+		'line-height: normal;',
+		'min-height: calc(2lh + 22px);',
+		'field-sizing: content;',
 	])('draws the field with %s', (declaration) => {
 		expect(bodyOf(`.cn-look-board .cn-conversation-thread__input${NOT_NC}`)).toContain(declaration)
 	})

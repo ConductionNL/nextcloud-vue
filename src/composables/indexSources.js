@@ -114,7 +114,7 @@ export function flowTriggerCell(flow, catalog = []) {
  */
 function flowsSource() {
 	const store = useFlowStore()
-	const view = reactive({ state: 'all', runsRoute: '/flow-runs', flowsRoute: '/flows' })
+	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
 
 	/**
@@ -175,6 +175,7 @@ function flowsSource() {
 		 */
 		load: async (config) => {
 			view.state = filters[config?.state] ? config.state : 'all'
+			view.owners = [].concat(config?.owner ?? []).map(String).filter((owner) => owner !== '')
 			view.runsRoute = config?.runsRoute || '/flow-runs'
 			view.flowsRoute = config?.flowsRoute || '/flows'
 			await store.load({ app: config?.app })
@@ -184,7 +185,34 @@ function flowsSource() {
 		/**
 		 * @return {Array<object>} The rows of the active tab.
 		 */
-		rows: () => allRows().filter(filters[view.state] || filters.all),
+		rows: () => allRows()
+			.filter(filters[view.state] || filters.all)
+			.filter((row) => view.owners.length === 0 || view.owners.includes(String(row.owner ?? ''))),
+
+		/**
+		 * The owner filter (a page's `filterMenuFields` entry on `owner`)
+		 * reaches `load` as `owner`.
+		 */
+		searchFields: {
+			owner: { param: 'owner' },
+		},
+
+		/**
+		 * The owners of the loaded flows with how many each owns, for the
+		 * owner filter's values.
+		 *
+		 * @return {{owner: Array<{value: string, count: number}>}} The buckets.
+		 */
+		facets: () => {
+			const counts = new Map()
+			for (const flow of (store.flows || [])) {
+				const owner = String(flow?.owner ?? '')
+				if (owner !== '') {
+					counts.set(owner, (counts.get(owner) || 0) + 1)
+				}
+			}
+			return { owner: [...counts].map(([value, count]) => ({ value, count })) }
+		},
 
 		/**
 		 * @return {boolean} Whether a load is in flight.

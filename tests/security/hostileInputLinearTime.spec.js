@@ -56,6 +56,9 @@ describe('joinTemplateParts', () => {
 		['{x{y}', 'XY'],
 		['{{a}}', '}'],
 		['open {a} {', 'open A {'],
+		['Static', 'Static'],
+		['', ''],
+		['{}', '{}'],
 	])('fills %j as %j', (template, expected) => {
 		expect(joinTemplateParts(template, valueOf)).toBe(expected)
 	})
