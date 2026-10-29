@@ -951,13 +951,24 @@
 /* "Acties" and "Meer" are 40px tall in a page or card header, as the header
    buttons beside them (DqTenant, DqAfdelingen, DqZaaktype). The Actions
    button at the end of a detail page's tab strip keeps the strip's 34px
-   (DqZaak, DqContact: look-board-detail.css), and the index toolbar's Filter
+   (DqZaak, DqContact: look-board-detail.css), as does the one beside the
+   features board's tabs (PqRoadmap, below), and the index toolbar's Filter
    menu keeps the toolbar's 36px (look-board-index.css). An icon-only menu, a
    row's "...", keeps its own size.
    @spec openspec/changes/board-labelled-menu-trigger-height/specs/board-labelled-menu-trigger-height/spec.md#requirement-a-labelled-board-menu-button-is-40px */
-.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)):where(:not(.cn-actions-bar__filter-menu *)) {
+.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)):where(:not(.cn-features-board__tab-actions *)):where(:not(.cn-actions-bar__filter-menu *)) {
 	--button-size: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
+}
+
+/* The Actions menu beside the features board's tabs is the strip's 34px
+   button with 12px padding, as at the end of a detail page's tab strip
+   (PqRoadmap).
+   @spec openspec/changes/features-board-tab-row-gaps/specs/features-board-tab-row-gaps/spec.md#requirement-the-features-boards-tab-row-keeps-the-boards-gaps-and-34px-actions-menu */
+.cn-look-board .cn-features-board__tab-actions:not(.cn-look-nextcloud *) .button-vue {
+	--button-padding: 12px;
+	min-height: 34px;
+	block-size: 34px;
 }
 
 /* ---- A table's export button ------------------------------------------- */
