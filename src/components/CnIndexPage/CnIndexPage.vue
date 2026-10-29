@@ -938,6 +938,7 @@
 								:actions="rowMenuActionsFor(row)"
 								:row="row"
 								:rowLabel="rowTitleFor(row)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1171,6 +1172,7 @@
 									:row="object"
 									:rowLabel="rowTitleFor(object)"
 									:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+									:inline="rowInlineActions"
 									@action="onRowAction" />
 							</template>
 						</CnExpandableRow>
@@ -1203,6 +1205,7 @@
 								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1256,6 +1259,7 @@
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -3444,6 +3448,19 @@ export default {
 		addLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * How many of a row's actions show as buttons beside its menu, the
+		 * first as a tonal pill (manifest `config.rowInlineActions`, board
+		 * PqWachtrij "In behandeling nemen" and an eye). 0 keeps them all in
+		 * the menu.
+		 *
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		rowInlineActions: {
+			type: Number,
+			default: 0,
 		},
 
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
