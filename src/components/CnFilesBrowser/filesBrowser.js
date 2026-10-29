@@ -9,6 +9,7 @@
  */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * Actions the Files app registers that cannot run on a page without the Files
@@ -42,7 +43,7 @@ export function userRelativePathFromHref(href, uid) {
 	const marker = `/dav/files/${uid}`
 	const at = decoded.indexOf(marker)
 	const rest = at === -1 ? decoded : decoded.slice(at + marker.length)
-	const trimmed = rest.replace(/\/+$/, '')
+	const trimmed = stripTrailingSlashes(rest)
 	return trimmed === '' ? '/' : trimmed
 }
 
@@ -54,7 +55,7 @@ export function userRelativePathFromHref(href, uid) {
  * @return {string} The child's path.
  */
 export function joinPath(dir, name) {
-	return `${String(dir || '').replace(/\/+$/, '')}/${String(name || '').replace(/^\/+/, '')}`
+	return `${stripTrailingSlashes(String(dir || ''))}/${String(name || '').replace(/^\/+/, '')}`
 }
 
 /**
@@ -74,8 +75,8 @@ export function joinPath(dir, name) {
  * @return {Array<{name: string, path: string, aboveRoot: boolean}>} The crumbs, outermost first.
  */
 export function crumbsFor(rootPath, currentPath, rootLabel = null) {
-	const root = String(rootPath || '/').replace(/\/+$/, '') || '/'
-	const current = String(currentPath || root).replace(/\/+$/, '') || '/'
+	const root = stripTrailingSlashes(String(rootPath || '/')) || '/'
+	const current = stripTrailingSlashes(String(currentPath || root)) || '/'
 	const crumbs = []
 	let path = ''
 	for (const segment of root.split('/').filter(Boolean)) {
@@ -209,7 +210,7 @@ export async function resolveObjectFolderInfo({ apiBase, register, schema, objec
 	try {
 		const response = await axios.request({
 			method: 'SEARCH',
-			url: `${remoteUrl.replace(/\/+$/, '')}/`,
+			url: `${stripTrailingSlashes(remoteUrl)}/`,
 			headers: { 'Content-Type': 'application/xml' },
 			data: fileIdSearchBody(folderId, uid),
 			responseType: 'text',

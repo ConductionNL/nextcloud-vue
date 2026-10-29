@@ -302,6 +302,7 @@ import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMe
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 
@@ -1285,7 +1286,7 @@ export default {
 				return LINK_SCHEMES.includes(parsed.protocol) ? parsed.href : ''
 			}
 			if (typeof link.hrefBase === 'string' && link.hrefBase !== '') {
-				const path = link.hrefBase.replace(/\/+$/, '') + '/' + value.replace(/^\/+/, '')
+				const path = stripTrailingSlashes(link.hrefBase) + '/' + value.replace(/^\/+/, '')
 				return generateUrl(path)
 			}
 			return value.startsWith('/') && !value.startsWith('//') ? value : ''

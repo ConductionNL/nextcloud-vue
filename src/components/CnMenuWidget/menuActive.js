@@ -20,6 +20,7 @@
 
 import { routeHref } from '../../utils/actionLink.js'
 import { safeHref } from '../../utils/safeHref.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * Whether a URL string should be considered external (http/https).
@@ -53,7 +54,7 @@ export function isRouterPath(url) {
  */
 export function routerBase(router) {
 	const base = router?.options?.history?.base
-	return typeof base === 'string' ? base.replace(/\/+$/, '') : ''
+	return typeof base === 'string' ? stripTrailingSlashes(base) : ''
 }
 
 /**
