@@ -53,7 +53,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import { useLook } from '../../composables/useLook.js'
 
 /**
- * CnStepper (internal) - the step indicator of a wizard: an ordered list, the
+ * CnStepper - the step indicator of a wizard: an ordered list, the
  * current step marked with `aria-current="step"`, finished steps as real
  * buttons only when `allowJumpBack` is set.
  *
@@ -80,6 +80,12 @@ export default {
 		currentIndex: { type: Number, default: 0 },
 		/** Let a finished step be pressed to go back to it. */
 		allowJumpBack: { type: Boolean, default: false },
+		/**
+		 * With `allowJumpBack`, the furthest step already reached: every step
+		 * up to it other than the current one can be pressed. Unset, only the
+		 * finished steps can.
+		 */
+		reachableIndex: { type: Number, default: -1 },
 		/** The look; unset follows the injected `cnLook`. */
 		look: { type: String, default: undefined },
 		/** Accessible name of the list. */
@@ -108,8 +114,18 @@ export default {
 			this.$emit('jump', id)
 		},
 
+		/**
+		 * Whether a step is drawn as a button.
+		 *
+		 * @param {number} idx The step index.
+		 * @return {boolean} True for a finished or already reached step.
+		 * @spec openspec/changes/stepper-export-reachable/specs/wizard-dialog/spec.md#requirement-the-stepper-can-reach-ahead-to-a-step-already-filled-in
+		 */
 		isJumpable(idx) {
-			return this.allowJumpBack && idx < this.currentIndex
+			if (!this.allowJumpBack || idx === this.currentIndex) {
+				return false
+			}
+			return idx < this.currentIndex || idx <= this.reachableIndex
 		},
 	},
 }

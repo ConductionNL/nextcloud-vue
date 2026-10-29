@@ -347,6 +347,7 @@ export {
 	CnStatsBlockWidgetForm,
 	CnStatsPanel,
 	CnStatusBadge,
+	CnStepper,
 	CnStatusExplainerWidget,
 	CnStatWidget,
 	CnStatWidgetForm,
