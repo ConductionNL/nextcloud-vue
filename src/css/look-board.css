@@ -482,6 +482,47 @@
 	background-color: transparent !important;
 }
 
+/* A checkbox in a board settings section is the boards' native box, as a
+   board dialog's is (dialog.css): an 18px square with a 2px corner and a grey
+   1px edge while open, filled in the primary colour with a white tick once
+   checked, the glyph hidden, the label on the regular weight (PqBeheer
+   Verkoop, Kassa, Producten drew the 20px primary glyph and a 600 label).
+   @spec openspec/changes/board-settings-checkbox-native-box/specs/board-settings-checkbox-native-box/spec.md */
+.cn-look-board .settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon,
+.cn-look-board .cn-settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon {
+	position: relative;
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+
+.cn-look-board .settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon svg,
+.cn-look-board .cn-settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon svg {
+	visibility: hidden;
+}
+
+.cn-look-board .settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon::before,
+.cn-look-board .cn-settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 2px;
+	background: var(--color-main-background);
+	content: '';
+}
+
+.cn-look-board .settings-section .checkbox-radio-switch-checkbox.checkbox-radio-switch--checked:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon::before,
+.cn-look-board .cn-settings-section .checkbox-radio-switch-checkbox.checkbox-radio-switch--checked:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__icon::before {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+
+.cn-look-board .settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__text,
+.cn-look-board .cn-settings-section .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant):not(.cn-look-nextcloud *) .checkbox-content__text {
+	font-weight: 400;
+}
+
 /* ---- A dashboard's page filters ---------------------------------------- */
 /* The boards draw a dashboard's page filters 36px tall (DqProcesanalyse,
    DqDoorlooptijd "Filteren op zaaktype", "Periode"); NcInputField, also
