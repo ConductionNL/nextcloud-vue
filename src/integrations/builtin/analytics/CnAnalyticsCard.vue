@@ -123,6 +123,7 @@ import TableIcon from 'vue-material-design-icons/Table.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -246,7 +247,7 @@ export default {
 
 		reportTitle(report) {
 			const raw = (report && (report.title || report.name || report.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled report')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled report')
 		},
 
 		reportType(report) {

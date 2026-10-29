@@ -449,7 +449,7 @@
 							:key="`${field.key}-${val}`"
 							:modelValue="isFilterActive(field.key, val)"
 							@update:modelValue="toggleFilter(field.key, val)">
-							{{ val }}
+							{{ activeFilterValueLabel(field.key, val) }}
 						</NcActionCheckbox>
 					</template>
 				</NcActions>
@@ -964,7 +964,7 @@
 									:key="`${field.key}-${val}`"
 									:modelValue="isFilterActive(field.key, val)"
 									@update:modelValue="toggleFilter(field.key, val)">
-									{{ val }}
+									{{ activeFilterValueLabel(field.key, val) }}
 								</NcActionCheckbox>
 							</template>
 						</NcActions>
@@ -4299,6 +4299,22 @@ export default {
 		filterMenu: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Filter menu entries with no column behind them (manifest
+		 * `config.filterMenuFields`): `[{ key, label?, values?, referenceType? }]`.
+		 * Each lists its values, else the schema's enum or options, else the
+		 * API's facet buckets, else a named source's `facets()`, each value
+		 * named as the Active chip names it. `referenceType: "nextcloud-user"`
+		 * names a user id by its display name (PqContracten "Eigenaar").
+		 *
+		 * @type {Array<{key: string, label?: string, values?: string[], referenceType?: string}>}
+		 * @spec openspec/changes/filter-menu-fields/specs/filter-menu-fields/spec.md#requirement-a-filter-menu-entry-needs-no-column
+		 */
+		filterMenuFields: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -8027,6 +8043,16 @@ export default {
 				}
 				if (values && values.length) {
 					out.push({ key, label: this.cnTranslate(colObj.label || def.title || key), values: values.map((v) => String(v)) })
+				}
+			}
+			const taken = new Set(out.map((field) => field.key))
+			for (const entry of (Array.isArray(this.filterMenuFields) ? this.filterMenuFields : [])) {
+				if (!entry || typeof entry.key !== 'string' || entry.key === '' || taken.has(entry.key)) {
+					continue
+				}
+				const values = this.filterMenuValuesOf(entry)
+				if (values.length > 0) {
+					out.push({ key: entry.key, label: this.cnTranslate(entry.label || props[entry.key]?.title || entry.key), values })
 				}
 			}
 			return out
@@ -11767,26 +11793,37 @@ export default {
 
 		/**
 		 * The field an Active chip names: the page's `filterLabels` label, the
-		 * schema property's title, the sidebar field's title, else the key.
+		 * schema property's title, the sidebar field's title, the column's
+		 * label, else the key. An operator key (`address[like]`) names its
+		 * field (`address`) unless `filterLabels` names the whole key.
 		 *
 		 * @param {string} key The filter key.
 		 * @return {string} The translated field name.
 		 * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-page-names-its-filters
 		 */
 		activeFilterFieldLabel(key) {
-			const named = this.filterLabels && this.filterLabels[key]
+			const whole = this.filterLabels && this.filterLabels[key]
+			if (whole && typeof whole.label === 'string' && whole.label !== '') {
+				return this.cnTranslate(whole.label)
+			}
+			const field = /^(.+)\[[a-z]+\]$/.exec(key)?.[1] ?? key
+			const named = this.filterLabels && this.filterLabels[field]
 			if (named && typeof named.label === 'string' && named.label !== '') {
 				return this.cnTranslate(named.label)
 			}
-			const prop = this.effectiveSchema?.properties?.[key]
+			const prop = this.effectiveSchema?.properties?.[field]
 			if (prop && typeof prop.title === 'string' && prop.title !== '') {
 				return this.cnTranslate(prop.title)
 			}
-			const field = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[key]
-			if (field && typeof field.title === 'string' && field.title !== '') {
-				return this.cnTranslate(field.title)
+			const declared = declaredFilterFields({ sidebar: this.sidebar, sourceConfig: this.sourceConfig })[field]
+			if (declared && typeof declared.title === 'string' && declared.title !== '') {
+				return this.cnTranslate(declared.title)
 			}
-			return this.cnTranslate(key)
+			const column = (Array.isArray(this.columns) ? this.columns : []).find((col) => col && typeof col === 'object' && col.key === field)
+			if (column && typeof column.label === 'string' && column.label !== '') {
+				return this.cnTranslate(column.label)
+			}
+			return this.cnTranslate(field)
 		},
 
 		/**
@@ -12038,8 +12075,13 @@ export default {
 			}
 			const prop = this.effectiveSchema?.properties?.[key]
 			// The reader on a user filter is "me" (DqFilterInMenu "Behandelaar: ik").
-			if (prop && prop.referenceType === 'nextcloud-user' && id === (getCurrentUser()?.uid ?? '')) {
+			const menuField = (Array.isArray(this.filterMenuFields) ? this.filterMenuFields : []).find((entry) => entry && entry.key === key)
+			const userField = (prop && prop.referenceType === 'nextcloud-user') || (menuField && menuField.referenceType === 'nextcloud-user')
+			if (userField && id === (getCurrentUser()?.uid ?? '')) {
 				return t('nextcloud-vue', 'me')
+			}
+			if (userField) {
+				return userDisplayName(id) || id
 			}
 			if (prop && prop.referenceType === 'nextcloud-group') {
 				const name = groupDisplayName(id)
@@ -12709,6 +12751,32 @@ export default {
 		 * @param {string} val The enum value to toggle.
 		 * @return {void}
 		 */
+		/**
+		 * The values a column-less filter menu entry offers: its own, else the
+		 * schema's enum or options, else the API's facet buckets, else the
+		 * named source's `facets()`.
+		 *
+		 * @param {{key: string, values?: Array}} entry The `filterMenuFields` entry.
+		 * @return {string[]} The values.
+		 * @spec openspec/changes/filter-menu-fields/specs/filter-menu-fields/spec.md#requirement-a-filter-menu-entry-needs-no-column
+		 */
+		filterMenuValuesOf(entry) {
+			const valueOf = (bucket) => (bucket && typeof bucket === 'object' ? bucket.value : bucket)
+			const def = this.effectiveSchema?.properties?.[entry.key] || {}
+			const sourceFacets = this.isNamedSource && this.namedSource && typeof this.namedSource.facets === 'function'
+				? (this.namedSource.facets() || {})[entry.key]
+				: null
+			const candidates = [
+				entry.values,
+				def.enum,
+				Array.isArray(def.oneOf) ? def.oneOf.map((option) => option && option.const) : null,
+				this.effectiveFacetData?.[entry.key]?.values,
+				sourceFacets,
+			]
+			const found = candidates.find((list) => Array.isArray(list) && list.length > 0) || []
+			return [...new Set(found.map(valueOf).filter((value) => value !== null && value !== undefined && value !== '').map(String))]
+		},
+
 		toggleFilter(key, val) {
 			const current = Array.isArray(this.effectiveActiveFilters[key]) ? this.effectiveActiveFilters[key] : []
 			const values = current.includes(val) ? current.filter((v) => v !== val) : [...current, val]
