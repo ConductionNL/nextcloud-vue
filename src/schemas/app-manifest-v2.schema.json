@@ -2144,6 +2144,10 @@
 					"type": "boolean",
 					"description": "`true` starts this placement below every card that starts on an earlier row, in any column, so a row of cards after the tracks lines up under the taller one instead of rising under the shorter (DqMijnWerk, DqMijnTeam). Held in place outside edit mode."
 				},
+				"sameHeight": {
+					"type": "boolean",
+					"description": "`true` on placements that start on one row stretches the shorter size-to-content ones to the tallest of them (a fixed-height one counts but is not stretched), so the row reads as one band and the next row starts level (DqProcesanalyse KPI tiles and charts). Not in edit mode, not on a stacked narrow grid."
+				},
 				"sizeToContent": {
 					"type": ["boolean", "integer"],
 					"minimum": 1,
