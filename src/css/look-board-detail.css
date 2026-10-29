@@ -581,6 +581,44 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A stack of sections (`sections: true`, PqLead "Overzicht") is one sheet:
+   the panel is the card again, and its widgets are sections of it without a
+   card of their own. A section that follows a titled one has a hairline
+   above it 24px under the previous section and 22px over its title; the
+   first titled section sits 24px under an untitled one (the stage strip).
+   The selectors follow the stack rules above and outweigh them.
+   @spec openspec/changes/tab-stack-sections/specs/tab-stack-sections/spec.md#requirement-a-stack-of-sections-is-one-sheet-in-the-board-look */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content:has(> .cn-tab:not([hidden]) > .cn-tabs-widget__stack--sections) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+	padding: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack {
+	gap: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > * > .cn-detail-widget-host > :is(.cn-widget-wrapper, .cn-detail-card) {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-widget-wrapper > .cn-widget-wrapper__header,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-detail-card > .cn-detail-card__header {
+	padding-top: 4px;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > :has(.cn-widget-wrapper__title, .cn-detail-card__title) + .cn-tabs-widget__stack-item::before {
+	content: '';
+	display: block;
+	height: 1px;
+	margin: 4px var(--cn-board-card-inline-padding) 18px;
+	background: var(--cn-board-hairline);
+}
+
 /* A first widget that renders nothing (DqZaakEmail) takes no room: the next
    card starts under the strip and joins the open tab as the first card does.
    Heavier than the stack-item rule above, so it wins.
