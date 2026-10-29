@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.164.0', () => {
+	it('the manifest schema version reads 2.165.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1438,7 +1438,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.162.0 lets a header field read as bold text (headerFields format strong; r34-header-field-strong), a query preset set showAdd (query-preset-show-add), a detail band be compact (bandDensity; detail-band-compact), a workspace-filter toggle draw a checkbox (control; workspace-toggle-as-checkbox) and an expandable row's header button carry an icon (expandableRows.buttons[].icon; expandable-row-as-drawn).
 		// 2.163.0 lets a dashboard placement start below the earlier rows (clear; dashboard-clear-row), an expandable row's sub-table sort and filter (expandableRows; expandable-row-as-drawn), a dashboard keep its header actions to one viewport (headerActionsViewport; dashboard-header-actions-viewport), a stage action name its primary button from the record (primaryLabel; action-label-from-record) and a next-step stage carry a sentence above `after` (afterTitle; contact-moment-parts).
 		// 2.164.0 lets a filterStrip option list several stored values (values; filter-strip-option-values), a flow page's `layout` be a word, `canvas` or `cards` (flow-board-canvas-chrome), and a chart write compact numbers (valueFormat compact; chart-compact-number).
-		expect(schema.version).toBe('2.164.0')
+		// 2.165.0 lets the size-to-content cards of a dashboard row share the tallest height (sameHeight; dashboard-row-same-height).
+		expect(schema.version).toBe('2.165.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
