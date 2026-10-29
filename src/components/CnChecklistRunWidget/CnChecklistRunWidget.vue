@@ -1202,6 +1202,8 @@ export default {
 
 .cn-checklist-run__position {
 	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	line-height: 17px;
 	margin: 0;
 }
 
@@ -1261,14 +1263,14 @@ export default {
 }
 
 /* An option reads as text, not as a field label (a theme makes every label
-   bold); 15px as the board draws it (DqInspectie). */
+   bold with !important); 15px, 31px apart, as the board draws it (DqInspectie). */
 .cn-checklist-run__choice {
 	align-items: center;
 	display: flex;
 	font-size: 15px;
-	font-weight: 400;
+	font-weight: 400 !important;
 	gap: 10px;
-	min-height: 24px;
+	min-height: 23px;
 }
 
 /* The board draws the radio with the browser's own 3px 3px 0 5px margin. */
@@ -1276,6 +1278,14 @@ export default {
 	accent-color: var(--color-primary-element);
 	height: 20px;
 	margin: 3px 3px 0 5px;
+	width: 20px;
+}
+
+/* The board look sizes every radio 18px with a (0,4,1) rule. */
+.cn-checklist-run__choice.cn-checklist-run__choice.cn-checklist-run__choice input[type="radio"] {
+	height: 20px;
+	min-height: 20px;
+	min-width: 20px;
 	width: 20px;
 }
 
@@ -1290,11 +1300,13 @@ export default {
 .cn-checklist-run__text.cn-checklist-run__text {
 	padding: 8px 12px !important;
 	line-height: normal;
+	margin: 0;
 }
 
 .cn-checklist-run__group {
 	font-size: 14px;
 	font-weight: 600;
+	line-height: normal;
 	margin: 0;
 }
 
@@ -1302,6 +1314,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	line-height: 1.2;
 }
 
 .cn-checklist-run__photo-list {
