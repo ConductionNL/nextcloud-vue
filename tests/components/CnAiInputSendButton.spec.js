@@ -30,4 +30,8 @@ describe('CnAiInput send button', () => {
 		expect(labelled).toContain('font-size: 14px')
 		expect(labelled).toContain('font-weight: 600')
 	})
+
+	it('keeps the labelled button\'s 14px sides against server.css (DqZaakAssistent "Vragen" 71.5 wide, live 67.5)', () => {
+		expect(rule('button.cn-ai-input__send-button--labelled.cn-ai-input__send-button--labelled')).toContain('padding: 0 14px')
+	})
 })
