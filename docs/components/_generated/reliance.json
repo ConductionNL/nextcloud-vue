@@ -64,6 +64,16 @@
 			"via": [],
 			"page": "cn-action-dialog"
 		},
+		"CnActionTilesWidget": {
+			"direct": 0,
+			"transitive": 7,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnIndexPage"
+			],
+			"page": null
+		},
 		"CnActionsBar": {
 			"direct": 0,
 			"transitive": 27,
