@@ -26,7 +26,7 @@ SHALL carry the send icon.
 ### Requirement: The board reply box
 
 In the board look the reply box SHALL open with a `--cn-board-hairline` rule and 16px above it and keep 10px between
-its parts. The field SHALL have 10px 12px of padding and 15px text at the normal line height with room for two lines (58px; amended by board-conversation-lines-as-drawn).
+its parts. The field SHALL have 10px 12px of padding, 15px text at line height 1.5 and room for two lines (67px).
 The option SHALL be 14px.
 
 #### Scenario: DqZaakContact
