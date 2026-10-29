@@ -1760,6 +1760,7 @@
 	color: var(--cn-status-teal-text);
 }
 
+/* @spec openspec/changes/board-record-card-foot-leading/specs/board-record-card-foot-leading/spec.md */
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot {
 	display: flex;
 	align-items: center;
@@ -1768,6 +1769,7 @@
 	margin-top: auto;
 	padding-top: 10px;
 	border-top: 1px solid var(--cn-board-hairline);
+	line-height: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell {
