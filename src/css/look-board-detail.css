@@ -2930,6 +2930,17 @@
 	padding-top: 14px;
 }
 
+/* A facts card's action buttons are the boards' 34px card control in every
+   card (PqKassabon "Terugboeken", PqKassadienst "Goedkeuren"): CnActionButtons
+   carries the header's 40px secondary rule, which this outweighs at (0,5,0).
+   @spec openspec/changes/board-facts-card-actions-34/specs/board-facts-card-actions-34/spec.md#requirement-a-facts-cards-action-buttons-are-34px-in-every-card */
+.cn-look-board .cn-facts-widget__actions.cn-action-buttons:not(.cn-look-nextcloud *) > .button-vue {
+	--button-size: 34px;
+	--default-clickable-area: 34px;
+	height: 34px;
+	min-height: 34px;
+}
+
 /* Buttons in a side card stand as the boards draw them in a column: the full
    width of the card with their label at the start (DqSociaalDomein
    "Toestemming intrekken" and "Markeer voor aandacht"), a facts action at the
