@@ -2823,19 +2823,71 @@
    drew 60px of nothing under its header (DqZoekresultaten). The grid has no
    row gap here; each part that is present carries the section gap under it.
    @spec openspec/changes/side-panel-grid-no-empty-row-gaps/specs/side-panel-grid-no-empty-row-gaps/spec.md */
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) {
 	row-gap: 0;
 }
 
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > :first-child,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__below-header,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-actions-bar {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > :first-child,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__below-header,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-actions-bar {
 	margin-bottom: var(--cn-board-section-gap);
 }
 
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
 	margin-bottom: calc(var(--cn-board-section-gap) + 12px);
+}
+
+/* ---- The open record as the board's side card (PqKassaAudit) ---------- */
+/* A split view in the board look draws the open record as a card in the
+   side column, from the top of the chips and the toolbar, with the list
+   column beside it; the column is the pane's declared width
+   (`splitView.paneWidth`). The body steps out of the grid so the list and
+   the pane are its cells.
+   @spec openspec/changes/board-split-pane-side-column/specs/board-split-pane-side-column/spec.md */
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) {
+	grid-template-columns: minmax(0, 1fr) var(--cn-index-split-pane-width, 360px);
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body {
+	display: contents;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body > .cn-index-page__main {
+	grid-area: body;
+	border-inline-end: 0;
+	padding-inline-end: 0;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body > .cn-index-page__split-pane {
+	grid-area: side;
+	align-self: start;
+	padding: 22px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+/* Inside the card the record is one sheet: the detail page brings no inset of
+   its own, its title is the card title, and its widgets are sections of the
+   card rather than cards in a card. */
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane > .cn-detail-page {
+	padding: 0;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-detail-page__header--board .cn-detail-page__title {
+	font-size: 17px;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper__header,
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper__content {
+	padding-inline: 0;
 }
 
 /* ---- The side panel's filters as checkbox lists (DqZakenSorteren) ------- */
