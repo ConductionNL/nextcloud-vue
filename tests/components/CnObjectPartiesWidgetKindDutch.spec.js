@@ -17,8 +17,8 @@ jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url, par
 
 import { mount } from '@vue/test-utils'
 
-import '../../src/components/CnObjectPartiesWidget/index.js'
 import { registerTranslations } from '../../src/l10n/index.js'
+import '../../src/components/CnObjectPartiesWidget/index.js'
 
 const CnObjectPartiesWidget = require('../../src/components/CnObjectPartiesWidget/CnObjectPartiesWidget.vue').default
 
