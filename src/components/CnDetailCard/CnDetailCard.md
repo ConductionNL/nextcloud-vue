@@ -108,3 +108,10 @@ The card component stays the root either way. That is deliberate: swapping it
 for a dynamic `<component :is>` root stops Vue applying the scope id to the
 subtree, which silently disables every scoped rule in the consuming component.
 
+With `chevron-start`, the collapse chevron sits before the title instead of after the header actions:
+
+```vue
+<CnDetailCard title="Prospects" :collapsible="true" :chevron-start="true">
+  <p>Card content</p>
+</CnDetailCard>
+```

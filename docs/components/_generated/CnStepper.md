@@ -8,14 +8,15 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name             | Type      | Required | Default                                    | Description                                         |
-| ---------------- | --------- | -------- | ------------------------------------------ | --------------------------------------------------- |
-| `steps`          | `array`   | ✓        | —                                          | The steps: `{ id, label }`.                         |
-| `currentIndex`   | `number`  |          | `0`                                        | Index of the current step.                          |
-| `allowJumpBack`  | `boolean` |          | `false`                                    | Let a finished step be pressed to go back to it.    |
-| `look`           | `string`  |          | `undefined`                                | The look; unset follows the injected `cnLook`.      |
-| `ariaLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Steps')`     | Accessible name of the list.                        |
-| `completedLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'completed')` | Visually hidden text after a finished step's label. |
+| Name             | Type      | Required | Default                                    | Description                                                                                                                                                 |
+| ---------------- | --------- | -------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `steps`          | `array`   | ✓        | —                                          | The steps: `{ id, label }`.                                                                                                                                 |
+| `currentIndex`   | `number`  |          | `0`                                        | Index of the current step.                                                                                                                                  |
+| `allowJumpBack`  | `boolean` |          | `false`                                    | Let a finished step be pressed to go back to it.                                                                                                            |
+| `reachableIndex` | `number`  |          | `-1`                                       | With `allowJumpBack`, the furthest step already reached: every step up to it other than the current one can be pressed. Unset, only the finished steps can. |
+| `look`           | `string`  |          | `undefined`                                | The look; unset follows the injected `cnLook`.                                                                                                              |
+| `ariaLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Steps')`     | Accessible name of the list.                                                                                                                                |
+| `completedLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'completed')` | Visually hidden text after a finished step's label.                                                                                                         |
 
 ### Events
 
