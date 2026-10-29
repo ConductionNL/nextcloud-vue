@@ -309,8 +309,9 @@
 				     row; the list's footer Add is hidden there (look-board-detail.css). -->
 				<NcButton
 					v-if="catalogAddInHeader"
-					variant="secondary"
+					:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 					class="cn-detail-page__catalog-add"
+					:class="{ 'cn-button--tonal': catalogAddTonal }"
 					data-testid="cn-detail-widget-catalog-add"
 					@click="invokeCatalogAdd()">
 					<template #icon>
@@ -322,8 +323,9 @@
 					<NcButton
 						v-for="(entry, index) in catalogAddActions"
 						:key="`add-action-${index}`"
-						variant="secondary"
+						:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 						class="cn-detail-page__catalog-add"
+						:class="{ 'cn-button--tonal': catalogAddTonal }"
 						data-testid="cn-detail-widget-catalog-add-action"
 						@click="invokeCatalogAdd(entry.createDefaults)">
 						<template #icon>
@@ -789,7 +791,9 @@ export default {
 		return {
 			// The widget's manifest `headerActions`, for the card that titles
 			// it. In bare mode the surface (a tab panel) draws them instead.
-			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
+			// A self-titled renderer that takes them draws them in its own
+			// title row, so the card around it does not.
+			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare || this.rendererDrawsHeaderActions ? [] : this.declaredHeaderActions)),
 			// The widget's manifest `bodyActions`, for a leaf that draws its
 			// own button row in the body (the contacts tab).
 			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
@@ -1242,6 +1246,23 @@ export default {
 		},
 
 		/**
+		 * Whether the self-titled widget in the card draws the manifest
+		 * `headerActions` in its own title row: it declares a `headerActions`
+		 * prop. Otherwise the untitled card drew them in a row of their own
+		 * above the widget's title (PqKlant Activiteit).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/self-titled-widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-self-titled-widget-draws-its-header-actions-beside-its-title
+		 */
+		rendererDrawsHeaderActions() {
+			if (!this.wrapsSelfTitledWidget || !this.renderer) {
+				return false
+			}
+			const declared = this.renderer.props
+			return Array.isArray(declared) ? declared.includes('headerActions') : Boolean(declared && Object.hasOwn(declared, 'headerActions'))
+		},
+
+		/**
 		 * Whether a `sections` widget gets one titled card: on a card surface
 		 * outside a body grid cell, with a title, and not in `cards` mode.
 		 *
@@ -1685,6 +1706,9 @@ export default {
 			if (title) {
 				base.title = title
 			}
+			if (this.rendererDrawsHeaderActions) {
+				base.headerActions = this.declaredHeaderActions
+			}
 			return { ...base, ...this.declaredContent, ...this.consumerWidgetProps }
 		},
 
@@ -1834,6 +1858,17 @@ export default {
 		 */
 		catalogAddInHeader() {
 			return this.catalogAddEnabled && !this.isBare && normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the title-row Add is the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen").
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		catalogAddTonal() {
+			return this.content?.addVariant === 'tonal'
 		},
 
 		/**

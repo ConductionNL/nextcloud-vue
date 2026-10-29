@@ -118,16 +118,34 @@ function textAt(row, path) {
 }
 
 /**
+ * A stored value in the words a `valueLabels` map gives it, else as stored.
+ *
+ * @param {string} value The stored value.
+ * @param {object|undefined} valueLabels Words per value.
+ * @return {string} The words.
+ * @spec openspec/changes/timeline-list-value-labels/specs/timeline-widget/spec.md#requirement-a-list-entry-s-value-reads-in-words
+ */
+function wordedValue(value, valueLabels) {
+	if (value !== '' && valueLabels && typeof valueLabels === 'object' && typeof valueLabels[value] === 'string') {
+		return valueLabels[value]
+	}
+	return value
+}
+
+/**
  * Events from a list held on the object itself, such as a status history:
- * `[{ field, dateField, labelField?, label?, detailField? }]`. Each entry of the
- * list at `field` becomes one event, dated by `dateField`, labelled by its
- * `labelField` value (else `label`), with `detailField` as the line under it.
+ * `[{ field, dateField, labelField?, valueLabels?, label?, detailField? }]`. Each
+ * entry of the list at `field` becomes one event, dated by `dateField`, labelled
+ * by its `labelField` value (else `label`), with `detailField` as the line under
+ * it. `valueLabels` words a stored value ("confirmed": "Status: Confirmed"); a
+ * value it does not name shows as stored.
  *
  * @param {object} object The object.
  * @param {Array<object>} lists The list configs.
  * @param {Date} now The moment that separates past from upcoming.
  * @return {Array<object>} The events.
  * @spec openspec/changes/timeline-audit-trails-url/specs/timeline-widget/spec.md#requirement-a-list-on-the-object-becomes-dated-events
+ * @spec openspec/changes/timeline-list-value-labels/specs/timeline-widget/spec.md#requirement-a-list-entry-s-value-reads-in-words
  */
 export function listEvents(object, lists, now = new Date()) {
 	return (Array.isArray(lists) ? lists : [])
@@ -137,7 +155,7 @@ export function listEvents(object, lists, now = new Date()) {
 			return (Array.isArray(rows) ? rows : []).map((row, i) => makeEvent({
 				id: `list:${l.field}:${i}`,
 				raw: readPath(row, l.dateField),
-				label: textAt(row, l.labelField) || l.label || l.field,
+				label: wordedValue(textAt(row, l.labelField), l.valueLabels) || l.label || l.field,
 				detail: textAt(row, l.detailField),
 				source: 'list',
 			}, now))

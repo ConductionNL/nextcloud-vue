@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-object-list-widget"
-		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true }"
+		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true, 'cn-object-list-widget--framed': content.tableFrame === true }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
@@ -40,7 +40,7 @@
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
 			<template v-if="allowCreate && !waitingForContext" #action>
-				<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">
+				<NcButton class="cn-object-list-widget__empty-add" :class="{ 'cn-button--tonal': addTonal }" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -331,7 +331,10 @@
 		<div
 			v-if="allowCreate && !waitingForContext && !showingEmptyState"
 			class="cn-object-list-widget__add">
-			<NcButton variant="tertiary" wide @click="openCreate">
+			<NcButton variant="tertiary"
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
+				@click="openCreate">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -341,7 +344,8 @@
 				v-for="(entry, index) in addActions"
 				:key="`add-action-${index}`"
 				variant="tertiary"
-				wide
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
 				data-testid="cn-object-list-widget-add-action"
 				@click="openCreateWith(entry.createDefaults)">
 				<template #icon>
@@ -589,12 +593,15 @@ export default {
 		 * board look it goes under the card's side padding and its outer cells
 		 * take that padding, so the column text lines up with the card title.
 		 * Without it the table stays inside the padding.
+		 * `tableFrame: true` draws the table in a 1px frame with an 8px radius
+		 * inside the card's padding, a white head with a rule under it and
+		 * 18px outer insets (PqKassabon "Regels").
 		 * `headerSubtitle` is a line under the card title with the list's
 		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
 		 * `headerNote` takes the same counts beside the card title instead.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean, tableFrame?: boolean}}
 		 * `children` (`{ register?, schema, filter, columns, reorder, rowActions,
 		 * … }`) shows each row's child records under it, as a list of the same
 		 * kind: `filter` names the link with an `@row.<field>` token
@@ -1571,6 +1578,18 @@ export default {
 					return { key: `${index}-${row.path}`, label, value, emphasis: row.emphasis === true }
 				})
 				.filter((row) => row.value !== '')
+		},
+
+		/**
+		 * Whether the Add buttons are the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen")
+		 * instead of the wide tertiary button.
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		addTonal() {
+			return this.content?.addVariant === 'tonal'
 		},
 
 		/**

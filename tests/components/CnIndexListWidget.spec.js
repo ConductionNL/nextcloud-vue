@@ -15,7 +15,7 @@ jest.mock('../../src/components/CnIndexPage/CnIndexPage.vue', () => ({
 	__esModule: true,
 	default: {
 		name: 'CnIndexPage',
-		props: ['register', 'schema', 'filter', 'title', 'showTitle', 'routeState', 'columns', 'lenses', 'viewModes', 'selectable', 'emptyText'],
+		props: ['register', 'schema', 'filter', 'title', 'showTitle', 'routeState', 'buildiqButton', 'columns', 'lenses', 'viewModes', 'selectable', 'emptyText'],
 		template: '<div class="index-stub" />',
 	},
 }))
@@ -62,6 +62,8 @@ describe('CnIndexListWidget', () => {
 	it('leaves the address to the detail page', () => {
 		const page = mountWith({ objectId: 'e1', objectData: { street: 'Lindelaan' } }).findComponent({ name: 'CnIndexPage' })
 		expect(page.props('routeState')).toBe(false)
+		// The detail page carries the one buildiq square.
+		expect(page.props('buildiqButton')).toBe(false)
 	})
 
 	it('waits for the record before it lists anything', () => {

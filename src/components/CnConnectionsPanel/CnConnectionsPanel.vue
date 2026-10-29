@@ -40,7 +40,11 @@
 				:label="t('nextcloud-vue', 'Filter connections')"
 				:labelOutside="true"
 				:placeholder="t('nextcloud-vue', 'Filter connections')"
-				data-testid="cn-connections-filter" />
+				data-testid="cn-connections-filter">
+				<template #icon>
+					<CnIcon name="Magnify" :size="20" />
+				</template>
+			</NcTextField>
 		</div>
 		<div class="cn-connections__body">
 			<p v-if="failed" class="cn-connections__empty" role="alert">
@@ -75,9 +79,10 @@
 						<NcButton
 							v-if="row.settingsUrl"
 							:variant="row.configured ? 'secondary' : 'tertiary'"
+							:class="{ 'cn-button--tonal': !row.configured }"
 							:href="row.settingsUrl"
 							:aria-label="row.configured ? t('nextcloud-vue', 'Open settings for {name}', { name: row.title }) : t('nextcloud-vue', 'Set up {name}', { name: row.title })">
-							{{ row.configured ? t('nextcloud-vue', 'Open settings') : t('nextcloud-vue', 'Set up') }}
+							{{ row.configured ? t('nextcloud-vue', 'Open settings') : t('nextcloud-vue', 'Configure') }}
 						</NcButton>
 						<span v-else class="cn-connections__meta">{{ t('nextcloud-vue', 'No settings screen yet') }}</span>
 					</span>
@@ -126,7 +131,7 @@ import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 
 /** How each integriq status reads and which badge tone it takes. */
 const STATUSES = {
-	configured: { label: 'Configured', variant: 'success' },
+	configured: { label: 'Set up', variant: 'success' },
 	limited: { label: 'Limited', variant: 'warning' },
 	error: { label: 'Error', variant: 'error' },
 	failed: { label: 'Error', variant: 'error' },
@@ -137,7 +142,7 @@ const STATUSES = {
 
 /** The chips, in board order, and the statuses each one gathers. */
 const CHIPS = [
-	{ id: 'configured', label: 'Configured', statuses: ['configured'] },
+	{ id: 'configured', label: 'Set up', statuses: ['configured'] },
 	{ id: 'limited', label: 'Limited', statuses: ['limited'] },
 	{ id: 'unconfigured', label: 'Not set up', statuses: ['unconfigured', 'unavailable', 'simulated'] },
 	{ id: 'error', label: 'Error', statuses: ['error', 'failed'] },
@@ -295,7 +300,9 @@ export default {
 	gap: 8px;
 }
 
-.cn-connections__chip {
+/* The group class outranks Nextcloud's `button:not(.button-vue…):not(…)`
+   margin (3px, specificity 0,2,1), which widened the 8px gap to 11px. */
+.cn-connections__chips .cn-connections__chip {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -342,11 +349,15 @@ export default {
 .cn-connections__aside {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-	padding: 16px;
+	gap: 10px;
+	padding: 18px;
 	border: 1px solid var(--color-border);
-	border-radius: 8px;
+	border-radius: 12px;
 	background: var(--color-main-background);
+}
+
+.cn-connections__aside {
+	gap: 12px;
 }
 
 .cn-connections__side {
@@ -371,8 +382,8 @@ export default {
 	flex: none;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
+	width: 40px;
+	height: 40px;
 	border-radius: 8px;
 	background: var(--color-background-hover);
 }
@@ -384,22 +395,34 @@ export default {
 	gap: 2px;
 }
 
+.cn-connections__card-title strong {
+	font-size: 17px;
+	line-height: 1.3;
+}
+
+/* The foot is ruled off from the text above it, as the board draws it. */
 .cn-connections__card-foot {
 	display: flex;
 	justify-content: flex-end;
 	margin-top: auto;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
 }
 
 .cn-connections__aside h3 {
 	margin: 0;
-	font-size: 15px;
+	font-size: 17px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
+/* Each connection that needs attention sits under a rule. */
 .cn-connections__attention {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
 }
 
 .cn-connections__meta {

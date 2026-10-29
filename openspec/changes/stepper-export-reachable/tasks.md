@@ -1,0 +1,1 @@
+- [x] 1.1 Export CnStepper; `reachableIndex` (tests/components/CnStepperReachable.spec.js)

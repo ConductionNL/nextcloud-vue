@@ -350,6 +350,7 @@ export {
 	CnStatusExplainerWidget,
 	CnStatWidget,
 	CnStatWidgetForm,
+	CnStepper,
 	CnStructuredDocReview,
 	CnSubObjectsField,
 	CnSummaryAggregates,

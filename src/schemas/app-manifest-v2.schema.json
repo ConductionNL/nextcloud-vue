@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.163.0",
+	"version": "2.164.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2667,15 +2667,15 @@
 									"legendPosition": { "type": "string", "enum": ["top", "bottom", "left", "right"], "description": "Legend placement override (empty/omitted keeps the automatic placement)." },
 								"valueAxisBaseline": { "type": "string", "enum": ["auto", "zero", "fit"], "description": "Value-axis baseline: 'auto' (the default — zero for bar/area, a bounded window for line/scatter), 'zero' (force a zero baseline), or 'fit' (let ApexCharts frame the data range, for a series living far from zero such as an SLA hovering 95–99%)." },
 									"valueFormat": {
-										"description": "Named value formatter applied to the value axis + tooltip: 'currency' | 'currency-compact' | 'percent' | 'number', or the object form { name, currency?, decimals?, suffix? }. 'number' with `suffix` reads '9 d'.",
+										"description": "Named value formatter applied to the value axis + tooltip: 'currency' | 'currency-compact' | 'compact' | 'percent' | 'number', or the object form { name, currency?, decimals?, suffix? }. 'number' with `suffix` reads '9 d'; 'compact' writes 38000 as '38K' with no currency.",
 										"oneOf": [
-											{ "type": "string", "enum": ["currency", "currency-compact", "percent", "number"] },
+											{ "type": "string", "enum": ["currency", "currency-compact", "compact", "percent", "number"] },
 											{
 												"type": "object",
 												"additionalProperties": false,
 												"required": ["name"],
 												"properties": {
-													"name": { "type": "string", "enum": ["currency", "currency-compact", "percent", "number"] },
+													"name": { "type": "string", "enum": ["currency", "currency-compact", "compact", "percent", "number"] },
 													"currency": { "type": "string", "description": "ISO-4217 code (EUR default; invalid codes fall back to EUR)." },
 													"decimals": { "type": "integer", "minimum": 0, "description": "Fraction digits override." },
 													"suffix": { "type": "string", "description": "Text after a 'number' value, e.g. ' d'." }
@@ -4603,12 +4603,21 @@
 							}
 						},
 						"layout": {
-							"type": "array",
-							"description": "Dashboard layout entries (for type='dashboard', legacy). Carry-forward from v1.",
-							"items": {
-								"type": "object",
-								"additionalProperties": true
-							}
+							"oneOf": [
+								{
+									"type": "array",
+									"description": "Dashboard layout entries (for type='dashboard', legacy). Carry-forward from v1.",
+									"items": {
+										"type": "object",
+										"additionalProperties": true
+									}
+								},
+								{
+									"type": "string",
+									"enum": ["cards", "canvas"],
+									"description": "type='flow' / 'flow-detail' in the board look: `canvas` draws the page as boards PqFlow and PqFlowRun do (actions under the title, floating toolbar and inspector); `cards` (default) keeps the DqFlow grid."
+								}
+							]
 						},
 						"content": {
 							"type": "array",
@@ -5731,7 +5740,7 @@
 								"field": { "type": "string", "minLength": 1 },
 								"label": { "type": "string", "minLength": 1, "description": "The strip's accessible name; default the field's title." },
 								"allLabel": { "type": "string", "minLength": 1, "description": "The first pill; default \"All\"." },
-								"options": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } } } },
+								"options": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["value"] }, { "required": ["values"] }], "properties": { "value": { "type": "string", "minLength": 1 }, "values": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "Several stored values under one pill (\"phone\" and \"telefoon\" as Telefoon); picking it filters on any of them." }, "label": { "type": "string", "minLength": 1 } } } },
 								"showCount": { "type": "boolean", "default": false }
 							}
 						},

@@ -47,16 +47,25 @@
 			<NcButton v-if="subjectHref"
 				:href="subjectHref"
 				data-testid="flow-run-open-subject">
+				<template v-if="iconActions" #icon>
+					<OpenInNew :size="18" />
+				</template>
 				{{ t('nextcloud-vue', 'Open the subject') }}
 			</NcButton>
 			<NcButton v-if="canRetry"
 				data-testid="flow-run-retry"
 				@click="$emit('retry', run)">
+				<template v-if="iconActions" #icon>
+					<Replay :size="18" />
+				</template>
 				{{ t('nextcloud-vue', 'Run again') }}
 			</NcButton>
-			<NcButton variant="tertiary"
+			<NcButton :variant="iconActions ? 'secondary' : 'tertiary'"
 				data-testid="flow-run-back"
 				@click="$emit('back')">
+				<template v-if="iconActions" #icon>
+					<ArrowLeft :size="18" />
+				</template>
 				{{ t('nextcloud-vue', 'Back to the flow') }}
 			</NcButton>
 		</div>
@@ -66,6 +75,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Replay from 'vue-material-design-icons/Replay.vue'
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowRunDurationMs, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
 import { flowRunStatuses } from '../../utils/flowRunStatus.js'
@@ -77,7 +89,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowRunSummary',
 
-	components: { CnStatusBadge, NcButton },
+	components: { ArrowLeft, CnStatusBadge, NcButton, OpenInNew, Replay },
 
 	props: {
 		/**
@@ -108,6 +120,15 @@ export default {
 		 * Offer Run again. Off for a run that is still going.
 		 */
 		canRetry: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Draw the buttons with their icons and Back as a secondary button,
+		 * as the canvas flow page does (PqFlowRun).
+		 */
+		iconActions: {
 			type: Boolean,
 			default: false,
 		},

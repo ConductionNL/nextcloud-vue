@@ -1778,6 +1778,41 @@
 	min-width: calc(50px + var(--cn-board-card-inline-padding));
 }
 
+/* ---- An object list table in a frame (`content.tableFrame`) ------------- */
+/* The Pipelinq POS and lead boards draw a card's list as a framed table inside
+   the card's padding (PqKassabon "Regels", PqKassadienst "Afstortingen"): a
+   1px frame with an 8px radius, a white head with a rule under it, 18px outer
+   insets and a rule under every row but the last, where the frame closes it.
+   Dossiq's card tables have no frame, so it is an opt-in.
+   @spec openspec/changes/object-list-table-frame/specs/object-list-table-frame/spec.md#requirement-an-object-list-can-frame-its-table-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container {
+	--cn-board-table-head-bg: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table th {
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table td {
+	padding-block: 12px;
+	border-top: 0;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table :is(th, td):first-child {
+	padding-inline-start: 18px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table :is(th, td):last-child {
+	padding-inline-end: 18px;
+}
+
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
 /* Groups 14px apart, each padded 14px with a 10px radius and a bold title; a
    card in a group is padded 9px 12px with the 8px control radius, its title

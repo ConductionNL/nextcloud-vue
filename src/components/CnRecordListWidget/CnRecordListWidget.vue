@@ -754,7 +754,8 @@ export default {
 		 * "Publiceren" on a draft, "Nieuwe versie maken" otherwise).
 		 * `pill.cases` (`[{ when, label, variant? }]`) labels a row by the
 		 * first case whose `when` holds on it, else by the pill's own `label`
-		 * and `variant` (Concept, Vastgezet, Actief).
+		 * and `variant` (Concept, Vastgezet, Actief). A label may carry the
+		 * row's values as template tokens ("{value|currency}").
 		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
 		 * as a toned notice box with its icon (DqZaaktype opt-out note).
 		 * `tableLook: "data"` marks a `table` as a data table, which the board
@@ -2900,6 +2901,7 @@ export default {
 		 * @param {object} pill The pill config.
 		 * @return {{label: string, variant: string}|null} The pill, or null.
 		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
+		 * @spec openspec/changes/record-list-pill-case-template/specs/record-list/spec.md#requirement-a-pill-case-label-can-carry-the-rows-values
 		 */
 		pillCaseOf(row, pill) {
 			const found = pill.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
@@ -2907,8 +2909,14 @@ export default {
 			if (typeof chosen.label !== 'string' || chosen.label === '') {
 				return null
 			}
+			// A label with `{field}` tokens reads the row ("{value|currency}");
+			// one that fills to nothing draws no pill.
+			const label = chosen.label.indexOf('{') === -1 ? this.translate(chosen.label) : this.fill(chosen.label, row)
+			if (label === '') {
+				return null
+			}
 			return {
-				label: this.translate(chosen.label),
+				label,
 				variant: isBadgeVariant(chosen.variant) ? chosen.variant : 'default',
 			}
 		},

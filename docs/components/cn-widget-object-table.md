@@ -197,6 +197,7 @@ An endpoint read that is refused (401/403) shows the server's `message` as a war
 | `rowClass` | `Function \| Array` | Per-row CSS class binding (default `null`) — a host-supplied `(row) => string` function (pass-through), or a declarative rules[] array compiled here into that function. See [Declarative rowClass](#declarative-rowclass-91). |
 | `sortable` | `Boolean \| Array` | Column heads that sort, as the index table's: `true` for every column, or the keys that do. A column's own `sortable` wins. The sort goes out with the `source` fetch and replaces `source.order` while it is set; an `endpointSource` table sorts its rows in the browser (default `false`). |
 | `filterable` | `Boolean` | Column heads with the index table's filter button. A header filter goes out with the `source` fetch as the index page's parameters; an `endpointSource` table filters its rows in the browser (default `false`). |
+| `footnote` | `String` | A muted line under the table, 12px under it in 13px text, through the host translate (DqTermijnen Ingebrekestellingen). Not drawn while a refused or failed read shows no table (default `''`). |
 | `title` | `String` | Widget title shown in the chrome header (default `'Table'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
