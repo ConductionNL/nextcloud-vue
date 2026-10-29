@@ -309,8 +309,9 @@
 				     row; the list's footer Add is hidden there (look-board-detail.css). -->
 				<NcButton
 					v-if="catalogAddInHeader"
-					variant="secondary"
+					:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 					class="cn-detail-page__catalog-add"
+					:class="{ 'cn-button--tonal': catalogAddTonal }"
 					data-testid="cn-detail-widget-catalog-add"
 					@click="invokeCatalogAdd()">
 					<template #icon>
@@ -322,8 +323,9 @@
 					<NcButton
 						v-for="(entry, index) in catalogAddActions"
 						:key="`add-action-${index}`"
-						variant="secondary"
+						:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 						class="cn-detail-page__catalog-add"
+						:class="{ 'cn-button--tonal': catalogAddTonal }"
 						data-testid="cn-detail-widget-catalog-add-action"
 						@click="invokeCatalogAdd(entry.createDefaults)">
 						<template #icon>
@@ -1834,6 +1836,17 @@ export default {
 		 */
 		catalogAddInHeader() {
 			return this.catalogAddEnabled && !this.isBare && normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the title-row Add is the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen").
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		catalogAddTonal() {
+			return this.content?.addVariant === 'tonal'
 		},
 
 		/**

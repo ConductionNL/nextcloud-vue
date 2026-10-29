@@ -12,6 +12,8 @@ The connections an app declares, as integriq checks them: a card per connection 
 
 The panel reads integriq's `app_connection` objects for `app`. A connection's kind and icon come from its declaration, or from `kinds` when the declaration cannot carry them. The kind goes through the host's translate.
 
+A connection with a settings screen offers it at the foot of its card: "Open settings" once it is set up, and "Set up" as the board's tonal pill (`cn-button--tonal`) while it is not.
+
 ## Props
 
 | Prop | Type | Default | Description |

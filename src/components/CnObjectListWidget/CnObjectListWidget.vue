@@ -40,7 +40,7 @@
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
 			<template v-if="allowCreate && !waitingForContext" #action>
-				<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">
+				<NcButton class="cn-object-list-widget__empty-add" :class="{ 'cn-button--tonal': addTonal }" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -331,7 +331,10 @@
 		<div
 			v-if="allowCreate && !waitingForContext && !showingEmptyState"
 			class="cn-object-list-widget__add">
-			<NcButton variant="tertiary" wide @click="openCreate">
+			<NcButton variant="tertiary"
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
+				@click="openCreate">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -341,7 +344,8 @@
 				v-for="(entry, index) in addActions"
 				:key="`add-action-${index}`"
 				variant="tertiary"
-				wide
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
 				data-testid="cn-object-list-widget-add-action"
 				@click="openCreateWith(entry.createDefaults)">
 				<template #icon>
@@ -1571,6 +1575,18 @@ export default {
 					return { key: `${index}-${row.path}`, label, value, emphasis: row.emphasis === true }
 				})
 				.filter((row) => row.value !== '')
+		},
+
+		/**
+		 * Whether the Add buttons are the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen")
+		 * instead of the wide tertiary button.
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		addTonal() {
+			return this.content?.addVariant === 'tonal'
 		},
 
 		/**
