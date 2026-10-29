@@ -657,6 +657,13 @@
 			],
 			"page": "cn-child-records-field"
 		},
+		"CnChipListManager": {
+			"direct": 1,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-chip-list-manager"
+		},
 		"CnChipsFieldWidget": {
 			"direct": 0,
 			"transitive": 2,
