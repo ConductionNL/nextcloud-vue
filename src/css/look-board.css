@@ -2175,8 +2175,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    boards draw them (56 board textareas; NcTextArea took the browser's
    leading, ~1.13). The padding carries `!important` because a theme sets
    every textarea to 5px 12px with `!important` (r33: 124.5px, board 130.5).
-   @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15 */
+   It is a block: inline, it sat on a text line whose descender left 7px
+   under it, so the hint stood that much lower than drawn.
+   @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-sets-its-lines-at-15
+   @spec openspec/changes/board-settings-textarea-leading/specs/board-settings-textarea-leading/spec.md#requirement-a-board-settings-text-area-leaves-no-line-gap-under-it */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .textarea__input {
+	display: block;
 	box-sizing: border-box;
 	padding: 8px 12px !important;
 	font-size: 15px;
