@@ -180,6 +180,13 @@ A page that filters through other fields than the rows' own (a named
 source's search fields) passes them as `filterSchema`; the header filters
 then read that schema instead of `schema`.
 
+A table that holds every row and has no host to keep the state (a settings
+table read from an app endpoint) sets `localHeaders`. The table then sorts
+and filters the `rows` it was given in the browser, from its own headers,
+with the same panels and chips. `sort` and `column-filter` still emit, and
+`sortKey`, `sortKeys` and `activeFilters` are not read. Only the first sort
+key orders the rows.
+
 The active header filters show as removable chips above the table. A host
 that lists them itself sets `filterChips` to false; `CnIndexPage` does so in
 the board look, where its Active line shows them.
