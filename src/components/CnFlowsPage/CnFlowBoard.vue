@@ -19,47 +19,87 @@
 					{{ titleText }}
 				</h2>
 			</div>
-			<div v-if="!store.inRunView" class="cn-flow-board__actions">
-				<NcButton v-if="testSubjectReady"
-					:disabled="store.dryRunning || !store.flow.id"
-					data-testid="flow-board-test"
-					@click="testOpen = true">
-					<template #icon>
-						<Autorenew :size="18" />
-					</template>
-					{{ testLabel }}
-				</NcButton>
-				<span v-if="store.flow.id" class="cn-flow-board__toggle-row" data-testid="flow-board-enabled">
-					<button type="button"
-						role="switch"
-						class="cn-flow-board__toggle"
-						:aria-checked="store.flow.enabled !== false ? 'true' : 'false'"
-						:aria-labelledby="toggleLabelId"
-						data-testid="flow-board-enabled-switch"
-						@click="onEnabledChange(store.flow.enabled === false)" />
-					<span :id="toggleLabelId" class="cn-flow-board__toggle-label">
-						{{ store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
+			<div v-if="!store.inRunView || canvasLayout" class="cn-flow-board__actions">
+				<template v-if="!store.inRunView">
+					<NcButton v-if="testSubjectReady"
+						:disabled="store.dryRunning || !store.flow.id"
+						data-testid="flow-board-test"
+						@click="testOpen = true">
+						<template #icon>
+							<Autorenew :size="18" />
+						</template>
+						{{ testLabel }}
+					</NcButton>
+					<span v-if="store.flow.id" class="cn-flow-board__toggle-row" data-testid="flow-board-enabled">
+						<button type="button"
+							role="switch"
+							class="cn-flow-board__toggle"
+							:aria-checked="store.flow.enabled !== false ? 'true' : 'false'"
+							:aria-labelledby="toggleLabelId"
+							data-testid="flow-board-enabled-switch"
+							@click="onEnabledChange(store.flow.enabled === false)" />
+						<span :id="toggleLabelId" class="cn-flow-board__toggle-label">
+							{{ store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
+						</span>
 					</span>
-				</span>
-				<NcButton :disabled="store.checking || !store.nodes.length"
-					data-testid="flow-board-check"
-					@click="store.check()">
-					<template v-if="canvasLayout" #icon>
-						<CheckCircleOutline :size="18" />
-					</template>
-					{{ t('nextcloud-vue', 'Check') }}
-				</NcButton>
-				<NcButton v-if="showRun"
-					:disabled="store.running || !store.flow.id"
-					data-testid="flow-board-run"
-					@click="onRun">
-					<template v-if="canvasLayout" #icon>
-						<Play :size="18" />
-					</template>
-					{{ t('nextcloud-vue', 'Run') }}
-				</NcButton>
+					<NcButton :disabled="store.checking || !store.nodes.length"
+						data-testid="flow-board-check"
+						@click="store.check()">
+						<template v-if="canvasLayout" #icon>
+							<CheckCircleOutline :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Check') }}
+					</NcButton>
+					<NcButton v-if="showRun"
+						:disabled="store.running || !store.flow.id"
+						data-testid="flow-board-run"
+						@click="onRun">
+						<template v-if="canvasLayout" #icon>
+							<Play :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Run') }}
+					</NcButton>
+				</template>
 				<CnBuildiqEditButton />
-				<NcButton variant="primary"
+				<NcActions v-if="canvasLayout"
+					class="cn-flow-board__more"
+					:menuName="t('nextcloud-vue', 'More')"
+					:forceName="true"
+					data-testid="flow-board-more">
+					<template #icon>
+						<ChevronDown :size="20" />
+					</template>
+					<template v-if="store.inRunView">
+						<NcActionButton data-testid="flow-board-more-play" @click="store.requestReplay()">
+							<template #icon>
+								<Replay :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Play on the canvas') }}
+						</NcActionButton>
+						<NcActionButton data-testid="flow-board-more-back" @click="onBackToFlow">
+							<template #icon>
+								<ArrowLeft :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Back to the flow') }}
+						</NcActionButton>
+					</template>
+					<template v-else>
+						<NcActionButton data-testid="flow-board-more-runs" @click="showRuns = true">
+							<template #icon>
+								<History :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Show runs') }}
+						</NcActionButton>
+						<NcActionButton v-if="lastRunUuid" data-testid="flow-board-more-last-run" @click="openRun(lastRunUuid)">
+							<template #icon>
+								<Replay :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Open the last run on the canvas') }}
+						</NcActionButton>
+					</template>
+				</NcActions>
+				<NcButton v-if="!store.inRunView"
+					variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					data-testid="flow-board-save"
 					@click="$emit('save')">
@@ -109,6 +149,11 @@
 				class="cn-flow-board__pill"
 				:label="pillText"
 				:variant="pill ? pillVariant : 'default'" />
+			<CnStatusBadge v-if="lastRunPill"
+				class="cn-flow-board__pill"
+				:label="lastRunPill"
+				variant="default"
+				data-testid="flow-board-last-run" />
 			<template v-for="(crumb, index) in trailCrumbs" :key="index">
 				<a :href="crumb.href" class="cn-flow-board__crumb" @click="onCrumbClick($event, crumb.path)">{{ crumb.label }}</a>
 				<span aria-hidden="true"> / </span>
@@ -175,6 +220,30 @@
 					quietRun
 					@save="$emit('save')"
 					@run="onRun">
+					<template v-if="canvasLayout && store.inRunView" #toolbar-start>
+						<div class="cn-flow-board__legend-card"
+							role="group"
+							:aria-labelledby="legendTitleId"
+							data-testid="flow-board-legend">
+							<span :id="legendTitleId" class="cn-flow-board__legend-title">{{ t('nextcloud-vue', 'Outcome per step') }}</span>
+							<ul class="cn-flow-board__legend-list">
+								<li v-for="level in canvasLegend" :key="level.id" class="cn-flow-board__legend-item">
+									<CnStatusBadge :label="level.label" :variant="level.variant" class="cn-flow-board__legend-pill">
+										<span class="cn-flow-board__legend-swatch" aria-hidden="true" />
+										{{ level.label }}
+									</CnStatusBadge>
+								</li>
+								<li class="cn-flow-board__legend-item cn-flow-board__legend-route">
+									<span class="cn-flow-board__legend-line cn-flow-board__legend-line--taken" aria-hidden="true" />
+									{{ t('nextcloud-vue', 'Taken route') }}
+								</li>
+								<li class="cn-flow-board__legend-item cn-flow-board__legend-route cn-flow-board__legend-route--muted">
+									<span class="cn-flow-board__legend-line" aria-hidden="true" />
+									{{ t('nextcloud-vue', 'Not taken') }}
+								</li>
+							</ul>
+						</div>
+					</template>
 					<template v-if="canvasLayout" #toolbar-end>
 						<CnStatusBadge v-if="!store.inRunView"
 							class="cn-flow-board__validity-pill"
@@ -199,10 +268,11 @@
 					:run="runRecord"
 					:stepsTotal="store.nodes.length"
 					:canRetry="canRetry"
+					iconActions
 					data-testid="flow-board-run-card"
 					@back="onBackToFlow"
 					@retry="onRetry" />
-				<div v-if="store.inRunView"
+				<div v-if="store.inRunView && !canvasLayout"
 					class="cn-flow-board__legend"
 					data-testid="flow-board-legend">
 					<span v-for="level in legend" :key="level.id" class="cn-flow-board__legend-item">
@@ -219,7 +289,7 @@
 			</section>
 
 			<aside v-if="inspectorShown" class="cn-flow-board__card cn-flow-board__inspector" data-testid="flow-board-inspector">
-				<NcButton v-if="canvasLayout"
+				<NcButton v-if="canvasLayout && !store.inRunView && !store.selectedNode"
 					variant="tertiary"
 					class="cn-flow-board__inspector-close"
 					:aria-label="t('nextcloud-vue', 'Close the side panel')"
@@ -254,15 +324,74 @@
 							<span class="cn-flow-board__tab-count">{{ tab.count }}</span>
 						</button>
 					</div>
+					<div v-if="canvasLayout && runTab === 'step' && selectedRunStep"
+						class="cn-flow-board__run-step"
+						data-testid="flow-board-run-step">
+						<span class="cn-flow-board__step-kind">{{ stepKindText }}</span>
+						<h3 class="cn-flow-board__card-title">
+							{{ stepName }}
+						</h3>
+						<p class="cn-flow-board__run-step-meta">
+							<CnStatusBadge :label="selectedRunStep.label" :variant="selectedRunStep.variant" size="small" />
+							<span v-if="selectedRunStep.timing">{{ selectedRunStep.timing }}</span>
+						</p>
+					</div>
 					<CnFlowStepLog :lines="runTab === 'step' ? selectedRunLines : allRunLines"
 						:emptyText="runTab === 'step' && !store.selectedNodeId ? t('nextcloud-vue', 'Select a step on the canvas to see what it did.') : ''" />
+					<template v-if="canvasLayout && runTab === 'step' && selectedRunStep">
+						<p v-if="selectedRunStep.wentOn"
+							class="cn-flow-board__run-step-note"
+							data-testid="flow-board-run-step-note">
+							<InformationOutline :size="18" />
+							{{ t('nextcloud-vue', 'This step failed, but continue on error is on, so the run went on.') }}
+						</p>
+						<div class="cn-flow-board__run-step-actions">
+							<NcButton data-testid="flow-board-run-edit-step" @click="onEditRunStep">
+								{{ t('nextcloud-vue', 'Edit this step') }}
+							</NcButton>
+							<NcButton class="cn-button--tonal"
+								data-testid="flow-board-run-play"
+								@click="store.requestReplay()">
+								<template #icon>
+									<Replay :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Play on the canvas') }}
+							</NcButton>
+						</div>
+					</template>
 				</template>
 				<template v-else-if="store.selectedNode">
-					<h3 class="cn-flow-board__card-title" data-testid="flow-board-step-name">
+					<div v-if="canvasLayout" class="cn-flow-board__step-head">
+						<div class="cn-flow-board__step-heading">
+							<span class="cn-flow-board__step-kind" data-testid="flow-board-step-kind">{{ stepKindText }}</span>
+							<h3 class="cn-flow-board__card-title" data-testid="flow-board-step-name">
+								{{ stepName }}
+							</h3>
+						</div>
+						<NcButton variant="tertiary"
+							:aria-label="t('nextcloud-vue', 'Close the side panel')"
+							:title="t('nextcloud-vue', 'Close the side panel')"
+							data-testid="flow-board-inspector-close"
+							@click="closePanel">
+							<template #icon>
+								<Close :size="20" />
+							</template>
+						</NcButton>
+					</div>
+					<NcTextField v-if="canvasLayout"
+						:modelValue="nameDraft === null ? stepName : nameDraft"
+						:label="t('nextcloud-vue', 'Step name')"
+						:disabled="store.graphLocked"
+						data-testid="flow-board-step-name-field"
+						@update:modelValue="nameDraft = $event"
+						@blur="commitStepName"
+						@keydown.enter="commitStepName" />
+					<h3 v-if="!canvasLayout" class="cn-flow-board__card-title" data-testid="flow-board-step-name">
 						{{ stepName }}
 					</h3>
 					<!-- The step type as a pill under the name (DqFlow "Beslistabel van OpenRegister"). -->
-					<CnStatusBadge :label="stepTypePill"
+					<CnStatusBadge v-if="!canvasLayout"
+						:label="stepTypePill"
 						variant="purple"
 						class="cn-flow-board__step-type"
 						data-testid="flow-board-step-type" />
@@ -270,8 +399,19 @@
 						<div v-for="field in stepFields"
 							:key="field.key"
 							class="cn-flow-board__setting"
+							:class="{ 'cn-flow-board__setting--card': canvasLayout && field.widget === 'switch' && field.description }"
 							data-testid="flow-board-step-setting">
-							<NcCheckboxRadioSwitch v-if="field.widget === 'switch'"
+							<div v-if="canvasLayout && field.widget === 'switch' && field.description" class="cn-flow-board__setting-text">
+								<span :id="`${toggleLabelId}-${field.key}`" class="cn-flow-board__setting-label">{{ field.label }}</span>
+								<span class="cn-flow-board__setting-help">{{ field.description }}</span>
+							</div>
+							<NcCheckboxRadioSwitch v-if="canvasLayout && field.widget === 'switch' && field.description"
+								type="switch"
+								:modelValue="field.value === true"
+								:disabled="store.graphLocked"
+								:aria-labelledby="`${toggleLabelId}-${field.key}`"
+								@update:modelValue="setStepField(field, $event)" />
+							<NcCheckboxRadioSwitch v-else-if="field.widget === 'switch'"
 								type="switch"
 								:modelValue="field.value === true"
 								:disabled="store.graphLocked"
@@ -300,6 +440,7 @@
 								@update:modelValue="drafts[field.key] = $event"
 								@blur="commitStepField(field)"
 								@keydown.enter="commitStepField(field)" />
+							<span v-if="canvasLayout && field.description && field.widget !== 'switch'" class="cn-flow-board__setting-help">{{ field.description }}</span>
 						</div>
 					</div>
 					<dl v-if="stepOutcomes.length > 0" class="cn-flow-board__outcomes" data-testid="flow-board-step-outcomes">
@@ -312,14 +453,29 @@
 						<NcButton data-testid="flow-board-edit-step" @click="store.editingNodeId = store.selectedNodeId">
 							{{ t('nextcloud-vue', 'Edit step') }}
 						</NcButton>
-						<NcButton v-if="lastRunUuid"
+						<NcButton v-if="lastRunUuid && !canvasLayout"
 							variant="tertiary"
 							data-testid="flow-board-open-last-run"
 							@click="openRun(lastRunUuid)">
 							{{ t('nextcloud-vue', 'Open the last run on the canvas') }}
 						</NcButton>
 					</div>
-					<details class="cn-flow-board__step-log" data-testid="flow-board-step-log">
+					<section v-if="canvasLayout" class="cn-flow-board__step-log cn-flow-board__step-log--open" data-testid="flow-board-step-log">
+						<h4 class="cn-flow-board__subtitle">
+							{{ t('nextcloud-vue', 'Recent log lines of this step') }}
+						</h4>
+						<CnFlowStepLog :lines="recentStepLines"
+							withDay
+							:emptyText="t('nextcloud-vue', 'This step has not run yet.')" />
+						<a v-if="lastRunUuid"
+							:href="hrefOf(flowPath) + '?run=' + encodeURIComponent(lastRunUuid)"
+							class="cn-flow-board__step-log-link"
+							data-testid="flow-board-open-last-run"
+							@click.prevent="openRun(lastRunUuid)">
+							{{ t('nextcloud-vue', 'Open the last run on the canvas') }}
+						</a>
+					</section>
+					<details v-else class="cn-flow-board__step-log" data-testid="flow-board-step-log">
 						<summary class="cn-flow-board__subtitle">
 							{{ t('nextcloud-vue', 'Recent log lines of this step') }}
 						</summary>
@@ -329,12 +485,13 @@
 					</details>
 					<div class="cn-flow-board__step-footer">
 						<NcButton variant="tertiary"
+							:class="{ 'cn-flow-board__delete-step': canvasLayout }"
 							:disabled="store.graphLocked"
 							data-testid="flow-board-delete-step"
 							@click="store.removeNode(store.selectedNodeId)">
 							{{ t('nextcloud-vue', 'Delete step') }}
 						</NcButton>
-						<NcButton data-testid="flow-board-done" @click="store.selectedNodeId = null">
+						<NcButton :variant="canvasLayout ? 'primary' : 'secondary'" data-testid="flow-board-done" @click="store.selectedNodeId = null">
 							{{ t('nextcloud-vue', 'Done') }}
 						</NcButton>
 					</div>
@@ -363,13 +520,18 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import Autorenew from 'vue-material-design-icons/Autorenew.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import DockRight from 'vue-material-design-icons/DockRight.vue'
+import History from 'vue-material-design-icons/History.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Play from 'vue-material-design-icons/Play.vue'
+import Replay from 'vue-material-design-icons/Replay.vue'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
@@ -395,7 +557,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { Autorenew, Check, CheckCircleOutline, Close, DockRight, Play, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { ArrowLeft, Autorenew, Check, CheckCircleOutline, ChevronDown, Close, DockRight, History, InformationOutline, Play, Replay, NcActionButton, NcActions, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -438,7 +600,11 @@ export default {
 		 * version, and runs already started keep theirs (DqFlow).
 		 */
 		saveAsVersion: { type: Boolean, default: false },
-		/** Which of `trigger`, `steps` and `version` the path names after the flow, in that order. */
+		/**
+		 * Which of `trigger`, `steps`, `version` and `saved` the path names after
+		 * the flow, in that order. `saved` adds when the flow was last saved to
+		 * the version (PqFlow).
+		 */
 		metaParts: { type: Array, default: () => ['trigger', 'steps', 'version'] },
 		/** A closing note after the path's meta ("changes apply to new cases"). */
 		metaNote: { type: String, default: '' },
@@ -477,7 +643,7 @@ export default {
 	},
 
 	data() {
-		return { panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
+		return { nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
@@ -657,7 +823,9 @@ export default {
 				parts.push(count === 1 ? this.t('nextcloud-vue', '1 step') : this.t('nextcloud-vue', '{count} steps', { count }))
 			}
 			if (this.store.flow.version && shown.includes('version')) {
-				parts.push(this.t('nextcloud-vue', 'version {version}', { version: this.store.flow.version }))
+				parts.push(this.store.flow.updated && shown.includes('saved')
+					? this.t('nextcloud-vue', 'version {version}, saved {date}', { version: this.store.flow.version, date: formatRelativeDate(this.store.flow.updated) })
+					: this.t('nextcloud-vue', 'version {version}', { version: this.store.flow.version }))
 			}
 			if (this.metaNote) {
 				parts.push(this.metaNote)
@@ -845,6 +1013,7 @@ export default {
 					return {
 						key: field.key,
 						label: field.label || field.key,
+						description: String(field.description || field.help || ''),
 						widget,
 						value,
 						options,
@@ -915,6 +1084,75 @@ export default {
 			return lines.slice(0, 10)
 		},
 
+		/**
+		 * The newest run as the path line's first pill on a canvas page: "Last
+		 * run today 08:41 done".
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-a-canvas-flow-page-has-a-more-menu-and-names-its-last-run
+		 * @return {string} The pill text, or '' when there is none to show.
+		 */
+		lastRunPill() {
+			const last = this.store.runs && this.store.runs[0]
+			if (!this.canvasLayout || this.store.inRunView || !last) {
+				return ''
+			}
+			const outcome = {
+				completed: this.t('nextcloud-vue', 'done'),
+				failed: this.t('nextcloud-vue', 'failed'),
+				dead_letter: this.t('nextcloud-vue', 'failed'),
+				stopped: this.t('nextcloud-vue', 'stopped early'),
+			}[String(last.status || '')] || this.t('nextcloud-vue', 'running')
+			return this.t('nextcloud-vue', 'Last run {date} {outcome}', { date: formatRelativeDate(last.created, { withTime: true }), outcome })
+		},
+
+		/**
+		 * The outcomes the canvas legend card names; a step that did not run
+		 * reads from the "Not taken" route instead.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-a-canvas-run-shows-its-legend-as-one-card-with-the-zoom
+		 * @return {Array<object>} The levels.
+		 */
+		canvasLegend() {
+			const levels = flowOutcomeLevels()
+			return ['success', 'warning', 'info', 'error'].map((id) => ({ id, ...levels[id] }))
+		},
+
+		/**
+		 * The selected step's kind and type: "Action · Send an e-mail".
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-the-canvas-inspector-and-run-panel-read-as-the-boards-draw-them
+		 * @return {string} The line.
+		 */
+		stepKindText() {
+			const role = this.store.roleOfNodeType(this.store.selectedNode?.type)
+			const kind = {
+				trigger: this.t('nextcloud-vue', 'Trigger'),
+				end: this.t('nextcloud-vue', 'End'),
+			}[role] || this.t('nextcloud-vue', 'Action')
+			return `${kind} · ${this.stepTypeLabel}`
+		},
+
+		/**
+		 * The selected step in the run on screen: its outcome pill, its timing
+		 * and whether the run went on after it failed.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-the-canvas-inspector-and-run-panel-read-as-the-boards-draw-them
+		 * @return {{label: string, variant: string, timing: string, wentOn: boolean}|null} The step, or null.
+		 */
+		selectedRunStep() {
+			const id = this.store.selectedNodeId
+			const step = this.runRecord && id ? flowRunSteps(this.runRecord).find((item) => item.nodeId === id) : null
+			if (!step) {
+				return null
+			}
+			const level = flowOutcomeLevels()[step.level] || { label: step.level, variant: 'default' }
+			const timing = [
+				step.startedAt ? this.t('nextcloud-vue', 'started {time}', { time: formatRelativeDate(step.startedAt, { withTime: true }) }) : '',
+				step.durationMs ? this.t('nextcloud-vue', 'took {duration}', { duration: formatFlowDuration(step.durationMs) }) : '',
+			].filter(Boolean).join(' · ')
+			return { label: level.label, variant: level.variant, timing, wentOn: step.level === 'warning' && String(step.entry?.status || '') === 'failed' }
+		},
+
 		/** @return {string} The newest run's uuid, or ''. */
 		lastRunUuid() {
 			return (this.store.runs && this.store.runs[0] && this.store.runs[0].uuid) || ''
@@ -926,6 +1164,7 @@ export default {
 		'store.selectedNodeId': {
 			handler() {
 				this.drafts = {}
+				this.nameDraft = null
 				this.loadStepOptions()
 			},
 		},
@@ -1193,6 +1432,37 @@ export default {
 			} else {
 				this.store.inspectRun(uuid)
 			}
+		},
+
+		/**
+		 * Write the step name field's typing to the selected step when the
+		 * field is left.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-the-canvas-inspector-and-run-panel-read-as-the-boards-draw-them
+		 * @return {void}
+		 */
+		commitStepName() {
+			const id = this.store.selectedNodeId
+			const name = this.nameDraft
+			this.nameDraft = null
+			if (!id || name === null || name === this.stepName) {
+				return
+			}
+			this.store.setNodeName(id, name)
+		},
+
+		/**
+		 * Leave the run for the flow with the step of the run tab selected.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-the-canvas-inspector-and-run-panel-read-as-the-boards-draw-them
+		 * @return {void}
+		 */
+		onEditRunStep() {
+			const id = this.store.selectedNodeId
+			this.onBackToFlow()
+			this.$nextTick(() => {
+				this.store.selectedNodeId = id
+			})
 		},
 
 		/**
@@ -1636,14 +1906,119 @@ export default {
 	inset-block-end: 0;
 }
 
-.cn-flow-board--canvas .cn-flow-board__legend {
-	position: absolute;
-	inset-block-end: 60px;
-	inset-inline-start: 0;
-	z-index: 10;
+/* In a run the canvas toolbar is the legend card: "Outcome per step", the
+   outcome pills and the routes, then the zoom and the side panel toggle,
+   beside the corner controls (PqFlowRun). */
+.cn-flow-board--canvas.cn-flow-board--run .cn-flow-board__canvas :deep(.cn-flow-detail__toolbar) {
+	inset-inline-start: 48px;
+	max-width: calc(100% - 48px);
+	flex-wrap: wrap;
+	gap: 8px 14px;
+	padding: 6px 12px;
+}
+
+.cn-flow-board__legend-card {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 14px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-flow-board__legend-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__legend-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-flow-board__legend-card .cn-flow-board__legend-item {
+	display: inline-flex;
+	align-items: center;
+}
+
+.cn-flow-board__legend-pill,
+.cn-flow-board__legend-route {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	box-sizing: border-box;
+	padding: 0 10px;
+	border-radius: 14px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-flow-board__legend-swatch {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	background: currentColor;
+}
+
+.cn-flow-board__legend-route {
 	border: 1px solid var(--color-border);
-	border-radius: 12px;
-	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-flow-board__legend-route--muted {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__legend-line {
+	flex: none;
+	width: 18px;
+	height: 2px;
+	background: var(--color-border-dark, var(--color-text-maxcontrast));
+}
+
+.cn-flow-board__legend-line--taken {
+	height: 5px;
+	border-radius: 3px;
+	background: var(--color-success, #1e6b2a);
+}
+
+/* The canvas corner controls as outlined white buttons (PqFlow, PqFlowRun). */
+.cn-flow-board--canvas .cn-flow-board__canvas :deep(.cn-graph-canvas__controls) {
+	gap: 6px;
+}
+
+.cn-flow-board--canvas .cn-flow-board__canvas :deep(.cn-graph-canvas__controls .cn-graph-canvas__control) {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 1px solid var(--color-border-maxcontrast, #828a95);
+	border-radius: 8px;
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.08);
+}
+
+/* In a run the title and its buildiq and More stand on one row (PqFlowRun). */
+.cn-flow-board--canvas.cn-flow-board--run .cn-flow-board__header {
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: flex-start;
+}
+
+/* More: the label first, the chevron after it. */
+.cn-flow-board__more :deep(.button-vue__wrapper) {
+	flex-direction: row-reverse;
 }
 
 .cn-flow-board__validity-pill {
@@ -1680,6 +2055,128 @@ export default {
 	border-radius: 12px;
 	background: var(--color-main-background);
 	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+/* The canvas inspector (PqFlow): the kind over the name with the close beside
+   it, help under a setting, an on/off setting as a grey card, the log open
+   under a rule and a red delete. */
+.cn-flow-board__step-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-flow-board__step-heading {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.cn-flow-board__step-kind {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__step-head .cn-flow-board__card-title {
+	font-size: 17px;
+}
+
+.cn-flow-board__setting-help {
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__setting--card {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--color-background-hover);
+}
+
+.cn-flow-board__setting-text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.cn-flow-board__setting-label {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-flow-board__step-log--open {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-flow-board__step-log--open .cn-flow-board__subtitle {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-flow-board__step-log-link {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
+.cn-flow-board__step-footer .cn-flow-board__delete-step {
+	color: var(--color-error-text, var(--color-error));
+}
+
+/* The run's step tab (PqFlowRun): tabs across the panel, the step head, the
+   continue-on-error note and the edit and play buttons. */
+.cn-flow-board--canvas .cn-flow-board__tab {
+	flex: 1 1 auto;
+	justify-content: center;
+}
+
+.cn-flow-board__run-step {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-flow-board__run-step-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__run-step-note {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-board__run-step-actions {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
 }
 
 @media (max-width: 1024px) {

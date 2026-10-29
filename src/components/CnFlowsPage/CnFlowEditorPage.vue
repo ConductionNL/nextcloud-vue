@@ -194,8 +194,9 @@ export default {
 		},
 
 		/**
-		 * Board look: which of `trigger`, `steps` and `version` the path names
-		 * after the flow, in that order. Manifest key `config.metaParts`.
+		 * Board look: which of `trigger`, `steps`, `version` and `saved` the
+		 * path names after the flow, in that order. Manifest key
+		 * `config.metaParts`.
 		 */
 		metaParts: {
 			type: Array,

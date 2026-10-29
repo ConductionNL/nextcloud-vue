@@ -32,6 +32,7 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 
 | Slot | Content |
 |---|---|
+| `toolbar-start` | What a host puts first in the toolbar. In a run the board's canvas layout puts its outcome legend here, so legend, zoom and side panel toggle are one card. |
 | `toolbar-end` | What a host adds at the end of the toolbar, after the zoom. The board's canvas layout puts its validity pill and side panel toggle here. |
 
 ## Events

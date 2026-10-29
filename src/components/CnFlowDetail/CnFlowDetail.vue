@@ -25,6 +25,8 @@
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
+			<!-- @slot toolbar-start What a host puts first in the toolbar (the canvas run's outcome legend). -->
+			<slot name="toolbar-start" />
 			<!--
 				🔴 NOT OFFERED WHILE A RUN IS BEING OPENED.
 
