@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-object-list-widget"
-		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true }"
+		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true, 'cn-object-list-widget--framed': content.tableFrame === true }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
@@ -593,12 +593,15 @@ export default {
 		 * board look it goes under the card's side padding and its outer cells
 		 * take that padding, so the column text lines up with the card title.
 		 * Without it the table stays inside the padding.
+		 * `tableFrame: true` draws the table in a 1px frame with an 8px radius
+		 * inside the card's padding, a white head with a rule under it and
+		 * 18px outer insets (PqKassabon "Regels").
 		 * `headerSubtitle` is a line under the card title with the list's
 		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
 		 * `headerNote` takes the same counts beside the card title instead.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean, tableFrame?: boolean}}
 		 * `children` (`{ register?, schema, filter, columns, reorder, rowActions,
 		 * … }`) shows each row's child records under it, as a list of the same
 		 * kind: `filter` names the link with an `@row.<field>` token
