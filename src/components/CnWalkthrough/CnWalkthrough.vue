@@ -789,7 +789,7 @@ export default {
 					return null
 				}
 			}
-			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'))
+			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\]/g, '\\$&'))
 			if (tgt.kind === 'selector' && tgt.selector) {
 				return q(tgt.selector)
 			}

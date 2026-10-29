@@ -179,6 +179,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
 import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
+import { htmlToText } from '../../../utils/htmlToText.js'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const EXCERPT_MAX_CHARS = 140
@@ -428,12 +429,7 @@ export default {
 			if (str === '') {
 				return ''
 			}
-			let text = str
-				.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-				.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-				.replace(/<[^>]+>/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim()
+			let text = htmlToText(str)
 			if (text.length > EXCERPT_MAX_CHARS) {
 				text = text.slice(0, EXCERPT_MAX_CHARS).trimEnd() + '…'
 			}

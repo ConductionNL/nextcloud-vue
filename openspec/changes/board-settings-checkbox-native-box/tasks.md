@@ -1,0 +1,2 @@
+- [x] look-board.css: a checkbox in a board settings section draws the native box (as dialog.css does in a board dialog), its label at 400
+- [x] tests/css/lookBoardSettingsCheckboxNativeBox.spec.js
