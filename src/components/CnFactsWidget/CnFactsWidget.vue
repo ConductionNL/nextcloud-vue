@@ -113,6 +113,7 @@
 					v-else-if="block.kind === 'title'"
 					:to="block.to || undefined"
 					class="cn-facts-widget__title"
+					:style="block.size ? { fontSize: `${block.size}px` } : undefined"
 					:data-testid="`cn-fact-${block.key}`">
 					{{ block.value }}
 				</component>
@@ -300,6 +301,7 @@ import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, formatLongDate } from '../../utils/fillTemplate.js'
 import { formatMoney, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
+import { fetchCallerScope } from '../../utils/objectPermissions.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
@@ -499,7 +501,7 @@ export default {
 		 * The widget configuration.
 		 *
 		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, joinPrevious?, joinSeparator?, text?, title?, subtitle?, initialsPath?, tone? }`.
-		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`.
+		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`. A `title` takes `size` in px (a Termijn card's 26px figure).
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
 		 *   A `line` or `text` with `joinPrevious: true` is written on after the line or text just before it, as one paragraph (`joinSeparator`, default a space); with none before it, it stands alone. A text joined with a line break (`joinSeparator: "\n"`) keeps it: two address lines as one block.
@@ -516,7 +518,7 @@ export default {
 		 *   `labelPath` ("@context.caseType.handlerLabel") names a value on the record or the page's `@context` records that labels the row when it holds text; `label` is the fallback.
 		 *   `emptyValue` ("No") is shown, translated, when the entry has no value, so the entry stays drawn whatever `hideEmpty` says (an override that was never set reads "No").
 		 * - `action` — an action drawn as a button under the facts; `headerAction` — one drawn in the card header (reported through the `header` event).
-		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). An api-call or a saved form refreshes the page, and the facts read their source again.
+		 * - `actions` — action buttons under the facts in the `headerActions` shape (`api-call`, `open-form`, `navigate`, `open-modal`, ...; `confirm`, `variant`). `@source.<field>` names a field of the record shown, and an action whose token names an empty field is not drawn. `visibleWhen` reads the record shown; `adminOnly: true` draws the action for an instance admin only (visibility, never authorisation). `requires: "update"` draws it only when OpenRegister lets the reader update the page's record (also on `emptyActions`; while the right is unknown it draws, and the server decides). An api-call or a saved form refreshes the page, and the facts read their source again.
 		 * - `fieldsFrom` — `@context.<name>.<path>`, a list of entries on a record the page reads beside this one (a case type's `requestFields`); when it holds entries they are drawn instead of `fields`.
 		 * - `rowsPath` — a path to a list of `{ label, value }` the record holds, drawn as rows after `fields` (a preview the server builds).
 		 * - `headerPill` — a status pill in the card header (reported through the `header` event): `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"); nothing shows while the value is empty.
@@ -583,6 +585,8 @@ export default {
 			counts: {},
 			/** The outcome of each `actions[]` condition that needs a request, by action id. */
 			remoteVisibility: {},
+			/** Whether OpenRegister lets the reader update the page's record; null while unknown (the server decides). */
+			mayUpdate: null,
 			/** Sequence of the source reads, so an older answer never replaces a newer one. */
 			loadSeq: 0,
 		}
@@ -797,6 +801,7 @@ export default {
 		emptyActions() {
 			const list = Array.isArray(this.content?.emptyActions) ? this.content.emptyActions : []
 			return list
+				.filter((action) => this.rightAllows(action))
 				.map((action) => ({ view: this.actionView(action), action }))
 				.filter((entry) => entry.view)
 				.map((entry) => ({ ...entry.view, action: entry.action }))
@@ -829,7 +834,7 @@ export default {
 			const admin = this.viewerIsAdmin()
 			const out = []
 			actions.forEach((action, index) => {
-				if (!action || typeof action !== 'object' || (action.adminOnly === true && !admin)) {
+				if (!action || typeof action !== 'object' || (action.adminOnly === true && !admin) || !this.rightAllows(action)) {
 					return
 				}
 				const id = this.actionId(action, index)
@@ -844,7 +849,7 @@ export default {
 				if (unresolved) {
 					return
 				}
-				const { visibleWhen, adminOnly, ...drawn } = value
+				const { visibleWhen, adminOnly, requires, ...drawn } = value
 				out.push({ ...drawn, id })
 			})
 			return out
@@ -927,6 +932,9 @@ export default {
 				}
 				if (kind === 'title' && field.route) {
 					block.to = this.resolveRoute(field.route, record)
+				}
+				if (kind === 'title' && Number.isFinite(field.size) && field.size > 0) {
+					block.size = field.size
 				}
 				if (kind === 'pill') {
 					const raw = readPath(record, field.path)
@@ -1153,6 +1161,7 @@ export default {
 
 	mounted() {
 		subscribe(PAGE_REFRESH_CHANNEL, this.onPageRefresh)
+		this.loadMayUpdate()
 	},
 
 	beforeUnmount() {
@@ -1160,6 +1169,40 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an action's `requires: "update"` holds: the reader may update
+		 * the page's record. Unknown counts as yes; the server decides.
+		 *
+		 * @param {object} action The declaration.
+		 * @return {boolean}
+		 * @spec openspec/changes/facts-title-size-and-update-right/specs/facts-widget/spec.md#requirement-a-facts-action-can-ask-for-the-update-right
+		 */
+		rightAllows(action) {
+			return !(action && action.requires === 'update' && this.mayUpdate === false)
+		},
+
+		/**
+		 * Read the reader's rights on the page's register and schema, when an
+		 * action asks for the update right.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/facts-title-size-and-update-right/specs/facts-widget/spec.md#requirement-a-facts-action-can-ask-for-the-update-right
+		 */
+		async loadMayUpdate() {
+			const all = [...(Array.isArray(this.content?.actions) ? this.content.actions : []), ...(Array.isArray(this.content?.emptyActions) ? this.content.emptyActions : [])]
+			const { register, schema } = this.tokenCtx
+			if (!all.some((action) => action && action.requires === 'update') || !register || !schema) {
+				return
+			}
+			const slug = (value) => (value && typeof value === 'object' ? String(value.slug || value.id || '') : String(value))
+			try {
+				const scope = await fetchCallerScope({ register: slug(register), schema: slug(schema) })
+				this.mayUpdate = !scope || !Array.isArray(scope.actions) || scope.actions.includes('update')
+			} catch {
+				this.mayUpdate = null
+			}
+		},
+
 		/**
 		 * A link's label and the muted note under it, their `{path}` and
 		 * `{path:format}` placeholders filled from the record ("{page:last-segment}").
