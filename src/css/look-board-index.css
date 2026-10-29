@@ -807,6 +807,13 @@
 	align-self: flex-start;
 }
 
+/* Split open, the card starts from zero and takes the width the pane leaves:
+   its auto basis (a fixed 100% table, a full-width list) would otherwise be the
+   whole body. After the view rules above, so it wins over their `1 1 auto`. */
+.cn-look-board .cn-index-page__main.cn-index-page__main--split {
+	flex: 1 1 0;
+}
+
 /* The map card is as tall as its 533px map (or its list), 18px in, and the
    footer follows it (DqZakenKaart: card 632, pager at 891). */
 .cn-look-board .cn-index-page__main--map > .cn-index-page__map-card {

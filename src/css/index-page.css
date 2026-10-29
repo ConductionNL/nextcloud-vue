@@ -425,6 +425,12 @@
 	padding-inline-start: calc(3 * var(--default-grid-baseline));
 }
 
+/* Beside the list the pane holds its declared width (`splitView.paneWidth`);
+   the list is the side that gives way. */
+.cn-index-page__split-pane:not(.cn-index-page__split-pane--full) {
+	flex-shrink: 0;
+}
+
 /* Static on purpose: a sticky one was tried and rejected for hanging over the
    content while scrolling. */
 .cn-index-page__split-close {
