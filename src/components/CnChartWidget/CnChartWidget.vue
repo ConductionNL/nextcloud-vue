@@ -372,7 +372,8 @@ const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', erro
  */
 /**
  * A value formatter for a `valueFormat`: 'currency' | 'currency-compact' |
- * 'percent' | 'number', or the object form `{ name, currency?,
+ * 'compact' (38000 as "38K", no currency) | 'percent' | 'number', or the
+ * object form `{ name, currency?,
  * decimals?, suffix? }`. Non-numeric values pass through. Null for no format.
  *
  * @param {string|object|null} vf The value format.
@@ -404,6 +405,12 @@ function formatterFor(vf) {
 			currency,
 			notation: 'compact',
 			maximumFractionDigits: decimals ?? 1,
+		}).format(num))
+	}
+	if (name === 'compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 0,
 		}).format(num))
 	}
 	if (name === 'number') {
