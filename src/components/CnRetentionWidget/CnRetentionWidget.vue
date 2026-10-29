@@ -59,7 +59,7 @@
 				{{ t('nextcloud-vue', 'Nothing could decide what happens to this record.') }}
 				{{ String(nomination.unnominatableReason ?? '') }}
 			</NcNoteCard>
-			<div v-else-if="!nomination" data-testid="cn-retention-pending">
+			<div v-else-if="!nomination" class="cn-retention__pending" data-testid="cn-retention-pending">
 				<dl class="cn-retention__facts">
 					<div v-for="fact in pendingFacts" :key="fact.key" class="cn-retention__fact">
 						<dt>{{ fact.label }}</dt>
