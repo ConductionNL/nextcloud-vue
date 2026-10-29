@@ -974,15 +974,16 @@ export default {
 		},
 
 		/**
-		 * Whether a layout item takes the height of the tallest `sameHeight`
-		 * card on its layout row: it asks to, and it is sized to its content.
+		 * Whether a layout item takes part in its row's shared height
+		 * (`sameHeight`). A size-to-content card stretches to the tallest; a card
+		 * of fixed height is not stretched but counts as the height to reach.
 		 *
 		 * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
 		 * @param {object} item The layout item.
 		 * @return {boolean} True when it does.
 		 */
 		sharesRowHeight(item) {
-			return item?.sameHeight === true && this.sizeToContentAttr(item) !== undefined
+			return item?.sameHeight === true
 		},
 
 		/**
@@ -1008,7 +1009,7 @@ export default {
 				const item = byId.get(String(cell.getAttribute('gs-id')))
 				const child = cell.querySelector('.grid-stack-item-content')?.firstElementChild
 				if (item && child) {
-					cards.push({ child, row: item.gridY ?? 0 })
+					cards.push({ child, row: item.gridY ?? 0, fit: this.sizeToContentAttr(item) !== undefined })
 				}
 			}
 			if (cards.length === 0) {
@@ -1017,14 +1018,16 @@ export default {
 			this.matchingRowHeights = true
 			try {
 				for (const card of cards) {
-					card.child.style.minHeight = ''
+					if (card.fit) {
+						card.child.style.minHeight = ''
+					}
 				}
 				if (this.editable || this.reflowed) {
 					return
 				}
 				const heights = planSameHeights(cards.map((card) => ({ row: card.row, height: card.child.getBoundingClientRect().height })))
 				cards.forEach((card, index) => {
-					if (heights[index] !== null) {
+					if (card.fit && heights[index] !== null) {
 						card.child.style.minHeight = `${heights[index]}px`
 					}
 				})

@@ -2,7 +2,7 @@
 
 ### Requirement: the cards of a row can share one height
 
-Dashboard placements with `sameHeight: true` and `sizeToContent` that start on the same layout row MUST be drawn at the height of the tallest of them, MUST follow that height when the content grows or shrinks, and MUST keep their own heights in edit mode and on a reflowed (stacked) grid.
+Dashboard placements with `sameHeight: true` that start on the same layout row MUST be drawn at the height of the tallest of them (a size-to-content one stretched, a fixed-height one counted but never stretched), MUST follow that height when the content grows or shrinks, and MUST keep their own heights in edit mode and on a reflowed (stacked) grid.
 
 #### Scenario: DqProcesanalyse KPI tiles
 - GIVEN four KPI tiles on one row, one with a caption

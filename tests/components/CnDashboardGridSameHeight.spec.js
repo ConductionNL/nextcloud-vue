@@ -15,6 +15,8 @@ const layout = [
 	{ id: 'total', gridX: 0, gridY: 8, gridWidth: 6, gridHeight: 3, sizeToContent: true, sameHeight: true },
 	{ id: 'top', gridX: 6, gridY: 8, gridWidth: 6, gridHeight: 3, sizeToContent: true, sameHeight: true },
 	{ id: 'chart', gridX: 0, gridY: 11, gridWidth: 12, gridHeight: 4, sizeToContent: true },
+	{ id: 'bars', gridX: 0, gridY: 15, gridWidth: 6, gridHeight: 4, sizeToContent: true, sameHeight: true },
+	{ id: 'line', gridX: 6, gridY: 15, gridWidth: 6, gridHeight: 4, sameHeight: true },
 ]
 
 /**
@@ -60,6 +62,16 @@ describe('CnDashboardGrid: sameHeight cards', () => {
 		card(wrapper, 'top', 95)
 		wrapper.vm.matchRowHeights()
 		expect(total.style.minHeight).toBe('95px')
+	})
+
+	it('stretches a card to a fixed-height card beside it, and never the fixed one', () => {
+		const wrapper = mount(CnDashboardGrid, { propsData: { layout } })
+		const bars = card(wrapper, 'bars', 231)
+		const line = card(wrapper, 'line', 300)
+		line.style.minHeight = '12px'
+		wrapper.vm.matchRowHeights()
+		expect(bars.style.minHeight).toBe('300px')
+		expect(line.style.minHeight).toBe('12px')
 	})
 
 	it('leaves the cards their own height in edit mode', () => {

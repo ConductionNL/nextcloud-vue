@@ -2143,7 +2143,7 @@
 				},
 				"sameHeight": {
 					"type": "boolean",
-					"description": "`true` on size-to-content placements that start on one row stretches the shorter of them to the tallest, so the row reads as one band and the next row starts level (DqProcesanalyse KPI tiles and charts). Not in edit mode, not on a stacked narrow grid."
+					"description": "`true` on placements that start on one row stretches the shorter size-to-content ones to the tallest of them (a fixed-height one counts but is not stretched), so the row reads as one band and the next row starts level (DqProcesanalyse KPI tiles and charts). Not in edit mode, not on a stacked narrow grid."
 				},
 				"sizeToContent": {
 					"type": ["boolean", "integer"],
