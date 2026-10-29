@@ -2331,7 +2331,10 @@ export default {
 		 * filter? }`), or a field read from an app endpoint (`{ endpoint,
 		 * path, followFilters? }`; `followFilters: true` sends the active
 		 * filters along as `filter[<field>]=<value>`). A value not read (yet) leaves its token empty (board PqLeads
-		 * "€ 509.928 in de pijplijn").
+		 * "€ 509.928 in de pijplijn"). `unfiltered: true` reads an aggregation
+		 * under the page's own `filter` only, so the footer note can name the
+		 * whole list ("73 aanmeldingen in totaal"); the footer note fills the
+		 * same tokens.
 		 *
 		 * @spec openspec/changes/index-count-values/specs/index-page/spec.md#requirement-the-count-line-can-name-sums-and-values
 		 * @type {Record<string, object>|null}
@@ -8435,6 +8438,7 @@ export default {
 			const footerNote = scoped !== undefined ? scoped : footerNoteForView(this.footerNoteByView, this.currentViewMode, this.footerNote)
 			if (footerNote) {
 				return this.fillConfigTokens(this.cnTranslate(footerNote))
+					.replace(/\{(\w+)\|[^}]*\}|\{(\w+)\}/g, (token, a, b) => this.countValueToken(token, a || b))
 			}
 			const source = this.isNamedSource ? this.namedSource : null
 			return (source && source.footerNote) || footerNote
@@ -10273,9 +10277,12 @@ export default {
 			}
 			const params = (this.$route && this.$route.params) || {}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
-			const base = { ...resolveFilterMap(this.filter, params, ctx), ...(this.effectiveActiveFilters || {}) }
+			const pageFilter = resolveFilterMap(this.filter, params, ctx)
+			const filtered = { ...pageFilter, ...(this.effectiveActiveFilters || {}) }
 			const results = {}
 			await Promise.all(entries.map(async ([name, cfg]) => {
+				// `unfiltered`: the whole list under the page's own filter, not the user's.
+				const base = cfg && cfg.unfiltered === true ? pageFilter : filtered
 				try {
 					let value
 					if (cfg && typeof cfg.endpoint === 'string' && cfg.endpoint !== '') {
