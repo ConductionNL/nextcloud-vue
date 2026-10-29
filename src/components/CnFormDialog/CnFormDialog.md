@@ -241,8 +241,15 @@ two columns are merely two narrow ones.
 ```
 
 Textareas, JSON editors and code editors still span the full width, and the
-layout collapses back to one column below 700px. A manifest `open-form` action
-declares the same two keys directly:
+layout collapses back to one column below 700px. A field override can ask for
+the full width on any other field with `width: 'full'`, and a textarea is as
+many lines high as its override's `rows` (default 4):
+
+```json static
+{ "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
+```
+
+A manifest `open-form` action declares `size` and `columns` directly:
 
 ```json static
 { "id": "new-case", "type": "open-form", "size": "large", "columns": 2 }
