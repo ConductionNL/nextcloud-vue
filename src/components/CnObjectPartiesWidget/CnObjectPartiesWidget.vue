@@ -327,8 +327,6 @@ export default {
 
 	mixins: [innerHeading],
 
-	emits: ['header'],
-
 	inject: {
 		cnTranslate: { default: () => (key) => key },
 		cnLook: { default: 'nextcloud' },
@@ -371,6 +369,8 @@ export default {
 			default: '',
 		},
 	},
+
+	emits: ['header'],
 
 	data() {
 		uid += 1
