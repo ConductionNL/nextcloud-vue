@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.165.0', () => {
+	it('the manifest schema version reads 2.166.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1439,7 +1439,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.163.0 lets a dashboard placement start below the earlier rows (clear; dashboard-clear-row), an expandable row's sub-table sort and filter (expandableRows; expandable-row-as-drawn), a dashboard keep its header actions to one viewport (headerActionsViewport; dashboard-header-actions-viewport), a stage action name its primary button from the record (primaryLabel; action-label-from-record) and a next-step stage carry a sentence above `after` (afterTitle; contact-moment-parts).
 		// 2.164.0 lets a filterStrip option list several stored values (values; filter-strip-option-values), a flow page's `layout` be a word, `canvas` or `cards` (flow-board-canvas-chrome), and a chart write compact numbers (valueFormat compact; chart-compact-number).
 		// 2.165.0 lets a header `actions-menu` button sit at the end of the page tabs' row (placement tabs; actions-menu-beside-tabs).
-		expect(schema.version).toBe('2.165.0')
+		// 2.166.0 lets an expandable row's header carry an entry action and its badge a tone (expandableRows; expandable-row-entry-action), a link card open the user settings (action user-settings; link-card-settings-action) and placements on one row share a height (sameHeight; dashboard-row-same-height).
+		expect(schema.version).toBe('2.166.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
