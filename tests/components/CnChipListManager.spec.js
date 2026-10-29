@@ -16,11 +16,13 @@ jest.mock('../../src/utils/cnFetch.js', () => ({ cnFetchJson: (...args) => mockC
 const CnChipListManager = require('../../src/components/CnChipListManager/CnChipListManager.vue').default
 
 const LIST = '/apps/openregister/api/objects/pipelinq/label'
-const rows = () => [
-	{ id: 'l2', name: 'duurzaam' },
-	{ id: 'l1', name: 'afval' },
-	{ id: 'l3', name: 'ondernemers' },
-]
+function rows() {
+	return [
+		{ id: 'l2', name: 'duurzaam' },
+		{ id: 'l1', name: 'afval' },
+		{ id: 'l3', name: 'ondernemers' },
+	]
+}
 
 /** Answer the list read with `rows`, and every write with its body. */
 function answer(list = rows()) {

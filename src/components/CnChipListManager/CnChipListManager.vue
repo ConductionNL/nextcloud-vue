@@ -9,7 +9,7 @@
 		:description="description"
 		class="cn-chip-list"
 		data-testid="cn-chip-list">
-		<NcLoadingIcon v-if="loading" :size="24" :name="t('nextcloud-vue', 'Loading …')" />
+		<NcLoadingIcon v-if="loading" :size="24" :name="t('nextcloud-vue', 'Loading …')" />
 		<ul v-else class="cn-chip-list__chips" :aria-label="title">
 			<li v-for="item in sorted"
 				:key="item.id"
@@ -56,7 +56,10 @@
 					data-testid="cn-chip-list-input">
 			</div>
 			<div class="cn-chip-list__actions">
-				<NcButton type="submit" variant="secondary" :disabled="busy" data-testid="cn-chip-list-submit">
+				<NcButton type="submit"
+					variant="secondary"
+					:disabled="busy"
+					data-testid="cn-chip-list-submit">
 					<template #icon>
 						<Plus :size="16" />
 					</template>
@@ -65,7 +68,10 @@
 			</div>
 		</form>
 
-		<p v-if="error" class="cn-chip-list__error" role="alert" data-testid="cn-chip-list-error">
+		<p v-if="error"
+			class="cn-chip-list__error"
+			role="alert"
+			data-testid="cn-chip-list-error">
 			{{ error }}
 		</p>
 		<p v-if="note && !readOnly" class="cn-chip-list__note" data-testid="cn-chip-list-note">
@@ -87,8 +93,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnSettingsSection from '../CnSettingsSection/CnSettingsSection.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnSettingsSection from '../CnSettingsSection/CnSettingsSection.vue'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 
 let uid = 0
@@ -170,15 +176,19 @@ export default {
 		sorted() {
 			return [...this.items].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
 		},
+
 		listUrl() {
 			return `${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}`
 		},
+
 		resolvedAddLabel() {
 			return this.addLabel || t('nextcloud-vue', 'New item')
 		},
+
 		resolvedPlaceholder() {
 			return this.placeholder || t('nextcloud-vue', 'Enter a name')
 		},
+
 		resolvedSubmitLabel() {
 			return this.submitLabel || t('nextcloud-vue', 'Add')
 		},
