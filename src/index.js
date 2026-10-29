@@ -71,6 +71,7 @@ export {
 	CnChecklistRunWidget,
 	CnChecklistWidget,
 	CnChildRecordsField,
+	CnChipListManager,
 	CnChipsFieldWidget,
 	CnChoiceCards,
 	CnChoicePickerWidget,
