@@ -3077,6 +3077,17 @@
 	color: var(--color-primary-element);
 }
 
+/* A card table with `rowTitle: "strong"` (PqOfferte "Regels") names each row
+   at 14px weight 600 in the main ink; the row stays a link. Same weight as
+   the rule above, so it comes after it.
+   @spec openspec/changes/detail-table-strong-title/specs/board-tables/spec.md */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
 /* A data card keeps its 14px under a subtitle too (DqZaakBetrokkenen
    "Zetels"): the subtitle rule's 12px won over the data card's 14px, so the
    labels sat 2.2px high (r31).
