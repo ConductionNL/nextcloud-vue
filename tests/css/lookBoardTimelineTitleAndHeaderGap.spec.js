@@ -13,11 +13,22 @@
 const fs = require('fs')
 const path = require('path')
 
-const strip = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '')
+/**
+ * @param {string} text Stylesheet text.
+ * @return {string} The text without comments.
+ */
+function strip(text) {
+	return text.replace(/\/\*[\s\S]*?\*\//g, '')
+}
 const css = strip(fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8'))
 const buttons = strip(fs.readFileSync(path.join(__dirname, '../../src/components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'), 'utf8'))
 
-const ruleBody = (text, selector) => {
+/**
+ * @param {string} text Stylesheet text.
+ * @param {string} selector The rule's selector up to its brace.
+ * @return {string} The rule's body.
+ */
+function ruleBody(text, selector) {
 	const at = text.indexOf(selector)
 	expect(at).toBeGreaterThan(-1)
 	return text.slice(at, text.indexOf('}', at))
