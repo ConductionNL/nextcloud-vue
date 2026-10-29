@@ -4845,6 +4845,14 @@ export default {
 			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
+		/**
+		 * The title a card shows: a person's custom title, else the placement's
+		 * title, else the widget's title, the last two translated.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {string}
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
+		 */
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
@@ -4864,8 +4872,11 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
+			// A placement's own `title` (manifest-authored, so translated) titles
+			// the card in that layout only, e.g. an in-call layout.
 			const title = item.customTitle
 				|| def?.customTitle
+				|| (typeof item.title === 'string' && item.title !== '' ? this.effectiveTranslate(item.title) : '')
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
 			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
@@ -4878,10 +4889,11 @@ export default {
 		 * @param {object} item Layout placement entry.
 		 * @return {boolean}
 		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
 		 */
 		titleHoldsCount(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const raw = item.customTitle || def?.customTitle || def?.title || ''
+			const raw = item.customTitle || def?.customTitle || item.title || def?.title || ''
 			return typeof raw === 'string' && raw.includes('{count}')
 		},
 
