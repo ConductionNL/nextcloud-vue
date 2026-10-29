@@ -9,9 +9,9 @@
  *
  * @spec openspec/changes/object-list-table-frame/specs/object-list-table-frame/spec.md#requirement-an-object-list-can-frame-its-table-in-its-card
  */
+const { shallowMount } = require('@vue/test-utils')
 const fs = require('fs')
 const path = require('path')
-const { shallowMount } = require('@vue/test-utils')
 const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnObjectListWidget.vue').default
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
