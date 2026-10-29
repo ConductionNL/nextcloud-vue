@@ -2824,7 +2824,23 @@
     "Archived as PDF": "Als pdf gearchiveerd",
     "Archived as {format}": "Als {format} gearchiveerd",
     "Collapse": "Inklappen",
-    "Expand": "Uitklappen"
+    "Expand": "Uitklappen",
+    "Agent": "Assistent",
+    "Agents for this page": "Assistenten voor deze pagina",
+    "All agents": "Alle assistenten",
+    "Allow": "Toestaan",
+    "Ask me anything about what you are viewing.": "Stel een vraag over wat u nu bekijkt.",
+    "Could not load agents": "De assistenten zijn niet geladen",
+    "Decline": "Weigeren",
+    "I approved that access. Please continue.": "Ik heb die toegang goedgekeurd. Ga verder.",
+    "No agents available": "Geen assistenten beschikbaar",
+    "Read replies aloud (not supported here)": "Antwoorden voorlezen (kan hier niet)",
+    "Recent conversations": "Recente gesprekken",
+    "Session settings": "Gespreksinstellingen",
+    "Sessions": "Gesprekken",
+    "The assistant could not answer.": "De assistent kon geen antwoord geven.",
+    "Untitled agent": "Assistent zonder naam",
+    "Untitled conversation": "Gesprek zonder titel"
   },
   "plurals": {
     "{count} member": [
