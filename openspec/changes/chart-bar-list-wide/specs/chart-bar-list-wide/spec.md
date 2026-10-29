@@ -2,7 +2,7 @@
 
 ### Requirement: a bar list can be drawn wide
 
-A `bar-list` chart with `barListWide: true` MUST draw a 220px label column, a 90px value column and 12px bars 12px apart, and in the board look on a bordered dashboard card MUST start directly under the card header. Without it the bar list MUST keep its compact look.
+A `bar-list` chart with `barListWide: true` MUST draw a 220px label column, a 90px value column and 12px bars 12px apart, and in the board look on a bordered dashboard card with a subtitle MUST start directly under the card header. Without it the bar list MUST keep its compact look.
 
 #### Scenario: DqTermijnen Op tijd beslist per zaaktype
 - GIVEN five case types with their share decided on time

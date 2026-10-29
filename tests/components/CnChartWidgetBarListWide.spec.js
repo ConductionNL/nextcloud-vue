@@ -50,8 +50,8 @@ describe('CnChartWidget bar-list: wide', () => {
 		expect(track).toContain('border-radius: 6px;')
 	})
 
-	it('starts right under a board dashboard card header', () => {
-		const selector = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html:has(> .cn-chart-widget__bar-list--wide)'
+	it('starts right under a subtitled board dashboard card header', () => {
+		const selector = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless):has(.cn-widget-wrapper__subtitle) .cn-chart-widget__html:has(> .cn-chart-widget__bar-list--wide)'
 		expect(rule(board, selector)).toContain('padding-top: 0;')
 	})
 

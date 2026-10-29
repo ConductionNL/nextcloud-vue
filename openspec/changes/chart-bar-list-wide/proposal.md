@@ -5,5 +5,5 @@ The boards draw two bar lists. DqDashboard "Zaken per status" is the compact one
 
 ## What changes
 - CnChartWidget `barListWide` (bar-list), handed through by CnDashboardPage: the wide grid, gap and bar.
-- look-board.css: on a board dashboard card the wide list's chart body has no 4px start.
+- look-board.css: on a board dashboard card with a subtitle the wide list's chart body has no 4px start; under a title alone it keeps it (DqDoorlooptijd, 12 drawn, 13.8 live).
 - The default list is unchanged.
