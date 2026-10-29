@@ -598,7 +598,8 @@
 
 /* ---- A table on a dashboard card ------------------------------------------ */
 /* The card is the frame: a table on it draws no border of its own, and its
-   pager sits on the card's inset under a hairline, 12px down (DqDoorlooptijd
+   pager sits on the card's inset under a hairline 12px under the table, its
+   links 12px below that (DqDoorlooptijd
    "Zaken met risico", "Prestaties per zaaktype"; r32 a second frame inside
    the card, the pager 16px in).
    @spec openspec/changes/board-dashboard-table-in-card/specs/board-dashboard-table-in-card/spec.md#requirement-a-table-on-a-board-dashboard-card-has-no-frame-of-its-own */
@@ -608,6 +609,7 @@
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content .cn-table-container--board .cn-pagination.cn-pagination--board {
+	margin: 12px 0 0;
 	padding: 12px 0 0;
 }
 
@@ -3343,6 +3345,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 0 var(--cn-board-dashboard-card-inset) 10px;
 }
 
+/* A card of ruled rows (a record list that rules above its rows, a task
+   list) ends 20px under its last row, the card's own padding, as the Dq
+   boards draw it (DqMijnTeam "Wachtrij van uw team", DqMijnWerk "Mijn
+   taken", "Verder werken"). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__content > .cn-record-list.cn-record-list--rule-above,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-widget-wrapper__content > .cn-tasks-widget.cn-tasks-widget--list {
+	padding-bottom: 20px;
+}
+
 /* The stacked bar's legend in the board's type: the label 14px and the
    count 22px, both at the font's normal line height, 2px apart: a 46px item
    (DqMijnWerk "Mijn 14 zaken per stap"; live drew 14.25/22.5px at 1.5 and
@@ -3580,6 +3591,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	margin: 0 0 10px;
 	font-size: 15px;
 	font-weight: 700;
+	line-height: normal;
+}
+
+/* The footnote under the sections is a 13px line on the font's own leading
+   (DqDoorlooptijd "Naleving"); the body's 1.5 made it 19.5 high. */
+.cn-look-board .cn-sections-widget__footnote:not(.cn-look-nextcloud *) {
 	line-height: normal;
 }
 

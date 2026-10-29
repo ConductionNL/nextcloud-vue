@@ -134,6 +134,7 @@ import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * The fleet's per-app documentation site, derived from the app id. Used only
@@ -182,10 +183,10 @@ export function resolveDocsUrl(base, anchor) {
 		try {
 			return new URL(a, b).toString()
 		} catch {
-			return `${b.replace(/\/+$/, '')}${a}`
+			return `${stripTrailingSlashes(b)}${a}`
 		}
 	}
-	return `${b.replace(/#.*$/, '').replace(/\/+$/, '')}#${a}`
+	return `${stripTrailingSlashes(b.replace(/#.*$/, ''))}#${a}`
 }
 
 /**

@@ -194,7 +194,21 @@ export function fillMyTeamToken(text, name) {
 	if (typeof text !== 'string' || !text.includes('{myTeam}')) {
 		return text
 	}
-	return text
-		.replace(/\[([^\]]*\{myTeam\}[^\]]*)\]/g, (match, part) => (name ? part.replaceAll('{myTeam}', name) : ''))
-		.replaceAll('{myTeam}', name)
+	let out = ''
+	let pos = 0
+	for (;;) {
+		const open = text.indexOf('[', pos)
+		const close = open === -1 ? -1 : text.indexOf(']', open + 1)
+		if (close === -1) {
+			break
+		}
+		const part = text.slice(open + 1, close)
+		if (part.includes('{myTeam}')) {
+			out += text.slice(pos, open) + (name ? part.replaceAll('{myTeam}', name) : '')
+		} else {
+			out += text.slice(pos, close + 1)
+		}
+		pos = close + 1
+	}
+	return (out + text.slice(pos)).replaceAll('{myTeam}', name)
 }

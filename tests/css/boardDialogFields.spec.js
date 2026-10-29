@@ -51,7 +51,7 @@ describe('dialog.css: text fields in a board dialog', () => {
 	})
 
 	it('only reaches a board dialog', () => {
-		const selectors = (css.match(/[^{}]*(input-field|textarea)[^{}]*\{/g) || []).flatMap((s) => s.replace('{', '').split(/,(?![^(]*\))/))
+		const selectors = (css.match(/[^{}]*(input-field|textarea)[^{}]*\{/g) || []).flatMap((s) => s.slice(0, -1).split(/,(?![^(]*\))/))
 		for (const s of selectors.map((x) => x.trim()).filter(Boolean)) {
 			expect(s.startsWith('.cn-dialog-board ')).toBe(true)
 		}

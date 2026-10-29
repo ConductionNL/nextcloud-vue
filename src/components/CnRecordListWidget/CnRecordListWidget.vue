@@ -612,7 +612,7 @@ import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
+import { cellsOf, fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -2304,7 +2304,7 @@ export default {
 				this.aggregateValues = {}
 				return
 			}
-			const next = {}
+			const next = new Map()
 			const jobs = []
 			for (const raw of this.rows.slice(0, this.limit)) {
 				const row = scalarRow(raw)
@@ -2312,18 +2312,18 @@ export default {
 				if (!rowId) {
 					continue
 				}
-				next[rowId] = {}
+				const figures = cellsOf(next, rowId)
 				for (const [key, agg] of entries) {
 					jobs.push(fetchRowAggregate(agg, row)
 						.then((value) => {
-							next[rowId][key] = this.aggregateText(agg, value)
+							figures[key] = this.aggregateText(agg, value)
 						})
 						.catch(() => {}))
 				}
 			}
 			await Promise.all(jobs)
 			if (id === this.aggregateRequestId) {
-				this.aggregateValues = next
+				this.aggregateValues = Object.fromEntries(next)
 			}
 		},
 

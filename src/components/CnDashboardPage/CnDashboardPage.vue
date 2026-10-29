@@ -4899,7 +4899,8 @@ export default {
 			if (reported && Number.isFinite(reported.count)) {
 				return title.replace(/\{count\}/g, String(reported.count))
 			}
-			return title.replace(/\s*\{count\}/g, '').trim()
+			const parts = title.split('{count}')
+			return parts.map((part, i) => (i < parts.length - 1 ? part.trimEnd() : part)).join('').trim()
 		},
 
 		/**

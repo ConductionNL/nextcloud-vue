@@ -336,6 +336,28 @@ describe('CnObjectPartiesWidget manage', () => {
 		expect(managed.find('[data-testid="cn-object-parties-remove"]').attributes('aria-label')).toBe('Remove Marja Verbeek as Voorzitter')
 	})
 
+	it('puts the add button in the card title row when placement is "title" (DqZaakBetrokkenen "Rollen")', async () => {
+		serveOrg()
+		const w = await mountManaged({ ...MANAGE, manage: { ...MANAGE.manage, add: { ...MANAGE.manage.add, placement: 'title' } } })
+		expect(w.find('[data-testid="cn-object-parties-add"]').exists()).toBe(false)
+		const headers = w.emitted('header') || []
+		const actions = headers[headers.length - 1][0].actions
+		expect(actions).toHaveLength(1)
+		expect(actions[0].label).toBe('Add contact person')
+		expect(actions[0].icon).toBe('Plus')
+		actions[0].run()
+		await flush()
+		expect(w.find('.add-dialog').exists()).toBe(true)
+	})
+
+	it('reports no title-row action when the reader may not update the record', async () => {
+		serveOrg({ scope: ['read', 'list'] })
+		const w = await mountManaged({ ...MANAGE, manage: { ...MANAGE.manage, add: { ...MANAGE.manage.add, placement: 'title' } } })
+		const headers = w.emitted('header') || []
+		expect(headers.length).toBeGreaterThan(0)
+		expect(headers[headers.length - 1][0].actions).toEqual([])
+	})
+
 	it('hides both when OpenRegister says the reader may not update the record', async () => {
 		serveOrg({ scope: ['read', 'list'] })
 		const w = await mountManaged()
