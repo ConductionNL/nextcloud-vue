@@ -98,6 +98,18 @@ describe('CnIndexPage rowRoute over a named source', () => {
 		expect(push).not.toHaveBeenCalled()
 	})
 
+	it('leaves the click to the host when the page opens rows in a split view', async () => {
+		const { wrapper, push } = mountIndex({ rowRoute: 'AuditDetail', splitView: { enabled: true } })
+
+		wrapper.vm.onRowClick({ id: 'entry-1' })
+
+		// The host (CnPageRenderer) opens the row beside the list at the split
+		// address; pushing rowRoute here would unmount the list.
+		expect(push).not.toHaveBeenCalled()
+		expect(mockOpenRow).not.toHaveBeenCalled()
+		expect(wrapper.emitted('row-click')).toEqual([[{ id: 'entry-1' }]])
+	})
+
 	it('navigates nowhere for a row with no identity', async () => {
 		const { wrapper, push } = mountIndex({ rowRoute: 'TaskDetail' })
 

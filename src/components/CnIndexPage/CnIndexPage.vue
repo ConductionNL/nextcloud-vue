@@ -1163,7 +1163,8 @@
 							:object="object"
 							:layout="expandableRows"
 							:open="expandableRows.open === 'all' || (expandableRows.open === 'first' && displayObjects[0] === object)"
-							@action="onExpandableRowAction">
+							@action="onExpandableRowAction"
+							@reorder="onExpandableRowReorder">
 							<template v-if="hasRowActions" #actions>
 								<CnRowActions
 									:actions="rowMenuActionsFor(object)"
@@ -1481,7 +1482,7 @@ import {
 } from '../../utils/boardReferenceColumns.js'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
-import { countLine } from '../../utils/countLine.js'
+import { countLine, footerNoteForView } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
@@ -1497,7 +1498,7 @@ import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
-import { mapListItems } from '../../utils/mapList.js'
+import { mapListItems, mapMissingTitleText } from '../../utils/mapList.js'
 import { markerColorOf, normalizeMarkerColor, resolveCssColor } from '../../utils/mapMarkerColor.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { fillMyTeamToken, loadMyTeam, peekMyTeam, peekMyTeamName } from '../../utils/myTeam.js'
@@ -1518,6 +1519,7 @@ import { buildRouteQueryFromViewState, buildViewCreatePayload, defaultFilterView
 import { savedViewIcon } from '../../utils/savedViewMenu.js'
 import { savedViewBadge, savedViewOverrides } from '../../utils/savedViewOverrides.js'
 import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
 import { readSearchRefusal } from '../../utils/searchRefusal.js'
@@ -2429,6 +2431,21 @@ export default {
 		},
 
 		/**
+		 * Board look: the footer note per view (manifest
+		 * `config.footerNoteByView`), `{ table?, cards?, list?, board?, map? }`,
+		 * each a template as `footerNote`: DqZakenSorteren's cards say "sorted by
+		 * deadline, ascending · sort in the side panel" where the table says
+		 * "click a column header to sort". A view it does not name keeps
+		 * `footerNote`; a scope's, saved view's or preset's own note comes first.
+		 *
+		 * @spec openspec/changes/footer-note-per-view/specs/footer-note-per-view/spec.md
+		 */
+		footerNoteByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Board look: draw the bulk band before anything is selected too, its
 		 * buttons disabled until there is a selection (DqZaken, DqWerkbord).
 		 * Manifest key `config.bulkBandAlways`. Only when the band has an
@@ -3097,10 +3114,12 @@ export default {
 		 * - `zoom` — the map's initial zoom level.
 		 * - `list` — a numbered list beside the map, map and list in one card
 		 *   (DqZakenKaart): `{ title, sub?, pills?: [{ path?, text?, map?,
-		 *   colorMap? }], due? }`, field templates read per row. The pins carry the
-		 *   list's numbers, the row under the pointer is marked on both, the rows
-		 *   without a place are counted under the list with a link to the table,
-		 *   and the page's count line adds how many are on the map.
+		 *   colorMap? }], due?, missingTitle? }`, field templates read per row. The
+		 *   pins carry the list's numbers, the row under the pointer is marked on
+		 *   both, the rows without a place are counted under the list with a link
+		 *   to the table (titled by `missingTitle`, `{ singular, plural }` with
+		 *   `{total}`, else "8 without an address"), and the page's count line
+		 *   adds how many are on the map.
 		 *
 		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number], zoom?: number, list?: object }}
 		 */
@@ -4580,6 +4599,7 @@ export default {
 		'page-size-changed',
 		'quick-filter-change',
 		'refresh',
+		'reorder',
 		'row-click',
 		'row-aux-click',
 		'search',
@@ -7443,7 +7463,8 @@ export default {
 
 		/** @return {string} The card under the list, for the rows without a place. */
 		mapMissingTitle() {
-			return n('nextcloud-vue', '%n without an address', '%n without an address', this.mapList.missing.length)
+			const list = this.mapConfig && this.mapConfig.list
+			return mapMissingTitleText(list ? list.missingTitle : undefined, this.mapList.missing.length, { translate: this.cnTranslate, appId: this.cnAppId })
 		},
 
 		/**
@@ -8407,10 +8428,10 @@ export default {
 		 * @return {string} The note, translated, or ''.
 		 */
 		effectiveFooterNote() {
-			// The scope's note, else the page's (a preset may have set it),
-			// else the named source's.
+			// The scope's note, else the open view's (`footerNoteByView`), else
+			// the page's (a preset may have set it), else the named source's.
 			const scoped = this.activeScopePresentation ? this.activeScopePresentation.footerNote : undefined
-			const footerNote = scoped !== undefined ? scoped : this.footerNote
+			const footerNote = scoped !== undefined ? scoped : footerNoteForView(this.footerNoteByView, this.currentViewMode, this.footerNote)
 			if (footerNote) {
 				return this.fillConfigTokens(this.cnTranslate(footerNote))
 			}
@@ -13013,6 +13034,36 @@ export default {
 				: { action: id, row, id })
 		},
 
+		/**
+		 * An entry of an expandable row's sub-table moved: save the row with
+		 * the list in its new order (the page's own store in self-fetch mode,
+		 * else the `store` prop), then reload.
+		 *
+		 * @param {{row: object, field: string, entries: Array}} payload The row, the list field and the list.
+		 * @return {Promise<void>} Nothing.
+		 * @spec openspec/changes/expandable-row-table-tools/specs/expandable-row-table-tools/spec.md
+		 */
+		async onExpandableRowReorder(payload) {
+			const values = { ...payload.row, [payload.field]: payload.entries }
+			const self = await this.selfActions.handleRowSave(payload.row, values)
+			const viaStore = !self && Boolean(this.store && this.objectType)
+			let saved = self ? self.saved : null
+			if (viaStore) {
+				saved = await saveEdited(this.store, this.objectType, payload.row, values)
+				if (saved) {
+					await this.onRefreshEvent()
+				}
+			}
+			if ((self || viaStore) && !saved) {
+				this.toastSavedView('error', t('nextcloud-vue', 'The new order could not be saved'))
+			}
+			/**
+			 * @event reorder An expandable row's sub-table was reordered. Payload: `{ row, field, entries }`.
+			 * @type {{ row: object, field: string, entries: Array }}
+			 */
+			this.$emit('reorder', payload)
+		},
+
 		onRowAction(payload) {
 			const matched = payload.builtin === true
 				? this.mergedActions.find((a) => a.builtin === true && a.id === payload.id)
@@ -13122,7 +13173,10 @@ export default {
 			// with only `openRow` opens the row in place on a ctrl/cmd/shift
 			// click and ignores a middle click. The event is marked so the host
 			// hearing `row-click` does not open a second tab.
-			if (this.isNamedSource) {
+			// A page with a split view opens its rows beside the list: the host
+			// that owns the split address handles `row-click`, so a named
+			// source's `rowRoute` or `openRow` must not navigate away first.
+			if (this.isNamedSource && !this.splitViewEnabled) {
 				const id = row?.id || row?.uuid
 				const source = this.namedSource
 				const newTab = isNewTabClick(event)

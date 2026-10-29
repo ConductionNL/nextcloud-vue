@@ -8,6 +8,7 @@
  *
  * @spec openspec/changes/record-notes-widget/specs/record-notes-widget/spec.md#requirement-a-text-field-saves-as-you-type
  * @spec openspec/changes/record-notes-widget/specs/record-notes-widget/spec.md#requirement-an-outcome-is-saved-with-its-own-button
+ * @spec openspec/changes/record-notes-outcome-below/specs/record-notes-outcome-below/spec.md#requirement-a-notes-field-can-put-its-outcome-under-the-save-status
  */
 var mockPatch = jest.fn()
 
@@ -73,6 +74,15 @@ describe('CnRecordNotesWidget', () => {
 		expect(label.text()).toBe('Conversation notes')
 		expect(label.attributes('for')).toBe(w.find('[data-testid="cn-record-notes-text"]').attributes('id'))
 		expect(label.classes()).toContain('hidden-visually')
+	})
+
+	it('puts the outcome on its own line under the save status with outcomeBelow', () => {
+		const wrapper = mount(CnRecordNotesWidget, {
+			props: { objectData: RECORD, content: { ...CONTENT, outcomeBelow: true } },
+			global: { provide: { cnTranslate: (key) => key } },
+		})
+		expect(wrapper.find('.cn-record-notes__foot').classes()).toContain('cn-record-notes__foot--below')
+		expect(mountNotes().find('.cn-record-notes__foot').classes()).not.toContain('cn-record-notes__foot--below')
 	})
 
 	it('shows the record\'s notes and its outcome options', () => {

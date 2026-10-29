@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data' }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards' }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -196,7 +196,7 @@
 				</h3>
 				<NcButton
 					variant="secondary"
-					:class="{ 'cn-record-list__action--tonal': footerTonal }"
+					:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 					:disabled="footerDisabled"
 					:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 					data-testid="cn-record-list-footer-action"
@@ -211,6 +211,7 @@
 				v-else-if="group.label"
 				:id="group.headingId"
 				class="cn-record-list__group-heading"
+				:class="group.tone ? `cn-record-list__group-heading--${group.tone}` : null"
 				data-testid="cn-record-list-group-heading">
 				{{ group.label }}
 			</h3>
@@ -529,7 +530,7 @@
 			</h3>
 			<NcButton
 				variant="secondary"
-				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
 				data-testid="cn-record-list-footer-action"
@@ -550,17 +551,18 @@
 		<div
 			v-if="footerAction && footerGroup === '' && !error"
 			class="cn-record-list__footer"
-			:class="{ 'cn-record-list__footer--wide': footerAction.wide }"
+			:class="{ 'cn-record-list__footer--wide': footerAction.wide, 'cn-record-list__footer--row': footerAction.row }"
 			data-testid="cn-record-list-footer">
 			<p
-				v-if="footerAction.note"
+				v-if="footerAction.lead || footerNoteText"
 				class="cn-record-list__footer-note"
 				data-testid="cn-record-list-footer-note">
-				{{ footerAction.note }}
+				<strong v-if="footerAction.lead" class="cn-record-list__footer-lead" data-testid="cn-record-list-footer-lead">{{ footerAction.lead }}</strong>
+				{{ footerNoteText }}
 			</p>
 			<NcButton
 				variant="secondary"
-				:class="{ 'cn-record-list__action--tonal': footerTonal }"
+				:class="{ 'cn-record-list__action--tonal': footerTonal, 'cn-button--tonal': footerTonal }"
 				:wide="footerAction.wide"
 				:disabled="footerDisabled"
 				:aria-describedby="footerDisabled && footerAction.reason ? footerReasonId : null"
@@ -684,6 +686,18 @@ function unwrap(value) {
  * `headerLink` and `headerNote` with `{total}` filled in) for that card's
  * header.
  */
+/**
+ * A group's heading tone from `groupTones`, or '' when it has none.
+ *
+ * @param {object|undefined} tones `{ <group value>: <tone> }`.
+ * @param {string} value The group value.
+ * @return {string} One of error, warning, success, primary, or ''.
+ */
+function groupToneOf(tones, value) {
+	const tone = tones && typeof tones === 'object' ? tones[value] : ''
+	return ['error', 'warning', 'success', 'primary'].includes(tone) ? tone : ''
+}
+
 export default {
 	name: 'CnRecordListWidget',
 
@@ -845,7 +859,32 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch }
+		// A footer prompt that reads another part of the same answer
+		// (`footerAction.note: { path, lead }`), through the same cache.
+		const footerNoteSource = useEndpointSource(
+			() => {
+				const action = props.content?.footerAction
+				const note = action && !Array.isArray(action) ? action.note : null
+				const source = props.content?.endpointSource
+				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: note.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch, footerNoteValue: footerNoteSource.data }
 	},
 
 	data() {
@@ -947,6 +986,8 @@ export default {
 				icon: typeof action.icon === 'string' ? action.icon : '',
 				reason: typeof action.disabledReason === 'string' && action.disabledReason !== '' ? this.translate(action.disabledReason) : '',
 				note: typeof action.note === 'string' && action.note !== '' ? this.translate(action.note) : '',
+				lead: action.note && typeof action.note === 'object' && typeof action.note.lead === 'string' && action.note.lead !== '' ? this.translate(action.note.lead) : '',
+				row: action.layout === 'row',
 				wide: action.wide === true,
 				action,
 			}
@@ -1218,6 +1259,9 @@ export default {
 		 * `valueLabels` entry for that field, else the value, through the host
 		 * translate; the group without a value is headed by `groupEmptyLabel`,
 		 * or not at all. Without `groupBy` all rows are one unheaded group.
+		 * `groupTones` (`{ <value>: <tone> }`) tones a group's heading, and
+		 * `groupLook: "cards"` draws each group as its own card under an
+		 * uppercase heading (PqMobiel "TE LAAT" in the error ink).
 		 *
 		 * @spec openspec/changes/record-list-group-headings/specs/record-list/spec.md#requirement-a-record-list-can-group-its-rows-under-headings
 		 * @return {Array<{key: string, value: string, label: string, headingId: string, items: Array<object>}>} The groups.
@@ -1258,6 +1302,7 @@ export default {
 					value,
 					label: typeof named === 'string' && named !== '' ? this.translate(named) : '',
 					headingId: `${this.groupIdBase}-${index}`,
+					tone: groupToneOf(c.groupTones, value),
 					items: buckets.get(value),
 				}
 			})
@@ -1348,6 +1393,25 @@ export default {
 		 */
 		dueBelow() {
 			return this.content?.duePlacement === 'below'
+		},
+
+		/**
+		 * The footer's note: a text, or with `note: { path, lead }` the value at
+		 * `path` of the list's own answer, translated, while the list has no rows.
+		 *
+		 * @return {string} The note, or ''.
+		 * @spec openspec/changes/record-list-footer-prompt/specs/record-list/spec.md#requirement-a-record-lists-footer-can-be-a-row-with-a-lead-and-a-prompt-from-the-answer
+		 */
+		footerNoteText() {
+			const action = this.footerAction
+			if (!action) {
+				return ''
+			}
+			if (action.note !== '') {
+				return action.note
+			}
+			const value = this.footerNoteValue
+			return this.rows.length === 0 && typeof value === 'string' && value !== '' ? this.translate(value) : ''
 		},
 
 		/** @return {string} The note under the list (`footnote`), translated. */
@@ -1538,6 +1602,7 @@ export default {
 				text: all.text ? this.translate(all.text) : '',
 				icon: all.icon || '',
 				cancel,
+				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget } : null,
 			}
 		},
 
@@ -3164,6 +3229,42 @@ export default {
 	line-height: 1.4;
 }
 
+.cn-record-list--group-cards .cn-record-list__group-heading {
+	margin: 8px 0 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	letter-spacing: .06em;
+	line-height: 1.3;
+	text-transform: uppercase;
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--error {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--warning {
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-record-list--group-cards .cn-record-list__group-heading--primary {
+	color: var(--color-primary-element);
+}
+
+.cn-record-list--group-cards .cn-record-list__list {
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-main-background);
+	overflow: hidden;
+}
+
+.cn-record-list--group-cards .cn-record-list__item + .cn-record-list__item {
+	border-top: 1px solid var(--color-border);
+}
+
 .cn-record-list__group-head {
 	display: flex;
 	align-items: center;
@@ -3202,6 +3303,27 @@ export default {
 
 .cn-record-list__footer--wide {
 	align-items: stretch;
+}
+
+/* `footerAction.layout: "row"`: the note and the action share one ruled row,
+   the action at its end (DqZaak Zaakplan "Doelen ... Doel toevoegen"). */
+.cn-record-list__footer--row {
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-list__footer--row .cn-record-list__footer-note {
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-record-list__footer-lead {
+	color: var(--color-main-text);
 }
 
 .cn-record-list__footer-note {
@@ -3674,6 +3796,12 @@ export default {
 	padding: 12px 14px;
 }
 
+/* Compact cards stand 12px apart, as DqInspectie draws its day cards and
+   its outbox (16 between the larger cards). */
+.cn-record-list--cards.cn-record-list--compact .cn-record-list__list {
+	gap: 12px;
+}
+
 .cn-record-list--compact .cn-record-list__card-head {
 	align-items: flex-start;
 }
@@ -3701,9 +3829,11 @@ export default {
 	display: contents;
 }
 
+/* The pill spans the title and meta rows, so a 21px pill does not make the
+   18px title row taller (DqInspectie outbox 61px, 64 before). */
 .cn-record-list--pill-aside .cn-record-list__card-pills {
 	grid-column: 2;
-	grid-row: 1;
+	grid-row: 1 / span 2;
 	align-self: start;
 }
 

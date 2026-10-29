@@ -17,6 +17,7 @@
 			:title="resolvedTitle"
 			:maxDisplay="resolvedMaxDisplay"
 			:layout="content && typeof content.layout === 'string' ? content.layout : ''"
+			:density="content && typeof content.density === 'string' ? content.density : ''"
 			:excludeActions="resolvedExcludeActions"
 			:excludeActors="resolvedExcludeActors"
 			:actionLabels="actionLabels"
@@ -106,7 +107,7 @@ export default {
 		excludeActions: { type: Array, default: () => [] },
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources?, excludeActors? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources?, excludeActors?, layout?, density? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 

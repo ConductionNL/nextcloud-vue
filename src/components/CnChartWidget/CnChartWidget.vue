@@ -745,6 +745,17 @@ export default {
 		},
 
 		/**
+		 * Write each slice's value after its name in a pie or donut legend
+		 * ("Afval 18"), in the value format of the chart.
+		 *
+		 * @type {boolean}
+		 */
+		legendValues: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Named value formatter applied to the VALUE axis labels and the
 		 * tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"`
 		 * (compact notation, e.g. `€ 1,2K`), or `"percent"` (appends `%`). The
@@ -1853,6 +1864,16 @@ export default {
 					// `apexcharts-tooltip` block at the bottom of <style>.
 					theme: 'light',
 				},
+			}
+
+			if (isPieType && this.legendValues) {
+				defaults.legend.formatter = (name, opts) => {
+					const value = opts?.w?.globals?.series?.[opts.seriesIndex]
+					const text = String(name ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+					return value === undefined || value === null
+						? text
+						: `${text} <strong class="cn-chart-widget__legend-value">${this.formatPlain(value)}</strong>`
+				}
 			}
 
 			// Named value formatter (currency / currency-compact / percent) —

@@ -410,6 +410,7 @@ import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
@@ -417,7 +418,7 @@ import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
-import { actionForRow, hasRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
+import { actionForRow, fillRowTokens, hasRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
 import { changedKeys } from '../../utils/saveEdited.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -491,6 +492,10 @@ export default {
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's own record edit (CnDetailPage), for a column `toggle` that writes the record. */
+		cnRecordEdit: { default: null },
+		/** The host's cell formatters, for a column `toggle`'s `labelFormatter`. */
+		cnFormatters: { default: () => ({}) },
 		/**
 		 * Pre-bound `dispatchAction` provided by CnPageRenderer (router,
 		 * registry, handlers and openModal already wired). `rowActions` and
@@ -898,12 +903,17 @@ export default {
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass', 'emptyValue', 'emptyValueBy', 'firstOf', 'secondaryLabels']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'formatterOptions', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass', 'emptyValue', 'emptyValueBy', 'emptyLabel', 'firstOf', 'secondaryLabels', 'secondaryRefs']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
 				}
 				withSchemaPresentation(out)
+				const toggle = c.toggle ? this.cellToggleProps(c) : null
+				if (toggle !== null) {
+					out.widget = out.widget || 'switch'
+					out.widgetProps = { ...(out.widgetProps || {}), ...toggle }
+				}
 				// `content.sortable` (bool = every column, array = the listed
 				// keys) fills in `sortable` for a column that did not already
 				// say so on its own definition — an explicit `sortable: false`
@@ -2546,6 +2556,79 @@ export default {
 				await this.ensureSchema()
 			} catch {
 				// Headings only. Swallowed on purpose; see the docblock.
+			}
+		},
+
+		/**
+		 * The switch cell props a column's `toggle` asks for: `{ url, method?,
+		 * bodyKey?, ariaLabel?, labelFormatter?, updatesRecord? }`. The cell
+		 * sends `{ [bodyKey]: on }` (default key `value`) to `url` (`{field}`
+		 * from the row, `@objectId` from the page) with `method` (PUT, POST or
+		 * PATCH; default PUT). `ariaLabel` names each cell, `{label}` being the
+		 * row through the host formatter `labelFormatter`. With `updatesRecord`
+		 * the endpoint answers the page's record, which the page takes over,
+		 * and the cell can be changed only while the record can be edited.
+		 *
+		 * @param {object|string} column The declared column.
+		 * @return {object|null} The widget props, or null without a toggle.
+		 * @spec openspec/changes/cell-toggle-request/specs/object-list-widget/spec.md#requirement-a-column-can-toggle-a-value-through-an-endpoint
+		 */
+		cellToggleProps(column) {
+			const cfg = column && typeof column === 'object' ? column.toggle : null
+			if (!cfg || typeof cfg !== 'object' || typeof cfg.url !== 'string' || cfg.url === '') {
+				return null
+			}
+			const props = {}
+			if (typeof cfg.ariaLabel === 'string' && cfg.ariaLabel !== '') {
+				props.ariaLabel = (row) => this.cellToggleLabel(cfg, row)
+			}
+			const edit = this.cnRecordEdit
+			if (cfg.updatesRecord === true && edit && edit.available === false) {
+				return props
+			}
+			props.onToggle = (row, on) => this.sendCellToggle(cfg, row, on)
+			return props
+		},
+
+		/**
+		 * A toggle cell's name for one row: `ariaLabel` through the host
+		 * translate, `{label}` the row through `labelFormatter`, then the
+		 * row's `{field}` tokens.
+		 *
+		 * @param {object} cfg The column's `toggle`.
+		 * @param {object} row The row.
+		 * @return {string}
+		 */
+		cellToggleLabel(cfg, row) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			let text = translate(cfg.ariaLabel)
+			const formatter = cfg.labelFormatter && this.cnFormatters ? this.cnFormatters[cfg.labelFormatter] : null
+			if (typeof formatter === 'function') {
+				const label = formatter(undefined, row)
+				text = text.split('{label}').join(typeof label === 'string' ? label : '')
+			}
+			return fillRowTokens(text, row)
+		},
+
+		/**
+		 * Send a toggle cell's new state. A refusal rejects, so the cell
+		 * returns to its old state.
+		 *
+		 * @param {object} cfg The column's `toggle`.
+		 * @param {object} row The row.
+		 * @param {boolean} on The new state.
+		 * @return {Promise<void>}
+		 */
+		async sendCellToggle(cfg, row, on) {
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const url = interpolateUrlTokens(fillRowTokens(cfg.url, row, { encode: true }), this.tokenCtx)
+			const method = ['post', 'patch'].includes(String(cfg.method || '').toLowerCase()) ? String(cfg.method).toLowerCase() : 'put'
+			const key = typeof cfg.bodyKey === 'string' && cfg.bodyKey !== '' ? cfg.bodyKey : 'value'
+			const response = await axios[method](generateUrl(url), { [key]: on === true })
+			const record = response && response.data
+			const ctx = this.objectCtx
+			if (cfg.updatesRecord === true && record && typeof record === 'object' && !Array.isArray(record) && ctx && typeof ctx.setObject === 'function') {
+				ctx.setObject(record)
 			}
 		},
 

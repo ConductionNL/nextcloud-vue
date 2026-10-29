@@ -13,3 +13,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `content`    | `object`             |          | `\{\}`  | The widget's configuration: `{ emptyText? }`. |
 | `objectData` | `union`              |          | `null`  | The bound record, on a detail page.           |
 | `objectId`   | `string&#124;number` |          | `''`    | The record's id (else the bound record's).    |
+
+### Events
+
+| Name     | Payload | Description                                       |
+| -------- | ------- | ------------------------------------------------- |
+| `header` | —       | The card header's note at the right of the title. |

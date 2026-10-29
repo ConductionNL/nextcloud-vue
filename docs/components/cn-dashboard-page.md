@@ -129,6 +129,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
 | `headerActions` | Array | `[]` | Declarative header actions (manifest `config.headerActions`) rendered as buttons through `CnActionButtons`. An entry with `href` is a link button, never dispatched: an absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written, an instance path through `generateUrl()`, in a new tab with `target: "_blank"`. On a dashboard the `href` may carry `@workspace.<key>` tokens, filled URL-encoded from the page filters, so a download asks for what the page shows (`/apps/dossiq/api/report?format=csv&from=@workspace.dateFrom`) — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href). |
+| `headerActionsViewport` | String | `''` | `"wide"` keeps the header actions and the buildiq square off a phone (under 640px, the breakpoint a widget's `viewport` uses), `"narrow"` off a wider window. Empty draws them everywhere. PqMobiel's My work header holds only the title. |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 | `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
@@ -662,6 +663,8 @@ In the board look the page view switch (`views`) sits on the same row, left of t
 ## On a phone
 
 Under the board look, below 640px, the grid reflows to one column in reading order (top to bottom, then left to right) and the page does not scroll sideways. A widget that grows when its content wraps, such as a bar of chips, sets `sizeToContent: true` in its layout item. The compact chips wrap and are 44px high, the bar's switch and select are 44px, and record-list rows, KPI tiles and the widget Actions button are at least 44px. Without the board look the grid keeps its fixed columns.
+
+A widget definition's `borderless` drops its card: `true` everywhere, `"narrow"` on a phone only, `"wide"` on a wider window only. It applies when the layout placement sets no `borderless` of its own, and it is the only way for a `kpiRow` widget, which has no placement (PqMobiel's filter bar).
 
 ## A title per view (`views[].title`)
 

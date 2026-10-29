@@ -4,7 +4,9 @@
  *
  * DqVolgendeStap "Opschorten": a board dialog's transition fields stack the
  * label, the control and their lines 6px apart on the normal line, without
- * NcInputField's 2px wrapper padding (r33: 280.5 against 274).
+ * NcInputField's 2px wrapper padding (r33: 280.5 against 274), and the
+ * control is the board's 40px: the input fills its wrapper, which
+ * look-board.css makes 44px (r34 probe: "Reden" 44), so the rule outranks it.
  * Read from the stylesheet text.
  */
 const fs = require('fs')
@@ -26,9 +28,10 @@ function rule(selector) {
 
 describe('dialog.css: board transition fields', () => {
 	it('drops the input wrapper padding', () => {
-		const body = rule(T + ' .input-field__main-wrapper')
+		const body = rule(T + ' .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__main-wrapper')
 		expect(body).toContain('padding-block: 0')
-		expect(body).toContain('height: auto')
+		expect(body).toContain('height: var(--cn-field-height, 40px)')
+		expect(body).not.toContain('height: auto')
 	})
 
 	it('sets the help and note lines on the normal line', () => {

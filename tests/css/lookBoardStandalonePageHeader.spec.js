@@ -12,7 +12,7 @@ const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
-const STANDALONE = '.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *)'
+const STANDALONE = '.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *)'
 
 function rule(selector) {
 	const at = css.indexOf(selector + ' {')
@@ -28,7 +28,7 @@ describe('look-board.css: a standalone page header', () => {
 	})
 
 	it('leaves the page primitives their own header', () => {
-		for (const page of ['cn-index-page', 'cn-settings-page', 'cn-chat-page', 'cn-files-page', 'cn-form-page', 'cn-logs-page', 'cn-map-page']) {
+		for (const page of ['cn-index-page', 'cn-settings-page', 'cn-chat-page', 'cn-files-page', 'cn-form-page', 'cn-logs-page', 'cn-map-page', 'cn-store-page--board']) {
 			expect(STANDALONE).toContain(`:not(.${page} *)`)
 		}
 	})

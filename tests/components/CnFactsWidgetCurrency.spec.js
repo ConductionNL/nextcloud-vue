@@ -60,6 +60,11 @@ describe('CnFactsWidget: a currency entry', () => {
 		expect(text(mountFacts([{ path: 'total', label: 'Total', format: 'currency', decimals: 0 }]))).toMatch(/1[.,\s]?235(?![.,]\d)/)
 	})
 
+	it('reads a value stored in cents with minorUnits', () => {
+		const w = mount(CnFactsWidget, { propsData: { objectData: { amount: 123450 }, content: { fields: [{ path: 'amount', label: 'Amount', format: 'currency', minorUnits: true }] } }, stubs: { NcLoadingIcon: true } })
+		expect(text(w)).toMatch(/1[.,\s]?234[.,]50/)
+	})
+
 	it('shows a value that is not a number as written', () => {
 		expect(text(mountFacts([{ path: 'note', label: 'Total', format: 'currency' }]))).toBe('n.v.t.')
 	})

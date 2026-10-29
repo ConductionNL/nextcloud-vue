@@ -96,3 +96,33 @@ export function planGrowth(nodes, node, h) {
 		.map(([item, y]) => ({ node: item, y }))
 		.sort((a, b) => b.y - a.y)
 }
+
+/**
+ * Where the `clear` items of a layout go: each starts below the lowest card
+ * that starts on an earlier layout row, in any column, so a row of cards
+ * after the tracks lines up under the taller track instead of rising under
+ * the shorter one (DqMijnWerk, DqMijnTeam). A clear item moved earlier counts
+ * for a later clear row.
+ *
+ * @spec openspec/changes/dashboard-clear-row/specs/dashboard-grid/spec.md
+ * @param {Array<{x: number, y: number, w: number, h: number, row: number, clear: boolean}>} nodes The grid's items, each with its layout row (`row`) and whether it clears (`clear`).
+ * @return {Array<{node: object, y: number}>} The clear items to move and their new row, top first.
+ */
+export function planClearRows(nodes) {
+	const placed = new Map()
+	const bottomOf = (n) => (placed.has(n) ? placed.get(n) : n.y) + n.h
+	const plan = []
+	const clears = nodes.filter((n) => n.clear).sort((a, b) => a.row - b.row)
+	for (const item of clears) {
+		const above = nodes.filter((n) => n.row < item.row)
+		if (above.length === 0) {
+			continue
+		}
+		const y = Math.max(...above.map(bottomOf))
+		placed.set(item, y)
+		if (y !== item.y) {
+			plan.push({ node: item, y })
+		}
+	}
+	return plan
+}

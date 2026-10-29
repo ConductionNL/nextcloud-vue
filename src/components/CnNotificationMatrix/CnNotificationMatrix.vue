@@ -158,6 +158,7 @@
 						:data-level="cellFor(row.event, channel, row.scope).level">
 						<input
 							type="checkbox"
+							class="cn-notification-matrix__checkbox"
 							data-testid="cn-nm-toggle"
 							:data-event="row.event.id"
 							:data-scope="row.scope"
@@ -1167,13 +1168,15 @@ export default {
 		   boards draw it: the native box differs per browser. */
 		appearance: none;
 		border: 0;
-		background-color: var(--color-text-maxcontrast);
+		/* The colour is the drawn icon's: a theme's checked or disabled
+		   ground (!important) would paint over it. */
+		background-color: var(--color-text-maxcontrast) !important;
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z'/%3E%3C/svg%3E") center / 20px no-repeat;
 		cursor: pointer;
 	}
 
 	.cn-notification-matrix__table tbody td input[type='checkbox']:checked {
-		background-color: var(--color-primary-element);
+		background-color: var(--color-primary-element) !important;
 		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z'/%3E%3C/svg%3E");
 	}
 

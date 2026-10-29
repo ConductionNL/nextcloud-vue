@@ -62,3 +62,13 @@ describe('look-board.css: the board week strip day', () => {
 		expect(css).toMatch(/@media \(forced-colors: active\)\s*\{\s*\.cn-look-board \.cn-week-strip:not\(\.cn-look-nextcloud \*\) \.cn-week-strip__day\s*\{\s*border-color: CanvasText;/)
 	})
 })
+
+describe('look-board.css: the board week strip item', () => {
+	it('draws a case of the day as the board card: 12px in, 8px round, 14px type', () => {
+		const item = bodyOf(`${STRIP} .cn-week-strip__item`)
+		expect(item).toMatch(/padding: 12px;/)
+		expect(item).toMatch(/border-radius: 8px;/)
+		expect(item).toMatch(/font-size: 14px;/)
+		expect(bodyOf(`${STRIP} .cn-week-strip__title`)).toMatch(/font-size: 14px;/)
+	})
+})

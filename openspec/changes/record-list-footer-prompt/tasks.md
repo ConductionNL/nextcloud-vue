@@ -1,0 +1,2 @@
+- [x] 1.1 layout row, note {path, lead} (tests/components/CnRecordListWidgetFooterPrompt.spec.js)
+- [x] 1.2 docs/components/cn-record-list-widget.md
