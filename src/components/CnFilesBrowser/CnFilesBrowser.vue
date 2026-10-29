@@ -777,6 +777,7 @@ import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
@@ -1493,7 +1494,7 @@ export default {
 		 * @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root
 		 */
 		atRoot() {
-			const root = String(this.rootPath || '/').replace(/\/+$/, '') || '/'
+			const root = stripTrailingSlashes(String(this.rootPath || '/')) || '/'
 			const last = this.crumbs[this.crumbs.length - 1]
 			return Boolean(last) && last.path === root
 		},
@@ -1986,7 +1987,7 @@ export default {
 				this.nodes = nodes
 				await this.resolveRowData(this.nodes)
 			} catch (err) {
-				const atRoot = (this.currentPath.replace(/\/+$/, '') || '/') === (this.rootPath.replace(/\/+$/, '') || '/')
+				const atRoot = (stripTrailingSlashes(this.currentPath) || '/') === (stripTrailingSlashes(this.rootPath) || '/')
 				this.error = err?.status === 404
 					? (atRoot ? t('nextcloud-vue', 'You cannot see these files') : t('nextcloud-vue', 'This folder no longer exists'))
 					: (err?.status === 403 ? t('nextcloud-vue', 'You cannot see this folder') : t('nextcloud-vue', 'The folder could not be read'))
@@ -2045,7 +2046,7 @@ export default {
 		 * @return {void}
 		 */
 		navigate(path) {
-			const root = this.rootPath.replace(/\/+$/, '') || '/'
+			const root = stripTrailingSlashes(this.rootPath) || '/'
 			if (path !== root && !path.startsWith(root === '/' ? '/' : `${root}/`)) {
 				return
 			}

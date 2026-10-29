@@ -197,6 +197,7 @@ import { generateUrl } from '@nextcloud/router'
 import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
 import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -815,7 +816,7 @@ export default {
 		 * @return {string} the joined path.
 		 */
 		joinPath(base, name) {
-			const trimmedBase = String(base || '/').replace(/\/+$/, '')
+			const trimmedBase = stripTrailingSlashes(String(base || '/'))
 			const trimmedName = String(name || '').replace(/^\/+/, '')
 			if (trimmedBase === '' || trimmedBase === '/') {
 				return '/' + trimmedName

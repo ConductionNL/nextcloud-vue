@@ -29,7 +29,7 @@
 			<p v-if="rows.length === 0 && content.quietLineWithHistory !== false" class="cn-flow-runs-widget__empty">
 				{{ emptyLabel }}
 			</p>
-			<ul v-else class="cn-flow-runs-widget__list">
+			<ul v-else-if="rows.length > 0" class="cn-flow-runs-widget__list">
 				<li
 					v-for="(run, index) in rows"
 					:key="run.uuid || `row-${index}`"

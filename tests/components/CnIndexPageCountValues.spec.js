@@ -22,7 +22,7 @@ const { cnFetchJson } = require('../../src/utils/cnFetch.js')
 const { fetchAggregateValue } = require('../../src/utils/fetchAggregate.js')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
-const { headerDescriptionBase, countValuesKey } = CnIndexPage.computed
+const { headerDescriptionBase, countValuesKey, effectiveFooterNote } = CnIndexPage.computed
 const { countValueToken, loadCountValues } = CnIndexPage.methods
 
 const VALUES = {
@@ -90,5 +90,32 @@ describe('CnIndexPage count values', () => {
 	it('leaves a value that is not read yet empty', () => {
 		const c = ctx({ presentation: { countText: '{total} leads · {pipeline|currency:EUR}' } })
 		expect(headerDescriptionBase.call(c)).toBe('15 leads · ')
+	})
+})
+
+describe('CnIndexPage count values over the whole list (unfiltered)', () => {
+	/**
+	 * @spec openspec/changes/footer-unfiltered-total/specs/index-page/spec.md#requirement-a-count-value-can-ignore-the-users-filters-and-fill-the-footer-note
+	 */
+	it('reads an unfiltered value under the page filter only, not the active filters', async () => {
+		fetchAggregateValue.mockClear()
+		const c = ctx({ filter: { event: 'e-1' }, countValues: { allRegistrations: { metric: 'count', unfiltered: true } } })
+		await loadCountValues.call(c)
+		expect(fetchAggregateValue).toHaveBeenCalledWith(
+			expect.objectContaining({ metric: 'count', filter: { event: 'e-1' } }),
+			expect.anything(),
+		)
+	})
+
+	it('fills a count value token in the footer note (board PqEvenement)', () => {
+		const c = ctx({
+			footerNote: '{allRegistrations} registrations in total',
+			footerNoteByView: null,
+			currentViewMode: 'table',
+			fillConfigTokens: (text) => text,
+			countValues: { allRegistrations: { metric: 'count', unfiltered: true } },
+			countValueResults: { allRegistrations: 73 },
+		})
+		expect(effectiveFooterNote.call(c)).toBe('73 registrations in total')
 	})
 })

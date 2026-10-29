@@ -2774,7 +2774,15 @@
     "Filter on {name}": "Filteren op {name}",
     "(empty)": "(leeg)",
     "Drag, or use the arrow keys, to move": "Sleep, of gebruik de pijltjestoetsen, om te verplaatsen",
-    "The new order could not be saved": "De nieuwe volgorde kon niet worden opgeslagen"
+    "The new order could not be saved": "De nieuwe volgorde kon niet worden opgeslagen",
+    "From {name}": "Van {name}",
+    "To {name}": "Aan {name}",
+    "linked automatically": "automatisch gekoppeld",
+    "linked automatically via {mailbox}": "automatisch gekoppeld via {mailbox}",
+    "from a saved mail file": "uit een opgeslagen mailbestand",
+    "linked by {name}": "door {name} gekoppeld",
+    "Archived as PDF": "Als pdf gearchiveerd",
+    "Archived as {format}": "Als {format} gearchiveerd"
   },
   "plurals": {
     "{count} member": [

@@ -498,7 +498,7 @@ import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTe
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { fetchRowAggregate } from '../../utils/rowAggregate.js'
+import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -2438,11 +2438,11 @@ export default {
 			}
 			const id = ++this.aggregateRequestId
 			this.aggregateLoading = true
-			const next = {}
+			const next = new Map()
 			const jobs = []
 			for (const row of this.rows) {
 				const rowKey = String(row[this.rowKey])
-				next[rowKey] = {}
+				const cells = cellsOf(next, rowKey)
 				for (const col of aggCols) {
 					const agg = col.aggregate
 					if (isEndpointAggregate(col)) {
@@ -2455,12 +2455,12 @@ export default {
 					// first of them sorted on it descending ("Laatste contact").
 					jobs.push(fetchRowAggregate(agg, row, (r, path) => this.getCellValue(r, path))
 						.then((value) => {
-							next[rowKey][col.key] = value
+							cells[col.key] = value
 						})
 						.catch((e) => {
 							// eslint-disable-next-line no-console
 							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-							next[rowKey][col.key] = undefined
+							cells[col.key] = undefined
 						}))
 				}
 			}
@@ -2471,7 +2471,7 @@ export default {
 			if (id !== this.aggregateRequestId) {
 				return
 			}
-			this.aggregateValues = next
+			this.aggregateValues = Object.fromEntries(next)
 			this.aggregateLoading = false
 		},
 
@@ -2502,7 +2502,7 @@ export default {
 		 * hides the column.
 		 *
 		 * @param {object} col The column.
-		 * @param {object} next The values being built, by row then column.
+		 * @param {Map<string, object>} next The values being built, by row then column.
 		 * @param {number} id The batch id, to drop a stale answer.
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/aggregate-from-endpoint/specs/cn-data-table/spec.md
@@ -2534,7 +2534,7 @@ export default {
 			}
 			for (const row of this.rows) {
 				const k = keyOf(row)
-				next[String(row[this.rowKey])][col.key] = k !== '' && values[k] !== undefined ? values[k] : 0
+				cellsOf(next, String(row[this.rowKey]))[col.key] = k !== '' && values[k] !== undefined ? values[k] : 0
 			}
 		},
 
