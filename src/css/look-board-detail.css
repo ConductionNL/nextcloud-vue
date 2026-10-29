@@ -672,6 +672,14 @@
 	color: var(--color-main-text);
 }
 
+/* A message's subject and note sit at the normal line height; its text keeps 1.5
+   (DqZaakContact).
+   @spec openspec/changes/board-conversation-lines-as-drawn/specs/board-conversation-lines-as-drawn/spec.md#requirement-a-board-messages-subject-and-note-sit-at-the-normal-line-height */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__subject:not(.cn-look-nextcloud *),
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__note:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
    the thread to outrank the component's scoped muted ink. */
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
@@ -1122,6 +1130,20 @@
 
 .cn-look-board .cn-detail-page__side .cn-facts-widget__lead-text {
 	line-height: normal;
+}
+
+/* A side lead card keeps its 12px under the lead too, so the link below it
+   ("Contactgegevens bekijken") sits as DqZaak "Aanvrager" draws it.
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-lead-card-keeps-12px-under-the-lead */
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__lead:first-child):not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
+/* A side status card opens on its explanation, set on the normal line, so no
+   leading comes off the 10px under the title (DqZaak "Status").
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-status-card-starts-10px-under-its-title */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-sections-widget):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
 }
 
 /* A person's initials in a lead (DqZaak "Aanvrager": SV) are 16px bold in
@@ -1878,7 +1900,7 @@
 
 /* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
 /* The band over the ticked files is the case list's selection band: 10px
-   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   14px, radius 10, the count bold in the band's ink, 34px buttons with their words
    only (DqDocumentenBeheer "2 documenten geselecteerd").
    @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
@@ -1890,6 +1912,7 @@
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
 	color: var(--color-primary-element-light-text);
+	font-weight: 700;
 }
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
@@ -2634,7 +2657,7 @@
 	height: 32px;
 	border-radius: 16px;
 	background: var(--color-background-hover);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 700;
 }

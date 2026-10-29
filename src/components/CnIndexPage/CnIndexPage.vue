@@ -1509,7 +1509,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { getDotted } from '../../utils/propertySourceFill.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
-import { resolveFilterMap } from '../../utils/routeFilters.js'
+import { heldDefaultFilters, resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -1668,7 +1668,8 @@ function namedFiltersFromRoute(instance, props) {
 /**
  * The named-source filters the page opens with: the ones the address carries,
  * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
- * `@myGroups`), unless the address names a saved view.
+ * `@myGroups`), unless the address names a saved view. With filters in the
+ * address, the `heldDefaultFilters` keys it leaves out join them.
  *
  * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
  * @param {object} props The CnIndexPage props.
@@ -1680,8 +1681,11 @@ function namedFiltersWithDefaults(instance, props) {
 	const fromRoute = namedFiltersFromRoute(instance, props)
 	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
 	const defaults = props.defaultFilters
-	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+	if (!props.entitySource || query.savedView || !defaults || typeof defaults !== 'object') {
 		return fromRoute
+	}
+	if (Object.keys(fromRoute).length > 0) {
+		return { ...resolveFilterTokens(heldDefaultFilters(defaults, props.heldDefaultFilters, Object.keys(query))), ...fromRoute }
 	}
 	return resolveFilterTokens(defaults)
 }
@@ -4106,6 +4110,20 @@ export default {
 		 */
 		defaultFilters: {
 			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The `defaultFilters` keys that stay while the address names filters
+		 * of its own (manifest `config.heldDefaultFilters`). A link to one case
+		 * type keeps `isFinalStatus: false`; a link that names the key itself,
+		 * or a saved view, decides on its own.
+		 *
+		 * @spec openspec/changes/index-held-default-filters/specs/index-page/spec.md#requirement-a-held-default-filter-stays-under-a-links-own-filters
+		 * @type {Array<string>|null}
+		 */
+		heldDefaultFilters: {
+			type: Array,
 			default: null,
 		},
 

@@ -4404,6 +4404,21 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
 	margin-bottom: 0;
 }
 
+/* The share field draws one focus ring (DqFilterDelen): the input inside the
+   toggle has no line or outline of its own, and the toggle rings in the main
+   text while focus is inside it, open or closed. The theme's input focus line
+   and :focus-visible ring are !important, so these are too.
+   @spec openspec/changes/board-share-search-one-ring/specs/board-share-search-one-ring/spec.md */
+.cn-look-board .cn-saved-view-share__search:not(.cn-look-nextcloud *) .vs__dropdown-toggle input {
+	border: 0 !important;
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+.cn-look-board .cn-saved-view-share__search:not(.cn-look-nextcloud *) .vs__dropdown-toggle:focus-within {
+	outline: 2px solid var(--color-main-text);
+}
+
 /* The share field's suggestions are the board's list (DqFilterDelen): a 1px
    edge under the field, rows 14px in, and the kind pill at 18px in the soft
    ink. The list floats on the body, outside the look's root, so the rules key

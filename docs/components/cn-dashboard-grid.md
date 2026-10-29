@@ -51,6 +51,7 @@ function onLayoutChange(updated) {
 | `columns` | Number | | `12` | Number of grid columns |
 | `cellHeight` | Number | | `80` | Cell height in pixels |
 | `margin` | Number | | `12` | Gap between grid items in pixels |
+| `marginBottom` | Number | | `null` | Margin under each item in pixels, in place of `margin` on that side only (CnDetailPage passes 8 in the board look, so stacked cards stand 20px apart) |
 | `minWidth` | Number | | `2` | Minimum widget width in grid units |
 | `minHeight` | Number | | `2` | Minimum widget height in grid units |
 | `columnOpts` | Object | | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build it with [getDashboardColumnOpts](../utilities/get-dashboard-column-opts.md). Default `null` = fixed `columns`. |
