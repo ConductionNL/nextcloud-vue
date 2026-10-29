@@ -2255,6 +2255,53 @@
 	font-weight: 600;
 }
 
+/* A facts card's error, warning or success notice is a tinted rounded box in
+   its own tone, the text and icon in the tone's ink, with no edge bar
+   (PqKassadienst "Buiten de marge."). NcNoteCard paints its ground and ink
+   with `!important`, so these do too. The info note keeps the board's
+   general info rule.
+   @spec openspec/changes/board-facts-notice-tinted/specs/board-facts-notice-tinted/spec.md#requirement-a-facts-cards-notice-is-a-tinted-box-in-its-tone */
+.cn-look-board .cn-facts-widget__notice.notecard--error:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-red-tag-ground);
+	--cn-facts-notice-ink: var(--color-error-text);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-notice-bg);
+	--cn-facts-notice-ink: var(--cn-board-notice-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--success:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-success-tint);
+	--cn-facts-notice-ink: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--cn-facts-notice-ink);
+	--note-card-icon-size: 18px;
+	--note-theme: var(--cn-facts-notice-ink);
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start: 0;
+	border-radius: 8px;
+	background-color: var(--cn-facts-notice-ground) !important;
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) p {
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: inherit !important;
+	line-height: inherit;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) .notecard__icon {
+	align-self: flex-start;
+	padding-top: 1px;
+	color: var(--cn-facts-notice-ink);
+}
+
 /* ---- A card's Add ------------------------------------------------------ */
 /* The board draws a list card's Add as the neutral secondary right-aligned
    in the title row, at the title row's 34px (DqZaaktypeStatussen "Status
