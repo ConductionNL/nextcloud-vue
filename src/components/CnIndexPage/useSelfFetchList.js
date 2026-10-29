@@ -8,7 +8,7 @@ import { useObjectStore } from '../../store/index.js'
 import { loadMyTeam } from '../../utils/myTeam.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { heldDefaultFilters, parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 
 export function resolveInitialQuickFilterIndex(quickFilters) {
@@ -277,11 +277,25 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// both back to the route on change).
 	const queryActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
 	// `defaultFilters` start the list when the address names no filter and no
-	// saved view; they are ordinary active filters from then on.
+	// saved view; they are ordinary active filters from then on. While the
+	// address names filters, only the `heldDefaultFilters` keys it leaves out
+	// join them.
 	const namesSavedView = Boolean(initialRoute && initialRoute.query && initialRoute.query.savedView)
-	const initialActiveFilters = (Object.keys(queryActiveFilters).length === 0 && !namesSavedView && props.defaultFilters)
-		? resolveFilterMap(props.defaultFilters, (initialRoute && initialRoute.params) || {}, tokenCtx())
-		: queryActiveFilters
+	const openingDefaults = () => {
+		if (namesSavedView || !props.defaultFilters) {
+			return null
+		}
+		const namedKeys = Object.keys((initialRoute && initialRoute.query) || {})
+		return Object.keys(queryActiveFilters).length === 0
+			? props.defaultFilters
+			: heldDefaultFilters(props.defaultFilters, props.heldDefaultFilters, namedKeys)
+	}
+	const openingFilters = () => ({
+		...resolveFilterMap(openingDefaults() || {}, (initialRoute && initialRoute.params) || {}, tokenCtx()),
+		...queryActiveFilters,
+	})
+	const opensWithDefaults = Object.keys(openingDefaults() || {}).length > 0
+	const initialActiveFilters = opensWithDefaults ? openingFilters() : queryActiveFilters
 	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
 
 	// Set right after useListView returns; the fixed-filters getter reads it lazily.
@@ -349,7 +363,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// from its settings: once the value arrives they are applied, as long as
 	// the list still shows the defaults it opened with. A filter the person
 	// set, a filter from the address or a saved view is never replaced.
-	let openedWithDefaults = (Object.keys(queryActiveFilters).length === 0 && !namesSavedView && props.defaultFilters)
+	let openedWithDefaults = opensWithDefaults
 		? JSON.stringify(list.activeFilters.value)
 		: null
 	watch(appConfigSignature, () => {
@@ -357,7 +371,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			openedWithDefaults = null
 			return
 		}
-		const next = resolveFilterMap(props.defaultFilters, (initialRoute && initialRoute.params) || {}, tokenCtx())
+		const next = openingFilters()
 		const signature = JSON.stringify(next)
 		if (signature !== openedWithDefaults) {
 			openedWithDefaults = signature
