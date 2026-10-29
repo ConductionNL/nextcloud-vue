@@ -1,5 +1,11 @@
 {
   "translations": {
+    "Search the knowledge base": "Zoek in de kennisbank",
+    "Searching…": "Zoeken…",
+    "Knowledge base unavailable": "Kennisbank niet beschikbaar",
+    "No articles found": "Geen artikelen gevonden",
+    "Type to search, or fill in a summary to get suggestions.": "Typ om te zoeken, of vul een samenvatting in voor suggesties.",
+    "Suggested from the active summary": "Voorgesteld op basis van de samenvatting",
     "All categories": "Alle categorieën",
     "Category": "Categorie",
     "Reports": "Rapporten",
