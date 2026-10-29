@@ -2096,6 +2096,33 @@
 	color: var(--cn-board-text-soft);
 }
 
+/* A linked mail's details (DqZaakEmail): an outgoing mail's initials on the
+   light primary tile, and a 13px/600 pill after the text, green for its
+   archive copy ("Als pdf gearchiveerd"), light primary for "Gekoppeld".
+   @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md */
+.cn-look-board .cn-email-tab__avatar--outbound:not(.cn-look-nextcloud *) .avatardiv__initials-wrapper {
+	background-color: var(--color-primary-element-light) !important;
+}
+
+.cn-look-board .cn-email-tab__avatar--outbound:not(.cn-look-nextcloud *) .avatardiv__initials {
+	color: var(--cn-board-primary-light-ink) !important;
+}
+
+.cn-look-board .cn-email-tab__pill:not(.cn-look-nextcloud *) {
+	padding: 3px 10px;
+	border-radius: 12px;
+	background: var(--color-primary-element-light);
+	color: var(--cn-board-primary-light-ink);
+	font-size: 13px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-look-board .cn-email-tab__pill--archived:not(.cn-look-nextcloud *) {
+	background: var(--cn-board-success-tint);
+	color: var(--cn-board-success-ink);
+}
+
 /* ---- The attention flag's buttons --------------------------------------- */
 /* The case boards draw "Markeer voor aandacht" and the flag's other labelled
    buttons at the 40px control height (DqZaak and the case tab boards);
