@@ -8,9 +8,9 @@
  *
  * @spec openspec/changes/bulk-band-copy-delete-icons/specs/bulk-band/spec.md#requirement-copy-and-delete-selected-draw-their-icon-in-the-band
  */
-const fs = require('fs')
-const path = require('path')
 import { mount } from '@vue/test-utils'
+import fs from 'fs'
+import path from 'path'
 import CnActionsBar from '../../src/components/CnActionsBar/CnActionsBar.vue'
 
 const stubs = {
