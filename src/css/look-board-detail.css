@@ -1132,6 +1132,20 @@
 	line-height: normal;
 }
 
+/* A side lead card keeps its 12px under the lead too, so the link below it
+   ("Contactgegevens bekijken") sits as DqZaak "Aanvrager" draws it.
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-lead-card-keeps-12px-under-the-lead */
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__lead:first-child):not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
+/* A side status card opens on its explanation, set on the normal line, so no
+   leading comes off the 10px under the title (DqZaak "Status").
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-status-card-starts-10px-under-its-title */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-sections-widget):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
 /* A person's initials in a lead (DqZaak "Aanvrager": SV) are 16px bold in
    the soft ink on the grey ground, as the case boards draw them (r32: 14px
    in the main ink).
