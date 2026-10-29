@@ -2326,8 +2326,16 @@
 	padding: calc(12px - var(--cn-board-first-line-leading, 0.15em)) 22px 20px;
 }
 
+/* The note keeps the title row as tall as the title, and the team members
+   start 14px under it, as DqTeamwachtrij "Team vandaag" draws them.
+   @spec openspec/changes/board-team-today-header-gap/specs/board-team-today-header-gap/spec.md */
 .cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-index-page-widgets__note {
 	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-team-workload) {
+	padding-top: 14px;
 }
 
 /* A record list drawn as a table (DqTeamwachtrij "Werkvoorraad per
