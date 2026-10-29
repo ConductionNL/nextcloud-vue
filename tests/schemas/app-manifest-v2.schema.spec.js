@@ -2820,3 +2820,28 @@ describe('app-manifest-v2 — header actions dossiq ships (dossiq Catalogue, Env
 		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X', endpoint: { url: '/x' } }])).valid).toBe(false)
 	})
 })
+
+describe('expandableRows table entryAction (expandable-row-entry-action)', () => {
+	const pipelines = (table) => ({
+		...MINIMAL_V2,
+		pages: [{
+			id: 'pipelines',
+			route: '/pipelines',
+			type: 'index',
+			title: 'Pipelines',
+			config: {
+				register: 'r',
+				schema: 's',
+				expandableRows: { title: 'title', table: { field: 'stages', columns: [{ key: 'name', label: 'Stage' }], ...table } },
+			},
+		}],
+	})
+
+	it('accepts an entry action with an id, a label and an icon', () => {
+		expect(validateManifestV2(pipelines({ entryAction: { id: 'edit', label: 'Edit stage', icon: 'Pencil' } })).valid).toBe(true)
+	})
+
+	it('refuses an entry action without a label', () => {
+		expect(validateManifestV2(pipelines({ entryAction: { id: 'edit' } })).valid).toBe(false)
+	})
+})
