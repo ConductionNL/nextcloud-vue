@@ -96,6 +96,7 @@ describe('CnIndexPage: the Actions menu beside the page tabs', () => {
 		const css = readFileSync(resolve(__dirname, '../../src/css/look-board-index.css'), 'utf8')
 		const rule = css.match(/\.cn-look-board \.cn-index-page__page-tabs-menu:not\(\.cn-look-nextcloud \*\) \.button-vue \{([^}]*)\}/)
 		expect(rule).not.toBeNull()
+		expect(rule[1]).toMatch(/--button-size: 34px !important;/)
 		expect(rule[1]).toMatch(/height: 34px !important;/)
 		expect(rule[1]).toMatch(/padding: 0 12px !important;/)
 	})
