@@ -2798,6 +2798,34 @@
 	font-weight: 700;
 }
 
+/* The Actions menu beside the page tabs is the board's 34px tab-row button:
+   a grey border on the main background, 8px in from the list's edge
+   (PqBiExport, PqFlows). The theme styles every secondary button with
+   `!important`, as in the header, and the 40px labelled-menu rule
+   (look-board.css) outranks this one, so the size is `!important` too.
+   @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs */
+.cn-look-board .cn-index-page__page-tabs-menu:not(.cn-look-nextcloud *) {
+	margin-inline-end: 8px;
+}
+
+.cn-look-board .cn-index-page__page-tabs-menu:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: 34px !important;
+	box-sizing: border-box;
+	height: 34px !important;
+	min-height: 34px !important;
+	padding: 0 12px !important;
+	border: 1px solid var(--cn-board-control-border) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-index-page__page-tabs-menu:not(.action-item--open):not(.cn-look-nextcloud *) .button-vue:hover {
+	background: var(--color-background-hover) !important;
+}
+
 /* The applied view's row, and the row whose menu is open, on the primary
    tint with the name in the deep primary ink (DqFilterBeheren "Wacht op
    inwoner" with its menu open).
