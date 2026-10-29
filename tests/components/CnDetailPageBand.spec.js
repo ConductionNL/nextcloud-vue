@@ -70,6 +70,18 @@ describe('CnDetailPage: the band', () => {
 		expect(wrapper.vm.bandWidgets.map((entry) => entry.widget.id)).toEqual(['kpi-views'])
 	})
 
+	it('heads a band card only when its widget has a title, unless the entry switches it off', async () => {
+		const wrapper = mountPage({
+			widgets: [...WIDGETS, { id: 'kpi-untitled', type: 'stat', content: { label: 'Open matters' } }, { id: 'kpi-content-title', type: 'stat', content: { title: 'Leads' } }],
+			band: ['kpi-views', 'kpi-untitled', 'kpi-content-title', { widgetId: 'kpi-sessions', showTitle: false }],
+		})
+		await flushPromises()
+		expect(wrapper.vm.bandWidgets.map((entry) => entry.showTitle)).toEqual([true, false, true, false])
+		const hosts = wrapper.findAllComponents({ name: 'CnDetailWidgetHost' })
+			.filter((host) => host.element.closest('[data-testid="cn-detail-page-band"]'))
+		expect(hosts.map((host) => host.props('showCardTitle'))).toEqual([true, false, true, false])
+	})
+
 	it('draws no band without config.band', async () => {
 		const wrapper = mountPage()
 		await flushPromises()
