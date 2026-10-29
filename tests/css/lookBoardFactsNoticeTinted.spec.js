@@ -14,7 +14,13 @@ const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-detail.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
-const ruleBody = (selector) => {
+/**
+ * The declarations of the rule that starts with `selector`, or '' without one.
+ *
+ * @param {string} selector The rule's selector and opening brace.
+ * @return {string} The rule body.
+ */
+function ruleBody(selector) {
 	const at = css.indexOf(selector)
 	return at === -1 ? '' : css.slice(at, css.indexOf('}', at))
 }
