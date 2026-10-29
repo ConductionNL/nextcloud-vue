@@ -7,6 +7,8 @@
  * filter, and what needs attention beside them.
  */
 import { flushPromises, mount } from '@vue/test-utils'
+import fs from 'node:fs'
+import path from 'node:path'
 import CnConnectionsPanel, { checkedMoment } from '../../src/components/CnConnectionsPanel/CnConnectionsPanel.vue'
 
 jest.mock('../../src/utils/boardReferenceColumns.js', () => ({ __esModule: true, fetchReferenceObjects: jest.fn() }))
@@ -46,7 +48,7 @@ describe('CnConnectionsPanel', () => {
 	it('counts each status on its chip and filters by chip and by text', async () => {
 		const wrapper = await panel()
 		const chips = wrapper.findAll('.cn-connections__chip').map((n) => n.text().replace(/\s+/g, ' '))
-		expect(chips).toEqual(['All connections 4', 'Configured 1', 'Limited 1', 'Not set up 1', 'Error 1'])
+		expect(chips).toEqual(['All connections 4', 'Set up 1', 'Limited 1', 'Not set up 1', 'Error 1'])
 		await wrapper.find('[data-testid="cn-connections-chip-error"]').trigger('click')
 		expect(wrapper.findAll('[data-testid="cn-connections-card"]')).toHaveLength(1)
 		await wrapper.find('[data-testid="cn-connections-chip-all"]').trigger('click')
@@ -75,5 +77,45 @@ describe('CnConnectionsPanel', () => {
 		const wrapper = await panel()
 		const x = wrapper.findAll('[data-testid="cn-connections-card"]').find((card) => card.text().includes('X'))
 		expect(x.text()).toContain('Social network · never checked')
+	})
+
+	it('reads a working connection as set up, and offers Configure on one that is not', async () => {
+		const wrapper = await panel()
+		const cards = wrapper.findAll('[data-testid="cn-connections-card"]')
+		expect(cards[0].text()).toContain('Set up')
+		expect(cards[0].text()).not.toContain('Configured')
+		const x = cards.find((card) => card.text().includes('X'))
+		expect(x.find('.cn-connections__card-foot').text()).toBe('Configure')
+	})
+
+	it('puts a search icon in the filter field', async () => {
+		const wrapper = await panel()
+		expect(wrapper.find('[data-testid="cn-connections-filter"] cn-icon-stub[name="Magnify"]').exists()).toBe(true)
+	})
+})
+
+/**
+ * The board look the panel draws (PqIntegrations), read from its stylesheet.
+ *
+ * @spec openspec/changes/connections-panel-board-look/specs/connections-panel/spec.md#requirement-the-connections-panel-draws-the-boards-cards
+ */
+describe('CnConnectionsPanel board look', () => {
+	const sfc = fs.readFileSync(path.join(__dirname, '../../src/components/CnConnectionsPanel/CnConnectionsPanel.vue'), 'utf8')
+	const style = sfc.slice(sfc.indexOf('<style'))
+	const rule = (selector) => {
+		const at = style.indexOf(selector + ' {')
+		return at < 0 ? '' : style.slice(at, style.indexOf('}', at))
+	}
+
+	it('draws a card 18px in, 12px round, its title 17px beside a 40px icon', () => {
+		expect(style).toMatch(/\.cn-connections__card,\n\.cn-connections__aside \{[^}]*padding: 18px;[^}]*border-radius: 12px;/)
+		expect(rule('.cn-connections__card-title strong')).toMatch(/font-size: 17px;/)
+		expect(rule('.cn-connections__icon')).toMatch(/width: 40px;[\s\S]*height: 40px;/)
+		expect(rule('.cn-connections__aside h3')).toMatch(/font-size: 17px;/)
+	})
+
+	it('rules the card foot off, and the attention rows under their title', () => {
+		expect(rule('.cn-connections__card-foot')).toMatch(/border-top: 1px solid/)
+		expect(rule('.cn-connections__attention')).toMatch(/border-top: 1px solid/)
 	})
 })
