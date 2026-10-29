@@ -1487,15 +1487,19 @@ export default {
 	list-style: none;
 }
 
+/* A closed group as the board draws it (PqBeheer "Kassa 10 soorten"): a 40px
+   list row with square corners; the scoped rule outweighs core's rounded
+   button. */
 .cn-register-mapping__board-group-row {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	width: 100%;
-	min-height: 44px;
+	min-height: 40px;
 	margin: 0;
 	padding: 10px 2px;
 	border: 0;
+	border-radius: 0;
 	border-bottom: 1px solid var(--color-border);
 	background: transparent;
 	color: inherit;
