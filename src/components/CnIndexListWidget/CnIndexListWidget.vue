@@ -12,7 +12,8 @@
 			:filter="resolvedFilter"
 			:title="listTitle"
 			:showTitle="false"
-			:routeState="false" />
+			:routeState="false"
+			:buildiqButton="false" />
 	</div>
 </template>
 
@@ -24,7 +25,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * The keys of `content` the widget sets itself, so they are not passed on as
  * they stand.
  */
-const OWN_KEYS = ['register', 'schema', 'filter', 'title', 'showTitle', 'routeState']
+const OWN_KEYS = ['register', 'schema', 'filter', 'title', 'showTitle', 'routeState', 'buildiqButton']
 
 /**
  * CnIndexListWidget — a list page's list inside a detail page: the records of

@@ -181,7 +181,7 @@
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
-			:showBuildiqButton="!buildiqInHeader"
+			:showBuildiqButton="buildiqButton && !buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
 			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
@@ -2530,6 +2530,18 @@ export default {
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the actions bar may draw the buildiq square. `false` for a
+		 * list embedded in a page that draws its own (CnIndexListWidget), so a
+		 * page carries one square.
+		 *
+		 * @spec openspec/changes/embedded-list-one-buildiq-square/specs/embedded-list-one-buildiq-square/spec.md#requirement-an-index-page-can-leave-the-buildiq-square-out-of-its-toolbar
+		 */
+		buildiqButton: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
