@@ -1,3 +1,4 @@
+import { shallowMount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -11,7 +12,6 @@
  */
 import fs from 'fs'
 import path from 'path'
-import { shallowMount } from '@vue/test-utils'
 import CnKbSearchWidget from '../../src/components/CnKbSearchWidget/CnKbSearchWidget.vue'
 
 const nl = { 'Search the knowledge base': 'Zoek in de kennisbank' }
