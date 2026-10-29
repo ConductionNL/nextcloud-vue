@@ -816,6 +816,15 @@
 	line-height: normal;
 }
 
+/* A timeline that titles itself in the main column (PqKlant "Activiteit")
+   is titled as every board card there.
+   @spec openspec/changes/board-timeline-title-and-header-gap/specs/board-timeline-title-and-header-gap/spec.md#requirement-a-main-column-timeline-is-titled-as-a-board-card */
+.cn-look-board .cn-detail-page .cn-timeline-widget__title:not(.cn-detail-page__side *) {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
 /* 12px from the title's glyphs to the first line's glyphs, as drawn.
    @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
