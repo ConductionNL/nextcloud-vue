@@ -744,6 +744,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
+/* The access purpose's chosen row is filled, as DqZaakDoel draws "Behandeling
+   van de zaak": the ground Nextcloud gives a checked option only on hover or
+   focus. */
+.cn-dialog-board .cn-access-purpose__choices .checkbox-radio-switch--checked:not(.checkbox-radio-switch--disabled) .checkbox-content {
+	background-color: var(--color-primary-element-light-hover);
+}
+
 /* The duplicate warning as DqNieuweZaakDubbel draws it. The note is a warning
    line, 12px 14px in at radius 8 on the status warning ground, 15px bold in
    the warning ink with a 20px icon 10px before it; NcNoteCard paints its
