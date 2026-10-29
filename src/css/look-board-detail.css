@@ -672,6 +672,14 @@
 	color: var(--color-main-text);
 }
 
+/* A message's subject and note sit at the normal line height; its text keeps 1.5
+   (DqZaakContact).
+   @spec openspec/changes/board-conversation-lines-as-drawn/specs/board-conversation-lines-as-drawn/spec.md#requirement-a-board-messages-subject-and-note-sit-at-the-normal-line-height */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__subject:not(.cn-look-nextcloud *),
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__note:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
    the thread to outrank the component's scoped muted ink. */
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__channel {
