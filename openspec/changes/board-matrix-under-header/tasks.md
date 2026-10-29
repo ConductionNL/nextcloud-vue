@@ -1,0 +1,3 @@
+- [x] look-board.css rule
+- [x] jest
+- [x] probed on :8080 by injection

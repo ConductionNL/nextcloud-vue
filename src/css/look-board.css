@@ -3441,6 +3441,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
+/* A matrix starts where the card header ends: its column heads carry their
+   own 6px top (DqProcesanalyse "Dagen per fase" 37px under the title).
+   @spec openspec/changes/board-matrix-under-header/specs/board-matrix-under-header/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html:has(> .cn-chart-widget__matrix) {
+	padding-top: 0;
+}
+
 /* An ApexCharts plot takes the same inset as an HTML chart (DqDoorlooptijd
    "Gemiddelde doorlooptijd per maand": the plot 23px in, not on the card's
    edge). ApexCharts sizes itself to its box minus the box's padding, so the
