@@ -18,6 +18,12 @@
 - [x] Kind line, name field, field descriptions, switch card, open log, footer; run step head, note, edit and play; run card icons
 - [x] Test: `tests/components/CnFlowBoardCanvasChrome.spec.js`
 
+### Task 4: The schema takes the layout word
+- **spec_ref**: `openspec/changes/flow-board-canvas-chrome/specs/flow-board/spec.md#requirement-a-flow-page-manifest-can-name-its-layout`
+- **files**: `src/schemas/app-manifest-v2.schema.json`, `src/schemas/app-manifest.schema.json`
+- [x] `config.layout` is the dashboard array or `canvas` / `cards`; v2 2.164.0
+- [x] Test: `tests/utils/validateManifest.flowsPageType.spec.js`
+
 ### Open (not in this change)
 - [ ] Each step type's settings (`configForm`), data in the catalogue
 - [ ] "Ticket openen": the run's subject href on the board

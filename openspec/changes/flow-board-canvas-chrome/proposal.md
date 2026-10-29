@@ -35,6 +35,9 @@ All behind `layout: "canvas"`; `cards` (DqFlow) is untouched. Dq wins on shared 
 7. The **run side panel**'s step tab: the step head, the note for a step that failed while the flow went on, and
    "Edit this step" / "Play on the canvas". No close button in a run (the toggle in the legend card closes it).
 8. CnFlowRunSummary `iconActions`: the run card's buttons with icons and Back as a secondary button.
+9. The manifest schemas let `config.layout` be the word `canvas` or `cards` beside the dashboard's array (v2 2.164.0).
+   `flow-board-canvas-layout` introduced `config.layout: "canvas"` but both schemas required an array, so a page
+   using it failed validation.
 
 ## Not in this change
 

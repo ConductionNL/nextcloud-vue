@@ -69,3 +69,15 @@ SHALL show the step's kind and type, name, outcome and timing, a note when the s
 - **WHEN** "Post" is selected in the "This step" tab
 - **THEN** the tab shows "Post", its "Warning" pill and the note that the run went on
 - **AND** "Play on the canvas" asks the canvas to replay the run
+
+### Requirement: A flow page manifest can name its layout
+
+The app manifest schemas SHALL accept `config.layout` as the dashboard layout array or as the word `canvas` or `cards`,
+and SHALL refuse any other word.
+
+#### Scenario: PqFlow's manifest
+
+- **GIVEN** a `flow` page with `config.layout: "canvas"`
+- **WHEN** the manifest is validated
+- **THEN** it is valid
+- **AND** `config.layout: "grid"` is not

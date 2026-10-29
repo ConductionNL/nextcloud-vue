@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.163.0",
+	"version": "2.164.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4603,12 +4603,21 @@
 							}
 						},
 						"layout": {
-							"type": "array",
-							"description": "Dashboard layout entries (for type='dashboard', legacy). Carry-forward from v1.",
-							"items": {
-								"type": "object",
-								"additionalProperties": true
-							}
+							"oneOf": [
+								{
+									"type": "array",
+									"description": "Dashboard layout entries (for type='dashboard', legacy). Carry-forward from v1.",
+									"items": {
+										"type": "object",
+										"additionalProperties": true
+									}
+								},
+								{
+									"type": "string",
+									"enum": ["cards", "canvas"],
+									"description": "type='flow' / 'flow-detail' in the board look: `canvas` draws the page as boards PqFlow and PqFlowRun do (actions under the title, floating toolbar and inspector); `cards` (default) keeps the DqFlow grid."
+								}
+							]
 						},
 						"content": {
 							"type": "array",

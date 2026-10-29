@@ -368,7 +368,7 @@ describe('config.widgets[] — $ref widgetDef', () => {
 })
 
 describe('config.layout[] — $ref layoutItem', () => {
-	const def = configProps.layout
+	const def = configProps.layout.oneOf.find((branch) => branch.type === 'array')
 
 	it('items refs $defs/layoutItem', () => {
 		expect(def.items.$ref).toBe('#/$defs/layoutItem')
