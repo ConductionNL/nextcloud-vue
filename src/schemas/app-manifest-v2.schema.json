@@ -5731,7 +5731,7 @@
 								"field": { "type": "string", "minLength": 1 },
 								"label": { "type": "string", "minLength": 1, "description": "The strip's accessible name; default the field's title." },
 								"allLabel": { "type": "string", "minLength": 1, "description": "The first pill; default \"All\"." },
-								"options": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } } } },
+								"options": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "anyOf": [{ "required": ["value"] }, { "required": ["values"] }], "properties": { "value": { "type": "string", "minLength": 1 }, "values": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "Several stored values under one pill (\"phone\" and \"telefoon\" as Telefoon); picking it filters on any of them." }, "label": { "type": "string", "minLength": 1 } } } },
 								"showCount": { "type": "boolean", "default": false }
 							}
 						},
