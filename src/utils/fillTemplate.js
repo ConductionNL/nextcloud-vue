@@ -348,6 +348,9 @@ function splitFields(template) {
  */
 export function joinTemplateParts(template, valueOf) {
 	const parts = splitFields(template)
+	if (parts.length === 1) {
+		return parts[0]
+	}
 	const lead = parts[0]
 	const tail = parts[parts.length - 1]
 	let body = ''
