@@ -1,0 +1,2 @@
+- [x] look-board-index.css: the index table's fixed layout and 18% title head skip `.cn-data-table--fit`
+- [x] jest lookBoardAfterListFitTable
