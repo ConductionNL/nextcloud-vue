@@ -1227,6 +1227,13 @@
 	line-height: normal;
 }
 
+/* A grey chip of 28px or less sets its initials at 12px (PqLeads' owner,
+   DqUwWachtrij); the 36px chip keeps 13px (DqContacten).
+   @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral.cn-cell-renderer__avatar-initials--compact {
+	font-size: 12px;
+}
+
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {
 	gap: 12px;
 }
