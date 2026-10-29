@@ -2532,7 +2532,9 @@
     "from a saved mail file": "from a saved mail file",
     "linked by {name}": "linked by {name}",
     "Archived as PDF": "Archived as PDF",
-    "Archived as {format}": "Archived as {format}"
+    "Archived as {format}": "Archived as {format}",
+    "Collapse": "Collapse",
+    "Expand": "Expand"
   },
   "plurals": {
     "{count} member": [

@@ -15,6 +15,16 @@
 			:class="{ 'cn-detail-card__header--clickable': collapsible }"
 			@click="collapsible && toggleCollapse()">
 			<div class="cn-detail-card__header-left">
+				<button
+					v-if="collapsible && chevronStart"
+					type="button"
+					class="cn-detail-card__collapse-btn cn-detail-card__collapse-btn--start"
+					:aria-label="collapseLabel"
+					:aria-expanded="isCollapsed ? 'false' : 'true'">
+					<ChevronDown
+						:size="20"
+						:class="{ 'cn-detail-card__chevron--rotated': isCollapsed }" />
+				</button>
 				<slot name="icon">
 					<component
 						:is="icon"
@@ -36,9 +46,11 @@
 				<CnWidgetHeaderActionButtons v-if="declaredHeaderActions.length > 0" :actions="declaredHeaderActions" />
 				<slot name="actions" />
 				<button
-					v-if="collapsible"
+					v-if="collapsible && !chevronStart"
+					type="button"
 					class="cn-detail-card__collapse-btn"
-					:aria-label="isCollapsed ? 'Expand' : 'Collapse'">
+					:aria-label="collapseLabel"
+					:aria-expanded="isCollapsed ? 'false' : 'true'">
 					<ChevronDown
 						:size="20"
 						:class="{ 'cn-detail-card__chevron--rotated': isCollapsed }" />
@@ -59,6 +71,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
@@ -149,6 +162,15 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Draw the collapse chevron before the title instead of after the
+		 * header actions (only relevant when collapsible is true).
+		 */
+		chevronStart: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Initial collapsed state (only relevant when collapsible is true) */
 		collapsed: {
 			type: Boolean,
@@ -173,6 +195,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The collapse button's name for the state it would change to.
+		 *
+		 * @return {string} "Expand" or "Collapse", translated.
+		 * @spec openspec/changes/detail-card-leading-chevron/specs/detail-card/spec.md#requirement-a-collapsible-card-can-lead-with-its-chevron
+		 */
+		collapseLabel() {
+			return this.isCollapsed ? t('nextcloud-vue', 'Expand') : t('nextcloud-vue', 'Collapse')
+		},
+
 		/**
 		 * The provided header actions, unwrapped.
 		 *
@@ -290,6 +322,10 @@ export default {
 	cursor: pointer;
 	color: var(--color-text-maxcontrast);
 	border-radius: var(--border-radius);
+}
+
+.cn-detail-card__collapse-btn--start {
+	margin-inline-start: -4px;
 }
 
 .cn-detail-card__collapse-btn:hover {

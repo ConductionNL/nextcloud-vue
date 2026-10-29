@@ -2797,7 +2797,9 @@
     "from a saved mail file": "uit een opgeslagen mailbestand",
     "linked by {name}": "door {name} gekoppeld",
     "Archived as PDF": "Als pdf gearchiveerd",
-    "Archived as {format}": "Als {format} gearchiveerd"
+    "Archived as {format}": "Als {format} gearchiveerd",
+    "Collapse": "Inklappen",
+    "Expand": "Uitklappen"
   },
   "plurals": {
     "{count} member": [
