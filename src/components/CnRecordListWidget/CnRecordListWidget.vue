@@ -2026,8 +2026,9 @@ export default {
 		 * The row as the templates read it: a field named in `valueLabels`
 		 * (`{ channel: { phone: "Phone", telefoon: "Phone" } }`) shows the
 		 * translated label of its stored value, so "{channel}" reads "Telefoon"
-		 * for both spellings the data holds. A value without a label stays as
-		 * stored. The pill, the badges and the sort read the stored value.
+		 * for both spellings the data holds. A boolean is looked up by "true"
+		 * or "false". A value without a label stays as stored. The pill, the
+		 * badges and the sort read the stored value.
 		 *
 		 * @param {object} row The row.
 		 * @return {object} The row, or a shallow copy with labelled fields.
@@ -2041,7 +2042,7 @@ export default {
 			let out = row
 			for (const [field, labels] of Object.entries(map)) {
 				const raw = row[field]
-				if (!labels || typeof labels !== 'object' || (typeof raw !== 'string' && typeof raw !== 'number')) {
+				if (!labels || typeof labels !== 'object' || !['string', 'number', 'boolean'].includes(typeof raw)) {
 					continue
 				}
 				const label = labels[String(raw)]
