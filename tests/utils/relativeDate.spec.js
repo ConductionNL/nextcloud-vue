@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * The relative date ("vandaag, 09.42", "gisteren", then the short date) in the
+ * The relative date ("vandaag, 09:42", "gisteren", then the short date) in the
  * helper, the record-list template tokens, the built-in formatter and the
  * `date` cell widget. Runs through the real @nextcloud/l10n and the library's
  * catalogue.
@@ -31,15 +31,15 @@ describe('formatRelativeDate', () => {
 	beforeEach(() => setLanguage('nl'))
 
 	it('reads today and yesterday as words, with the time when asked', () => {
-		expect(formatRelativeDate(at(12, 9, 42), { now: NOW, withTime: true })).toBe('vandaag, 09.42')
-		expect(formatRelativeDate(at(11, 23, 12), { now: NOW, withTime: true })).toBe('gisteren, 23.12')
+		expect(formatRelativeDate(at(12, 9, 42), { now: NOW, withTime: true })).toBe('vandaag, 09:42')
+		expect(formatRelativeDate(at(11, 23, 12), { now: NOW, withTime: true })).toBe('gisteren, 23:12')
 		expect(formatRelativeDate(at(12, 9, 42), { now: NOW })).toBe('vandaag')
 		expect(formatRelativeDate(at(11, 23, 12), { now: NOW })).toBe('gisteren')
 	})
 
 	it('reads the short date from the day before yesterday, and tomorrow as a word', () => {
 		expect(formatRelativeDate(at(8, 8, 5), { now: NOW })).toBe('8 okt')
-		expect(formatRelativeDate(at(8, 8, 5), { now: NOW, withTime: true })).toBe('8 okt, 08.05')
+		expect(formatRelativeDate(at(8, 8, 5), { now: NOW, withTime: true })).toBe('8 okt, 08:05')
 		expect(formatRelativeDate(new Date(2025, 1, 14, 9, 0), { now: NOW })).toBe('14 feb 2025')
 		expect(formatRelativeDate(at(13, 9, 0), { now: NOW })).toBe('morgen')
 	})
@@ -63,7 +63,7 @@ describe('the template tokens', () => {
 	it('fills {path|relative} and {path|relativetime}', () => {
 		const row = { app: 'dossiq', at: at(12, 9, 42).toISOString() }
 		expect(fillTemplate('{app} · {at|relative}', row, NOW)).toBe('dossiq · vandaag')
-		expect(fillTemplate('{app} · {at|relativetime}', row, NOW)).toBe('dossiq · vandaag, 09.42')
+		expect(fillTemplate('{app} · {at|relativetime}', row, NOW)).toBe('dossiq · vandaag, 09:42')
 	})
 
 	it('empties the whole template for a missing date', () => {
@@ -79,7 +79,7 @@ describe('the relativeDate formatter', () => {
 		const today = new Date()
 		today.setHours(9, 42, 0, 0)
 		expect(format(today)).toBe('vandaag')
-		expect(format(today, {}, {}, { time: true })).toBe('vandaag, 09.42')
+		expect(format(today, {}, {}, { time: true })).toBe('vandaag, 09:42')
 	})
 
 	it('is safe on empty and unparseable input', () => {
@@ -99,7 +99,7 @@ describe('CnCellRenderer date widget', () => {
 		const today = new Date()
 		today.setHours(9, 42, 0, 0)
 		const time = mount(CnCellRenderer, { propsData: { value: today.toISOString(), widget: 'date', widgetProps: { relative: true, showTime: true } }, stubs }).find('time')
-		expect(time.text()).toBe('vandaag, 09.42')
+		expect(time.text()).toBe('vandaag, 09:42')
 		expect(time.attributes('title')).not.toBe(today.toISOString())
 	})
 
