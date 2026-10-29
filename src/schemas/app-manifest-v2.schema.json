@@ -4870,7 +4870,7 @@
 							"default": "board",
 							"description": "type='detail', board look: the side column's order. `board` (default) puts a notice first and the History card last; `declared` keeps the order of `sideColumn`, for a board that draws History on top. Maps to CnDetailPage `sideColumnOrder`."
 						},
-						"headerActionsViewport": { "type": "string", "enum": ["wide", "narrow"], "description": "type='dashboard': `wide` keeps the header actions and the buildiq square off a phone (under 640px), `narrow` off a wider window. Maps to CnDashboardPage `headerActionsViewport`." },
+						"headerActionsViewport": { "type": "string", "enum": ["wide", "narrow"], "description": "type='dashboard': `wide` keeps the header actions, the Actions menu and the buildiq square off a phone (under 640px), `narrow` off a wider window. Maps to CnDashboardPage `headerActionsViewport`." },
 						"headerActions": {
 							"type": "array",
 							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). On a `type:'detail'` page the same entries render in the header's Actions menu, above the Request-a-feature / Report-a-bug / Documentation trio. Same shape as the row-level `actions[]` ($ref action), but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. An entry with `href` (instead of `handler`) renders as a real link to that URL and is never dispatched ($ref headerAction). See manifest-icons-and-page-actions for the dispatch semantics.",

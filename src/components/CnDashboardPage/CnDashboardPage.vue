@@ -157,9 +157,10 @@
 				<!-- Page-level overflow Actions menu (Refresh + the mandatory
 				     trio Request a feature / Report a bug / Documentation).
 				     Separate from the per-widget menus. `docs-anchor` deep-links
-				     the docs item to THIS page's section. -->
+				     the docs item to THIS page's section. Off the window
+				     `headerActionsViewport` keeps the header actions off. -->
 				<CnActionsMenu
-					v-if="showActionsMenu"
+					v-if="showActionsMenu && !headerActionsOffViewport"
 					:showRefresh="showRefresh"
 					:showRequestFeature="showRequestFeature"
 					:showReportBug="showReportBug"
@@ -1922,9 +1923,10 @@ export default {
 		},
 
 		/**
-		 * Where the header actions and the buildiq square draw: `"wide"` keeps
-		 * them off a phone (under 640px, PqMobiel's My work header holds only
-		 * the title), `"narrow"` off a wider window. Empty draws them always.
+		 * Where the header actions, the Actions menu and the buildiq square
+		 * draw: `"wide"` keeps them off a phone (under 640px, PqMobiel's My
+		 * work header holds only the title), `"narrow"` off a wider window.
+		 * Empty draws them always.
 		 *
 		 * @spec openspec/changes/dashboard-header-actions-viewport/specs/dashboard-header-actions-viewport/spec.md
 		 */

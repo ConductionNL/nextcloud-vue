@@ -17,6 +17,7 @@ const stubs = {
 	CnDashboardGrid: { template: '<div />', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
 	CnWidgetWrapper: { template: '<div><slot /></div>' },
 	CnBuildiqEditButton: { template: '<button class="buildiq-square" />' },
+	CnActionsMenu: { template: '<div class="actions-menu" />' },
 	NcButton: { template: '<button><slot /></button>' },
 	NcEmptyContent: { template: '<div />' },
 	NcLoadingIcon: { template: '<div />' },
@@ -45,6 +46,7 @@ async function mountAt(narrow, props = {}) {
 
 const hasActions = (wrapper) => wrapper.find('[data-testid="cn-dashboard-page-header-actions"]').exists()
 const hasSquare = (wrapper) => wrapper.find('.buildiq-square').exists()
+const hasMenu = (wrapper) => wrapper.find('.actions-menu').exists()
 
 describe('CnDashboardPage: header actions per viewport', () => {
 	it('keeps the header actions and the buildiq square off a phone when they are for wide windows', async () => {
@@ -69,5 +71,13 @@ describe('CnDashboardPage: header actions per viewport', () => {
 		const wrapper = await mountAt(true, { headerActionsViewport: 'wide', look: 'board' })
 		expect(hasActions(wrapper)).toBe(false)
 		expect(hasSquare(wrapper)).toBe(false)
+	})
+
+	it('keeps the Actions menu off a phone too (PqMobiel: the title alone)', async () => {
+		for (const look of ['board', 'nextcloud']) {
+			expect(hasMenu(await mountAt(true, { headerActionsViewport: 'wide', look }))).toBe(false)
+			expect(hasMenu(await mountAt(false, { headerActionsViewport: 'wide', look }))).toBe(true)
+		}
+		expect(hasMenu(await mountAt(true))).toBe(true)
 	})
 })
