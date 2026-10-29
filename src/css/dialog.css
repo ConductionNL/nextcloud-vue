@@ -187,7 +187,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-top: 0;
 }
 
-/* The close button is a 36px circle. NcButton sizes an icon-only button by
+/* The close button is a 36px circle with its cross in the soft ink, as every
+   dialog board draws it (#3d4047). NcButton sizes an icon-only button by
    --button-size with `!important`, so the size goes through that; the radius
    also goes to the nldesign theme's button radius token. */
 .cn-dialog-header .cn-dialog-header__close.button-vue {
@@ -200,6 +201,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	min-height: 36px;
 	border-radius: 50%;
 	background: transparent;
+	color: var(--cn-board-text-soft, var(--color-text-maxcontrast));
+	--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-text-maxcontrast));
 }
 
 /* A checkbox in a board dialog sits flush with the fields, its label 10px
