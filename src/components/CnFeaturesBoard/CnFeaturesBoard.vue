@@ -973,7 +973,15 @@ export default {
 	border-top: 1px solid var(--color-background-dark);
 }
 
+/* The nldesign theme paints every `<a>` in its link colour and underline with
+   `!important` through its link tokens; this button hands them the main ink.
+   @spec openspec/changes/features-board-read-more-ink/specs/features-board-read-more-ink/spec.md#requirement-the-learn-more-button-keeps-the-main-ink-under-a-theme */
 .cn-features-board__read-more {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	--nldesign-component-link-visited-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
 	display: inline-flex;
 	align-items: center;
 	height: 34px;
