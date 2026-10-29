@@ -300,7 +300,9 @@ export default {
 	gap: 8px;
 }
 
-.cn-connections__chip {
+/* The group class outranks Nextcloud's `button:not(.button-vue…):not(…)`
+   margin (3px, specificity 0,2,1), which widened the 8px gap to 11px. */
+.cn-connections__chips .cn-connections__chip {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
