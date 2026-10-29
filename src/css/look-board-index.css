@@ -710,6 +710,12 @@
 	border-radius: 8px;
 }
 
+/* Delete selected reads in the error tag ink (PqTicketsSelectie, HmAgents). */
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-delete.button-vue,
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-delete.button-vue .button-vue__text {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+}
+
 /* In the index page the page's own 20px gap stands between the band and the
    card, so the band adds no margin of its own (DqZaken: card 20px under it). */
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *) > .cn-actions-bar__band {
