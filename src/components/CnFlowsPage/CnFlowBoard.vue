@@ -12,7 +12,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette }" data-testid="flow-board">
+	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView }" data-testid="flow-board">
 		<header class="cn-flow-board__header">
 			<div class="cn-flow-board__heading">
 				<h2 class="cn-flow-board__title" data-testid="flow-board-title">
@@ -44,12 +44,18 @@
 				<NcButton :disabled="store.checking || !store.nodes.length"
 					data-testid="flow-board-check"
 					@click="store.check()">
+					<template v-if="canvasLayout" #icon>
+						<CheckCircleOutline :size="18" />
+					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
 				<NcButton v-if="showRun"
 					:disabled="store.running || !store.flow.id"
 					data-testid="flow-board-run"
 					@click="onRun">
+					<template v-if="canvasLayout" #icon>
+						<Play :size="18" />
+					</template>
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
 				<CnBuildiqEditButton />
@@ -90,6 +96,13 @@
 				</NcButton>
 			</template>
 		</CnDialog>
+
+		<p v-if="canvasLayout && store.inRunView && runRecord"
+			class="cn-flow-board__run-pills"
+			data-testid="flow-board-run-pills">
+			<CnStatusBadge :label="runStatus.label" :variant="runStatus.variant" />
+			<CnStatusBadge v-if="runWarningCount > 0" :label="runWarningText" variant="warning" />
+		</p>
 
 		<p class="cn-flow-board__path" data-testid="flow-board-path">
 			<CnStatusBadge v-if="pillText"
@@ -159,8 +172,36 @@
 					:nodeBadge="nodeLook === 'card' ? nodeBadge : null"
 					:toolbarActions="false"
 					:addStep="!showPalette"
+					quietRun
 					@save="$emit('save')"
-					@run="onRun" />
+					@run="onRun">
+					<template v-if="canvasLayout" #toolbar-end>
+						<CnStatusBadge v-if="!store.inRunView"
+							class="cn-flow-board__validity-pill"
+							:label="validityPill"
+							:variant="validityVariant"
+							:title="validity.text"
+							data-testid="flow-board-validity-pill" />
+						<NcButton variant="tertiary"
+							:aria-label="t('nextcloud-vue', 'Side panel')"
+							:aria-pressed="inspectorShown ? 'true' : 'false'"
+							:title="t('nextcloud-vue', 'Side panel')"
+							data-testid="flow-board-panel-toggle"
+							@click="togglePanel">
+							<template #icon>
+								<DockRight :size="20" />
+							</template>
+						</NcButton>
+					</template>
+				</CnFlowDetail>
+				<CnFlowRunSummary v-if="canvasLayout && store.inRunView"
+					class="cn-flow-board__run-card"
+					:run="runRecord"
+					:stepsTotal="store.nodes.length"
+					:canRetry="canRetry"
+					data-testid="flow-board-run-card"
+					@back="onBackToFlow"
+					@retry="onRetry" />
 				<div v-if="store.inRunView"
 					class="cn-flow-board__legend"
 					data-testid="flow-board-legend">
@@ -168,7 +209,7 @@
 						<CnStatusBadge :label="level.label" :variant="level.variant" size="small" />
 					</span>
 				</div>
-				<p v-else
+				<p v-else-if="!canvasLayout"
 					class="cn-flow-board__validity"
 					:class="`cn-flow-board__validity--${validity.tone}`"
 					role="status"
@@ -177,12 +218,24 @@
 				</p>
 			</section>
 
-			<aside class="cn-flow-board__card cn-flow-board__inspector" data-testid="flow-board-inspector">
+			<aside v-if="inspectorShown" class="cn-flow-board__card cn-flow-board__inspector" data-testid="flow-board-inspector">
+				<NcButton v-if="canvasLayout"
+					variant="tertiary"
+					class="cn-flow-board__inspector-close"
+					:aria-label="t('nextcloud-vue', 'Close the side panel')"
+					:title="t('nextcloud-vue', 'Close the side panel')"
+					data-testid="flow-board-inspector-close"
+					@click="closePanel">
+					<template #icon>
+						<Close :size="20" />
+					</template>
+				</NcButton>
 				<CnFlowDryRunResult v-if="store.dryRunResult && !store.inRunView"
 					:result="store.dryRunResult"
 					@close="store.clearDryRun()" />
 				<template v-else-if="store.inRunView">
-					<CnFlowRunSummary :run="runRecord"
+					<CnFlowRunSummary v-if="!canvasLayout"
+						:run="runRecord"
 						:stepsTotal="store.nodes.length"
 						:canRetry="canRetry"
 						@back="onBackToFlow"
@@ -313,6 +366,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import Autorenew from 'vue-material-design-icons/Autorenew.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import DockRight from 'vue-material-design-icons/DockRight.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
@@ -324,7 +381,8 @@ import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
-import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { flowRunStatuses } from '../../utils/flowRunStatus.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
 import { normaliseSelectOptions } from '../../utils/selectOptions.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
@@ -337,7 +395,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { Autorenew, Check, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { Autorenew, Check, CheckCircleOutline, Close, DockRight, Play, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -401,6 +459,15 @@ export default {
 		 * OpenRegister's dry-run, changing and sending nothing.
 		 */
 		testSubject: { type: Object, default: null },
+
+		/**
+		 * `canvas` draws the page as boards PqFlow and PqFlowRun do: the actions
+		 * under the title, the canvas without a frame, the validity and a side
+		 * panel toggle in the canvas toolbar, the inspector as a closable
+		 * floating panel and, in a run, its pills in the header and its card
+		 * over the canvas. `cards` (default) keeps the DqFlow grid.
+		 */
+		layout: { type: String, default: 'cards' },
 	},
 
 	emits: ['save', 'run', 'retried'],
@@ -410,10 +477,68 @@ export default {
 	},
 
 	data() {
-		return { runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
+		return { panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
+		/**
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-flow-page-can-be-laid-out-as-a-canvas-page
+		 * @return {boolean} Whether the page is laid out as a canvas page.
+		 */
+		canvasLayout() {
+			return this.layout === 'canvas'
+		},
+
+		/**
+		 * Whether the inspector is drawn. Always in the card layout; on a canvas
+		 * page while a run is open (until closed), or while a step, a test
+		 * result or the runs are shown, or the toggle opened it.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-flow-page-can-be-laid-out-as-a-canvas-page
+		 * @return {boolean}
+		 */
+		inspectorShown() {
+			if (!this.canvasLayout) {
+				return true
+			}
+			if (this.store.inRunView) {
+				return !this.runPanelClosed
+			}
+			return this.panelOpen || Boolean(this.store.selectedNode) || Boolean(this.store.dryRunResult) || this.showRuns
+		},
+
+		/** @return {string} The validity as a short pill label. */
+		validityPill() {
+			return {
+				success: this.t('nextcloud-vue', 'Flow is valid'),
+				warning: this.t('nextcloud-vue', 'Valid with warnings'),
+				error: this.t('nextcloud-vue', 'Flow has errors'),
+			}[this.validity.tone] || this.t('nextcloud-vue', 'Not checked yet')
+		},
+
+		/** @return {string} The validity pill's colour. */
+		validityVariant() {
+			return ['success', 'warning', 'error'].includes(this.validity.tone) ? this.validity.tone : 'default'
+		},
+
+		/** @return {{label: string, variant: string}} The run's status pill. */
+		runStatus() {
+			const status = String(this.runRecord?.status || '')
+			return flowRunStatuses()[status] || { label: status, variant: 'default' }
+		},
+
+		/** @return {number} How many of the run's steps warned. */
+		runWarningCount() {
+			return this.runRecord ? flowRunSteps(this.runRecord).filter((step) => step.level === 'warning').length : 0
+		},
+
+		/** @return {string} The warning count pill's label. */
+		runWarningText() {
+			return this.runWarningCount === 1
+				? this.t('nextcloud-vue', '1 step with a warning')
+				: this.t('nextcloud-vue', '{count} steps with a warning', { count: this.runWarningCount })
+		},
+
 		/** @return {boolean} Whether a test subject is declared well enough to pick one. */
 		testSubjectReady() {
 			return Boolean(this.testSubject && this.testSubject.register && this.testSubject.schema)
@@ -945,6 +1070,42 @@ export default {
 		},
 
 		/**
+		 * Close the canvas page's side panel: in a run it hides the logs, in
+		 * the editor it clears the selected step, the test result and the runs.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-flow-page-can-be-laid-out-as-a-canvas-page
+		 */
+		closePanel() {
+			if (this.store.inRunView) {
+				this.runPanelClosed = true
+				return
+			}
+			this.panelOpen = false
+			this.showRuns = false
+			this.store.selectedNodeId = null
+			if (this.store.dryRunResult) {
+				this.store.clearDryRun()
+			}
+		},
+
+		/**
+		 * The canvas toolbar's side panel toggle.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-flow-page-can-be-laid-out-as-a-canvas-page
+		 */
+		togglePanel() {
+			if (this.store.inRunView) {
+				this.runPanelClosed = !this.runPanelClosed
+				return
+			}
+			if (this.inspectorShown) {
+				this.closePanel()
+				return
+			}
+			this.panelOpen = true
+		},
+
+		/**
 		 * Run the flow, with the run history in the panel to follow it.
 		 *
 		 * @return {void}
@@ -1420,6 +1581,105 @@ export default {
 .cn-flow-board__step-footer {
 	justify-content: space-between;
 	margin-top: auto;
+}
+
+/* ---- The canvas page (layout: canvas, PqFlow / PqFlowRun) --------------- */
+/* The title on its own line with the actions under it, the canvas on the
+   page ground without a frame, and the inspector and run card floating over
+   it. */
+.cn-flow-board--canvas {
+	background-color: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+	background-size: 16px 16px;
+}
+
+.cn-flow-board--canvas .cn-flow-board__header {
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.cn-flow-board__run-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+}
+
+.cn-flow-board--canvas .cn-flow-board__body {
+	position: relative;
+	display: block;
+	min-height: 640px;
+}
+
+.cn-flow-board--canvas .cn-flow-board__canvas {
+	height: 100%;
+	min-height: 640px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	overflow: visible;
+}
+
+.cn-flow-board--canvas .cn-flow-board__canvas :deep(.cn-flow-detail__toolbar) {
+	inset-inline-start: 0;
+	inset-inline-end: auto;
+	inset-block-start: 0;
+	padding: 6px 8px;
+	border-radius: 12px;
+	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+/* In a run the run card holds the top, so the toolbar and the outcome
+   legend stand at the foot of the canvas (PqFlowRun). */
+.cn-flow-board--canvas.cn-flow-board--run .cn-flow-board__canvas :deep(.cn-flow-detail__toolbar) {
+	inset-block-start: auto;
+	inset-block-end: 0;
+}
+
+.cn-flow-board--canvas .cn-flow-board__legend {
+	position: absolute;
+	inset-block-end: 60px;
+	inset-inline-start: 0;
+	z-index: 10;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+.cn-flow-board__validity-pill {
+	margin-inline: 4px;
+}
+
+.cn-flow-board--canvas .cn-flow-board__inspector {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-end: 0;
+	z-index: 11;
+	width: 346px;
+	max-width: 100%;
+	max-height: 100%;
+	box-sizing: border-box;
+	overflow-y: auto;
+	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+.cn-flow-board__inspector-close {
+	align-self: flex-end;
+	margin: -8px -8px -4px 0;
+}
+
+.cn-flow-board--canvas .cn-flow-board__run-card {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	z-index: 11;
+	width: min(746px, 100%);
+	box-sizing: border-box;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: var(--color-main-background);
+	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
 }
 
 @media (max-width: 1024px) {

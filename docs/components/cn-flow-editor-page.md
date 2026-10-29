@@ -42,12 +42,15 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width �
 | `pillVariant` | `String` | `'default'` | Board look: the tone of `pill`, a CnStatusBadge variant such as `teal` (DqFlow; `config.pillVariant`). A Draft or Retired pill stays neutral. |
 | `listLabel` | `String` | `''` | Board look: the list's name at the start of the path, such as "Settings / Flows" (`config.listLabel`, translated). Empty reads "Flows". |
 | `breadcrumb` | `Array` | `[]` | Board look: the levels before the flow, each its own link (`config.breadcrumb`, `[{ label, href? }]`, labels translated): `[{ "label": "Settings", "href": "/index.php/settings/admin/dossiq" }, { "label": "Flows" }]` reads "Settings / Flows / the flow". A crumb without an href links to the flow list. Wins over `listLabel`. |
+| `layout` | `String` | `'cards'` | Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun draw it (see below); `cards` keeps the DqFlow grid (`config.layout`). |
 
 ## The board look
 
 In the board look the page draws the flow as boards PqFlow, PqFlowRun and DqFlow do: a header with the flow's name, a pill, Active, Check, Run (for a flow with a manual start) and Save; a path line ("Flows / name · trigger · steps · version"); the canvas in a dotted card with a validity bar under it ("The flow is valid" after Check); and an inspector card on the right. With no step selected the inspector says to select one, with Show runs to open the flow's runs (Run opens them too, and selecting a step returns to it); with a step selected it names the step, lists its settings as the step's owner labels them in the catalogue's `configForm` (a select's option label, Yes or No for a switch), opens its editor, lists its recent log lines from the flow's last runs and offers Delete step and Done.
 
 With `?run=` the same page is the run view: each step's outcome on the canvas with a legend, and in the inspector a run card (outcome, start, duration, what started it, steps run of total, Run again, Back to the flow) above two tabs, This step and Logs of the whole run. A step that wrote its own lines (`report.lines` in the run log) shows them; any other step reads as one line from its status, duration and error. Leave `sidebarComponent` off a board-look flow page: the inspector replaces the app sidebar.
+
+With `layout: "canvas"` (PqFlow, PqFlowRun) the actions stand on a row under the title, Check and Run with their icons. The canvas fills the page on the page ground without a frame; the validity is a pill in the canvas toolbar ("Flow is valid", "Not checked yet") beside a side panel toggle. The inspector floats over the canvas on the right with a close button, and is drawn only while a step is selected, a test result or the runs are shown, or the toggle opened it. In a run the header carries the run's status pill and "1 step with a warning" when steps warned, the run card stands over the canvas, the toolbar and legend move to its foot, and the side panel holds the two log tabs. In every board flow page a run shows no Add a step, Arrange or Undo and none of the editor's lock or version notices.
 
 ## The route swap on first save
 

@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Flow is valid": "Flow is geldig",
+    "Valid with warnings": "Geldig met waarschuwingen",
+    "Flow has errors": "Flow heeft fouten",
+    "Not checked yet": "Nog niet gecontroleerd",
+    "Side panel": "Zijpaneel",
+    "Close the side panel": "Zijpaneel sluiten",
+    "1 step with a warning": "1 stap met een waarschuwing",
+    "{count} steps with a warning": "{count} stappen met een waarschuwing",
     "All categories": "Alle categorieën",
     "Category": "Categorie",
     "Reports": "Rapporten",

@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Flow is valid": "Flow is valid",
+    "Valid with warnings": "Valid with warnings",
+    "Flow has errors": "Flow has errors",
+    "Not checked yet": "Not checked yet",
+    "Side panel": "Side panel",
+    "Close the side panel": "Close the side panel",
+    "1 step with a warning": "1 step with a warning",
+    "{count} steps with a warning": "{count} steps with a warning",
     "All categories": "All categories",
     "Category": "Category",
     "Reports": "Reports",

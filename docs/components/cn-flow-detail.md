@@ -26,6 +26,13 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 | `toolbarActions` | `Boolean` | `true` | Show Save, Run and Check in the toolbar. Off when the host draws them, as the board-look editor does in its header. |
 | `addStep` | `Boolean` | `true` | Show "Add a step" in the toolbar. Off when the host draws a palette beside the canvas. |
 | `nodeBadge` | `Function` | `null` | Draw each step as a card: its name, then the pill this function returns for the step (`{ label, variant }`, or null for none), in place of the type line. The board's card look passes it (DqFlow). |
+| `quietRun` | `Boolean` | `false` | Show an open run without editing chrome: no Add a step, Arrange or Undo, and none of the lock, version, unsaved or setup notices. Notices about the run itself stay. The board-look editor passes it (PqFlowRun). |
+
+## Slots
+
+| Slot | Content |
+|---|---|
+| `toolbar-end` | What a host adds at the end of the toolbar, after the zoom. The board's canvas layout puts its validity pill and side panel toggle here. |
 
 ## Events
 

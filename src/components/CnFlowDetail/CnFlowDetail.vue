@@ -58,7 +58,7 @@
 					several seconds later. Pressing this produces an immediate
 					message beside the graph it is about.
 				-->
-				<NcButton v-if="addStep"
+				<NcButton v-if="addStep && editingShown"
 					data-testid="flow-add-step"
 					@click="stepPickerOpen = true">
 					<template #icon>
@@ -104,7 +104,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
-				<NcButton variant="tertiary"
+				<NcButton v-if="editingShown"
+					variant="tertiary"
 					:disabled="!store.nodes.length"
 					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
 					:title="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -116,7 +117,8 @@
 				<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
 				     about is a feature only its author has: the affordance is what
 				     tells a user the canvas is safe to experiment on. -->
-				<NcButton variant="tertiary"
+				<NcButton v-if="editingShown"
+					variant="tertiary"
 					:disabled="!store.canUndo"
 					:aria-label="t('nextcloud-vue', 'Undo the last change')"
 					:title="t('nextcloud-vue', 'Undo the last change')"
@@ -159,6 +161,9 @@
 					</template>
 				</NcButton>
 			</div>
+
+			<!-- @slot toolbar-end What a host adds at the end of the toolbar (the board's validity pill and panel toggle). -->
+			<slot name="toolbar-end" />
 
 			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
 			<NcButton v-if="!store.sidebarOpen"
@@ -402,6 +407,9 @@ const RUN_CATCH_UP_HOP_MS = 320
 const REPLAY_HOP_MIN_MS = 200
 const REPLAY_HOP_MAX_MS = 1500
 
+/** The canvas messages a quiet run keeps: what went wrong with the run itself. */
+const QUIET_RUN_MESSAGES = ['flow-not-found', 'action-failed', 'run-graph-unsaved', 'run-graph-unreadable', 'run-skipped']
+
 export default {
 	name: 'CnFlowDetail',
 
@@ -496,6 +504,16 @@ export default {
 		toolbarActions: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show an open run without editing chrome: no add, arrange or undo
+		 * buttons, and none of the editor's lock, version or setup notices.
+		 * The board look passes it (PqFlowRun).
+		 */
+		quietRun: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -627,6 +645,17 @@ export default {
 		 */
 		openingRun() {
 			return this.store.openingRunUuid !== null
+		},
+
+		/**
+		 * Whether the toolbar's editing buttons are drawn: not while a quiet
+		 * run is open.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-run-on-a-board-flow-page-shows-no-editing-chrome
+		 * @return {boolean}
+		 */
+		editingShown() {
+			return !(this.quietRun && this.store.inRunView)
 		},
 
 		/**
@@ -1382,6 +1411,9 @@ export default {
 				})
 			}
 
+			if (this.quietRun && this.store.inRunView) {
+				return messages.filter((message) => QUIET_RUN_MESSAGES.includes(message.id))
+			}
 			return messages
 		},
 
