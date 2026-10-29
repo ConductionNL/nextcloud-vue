@@ -332,6 +332,20 @@ export default {
 	font-weight: 700;
 }
 
+/* `pill`: the value in a soft 21px pill without an edge (DqTenant slug
+   "waterland"). */
+.cn-detail-header-chips__chip--pill {
+	box-sizing: border-box;
+	height: 21px;
+	padding: 0 10px;
+	border: none;
+	border-radius: 10.5px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	font-weight: 600;
+}
+
 .cn-detail-header-chips__value--mono {
 	font-family: var(--font-family-monospace, ui-monospace, monospace);
 }
