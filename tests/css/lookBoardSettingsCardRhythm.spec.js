@@ -37,4 +37,8 @@ describe('look-board.css: settings card rhythm', () => {
 		expect(body(`${CARD} .cn-settings-field__heading`)).toContain('line-height: 1.3;')
 		expect(body(`${CARD} .cn-settings-field__hint`)).toContain('line-height: 1.45;')
 	})
+
+	it('sets a textarea\'s hint 6px under its control, which has no negative margin to take back', () => {
+		expect(body(`${CARD} .cn-settings-field:has(> .textarea) > .cn-settings-field__hint`)).toContain('margin-block-start: 0;')
+	})
 })
