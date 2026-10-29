@@ -229,7 +229,7 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
-import { keepAuditEntries } from '../../utils/auditEntries.js'
+import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
@@ -1435,7 +1435,8 @@ export default {
 				return null
 			}
 			try {
-				const response = await fetch(prefixUrl(`/apps/openregister/api/objects/${register}/${schema}/${this.objectId}/audit-trails?limit=100`), { headers: buildHeaders() })
+				const query = new URLSearchParams({ limit: '100', ...auditExclusionParams(source) })
+				const response = await fetch(prefixUrl(`/apps/openregister/api/objects/${register}/${schema}/${this.objectId}/audit-trails?${query.toString()}`), { headers: buildHeaders() })
 				if (!response.ok) {
 					return null
 				}

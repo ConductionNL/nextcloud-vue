@@ -689,12 +689,17 @@ export default {
 		 * placeholder in the source string and can move it within the sentence —
 		 * the same contract as Nextcloud's own `t()` parameters.
 		 *
+		 * `@object.<field>`, `@objectId`, `@workspace.<key>` and `@config.<key>`
+		 * read the page's contexts as a source's tokens do, so a register-counted
+		 * tile can name its record's own figure ("of @object.capacity places").
+		 *
 		 * A token with no matching field resolves to the empty string rather
 		 * than being left as `{levelName}` on screen: a caption is decoration,
 		 * and showing a reader a raw token is worse than showing them less.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/stat-caption-formats/specs/stat-widget/spec.md#requirement-a-stat-caption-token-can-carry-a-format
+		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
 			const override = this.activeOverride
@@ -713,7 +718,11 @@ export default {
 				const zero = count !== null && this.content.captionSource.zeroText
 				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
 			}
-			const translated = this.effectiveTranslate(caption)
+			// `@object.<field>` names a field of the page's record (PqEvenement
+			// "van @object.capacity plaatsen" on a register-counted tile).
+			const translated = caption.indexOf('@') === -1
+				? this.effectiveTranslate(caption)
+				: this.interpolateTokens(this.effectiveTranslate(caption)).replace(/\s{2,}/g, ' ').trim()
 			if (translated.indexOf('{') === -1) {
 				return translated
 			}
