@@ -1900,7 +1900,7 @@
 
 /* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
 /* The band over the ticked files is the case list's selection band: 10px
-   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   14px, radius 10, the count bold in the band's ink, 34px buttons with their words
    only (DqDocumentenBeheer "2 documenten geselecteerd").
    @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
@@ -1912,6 +1912,7 @@
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
 	color: var(--color-primary-element-light-text);
+	font-weight: 700;
 }
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
