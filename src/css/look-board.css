@@ -3158,6 +3158,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	line-height: normal;
 }
 
+/* A one-line summary (`metaBeside`) sets its meta at 14px beside the title
+   (DqTermijnen "1 betaling, geen betwist").
+   @spec openspec/changes/record-list-meta-beside/specs/record-list-meta-beside/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--meta-beside .cn-record-list__meta {
+	font-size: 14px;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__trailing {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
