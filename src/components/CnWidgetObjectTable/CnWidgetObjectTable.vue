@@ -486,13 +486,13 @@ export default {
 			default: null,
 		},
 
-		/** Pre-translated "View all" footer label. Forwarded to CnDataTable. */
+		/** "View all" footer label, through the app's translate. Forwarded to CnDataTable. */
 		viewAllLabel: {
 			type: String,
 			default: undefined,
 		},
 
-		/** Text shown when there are no rows. Forwarded to CnDataTable. */
+		/** Text shown when there are no rows, through the app's translate. Forwarded to CnDataTable. */
 		emptyText: {
 			type: String,
 			default: undefined,
@@ -874,6 +874,13 @@ export default {
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
 					inner[k] = v
+				}
+			}
+			// The manifest writes these in English; a host that already
+			// translated them passes its words, which translate to themselves.
+			for (const key of ['viewAllLabel', 'emptyText']) {
+				if (typeof inner[key] === 'string' && inner[key] !== '') {
+					inner[key] = this.cnTranslate(inner[key])
 				}
 			}
 			// This widget's `schema` is a slug, while CnDataTable's `schema` is a
