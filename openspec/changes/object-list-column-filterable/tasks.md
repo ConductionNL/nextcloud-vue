@@ -1,0 +1,2 @@
+- [x] CnObjectListWidget column passthrough includes filterable and filterField
+- [x] Spec tests/components/CnObjectListWidgetColumnFilterable.spec.js
