@@ -284,6 +284,9 @@ export default {
 				const id = saved?.id ?? saved?.['@self']?.id ?? saved?.uuid ?? name
 				this.items.push({ id, name, row: saved || { [this.field]: name } })
 				this.draft = ''
+				/**
+				 * @event changed The list changed on the server: a word was added, renamed or deleted. No payload.
+				 */
 				this.$emit('changed')
 			} catch (err) {
 				this.error = this.failure(err)

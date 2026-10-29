@@ -26,6 +26,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `changed` | —       |             |
+| Name      | Payload | Description                                                                       |
+| --------- | ------- | --------------------------------------------------------------------------------- |
+| `changed` | —       | The list changed on the server: a word was added, renamed or deleted. No payload. |
