@@ -3060,12 +3060,13 @@
 													"register": { "type": "string" },
 													"schema": { "type": "string" },
 													"filter": { "type": "object", "additionalProperties": true },
-													"limit": { "type": "integer", "minimum": 1, "description": "Cap on the records fetched for the week (default 100)." }
+													"limit": { "type": "integer", "minimum": 1, "description": "Cap on the records fetched for the week (default 100)." },
+													"extend": { "type": "array", "items": { "type": "string" }, "description": "Relations OpenRegister inlines on each record (`_extend`), so a meta field can read a field of the related record, e.g. caseType.title." }
 												}
 											},
 											"dateField": { "type": "string", "description": "The field the items are bucketed by. Required with a source." },
 											"titleField": { "type": "string", "description": "The field shown as the item title. Defaults to the object's display name." },
-											"metaFields": { "type": "array", "items": { "type": "string" }, "description": "Fields shown under the title." },
+											"metaFields": { "type": "array", "items": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" }, "minItems": 1 }] }, "description": "Fields shown under the title, joined with a middle dot. An entry that is a list of fields shows the first one that is filled (e.g. [\"caseType.shortName\", \"caseType.title\"])." },
 											"itemRoute": { "type": "string", "description": "Route name an item links to; the record id goes in params.id." },
 											"lateWhen": {
 												"type": "object",

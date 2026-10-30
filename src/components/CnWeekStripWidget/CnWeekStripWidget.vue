@@ -128,9 +128,11 @@ export default {
 		/**
 		 * The widget's configuration. `days` is `5` (working days, the
 		 * default) or `7`. `source` names the OpenRegister register and schema,
-		 * with an optional `filter` (the shared @-token grammar) and `limit`.
-		 * `dateField` is the field the items are bucketed by. `titleField` and
-		 * `metaFields` pick what each item shows. `itemRoute` is the route name
+		 * with an optional `filter` (the shared @-token grammar), `limit` and
+		 * `extend` (relations OpenRegister inlines, so a meta field can read
+		 * `caseType.title`). `dateField` is the field the items are bucketed
+		 * by. `titleField` and `metaFields` pick what each item shows; a meta
+		 * entry that is a list of fields shows the first one that is filled. `itemRoute` is the route name
 		 * an item links to (with the record id as `params.id`). `lateWhen` is a
 		 * `{ op, value }` rule on the days until the date (default: before
 		 * today), `lateField` a boolean field that marks a record late.
@@ -144,7 +146,7 @@ export default {
 		 * opens the day in place. `moreLabel` replaces the text (`{count}` is
 		 * the number hidden).
 		 *
-		 * @type {{maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
+		 * @type {{maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number, extend?: Array<string>}, dateField?: string, titleField?: string, metaFields?: Array<(string|Array<string>)>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
 		 */
 		content: {
 			type: Object,
@@ -498,9 +500,8 @@ export default {
 				: objectDisplayName(row)
 			const metaFields = Array.isArray(c.metaFields) ? c.metaFields : []
 			const meta = metaFields
-				.map((field) => objectFieldValue(row, field))
-				.filter((value) => value !== undefined && value !== null && value !== '' && typeof value !== 'object')
-				.map(String)
+				.map((field) => this.metaValue(row, field))
+				.filter((value) => value !== '')
 				.join(' · ')
 			const flagged = c.lateField ? objectFieldValue(row, c.lateField) === true : false
 			const target = (c.itemRoute && id) ? { name: c.itemRoute, params: { id } } : null
@@ -513,6 +514,26 @@ export default {
 				target,
 				href: target ? resolveHref(target, this.$router) : '',
 			}
+		},
+
+		/**
+		 * The text of one meta entry: the field's value, or for a list of
+		 * fields the first that holds a plain value. '' when none does.
+		 *
+		 * @param {object} row The record.
+		 * @param {string|Array<string>} field A field path, or alternatives in order.
+		 * @return {string}
+		 * @spec openspec/changes/week-strip-meta-through-relation/specs/week-strip-meta-through-relation/spec.md#requirement-a-week-strip-item-can-name-a-field-of-a-related-record
+		 */
+		metaValue(row, field) {
+			const fields = Array.isArray(field) ? field : [field]
+			for (const one of fields) {
+				const value = objectFieldValue(row, one)
+				if (value !== undefined && value !== null && value !== '' && typeof value !== 'object') {
+					return String(value)
+				}
+			}
+			return ''
 		},
 
 		/**
@@ -576,6 +597,10 @@ export default {
 				const params = {
 					_limit: Number.isInteger(s.limit) && s.limit > 0 ? s.limit : DEFAULT_LIMIT,
 					[`_order[${this.dateField}]`]: 'asc',
+				}
+				const extend = Array.isArray(s.extend) ? s.extend.filter((e) => typeof e === 'string' && e !== '') : []
+				if (extend.length > 0) {
+					params._extend = extend
 				}
 				const filter = resolveFilterTokens(s.filter || {}, {})
 				for (const [k, v] of Object.entries(filter || {})) {
