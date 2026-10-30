@@ -1,3 +1,4 @@
 # Screens
 
-- buildiq: no board for row pg-empty-states (Helpful empty states on pages); it has no buildiq screen of its own (buildiq adopts this)
+- buildiq row pg-empty-states (Helpful empty states on pages): buildiq has no board of its own for it (buildiq adopts this)
+- opencatalogi/OcJsonUploaden: import publications from a file (row pub-import) (opencatalogi adopts this) https://identity.conduction.nl/screens/board?id=opencatalogi/OcJsonUploaden
