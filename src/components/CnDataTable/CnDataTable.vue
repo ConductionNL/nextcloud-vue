@@ -2112,14 +2112,19 @@ export default {
 		 * declaring the codes they label. A column `colorMap` (raw value to
 		 * badge variant) colours the enum pill from the manifest and wins over
 		 * the schema property's own `colorMap` / `x-color-map`. A column with
-		 * `valueField` takes that field's property.
+		 * `valueField` takes that field's property. A column with a `template`
+		 * holds the filled line, which is text whatever the key's schema type.
 		 *
 		 * @param {object} col Column definition.
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
 		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
+		 * @spec openspec/changes/template-cell-is-text/specs/data-table/spec.md
 		 */
 		columnProperty(col) {
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return { type: 'string' }
+			}
 			const base = this.getSchemaProperty(this.columnValueField(col))
 			// A system date (`@self.created`, `@self.updated`, ...) has no
 			// schema property behind it; it renders as a date-time.
