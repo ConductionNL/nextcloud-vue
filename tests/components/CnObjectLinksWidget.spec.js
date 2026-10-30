@@ -59,7 +59,7 @@ const RELATIONS = {
 	pair: true,
 	types: [
 		{ value: 'partner', label: 'Partner of', inverse: 'partner', group: 'Family' },
-		{ value: 'secretaris', label: 'Secretary of', inverse: 'heeft-secretaris', group: 'Organisation' },
+		{ value: 'secretaris', label: 'Secretary of', inverse: 'heeft-secretaris', group: 'Organisatie', groupLabel: 'Organisation' },
 	],
 	targets: [
 		{ type: 'contact', register: 'pipelinq', schema: 'contact', titleField: 'name', label: 'contact', route: 'ContactDetail' },
@@ -207,7 +207,7 @@ describe('CnObjectLinksWidget', () => {
 			toType: 'client',
 			type: 'secretaris',
 			inverseType: 'heeft-secretaris',
-			category: 'Organisation',
+			category: 'Organisatie',
 		}])
 		expect(mockPost.mock.calls[1][1]).toMatchObject({
 			fromContact: 'o-2',
@@ -306,6 +306,7 @@ describe('CnObjectLinkDialog', () => {
 			{ id: 'o-1', label: 'Buurtvereniging Oost', secondary: 'client', type: 'client' },
 		])
 		expect(w.findComponent({ name: 'NcSelect' }).props('options')[0]).toEqual({ value: 'partner', label: 'Partner of (Family)' })
+		expect(w.findComponent({ name: 'NcSelect' }).props('options')[1]).toEqual({ value: 'secretaris', label: 'Secretary of (Organisation)' })
 	})
 
 	it('saves the pick with the filled values and closes; a refusal stays in the dialog', async () => {

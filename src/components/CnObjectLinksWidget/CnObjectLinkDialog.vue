@@ -144,13 +144,13 @@ export default {
 			return Array.isArray(this.content.targets) ? this.content.targets.filter((target) => target && target.register && target.schema) : []
 		},
 
-		/** The type choices, each with its group in brackets. */
+		/** The type choices, each with its group in brackets (`groupLabel`, else `group`). */
 		typeOptions() {
 			return (Array.isArray(this.content.types) ? this.content.types : [])
 				.filter((type) => type && type.value !== undefined)
 				.map((type) => ({
 					value: type.value,
-					label: type.group ? `${this.tr(type.label || String(type.value))} (${this.tr(type.group)})` : this.tr(type.label || String(type.value)),
+					label: this.groupWords(type) ? `${this.tr(type.label || String(type.value))} (${this.groupWords(type)})` : this.tr(type.label || String(type.value)),
 				}))
 		},
 
@@ -171,6 +171,16 @@ export default {
 				return ''
 			}
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A type's group in words: `groupLabel`, else the stored `group`, translated.
+		 *
+		 * @param {{group?: string, groupLabel?: string}} type The type.
+		 * @return {string}
+		 */
+		groupWords(type) {
+			return this.tr(type.groupLabel || type.group || '')
 		},
 
 		onSearch(query) {

@@ -108,7 +108,8 @@ export default {
 		 * - `fromType`, `toType`, `selfType`: the fields that name each side's kind, and this record's kind.
 		 * - `typeField`, `inverseField`, `groupField`: the fields the link's type, its inverse type and
 		 *   its group are written to.
-		 * - `types`: `[{ value, label, inverse?, group? }]`: the choices, and how a row words its type.
+		 * - `types`: `[{ value, label, inverse?, group?, groupLabel? }]`: the choices, and how a row words its type;
+		 *   `group` is written to `groupField`, `groupLabel` (else `group`) words it in the dialog.
 		 * - `targets`: `[{ type, register, schema, titleField?, label?, route? }]`: the kinds of record a
 		 *   link may point at; a row reads the name from the target its `toType` names (else the first)
 		 *   and links to its `route` with `params.id`.

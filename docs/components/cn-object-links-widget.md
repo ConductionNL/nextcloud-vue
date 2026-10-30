@@ -50,7 +50,7 @@ Board PqKlant "Relaties" reads "Secretaris van Buurtvereniging Oost" and "Partne
 | `from`, `to` | The link fields that hold this record's id and the other record's id (required). The list reads the links whose `from` is this record. |
 | `fromType`, `toType`, `selfType` | The fields that name each side's kind, and this record's kind. A row reads the name from the target its `toType` names, else the first target. |
 | `typeField`, `inverseField`, `groupField` | The fields a new link's type, inverse type and group are written to. |
-| `types[]` | `{ value, label, inverse?, group? }`: the choices in the dialog ("Partner of (Family)") and how a row words its type. A stored type without an entry shows as stored. |
+| `types[]` | `{ value, label, inverse?, group?, groupLabel? }`: the choices in the dialog ("Partner of (Family)") and how a row words its type. `group` is the value written to `groupField`; `groupLabel` words it in the dialog when the stored value is not the words. A stored type without an entry shows as stored. |
 | `targets[]` | `{ type, register, schema, titleField?, label?, route? }`: the kinds of record a link can point at. The dialog searches each (`_search`, ten each, this record left out) and shows `label` under a result; a row links to `route` with `params.id`. `titleField` defaults to `name`. |
 | `pair` | Write the inverse link from the other record on add, and delete it on remove. |
 | `fields[]` | `{ key, label, type?: "text" \| "textarea" \| "date" }`: extra values the dialog asks; empty ones are not written. |
