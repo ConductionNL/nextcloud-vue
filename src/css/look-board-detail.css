@@ -1214,6 +1214,18 @@
 	font-size: 16px;
 }
 
+/* A person chip's initials (DqTenant "Beheerder": MV) are 12px, and a teal
+   tile keeps its tone on the board.
+   @spec openspec/changes/facts-lead-person-chip/specs/facts-widget/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead--chip .cn-facts-widget__lead-tile--initials:not(.cn-look-nextcloud *) {
+	font-size: 12px;
+}
+
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead-tile--initials.cn-facts-widget__lead-tile--teal:not(.cn-look-nextcloud *) {
+	background: var(--cn-status-teal-bg, var(--cn-board-teal-tint));
+	color: var(--cn-status-teal-text, var(--cn-board-teal-ink));
+}
+
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
    the board draws it. The card-fit wrapper is flush, and the wrapper's own
    flush rule loads after this sheet and outranked the side card's padding,
