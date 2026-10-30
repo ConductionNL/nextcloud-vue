@@ -1316,6 +1316,9 @@
 				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft"
+				:draftField="draftField"
 				@confirm="onCreateFormConfirm"
 				@close="onCreateFormClose" />
 
@@ -1342,6 +1345,9 @@
 				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft && currentObject?.[draftField] === true"
+				:draftField="draftField"
 				@confirm="onEditFormConfirm"
 				@close="closeEditForm" />
 		</slot>
@@ -1355,6 +1361,7 @@
 			:item="sourceVerbForm.form.item || {}"
 			:dialogTitle="sourceVerbForm.label"
 			:fieldOverrides="sourceVerbForm.form.fieldOverrides || {}"
+			:draftAppId="draftAppId"
 			@confirm="onSourceVerbFormConfirm"
 			@close="sourceVerbForm = null" />
 
@@ -1900,6 +1907,33 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The app a form draft belongs to, forwarded to every form this page
+		 * opens as CnFormDialog's `draftAppId`, so what a user typed and did not
+		 * save is kept and offered back under this app's key.
+		 */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Offer "Save draft" on the create form, forwarded as CnFormDialog's
+		 * `allowDraft`. On an edit form it is offered only while the record is
+		 * still a draft: saving a record that is already in use as a draft
+		 * would take it out of use.
+		 */
+		allowDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The boolean property that marks a record as a draft (CnFormDialog's `draftField`). */
+		draftField: {
+			type: String,
+			default: 'isDraft',
 		},
 
 		/**
