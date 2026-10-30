@@ -48,3 +48,16 @@ describe('a formatter column and the schema enum labels', () => {
 		expect(col.enum).toBeUndefined()
 	})
 })
+
+describe('a formatter column asks for the schema', () => {
+	it('loads the schema when a labelled formatter column states no enum', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: { content: { register: 'r', schema: 'programmeTask', columns: [{ key: 'status', label: 'Status', widget: 'badge', formatter: 'enumLabel' }] } },
+			stubs: { CnDataTable: true, CnFormDialog: true },
+			mocks: { t: (_app, s) => s },
+		})
+		const ensure = jest.spyOn(w.vm, 'ensureSchema').mockResolvedValue()
+		await w.vm.loadHeadingsIfNeeded()
+		expect(ensure).toHaveBeenCalled()
+	})
+})

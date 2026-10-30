@@ -2675,7 +2675,8 @@ export default {
 		 * Load the schema when, and only when, a column needs it: for its
 		 * heading (no `label`), or for its presentation (a top-level key
 		 * without its own `format`, `enum`, `widget` or `formatter`, which
-		 * takes the property's format and enum labels).
+		 * takes the property's format and enum labels; or one with a
+		 * `formatter` and no `enum`, whose formatter may print the enum label).
 		 *
 		 * A widget whose every column says its label and presentation, or
 		 * reads a dotted path the list's schema does not hold, never makes
@@ -2692,7 +2693,7 @@ export default {
 			const needsSchema = cols.some((c) => (typeof c === 'string')
 				|| !c.label
 				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
-					&& c.format === undefined && c.enum === undefined && c.widget === undefined && c.formatter === undefined))
+					&& c.enum === undefined && (c.formatter !== undefined || (c.format === undefined && c.widget === undefined))))
 			if (needsSchema === false) {
 				return
 			}
