@@ -791,8 +791,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    line, 12px 14px in at radius 8 on the status warning ground, 15px bold in
    the warning ink with a 20px icon 10px before it; NcNoteCard paints its
    ground and ink with `!important`. A match card stacks its title and facts
-   3px apart, 12px 14px in, the facts at 13px; the small print is 13px.
+   3px apart, 12px 14px in, the facts at 13px; the small print is 13px. The
+   note, the matches and the reason field stand 14px apart.
    @spec openspec/changes/board-duplicate-warning-text/specs/board-duplicate-warning-text/spec.md#requirement-a-board-duplicate-warning-is-drawn-as-the-board */
+.cn-dialog-board .dialog__content .cn-duplicate-warning {
+	gap: 14px;
+}
+
 .cn-dialog-board .dialog__content .cn-duplicate-warning > .notecard.notecard--warning {
 	--note-card-icon-size: 20px;
 	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));
