@@ -281,3 +281,52 @@ export function newPartyRecord(create, values) {
 export function savedUuid(saved) {
 	return String(saved?.['@self']?.id || saved?.uuid || saved?.id || '')
 }
+
+/**
+ * The board row's meta line (DqZaakBetrokkenen "Rollen", design-system #811):
+ * the primary mark, the role, the link's note and the extra lines, by middots.
+ * A role that follows the primary mark reads in lower case ("Primaire partij ·
+ * verzoeker"), unless it is an abbreviation. No kind word: the row's role and
+ * note already say what the party is.
+ *
+ * @param {{primary: string, role: string, note: string, extras: Array<string>}} parts The parts.
+ * @return {string} The line.
+ * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-board-party-row-reads-as-design-system-811-draws-it
+ */
+export function boardMetaLine({ primary = '', role = '', note = '', extras = [] }) {
+	let shownRole = typeof role === 'string' ? role : ''
+	const abbreviation = shownRole.length > 1 && shownRole[1] === shownRole[1].toUpperCase() && shownRole[1] !== shownRole[1].toLowerCase()
+	if (primary && shownRole !== '' && !abbreviation) {
+		shownRole = shownRole[0].toLowerCase() + shownRole.slice(1)
+	}
+	return [primary, shownRole, note, ...(Array.isArray(extras) ? extras : [])]
+		.filter((part) => typeof part === 'string' && part.trim() !== '')
+		.join(' · ')
+}
+
+/**
+ * Whether a party's row says it has no secrecy (`content.secrecy`): its kind
+ * is one of `kinds`, its record carries no indicator keyed `indicator`, and,
+ * with `primaryOnly`, it is the record's primary party.
+ *
+ * @param {object} party The listing row (`partyUuid`, `partyKind`).
+ * @param {object|undefined} record The party record with its `indicators`.
+ * @param {{indicator: string, kinds?: Array<string>, primaryOnly?: boolean}|undefined} secrecy The declaration.
+ * @param {string|null} primary The primary party's uuid.
+ * @return {boolean}
+ * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-party-of-a-listed-kind-says-it-has-no-secrecy
+ */
+export function showsNoSecrecy(party, record, secrecy, primary) {
+	if (!secrecy || typeof secrecy.indicator !== 'string' || secrecy.indicator === '' || !party) {
+		return false
+	}
+	const kinds = Array.isArray(secrecy.kinds) ? secrecy.kinds : []
+	if (kinds.length > 0 && !kinds.includes(party.partyKind)) {
+		return false
+	}
+	if (secrecy.primaryOnly === true && (!primary || party.partyUuid !== primary)) {
+		return false
+	}
+	const indicators = Array.isArray(record?.indicators) ? record.indicators : []
+	return !indicators.some((indicator) => indicator && indicator.key === secrecy.indicator)
+}
