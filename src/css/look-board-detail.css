@@ -2143,6 +2143,13 @@
 	gap: 14px 16px;
 }
 
+/* The hint under the template row is 13px on the normal line (DqZaakEmail
+   r36: the mail rows 705.9 vs 697). */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__hint:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+	line-height: normal;
+}
+
 /* In a page card the mail tab is the card's body: no padding of its own, 12px
    between its parts, the heading at the card title's 17px/700 and the
    description at 14px (DqZaakEmail "E-mail").
