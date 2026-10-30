@@ -9,6 +9,10 @@ In the board look, an NcSelect with a visible label inside a page card SHALL sho
 - THEN "E-mailsjabloon" stands above the field, 6px over its 40px edge
 - AND "Concept openen uit sjabloon" stands beside it, level with the field
 
+#### Scenario: a select in a plain detail card
+- GIVEN a CnDetailCard outside a widget host in the board look, such as the till's Transactie card
+- THEN "Prijsweergave" and "Betaalwijze" stand above their fields at 14px/600, as on a widget host card
+
 #### Scenario: an unlabelled filter select
 - GIVEN a select labelled only for assistive technology
 - THEN it keeps its height and margins
