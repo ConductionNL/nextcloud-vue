@@ -450,6 +450,7 @@ export function actionLink(action, context = {}) {
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
  * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
+ * @spec openspec/changes/api-call-delete/specs/api-call-delete/spec.md#requirement-an-api-call-action-can-send-delete
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -467,7 +468,7 @@ async function executeApiCall(action, context) {
 		return { ok: false, error: new Error('api-call blocked') }
 	}
 	const verb = String(action.method || 'POST').toUpperCase()
-	const method = { PUT: 'put', PATCH: 'patch', GET: 'get' }[verb] || 'post'
+	const method = { PUT: 'put', PATCH: 'patch', GET: 'get', DELETE: 'delete' }[verb] || 'post'
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -481,11 +482,14 @@ async function executeApiCall(action, context) {
 		// call shape for every existing (non-download) api-call consumer/test.
 		// A GET sends the resolved params as the query string: it reads, as a
 		// download of what the page shows (DqDoorlooptijd "Downloaden").
+		// A DELETE carries its body as the request data (an unfreeze reason).
 		const res = method === 'get'
 			? await axios.get(target, isDownload ? { params: body, responseType: 'blob' } : { params: body })
-			: (isDownload
-					? await axios[method](target, body, { responseType: 'blob' })
-					: await axios[method](target, body))
+			: method === 'delete'
+				? await axios.delete(target, { data: body })
+				: (isDownload
+						? await axios[method](target, body, { responseType: 'blob' })
+						: await axios[method](target, body))
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -736,7 +740,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string).
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string) | "DELETE" (the body as request data).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
