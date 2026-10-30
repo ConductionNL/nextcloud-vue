@@ -1727,10 +1727,28 @@
    section titles over their rows, not the inner heading's 1.4em. */
 .cn-look-board .cn-retention .cn-retention__section > .cn-inner-heading,
 .cn-look-board .cn-retention .cn-retention__outcome > .cn-inner-heading {
-	margin: 4px 0 0;
+	margin: 6px 0 0;
 	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.2;
+}
+
+/* An open record's note sits 10px under its facts and leaves the space under
+   it to the card's 10px gap; 13px at 1.5, 10px 14px in. A section's rows sit
+   10px under its title (r36: Bewaring +7.4, the note 714.4/62 vs 709/59). */
+.cn-look-board .cn-retention .cn-retention__pending > .notecard {
+	margin: 10px 0 0;
+	padding: 10px 14px;
+}
+
+.cn-look-board .cn-retention .cn-retention__pending > .notecard,
+.cn-look-board .cn-retention .cn-retention__pending > .notecard * {
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-retention .cn-retention__section {
+	gap: 10px;
 }
 
 /* ---- The task table's row button (CnTasksWidget table, DqZaakTaken) ------ */
