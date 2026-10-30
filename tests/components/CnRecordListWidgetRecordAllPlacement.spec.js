@@ -91,6 +91,32 @@ describe('record-all placement', () => {
 		w.unmount()
 	})
 
+	it('moves the pair into the named card when that card comes on the page later', async () => {
+		document.querySelector('[data-cn-widget-id="eod-ready"]').remove()
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		const w = mountList(content({ widget: 'eod-ready' }))
+		await flush()
+		expect(w.element.querySelector('[data-testid="cn-record-list-record-all"]')).not.toBeNull()
+		document.body.insertAdjacentHTML('beforeend', '<div class="grid-stack-item" data-cn-widget-id="eod-ready"><div class="cn-widget-wrapper"><div class="cn-widget-wrapper__content"></div></div></div>')
+		await flush()
+		const card = document.querySelector('[data-cn-widget-id="eod-ready"] .cn-widget-wrapper__content')
+		expect(card.querySelector('[data-testid="cn-record-list-record-all"]')).not.toBeNull()
+		expect(w.element.querySelector('[data-testid="cn-record-list-record-all"]')).toBeNull()
+		w.unmount()
+	})
+
+	it('follows the named card when the grid draws it again', async () => {
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		const w = mountList(content({ widget: 'eod-ready' }))
+		await flush()
+		document.querySelector('[data-cn-widget-id="eod-ready"]').remove()
+		document.body.insertAdjacentHTML('beforeend', '<div class="grid-stack-item" data-cn-widget-id="eod-ready"><div class="cn-widget-wrapper"><div class="cn-widget-wrapper__content"></div></div></div>')
+		await flush()
+		const card = document.querySelector('[data-cn-widget-id="eod-ready"] .cn-widget-wrapper__content')
+		expect(card.querySelector('[data-testid="cn-record-list-record-all"]')).not.toBeNull()
+		w.unmount()
+	})
+
 	it('names each dashboard grid item by its widget, and draws a placed pair under a rule', () => {
 		const grid = fs.readFileSync(path.join(__dirname, '../../src/components/CnDashboardGrid/CnDashboardGrid.vue'), 'utf8')
 		expect(grid).toMatch(/:data-cn-widget-id="item\.widgetId/)

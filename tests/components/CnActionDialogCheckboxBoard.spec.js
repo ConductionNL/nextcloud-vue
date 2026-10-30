@@ -34,4 +34,10 @@ describe('CnActionDialog checkbox field', () => {
 		expect(row).toContain('gap: 12px')
 		expect(rule('.cn-action-dialog__checkbox-label')).toContain('line-height: 1.2')
 	})
+
+	it('keeps its 12px 14px inset over the switch root padding', () => {
+		// NcCheckboxRadioSwitch's own `.checkbox-radio-switch { padding: 0 }` has the same
+		// weight and is injected again by every bundle that ships it, so a one-class rule loses.
+		expect(rule('\n.cn-action-dialog__checkbox.checkbox-radio-switch')).toContain('padding: 12px 14px')
+	})
 })

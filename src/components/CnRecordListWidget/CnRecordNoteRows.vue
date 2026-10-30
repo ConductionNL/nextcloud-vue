@@ -268,11 +268,14 @@ export default {
 	mounted() {
 		this.findPlacedTarget()
 		this.$nextTick(() => this.findPlacedTarget())
-		this.placedTimer = setTimeout(() => this.findPlacedTarget(), 0)
+		this.watchPlacedTarget()
 	},
 
 	beforeUnmount() {
-		clearTimeout(this.placedTimer)
+		if (this.placedObserver) {
+			this.placedObserver.disconnect()
+			this.placedObserver = null
+		}
 	},
 
 	methods: {
@@ -286,11 +289,28 @@ export default {
 		 */
 		findPlacedTarget() {
 			const widget = this.recordAll?.placement?.widget
-			if (this.placedTarget || typeof widget !== 'string' || widget === '' || typeof document === 'undefined') {
+			if ((this.placedTarget && this.placedTarget.isConnected) || typeof widget !== 'string' || widget === '' || typeof document === 'undefined') {
 				return
 			}
 			const card = [...document.querySelectorAll('[data-cn-widget-id]')].find((el) => el.getAttribute('data-cn-widget-id') === widget)
 			this.placedTarget = card ? (card.querySelector('.cn-widget-wrapper__content') || null) : null
+		},
+
+		/**
+		 * Look for the placed card again whenever the page changes: the grid
+		 * can draw that card after this list, or draw it again, and a pair
+		 * left in a card no longer on the page is not seen at all.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/record-all-follows-its-card/specs/record-list-notes/spec.md#requirement-the-placed-pair-follows-its-card
+		 */
+		watchPlacedTarget() {
+			const widget = this.recordAll?.placement?.widget
+			if (typeof widget !== 'string' || widget === '' || typeof MutationObserver === 'undefined' || typeof document === 'undefined') {
+				return
+			}
+			this.placedObserver = new MutationObserver(() => this.findPlacedTarget())
+			this.placedObserver.observe(document.body, { childList: true, subtree: true })
 		},
 
 		/**

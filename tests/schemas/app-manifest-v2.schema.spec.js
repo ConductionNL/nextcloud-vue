@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.166.0', () => {
+	it('the manifest schema version reads 2.167.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1440,7 +1440,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.164.0 lets a filterStrip option list several stored values (values; filter-strip-option-values), a flow page's `layout` be a word, `canvas` or `cards` (flow-board-canvas-chrome), and a chart write compact numbers (valueFormat compact; chart-compact-number).
 		// 2.165.0 lets a header `actions-menu` button sit at the end of the page tabs' row (placement tabs; actions-menu-beside-tabs).
 		// 2.166.0 lets an expandable row's table carry an entry action (entryAction; expandable-row-entry-action), a link card open the user settings and a links panel badge take a tone (action user-settings, tone; link-cards-settings-action) and placements on one row share a height (sameHeight; dashboard-row-same-height).
-		expect(schema.version).toBe('2.166.0')
+		// 2.167.0 lets a detail header field be drawn as a soft pill (format pill; header-field-pill) and a headerMeta count read a named entity source, on an index or a detail page (headerMetaCounts entitySource; header-meta-count-entity-source).
+		expect(schema.version).toBe('2.167.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {

@@ -23,3 +23,8 @@ its line 15px bold on the normal line height in the warning ink. A match card SH
 - **WHEN** a handler files a case that matches an open one
 - **THEN** the note reads "1 openstaande zaak lijkt op deze." in 15px bold on the warning ground at radius 8
 - **AND** the match card is about 80px high with its two facts lines at 13px
+
+#### Scenario: DqNieuweZaakDubbel spacing
+
+- **GIVEN** the duplicate warning in a board dialog
+- **THEN** the warning note, the matches and the reason field stand 14px apart

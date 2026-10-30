@@ -1,0 +1,4 @@
+- [x] metaBeside class and rules
+- [x] board look 14px meta
+- [x] jest
+- [x] probed on :8080 by injection

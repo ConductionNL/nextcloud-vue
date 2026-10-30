@@ -64,6 +64,7 @@ Tokens (`@objectId`, `@object.<field>`) resolve in every url.
 | `config` | Object | `{}` | The configuration above |
 | `objectId` | String \| Number | `''` | The record's id, for the `@objectId` token; when empty or still a token, the route's `id` |
 | `object` | Object | `null` | The record, when the host has it |
+| `selectedIds` (`selected-ids`) | Array | `[]` | The selected record ids, when a bulk action opened the dialog |
 
 ## Events
 

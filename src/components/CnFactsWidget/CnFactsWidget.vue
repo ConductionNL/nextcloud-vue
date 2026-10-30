@@ -135,12 +135,13 @@
 					:is="block.to ? 'router-link' : 'div'"
 					v-else-if="block.kind === 'lead'"
 					class="cn-facts-widget__lead"
-					:class="{ 'cn-facts-widget__lead--card': block.card }"
+					:class="{ 'cn-facts-widget__lead--card': block.card, 'cn-facts-widget__lead--chip': block.size > 0 && block.size < 32 }"
 					:to="block.to || undefined"
 					:data-testid="`cn-fact-${block.key}`">
 					<span
 						class="cn-facts-widget__lead-tile"
 						:class="[`cn-facts-widget__lead-tile--${block.tone}`, { 'cn-facts-widget__lead-tile--initials': !block.icon }]"
+						:style="block.size > 0 ? { '--cn-facts-lead-tile-size': `${block.size}px` } : null"
 						aria-hidden="true">
 						<CnIcon v-if="block.icon" :name="block.icon" :size="20" />
 						<template v-else>{{ block.initials }}</template>
@@ -501,7 +502,7 @@ export default {
 		 * The widget configuration.
 		 *
 		 * - `fields` — the entries, in order. Each is `{ path, label?, as?, from?, format?, map?, itemPath?, parts?, separator?, route?, variant?, variantMap?, colorMap?, icon?, copy?, reveal?, inline?, joinPrevious?, joinSeparator?, text?, title?, subtitle?, initialsPath?, tone? }`.
-		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`. A `title` takes `size` in px (a Termijn card's 26px figure).
+		 *   `as` is `row` (default when `label` or `icon` is set), `title`, `line`, `text` (a line in the normal ink), `lead` (an icon tile or initials beside `title` and `subtitle`), `pill` or `meter`. A `title` takes `size` in px (a Termijn card's 26px figure). A `lead` takes `size` for its tile in px (under 32 it is a person chip: 12px initials 8px from the name in the normal weight), `initialsFrom: "title"` to take the initials from the name it shows, and `tone` (`success`, `info`, `warning`, `error`, `teal`).
 		 *   `countFrom` (`{ register, schema, filter? }`, `@objectId` / `@object.<field>` in the filter) shows how many records that list holds ("Lopende zaken 43"); the row is left out while the count cannot be read.
 		 *   A `meter` shows the amount at `path` against the limit at `limitPath` (or a constant `limit`) as "12 of 50" with a bar; past the limit the bar turns red and the text says "over the limit"; without a positive limit it shows the amount and no bar.
 		 *   A `line` or `text` with `joinPrevious: true` is written on after the line or text just before it, as one paragraph (`joinSeparator`, default a space); with none before it, it stands alone. A text joined with a line break (`joinSeparator: "\n"`) keeps it: two address lines as one block.
@@ -918,8 +919,9 @@ export default {
 				if (kind === 'lead') {
 					block.subtitle = this.partsValue(record, field.subtitle)
 					block.icon = typeof field.icon === 'string' ? field.icon : ''
-					block.initials = block.icon ? '' : this.initialsOf(readPath(record, field.initialsPath))
-					block.tone = ['success', 'info', 'warning', 'error'].includes(field.tone) ? field.tone : 'neutral'
+					block.initials = block.icon ? '' : this.initialsOf(field.initialsFrom === 'title' ? value : readPath(record, field.initialsPath))
+					block.size = Number.isFinite(Number(field.size)) && Number(field.size) > 0 ? Number(field.size) : 0
+					block.tone = ['success', 'info', 'warning', 'error', 'teal'].includes(field.tone) ? field.tone : 'neutral'
 					block.card = field.card === true
 					block.to = field.route ? this.resolveRoute(field.route, record) : null
 					block.pill = this.leadPillOf(record, field.pill)
@@ -2629,9 +2631,23 @@ export default {
 	flex: none;
 	font-size: 14px;
 	font-weight: 700;
-	height: 40px;
+	height: var(--cn-facts-lead-tile-size, 40px);
 	justify-content: center;
-	width: 40px;
+	width: var(--cn-facts-lead-tile-size, 40px);
+}
+
+/* A lead under 32px is a person chip: the initials 12px, 8px from the name,
+   the name in the normal weight (DqTenant "Beheerder"). */
+.cn-facts-widget__lead--chip {
+	gap: 8px;
+}
+
+.cn-facts-widget__lead--chip .cn-facts-widget__lead-tile {
+	font-size: 12px;
+}
+
+.cn-facts-widget__lead--chip .cn-facts-widget__lead-title {
+	font-weight: 400;
 }
 
 /* A lead drawn as a card: a bordered row that opens its record (PqContactmoment "Over dit verzoek"). */
@@ -2661,6 +2677,12 @@ export default {
 	background: color-mix(in srgb, var(--color-success) 14%, var(--color-main-background));
 	border-radius: 50%;
 	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-facts-widget__lead-tile--teal {
+	background: var(--cn-status-teal-bg, var(--color-background-dark));
+	border-radius: 50%;
+	color: var(--cn-status-teal-text, var(--color-main-text));
 }
 
 .cn-facts-widget__lead-tile--info {

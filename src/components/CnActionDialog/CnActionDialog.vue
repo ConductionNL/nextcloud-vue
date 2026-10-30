@@ -993,8 +993,13 @@ export default {
 	margin-top: 1px;
 }
 
-.cn-action-dialog__checkbox {
+/* Two classes: the switch root's own `padding: 0` weighs the same and is
+   injected again by every bundle that ships NcCheckboxRadioSwitch. */
+.cn-action-dialog__checkbox.checkbox-radio-switch {
 	padding: 12px 14px;
+}
+
+.cn-action-dialog__checkbox {
 	border: 2px solid var(--color-primary-element);
 	border-radius: var(--border-radius-element, 8px);
 	background: var(--color-main-background);

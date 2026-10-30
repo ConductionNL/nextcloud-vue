@@ -245,6 +245,17 @@ describe('CnWidgetObjectTable — compact-list pass-through props', () => {
 		expect(table.props('rowIcon')).toBe('FileDocumentOutline')
 	})
 
+	it('translates the manifest-authored viewAllLabel and emptyText through the app', () => {
+		const words = { 'View all clients': 'Alle klanten bekijken', 'No clients yet': 'Nog geen klanten' }
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients', emptyText: 'No clients yet' },
+			provide: { cnTranslate: (key) => words[key] || key },
+		})
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('viewAllLabel')).toBe('Alle klanten bekijken')
+		expect(table.props('emptyText')).toBe('Nog geen klanten')
+	})
+
 	it('leaves CnDataTable defaults intact when emptyText / viewAllLabel are unset', () => {
 		const wrapper = shallowMount(CnWidgetObjectTable, {})
 		const table = wrapper.findComponent({ name: 'CnDataTable' })

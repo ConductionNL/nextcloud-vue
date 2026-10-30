@@ -108,6 +108,8 @@ template filled from the row ("Assign to {displayName}").
 `footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
 (one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
 capacity"). It shows with no rows too, and not when the value is empty or zero.
+`{ source, text }` reads the value from a request of its own instead (`source` in the `endpointSource` shape, page
+tokens filled in), for a fact that does not live in the rows' answer (DqTenant "Historie": "Kenmerk TEN-0014").
 
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
