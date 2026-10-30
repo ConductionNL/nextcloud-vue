@@ -35,6 +35,8 @@ const CnNotesCardAdapter = {
 		endpoint: { type: String, default: '' },
 		// `button` puts the add form behind an "Add note" button (card header, or above the notes tab).
 		composer: { type: String, default: 'inline' },
+		// `authored` draws a note led by its author's initials (the notes tab only).
+		noteRows: { type: String, default: 'list' },
 		// Accepted-and-ignored: forwarded by the surface components.
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
@@ -53,6 +55,7 @@ const CnNotesCardAdapter = {
 				mentionUrl: this.mentionUrl,
 				noteActions: this.noteActions,
 				composer: this.composer,
+				noteRows: this.noteRows,
 			})
 		}
 		return h(CnNotesCard, {

@@ -58,6 +58,15 @@
 				</template>
 			</CnDataTable>
 
+			<!-- `footnote`: a muted line under the table, through the host
+			     translate; not while a refused or failed read shows no table. -->
+			<p
+				v-if="footnote && !(endpointActive && (epError || epAwaitingRequest))"
+				class="cn-widget-object-table__footnote"
+				data-testid="cn-widget-object-table-footnote">
+				{{ cnTranslate(footnote) }}
+			</p>
+
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
@@ -477,13 +486,13 @@ export default {
 			default: null,
 		},
 
-		/** Pre-translated "View all" footer label. Forwarded to CnDataTable. */
+		/** "View all" footer label, through the app's translate. Forwarded to CnDataTable. */
 		viewAllLabel: {
 			type: String,
 			default: undefined,
 		},
 
-		/** Text shown when there are no rows. Forwarded to CnDataTable. */
+		/** Text shown when there are no rows, through the app's translate. Forwarded to CnDataTable. */
 		emptyText: {
 			type: String,
 			default: undefined,
@@ -517,7 +526,8 @@ export default {
 		 * Column heads that sort, as the index table's: `true` for every
 		 * column, or the keys that do. A column's own `sortable` wins. The
 		 * sort goes out with the widget's fetch (`source`), replacing
-		 * `source.order` while it is set.
+		 * `source.order` while it is set; `endpointSource` rows are sorted
+		 * here.
 		 */
 		sortable: {
 			type: [Boolean, Array],
@@ -527,11 +537,22 @@ export default {
 		/**
 		 * Column heads with the index table's filter button. A header filter
 		 * goes out with the widget's fetch (`source`) as the same parameters
-		 * the index page sends.
+		 * the index page sends; `endpointSource` rows are filtered here.
 		 */
 		filterable: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A muted line under the table (DqTermijnen Ingebrekestellingen
+		 * "Een ingebrekestelling telt pas ..."), through the host translate.
+		 *
+		 * @spec openspec/changes/object-table-footnote/specs/object-table-footnote/spec.md#requirement-an-object-table-can-carry-a-footnote
+		 */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -848,11 +869,18 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, exportId, sortable, filterable, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, exportId, sortable, filterable, footnote, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
 					inner[k] = v
+				}
+			}
+			// The manifest writes these in English; a host that already
+			// translated them passes its words, which translate to themselves.
+			for (const key of ['viewAllLabel', 'emptyText']) {
+				if (typeof inner[key] === 'string' && inner[key] !== '') {
+					inner[key] = this.cnTranslate(inner[key])
 				}
 			}
 			// This widget's `schema` is a slug, while CnDataTable's `schema` is a
@@ -1318,6 +1346,13 @@ export default {
 <style scoped>
 .cn-widget-object-table {
 	width: 100%;
+}
+
+.cn-widget-object-table__footnote {
+	margin: 12px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	line-height: normal;
 }
 
 .cn-widget-object-table__footer {

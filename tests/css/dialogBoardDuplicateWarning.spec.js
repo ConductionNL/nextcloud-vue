@@ -54,4 +54,8 @@ describe('dialog.css: the duplicate warning in a board dialog', () => {
 	it('sets the small print at 13px', () => {
 		expect(rule(`${ROOT}__hint`)).toMatch(/font-size: 13px;/)
 	})
+
+	it('sets the note, the matches and the reason field 14px apart', () => {
+		expect(rule(ROOT)).toMatch(/gap: 14px;/)
+	})
 })

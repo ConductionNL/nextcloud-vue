@@ -951,13 +951,24 @@
 /* "Acties" and "Meer" are 40px tall in a page or card header, as the header
    buttons beside them (DqTenant, DqAfdelingen, DqZaaktype). The Actions
    button at the end of a detail page's tab strip keeps the strip's 34px
-   (DqZaak, DqContact: look-board-detail.css), and the index toolbar's Filter
+   (DqZaak, DqContact: look-board-detail.css), as does the one beside the
+   features board's tabs (PqRoadmap, below), and the index toolbar's Filter
    menu keeps the toolbar's 36px (look-board-index.css). An icon-only menu, a
    row's "...", keeps its own size.
    @spec openspec/changes/board-labelled-menu-trigger-height/specs/board-labelled-menu-trigger-height/spec.md#requirement-a-labelled-board-menu-button-is-40px */
-.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)):where(:not(.cn-actions-bar__filter-menu *)) {
+.cn-look-board .action-item__menutoggle.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)):where(:not(.cn-tabs__nav-end *)):where(:not(.cn-features-board__tab-actions *)):where(:not(.cn-actions-bar__filter-menu *)) {
 	--button-size: var(--cn-board-control-height);
 	min-height: var(--cn-board-control-height);
+}
+
+/* The Actions menu beside the features board's tabs is the strip's 34px
+   button with 12px padding, as at the end of a detail page's tab strip
+   (PqRoadmap).
+   @spec openspec/changes/features-board-tab-row-gaps/specs/features-board-tab-row-gaps/spec.md#requirement-the-features-boards-tab-row-keeps-the-boards-gaps-and-34px-actions-menu */
+.cn-look-board .cn-features-board__tab-actions:not(.cn-look-nextcloud *) .button-vue {
+	--button-padding: 12px;
+	min-height: 34px;
+	block-size: 34px;
 }
 
 /* ---- A table's export button ------------------------------------------- */
@@ -3158,6 +3169,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	line-height: normal;
 }
 
+/* A one-line summary (`metaBeside`) sets its meta at 14px beside the title
+   (DqTermijnen "1 betaling, geen betwist").
+   @spec openspec/changes/record-list-meta-beside/specs/record-list-meta-beside/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--meta-beside .cn-record-list__meta {
+	font-size: 14px;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__trailing {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
@@ -3263,13 +3281,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 /* The pair placed at the foot of its own card (`recordAll.placement`,
-   DqDagAfsluiten "Klaar voor vandaag?"): 24px under the card's sentence, a
-   rule across the whole card, the buttons 15px under it.
-   @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md */
+   DqDagAfsluiten "Klaar voor vandaag?"): a band ruled across the whole card
+   under the sentence's 20px, the buttons 14px under the rule and 14px above
+   the card's edge, 24px in (23px and the pair's own 1px). The card's content
+   has no inset of its own, so the band takes none back.
+   @spec openspec/changes/board-close-day-card-insets/specs/board-close-day-card-insets/spec.md */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all.cn-record-notes__all--placed {
-	margin: 24px -22px 0;
-	padding: 15px 22px 0;
+	margin: 0;
+	padding: 14px 23px;
 	border-top: 1px solid var(--color-border);
+}
+
+/* The card holding that pair draws its title and sentence 24px in, as the
+   board draws it, not the dashboard cards' 22px. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(> .cn-widget-wrapper__content > .cn-record-notes__all--placed) {
+	--cn-board-dashboard-card-inset: 24px;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
@@ -3369,8 +3395,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
-/* The board draws no chevron after the pill and date. */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__chevron {
+/* The board draws no chevron after the pill and date, unless the list asks
+   for it (`chevron: true`: PqMijnWerk, DqMijnWerk "Verder werken"). */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list:not(.cn-record-list--chevron) .cn-record-list__chevron {
 	display: none;
 }
 
@@ -3427,6 +3454,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html {
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
+}
+
+/* A matrix starts where the card header ends: its column heads carry their
+   own 6px top (DqProcesanalyse "Dagen per fase" 37px under the title).
+   @spec openspec/changes/board-matrix-under-header/specs/board-matrix-under-header/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html:has(> .cn-chart-widget__matrix) {
+	padding-top: 0;
+}
+
+/* A wide bar list under a subtitle starts where the card header ends, 12px
+   under the subtitle (DqTermijnen "Op tijd beslist per zaaktype" 73px from
+   the card top). Under a title alone the 4px start stays (DqDoorlooptijd).
+   @spec openspec/changes/chart-bar-list-wide/specs/chart-bar-list-wide/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless):has(.cn-widget-wrapper__subtitle) .cn-chart-widget__html:has(> .cn-chart-widget__bar-list--wide) {
+	padding-top: 0;
 }
 
 /* An ApexCharts plot takes the same inset as an HTML chart (DqDoorlooptijd
@@ -3920,7 +3962,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    itself it is the soft error tint with red text and no edge (PqBeheer
    "Verwijderen"); in a settings table row it is white with a red edge and red
    text (PqBeheerKassa, DqTokens "Verwijderen"). NcButton fills its error
-   variant; the repeated class outranks that fill.
+   variant; the repeated class outranks that fill. The red text is the error
+   tag ink (#a30000 on the boards), not Nextcloud's darker error text.
    @spec openspec/changes/board-settings-row-delete/specs/board-settings-row-delete/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) {
 	--cn-board-error-tint: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
@@ -3928,14 +3971,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error {
 	background-color: var(--cn-board-error-tint);
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 	border: 0;
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error {
 	background-color: var(--color-main-background);
 	border: 1px solid var(--color-error);
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error:hover:not(:disabled),
@@ -3945,7 +3988,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue--error .button-vue__text,
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue--error .button-vue__text {
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
@@ -4596,6 +4639,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	line-height: 1.45;
 }
 
+/* A textarea keeps no negative bottom margin, so its hint needs none of the
+   3px above: the field's 4px gap and the textarea's 2px ring room set it 6px
+   under the control (DqBeheerGeavanceerd "Sentiment-triggerwoorden"). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field:has(> .textarea) > .cn-settings-field__hint {
+	margin-block-start: 0;
+}
+
 /* ---- The links page (CnLinkCardsPage) ---------------------------------- */
 /* As PqGeavanceerdHub draws it: the page padded as a board page, the title
    28px/700 on a row as tall as a control (the boards' header actions) with
@@ -4706,6 +4756,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 .cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__trailing {
+	align-self: flex-start;
 	margin-top: 10px;
 }
 
@@ -4715,9 +4766,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 .cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .cn-page-header__description {
-	margin-top: 9px;
+	margin-top: 12.4px;
 	font-size: 15px;
 	line-height: normal;
+}
+
+/* A standalone header's labelled buttons stand at the 40px control height
+   of the Dq page headers, not 34 (PqWeekoverzicht, PqZoekinzicht,
+   PqForecast). Where the title starts is the hosting view's own padding.
+   @spec openspec/changes/board-standalone-header-rhythm/specs/board-standalone-page-header/spec.md#requirement-a-standalone-board-page-header-keeps-the-page-header-rhythm */
+.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
 }
 
 /* ---- The tonal pill in the board look ------------------------------------ */

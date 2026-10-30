@@ -107,6 +107,7 @@ Fallback slot — shown when ApexCharts is not available:
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars); an explicit `options.plotOptions.bar.horizontal` still wins |
 | `legendPosition` | String | `''` | Legend placement override (`top`/`bottom`/`left`/`right`); empty keeps the automatic placement |
 | `legendValues` | Boolean | `false` | Write each slice's value after its name in a pie or donut legend ("Afval 18"), in the value format of the chart. |
+| `barListWide` | Boolean | `false` | The wide `bar-list` of a share per category: a 220px label column, a 90px value column and 12px bars 12px apart. False keeps the compact list. |
 | `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
 | `matrixLabelWidth` | Number | `null` | `matrix`: the row-label column's width in px; a long label wraps (DqProcesanalyse "Dagen per fase": 240). Null sizes the column to its longest label, at least 120px |
 | `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |

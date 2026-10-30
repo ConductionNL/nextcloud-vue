@@ -65,7 +65,7 @@
 		     share of `barMax` (default the largest value), the value at the
 		     end. Rows navigate when the source declares a drilldown. -->
 		<div v-else-if="type === 'bar-list'" class="cn-chart-widget__html" data-testid="cn-chart-widget-bar-list">
-			<ul class="cn-chart-widget__bar-list" :class="{ 'cn-chart-widget__bar-list--value-at-end': barValueAtEnd }">
+			<ul class="cn-chart-widget__bar-list" :class="{ 'cn-chart-widget__bar-list--value-at-end': barValueAtEnd, 'cn-chart-widget__bar-list--wide': barListWide }">
 				<li v-for="row in barListRows" :key="row.index" class="cn-chart-widget__bar-row">
 					<component
 						:is="row.drill ? 'button' : 'div'"
@@ -372,7 +372,8 @@ const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', erro
  */
 /**
  * A value formatter for a `valueFormat`: 'currency' | 'currency-compact' |
- * 'percent' | 'number', or the object form `{ name, currency?,
+ * 'compact' (38000 as "38K", no currency) | 'percent' | 'number', or the
+ * object form `{ name, currency?,
  * decimals?, suffix? }`. Non-numeric values pass through. Null for no format.
  *
  * @param {string|object|null} vf The value format.
@@ -404,6 +405,12 @@ function formatterFor(vf) {
 			currency,
 			notation: 'compact',
 			maximumFractionDigits: decimals ?? 1,
+		}).format(num))
+	}
+	if (name === 'compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 0,
 		}).format(num))
 	}
 	if (name === 'number') {
@@ -482,6 +489,19 @@ export default {
 		 * @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end
 		 */
 		barValueAtEnd: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The wide `bar-list` of a share per category: a 220px label column,
+		 * a 90px value column and 12px bars 12px apart (DqTermijnen "Op tijd
+		 * beslist per zaaktype"). False, the default, keeps the compact list
+		 * (DqDashboard "Zaken per status").
+		 *
+		 * @spec openspec/changes/chart-bar-list-wide/specs/chart-bar-list-wide/spec.md
+		 */
+		barListWide: {
 			type: Boolean,
 			default: false,
 		},
@@ -3072,6 +3092,21 @@ export default {
 	font-weight: 600;
 	text-align: end;
 	white-space: nowrap;
+}
+
+/* `barListWide`: the boards' wide share list (DqTermijnen "Op tijd beslist
+   per zaaktype"). */
+.cn-chart-widget__bar-list--wide {
+	gap: 12px;
+}
+
+.cn-chart-widget__bar-list--wide .cn-chart-widget__bar-line {
+	grid-template-columns: 220px minmax(0, 1fr) 90px;
+}
+
+.cn-chart-widget__bar-list--wide .cn-chart-widget__bar-track {
+	height: 12px;
+	border-radius: 6px;
 }
 
 /* `barValueAtEnd`: no track; the bar takes its share of the row and gives way

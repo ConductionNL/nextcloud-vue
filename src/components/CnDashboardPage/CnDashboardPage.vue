@@ -45,6 +45,14 @@
 					v-if="datePeriodInDescription || descriptionFilters.length > 0"
 					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
 					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
 					<span v-if="subtitleText">{{ subtitleText }}</span>
 					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
 					<!-- The page filters with `placement: "description"`, in the
@@ -88,8 +96,24 @@
 						data-testid="cn-dashboard-page-date-segmented"
 						@update:modelValue="onSegmentPick" />
 				</div>
-				<p v-else-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
-					{{ subtitleText }}
+				<!-- `headerPills` open the line under the title (PqWerkplekKlant: "Telefoon, inkomend", "Geïdentificeerd"). -->
+				<p
+					v-else-if="subtitleText || shownHeaderPills.length > 0"
+					class="cn-dashboard-page__description"
+					:class="{ 'cn-dashboard-page__description--pills': shownHeaderPills.length > 0 }"
+					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
+					<span v-if="shownHeaderPills.length > 0 && subtitleText">{{ subtitleText }}</span>
+					<template v-else>
+						{{ subtitleText }}
+					</template>
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
@@ -1074,6 +1098,7 @@ import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnHeaderTrail from '../CnPageHeader/CnHeaderTrail.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
@@ -1088,7 +1113,7 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
@@ -1156,6 +1181,7 @@ const CHART_PROP_KEYS = [
 	// `bar-list` / `matrix` presentation keys.
 	'barMax',
 	'barValueAtEnd',
+	'barListWide',
 	'matrixLabelWidth',
 	'footnote',
 	'highlight',
@@ -1299,6 +1325,7 @@ export default {
 
 	components: {
 		CnHeaderTrail,
+		CnStatusBadge,
 		NcActions,
 		NcActionButton,
 		NcActionInput,
@@ -1435,6 +1462,19 @@ export default {
 		},
 
 		/**
+		 * Pills at the start of the line under the title (manifest
+		 * `config.headerPills`): `[{ label, variant?, when? }]`, `when` a
+		 * workspace condition; a pill without one always shows.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @type {Array<{label: string, variant?: string, when?: object}>}
+		 */
+		headerPills: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Titles that replace `title` while a page control's value holds
 		 * (manifest `config.titleWhen`): `[{ when, title }]`, `when` a workspace
 		 * condition (`{ workspace, op?, value? }`) and `title` a template whose
@@ -1446,6 +1486,22 @@ export default {
 		 * @type {Array<{when: object, title: string}>}
 		 */
 		titleWhen: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Layouts that replace `layout` while a page control's value holds
+		 * (manifest `config.layoutWhen`): `[{ when, layout }]`, `when` a
+		 * workspace condition (`{ workspace, op?, value? }`) as in `titleWhen`.
+		 * The first entry whose condition holds draws its own arrangement of
+		 * the page's widgets (PqWerkplekKlant: three columns while a call is
+		 * on). Editing the page shows the page's own layout.
+		 *
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 * @type {Array<{when: object, layout: Array<object>}>}
+		 */
+		layoutWhen: {
 			type: Array,
 			default: () => [],
 		},
@@ -2462,6 +2518,23 @@ export default {
 			return meta.split('{today}').join(today)
 		},
 
+		/**
+		 * The header pills whose condition holds, labels translated.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @return {Array<{label: string, variant: string}>}
+		 */
+		shownHeaderPills() {
+			const workspace = this.workspaceContext || {}
+			return (Array.isArray(this.headerPills) ? this.headerPills : [])
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '')
+				.filter((pill) => !pill.when || (isWorkspaceCondition(pill.when) && evaluateWorkspaceCondition(pill.when, workspace)))
+				.map((pill) => ({
+					label: this.effectiveTranslate(pill.label),
+					variant: typeof pill.variant === 'string' && pill.variant !== '' ? pill.variant : 'primary',
+				}))
+		},
+
 		subtitleText() {
 			const description = this.description || this.fetchedDescription !== '' ? this.resolvedDescription : ''
 			const dateOnly = this.greeting === 'date'
@@ -2650,7 +2723,8 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			const base = this.showsUserLayout ? this.userLayoutItems : this.layout
+			const fromWorkspace = this.editingBody ? null : this.layoutFromWorkspace()
+			const base = fromWorkspace || (this.showsUserLayout ? this.userLayoutItems : this.layout)
 			// The KPI row is not part of the grid.
 			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
 				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
@@ -3314,6 +3388,23 @@ export default {
 				return this.narrowViewport
 			}
 			return false
+		},
+
+		/**
+		 * The layout of the first `layoutWhen` entry whose condition holds on
+		 * the workspace, or null when none applies.
+		 *
+		 * @return {Array<object>|null}
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 */
+		layoutFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.layoutWhen) ? this.layoutWhen : []) {
+				if (entry && Array.isArray(entry.layout) && isWorkspaceCondition(entry.when) && evaluateWorkspaceCondition(entry.when, workspace)) {
+					return entry.layout
+				}
+			}
+			return null
 		},
 
 		/**
@@ -4845,6 +4936,14 @@ export default {
 			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
+		/**
+		 * The title a card shows: a person's custom title, else the placement's
+		 * title, else the widget's title, the last two translated.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {string}
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
+		 */
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
@@ -4864,8 +4963,11 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
+			// A placement's own `title` (manifest-authored, so translated) titles
+			// the card in that layout only, e.g. an in-call layout.
 			const title = item.customTitle
 				|| def?.customTitle
+				|| (typeof item.title === 'string' && item.title !== '' ? this.effectiveTranslate(item.title) : '')
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
 			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
@@ -4878,10 +4980,11 @@ export default {
 		 * @param {object} item Layout placement entry.
 		 * @return {boolean}
 		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
 		 */
 		titleHoldsCount(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const raw = item.customTitle || def?.customTitle || def?.title || ''
+			const raw = item.customTitle || def?.customTitle || item.title || def?.title || ''
 			return typeof raw === 'string' && raw.includes('{count}')
 		},
 
@@ -5077,8 +5180,9 @@ export default {
 				return reported.link
 			}
 			// Last, what the widget's own content asks for (`headerLink`, or the
-			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
-			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
+			// `viewAllRoute` / `viewAllLabel` of the tasks widget), unless it draws
+			// that view-all under its own rows (`viewAllPlacement: "footer"`).
+			return widgetHeaderLink({ content: item?.content }) || widgetHeaderLink({ content: def?.content })
 		},
 
 		/**
@@ -5607,6 +5711,14 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Header pills open the description line (PqWerkplekKlant). */
+.cn-dashboard-page__description--pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Board look (screens-dashboard-parity): h1 28/700, a 15px grey subtitle 6px

@@ -70,6 +70,7 @@ function onAction({ action, row }) {
 | `row` | Object | `null` | The row data object — passed as-is in the `action` event payload so handlers can access it |
 | `primary` | Boolean | false | Whether to use primary styling for the action menu trigger |
 | `menuName` | String | `null` | Label shown on the action menu trigger button |
+| `inline` | Number | `0` | How many of the visible actions show as buttons beside the menu (0: all in the menu). The first is a tonal pill; an action with `iconOnly: true` is its icon, named by its label. The menu holds the rest and is left out when nothing is left. |
 
 #### Action definition
 

@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.163.0', () => {
+	it('the manifest schema version reads 2.167.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1437,7 +1437,11 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.161.0 adds the facts input token @input.<key> to the sentinel token vocabulary (sentinelInputToken; schema-input-token).
 		// 2.162.0 lets a header field read as bold text (headerFields format strong; r34-header-field-strong), a query preset set showAdd (query-preset-show-add), a detail band be compact (bandDensity; detail-band-compact), a workspace-filter toggle draw a checkbox (control; workspace-toggle-as-checkbox) and an expandable row's header button carry an icon (expandableRows.buttons[].icon; expandable-row-as-drawn).
 		// 2.163.0 lets a dashboard placement start below the earlier rows (clear; dashboard-clear-row), an expandable row's sub-table sort and filter (expandableRows; expandable-row-as-drawn), a dashboard keep its header actions to one viewport (headerActionsViewport; dashboard-header-actions-viewport), a stage action name its primary button from the record (primaryLabel; action-label-from-record) and a next-step stage carry a sentence above `after` (afterTitle; contact-moment-parts).
-		expect(schema.version).toBe('2.163.0')
+		// 2.164.0 lets a filterStrip option list several stored values (values; filter-strip-option-values), a flow page's `layout` be a word, `canvas` or `cards` (flow-board-canvas-chrome), and a chart write compact numbers (valueFormat compact; chart-compact-number).
+		// 2.165.0 lets a header `actions-menu` button sit at the end of the page tabs' row (placement tabs; actions-menu-beside-tabs).
+		// 2.166.0 lets an expandable row's table carry an entry action (entryAction; expandable-row-entry-action), a link card open the user settings and a links panel badge take a tone (action user-settings, tone; link-cards-settings-action) and placements on one row share a height (sameHeight; dashboard-row-same-height).
+		// 2.167.0 lets a detail header field be drawn as a soft pill (format pill; header-field-pill) and a headerMeta count read a named entity source, on an index or a detail page (headerMetaCounts entitySource; header-meta-count-entity-source).
+		expect(schema.version).toBe('2.167.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
@@ -2816,5 +2820,47 @@ describe('app-manifest-v2 — header actions dossiq ships (dossiq Catalogue, Env
 	it('still refuses an open-form with neither a schema nor an endpoint and its fields', () => {
 		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X' }])).valid).toBe(false)
 		expect(validateManifestV2(page('detail', [{ id: 'x', type: 'open-form', label: 'X', endpoint: { url: '/x' } }])).valid).toBe(false)
+	})
+})
+
+describe('expandableRows table entryAction (expandable-row-entry-action)', () => {
+	const pipelines = (table) => ({
+		...MINIMAL_V2,
+		pages: [{
+			id: 'pipelines',
+			route: '/pipelines',
+			type: 'index',
+			title: 'Pipelines',
+			config: {
+				register: 'r',
+				schema: 's',
+				expandableRows: { title: 'title', table: { field: 'stages', columns: [{ key: 'name', label: 'Stage' }], ...table } },
+			},
+		}],
+	})
+
+	it('accepts an entry action with an id, a label and an icon', () => {
+		expect(validateManifestV2(pipelines({ entryAction: { id: 'edit', label: 'Edit stage', icon: 'Pencil' } })).valid).toBe(true)
+	})
+
+	it('refuses an entry action without a label', () => {
+		expect(validateManifestV2(pipelines({ entryAction: { id: 'edit' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: a link card that opens the user settings (link-cards-settings-action, 2.166.0)', () => {
+	const linksPage = (cards, config = {}) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Advanced', route: '/advanced', type: 'links', title: 'Advanced', config: { cards, ...config } }],
+	})
+
+	it('accepts action user-settings and a purple panel badge', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal settings', action: 'user-settings' }], { panel: { badge: { label: 'Administrators only', tone: 'purple' } } })).valid).toBe(true)
+	})
+
+	it('refuses an unknown action, an action beside a route and an unknown badge tone', () => {
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'admin-settings' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'user-settings', route: 'Personal' }])).valid).toBe(false)
+		expect(validateManifestV2(linksPage([{ id: 'Store', label: 'Store', route: 'Store' }], { panel: { badge: { label: 'Admins', tone: 'red' } } })).valid).toBe(false)
 	})
 })

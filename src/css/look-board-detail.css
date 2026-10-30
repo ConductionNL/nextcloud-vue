@@ -581,6 +581,44 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A stack of sections (`sections: true`, PqLead "Overzicht") is one sheet:
+   the panel is the card again, and its widgets are sections of it without a
+   card of their own. A section that follows a titled one has a hairline
+   above it 24px under the previous section and 22px over its title; the
+   first titled section sits 24px under an untitled one (the stage strip).
+   The selectors follow the stack rules above and outweigh them.
+   @spec openspec/changes/tab-stack-sections/specs/tab-stack-sections/spec.md#requirement-a-stack-of-sections-is-one-sheet-in-the-board-look */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content:has(> .cn-tab:not([hidden]) > .cn-tabs-widget__stack--sections) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+	padding: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack {
+	gap: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > * > .cn-detail-widget-host > :is(.cn-widget-wrapper, .cn-detail-card) {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-widget-wrapper > .cn-widget-wrapper__header,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-detail-card > .cn-detail-card__header {
+	padding-top: 4px;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > :has(.cn-widget-wrapper__title, .cn-detail-card__title) + .cn-tabs-widget__stack-item::before {
+	content: '';
+	display: block;
+	height: 1px;
+	margin: 4px var(--cn-board-card-inline-padding) 18px;
+	background: var(--cn-board-hairline);
+}
+
 /* A first widget that renders nothing (DqZaakEmail) takes no room: the next
    card starts under the strip and joins the open tab as the first card does.
    Heavier than the stack-item rule above, so it wins.
@@ -670,6 +708,14 @@
 
 .cn-look-board .cn-conversation-thread .cn-conversation-thread__message--us .cn-conversation-thread__bubble:not(.cn-look-nextcloud *) {
 	color: var(--color-main-text);
+}
+
+/* A message's subject and note sit at the normal line height; its text keeps 1.5
+   (DqZaakContact).
+   @spec openspec/changes/board-conversation-lines-as-drawn/specs/board-conversation-lines-as-drawn/spec.md#requirement-a-board-messages-subject-and-note-sit-at-the-normal-line-height */
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__subject:not(.cn-look-nextcloud *),
+.cn-look-board .cn-conversation-thread .cn-conversation-thread__note:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 /* A message's channel pill: 20px in the soft ink (DqZaakContact). It names
@@ -816,6 +862,15 @@
 	line-height: normal;
 }
 
+/* A timeline that titles itself in the main column (PqKlant "Activiteit")
+   is titled as every board card there.
+   @spec openspec/changes/board-timeline-title-and-header-gap/specs/board-timeline-title-and-header-gap/spec.md#requirement-a-main-column-timeline-is-titled-as-a-board-card */
+.cn-look-board .cn-detail-page .cn-timeline-widget__title:not(.cn-detail-page__side *) {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
 /* 12px from the title's glyphs to the first line's glyphs, as drawn.
    @spec openspec/changes/board-card-title-gap/specs/board-card-title-gap/spec.md#requirement-a-board-cards-body-starts-the-boards-gap-below-its-title */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content {
@@ -897,6 +952,17 @@
 
 .cn-look-board .cn-detail-page .cn-facts-widget__text:not(.cn-detail-page__side *) {
 	line-height: 1.6;
+}
+
+/* Running text over ruled three-column facts (DqSociaalDomein "De melding")
+   is a 14px column: the text 14px under the title, the facts 14px under it.
+   @spec openspec/changes/board-facts-text-over-ruled-columns/specs/board-facts-text-over-ruled-columns/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	padding-top: 14px;
+}
+
+.cn-look-board .cn-detail-page .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	gap: 14px;
 }
 
 /* A header-less card keeps the full 20px 22px. */
@@ -1124,6 +1190,20 @@
 	line-height: normal;
 }
 
+/* A side lead card keeps its 12px under the lead too, so the link below it
+   ("Contactgegevens bekijken") sits as DqZaak "Aanvrager" draws it.
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-lead-card-keeps-12px-under-the-lead */
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__lead:first-child):not(.cn-look-nextcloud *) {
+	gap: 12px;
+}
+
+/* A side status card opens on its explanation, set on the normal line, so no
+   leading comes off the 10px under the title (DqZaak "Status").
+   @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-status-card-starts-10px-under-its-title */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-sections-widget):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
 /* A person's initials in a lead (DqZaak "Aanvrager": SV) are 16px bold in
    the soft ink on the grey ground, as the case boards draw them (r32: 14px
    in the main ink).
@@ -1132,6 +1212,18 @@
 	background: var(--color-background-hover);
 	color: var(--cn-board-text-soft);
 	font-size: 16px;
+}
+
+/* A person chip's initials (DqTenant "Beheerder": MV) are 12px, and a teal
+   tile keeps its tone on the board.
+   @spec openspec/changes/facts-lead-person-chip/specs/facts-widget/spec.md */
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead--chip .cn-facts-widget__lead-tile--initials:not(.cn-look-nextcloud *) {
+	font-size: 12px;
+}
+
+.cn-look-board .cn-facts-widget .cn-facts-widget__lead-tile--initials.cn-facts-widget__lead-tile--teal:not(.cn-look-nextcloud *) {
+	background: var(--cn-status-teal-bg, var(--cn-board-teal-tint));
+	color: var(--cn-status-teal-text, var(--cn-board-teal-ink));
 }
 
 /* A stat tile in a side card (DqZaak "Termijn") sits on the card's inset as
@@ -1168,8 +1260,11 @@
 }
 
 /* A side card whose widget reports a header action (screens-relation-pages:
-   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button. */
-.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action) {
+   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button,
+   also as the outlined card button.
+   @spec openspec/changes/header-item-card-button/specs/header-item-card-button/spec.md#requirement-a-side-card-shows-its-card-button */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action),
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items__card-button) {
 	display: flex;
 }
 
@@ -1632,10 +1727,28 @@
    section titles over their rows, not the inner heading's 1.4em. */
 .cn-look-board .cn-retention .cn-retention__section > .cn-inner-heading,
 .cn-look-board .cn-retention .cn-retention__outcome > .cn-inner-heading {
-	margin: 4px 0 0;
+	margin: 6px 0 0;
 	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.2;
+}
+
+/* An open record's note sits 10px under its facts and leaves the space under
+   it to the card's 10px gap; 13px at 1.5, 10px 14px in. A section's rows sit
+   10px under its title (r36: Bewaring +7.4, the note 714.4/62 vs 709/59). */
+.cn-look-board .cn-retention .cn-retention__pending > .notecard {
+	margin: 10px 0 0;
+	padding: 10px 14px;
+}
+
+.cn-look-board .cn-retention .cn-retention__pending > .notecard,
+.cn-look-board .cn-retention .cn-retention__pending > .notecard * {
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-retention .cn-retention__section {
+	gap: 10px;
 }
 
 /* ---- The task table's row button (CnTasksWidget table, DqZaakTaken) ------ */
@@ -1716,6 +1829,14 @@
 	white-space: normal;
 }
 
+/* Under a task's name its meta line is 13px on the normal line, 2px down
+   (DqZaakTaken r36: rows 79.4 vs 82). */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-task .cn-tasks-widget__meta {
+	font-size: 13px;
+	line-height: normal;
+	margin-top: 2px;
+}
+
 /* A row's button and its task menu stand on one line. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-tasks-widget .cn-tasks-widget__table .cn-tasks-widget__cell-actions > * {
 	display: inline-flex;
@@ -1754,6 +1875,41 @@
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container .cn-data-table .cn-table-col--actions:last-child {
 	width: calc(50px + var(--cn-board-card-inline-padding));
 	min-width: calc(50px + var(--cn-board-card-inline-padding));
+}
+
+/* ---- An object list table in a frame (`content.tableFrame`) ------------- */
+/* The Pipelinq POS and lead boards draw a card's list as a framed table inside
+   the card's padding (PqKassabon "Regels", PqKassadienst "Afstortingen"): a
+   1px frame with an 8px radius, a white head with a rule under it, 18px outer
+   insets and a rule under every row but the last, where the frame closes it.
+   Dossiq's card tables have no frame, so it is an opt-in.
+   @spec openspec/changes/object-list-table-frame/specs/object-list-table-frame/spec.md#requirement-an-object-list-can-frame-its-table-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container {
+	--cn-board-table-head-bg: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table th {
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table td {
+	padding-block: 12px;
+	border-top: 0;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table :is(th, td):first-child {
+	padding-inline-start: 18px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content .cn-object-list-widget--framed .cn-table-container .cn-data-table :is(th, td):last-child {
+	padding-inline-end: 18px;
 }
 
 /* ---- Grouped cards (CnGroupedCardsWidget, DqZaaktype "Fasen en taken") --- */
@@ -1878,7 +2034,7 @@
 
 /* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
 /* The band over the ticked files is the case list's selection band: 10px
-   14px, radius 10, the count in the band's ink, 34px buttons with their words
+   14px, radius 10, the count bold in the band's ink, 34px buttons with their words
    only (DqDocumentenBeheer "2 documenten geselecteerd").
    @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
@@ -1890,6 +2046,7 @@
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .cn-files-browser__bulk-count {
 	color: var(--color-primary-element-light-text);
+	font-weight: 700;
 }
 
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) .button-vue {
@@ -1984,6 +2141,13 @@
    @spec openspec/changes/mail-tab-blank-draft-beside-compose/specs/mail-tab/spec.md#requirement-the-empty-draft-can-stay-in-the-row-beside-the-compose-action */
 .cn-look-board .cn-mail-tab__template-row:not(.cn-look-nextcloud *) {
 	gap: 14px 16px;
+}
+
+/* The hint under the template row is 13px on the normal line (DqZaakEmail
+   r36: the mail rows 705.9 vs 697). */
+.cn-look-board .cn-detail-widget-host .cn-mail-tab__hint:not(.cn-look-nextcloud *) {
+	font-size: 13px;
+	line-height: normal;
 }
 
 /* In a page card the mail tab is the card's body: no padding of its own, 12px
@@ -2183,6 +2347,53 @@
    @spec openspec/changes/board-facts-action-weight/specs/board-facts-action-weight/spec.md#requirement-a-facts-cards-action-is-set-at-600 */
 .cn-look-board .cn-facts-widget__action:not(.cn-look-nextcloud *) {
 	font-weight: 600;
+}
+
+/* A facts card's error, warning or success notice is a tinted rounded box in
+   its own tone, the text and icon in the tone's ink, with no edge bar
+   (PqKassadienst "Buiten de marge."). NcNoteCard paints its ground and ink
+   with `!important`, so these do too. The info note keeps the board's
+   general info rule.
+   @spec openspec/changes/board-facts-notice-tinted/specs/board-facts-notice-tinted/spec.md#requirement-a-facts-cards-notice-is-a-tinted-box-in-its-tone */
+.cn-look-board .cn-facts-widget__notice.notecard--error:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-red-tag-ground);
+	--cn-facts-notice-ink: var(--color-error-text);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-notice-bg);
+	--cn-facts-notice-ink: var(--cn-board-notice-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--success:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-success-tint);
+	--cn-facts-notice-ink: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--cn-facts-notice-ink);
+	--note-card-icon-size: 18px;
+	--note-theme: var(--cn-facts-notice-ink);
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start: 0;
+	border-radius: 8px;
+	background-color: var(--cn-facts-notice-ground) !important;
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) p {
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: inherit !important;
+	line-height: inherit;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) .notecard__icon {
+	align-self: flex-start;
+	padding-top: 1px;
+	color: var(--cn-facts-notice-ink);
 }
 
 /* ---- A card's Add ------------------------------------------------------ */
@@ -2538,8 +2749,12 @@
 /* An appointments card starts its first row's rule 8px under the title, as
    DqTaak "Afspraken" draws it (r34: the row 64.5 against 60, the first
    appointment 44.8 under the title against 41).
-   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn */
-.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *) {
+   A subtitled card needs the second selector to outweigh the 12px start of
+   every subtitled card.
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn
+   @spec openspec/changes/board-events-card-under-subtitle/specs/board-events-card-under-subtitle/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *),
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-events-card) {
 	padding-top: 8px;
 }
 
@@ -2634,7 +2849,7 @@
 	height: 32px;
 	border-radius: 16px;
 	background: var(--color-background-hover);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft);
 	font-size: 12px;
 	font-weight: 700;
 }
@@ -2922,12 +3137,34 @@
 	color: var(--color-primary-element);
 }
 
+/* A card table with `rowTitle: "strong"` (PqOfferte "Regels") names each row
+   at 14px weight 600 in the main ink; the row stays a link. Same weight as
+   the rule above, so it comes after it.
+   @spec openspec/changes/detail-table-strong-title/specs/board-tables/spec.md */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
 /* A data card keeps its 14px under a subtitle too (DqZaakBetrokkenen
    "Zetels"): the subtitle rule's 12px won over the data card's 14px, so the
    labels sat 2.2px high (r31).
    @spec openspec/changes/board-data-card-under-subtitle/specs/board-card/spec.md */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
+}
+
+/* A facts card's action buttons are the boards' 34px card control in every
+   card (PqKassabon "Terugboeken", PqKassadienst "Goedkeuren"): CnActionButtons
+   carries the header's 40px secondary rule, which this outweighs at (0,5,0).
+   @spec openspec/changes/board-facts-card-actions-34/specs/board-facts-card-actions-34/spec.md#requirement-a-facts-cards-action-buttons-are-34px-in-every-card */
+.cn-look-board .cn-facts-widget__actions.cn-action-buttons:not(.cn-look-nextcloud *) > .button-vue {
+	--button-size: 34px;
+	--default-clickable-area: 34px;
+	height: 34px;
+	min-height: 34px;
 }
 
 /* Buttons in a side card stand as the boards draw them in a column: the full
@@ -3226,4 +3463,32 @@
 .cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__title:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__value:not(.cn-look-nextcloud *) {
 	line-height: normal;
+}
+
+/* ---- A body section in a card (CnBodySections `card: true`) ------------- */
+/* Drawn as every board card: 20px 22px in, a 12px radius, the title 17px at
+   700 with the body 14px under it and no rule between them (PqKlant and
+   PqOrganisatie "Contactmoment registreren"; the section's own scoped title
+   was 14px 600 over a hairline). The doubled title class outranks that
+   scoped rule.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-card-is-drawn-as-a-board-card */
+.cn-look-board .cn-body-sections__section--card:not(.cn-look-nextcloud *) {
+	padding: var(--cn-board-card-padding);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-body-sections__section--card > .cn-body-sections__title.cn-body-sections__title:not(.cn-look-nextcloud *) {
+	margin: 0 0 14px;
+	padding: 0;
+	border-bottom: 0;
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
+/* Its labelled buttons are the board's 40px control (PqKlant "Annuleren",
+   "Opslaan", "Bericht versturen"); NcButton draws 34px.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-cards-labelled-buttons-are-40px */
+.cn-look-board .cn-body-sections__section--card .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }

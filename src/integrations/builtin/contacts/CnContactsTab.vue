@@ -157,6 +157,7 @@
 								class="cn-contacts-tab__period"
 								data-testid="cn-contacts-tab-board-period">{{ boardPeriodOf(contact) }}</span>
 							<NcActions class="cn-contacts-tab__menu"
+								:forceMenu="true"
 								variant="secondary"
 								:aria-label="moreActionsLabel(contact)"
 								data-testid="cn-contacts-tab-menu"

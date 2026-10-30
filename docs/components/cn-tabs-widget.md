@@ -114,6 +114,7 @@ A tab can show a count, and a strip can keep to a few tabs and put the rest unde
 | `countFrom` | a tab | Counts a list on the server when the record does not carry the number: `"widget"` counts the child widget's own list (its `content.register`, `content.schema` and `content.filter`, with `@objectId` and other tokens resolved), an object with `register`, `schema` and an optional `filter` names the list. `{ "auditTrail": true, "excludeActions": ["read"] }` counts the record's history: its audit entries without the excluded actions (and `excludeActors`) or updates that changed nothing, as the History card shows them (PqJourney "Geschiedenis 3"). One request per tab (`_limit=1`, the response's `total`), again when the record changes or the page refreshes. `count` and `countField` win over it; a failed count shows no number. |
 | `overflow` | a tab | Lists the tab under "More". |
 | `default` | a tab | `true` opens the strip on this tab, so an Overview tab can stay first while the page opens on another. A route hash naming a tab wins over it, and a marked tab under "More" is not opened. |
+| `showTitle` | a tab | `true` heads a single widget's panel with the widget's title even when the widget has no description (board PqMailinglijst "Lijstgegevens"). A title equal to the tab's label is still not repeated. Off by default: a title alone stays out of the panel. |
 | `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
 | `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |
 | `moreLabel` | `content` | Names the menu. Defaults to "More". |
@@ -155,6 +156,16 @@ An id that names no widget is skipped. Without `label` the tab takes the first
 widget's title. `countFrom: "widget"` counts the first widget of the stack that
 has a list. A `widgetId` tab renders as before.
 
+`sections: true` on a stack tab draws it as one sheet in the board look: the
+panel is the card again and every widget is a section of it, without a card of
+its own, with a hairline above a section that follows a titled one (PqLead
+"Overzicht": the stage strip, then Deal, Products, Contacts and Flow runs). A
+widget whose definition says `showTitle: false` draws no title in a stack.
+
+```json
+{ "widgetIds": ["lead-stages", "lead-deal", "lead-lines"], "label": "Overview", "sections": true }
+```
+
 A widget in a stack follows the page controls. On a dashboard, a widget whose
 `visibleWhen` is a workspace condition (`{ "workspace": "<key>", "op", "value" }`)
 draws only while the condition holds, the same rule a dashboard widget follows.
@@ -185,7 +196,7 @@ stack child; the widget draws.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout?, sections? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |

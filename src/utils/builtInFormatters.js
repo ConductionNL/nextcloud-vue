@@ -551,10 +551,12 @@ function termPeriod(value) {
 /**
  * A term in words, with the extension it may get (`format: 'duration'`):
  * `P28D` reads "4 weeks", and with an extension of `P14D` "4 weeks,
- * extendable by 2" (the unit is said once when both share it). A value that
+ * extendable by 2" (the unit is said once when both share it). A time of
+ * hours or minutes reads in words too (`PT6M` is "6 minutes"). A value that
  * is not a one-unit period is returned as written, '' for null or empty.
  *
  * @spec openspec/changes/data-widget-duration-format/specs/data-widget/spec.md#requirement-a-term-reads-in-words-with-its-extension
+ * @spec openspec/changes/duration-time-units/specs/data-widget/spec.md#requirement-a-duration-in-hours-or-minutes-reads-in-words
  * @param {unknown} value The stored term.
  * @param {unknown} [extension] The stored extension period, if any.
  * @return {string}
@@ -562,7 +564,7 @@ function termPeriod(value) {
 export function formatTermDuration(value, extension = null) {
 	const term = termPeriod(value)
 	if (term === null) {
-		return value === null || value === undefined ? '' : String(value)
+		return value === null || value === undefined ? '' : formatIsoDuration(value)
 	}
 	const words = formatIsoDuration(`P${term.amount}${UNIT_DESIGNATOR[term.unit]}`)
 	const extra = termPeriod(extension)

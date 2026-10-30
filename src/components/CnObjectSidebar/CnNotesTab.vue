@@ -81,20 +81,39 @@
 					<NcListItem
 						v-for="row in threadRows(thread)"
 						:key="row.note.id"
-						:class="{ 'cn-notes-tab__reply': row.isReply }"
+						:class="{ 'cn-notes-tab__reply': row.isReply, 'cn-notes-tab__row--authored': authoredRows }"
 						:name="row.note.actorDisplayName || row.note.author || 'Unknown'"
 						:bold="false"
 						:forceDisplayActions="true">
 						<template #icon>
-							<CommentTextOutline :size="32" />
+							<span
+								v-if="authoredRows"
+								class="cn-notes-tab__avatar"
+								:class="{ 'cn-notes-tab__avatar--own': canDelete(row.note) }"
+								aria-hidden="true">{{ initialsOf(authorOf(row.note)) }}</span>
+							<CommentTextOutline v-else :size="32" />
 						</template>
-						<template #subname>
+						<!-- `noteRows: 'authored'`: the text is the row's first line, "author · time" the second. -->
+						<template v-if="authoredRows" #name>
+							<span class="cn-notes-tab__text">
+								<CnNoteBody :message="row.note.message || row.note.content || ''" :record="record" :names="mentionNames" />
+							</span>
+						</template>
+						<template v-if="authoredRows" #subname>
+							<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
+							<span class="cn-notes-tab__meta">{{ authorOf(row.note) }} · {{ formatDate(row.note.creationDateTime || row.note.created) }}</span>
+							<span
+								v-if="wasEdited(row.note)"
+								class="cn-notes-tab__edited"
+								data-testid="cn-note-edited">{{ editedLine(row.note) }}</span>
+						</template>
+						<template v-else #subname>
 							<span class="cn-sidebar-tab__message">
 								<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
 								<CnNoteBody :message="row.note.message || row.note.content || ''" :record="record" :names="mentionNames" />
 							</span>
 						</template>
-						<template #details>
+						<template v-if="!authoredRows" #details>
 							{{ formatDate(row.note.creationDateTime || row.note.created) }}
 							<!-- An edited note says so where its time is, because that
 							     is where a reader already looks to date what they are
@@ -186,6 +205,7 @@ import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { initialsOf } from '../../utils/initials.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
 import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -283,6 +303,20 @@ export default {
 			default: 'inline',
 			validator: (v) => ['inline', 'button'].includes(v),
 		},
+
+		/**
+		 * How a note is drawn: `list` (default) is the sidebar list item, the
+		 * author as its name and the text under it; `authored` leads with the
+		 * author's initials, the text bold as the first line and
+		 * "author · time" under it (DqZaakEmail "Notities"). The actions stay.
+		 *
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
+		noteRows: {
+			type: String,
+			default: 'list',
+			validator: (v) => ['list', 'authored'].includes(v),
+		},
 	},
 
 	emits: [
@@ -335,6 +369,11 @@ export default {
 			return this.composer === 'button'
 		},
 
+		/** @return {boolean} Whether a note is drawn as an authored row. */
+		authoredRows() {
+			return this.noteRows === 'authored'
+		},
+
 		/** @return {boolean} Whether the add form shows. */
 		composerShown() {
 			return !this.composerBehindButton || this.composerOpen || Boolean(this.replyTo) || Boolean(this.editingNoteId)
@@ -373,6 +412,8 @@ export default {
 	},
 
 	methods: {
+		initialsOf,
+
 		async fetchNotes() {
 			if (!this.register || !this.schema) {
 				return
@@ -790,6 +831,43 @@ export default {
 	justify-content: space-between;
 	margin: 0 0 4px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-notes-tab__avatar {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-notes-tab__avatar--own {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+/* The text wraps as the row's bold first line; the name line is otherwise a single ellipsed line. */
+.cn-notes-tab__row--authored :deep(.list-item-content__name) {
+	white-space: normal;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-notes-tab__row--authored :deep(.list-item__anchor),
+.cn-notes-tab__row--authored :deep(.list-item__anchor:hover) {
+	text-decoration: none;
+}
+
+.cn-notes-tab__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-notes-tab__edited {

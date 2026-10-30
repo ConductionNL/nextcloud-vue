@@ -1,2 +1,3 @@
 - [x] table.css grow + wrap rule
 - [x] tests/css/fitTableWrapColumn.spec.js
+- [x] table.css: the name beside a reorder grip is a block 26px in (tests/css/tableReorderHandle.spec.js)

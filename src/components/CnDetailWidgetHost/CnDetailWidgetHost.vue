@@ -309,8 +309,9 @@
 				     row; the list's footer Add is hidden there (look-board-detail.css). -->
 				<NcButton
 					v-if="catalogAddInHeader"
-					variant="secondary"
+					:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 					class="cn-detail-page__catalog-add"
+					:class="{ 'cn-button--tonal': catalogAddTonal }"
 					data-testid="cn-detail-widget-catalog-add"
 					@click="invokeCatalogAdd()">
 					<template #icon>
@@ -322,8 +323,9 @@
 					<NcButton
 						v-for="(entry, index) in catalogAddActions"
 						:key="`add-action-${index}`"
-						variant="secondary"
+						:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
 						class="cn-detail-page__catalog-add"
+						:class="{ 'cn-button--tonal': catalogAddTonal }"
 						data-testid="cn-detail-widget-catalog-add-action"
 						@click="invokeCatalogAdd(entry.createDefaults)">
 						<template #icon>
@@ -620,6 +622,7 @@
 			v-else-if="renderer"
 			ref="renderer"
 			v-bind="rendererProps"
+			@header="onRendererHeader"
 			@selectObject="onSelectObject" />
 
 		<!-- No renderer resolves: render nothing, which is what CnDetailPage has
@@ -789,7 +792,9 @@ export default {
 		return {
 			// The widget's manifest `headerActions`, for the card that titles
 			// it. In bare mode the surface (a tab panel) draws them instead.
-			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare ? [] : this.declaredHeaderActions)),
+			// A self-titled renderer that takes them draws them in its own
+			// title row, so the card around it does not.
+			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare || this.rendererDrawsHeaderActions ? [] : this.declaredHeaderActions)),
 			// The widget's manifest `bodyActions`, for a leaf that draws its
 			// own button row in the body (the contacts tab).
 			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
@@ -977,7 +982,7 @@ export default {
 		},
 	},
 
-	emits: ['geo-saved', 'open-integration', 'select-object'],
+	emits: ['geo-saved', 'open-integration', 'select-object', 'panel-header'],
 
 	setup() {
 		// Every integration component this host renders goes through the
@@ -1239,6 +1244,23 @@ export default {
 			}
 			const entry = getWidgetTypeEntry(this.widget.type)
 			return Boolean(entry && entry.ownsTitle && entry.chrome === 'card')
+		},
+
+		/**
+		 * Whether the self-titled widget in the card draws the manifest
+		 * `headerActions` in its own title row: it declares a `headerActions`
+		 * prop. Otherwise the untitled card drew them in a row of their own
+		 * above the widget's title (PqKlant Activiteit).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/self-titled-widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-self-titled-widget-draws-its-header-actions-beside-its-title
+		 */
+		rendererDrawsHeaderActions() {
+			if (!this.wrapsSelfTitledWidget || !this.renderer) {
+				return false
+			}
+			const declared = this.renderer.props
+			return Array.isArray(declared) ? declared.includes('headerActions') : Boolean(declared && Object.hasOwn(declared, 'headerActions'))
 		},
 
 		/**
@@ -1685,6 +1707,9 @@ export default {
 			if (title) {
 				base.title = title
 			}
+			if (this.rendererDrawsHeaderActions) {
+				base.headerActions = this.declaredHeaderActions
+			}
 			return { ...base, ...this.declaredContent, ...this.consumerWidgetProps }
 		},
 
@@ -1837,6 +1862,17 @@ export default {
 		},
 
 		/**
+		 * Whether the title-row Add is the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen").
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		catalogAddTonal() {
+			return this.content?.addVariant === 'tonal'
+		},
+
+		/**
 		 * Whether the catalog Add is an item of the card's Actions menu, as
 		 * ADR-062 places it in the Nextcloud look.
 		 *
@@ -1982,7 +2018,10 @@ export default {
 		onRendererHeader(header) {
 			const link = header && header.link && typeof header.link === 'object' ? header.link : null
 			const note = header && typeof header.note === 'string' ? header.note : ''
-			const usable = (action) => action && typeof action.run === 'function' && action.label
+			// A menu action (`items`) runs through its items.
+			const runs = (action) => typeof action.run === 'function'
+				|| (Array.isArray(action.items) && action.items.length > 0 && action.items.every((item) => item && item.label && typeof item.run === 'function'))
+			const usable = (action) => action && action.label && runs(action)
 			// `action` (one) and `actions` (several) both count, `action` first.
 			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
 			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
@@ -1995,6 +2034,14 @@ export default {
 			// `menuActions`: items for the card's Actions menu instead of the title row.
 			const menuActions = (header && Array.isArray(header.menuActions) ? header.menuActions : []).filter(usable)
 			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty, menuActions }
+			if (this.isBare) {
+				/**
+				 * @event panel-header What the widget reported for a title row it
+				 * does not have in bare chrome (`{ subtitle, actions, ... }`), for
+				 * the surface (a tab panel heading) to draw.
+				 */
+				this.$emit('panel-header', this.rendererHeader)
+			}
 		},
 
 		/**

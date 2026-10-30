@@ -2,17 +2,21 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 4 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 3 direct references, 6 files reached through imports.
+
+Through: `CnBulkJobProgress`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name       | Type                 | Required | Default | Description                                          |
-| ---------- | -------------------- | -------- | ------- | ---------------------------------------------------- |
-| `config`   | `object`             |          | `\{\}`  | The dialog's configuration (see the component docs). |
-| `objectId` | `string&#124;number` |          | `''`    | The record's id, for the `@objectId` token.          |
-| `object`   | `union`              |          | `null`  | The record, when the host has it.                    |
+| Name          | Type                 | Required | Default | Description                                                    |
+| ------------- | -------------------- | -------- | ------- | -------------------------------------------------------------- |
+| `config`      | `object`             |          | `\{\}`  | The dialog's configuration (see the component docs).           |
+| `objectId`    | `string&#124;number` |          | `''`    | The record's id, for the `@objectId` token.                    |
+| `object`      | `union`              |          | `null`  | The record, when the host has it.                              |
+| `selectedIds` | `union`              |          | `[]`    | The selected record ids, when a bulk action opened the dialog. |
+| `count`       | `number`             |          | `0`     | How many records are selected.                                 |
 
 ### Events
 

@@ -10,13 +10,15 @@
 		},
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 120,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -64,13 +66,27 @@
 			"via": [],
 			"page": "cn-action-dialog"
 		},
+		"CnActionTilesWidget": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-action-tiles-widget"
+		},
 		"CnActionsBar": {
 			"direct": 0,
-			"transitive": 27,
+			"transitive": 30,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -104,11 +120,13 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 29,
+			"transitive": 32,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnCredentials",
 				"CnDataTable",
@@ -173,14 +191,16 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 121,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -223,7 +243,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 246,
+			"transitive": 249,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -231,9 +251,11 @@
 				"CnActionsMenu",
 				"CnAiFeaturesWidget",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -367,10 +389,12 @@
 			"page": "cn-app-tiles-widget-form"
 		},
 		"CnAssignDialog": {
-			"direct": 0,
-			"transitive": 4,
+			"direct": 3,
+			"transitive": 6,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnBulkJobProgress"
+			],
 			"page": "cn-assign-dialog"
 		},
 		"CnAttentionFlagWidget": {
@@ -419,10 +443,12 @@
 		},
 		"CnBoardView": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -473,10 +499,12 @@
 		},
 		"CnBuildiqEditButton": {
 			"direct": 1,
-			"transitive": 26,
+			"transitive": 29,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -545,10 +573,12 @@
 		},
 		"CnCardGrid": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -557,10 +587,12 @@
 		},
 		"CnCellRenderer": {
 			"direct": 1,
-			"transitive": 12,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnFkResolveCell",
 				"CnIndexPage"
 			],
@@ -568,10 +600,12 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 10,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage"
 			],
 			"page": "cn-chart-widget"
@@ -594,10 +628,12 @@
 		},
 		"CnChecklistRunWidget": {
 			"direct": 1,
-			"transitive": 8,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage"
 			],
 			"page": "cn-checklist-run-widget"
@@ -611,13 +647,15 @@
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 119,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -778,10 +816,12 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 8,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnTemplateSelect"
 			],
@@ -817,10 +857,12 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 7,
+			"transitive": 10,
 			"tier": "medium",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage"
 			],
 			"page": "cn-countdown-widget"
@@ -878,16 +920,18 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 223,
+			"transitive": 226,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -999,10 +1043,12 @@
 		},
 		"CnDataTable": {
 			"direct": 4,
-			"transitive": 15,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -1086,13 +1132,15 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 105,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1131,16 +1179,18 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 223,
+			"transitive": 226,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1244,14 +1294,16 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 139,
+			"transitive": 142,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1306,14 +1358,16 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 141,
+			"transitive": 144,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1493,14 +1547,16 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 125,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1557,11 +1613,13 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 29,
+			"transitive": 32,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -1582,11 +1640,13 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 29,
+			"transitive": 32,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -1600,11 +1660,13 @@
 		},
 		"CnFeaturesBoard": {
 			"direct": 0,
-			"transitive": 29,
+			"transitive": 32,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -1674,10 +1736,12 @@
 		},
 		"CnFilesBrowser": {
 			"direct": 4,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -1693,10 +1757,12 @@
 		},
 		"CnFilesPage": {
 			"direct": 0,
-			"transitive": 17,
+			"transitive": 20,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -1734,10 +1800,12 @@
 		},
 		"CnFkResolveCell": {
 			"direct": 2,
-			"transitive": 9,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage"
 			],
 			"page": null
@@ -1760,10 +1828,12 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 8,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnFlowRunsWidgetForm",
 				"CnIndexPage"
 			],
@@ -1785,16 +1855,18 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 221,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1919,14 +1991,16 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 140,
+			"transitive": 143,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -1989,13 +2063,15 @@
 		},
 		"CnFormDialog": {
 			"direct": 7,
-			"transitive": 119,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2091,14 +2167,16 @@
 		},
 		"CnGroupedCardsWidget": {
 			"direct": 0,
-			"transitive": 121,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2225,16 +2303,18 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 221,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2338,16 +2418,18 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 218,
+			"transitive": 221,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2478,14 +2560,16 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 105,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2523,13 +2607,15 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 104,
+			"transitive": 107,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2679,11 +2765,13 @@
 		},
 		"CnLinkCardsPage": {
 			"direct": 0,
-			"transitive": 28,
+			"transitive": 31,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -2696,13 +2784,15 @@
 		},
 		"CnLinkedWidget": {
 			"direct": 0,
-			"transitive": 104,
+			"transitive": 107,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2768,13 +2858,15 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 125,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -2969,10 +3061,12 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 18,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -2983,10 +3077,12 @@
 		},
 		"CnNcDashboardQuickCreate": {
 			"direct": 2,
-			"transitive": 18,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -3104,10 +3200,12 @@
 		},
 		"CnObjectCard": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -3116,14 +3214,16 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 124,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3199,10 +3299,12 @@
 		},
 		"CnObjectKanban": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -3211,10 +3313,12 @@
 		},
 		"CnObjectList": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -3222,14 +3326,16 @@
 			"page": "cn-object-list"
 		},
 		"CnObjectListWidget": {
-			"direct": 8,
-			"transitive": 121,
+			"direct": 10,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3281,13 +3387,15 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 106,
+			"transitive": 109,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3327,13 +3435,15 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 105,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3395,10 +3505,12 @@
 		},
 		"CnObjectRow": {
 			"direct": 0,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -3407,15 +3519,17 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 123,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAiFeaturesWidget",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3504,16 +3618,18 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 239,
+			"transitive": 242,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3643,14 +3759,16 @@
 		},
 		"CnPartyActionsWidget": {
 			"direct": 0,
-			"transitive": 121,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3812,13 +3930,15 @@
 		},
 		"CnRecordListWidget": {
 			"direct": 4,
-			"transitive": 105,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3891,13 +4011,15 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 122,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -3955,14 +4077,16 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 8,
-			"transitive": 111,
+			"transitive": 114,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4014,16 +4138,18 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 224,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4234,13 +4360,15 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 123,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4312,10 +4440,12 @@
 		},
 		"CnSchemaFormDialog": {
 			"direct": 1,
-			"transitive": 17,
+			"transitive": 20,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -4360,14 +4490,16 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 141,
+			"transitive": 144,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4460,21 +4592,25 @@
 		},
 		"CnSettingsFormWidget": {
 			"direct": 1,
-			"transitive": 10,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage"
 			],
 			"page": "cn-settings-form-widget"
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 30,
+			"transitive": 33,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -4524,14 +4660,16 @@
 		},
 		"CnSlotGrid": {
 			"direct": 1,
-			"transitive": 122,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4604,10 +4742,12 @@
 		},
 		"CnStagesWidget": {
 			"direct": 2,
-			"transitive": 19,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnResourceSelect",
 				"CnTemplateSelect"
@@ -4625,10 +4765,12 @@
 		},
 		"CnStatGridWidget": {
 			"direct": 0,
-			"transitive": 14,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnRegisterSchemaSelect",
 				"CnStatWidget",
@@ -4638,10 +4780,12 @@
 		},
 		"CnStatWidget": {
 			"direct": 5,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnRegisterSchemaSelect",
 				"CnStatWidgetForm"
@@ -4675,10 +4819,12 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 13,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnStatWidget"
 			],
@@ -4719,15 +4865,17 @@
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": null
+			"page": "cn-stepper"
 		},
 		"CnStorePage": {
 			"direct": 3,
-			"transitive": 27,
+			"transitive": 30,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -4747,13 +4895,15 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 120,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4824,10 +4974,12 @@
 		},
 		"CnTableWidget": {
 			"direct": 0,
-			"transitive": 17,
+			"transitive": 20,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",
@@ -4844,14 +4996,16 @@
 		},
 		"CnTabsWidget": {
 			"direct": 1,
-			"transitive": 143,
+			"transitive": 146,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4935,13 +5089,15 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 120,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -4998,13 +5154,15 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 121,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -5139,10 +5297,12 @@
 		},
 		"CnTimelineWidget": {
 			"direct": 5,
-			"transitive": 14,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnIndexPage",
 				"CnNoteComposer"
 			],
@@ -5267,11 +5427,13 @@
 		},
 		"CnWidgetCardGrid": {
 			"direct": 0,
-			"transitive": 14,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnFkResolveCell",
 				"CnIndexPage"
@@ -5303,16 +5465,18 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 221,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
 				"CnActionDialog",
 				"CnActionsMenu",
 				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
 				"CnAuditTrailCard",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
+				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
@@ -5426,11 +5590,13 @@
 		},
 		"CnWidgetObjectTable": {
 			"direct": 3,
-			"transitive": 21,
+			"transitive": 24,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
 				"CnCellRenderer",
 				"CnDataTable",
 				"CnFkResolveCell",

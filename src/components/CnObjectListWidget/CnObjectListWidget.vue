@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-object-list-widget"
-		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true }"
+		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true, 'cn-object-list-widget--framed': content.tableFrame === true }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
@@ -39,8 +39,8 @@
 			:name="resolvedEmptyText"
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
-			<template v-if="allowCreate && !waitingForContext" #action>
-				<NcButton class="cn-object-list-widget__empty-add" @click="openCreate">
+			<template v-if="allowCreate && !waitingForContext && !addInHeader" #action>
+				<NcButton class="cn-object-list-widget__empty-add" :class="{ 'cn-button--tonal': addTonal }" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -329,9 +329,12 @@
 		     empty state is showing — that renders its own copy in its #action
 		     slot, and two Add buttons on one empty card read as a bug. -->
 		<div
-			v-if="allowCreate && !waitingForContext && !showingEmptyState"
+			v-if="allowCreate && !waitingForContext && !showingEmptyState && !addInHeader"
 			class="cn-object-list-widget__add">
-			<NcButton variant="tertiary" wide @click="openCreate">
+			<NcButton variant="tertiary"
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
+				@click="openCreate">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -341,7 +344,8 @@
 				v-for="(entry, index) in addActions"
 				:key="`add-action-${index}`"
 				variant="tertiary"
-				wide
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
 				data-testid="cn-object-list-widget-add-action"
 				@click="openCreateWith(entry.createDefaults)">
 				<template #icon>
@@ -403,8 +407,10 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { formatMoney } from '../../utils/formatMetric.js'
@@ -589,12 +595,15 @@ export default {
 		 * board look it goes under the card's side padding and its outer cells
 		 * take that padding, so the column text lines up with the card title.
 		 * Without it the table stays inside the padding.
+		 * `tableFrame: true` draws the table in a 1px frame with an 8px radius
+		 * inside the card's padding, a white head with a rule under it and
+		 * 18px outer insets (PqKassabon "Regels").
 		 * `headerSubtitle` is a line under the card title with the list's
 		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
 		 * `headerNote` takes the same counts beside the card title instead.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean, tableFrame?: boolean}}
 		 * `children` (`{ register?, schema, filter, columns, reorder, rowActions,
 		 * … }`) shows each row's child records under it, as a list of the same
 		 * kind: `filter` names the link with an `@row.<field>` token
@@ -632,6 +641,8 @@ export default {
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
+			/** Colour and icon per referenced id for each `badge` column that resolves them (`refLookSpecs`). */
+			refLooks: {},
 			/** The rows `content.readOnlyRows` adds after the list's own, tagged `_readOnly`. */
 			readOnlyRows: [],
 			loading: false,
@@ -859,6 +870,22 @@ export default {
 		 * schema property's `x-enum-labels`, completed here for the
 		 * manifest-column path rather than special-cased per column.
 		 */
+		/**
+		 * The `badge` columns that take their tone and icon from the record
+		 * they point at (`widgetProps.resolve: { register, schema, colorField?, iconField? }`).
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		refLookSpecs() {
+			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
+			return cols
+				.filter((c) => c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps && c.widgetProps.resolve)
+				.map((c) => ({ key: c.key, ...c.widgetProps.resolve }))
+				.filter((r) => typeof r.key === 'string' && r.key !== '' && r.register && r.schema && (r.colorField || r.iconField))
+				.map((r) => ({ key: r.key, register: r.register, schema: r.schema, colorField: r.colorField || '', iconField: r.iconField || '' }))
+		},
+
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			const sortableConfig = this.content.sortable
@@ -922,6 +949,9 @@ export default {
 				if (out.sortable === undefined && sortableConfig !== undefined) {
 					out.sortable = sortableConfig === true
 						|| (Array.isArray(sortableConfig) && sortableConfig.includes(out.key))
+				}
+				if (out.widget === 'badge' && this.refLooks[out.key]) {
+					out.widgetProps = { ...(out.widgetProps || {}), looks: this.refLooks[out.key] }
 				}
 				return out
 			})
@@ -1574,6 +1604,49 @@ export default {
 		},
 
 		/**
+		 * Whether the Add buttons are the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen")
+		 * instead of the wide tertiary button.
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		addTonal() {
+			return this.content?.addVariant === 'tonal'
+		},
+
+		/**
+		 * Whether the Add sits in the card's title row (`content.addPlacement:
+		 * "header"`) instead of below the rows.
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {boolean}
+		 */
+		addInHeader() {
+			return this.content?.addPlacement === 'header'
+		},
+
+		/**
+		 * The title-row Add reported to the card, or null: an outlined button
+		 * with `content.addIcon` (default Plus).
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {object|null}
+		 */
+		headerAddAction() {
+			if (!this.addInHeader || !this.allowCreate || this.waitingForContext) {
+				return null
+			}
+			return {
+				label: this.addLabel,
+				icon: typeof this.content.addIcon === 'string' && this.content.addIcon !== '' ? this.content.addIcon : 'Plus',
+				add: true,
+				variant: 'secondary',
+				run: () => this.openCreate(),
+			}
+		},
+
+		/**
 		 * The extra adds (`content.addActions`: `[{ label, icon?, createDefaults? }]`),
 		 * each opening this list's create form with its own defaults over the
 		 * list's (board PqOfferte "Eigen regel toevoegen"). Labels go through the
@@ -1676,6 +1749,10 @@ export default {
 	},
 
 	watch: {
+		rows() {
+			this.loadRefLooks()
+		},
+
 		presetRows(next) {
 			if (next !== null) {
 				this.rows = [...next]
@@ -1693,6 +1770,14 @@ export default {
 		/** The counts under the card title follow the rows (`content.headerSubtitle`). */
 		headerSubtitleText() {
 			this.emitHeader()
+		},
+
+		/** The title-row Add comes and goes with create rights (`content.addPlacement`). */
+		headerAddAction: {
+			immediate: true,
+			handler() {
+				this.emitHeader()
+			},
 		},
 
 		/** The counts beside the card title follow the rows (`content.headerNote`). */
@@ -1791,6 +1876,47 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the colour and icon names the `refLookSpecs` columns need for
+		 * the ids in the rows, one batch per column. A failed read leaves the
+		 * badge as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		async loadRefLooks() {
+			if (this.refLookSpecs.length === 0) {
+				return
+			}
+			if (!this._refLookResolver) {
+				this._refLookResolver = createRefLabelResolver(() => {
+					try {
+						return useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const read = (spec, ids, name) => (name
+				? this._refLookResolver.resolve(spec.register, spec.schema, ids, name, { strict: true }).catch(() => ({}))
+				: Promise.resolve({}))
+			await Promise.all(this.refLookSpecs.map(async (spec) => {
+				const known = this.refLooks[spec.key] || {}
+				const ids = [...new Set(this.rows
+					.map((row) => objectFieldValue(row, spec.key))
+					.filter((id) => typeof id === 'string' && id !== '' && !Object.hasOwn(known, id)))]
+				if (ids.length === 0) {
+					return
+				}
+				const [colors, icons] = await Promise.all([read(spec, ids, spec.colorField), read(spec, ids, spec.iconField)])
+				const found = {}
+				ids.forEach((id) => {
+					found[id] = { color: (colors && colors[id]) || null, icon: (icons && icons[id]) || null }
+				})
+				this.refLooks = { ...this.refLooks, [spec.key]: { ...(this.refLooks[spec.key] || {}), ...found } }
+			}))
+		},
+
 		/**
 		 * Offer `content.export` as a button in the card's header: the list as
 		 * it is filtered here, through OpenRegister's export (which applies its
@@ -2047,10 +2173,11 @@ export default {
 			const note = this.headerNoteText
 			// A line shown before is cleared with an empty one, so the card does
 			// not keep a stale count; a list that never had one stays silent.
-			if (!this.headerAction && subtitle === '' && note === '' && !this.headerSubtitleShown) {
+			const add = this.headerAddAction
+			if (!this.headerAction && !add && subtitle === '' && note === '' && !this.headerSubtitleShown) {
 				return
 			}
-			this.headerSubtitleShown = subtitle !== '' || note !== ''
+			this.headerSubtitleShown = subtitle !== '' || note !== '' || add !== null
 			/**
 			 * @event header The card header's parts: the Download action for the
 			 * list as filtered here (`content.export`) and the counts line under
@@ -2059,6 +2186,7 @@ export default {
 			 */
 			this.$emit('header', {
 				...(this.headerAction ? { action: this.headerAction } : {}),
+				...(add ? { actions: [add] } : {}),
 				subtitle,
 				note,
 			})
@@ -2293,6 +2421,13 @@ export default {
 			// for the fit with `fit: true`.
 			const panel = this.$el.closest('[role="tabpanel"]')
 			if (panel && cell.contains(panel) && !(this.content && this.content.fit === true)) {
+				this.fitRows = null
+				return
+			}
+			// A cell that sizes to its content takes the list's height, so the
+			// cell is no budget; a row maximum ("4") still is.
+			const item = cell.closest('.grid-stack-item')
+			if (item && item.getAttribute('gs-size-to-content') === 'true' && !(this.content && this.content.fit === true)) {
 				this.fitRows = null
 				return
 			}

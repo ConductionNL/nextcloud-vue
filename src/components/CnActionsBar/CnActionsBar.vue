@@ -580,13 +580,20 @@
 			variant="secondary"
 			:disabled="selectedIds.length === 0"
 			@click="$emit('show-copy')">
+			<template #icon>
+				<ContentCopy :size="16" />
+			</template>
 			{{ t('nextcloud-vue', 'Copy selected') }}
 		</NcButton>
 		<NcButton
 			v-if="showMassDelete"
 			variant="secondary"
+			class="cn-actions-bar__band-delete"
 			:disabled="selectedIds.length === 0"
 			@click="$emit('show-delete')">
+			<template #icon>
+				<TrashCanOutline :size="16" />
+			</template>
 			{{ t('nextcloud-vue', 'Delete selected') }}
 		</NcButton>
 		<NcButton

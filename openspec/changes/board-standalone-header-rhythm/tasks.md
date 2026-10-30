@@ -1,0 +1,3 @@
+- [x] look-board.css: standalone header description margin 12.4px (gap 13)
+- [x] look-board.css: standalone header labelled buttons at the control height
+- [x] jest lookBoardStandaloneHeaderRhythm, lookBoardStandalonePageHeader

@@ -710,6 +710,12 @@
 	border-radius: 8px;
 }
 
+/* Delete selected reads in the error tag ink (PqTicketsSelectie, HmAgents). */
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-delete.button-vue,
+.cn-look-board .cn-actions-bar__band .cn-actions-bar__band-delete.button-vue .button-vue__text {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+}
+
 /* In the index page the page's own 20px gap stands between the band and the
    card, so the band adds no margin of its own (DqZaken: card 20px under it). */
 .cn-look-board .cn-index-page:not(.cn-look-nextcloud *) > .cn-actions-bar__band {
@@ -805,6 +811,13 @@
 .cn-look-board .cn-index-page__main.cn-index-page__main--map {
 	flex: 1 1 auto;
 	align-self: flex-start;
+}
+
+/* Split open, the card starts from zero and takes the width the pane leaves:
+   its auto basis (a fixed 100% table, a full-width list) would otherwise be the
+   whole body. After the view rules above, so it wins over their `1 1 auto`. */
+.cn-look-board .cn-index-page__main.cn-index-page__main--split {
+	flex: 1 1 0;
 }
 
 /* The map card is as tall as its 533px map (or its list), 18px in, and the
@@ -907,13 +920,17 @@
    fixed layout shares the card's width: the selection and menu columns keep
    their own width, the first data column takes 18%, the others split the
    rest, and a value that does not fit is cut with an ellipsis (its full text
-   stays in the cell's tooltip). A column's own `width` still wins. */
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table {
+   stays in the cell's tooltip). A column's own `width` still wins. A widget
+   table under the list (`afterList`, PqSocial "Sociale prestaties") fits its
+   card itself (`fitWidth`) and keeps the auto layout: fixed, its 1% columns
+   cut every head to "G...".
+   @spec openspec/changes/after-list-fit-table-auto-layout/specs/narrow-object-table-widgets/spec.md#requirement-a-fit-table-under-an-index-list-keeps-its-heads-whole */
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table:not(.cn-data-table--fit) {
 	table-layout: fixed;
 	width: 100%;
 }
 
-.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table th.cn-table-head--title {
+.cn-look-board .cn-index-page__main--table .cn-table-container--board .cn-data-table:not(.cn-data-table--fit) th.cn-table-head--title {
 	width: 18%;
 }
 
@@ -1164,6 +1181,14 @@
 	line-height: 1.45;
 }
 
+/* A short value that wraps (`cellClass: "cn-cell--wrap cn-cell--leading-normal"`)
+   keeps the table's normal line height, as DqZaakAssistent draws the AI log's
+   question and model over two lines in rows 57 high.
+   @spec openspec/changes/board-log-table-prose-line-height/specs/board-log-table-prose-line-height/spec.md#requirement-a-short-wrapped-value-keeps-the-normal-line-height */
+.cn-look-board .cn-table-container--board.cn-table-container--title-text .cn-data-table td.cn-cell--wrap.cn-cell--leading-normal:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* `rowTitle: "strong"` (DqZaaktypeStatussen "Statussen", "Resultaten"): the
    name column of a card's list, the cell's 14px at weight 600 in the main
    ink, no underline; the row stays a link.
@@ -1207,6 +1232,13 @@
 	color: var(--cn-board-text-soft);
 	font-size: 13px;
 	line-height: normal;
+}
+
+/* A grey chip of 28px or less sets its initials at 12px (PqLeads' owner,
+   DqUwWachtrij); the 36px chip keeps 13px (DqContacten).
+   @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral.cn-cell-renderer__avatar-initials--compact {
+	font-size: 12px;
 }
 
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar:has(.cn-cell-renderer__avatar-initials--neutral) {
@@ -1748,6 +1780,7 @@
 	color: var(--cn-status-teal-text);
 }
 
+/* @spec openspec/changes/board-record-card-foot-leading/specs/board-record-card-foot-leading/spec.md */
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot {
 	display: flex;
 	align-items: center;
@@ -1756,6 +1789,7 @@
 	margin-top: auto;
 	padding-top: 10px;
 	border-top: 1px solid var(--cn-board-hairline);
+	line-height: normal;
 }
 
 .cn-look-board .cn-object-card--board .cn-object-card__record-foot-cell {
@@ -1902,13 +1936,18 @@
 }
 
 /* Install and Update are soft pills in the light primary tint, without an
-   edge; Open keeps the outlined button. */
+   edge; Open keeps the outlined button. NcButton redefines the light primary
+   inside the button, so the tint comes from the body (main.css). */
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue {
 	padding: 0 14px;
 	border: 0;
 	border-radius: 17px;
-	background: var(--color-primary-element-light);
-	color: var(--color-primary-element-light-text);
+	background-color: var(--cn-tonal-bg, var(--color-primary-element-light));
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
+}
+
+.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue .button-vue__text {
+	color: var(--cn-tonal-ink, var(--color-primary-element-light-text));
 }
 
 .cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue:hover:not(:disabled) {
@@ -1972,7 +2011,7 @@
 }
 
 .cn-look-board .cn-store-page__lenses > .cn-store-page__lens--active {
-	border-color: var(--color-main-text);
+	border-width: 0;
 	background: var(--color-main-text);
 	color: var(--color-main-background);
 }
@@ -2314,8 +2353,16 @@
 	padding: calc(12px - var(--cn-board-first-line-leading, 0.15em)) 22px 20px;
 }
 
+/* The note keeps the title row as tall as the title, and the team members
+   start 14px under it, as DqTeamwachtrij "Team vandaag" draws them.
+   @spec openspec/changes/board-team-today-header-gap/specs/board-team-today-header-gap/spec.md */
 .cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-index-page-widgets__note {
 	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-index-page-widgets--side-panel:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-team-workload) {
+	padding-top: 14px;
 }
 
 /* A record list drawn as a table (DqTeamwachtrij "Werkvoorraad per
@@ -2786,6 +2833,34 @@
 	font-weight: 700;
 }
 
+/* The Actions menu beside the page tabs is the board's 34px tab-row button:
+   a grey border on the main background, 8px in from the list's edge
+   (PqBiExport, PqFlows). The theme styles every secondary button with
+   `!important`, as in the header, and the 40px labelled-menu rule
+   (look-board.css) outranks this one, so the size is `!important` too.
+   @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs */
+.cn-look-board .cn-index-page__page-tabs-menu:not(.cn-look-nextcloud *) {
+	margin-inline-end: 8px;
+}
+
+.cn-look-board .cn-index-page__page-tabs-menu:not(.cn-look-nextcloud *) .button-vue {
+	--button-size: 34px !important;
+	box-sizing: border-box;
+	height: 34px !important;
+	min-height: 34px !important;
+	padding: 0 12px !important;
+	border: 1px solid var(--cn-board-control-border) !important;
+	border-radius: var(--cn-board-control-radius) !important;
+	background: var(--color-main-background) !important;
+	color: var(--color-main-text) !important;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-index-page__page-tabs-menu:not(.action-item--open):not(.cn-look-nextcloud *) .button-vue:hover {
+	background: var(--color-background-hover) !important;
+}
+
 /* The applied view's row, and the row whose menu is open, on the primary
    tint with the name in the deep primary ink (DqFilterBeheren "Wacht op
    inwoner" with its menu open).
@@ -2804,19 +2879,71 @@
    drew 60px of nothing under its header (DqZoekresultaten). The grid has no
    row gap here; each part that is present carries the section gap under it.
    @spec openspec/changes/side-panel-grid-no-empty-row-gaps/specs/side-panel-grid-no-empty-row-gaps/spec.md */
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) {
 	row-gap: 0;
 }
 
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > :first-child,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__below-header,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-actions-bar {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > :first-child,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__below-header,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__stat-row,
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-actions-bar {
 	margin-bottom: var(--cn-board-section-gap);
 }
 
-.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
+.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *) > .cn-index-page__quick-filter-row {
 	margin-bottom: calc(var(--cn-board-section-gap) + 12px);
+}
+
+/* ---- The open record as the board's side card (PqKassaAudit) ---------- */
+/* A split view in the board look draws the open record as a card in the
+   side column, from the top of the chips and the toolbar, with the list
+   column beside it; the column is the pane's declared width
+   (`splitView.paneWidth`). The body steps out of the grid so the list and
+   the pane are its cells.
+   @spec openspec/changes/board-split-pane-side-column/specs/board-split-pane-side-column/spec.md */
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) {
+	grid-template-columns: minmax(0, 1fr) var(--cn-index-split-pane-width, 360px);
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body {
+	display: contents;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body > .cn-index-page__main {
+	grid-area: body;
+	border-inline-end: 0;
+	padding-inline-end: 0;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) > .cn-index-page__body > .cn-index-page__split-pane {
+	grid-area: side;
+	align-self: start;
+	padding: 22px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-board-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
+/* Inside the card the record is one sheet: the detail page brings no inset of
+   its own, its title is the card title, and its widgets are sections of the
+   card rather than cards in a card. */
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane > .cn-detail-page {
+	padding: 0;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-detail-page__header--board .cn-detail-page__title {
+	font-size: 17px;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper__header,
+.cn-look-board .cn-index-page--split-side:not(.cn-look-nextcloud *) .cn-index-page__split-pane .cn-widget-wrapper__content {
+	padding-inline: 0;
 }
 
 /* ---- The side panel's filters as checkbox lists (DqZakenSorteren) ------- */

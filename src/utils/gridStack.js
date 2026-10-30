@@ -126,3 +126,24 @@ export function planClearRows(nodes) {
 	}
 	return plan
 }
+
+/**
+ * The height each `sameHeight` card of a layout row stretches to: the
+ * tallest card on its row, for every shorter card there. A card alone on its
+ * row, and the tallest card itself, keep their own height (null), so the
+ * tallest still follows its content.
+ *
+ * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
+ * @param {Array<{row: number, height: number}>} cards The cards, each with its layout row and its content height in pixels.
+ * @return {Array<number|null>} Per card, the height to stretch to, or null.
+ */
+export function planSameHeights(cards) {
+	const tallest = new Map()
+	for (const card of cards) {
+		tallest.set(card.row, Math.max(tallest.get(card.row) ?? 0, card.height))
+	}
+	return cards.map((card) => {
+		const height = tallest.get(card.row)
+		return card.height < height ? height : null
+	})
+}

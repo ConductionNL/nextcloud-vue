@@ -105,7 +105,7 @@ describe('CnStorePage as board PqStore draws it', () => {
 		expect(bodyOf(css, '.cn-look-board .cn-store-page--board .cn-page-header .cn-page-header__description')).toContain('grid-row: 2;')
 		expect(bodyOf(css, '.cn-look-board .cn-store-page--board .cn-store-page__header-actions > .button-vue--primary')).toContain('height: var(--cn-board-control-height) !important;')
 		const standalone = '.cn-look-board .cn-page-header:not(.cn-look-nextcloud *):not(.cn-index-page *):not(.cn-settings-page *):not(.cn-chat-page *):not(.cn-files-page *):not(.cn-form-page *):not(.cn-logs-page *):not(.cn-map-page *):not(.cn-store-page--board *) .cn-page-header__description'
-		expect(bodyOf(boardCss, standalone)).toContain('margin-top: 9px;')
+		expect(bodyOf(boardCss, standalone)).toContain('margin-top: 12.4px;')
 	})
 
 	it('draws the pills on a normal line in the board tag tones', () => {
@@ -119,7 +119,7 @@ describe('CnStorePage as board PqStore draws it', () => {
 	it('draws the soft action as a pill without an edge', () => {
 		const soft = bodyOf(css, '.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue')
 		expect(soft).toContain('border-radius: 17px;')
-		expect(soft).toContain('background: var(--color-primary-element-light);')
+		expect(soft).toContain('background-color: var(--cn-tonal-bg, var(--color-primary-element-light));')
 	})
 
 	it('keeps the lens chips 8px apart over the core button margin, 36px high', () => {

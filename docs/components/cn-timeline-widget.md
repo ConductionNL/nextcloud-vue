@@ -32,7 +32,7 @@ All five are optional and end up in one list.
 | `fields` | The object's date properties, `[{ field, label }]`. A dotted path reaches metadata, such as `@self.created`. A field without a date adds nothing. |
 | `related` | Related objects, `[{ schema, field, register?, dateField?, label, titleField?, limit? }]`. Rows of `schema` whose `field` holds this object's id, each dated by `dateField` (default `@self.created`). `titleField` becomes the line under the label. |
 | `auditTrail` | `true` adds the object's audit trail: "Updated by Ruben". |
-| `lists` | A list held on the object, `[{ field, dateField, labelField?, label?, detailField? }]`, such as a status history. Each entry with a date at `dateField` becomes one event, labelled by its `labelField` value (else `label`), with `detailField` as the line under it. |
+| `lists` | A list held on the object, `[{ field, dateField, labelField?, valueLabels?, label?, detailField? }]`, such as a status history. Each entry with a date at `dateField` becomes one event, labelled by its `labelField` value (else `label`), with `detailField` as the line under it. `valueLabels` words a stored value (`{ "confirmed": "Status: Confirmed" }`), translated like every label; a value it does not name shows as stored. |
 | `timeline` | `true` adds OpenRegister's timeline of notes, calls and messages. |
 
 `order: "desc"` lists newest first; the default is oldest first. `limit: 3` keeps the first three events of that order, for a short History side card. An audit-trail read is not a change, so it is not listed.

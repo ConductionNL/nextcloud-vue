@@ -60,7 +60,7 @@ A person page lists its open cases ("Verlichting fietspad Lindelaan", "2026-0082
 - `inline`: a `label` followed by the `title`, the title a link when `rowRoute` is set.
 - `cards`: a framed card per row in a grid of cards at least 240px wide, as board ShBank draws the bank accounts. The card shows the `icon` (only when you set one) and the `title`, with the `pill` and `badges` beside them, then the `meta` line, then `trailing` as a large figure. A card with `rowRoute` is a link. On a board-look dashboard the cards keep a 24px inset inside a titled card; give the placement `borderless: true` and `showTitle: false` to stand them on the page ground, as ShBank does.
 
-Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09.42"). `{path|ago}` says how long ago it was: "10 min geleden", "1 uur geleden", then "vanochtend", "vanmiddag" or "vanavond", "gisteren", the weekday ("vrijdag") and after a week the short date. `{path|week}` is the ISO week ("Week 41"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
+Every text is a template. `{path}` reads a dot path off the row; `{path|date}` writes a date the board way ("1 nov", "18 nov 2025"), `{path|datetime}` adds the time ("4 okt, 10:52"). `{path|relative}` says "vandaag" and "gisteren" and then the short date, and `{path|relativetime}` adds the time of day ("vandaag, 09:42"). `{path|ago}` says how long ago it was: "10 min geleden", "1 uur geleden", then "vanochtend", "vanmiddag" or "vanavond", "gisteren", the weekday ("vrijdag") and after a week the short date. `{path|week}` is the ISO week ("Week 41"). A template with an empty token renders nothing, so `trailing` can list several and the first that fills is shown. Templates go through the host app's translate function first.
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
@@ -108,6 +108,8 @@ template filled from the row ("Assign to {displayName}").
 `footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
 (one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
 capacity"). It shows with no rows too, and not when the value is empty or zero.
+`{ source, text }` reads the value from a request of its own instead (`source` in the `endpointSource` shape, page
+tokens filled in), for a fact that does not live in the rows' answer (DqTenant "Historie": "Kenmerk TEN-0014").
 
 `links` (`{ field, label, route, labelSource?, fallback? }`) draws a line under the row naming the records at `field`
 ("Also on: 2026-0012 Parkeren, 2026-0031"). Each links to `route` with `{value}` the id; `labelSource`
@@ -216,7 +218,7 @@ A list that asks for a personal lens (`filter: { "_recent": true }`) and gets no
 
 `density: "compact"` draws the rows 10px above and below, at least 56px tall, with the title at 500 instead of bold (DqProcesanalyse "Waar zaken blijven hangen"). Without it the rows keep their default spacing.
 
-In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link.
+In `rows`, `text` is a muted line under the meta line (`"text": "{idleDays} dagen stil"`, DqDashboard), left out when it fills empty. `chevron: false` leaves the chevron off a linked row; the row stays a link. The board look hides the chevron on a dashboard; `chevron: true` keeps it there (PqMijnWerk).
 
 `aggregates` gives every row a figure over its related objects, as a table's `aggregate` column does: `{ "runningCases": { "register": "dossiq", "schema": "case", "op": "count", "where": { "caseType": "@self.id", "isFinalStatus": false } } }` asks one `_limit=0` count per row shown (`op: "max"` with `field` the highest value instead), `@self.<path>` in `where` read off the row, and the templates read it as `{runningCases}` (DqZaaktype Versies: `"meta": "{validFrom|date} · {runningCases} running cases"`). `text` (`{ "zero": "no running cases", "one": "{count} running case", "other": "{count} running cases" }`, translated) offers a count as words instead, so zero can read "geen lopende zaken". A failed figure is left out.
 
@@ -253,7 +255,7 @@ A list can follow the page's controls (a `workspace-filter` select and switch). 
 
 ## Badges
 
-`badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.
+`badges` adds status badges after the row's pill. A field badge takes the same keys as `pill` (`field`, `labels`, `colorMap`, `variant`) plus `hideValues`, a list of values that draw nothing, so a priority badge shows for urgent and high and stays away for normal. `look: "text"` draws a field badge as words in its tone, without a ground (PqMijnWerk "Hoog priority" beside the kind pill). An age badge, `{ "kind": "stale", "field": "updatedAt", "afterDays": 7, "label": "Stale {days} days", "variant": "warning" }`, shows when the date field is more than `afterDays` whole days old and replaces `{days}` with the age. `pill.hideValues` hides the pill the same way.
 ## Due text
 
 `due` draws a date field as text with a tone: `{ "field": "deadline", "todayLabel": "Vandaag", "overdueLabel": { "one": "{count} dag te laat", "other": "{count} dagen te laat" }, "emptyText": "Geen deadline" }`. A date before today reads the overdue label in the danger colour, today reads `todayLabel` (default "Due today"), a day to come reads "tomorrow" or the short date, and an empty field reads `emptyText` in the muted colour, or nothing without one. With `upcomingLabel` (`{ "one": "nog {count} dag", "other": "nog {count} dagen" }`) a day to come reads the days left instead of the date, and with `upcomingWeeksLabel` (`{ "one": "nog {count} week", "other": "nog {count} weken" }`) it reads the weeks left, rounded, from `upcomingWeeksFrom` days left (default 35). The texts go through the host's translate. The same keys work on a `date` column as `widgetProps.due`. In `rows`, `duePlacement: "below"` draws the due text as a line under the title (13px, in its tone) instead of at the end of the row (DqDagAfsluiten "Morgen eerst").

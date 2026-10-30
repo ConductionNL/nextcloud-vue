@@ -122,6 +122,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-inline: 0;
 }
 
+/* A labelled link keeps its 16px icon before the text (DqPersoonlijkeInstellingen
+   "Verwerkingsactiviteiten (AVG)", open-in-new).
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-link-keeps-its-icon */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content a.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: flex;
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+}
+
 /* The close button is the board's 44px round button, no edge
    (DqPersoonlijkeInstellingen "Sluiten").
    @spec openspec/changes/user-settings-close-button/specs/user-settings-close-button/spec.md#requirement-the-user-settings-close-button-sits-in-the-corner */
@@ -187,7 +197,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-top: 0;
 }
 
-/* The close button is a 36px circle. NcButton sizes an icon-only button by
+/* The close button is a 36px circle with its cross in the soft ink, as every
+   dialog board draws it (#3d4047). NcButton sizes an icon-only button by
    --button-size with `!important`, so the size goes through that; the radius
    also goes to the nldesign theme's button radius token. */
 .cn-dialog-header .cn-dialog-header__close.button-vue {
@@ -200,6 +211,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	min-height: 36px;
 	border-radius: 50%;
 	background: transparent;
+	color: var(--cn-board-text-soft, var(--color-text-maxcontrast));
+	--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-text-maxcontrast));
 }
 
 /* A checkbox in a board dialog sits flush with the fields, its label 10px
@@ -751,12 +764,40 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	background-color: var(--color-primary-element-light-hover);
 }
 
+/* A warning note in a board dialog, as PqGesprekNieuwContact draws "Geen
+   contact gevonden": the status warning ground and ink at radius 8, 10px 14px
+   in, the icon 10px before 14px text on a 1.45 line. The 4px ink edge stays,
+   as DqNieuweZaakDubbel draws its warning. NcNoteCard paints its ground, ink
+   and text with `!important`. The duplicate warning below is bolder.
+   @spec openspec/changes/board-dialog-warning-note/specs/board-dialog-warning-note/spec.md#requirement-a-board-dialogs-warning-note-takes-the-status-warning-look */
+.cn-dialog-board .dialog__content .notecard.notecard--warning {
+	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start-color: var(--note-theme);
+	border-radius: 8px;
+	background-color: var(--nldesign-component-status-badge-warning-background-color, var(--color-warning-light, #fff4de)) !important;
+	color: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text)) !important;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard--warning .notecard__text {
+	margin: 0;
+	color: inherit !important;
+	font-size: 14px !important;
+	line-height: 1.45 !important;
+}
+
 /* The duplicate warning as DqNieuweZaakDubbel draws it. The note is a warning
    line, 12px 14px in at radius 8 on the status warning ground, 15px bold in
    the warning ink with a 20px icon 10px before it; NcNoteCard paints its
    ground and ink with `!important`. A match card stacks its title and facts
-   3px apart, 12px 14px in, the facts at 13px; the small print is 13px.
+   3px apart, 12px 14px in, the facts at 13px; the small print is 13px. The
+   note, the matches and the reason field stand 14px apart.
    @spec openspec/changes/board-duplicate-warning-text/specs/board-duplicate-warning-text/spec.md#requirement-a-board-duplicate-warning-is-drawn-as-the-board */
+.cn-dialog-board .dialog__content .cn-duplicate-warning {
+	gap: 14px;
+}
+
 .cn-dialog-board .dialog__content .cn-duplicate-warning > .notecard.notecard--warning {
 	--note-card-icon-size: 20px;
 	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));

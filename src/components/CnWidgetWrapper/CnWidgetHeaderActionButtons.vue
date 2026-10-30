@@ -106,6 +106,13 @@ export default {
 	cursor: pointer;
 }
 
+/* server.css gives every button `margin: 3px 3px 3px 0` at (0,2,1), which
+   put 11px between two buttons; the doubled class outranks it. */
+.cn-widget-header-actions__link.cn-widget-header-actions__link,
+.cn-widget-header-actions__tonal.cn-widget-header-actions__tonal {
+	margin: 0;
+}
+
 .cn-widget-header-actions__tonal:hover {
 	background: var(--color-primary-element-light-hover);
 }

@@ -764,6 +764,12 @@ export default {
 	white-space: nowrap;
 }
 
+/* Nextcloud's core sheet gives every plain button a 3px margin, which the
+   single-class rule does not outrank: the tabs stood 7px apart, not 4px. */
+.cn-features-board__tabs .cn-features-board__tab {
+	margin: 0 0 -1px;
+}
+
 .cn-features-board__tab--active {
 	position: relative;
 	background: var(--color-main-background);
@@ -816,6 +822,7 @@ export default {
 
 .cn-features-board__filter--chips .cn-features-board__filter-option {
 	height: 36px;
+	margin: 0;
 	padding: 0 14px;
 	border: 1px solid var(--color-border-dark);
 	border-radius: 18px;
@@ -973,7 +980,15 @@ export default {
 	border-top: 1px solid var(--color-background-dark);
 }
 
+/* The nldesign theme paints every `<a>` in its link colour and underline with
+   `!important` through its link tokens; this button hands them the main ink.
+   @spec openspec/changes/features-board-read-more-ink/specs/features-board-read-more-ink/spec.md#requirement-the-learn-more-button-keeps-the-main-ink-under-a-theme */
 .cn-features-board__read-more {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	--nldesign-component-link-visited-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
 	display: inline-flex;
 	align-items: center;
 	height: 34px;

@@ -117,13 +117,13 @@
 				<div
 					v-if="entry.widget && entry.isStack"
 					class="cn-tabs-widget__stack"
-					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid }"
+					:class="{ 'cn-tabs-widget__stack--grid': !!entry.grid, 'cn-tabs-widget__stack--sections': entry.sections }"
 					data-testid="cn-tabs-widget-stack">
 					<div class="cn-tabs-widget__stack-first" :style="spanStyle(entry.grid, 0)">
 						<CnDetailWidgetHost
 							:widget="entry.widget"
 							chrome="card"
-							:showCardTitle="true"
+							:showCardTitle="entry.widget.showTitle !== false"
 							:showActions="false"
 							:availableWidgets="availableWidgets"
 							:objectId="objectId"
@@ -149,7 +149,7 @@
 						<CnDetailWidgetHost
 							:widget="child"
 							chrome="card"
-							:showCardTitle="true"
+							:showCardTitle="child.showTitle !== false"
 							:showHeaderLink="true"
 							:showActions="false"
 							:availableWidgets="availableWidgets"
@@ -207,6 +207,7 @@
 						:surface="surface"
 						:integrationContext="integrationContext"
 						:cnRegistry="cnRegistry"
+						@panelHeader="onPanelHeader(entry.key, $event)"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onOpenIntegration"
 						@selectObject="onSelectObject" />
@@ -430,9 +431,16 @@ export default {
 		 * the other: `columns: 4` gives each a quarter of the row, and
 		 * `layout: [{ widgetId, gridWidth }]` sets a width (of 12) per widget, as
 		 * the page grid does. Widgets wrap onto the next row.
+		 * `sections: true` draws the stack as one sheet in the board look: the
+		 * panel is the card and each widget a section of it, a rule above a
+		 * section that follows a titled one (PqLead "Overzicht"). A widget
+		 * whose definition says `showTitle: false` draws no title in a stack.
 		 *
 		 * A tab with `default: true` is the one the strip opens on, unless a
 		 * route hash names another tab or the marked tab sits under "More".
+		 *
+		 * A tab with one widget and `showTitle: true` heads its panel with the
+		 * widget's title even when the widget has no description.
 		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More" (in the
 		 * board look: into the Actions menu, with History kept in the strip).
@@ -440,7 +448,7 @@ export default {
 		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
 		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string, count?: number, countField?: string, countFrom?: ('widget'|{register: string, schema: string, filter?: object}|{endpoint: string, field?: string}|{auditTrail: true, excludeActions?: string[], excludeActors?: string[]}), overflow?: boolean, default?: boolean, showTitle?: boolean, columns?: number, layout?: Array<{widgetId: string, gridWidth: number}>}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -584,6 +592,9 @@ export default {
 			// than a flat list because `lazy` keeps a visited tab mounted, so
 			// more than one panel publishes at a time.
 			panelActionsByWidget: {},
+			// What each single-widget panel's widget reported for its title
+			// row (a list's counts line and Add), keyed by tab key.
+			panelHeaders: {},
 		}
 	},
 
@@ -729,6 +740,9 @@ export default {
 					// "De melding"): the record decides which cards show, not
 					// whether the panel is a card.
 					isStack: named.length > 1,
+					// `sections: true`: the stack is one sheet, its widgets
+					// sections of the panel rather than cards of their own.
+					sections: Boolean(tab && typeof tab === 'object' && tab.sections === true),
 					grid: this.stackGrid(tab, widgets),
 					count,
 					unreadKey: this.unreadKeyOf(tab, widgetId),
@@ -736,6 +750,7 @@ export default {
 					overflow,
 					pending: visibility === 'pending',
 					opensFirst: Boolean(tab && typeof tab === 'object' && tab.default === true),
+					showTitle: Boolean(tab && typeof tab === 'object' && tab.showTitle === true),
 				})
 			})
 			return resolved
@@ -1229,6 +1244,50 @@ export default {
 		 */
 		panelHeaderActions(entry) {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const reported = this.reportedHeader(entry).actions.map((action, index) => ({
+				key: `reported-${index}-${action.label}`,
+				label: action.label,
+				icon: action.icon || '',
+				variant: action.variant || 'secondary',
+				run: action.run,
+			}))
+			return [...this.declaredPanelActions(entry, translate), ...reported]
+		},
+
+		/**
+		 * What a showTitle panel's widget reported for its title row, with
+		 * nothing for any other panel.
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-tab-panel-heading-carries-what-its-widget-reports
+		 * @param {object} entry A resolved tab.
+		 * @return {{subtitle: string, actions: Array<object>}}
+		 */
+		reportedHeader(entry) {
+			const header = entry && entry.showTitle ? this.panelHeaders[entry.key] : null
+			return {
+				subtitle: header && typeof header.subtitle === 'string' ? header.subtitle : '',
+				actions: header && Array.isArray(header.actions) ? header.actions.filter((action) => action && action.label && typeof action.run === 'function') : [],
+			}
+		},
+
+		/**
+		 * Keep what a panel's widget reported for its title row.
+		 *
+		 * @param {string} key The tab key.
+		 * @param {object} header The reported header.
+		 */
+		onPanelHeader(key, header) {
+			this.panelHeaders = { ...this.panelHeaders, [key]: header || {} }
+		},
+
+		/**
+		 * The widget's manifest `headerActions` as buttons.
+		 *
+		 * @param {object} entry A resolved tab.
+		 * @param {Function} translate The app's translate.
+		 * @return {Array<object>} The buttons.
+		 */
+		declaredPanelActions(entry, translate) {
 			return resolveWidgetHeaderActions(entry && entry.widget, {
 				object: this.objectData || {},
 				objectId: this.objectId,
@@ -1245,10 +1304,12 @@ export default {
 		 * and its description, through the app's translate. None when the
 		 * widget has no title or no description, or the tab already shows the
 		 * title: a title alone names what the tab already names, so the
-		 * widget stays bare in its panel.
+		 * widget stays bare in its panel. A tab with `showTitle: true` draws
+		 * the title without a description too (PqMailinglijst "Lijstgegevens").
 		 *
 		 * @param {object} entry A resolved tab.
 		 * @return {{title: string, subtitle: string}|null} The heading, or null.
+		 * @spec openspec/changes/tab-panel-shows-widget-title/specs/tab-panel-shows-widget-title/spec.md#requirement-a-tab-can-show-its-single-widgets-title
 		 */
 		panelHeading(entry) {
 			const widget = entry && entry.widget
@@ -1258,11 +1319,18 @@ export default {
 			}
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 			const title = translate(raw)
+			// A widget that reports a counts line or an action needs the row,
+			// even when its title repeats the tab label (PqTicketContactmomenten).
+			const reported = this.reportedHeader(entry)
+			if (reported.subtitle !== '' || reported.actions.length > 0) {
+				return { title, subtitle: reported.subtitle || (widget.description ? translate(widget.description) : '') }
+			}
 			if (title === entry.label) {
 				return null
 			}
-			if (!widget || typeof widget.description !== 'string' || widget.description === '') {
-				return null
+			const hasDescription = Boolean(widget) && typeof widget.description === 'string' && widget.description !== ''
+			if (!hasDescription) {
+				return entry.showTitle ? { title, subtitle: '' } : null
 			}
 			return { title, subtitle: translate(widget.description) }
 		},

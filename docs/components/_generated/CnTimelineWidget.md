@@ -2,20 +2,21 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 5 direct references, 14 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 5 direct references, 17 files reached through imports.
 
-Through: `CnActionDialog`, `CnIndexPage`, `CnNoteComposer`.
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`, `CnNoteComposer`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name       | Type     | Required | Default                    | Description                                                                                                  |
-| ---------- | -------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `register` | `string` |          | `''`                       | Register slug; object context spread as props by CnWidgetGrid.                                               |
-| `schema`   | `union`  |          | `''`                       | Schema slug, or the schema object the detail context supplies.                                               |
-| `objectId` | `string` |          | `''`                       | The object's id.                                                                                             |
-| `object`   | `object` |          | `null`                     | The object itself, when the host already has it.                                                             |
-| `title`    | `string` |          | `''`                       | Card title override.                                                                                         |
-| `content`  | `object` |          | `\{\}`                     | Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`. |
-| `apiBase`  | `string` |          | `'/apps/openregister/api'` | OpenRegister API base.                                                                                       |
+| Name            | Type     | Required | Default                    | Description                                                                                                                 |
+| --------------- | -------- | -------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `register`      | `string` |          | `''`                       | Register slug; object context spread as props by CnWidgetGrid.                                                              |
+| `schema`        | `union`  |          | `''`                       | Schema slug, or the schema object the detail context supplies.                                                              |
+| `objectId`      | `string` |          | `''`                       | The object's id.                                                                                                            |
+| `object`        | `object` |          | `null`                     | The object itself, when the host already has it.                                                                            |
+| `title`         | `string` |          | `''`                       | Card title override.                                                                                                        |
+| `headerActions` | `array`  |          | `[]`                       | The manifest `headerActions`, resolved by the detail host (`[{ key, label, icon, variant, run }]`), drawn beside the title. |
+| `content`       | `object` |          | `\{\}`                     | Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`.                |
+| `apiBase`       | `string` |          | `'/apps/openregister/api'` | OpenRegister API base.                                                                                                      |

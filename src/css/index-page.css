@@ -425,6 +425,12 @@
 	padding-inline-start: calc(3 * var(--default-grid-baseline));
 }
 
+/* Beside the list the pane holds its declared width (`splitView.paneWidth`);
+   the list is the side that gives way. */
+.cn-index-page__split-pane:not(.cn-index-page__split-pane--full) {
+	flex-shrink: 0;
+}
+
 /* Static on purpose: a sticky one was tried and rejected for hanging over the
    content while scrolling. */
 .cn-index-page__split-close {
@@ -496,8 +502,9 @@
    apart), spanning both. Every other child (dialogs, the inline sidebar) sits
    in a zero-height area after them. The list row is the flexible one, so a
    side panel taller than the toolbar never opens a gap under the toolbar.
-   Below 1024px the panel moves above the toolbar. */
-.cn-index-page--with-side-panel {
+   Below 1024px the panel moves above the toolbar. A board page's open record
+   (`--split-side`) takes the same second column. */
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) var(--cn-index-side-panel-width, 300px);
 	grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
@@ -513,42 +520,42 @@
 	align-content: start;
 }
 
-.cn-index-page--with-side-panel > * {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > * {
 	grid-area: extra;
 	min-width: 0;
 }
 
-.cn-index-page--with-side-panel > :first-child {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > :first-child {
 	grid-area: head;
 }
 
-.cn-index-page--with-side-panel > .cn-index-page__below-header {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__below-header {
 	grid-area: below;
 }
 
-.cn-index-page--with-side-panel > .cn-index-page__stat-row {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__stat-row {
 	grid-area: stats;
 }
 
-.cn-index-page--with-side-panel > .cn-actions-bar {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-actions-bar {
 	grid-area: bar;
 }
 
-.cn-index-page--with-side-panel > .cn-index-page__quick-filter-row {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__quick-filter-row {
 	grid-area: chips;
 }
 
-.cn-index-page--with-side-panel > .cn-index-page__body {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__body {
 	grid-area: body;
 }
 
-.cn-index-page--with-side-panel > .cn-index-page__side-panel {
+:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__side-panel {
 	grid-area: side;
 	align-self: start;
 }
 
 @media (max-width: 1024px) {
-	.cn-index-page--with-side-panel {
+	:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) {
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-areas:
 			"head"
@@ -562,7 +569,7 @@
 		grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
 	}
 
-	.cn-index-page--with-side-panel > .cn-index-page__side-panel {
+	:is(.cn-index-page--with-side-panel, .cn-index-page--split-side) > .cn-index-page__side-panel {
 		margin-bottom: 20px;
 	}
 }
@@ -664,6 +671,23 @@
 	gap: 4px;
 	border-bottom: 1px solid var(--color-border);
 	margin-bottom: calc(3 * var(--default-grid-baseline));
+}
+
+/* The tabs' row: the tabs, and at its end the Actions menu a header button
+   places beside them (`placement: "tabs"`). */
+.cn-index-page__page-tabs-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.cn-index-page__page-tabs-row > .cn-index-page__page-tabs {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-index-page__page-tabs-menu {
+	flex: none;
 }
 
 .cn-index-page__page-tab {

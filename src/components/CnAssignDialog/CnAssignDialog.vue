@@ -11,7 +11,7 @@
 		:noClose="busy"
 		data-testid="cn-assign-dialog"
 		@closing="close">
-		<div v-if="!done" class="cn-assign-dialog">
+		<div v-if="!done && job === null" class="cn-assign-dialog">
 			<div class="cn-assign-dialog__field">
 				<CnSearchSelect
 					:modelValue="picked ? picked.id : null"
@@ -59,15 +59,21 @@
 			</p>
 		</div>
 
+		<CnBulkJobProgress v-else-if="job !== null"
+			:job="job"
+			data-testid="cn-assign-dialog-job"
+			@update:job="job = $event"
+			@finished="onJobFinished" />
+
 		<p v-else role="status" data-testid="cn-assign-dialog-done">
 			{{ text(config.doneText) || t('nextcloud-vue', 'Done') }}
 		</p>
 
 		<template #actions>
 			<NcButton :disabled="busy" data-testid="cn-assign-dialog-cancel" @click="close">
-				{{ done ? t('nextcloud-vue', 'Close') : t('nextcloud-vue', 'Cancel') }}
+				{{ done || job !== null ? t('nextcloud-vue', 'Close') : t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
-			<NcButton v-if="!done"
+			<NcButton v-if="!done && job === null"
 				variant="primary"
 				:disabled="!canConfirm"
 				data-testid="cn-assign-dialog-confirm"
@@ -92,12 +98,34 @@ import { fillTemplate } from '../../utils/fillTemplate.js'
 import { describedGroupIds, groupSublines } from '../../utils/groupSublines.js'
 import { readPath } from '../../utils/readPath.js'
 import { searchNextcloudGroups, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { CnBulkJobProgress } from '../CnBulkJobProgress/index.js'
 import { CnDialog } from '../CnDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
 
 /** The page refresh channel the built-in widgets listen on. */
 const PAGE_REFRESH = 'cn:page:refresh'
+
+/** OpenRegister's bulk action that writes one property on every selected object. */
+const ASSIGN_ACTION = 'openregister:assign'
+
+/**
+ * OpenRegister's numeric id of a register or schema, read by slug when the
+ * manifest names one: a bulk job takes ids only.
+ *
+ * @param {string} kind `registers` or `schemas`.
+ * @param {string|number} ref The id or slug.
+ * @param {string} [scope] The register a schema slug belongs to.
+ * @return {Promise<number>}
+ */
+async function openRegisterId(kind, ref, scope = '') {
+	if (/^\d+$/.test(String(ref))) {
+		return Number(ref)
+	}
+	const query = scope ? `?register=${encodeURIComponent(scope)}` : ''
+	const { data } = await axios.get(generateUrl(`/apps/openregister/api/${kind}/${encodeURIComponent(ref)}`) + query)
+	return Number(data && data.id)
+}
 
 /** How long typing rests before a search runs, in ms. */
 const SEARCH_DELAY = 250
@@ -158,13 +186,20 @@ export function withTypedAssignee(found, typed, label) {
  *   record); `action` dispatches a manifest action with the choice as its
  *   last argument.
  *
+ * - `bulkJob`: `{ register, schema, property? }`. Opened with `selectedIds`
+ *   (a bulk action's `open-modal`), confirming starts OpenRegister's
+ *   `openregister:assign` job over the selection: `property` (default the
+ *   assignee `field`) set to the picked id, the note as its justification.
+ *   OpenRegister checks each record's update rule for the user before it
+ *   writes; the dialog shows the rehearsed job in CnBulkJobProgress.
+ *
  * Tokens (`@objectId`, `@object.<field>`) resolve in every url. A refusal is
  * shown in the server's own words and the dialog stays open.
  */
 export default {
 	name: 'CnAssignDialog',
 
-	components: { CnDialog, CnIcon, CnSearchSelect, NcButton, NcCheckboxRadioSwitch, NcTextArea },
+	components: { CnBulkJobProgress, CnDialog, CnIcon, CnSearchSelect, NcButton, NcCheckboxRadioSwitch, NcTextArea },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -199,6 +234,22 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The selected record ids, when a bulk action opened the dialog.
+		 *
+		 * @type {Array<string|number>}
+		 */
+		selectedIds: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** How many records are selected. */
+		count: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['close', 'done'],
@@ -223,6 +274,7 @@ export default {
 			busy: false,
 			refusal: '',
 			done: false,
+			job: null,
 			assigneeId: `cn-assign-dialog-assignee-${seq}`,
 			noteId: `cn-assign-dialog-note-${seq}`,
 		}
@@ -261,6 +313,17 @@ export default {
 		/** @return {object} The confirm config. */
 		confirmConfig() {
 			return this.config.confirm && typeof this.config.confirm === 'object' ? this.config.confirm : {}
+		},
+
+		/**
+		 * The bulk job config, when the dialog holds a selection.
+		 *
+		 * @spec openspec/changes/assign-dialog-bulk-job/specs/assign-dialog/spec.md#requirement-an-assign-dialog-can-hand-a-selection-over-as-a-bulk-job
+		 * @return {object|null}
+		 */
+		bulkJob() {
+			const config = this.config.bulkJob
+			return config && typeof config === 'object' && this.selectedIds.length > 0 ? config : null
 		},
 
 		/** @return {Array<object>} The switches with a field. */
@@ -460,6 +523,10 @@ export default {
 			const choice = this.choice()
 			try {
 				const request = this.confirmConfig.request
+				if (this.bulkJob) {
+					this.job = await this.startBulkJob(choice)
+					return
+				}
 				if (request && request.url) {
 					const url = interpolateUrlTokens(request.url, this.tokenCtx)
 					const body = {}
@@ -481,6 +548,42 @@ export default {
 			} finally {
 				this.busy = false
 			}
+		},
+
+		/**
+		 * Start OpenRegister's assign job over the selection. It comes back
+		 * rehearsed; the user applies it in CnBulkJobProgress.
+		 *
+		 * @spec openspec/changes/assign-dialog-bulk-job/specs/assign-dialog/spec.md#requirement-an-assign-dialog-can-hand-a-selection-over-as-a-bulk-job
+		 * @param {object} choice The choice as built by `choice()`.
+		 * @return {Promise<object>} The rehearsed job.
+		 */
+		async startBulkJob(choice) {
+			const { register, schema, property } = this.bulkJob
+			const field = this.assigneeConfig.field || 'assignee'
+			const [registerId, schemaId] = await Promise.all([
+				openRegisterId('registers', register),
+				openRegisterId('schemas', schema, /^\d+$/.test(String(register)) ? '' : String(register)),
+			])
+			const { data } = await axios.post(generateUrl('/apps/openregister/api/bulk-jobs'), {
+				action: ASSIGN_ACTION,
+				parameters: { property: property || field, value: choice[field] },
+				selection: { ids: this.selectedIds.map(String) },
+				justification: this.config.note === false ? '' : this.note.trim(),
+				register: registerId,
+				schema: schemaId,
+			})
+			return data
+		},
+
+		/**
+		 * The job stopped: refresh the page and say so.
+		 *
+		 * @param {object} job The finished job.
+		 */
+		onJobFinished(job) {
+			emit(PAGE_REFRESH, {})
+			this.$emit('done', job)
 		},
 
 		/** Close the dialog, unless the assignment is running. */

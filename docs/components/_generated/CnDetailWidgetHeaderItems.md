@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                                                                              |
-| -------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, run }] }`; `add: true` marks a list's Add. |
+| Name     | Type     | Required | Default | Description                                                                                                                                                                                                                                                 |
+| -------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header` | `object` | ✓        | —       | The reported header: `{ pill, note, actions: [{ label, icon?, variant?, add?, ariaLabel?, items?, run }] }`; `add: true` marks a list's Add; `variant: "secondary"` is the card's outlined button, a menu of `items` (`[{ label, run }]`) when it has them. |

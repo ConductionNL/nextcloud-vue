@@ -8,8 +8,9 @@
 ### Requirement: A delete in a settings row does not shout
 
 In the board look an error-variant button in a settings row SHALL NOT draw NcButton's filled red. Inside a
-`cn-settings-row-actions` container it SHALL draw the soft error tint with the error text colour and no edge; in a table
-cell on a settings card it SHALL draw the main background with a 1px error-coloured edge and the error text colour.
+`cn-settings-row-actions` container it SHALL draw the soft error tint with the error tag ink and no edge; in a table
+cell on a settings card it SHALL draw the main background with a 1px error-coloured edge and the error tag ink. The
+error tag ink is the status badge error colour, falling back to the theme's error text.
 
 #### Scenario: pipelinq's product category rows
 

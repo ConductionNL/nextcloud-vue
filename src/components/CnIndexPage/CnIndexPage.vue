@@ -1,6 +1,7 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--split-side': splitPaneAsSideColumn, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:style="splitPaneAsSideColumn ? { '--cn-index-split-pane-width': splitPaneWidth } : null"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -30,76 +31,15 @@
 				     the actions bar. -->
 				<template v-if="headerButtonsShown || buildiqInHeader" #extra>
 					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
-						<template v-for="button in (headerButtonsShown ? orderedHeaderButtons : [])" :key="button.key">
+						<template v-for="button in (headerButtonsShown ? headerRowButtons : [])" :key="button.key">
 							<!-- The buildiq square (the in-app edit button), between the secondary buttons and the primary one. -->
 							<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
 							<!-- `actions-menu`: the page's header actions as one labelled menu. -->
-							<NcActions
+							<CnIndexHeaderMenu
 								v-else-if="button.action === 'actions-menu'"
-								:forceMenu="true"
-								:forceName="true"
-								:menuName="button.label"
-								:aria-label="button.label"
-								variant="secondary"
-								:data-testid="`cn-index-header-button-${button.key}`">
-								<template #icon>
-									<DotsHorizontal :size="20" />
-								</template>
-								<!-- The menu's entries (`items` on the button; the page's header
-								     actions when it names none): a header action, a built-in by
-								     name, or a link (an entry with `href`, the documentation). -->
-								<template v-for="entry in headerMenuEntries(button)" :key="entry.key">
-									<!-- A group heading and a separator (`{ heading }` and
-									     `separator` in items), as the board's "Ga naar" and
-									     "Selectie" groups. -->
-									<NcActionCaption
-										v-if="entry.kind === 'heading'"
-										class="cn-index-header-menu__heading"
-										:name="entry.label"
-										:data-testid="`cn-index-header-menu-${entry.key}`" />
-									<NcActionSeparator
-										v-else-if="entry.kind === 'separator'"
-										:data-testid="`cn-index-header-menu-${entry.key}`" />
-									<NcActionLink
-										v-else-if="entry.href"
-										:href="entry.href"
-										:target="entry.linkTarget || '_blank'"
-										rel="noopener noreferrer"
-										:data-testid="`cn-index-header-menu-${entry.key}`">
-										<template v-if="entry.icon" #icon>
-											<CnIcon :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionLink>
-									<NcActionLink
-										v-else-if="entry.link"
-										:href="entry.link.href"
-										:closeAfterClick="true"
-										:data-testid="`cn-index-header-menu-${entry.key}`"
-										@click="onHeaderMenuLinkClick(entry, $event)">
-										<template v-if="entry.icon" #icon>
-											<CnIcon :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionLink>
-									<NcActionButton
-										v-else
-										:disabled="entry.disabled"
-										:title="entry.title || null"
-										:closeAfterClick="true"
-										:data-testid="`cn-index-header-menu-${entry.key}`"
-										@click="entry.run()">
-										<!-- A built-in ships its own icon (`iconComponent`), so it
-										     never falls back to the "?" when the app has not
-										     registered that icon name. -->
-										<template v-if="entry.iconComponent || entry.icon" #icon>
-											<component :is="entry.iconComponent" v-if="entry.iconComponent" :size="20" />
-											<CnIcon v-else :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionButton>
-								</template>
-							</NcActions>
+								:button="button"
+								:entries="headerMenuEntries(button)"
+								@linkClick="onHeaderMenuLinkClick" />
 							<NcButton
 								v-else
 								:variant="button.variant"
@@ -127,22 +67,34 @@
 		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
 		     of the same thing, such as a flow list and its runs this week.
 		     Links, not tabs: each one is its own page. -->
-		<nav v-if="effectivePageTabs.length > 0"
-			class="cn-index-page__page-tabs"
-			:aria-label="title || t('nextcloud-vue', 'Pages')"
-			data-testid="cn-index-page-tabs">
-			<a v-for="tab in effectivePageTabs"
-				:key="tab.id || tab.to"
-				class="cn-index-page__page-tab"
-				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
-				:href="pageTabHref(tab)"
-				:aria-current="isActivePageTab(tab) ? 'page' : undefined"
-				:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
-				@click="onPageTabClick(tab, $event)">
-				{{ tab.label }}
-				<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
-			</a>
-		</nav>
+		<!-- The tabs' row: the Actions menu a header button places beside the
+		     tabs (`placement: "tabs"`) stands at its end (PqBiExport). -->
+		<div v-if="effectivePageTabs.length > 0"
+			class="cn-index-page__page-tabs-row"
+			data-testid="cn-index-page-tabs-row">
+			<nav
+				class="cn-index-page__page-tabs"
+				:aria-label="title || t('nextcloud-vue', 'Pages')"
+				data-testid="cn-index-page-tabs">
+				<a v-for="tab in effectivePageTabs"
+					:key="tab.id || tab.to"
+					class="cn-index-page__page-tab"
+					:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
+					:href="pageTabHref(tab)"
+					:aria-current="isActivePageTab(tab) ? 'page' : undefined"
+					:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
+					@click="onPageTabClick(tab, $event)">
+					{{ tab.label }}
+					<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
+				</a>
+			</nav>
+			<CnIndexHeaderMenu
+				v-if="tabsMenuButton"
+				class="cn-index-page__page-tabs-menu"
+				:button="tabsMenuButton"
+				:entries="headerMenuEntries(tabsMenuButton)"
+				@linkClick="onHeaderMenuLinkClick" />
+		</div>
 
 		<!-- KPI tiles above the list (`statRow`) and cards beside it
 		     (`sidePanel`), as DqTeamwachtrij and PqContracten
@@ -181,7 +133,7 @@
 		<CnActionsBar
 			:layout="isBoardLook ? 'board' : 'nextcloud'"
 			:activeFilterChips="activeFilterChips"
-			:showBuildiqButton="!buildiqInHeader"
+			:showBuildiqButton="buildiqButton && !buildiqInHeader"
 			:bulkNoun="boardBulkNoun"
 			:bulkHint="viewBulkBand && viewBulkBand.hint !== true ? '' : (bulkHint ? cnTranslate(bulkHint) : bulkHint)"
 			:bulkBandAlways="bulkBandIdleShown && !viewBulkBand"
@@ -473,7 +425,7 @@
 				:class="{ 'cn-index-page__filter-strip-pill--active': entry.active }"
 				:aria-pressed="entry.active ? 'true' : 'false'"
 				:data-testid="`cn-index-filter-strip-${entry.key}`"
-				@click="onFilterStripPick(entry.value)">
+				@click="onFilterStripPick(entry.values || entry.value)">
 				<span>{{ entry.label }}</span> <span v-if="entry.count !== null" class="cn-index-page__filter-strip-count">{{ entry.count }}</span>
 			</button>
 		</div>
@@ -938,6 +890,7 @@
 								:actions="rowMenuActionsFor(row)"
 								:row="row"
 								:rowLabel="rowTitleFor(row)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1171,6 +1124,7 @@
 									:row="object"
 									:rowLabel="rowTitleFor(object)"
 									:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+									:inline="rowInlineActions"
 									@action="onRowAction" />
 							</template>
 						</CnExpandableRow>
@@ -1203,6 +1157,7 @@
 								:actions="rowMenuActionsFor(object)"
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1256,6 +1211,7 @@
 								:row="object"
 								:rowLabel="rowTitleFor(object)"
 								:triggerLabel="isBoardLook ? t('nextcloud-vue', 'More actions for {name}', { name: rowTitleFor(object) }) : ''"
+								:inline="rowInlineActions"
 								@action="onRowAction" />
 						</slot>
 					</template>
@@ -1343,7 +1299,7 @@
 				v-if="splitLayout !== 'list'"
 				class="cn-index-page__split-pane"
 				:class="{ 'cn-index-page__split-pane--full': splitLayout === 'detail' }"
-				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
+				:style="splitLayout === 'split' && !splitPaneAsSideColumn ? { width: splitPaneWidth } : null"
 				data-testid="cn-index-page-split-pane"
 				:data-split-layout="splitLayout">
 				<!-- An <a>, not a button: closing the pane pushes the list's
@@ -1435,14 +1391,13 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
-import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
@@ -1457,6 +1412,7 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
@@ -1509,7 +1465,7 @@ import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { getDotted } from '../../utils/propertySourceFill.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
-import { resolveFilterMap } from '../../utils/routeFilters.js'
+import { heldDefaultFilters, resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions, withoutViewWhenRowOpensDetail } from '../../utils/rowActionAvailability.js'
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -1668,7 +1624,8 @@ function namedFiltersFromRoute(instance, props) {
 /**
  * The named-source filters the page opens with: the ones the address carries,
  * else the page's `defaultFilters` with their tokens resolved (`@monthStart`,
- * `@myGroups`), unless the address names a saved view.
+ * `@myGroups`), unless the address names a saved view. With filters in the
+ * address, the `heldDefaultFilters` keys it leaves out join them.
  *
  * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
  * @param {object} props The CnIndexPage props.
@@ -1680,8 +1637,11 @@ function namedFiltersWithDefaults(instance, props) {
 	const fromRoute = namedFiltersFromRoute(instance, props)
 	const query = (instance && instance.proxy && instance.proxy.$route && instance.proxy.$route.query) || {}
 	const defaults = props.defaultFilters
-	if (!props.entitySource || Object.keys(fromRoute).length > 0 || query.savedView || !defaults || typeof defaults !== 'object') {
+	if (!props.entitySource || query.savedView || !defaults || typeof defaults !== 'object') {
 		return fromRoute
+	}
+	if (Object.keys(fromRoute).length > 0) {
+		return { ...resolveFilterTokens(heldDefaultFilters(defaults, props.heldDefaultFilters, Object.keys(query))), ...fromRoute }
 	}
 	return resolveFilterTokens(defaults)
 }
@@ -1935,6 +1895,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
 		CnStatusBadge,
@@ -1947,7 +1908,6 @@ export default {
 		NcActionLink,
 		NcActionButton,
 		NcActionCaption,
-		NcActionSeparator,
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
@@ -1964,7 +1924,6 @@ export default {
 		CnQuickFilterBar,
 		CnActionButtons,
 		CnActionsBar,
-		DotsHorizontal,
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
@@ -2519,13 +2478,29 @@ export default {
 		 * `documentation`), so the entries the bar's menu loses have a place.
 		 * `items` can group them: `{ heading }` draws a group heading (an i18n
 		 * key) and `separator` a rule, each only when an entry follows.
+		 * `placement: "tabs"` on the menu draws it at the end of the page
+		 * tabs' row instead of in the header (PqBiExport); without page tabs
+		 * it stays in the header.
 		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: Array<(string|{heading: string})>}>}
+		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: Array<(string|{heading: string})>, placement?: ('header'|'tabs')}>}
 		 */
 		headerButtons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Whether the actions bar may draw the buildiq square. `false` for a
+		 * list embedded in a page that draws its own (CnIndexListWidget), so a
+		 * page carries one square.
+		 *
+		 * @spec openspec/changes/embedded-list-one-buildiq-square/specs/embedded-list-one-buildiq-square/spec.md#requirement-an-index-page-can-leave-the-buildiq-square-out-of-its-toolbar
+		 */
+		buildiqButton: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -2685,13 +2660,15 @@ export default {
 		/**
 		 * A second filter strip under the toolbar, on one field (manifest
 		 * `config.filterStrip`): `{ field, label?, allLabel?, options?:
-		 * [{ value, label }], showCount? }`. It draws "All" and one pill per
-		 * value (the options, else the field's schema enum); picking one sets
-		 * the page's filter on that field, "All" clears it. With `showCount`
+		 * [{ value | values, label }], showCount? }`. It draws "All" and one pill
+		 * per value (the options, else the field's schema enum); picking one sets
+		 * the page's filter on that field, "All" clears it. An option's `values`
+		 * gathers several stored spellings under one pill. With `showCount`
 		 * each pill counts the rows it would show within the active quick
 		 * filter. Absent (the default) draws nothing.
 		 *
-		 * @type {{field: string, label?: string, allLabel?: string, options?: Array<{value: string, label?: string}>, showCount?: boolean}|null}
+		 * @type {{field: string, label?: string, allLabel?: string, options?: Array<{value?: string, values?: Array<string>, label?: string}>, showCount?: boolean}|null}
+		 * @spec openspec/changes/filter-strip-option-values/specs/index-filter-strip/spec.md#requirement-a-filter-strip-pill-can-gather-several-values
 		 * @spec openspec/changes/screens-filter-strip/specs/index-filter-strip/spec.md#requirement-an-index-page-can-draw-a-second-filter-strip
 		 */
 		filterStrip: {
@@ -3446,6 +3423,19 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * How many of a row's actions show as buttons beside its menu, the
+		 * first as a tonal pill (manifest `config.rowInlineActions`, board
+		 * PqWachtrij "In behandeling nemen" and an eye). 0 keeps them all in
+		 * the menu.
+		 *
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		rowInlineActions: {
+			type: Number,
+			default: 0,
+		},
+
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
@@ -4106,6 +4096,20 @@ export default {
 		 */
 		defaultFilters: {
 			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The `defaultFilters` keys that stay while the address names filters
+		 * of its own (manifest `config.heldDefaultFilters`). A link to one case
+		 * type keeps `isFinalStatus: false`; a link that names the key itself,
+		 * or a saved view, decides on its own.
+		 *
+		 * @spec openspec/changes/index-held-default-filters/specs/index-page/spec.md#requirement-a-held-default-filter-stays-under-a-links-own-filters
+		 * @type {Array<string>|null}
+		 */
+		heldDefaultFilters: {
+			type: Array,
 			default: null,
 		},
 
@@ -5498,6 +5502,19 @@ export default {
 		 * @return {'list'|'split'|'detail'}
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
+		/**
+		 * Whether the open record is the page's side column: in the board look
+		 * the pane stands beside the chips, the toolbar and the list from the
+		 * toolbar's top (PqKassaAudit), as a side panel does. A page that
+		 * already has a side panel or a folder pane keeps the pane in the body.
+		 *
+		 * @spec openspec/changes/board-split-pane-side-column/specs/board-split-pane-side-column/spec.md
+		 * @return {boolean}
+		 */
+		splitPaneAsSideColumn() {
+			return this.isBoardLook && this.splitLayout === 'split' && !this.hasSidePanel && !this.showsFolderPane
+		},
+
 		splitLayout() {
 			return splitLayoutFor({
 				enabled: this.splitViewEnabled,
@@ -6482,8 +6499,15 @@ export default {
 			const raw = declared || (Array.isArray(prop.enum) ? prop.enum.map((value) => ({ value })) : [])
 			return raw
 				.map((option) => (option && typeof option === 'object' ? option : { value: option }))
-				.filter((option) => option.value !== undefined && option.value !== null && option.value !== '')
-				.map((option) => ({ value: String(option.value), label: this.cnTranslate(String(option.label ?? option.value)) }))
+				.map((option) => {
+					// `values` gathers spellings of one value under one pill ("phone", "telefoon").
+					const values = (Array.isArray(option.values) ? option.values : [option.value])
+						.filter((value) => value !== undefined && value !== null && value !== '')
+						.map(String)
+					return { values, value: values[0], label: option.label ?? values[0] }
+				})
+				.filter((option) => option.values.length > 0)
+				.map((option) => ({ value: option.value, values: option.values, label: this.cnTranslate(String(option.label)) }))
 		},
 
 		/**
@@ -6500,12 +6524,13 @@ export default {
 			}
 			const current = this.effectiveActiveFilters[this.filterStrip.field]
 			const picked = Array.isArray(current) ? current.map(String) : (current === undefined || current === null || current === '' ? [] : [String(current)])
+			const isPicked = (values) => picked.length === values.length && values.every((value) => picked.includes(value))
 			const counts = this.filterStripCounts || {}
 			const countOf = (key) => (Object.hasOwn(counts, key) && typeof counts[key] === 'number' ? counts[key] : null)
 			const allLabel = this.filterStrip.allLabel ? this.cnTranslate(this.filterStrip.allLabel) : t('nextcloud-vue', 'All')
 			return [
 				{ key: 'all', value: '', label: allLabel, active: picked.length === 0, count: countOf('all') },
-				...values.map((option, index) => ({ key: `v${index}`, value: option.value, label: option.label, active: picked.length === 1 && picked[0] === option.value, count: countOf(`v${index}`) })),
+				...values.map((option, index) => ({ key: `v${index}`, value: option.value, values: option.values, label: option.label, active: isPicked(option.values), count: countOf(`v${index}`) })),
 			]
 		},
 
@@ -8612,6 +8637,7 @@ export default {
 						format: button.format === 'excel' ? 'excel' : 'csv',
 						run,
 						link: linked ? { href: linked.href, target: linked.linkTarget || undefined } : null,
+						placement: button.action === 'actions-menu' && button.placement === 'tabs' ? 'tabs' : 'header',
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -8665,6 +8691,34 @@ export default {
 				return [...sorted, square]
 			}
 			return [...sorted.slice(0, firstPrimary), square, ...sorted.slice(firstPrimary)]
+		},
+
+		/**
+		 * The Actions menu drawn at the end of the page tabs: the first
+		 * `actions-menu` header button with `placement: "tabs"`, while the
+		 * header buttons and the page tabs show. Without tabs it stays in the
+		 * header.
+		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
+		 * @return {object|null} The resolved header button, or null.
+		 */
+		tabsMenuButton() {
+			if (!this.headerButtonsShown || this.effectivePageTabs.length === 0) {
+				return null
+			}
+			return this.resolvedHeaderButtons.find((button) => button.action === 'actions-menu' && button.placement === 'tabs') || null
+		},
+
+		/**
+		 * The header buttons drawn beside the title: every ordered button but
+		 * the Actions menu that stands beside the page tabs.
+		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
+		 * @return {Array<object>} The buttons.
+		 */
+		headerRowButtons() {
+			const aside = this.tabsMenuButton
+			return aside ? this.orderedHeaderButtons.filter((button) => button !== aside) : this.orderedHeaderButtons
 		},
 
 		/**
@@ -10243,7 +10297,7 @@ export default {
 			const base = { ...resolveFilterMap(this.filter, params, ctx), ...resolveFilterMap(this.filterStripTabFilter, params, ctx) }
 			const entries = [
 				{ key: 'all', filter: {} },
-				...this.filterStripValues.map((option, index) => ({ key: `v${index}`, filter: { [field]: option.value } })),
+				...this.filterStripValues.map((option, index) => ({ key: `v${index}`, filter: { [field]: option.values.length === 1 ? option.values[0] : option.values } })),
 			]
 			let counts
 			try {
@@ -10258,14 +10312,15 @@ export default {
 		},
 
 		/**
-		 * A pill of the `filterStrip` was picked: filter the list on that value,
+		 * A pill of the `filterStrip` was picked: filter the list on its values,
 		 * or clear the field's filter for All.
 		 *
-		 * @param {string} value The value, '' for All.
+		 * @param {string|Array<string>} value The pill's values, '' for All.
 		 * @return {void}
 		 */
 		onFilterStripPick(value) {
-			this.onFilterEvent({ key: this.filterStrip.field, values: value === '' ? [] : [value] })
+			const values = Array.isArray(value) ? value : [value]
+			this.onFilterEvent({ key: this.filterStrip.field, values: values.filter((entry) => entry !== '') })
 		},
 
 		/**

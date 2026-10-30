@@ -2,12 +2,13 @@
 
 ### Props
 
-| Name          | Type      | Required | Default | Description                                            |
-| ------------- | --------- | -------- | ------- | ------------------------------------------------------ |
-| `run`         | `object`  |          | `null`  | The run, as `GET /api/flow-runs/{uuid}` returns it.    |
-| `stepsTotal`  | `number`  |          | `0`     | How many steps the flow has, for "5 of 8 steps run".   |
-| `subjectHref` | `string`  |          | `''`    | Where the run's subject opens, or '' to offer no link. |
-| `canRetry`    | `boolean` |          | `false` | Offer Run again. Off for a run that is still going.    |
+| Name          | Type      | Required | Default | Description                                                                                                 |
+| ------------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `run`         | `object`  |          | `null`  | The run, as `GET /api/flow-runs/{uuid}` returns it.                                                         |
+| `stepsTotal`  | `number`  |          | `0`     | How many steps the flow has, for "5 of 8 steps run".                                                        |
+| `subjectHref` | `string`  |          | `''`    | Where the run's subject opens, or '' to offer no link.                                                      |
+| `canRetry`    | `boolean` |          | `false` | Offer Run again. Off for a run that is still going.                                                         |
+| `iconActions` | `boolean` |          | `false` | Draw the buttons with their icons and Back as a secondary button, as the canvas flow page does (PqFlowRun). |
 
 ### Events
 
