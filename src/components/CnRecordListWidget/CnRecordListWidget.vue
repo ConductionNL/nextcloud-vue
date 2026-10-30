@@ -6,7 +6,7 @@
 <template>
 	<div
 		class="cn-record-list"
-		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
+		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--meta-beside': presentation === 'rows' && content.metaBeside === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
 		data-testid="cn-record-list">
 		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
@@ -828,6 +828,8 @@ export default {
 		 * and `iconTile: { size, tone }` sizes and tones the icon tile
 		 * (DqDagAfsluiten "Vandaag vastgelegd"). `strongTitle: true` sets a row's
 		 * title at 600 in the board look (DqZaakTaken "Incidenten").
+		 * `metaBeside: true` sets the meta line on the title's line, 14px
+		 * after it, for a one-line summary (DqTermijnen "Totale dwangsom").
 		 *
 		 * @type {object}
 		 */
@@ -3620,6 +3622,19 @@ export default {
 .cn-record-list__meta {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+/* `metaBeside: true`: the meta line on the title's line, a one-line summary
+   (DqTermijnen "Totale dwangsom in 2026: ... 1 betaling, geen betwist"). */
+.cn-record-list--meta-beside .cn-record-list__main {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px 14px;
+}
+
+.cn-record-list--meta-beside .cn-record-list__meta {
+	font-size: 14px;
 }
 
 .cn-record-list__aside {
