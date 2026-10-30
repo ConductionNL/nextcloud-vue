@@ -1,0 +1,5 @@
+- [x] barListWide prop + dashboard pass-through
+- [x] component and board CSS
+- [x] docs
+- [x] jest
+- [x] probed on :8080 by injection

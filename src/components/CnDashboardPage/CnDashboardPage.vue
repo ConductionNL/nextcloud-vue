@@ -1181,6 +1181,7 @@ const CHART_PROP_KEYS = [
 	// `bar-list` / `matrix` presentation keys.
 	'barMax',
 	'barValueAtEnd',
+	'barListWide',
 	'matrixLabelWidth',
 	'footnote',
 	'highlight',

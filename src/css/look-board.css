@@ -3463,6 +3463,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding-top: 0;
 }
 
+/* A wide bar list under a subtitle starts where the card header ends, 12px
+   under the subtitle (DqTermijnen "Op tijd beslist per zaaktype" 73px from
+   the card top). Under a title alone the 4px start stays (DqDoorlooptijd).
+   @spec openspec/changes/chart-bar-list-wide/specs/chart-bar-list-wide/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless):has(.cn-widget-wrapper__subtitle) .cn-chart-widget__html:has(> .cn-chart-widget__bar-list--wide) {
+	padding-top: 0;
+}
+
 /* An ApexCharts plot takes the same inset as an HTML chart (DqDoorlooptijd
    "Gemiddelde doorlooptijd per maand": the plot 23px in, not on the card's
    edge). ApexCharts sizes itself to its box minus the box's padding, so the
