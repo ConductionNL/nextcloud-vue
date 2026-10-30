@@ -79,6 +79,64 @@ describe('CnMailTab', () => {
 		wrapper.unmount()
 	})
 
+	describe('templates.preselect', () => {
+		const LIST = [{ id: 'tpl-1', name: 'Receipt' }, { id: 'tpl-2', name: 'Extension', isDefault: true }]
+
+		/**
+		 * Mount the tab with a preselect rule over the given templates.
+		 *
+		 * @param {*} preselect The rule.
+		 * @param {object[]} list The templates the endpoint returns.
+		 * @return {Promise<object>} The wrapper.
+		 */
+		async function mountWith(preselect, list = LIST) {
+			mockGet.mockResolvedValue({ data: { results: list } })
+			const wrapper = mountTab({ ...CONTENT, templates: { ...CONTENT.templates, preselect } })
+			await flushPromises()
+			return wrapper
+		}
+
+		// @spec openspec/changes/mail-tab-template-preselect/specs/mail-tab-template-preselect/spec.md#requirement-the-mail-tab-can-preselect-a-template
+		it('selects nothing without a rule', async () => {
+			const wrapper = await mountWith(undefined)
+			expect(wrapper.vm.selectedTemplate).toBe(null)
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-template"]').attributes('disabled')).toBeDefined()
+			wrapper.unmount()
+		})
+
+		it('"first" selects the first template, so the template draft button is enabled', async () => {
+			const wrapper = await mountWith('first')
+			expect(wrapper.vm.selectedTemplate).toEqual(LIST[0])
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-template"]').attributes('disabled')).toBeUndefined()
+			wrapper.unmount()
+		})
+
+		it('"only" selects a template only when the list holds exactly one', async () => {
+			const two = await mountWith('only')
+			expect(two.vm.selectedTemplate).toBe(null)
+			two.unmount()
+			invalidateEndpointSourceCache()
+			const one = await mountWith('only', [LIST[1]])
+			expect(one.vm.selectedTemplate).toEqual(LIST[1])
+			one.unmount()
+		})
+
+		it('{ field, value } selects the first template whose field holds the value', async () => {
+			const wrapper = await mountWith({ field: 'isDefault', value: true })
+			expect(wrapper.vm.selectedTemplate).toEqual(LIST[1])
+			wrapper.unmount()
+		})
+
+		it('keeps a pick that is still in the list when the templates are read again', async () => {
+			const wrapper = await mountWith('first')
+			wrapper.vm.selectedTemplate = LIST[1]
+			invalidateEndpointSourceCache()
+			await wrapper.vm.loadTemplates()
+			expect(wrapper.vm.selectedTemplate).toEqual(LIST[1])
+			wrapper.unmount()
+		})
+	})
+
 	it('names the empty template list with the configured text', async () => {
 		mockGet.mockResolvedValue({ data: { results: [] } })
 		const wrapper = mountTab()
