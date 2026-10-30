@@ -407,8 +407,10 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { formatMoney } from '../../utils/formatMetric.js'
@@ -639,6 +641,8 @@ export default {
 			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
 			reorderStatus: '',
 			rows: [],
+			/** Colour and icon per referenced id for each `badge` column that resolves them (`refLookSpecs`). */
+			refLooks: {},
 			/** The rows `content.readOnlyRows` adds after the list's own, tagged `_readOnly`. */
 			readOnlyRows: [],
 			loading: false,
@@ -866,6 +870,22 @@ export default {
 		 * schema property's `x-enum-labels`, completed here for the
 		 * manifest-column path rather than special-cased per column.
 		 */
+		/**
+		 * The `badge` columns that take their tone and icon from the record
+		 * they point at (`widgetProps.resolve: { register, schema, colorField?, iconField? }`).
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		refLookSpecs() {
+			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
+			return cols
+				.filter((c) => c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps && c.widgetProps.resolve)
+				.map((c) => ({ key: c.key, ...c.widgetProps.resolve }))
+				.filter((r) => typeof r.key === 'string' && r.key !== '' && r.register && r.schema && (r.colorField || r.iconField))
+				.map((r) => ({ key: r.key, register: r.register, schema: r.schema, colorField: r.colorField || '', iconField: r.iconField || '' }))
+		},
+
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			const sortableConfig = this.content.sortable
@@ -929,6 +949,9 @@ export default {
 				if (out.sortable === undefined && sortableConfig !== undefined) {
 					out.sortable = sortableConfig === true
 						|| (Array.isArray(sortableConfig) && sortableConfig.includes(out.key))
+				}
+				if (out.widget === 'badge' && this.refLooks[out.key]) {
+					out.widgetProps = { ...(out.widgetProps || {}), looks: this.refLooks[out.key] }
 				}
 				return out
 			})
@@ -1726,6 +1749,10 @@ export default {
 	},
 
 	watch: {
+		rows() {
+			this.loadRefLooks()
+		},
+
 		presetRows(next) {
 			if (next !== null) {
 				this.rows = [...next]
@@ -1849,6 +1876,47 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the colour and icon names the `refLookSpecs` columns need for
+		 * the ids in the rows, one batch per column. A failed read leaves the
+		 * badge as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		async loadRefLooks() {
+			if (this.refLookSpecs.length === 0) {
+				return
+			}
+			if (!this._refLookResolver) {
+				this._refLookResolver = createRefLabelResolver(() => {
+					try {
+						return useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const read = (spec, ids, name) => (name
+				? this._refLookResolver.resolve(spec.register, spec.schema, ids, name, { strict: true }).catch(() => ({}))
+				: Promise.resolve({}))
+			await Promise.all(this.refLookSpecs.map(async (spec) => {
+				const known = this.refLooks[spec.key] || {}
+				const ids = [...new Set(this.rows
+					.map((row) => objectFieldValue(row, spec.key))
+					.filter((id) => typeof id === 'string' && id !== '' && !Object.hasOwn(known, id)))]
+				if (ids.length === 0) {
+					return
+				}
+				const [colors, icons] = await Promise.all([read(spec, ids, spec.colorField), read(spec, ids, spec.iconField)])
+				const found = {}
+				ids.forEach((id) => {
+					found[id] = { color: (colors && colors[id]) || null, icon: (icons && icons[id]) || null }
+				})
+				this.refLooks = { ...this.refLooks, [spec.key]: { ...(this.refLooks[spec.key] || {}), ...found } }
+			}))
+		},
+
 		/**
 		 * Offer `content.export` as a button in the card's header: the list as
 		 * it is filtered here, through OpenRegister's export (which applies its
