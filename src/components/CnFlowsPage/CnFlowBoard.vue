@@ -253,6 +253,7 @@
 							:title="validity.text"
 							data-testid="flow-board-validity-pill" />
 						<NcButton variant="tertiary"
+							class="cn-flow-board__panel-toggle"
 							:aria-label="t('nextcloud-vue', 'Side panel')"
 							:aria-pressed="inspectorShown ? 'true' : 'false'"
 							:title="t('nextcloud-vue', 'Side panel')"
@@ -266,6 +267,8 @@
 				</CnFlowDetail>
 				<CnFlowRunSummary v-if="canvasLayout && store.inRunView"
 					class="cn-flow-board__run-card"
+					:class="`cn-flow-board__run-card--${runStatus.variant}`"
+					statusIcon
 					:run="runRecord"
 					:stepsTotal="store.nodes.length"
 					:canRetry="canRetry"
@@ -2071,11 +2074,73 @@ export default {
 	z-index: 11;
 	width: min(746px, 100%);
 	box-sizing: border-box;
-	padding: 16px;
+	gap: 10px;
+	padding: 12px 18px 12px 22px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
 	background: var(--color-main-background);
-	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+	box-shadow: inset 4px 0 0 var(--cn-flow-run-tone, var(--color-border-dark)), 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+/* The run card's stripe takes the run's tone (PqFlowRun). */
+.cn-flow-board__run-card--success {
+	--cn-flow-run-tone: var(--color-success, #1e6b2a);
+}
+
+.cn-flow-board__run-card--warning {
+	--cn-flow-run-tone: var(--color-warning, #a37200);
+}
+
+.cn-flow-board__run-card--error {
+	--cn-flow-run-tone: var(--color-error, #c00);
+}
+
+.cn-flow-board__run-card--info {
+	--cn-flow-run-tone: var(--color-info, var(--color-primary-element));
+}
+
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__head .cn-status-badge) {
+	gap: 4px;
+	min-height: 25px;
+	box-sizing: border-box;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__title) {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 18px;
+}
+
+/* The facts in one row, each label over its value, from the start. */
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__facts) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 28px;
+}
+
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__fact) {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: start;
+}
+
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__fact dt) {
+	font-size: 12px;
+	line-height: 16px;
+}
+
+.cn-flow-board__run-card :deep(.cn-flow-run-summary__fact dd) {
+	font-size: 14px;
+	line-height: 18px;
+}
+
+/* The side panel toggle, pressed while the panel is open: tonal. */
+.cn-flow-board .cn-flow-board__panel-toggle[aria-pressed='true'] {
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 
 /* The canvas inspector (PqFlow): the kind over the name with the close beside
