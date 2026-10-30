@@ -304,7 +304,7 @@
 						<span v-if="item.leading"
 							class="cn-record-list__leading"
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
-						<span v-if="pillFirst && item.pill" class="cn-record-list__pill-start">
+						<span v-if="pillFirst && !headLine && item.pill" class="cn-record-list__pill-start">
 							<CnStatusBadge
 								:label="item.pill.label"
 								:variant="item.pill.variant"
@@ -323,14 +323,30 @@
 							data-testid="cn-record-list-dot" />
 						<span v-if="iconTiles"
 							class="cn-record-list__icon-tile"
+							:class="iconTileTone ? `cn-record-list__icon-tile--${iconTileTone}` : null"
+							:style="iconTileSize ? { '--cn-record-list-icon-tile-size': `${iconTileSize}px` } : null"
 							aria-hidden="true"
 							data-testid="cn-record-list-icon-tile">
-							<CnIcon :name="item.icon" :size="18" />
+							<CnIcon :name="item.icon" :size="iconTileSize && iconTileSize < 32 ? 14 : 18" />
 						</span>
 						<span class="cn-record-list__main">
-							<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
-							<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
-							<span v-if="item.text" class="cn-record-list__meta" data-testid="cn-record-list-text">{{ item.text }}</span>
+							<!-- `headLine`: pill, title and meta on one line, the text under it (DqDagAfsluiten "Vandaag vastgelegd"). -->
+							<span v-if="headLine" class="cn-record-list__headline" data-testid="cn-record-list-headline">
+								<CnStatusBadge
+									v-if="item.pill"
+									:label="item.pill.label"
+									:variant="item.pill.variant"
+									size="small" />
+								<span v-if="item.title" class="cn-record-list__title cn-record-list__title--link">{{ item.title }}</span>
+								<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							</span>
+							<template v-else>
+								<span v-if="item.title" class="cn-record-list__title">{{ item.title }}</span>
+								<span v-if="item.meta" class="cn-record-list__meta">{{ item.meta }}</span>
+							</template>
+							<span v-if="item.text"
+								:class="headLine ? 'cn-record-list__note' : 'cn-record-list__meta'"
+								data-testid="cn-record-list-text">{{ item.text }}</span>
 							<!-- `duePlacement: "below"`: the due text as a line under the title (DqDagAfsluiten "Morgen eerst"). -->
 							<span
 								v-if="item.due && dueBelow"
@@ -345,10 +361,10 @@
 								</template>
 							</span>
 						</span>
-						<span v-if="(item.pill && !pillFirst) || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
+						<span v-if="(item.pill && pillAside) || item.badges.length > 0 || (item.due && !dueBelow) || item.trailing || item.flag" class="cn-record-list__aside">
 							<span v-if="item.flag" class="cn-record-list__flag" data-testid="cn-record-list-flag">{{ item.flag }}</span>
 							<CnStatusBadge
-								v-if="item.pill && !pillFirst"
+								v-if="item.pill && pillAside"
 								:label="item.pill.label"
 								:variant="item.pill.variant"
 								size="small" />
@@ -807,7 +823,10 @@ export default {
 		 * lopende zaken").
 		 * In `rows`, `ruleAbove: true` rules above the first row too, and
 		 * `pillAt: "start"` draws the pill before the title (DqZaakDocumenten
-		 * "Weigeringsgronden tot nu toe"). `strongTitle: true` sets a row's
+		 * "Weigeringsgronden tot nu toe"). `headLine: true` puts the pill, the
+		 * title and the meta on one line and `text` under it in the normal ink,
+		 * and `iconTile: { size, tone }` sizes and tones the icon tile
+		 * (DqDagAfsluiten "Vandaag vastgelegd"). `strongTitle: true` sets a row's
 		 * title at 600 in the board look (DqZaakTaken "Incidenten").
 		 *
 		 * @type {object}
@@ -988,6 +1007,27 @@ export default {
 		},
 
 		/**
+		 * Whether a `rows` row puts its pill, title and meta on one line and
+		 * its text under it (`headLine: true`, DqDagAfsluiten "Vandaag vastgelegd").
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-row-can-put-its-pill-title-and-meta-on-one-line
+		 */
+		headLine() {
+			return this.presentation === 'rows' && this.content?.headLine === true
+		},
+
+		/**
+		 * Whether a `rows` row draws its pill at its end.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-row-can-put-its-pill-title-and-meta-on-one-line
+		 */
+		pillAside() {
+			return !this.pillFirst && !this.headLine
+		},
+
+		/**
 		 * The action under the list (`footerAction`: `{ label, icon?, type,
 		 * ..., disabledWhen?, disabledReason? }`), labels through the host
 		 * translate, or null without a label.
@@ -1119,7 +1159,30 @@ export default {
 		 * @spec openspec/changes/record-list-row-icon-tile/specs/record-list/spec.md#requirement-a-record-list-row-can-lead-with-an-icon-tile
 		 */
 		iconTiles() {
-			return this.content?.iconTile === true && this.cardIcons
+			const tile = this.content?.iconTile
+			return (tile === true || (Boolean(tile) && typeof tile === 'object')) && this.cardIcons
+		},
+
+		/**
+		 * The icon tile's size in px (`iconTile: { size }`), or 0 for the default 36px.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-rows-icon-tile-can-take-a-size-and-a-tone
+		 */
+		iconTileSize() {
+			const size = Number(this.content?.iconTile?.size)
+			return Number.isFinite(size) && size > 0 ? size : 0
+		},
+
+		/**
+		 * The icon tile's tone (`iconTile: { tone }`), or '' for the sunken ground.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-rows-icon-tile-can-take-a-size-and-a-tone
+		 */
+		iconTileTone() {
+			const tone = this.content?.iconTile?.tone
+			return ['success', 'info', 'warning', 'error'].includes(tone) ? tone : ''
 		},
 
 		/**
@@ -3991,10 +4054,51 @@ a.cn-record-list__inline-title {
 	flex: none;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
-	border-radius: 18px;
+	width: var(--cn-record-list-icon-tile-size, 36px);
+	height: var(--cn-record-list-icon-tile-size, 36px);
+	border-radius: 50%;
 	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-record-list__icon-tile--success {
+	background: var(--color-success-hover, var(--color-background-dark));
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-record-list__icon-tile--info {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+}
+
+.cn-record-list__icon-tile--warning {
+	background: var(--color-warning-hover, var(--color-background-dark));
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-record-list__icon-tile--error {
+	background: var(--color-error-hover, var(--color-background-dark));
+	color: var(--color-error-text, var(--color-error));
+}
+
+/* `headLine`: pill, title and meta on one line, 10px apart (6px when they wrap). */
+.cn-record-list__headline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 10px;
+}
+
+.cn-record-list__headline .cn-record-list__title--link {
+	font-weight: 600;
+}
+
+.cn-record-list__headline .cn-record-list__meta {
+	font-size: 13px;
+}
+
+/* The text under a head line, in the normal ink. */
+.cn-record-list__note {
 	color: var(--color-main-text);
 }
 
