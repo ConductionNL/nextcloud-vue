@@ -58,10 +58,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * `record-notes` edits a text field of the record in view, with no card of its own.
  * `grouped-cards` draws groups of cards (DqZaaktype "Fasen en taken") with no card of
  * its own; the card, title and subtitle come from the host, and it has no Add.
+ * `kb-search` draws a bare search field and its results; on a side card it
+ * needs the titled wrapper (PqKlant "Kennisbank"), and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes', 'kb-search'])
 
 /**
  * The stored content/config blob for a widget definition.
