@@ -3080,8 +3080,9 @@
    unbreakable token such as an id anywhere), a pill
    wraps before the row scrolls, and each header keeps its label and icons on
    one line. No sideways scroll.
+   The :not() matches the index table's fixed rule, so this one still wins.
    @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel */
-.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table {
+.cn-look-board .cn-index-page--sidebar-open .cn-table-container--board .cn-data-table:not(.cn-data-table--fit) {
 	table-layout: auto;
 	width: 100% !important;
 	min-width: 0 !important;
