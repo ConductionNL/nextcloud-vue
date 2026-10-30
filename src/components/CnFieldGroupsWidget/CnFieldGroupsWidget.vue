@@ -15,7 +15,7 @@
 			:register="register"
 			:schema="schema"
 			@header="onGroupHeader(index, $event)"
-			@saved="$emit('saved', $event)" />
+			@saved="onSaved" />
 		<NcActions
 			v-if="!inTitle && menuItems.length > 0"
 			:menuName="addLabel"
@@ -201,6 +201,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Pass a group's save on.
+		 *
+		 * @param {{field: string, value: Array}} payload The group's field and the list it saved.
+		 */
+		onSaved(payload) {
+			/**
+			 * @event saved One group's list was saved: one PATCH of its field succeeded.
+			 * @type {{field: string, value: Array}}
+			 */
+			this.$emit('saved', payload)
+		},
+
 		tr(text) {
 			if (typeof text !== 'string' || text === '') {
 				return ''
