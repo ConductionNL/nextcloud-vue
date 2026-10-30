@@ -34,7 +34,7 @@ describe('look-board.css: delete buttons in settings rows', () => {
 	it('draws an error button in an app-drawn settings row as the soft tint', () => {
 		const body = ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error')
 		expect(body).toContain('background-color: var(--cn-board-error-tint)')
-		expect(body).toContain('color: var(--color-error-text)')
+		expect(body).toContain('color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)))')
 		expect(body).toContain('border: 0')
 	})
 
@@ -42,7 +42,13 @@ describe('look-board.css: delete buttons in settings rows', () => {
 		const body = ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error')
 		expect(body).toContain('background-color: var(--color-main-background)')
 		expect(body).toContain('border: 1px solid var(--color-error)')
-		expect(body).toContain('color: var(--color-error-text)')
+		expect(body).toContain('color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)))')
+	})
+
+	it('writes the button text in the error tag ink, not Nextcloud\'s darker error text (PqBeheer #a30000)', () => {
+		const text = ruleFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue--error .button-vue__text')
+		expect(text).toContain('color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)))')
+		expect(text).not.toMatch(/color: var\(--color-error-text\)/)
 	})
 
 	it('derives the tint from the theme error colour', () => {

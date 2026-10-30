@@ -34,7 +34,7 @@
 				v-for="item in itemsInRowOrder"
 				:key="resolveItemKey(item)"
 				class="grid-stack-item"
-				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined }"
+				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined, 'cn-dashboard-grid__item--same-height': sharesRowHeight(item) }"
 				role="group"
 				:aria-label="resolveItemLabel(item, layout.indexOf(item))"
 				:aria-describedby="itemDescribedBy"
@@ -79,7 +79,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
 import { toRaw } from 'vue'
-import { planClearRows, planGrowth } from '../../utils/gridStack.js'
+import { planClearRows, planGrowth, planSameHeights } from '../../utils/gridStack.js'
 // `gridstack` is a peerDependency (see package.json), not bundled — this
 // component's JS and the consumer's GridStack stylesheet MUST come from the
 // exact same installed copy, because GridStack's JS writes layout state
@@ -878,6 +878,7 @@ export default {
 				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
 			this.keepOrderOnGrowth()
+			this.matchRowHeights()
 			this.placeClearRows()
 
 			this.grid.on('change', (_event, items) => {
@@ -922,6 +923,7 @@ export default {
 			const resize = grid.resizeToContent.bind(grid)
 			const growing = new Set()
 			grid.resizeToContent = (el) => {
+				this.matchRowHeights()
 				this.resizeKeepingOrder(grid, resize, growing, el)
 				if (growing.size === 0) {
 					this.placeClearRows()
@@ -968,6 +970,69 @@ export default {
 				}
 			} finally {
 				growing.delete(el)
+			}
+		},
+
+		/**
+		 * Whether a layout item takes part in its row's shared height
+		 * (`sameHeight`). A size-to-content card stretches to the tallest; a card
+		 * of fixed height is not stretched but counts as the height to reach.
+		 *
+		 * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
+		 * @param {object} item The layout item.
+		 * @return {boolean} True when it does.
+		 */
+		sharesRowHeight(item) {
+			return item?.sameHeight === true
+		},
+
+		/**
+		 * Stretch the shorter `sameHeight` cards of each layout row to the
+		 * tallest of them (`planSameHeights`), with a min-height on the widget
+		 * the cell measures, so GridStack sizes the cells alike and the next row
+		 * starts level, as the boards draw a row of cards (DqProcesanalyse).
+		 * Each pass measures the content again without the stretch, so a row
+		 * shrinks with its content. Edit mode and a reflowed (stacked) grid keep
+		 * every card at its own height.
+		 *
+		 * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
+		 * @return {void}
+		 */
+		matchRowHeights() {
+			const container = this.$el && typeof this.$el.querySelectorAll === 'function' ? this.$el : null
+			if (!container || this.matchingRowHeights) {
+				return
+			}
+			const byId = new Map(this.layout.map((item) => [String(item.id), item]))
+			const cards = []
+			for (const cell of container.querySelectorAll('.grid-stack-item.cn-dashboard-grid__item--same-height')) {
+				const item = byId.get(String(cell.getAttribute('gs-id')))
+				const child = cell.querySelector('.grid-stack-item-content')?.firstElementChild
+				if (item && child) {
+					cards.push({ child, row: item.gridY ?? 0, fit: this.sizeToContentAttr(item) !== undefined })
+				}
+			}
+			if (cards.length === 0) {
+				return
+			}
+			this.matchingRowHeights = true
+			try {
+				for (const card of cards) {
+					if (card.fit) {
+						card.child.style.minHeight = ''
+					}
+				}
+				if (this.editable || this.reflowed) {
+					return
+				}
+				const heights = planSameHeights(cards.map((card) => ({ row: card.row, height: card.child.getBoundingClientRect().height })))
+				cards.forEach((card, index) => {
+					if (card.fit && heights[index] !== null) {
+						card.child.style.minHeight = `${heights[index]}px`
+					}
+				})
+			} finally {
+				this.matchingRowHeights = false
 			}
 		},
 
@@ -1633,6 +1698,12 @@ export default {
 	outline: 2px solid var(--color-primary-element, #0082c9);
 	outline-offset: 2px;
 	border-radius: var(--border-radius-container-large, 16px);
+}
+
+/* A stretched `sameHeight` card keeps its content at the top, as the boards
+   draw a row of cards, not centred in the extra height. */
+.cn-dashboard-grid__item--same-height > :deep(.grid-stack-item-content > * > .cn-widget-wrapper__content) {
+	justify-content: flex-start;
 }
 
 /* A size-to-content cell (`sizeToContent`) is measured by GridStack from the

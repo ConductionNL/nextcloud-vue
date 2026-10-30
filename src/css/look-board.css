@@ -3441,6 +3441,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
 }
 
+/* A matrix starts where the card header ends: its column heads carry their
+   own 6px top (DqProcesanalyse "Dagen per fase" 37px under the title).
+   @spec openspec/changes/board-matrix-under-header/specs/board-matrix-under-header/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-chart-widget__html:has(> .cn-chart-widget__matrix) {
+	padding-top: 0;
+}
+
 /* An ApexCharts plot takes the same inset as an HTML chart (DqDoorlooptijd
    "Gemiddelde doorlooptijd per maand": the plot 23px in, not on the card's
    edge). ApexCharts sizes itself to its box minus the box's padding, so the
@@ -3932,7 +3939,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    itself it is the soft error tint with red text and no edge (PqBeheer
    "Verwijderen"); in a settings table row it is white with a red edge and red
    text (PqBeheerKassa, DqTokens "Verwijderen"). NcButton fills its error
-   variant; the repeated class outranks that fill.
+   variant; the repeated class outranks that fill. The red text is the error
+   tag ink (#a30000 on the boards), not Nextcloud's darker error text.
    @spec openspec/changes/board-settings-row-delete/specs/board-settings-row-delete/spec.md */
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) {
 	--cn-board-error-tint: color-mix(in srgb, var(--color-error) 7%, var(--color-main-background));
@@ -3940,14 +3948,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error {
 	background-color: var(--cn-board-error-tint);
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 	border: 0;
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue.button-vue.button-vue--error {
 	background-color: var(--color-main-background);
 	border: 1px solid var(--color-error);
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue.button-vue.button-vue--error:hover:not(:disabled),
@@ -3957,7 +3965,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row-actions .button-vue--error .button-vue__text,
 .cn-look-board .settings-section:not(.cn-look-nextcloud *) td .button-vue--error .button-vue__text {
-	color: var(--color-error-text);
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 .cn-look-board .cn-settings-section__save:not(.cn-look-nextcloud *) .button-vue,
@@ -4623,6 +4631,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	line-height: 1.45;
 }
 
+/* A textarea keeps no negative bottom margin, so its hint needs none of the
+   3px above: the field's 4px gap and the textarea's 2px ring room set it 6px
+   under the control (DqBeheerGeavanceerd "Sentiment-triggerwoorden"). */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-field:has(> .textarea) > .cn-settings-field__hint {
+	margin-block-start: 0;
+}
+
 /* ---- The links page (CnLinkCardsPage) ---------------------------------- */
 /* As PqGeavanceerdHub draws it: the page padded as a board page, the title
    28px/700 on a row as tall as a control (the boards' header actions) with
@@ -4733,6 +4748,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 .cn-look-board .cn-link-cards-page:not(.cn-look-nextcloud *) .cn-link-cards-page__trailing {
+	align-self: flex-start;
 	margin-top: 10px;
 }
 

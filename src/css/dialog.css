@@ -122,6 +122,16 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	padding-inline: 0;
 }
 
+/* A labelled link keeps its 16px icon before the text (DqPersoonlijkeInstellingen
+   "Verwerkingsactiviteiten (AVG)", open-in-new).
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-link-keeps-its-icon */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content a.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: flex;
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+}
+
 /* The close button is the board's 44px round button, no edge
    (DqPersoonlijkeInstellingen "Sluiten").
    @spec openspec/changes/user-settings-close-button/specs/user-settings-close-button/spec.md#requirement-the-user-settings-close-button-sits-in-the-corner */
@@ -752,6 +762,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    focus. */
 .cn-dialog-board .cn-access-purpose__choices .checkbox-radio-switch--checked:not(.checkbox-radio-switch--disabled) .checkbox-content {
 	background-color: var(--color-primary-element-light-hover);
+}
+
+/* A warning note in a board dialog, as PqGesprekNieuwContact draws "Geen
+   contact gevonden": the status warning ground and ink at radius 8, 10px 14px
+   in, the icon 10px before 14px text on a 1.45 line. The 4px ink edge stays,
+   as DqNieuweZaakDubbel draws its warning. NcNoteCard paints its ground, ink
+   and text with `!important`. The duplicate warning below is bolder.
+   @spec openspec/changes/board-dialog-warning-note/specs/board-dialog-warning-note/spec.md#requirement-a-board-dialogs-warning-note-takes-the-status-warning-look */
+.cn-dialog-board .dialog__content .notecard.notecard--warning {
+	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start-color: var(--note-theme);
+	border-radius: 8px;
+	background-color: var(--nldesign-component-status-badge-warning-background-color, var(--color-warning-light, #fff4de)) !important;
+	color: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text)) !important;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard--warning .notecard__text {
+	margin: 0;
+	color: inherit !important;
+	font-size: 14px !important;
+	line-height: 1.45 !important;
 }
 
 /* The duplicate warning as DqNieuweZaakDubbel draws it. The note is a warning

@@ -1011,14 +1011,20 @@ export default {
 		/**
 		 * `avatar` widget: the chip's tone class in the board look,
 		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
-		 * default light primary.
+		 * default light primary. A grey chip of 28px or less is also
+		 * `--compact` (PqLeads' owner chip, 12px initials).
 		 *
-		 * @return {string}
+		 * @return {Array<string>}
 		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
 		 */
 		avatarToneClass() {
 			const tone = this.widgetProps && this.widgetProps.tone
-			return tone === 'neutral' ? 'cn-cell-renderer__avatar-initials--neutral' : ''
+			if (tone !== 'neutral') {
+				return []
+			}
+			return this.avatarSize <= 28
+				? ['cn-cell-renderer__avatar-initials--neutral', 'cn-cell-renderer__avatar-initials--compact']
+				: ['cn-cell-renderer__avatar-initials--neutral']
 		},
 
 		avatarSize() {

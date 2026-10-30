@@ -134,6 +134,9 @@
 								{{ tr(column.label || '') }}
 							</template>
 						</th>
+						<th v-if="entryAction" scope="col" class="cn-expandable-row__entry-action-head">
+							<span class="hidden-visually">{{ tr(entryAction.label) }}</span>
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -185,6 +188,17 @@
 							<template v-else-if="column.as !== 'pill'">
 								{{ cellText(item.entry, column) }}
 							</template>
+						</td>
+						<td v-if="entryAction" class="cn-expandable-row__cell--entry-action">
+							<button
+								type="button"
+								class="cn-expandable-row__entry-action"
+								:aria-label="`${tr(entryAction.label)} ${entryName(item.entry)}`.trim()"
+								:title="`${tr(entryAction.label)} ${entryName(item.entry)}`.trim()"
+								data-testid="cn-expandable-row-entry-action"
+								@click="emitAction(entryAction.id, item.entry)">
+								<CnIcon :name="entryAction.icon || 'Pencil'" :size="18" />
+							</button>
 						</td>
 					</tr>
 				</tbody>
@@ -279,7 +293,9 @@ export default {
 		 * button on every column header (a column's own `sortable` /
 		 * `filterable: false` opts it out). `table.reorder: { key? }` draws a
 		 * drag handle per entry; a move emits `reorder` with the list
-		 * renumbered in `key` (default `order`).
+		 * renumbered in `key` (default `order`). `table.entryAction: { id,
+		 * label, icon }` ends every entry with an icon button named
+		 * "{label} {entry}" that emits `action` with the entry.
 		 */
 		layout: {
 			type: Object,
@@ -358,6 +374,17 @@ export default {
 			return table && table.field && Array.isArray(table.columns) ? table : null
 		},
 
+		/**
+		 * The sub-table's per-entry action, when it names an id and a label.
+		 *
+		 * @return {{id: string, label: string, icon?: string}|null}
+		 * @spec openspec/changes/expandable-row-entry-action/specs/expandable-row-entry-action/spec.md
+		 */
+		entryAction() {
+			const action = this.table && this.table.entryAction
+			return action && action.id && action.label ? action : null
+		},
+
 		tableRows() {
 			const rows = this.table ? readPath(this.object, this.table.field) : null
 			return Array.isArray(rows) ? rows : []
@@ -425,13 +452,15 @@ export default {
 
 		/**
 		 * @param {string} id The action id.
+		 * @param {object} [entry] The sub-table entry, for an entry action.
 		 * @return {void}
 		 */
-		emitAction(id) {
+		emitAction(id, entry) {
 			/**
-			 * @event action A header button or the footer action. Payload: `{ id, row }`.
+			 * @event action A header button, the footer action or an entry
+			 * action. Payload: `{ id, row }`, with `entry` for an entry action.
 			 */
-			this.$emit('action', { id, row: this.object })
+			this.$emit('action', entry === undefined ? { id, row: this.object } : { id, row: this.object, entry })
 		},
 
 		/**
@@ -953,6 +982,39 @@ export default {
 .cn-expandable-row__handle:disabled {
 	cursor: default;
 	opacity: .4;
+}
+
+.cn-expandable-row__table th.cn-expandable-row__entry-action-head,
+.cn-expandable-row__table td.cn-expandable-row__cell--entry-action {
+	width: 32px;
+	padding-inline: 12px 18px;
+	text-align: end;
+}
+
+/* A 32px round icon button on no ground (PqPipelines "Fase bewerken"). */
+.cn-expandable-row__entry-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--cn-board-text-soft, var(--color-main-text));
+	cursor: pointer;
+}
+
+.cn-expandable-row__entry-action:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-expandable-row__entry-action:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-expandable-row__tr--drop td {

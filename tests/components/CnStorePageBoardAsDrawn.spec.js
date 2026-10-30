@@ -119,7 +119,7 @@ describe('CnStorePage as board PqStore draws it', () => {
 	it('draws the soft action as a pill without an edge', () => {
 		const soft = bodyOf(css, '.cn-look-board .cn-store-page__card--board .cn-store-page__card-action--soft.button-vue')
 		expect(soft).toContain('border-radius: 17px;')
-		expect(soft).toContain('background: var(--color-primary-element-light);')
+		expect(soft).toContain('background-color: var(--cn-tonal-bg, var(--color-primary-element-light));')
 	})
 
 	it('keeps the lens chips 8px apart over the core button margin, 36px high', () => {

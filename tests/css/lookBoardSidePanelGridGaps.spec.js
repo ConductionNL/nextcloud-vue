@@ -15,7 +15,7 @@ const fs = require('fs')
 const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
-const PAGE = '.cn-look-board .cn-index-page--with-side-panel:not(.cn-look-nextcloud *)'
+const PAGE = '.cn-look-board :is(.cn-index-page--with-side-panel, .cn-index-page--split-side):not(.cn-look-nextcloud *)'
 
 /** The declarations of the rule whose selector list holds `selector`. */
 function rule(selector) {

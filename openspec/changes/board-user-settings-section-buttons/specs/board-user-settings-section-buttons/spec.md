@@ -21,3 +21,12 @@ In the board look a labelled button in a section of the user settings dialog SHA
 
 - **GIVEN** the user settings dialog in the board look
 - **THEN** "Waarneming registreren" draws 40px tall, text only
+
+### Requirement: A user settings section link keeps its icon
+
+In the board look a labelled link in a section of the user settings dialog SHALL keep its icon, 16px, before the text.
+
+#### Scenario: DqPersoonlijkeInstellingen
+
+- **GIVEN** the user settings dialog in the board look
+- **THEN** "Verwerkingsactiviteiten (AVG)" draws its open-in-new icon 16px in, the text 40px in
