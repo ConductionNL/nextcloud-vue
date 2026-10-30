@@ -26,6 +26,7 @@ import { facetFilterParams } from '../utils/facets.js'
  * @param {string} [options.defaultSearchTerm] Initial search term, e.g. to restore `_search` from the route query on mount.
  * @param {object|(() => object)} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @param {Array<string>|(() => Array<string>)} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
+ * @param {(term: string) => (SearchReading|null|Promise<SearchReading|null>)} [options.searchInterpreter] Reads a typed search before it is sent, e.g. a phone number becomes a filter on a normalised field. Its answer `{ search?, filters?, note? }` replaces `_search` with `search` (none when empty), adds `filters` and gives the page `searchNote`; `null` (or a throw) sends the term as typed.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -112,6 +113,10 @@ export function useListView(objectTypeOrOptions, options) {
 
 	let searchTimeout = null
 
+	// The interpreter's answer for the last term it read: `{ term, reading }`.
+	const searchReading = ref(null)
+	let pendingReading = null
+
 	// ── Param construction ───────────────────────────────────────────────
 
 	/**
@@ -150,8 +155,13 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	function buildParams(page) {
 		const params = { _limit: pageSize.value, _page: page }
+		const reading = currentReading()
 
-		if (searchTerm.value) {
+		if (reading) {
+			if (typeof reading.search === 'string' && reading.search !== '') {
+				params._search = reading.search
+			}
+		} else if (searchTerm.value) {
 			params._search = searchTerm.value
 		}
 
@@ -179,6 +189,10 @@ export function useListView(objectTypeOrOptions, options) {
 			params._extend = extend
 		}
 
+		if (reading && reading.filters && typeof reading.filters === 'object') {
+			Object.assign(params, reading.filters)
+		}
+
 		for (const [key, value] of Object.entries(resolveFixedFilters())) {
 			if (value !== undefined && value !== null && value !== '') {
 				params[key] = value
@@ -186,6 +200,51 @@ export function useListView(objectTypeOrOptions, options) {
 		}
 
 		return params
+	}
+
+	/**
+	 * The interpreter's reading of the current term, or null when there is
+	 * none, it is for another term, or the term goes as typed.
+	 *
+	 * @return {SearchReading|null} The reading.
+	 */
+	function currentReading() {
+		const held = searchReading.value
+		if (!held || !searchTerm.value || held.term !== searchTerm.value) {
+			return null
+		}
+		return held.reading
+	}
+
+	/**
+	 * Ask `opts.searchInterpreter` about the current term once per term.
+	 *
+	 * @return {Promise<void>}
+	 */
+	async function interpretSearch() {
+		const term = searchTerm.value
+		if (typeof opts.searchInterpreter !== 'function' || !term) {
+			searchReading.value = null
+			return
+		}
+		if (searchReading.value && searchReading.value.term === term) {
+			return
+		}
+		// Fetches started while the term is being read wait for the same answer.
+		if (!pendingReading || pendingReading.term !== term) {
+			const promise = (async () => {
+				try {
+					return await opts.searchInterpreter(term)
+				} catch {
+					return null
+				}
+			})()
+			pendingReading = { term, promise }
+		}
+		const reading = await pendingReading.promise
+		if (searchTerm.value === term) {
+			searchReading.value = { term, reading: (reading && typeof reading === 'object') ? reading : null }
+		}
 	}
 
 	// ── Fetch ────────────────────────────────────────────────────────────
@@ -200,6 +259,7 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	async function refresh(page = 1) {
 		const seq = ++refreshSeq
+		await interpretSearch()
 		// This call's own result. `errors[getType()]` is shared by every call
 		// for the type and is not cleared on success, so it cannot say which
 		// request failed; it is only the fallback for a store that ignores
@@ -426,8 +486,21 @@ export function useListView(objectTypeOrOptions, options) {
 		// The query the list sends (search, sort, facet filters, fixed filters),
 		// built from the current state, for an export that must follow the list.
 		buildParams,
+		// What the search interpreter says about the term, e.g. "Searching by
+		// phone number"; '' when it read nothing.
+		searchNote: computed(() => {
+			const note = currentReading()?.note
+			return typeof note === 'string' ? note : ''
+		}),
 	}
 }
+
+/**
+ * @typedef {object} SearchReading
+ * @property {string} [search] The text sent as `_search`; empty or absent sends none.
+ * @property {object} [filters] Query parameters added to the fetch.
+ * @property {string} [note] A line the page shows while this reading applies.
+ */
 
 // ── Legacy implementation ─────────────────────────────────────────────────────
 

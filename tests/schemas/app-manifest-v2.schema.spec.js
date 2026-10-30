@@ -1443,7 +1443,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.167.0 lets a detail header field be drawn as a soft pill (format pill; header-field-pill) and a headerMeta count read a named entity source, on an index or a detail page (headerMetaCounts entitySource; header-meta-count-entity-source).
 		// 2.168.0 lets a week strip name the language its titles hyphenate by (lang; week-strip-titles-hyphenate), inline relations on its source and read a meta entry from the first of several fields (source.extend, metaFields lists; week-strip-meta-through-relation).
 		// 2.169.0 lets an api-call send DELETE, its payload as request data (api-call-delete).
-		expect(schema.version).toBe('2.169.0')
+		// 2.170.0 lets an index page name a registry handler that reads the search before it is sent (searchHandler; index-search-handler).
+		expect(schema.version).toBe('2.170.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
@@ -1453,6 +1454,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(recordList({ footerAction: [publish, newVersion] })).valid).toBe(true)
 		expect(validateManifestV2(recordList({ footerAction: [publish, { type: 'open-modal' }] })).valid).toBe(false)
 		expect(validateManifestV2(recordList({ footerAction: { ...newVersion, wide: 'yes' } })).valid).toBe(false)
+	})
+
+	it('accepts an index page searchHandler (2.170.0)', () => {
+		const withHandler = (searchHandler) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'index', title: 'P', config: { register: 'r', schema: 's', searchHandler } }] })
+		expect(validateManifestV2(withHandler('phoneSearch')).valid).toBe(true)
+		expect(validateManifestV2(withHandler(['phoneSearch'])).valid).toBe(false)
 	})
 
 	it('accepts an api-call with method DELETE (2.169.0)', () => {
