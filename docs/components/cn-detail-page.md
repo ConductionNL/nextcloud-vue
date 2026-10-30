@@ -38,7 +38,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
 | `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
 | `entitySource` | String | `''` | Name a registered entity source that reads ONE record, for a record that is not a register/schema object (manifest `config.entitySource`). The same registry and name as CnIndexPage's `entitySource`: `organisations` reads the OpenRegister organisation whose uuid is `objectId` (`GET /apps/openregister/api/organisations/{uuid}`). The record feeds the header, pills, header fields, widgets and the `@objectId` / `@object.*` tokens exactly as a fetched object does; its `id` is the uuid. Wins over `register` + `schema`. A 403 or 404 shows the not-found state; an unknown name shows no record and warns. Refresh and `cn:page:refresh` re-read the record. |
-| `sourceConfig` | Object | `null` | The config of a record source that takes one (manifest `config.sourceConfig`). With `entitySource: "endpoint"` the record comes from an app's own endpoint: `url` is an app path with `{id}` for the record id (`/apps/pipelinq/api/kassakoppeling/audit/{id}`), read with the session so the endpoint does its own authorization, and `recordPath` names where the record sits in the answer (the whole answer by default). A 403 or 404, or an answer without a record, shows the not-found state. |
+| `sourceConfig` | Object | `null` | The config of a record source that takes one (manifest `config.sourceConfig`). With `entitySource: "endpoint"` the record comes from an app's own endpoint: `url` is an app path with `{id}` for the record id (`/apps/pipelinq/api/kassakoppeling/audit/{id}`), read with the session so the endpoint does its own authorization, and `recordPath` names where the record sits in the answer (the whole answer by default). `attach` puts other parts of the answer on the record, by record key and answer path (`{ "messages": "messages", "terms": "terms" }` beside `recordPath: "report"`), so a widget such as `conversation` or `facts` reads them like any field; a path the answer does not hold is left out. A 403 or 404, or an answer without a record, shows the not-found state. |
 | `hideEmpty` | Boolean | `false` | Hide valueless fields on the auto-rendered data widget (see [`CnObjectDataWidget`](./cn-object-data-widget.md)'s `hide-empty`). Set it from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants, where each object only carries the fields its variant uses. A widget declaring its own `content.hideEmpty` still wins over this page-level default. |
 | `createForm` | String | `'auto'` | **Create archetype switch (ADR-062).** Whether this page renders its OWN create form dialog when reached without an object id. Set from the manifest as `config.createForm`. `'auto'` (default) — heuristic: only when the page is schema-bound, has no object id, and supplies no body of its own (no default slot, no grid layout). `'never'` — never render it; use when the body owns data entry (e.g. a CnObjectDataWidget or registry component already provides the form), which stops two form dialogs stacking. `'always'` — render it even when the page has a body, for a page that deliberately pairs custom content with a create form. The dialog is always the generic schema-driven `CnFormDialog`, so it follows the same OpenRegister/schema form rules (required, readOnly, enum/$ref, `visibleWhen`). |
 | `includeFields` | Array | `null` | Fields the create and edit forms ask for, in this order. `null` asks for every property the schema declares. Same three keys as [`CnIndexPage`](./cn-index-page.md), so one manifest describes the record's form wherever it opens rather than the list page and the detail page each carrying their own. |
@@ -533,6 +533,57 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
   </CnDetailPage>
 </template>
 ```
+
+## A record from an app endpoint
+
+A record that is not a register object (a report kept behind an app's own access check, an audit row) is still a `type: "detail"` page: `entitySource: "endpoint"` reads it from the app, and the widgets, header actions and side column work as on an object.
+
+```json
+{
+  "id": "ReportDetail",
+  "route": "/reports/:id",
+  "type": "detail",
+  "config": {
+    "entitySource": "endpoint",
+    "sourceConfig": {
+      "url": "/apps/myapp/api/reports/{id}",
+      "recordPath": "report",
+      "attach": { "messages": "messages", "terms": "terms" }
+    },
+    "titleField": "summary",
+    "widgets": [
+      { "id": "facts", "type": "facts", "content": { "fields": [{ "label": "Received", "path": "receivedAt", "format": "date" }] } },
+      {
+        "id": "thread",
+        "type": "conversation",
+        "content": {
+          "field": "messages",
+          "textField": "body",
+          "timeField": "writtenAt",
+          "sideField": "author",
+          "usValue": "handler",
+          "endpoint": "/apps/myapp/api/reports/@objectId/messages",
+          "messageKey": "body",
+          "replyOption": { "label": "Visible to the reporter", "key": "visibleToReporter", "value": false }
+        }
+      }
+    ],
+    "headerActions": [
+      {
+        "id": "ask",
+        "label": "Ask to reveal the contact",
+        "type": "open-form",
+        "endpoint": { "url": "/apps/myapp/api/reports/@objectId/reveal-requests", "method": "POST" },
+        "formProperties": { "motivation": { "type": "string", "title": "Motivation", "format": "textarea" } }
+      }
+    ]
+  }
+}
+```
+
+- The endpoint answers `{ report, messages, terms }`: `recordPath` picks the record, and `attach` puts `messages` and `terms` on it, so the `conversation` widget reads `messages` as a field of the record.
+- The reply is posted to the widget's `endpoint` with the text under `messageKey` and the switch's state under its `key`; the page then reads the record again.
+- The endpoint does the access check. A 403 or 404 shows the not-found state.
 
 ## Public (unauthenticated) detail pages
 
