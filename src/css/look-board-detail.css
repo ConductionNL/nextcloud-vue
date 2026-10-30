@@ -1158,7 +1158,21 @@
 }
 
 .cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links:not(.cn-look-nextcloud *) {
+	gap: 10px;
 	padding-inline: 8px;
+}
+
+/* Its links read as the board's side links (PqKassabon, PqKassadienst, PqLead
+   "Gerelateerd"): 14px at the normal leading, 10px apart, the first 10px under
+   the title. At the body's 15px and 1.5 they stood 31px apart, 2px under it.
+   @spec openspec/changes/board-related-side-links-rhythm/specs/board-related-side-links-rhythm/spec.md#requirement-a-related-side-cards-links-take-the-boards-rhythm */
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__link:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-related-objects-widget > .cn-related-objects-widget__links:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
 }
 
 .cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__show-all:not(.cn-look-nextcloud *) {
