@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 16 direct references, 123 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 16 direct references, 126 files reached through imports.
 
-Through: `CnActionDialog`, `CnActionsMenu`, `CnAiFeaturesWidget`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnObjectPermissionsTab`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAiFeaturesWidget`, `CnAnalyticsReportPicker`, `CnAssignDialog`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnBulkJobProgress`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnObjectPermissionsTab`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 2 direct references, 139 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 2 direct references, 142 files reached through imports.
 
-Through: `CnActionDialog`, `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnExportsWidget`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnIntegrationWidget`, `CnMapPoiPicker`, `CnMapWidget`, `CnNavCardGrid`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectFilesWidget`, `CnObjectGeoWidget`, `CnObjectMetadataWidget`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnRelatedObjectsWidget`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTimelineWidget`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAssignDialog`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnBulkJobProgress`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnExportsWidget`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnIntegrationWidget`, `CnMapPoiPicker`, `CnMapWidget`, `CnNavCardGrid`, `CnNoteComposer`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectFilesWidget`, `CnObjectGeoWidget`, `CnObjectMetadataWidget`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnRelatedObjectsWidget`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTimelineWidget`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWidgetObjectTable`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -33,8 +33,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name               | Payload | Description                                                                                                               |
-| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `geo-saved`        | —       | Emitted when the geo widget saved a geometry.                                                                             |
-| `open-integration` | —       | Emitted when the related widget asks to open an integration.                                                              |
-| `select-object`    | —       | A related object was clicked in the related widget. Payload is the raw object; its `@self` names the register and schema. |
+| Name               | Payload | Description                                                                                                                                             |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geo-saved`        | —       | Emitted when the geo widget saved a geometry.                                                                                                           |
+| `open-integration` | —       | Emitted when the related widget asks to open an integration.                                                                                            |
+| `select-object`    | —       | A related object was clicked in the related widget. Payload is the raw object; its `@self` names the register and schema.                               |
+| `panel-header`     | —       | What the widget reported for a title row it does not have in bare chrome (`{ subtitle, actions, ... }`), for the surface (a tab panel heading) to draw. |
