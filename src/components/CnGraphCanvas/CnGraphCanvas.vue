@@ -140,9 +140,9 @@ import { MiniMap } from '@vue-flow/minimap'
 import FitToScreenOutline from 'vue-material-design-icons/FitToScreenOutline.vue'
 import Minus from 'vue-material-design-icons/Minus.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import { fitPaddingFor } from '../../utils/overlayInset.js'
 import CnFlowEdge from './CnFlowEdge.vue'
 import CnFlowNode from './CnFlowNode.vue'
+import { fitPaddingFor } from '../../utils/overlayInset.js'
 
 /**
  * A graph canvas built on Vue Flow — the library n8n runs.
