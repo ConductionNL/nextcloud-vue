@@ -59,13 +59,13 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
 import { emit } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import { formatTimeOfDay } from '../../utils/boardDate.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { readPath } from '../../utils/readPath.js'
-import CnIcon from '../CnIcon/CnIcon.vue'
 
 /** The page refresh channel the built-in widgets listen on. */
 const PAGE_REFRESH = 'cn:page:refresh'
