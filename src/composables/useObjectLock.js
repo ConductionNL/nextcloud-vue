@@ -6,6 +6,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { tryOnScopeDispose } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, toValue } from 'vue'
+import { isHeldLock, lockExpiryOf } from '../utils/objectLock.js'
 
 /**
  * Thrown when an `acquire()` POST returns 409 (Conflict) or 423
@@ -59,10 +60,13 @@ export class PermissionError extends Error {
  *   lockedByMe: import('vue').ComputedRef<boolean>,
  *   lockedBy: import('vue').ComputedRef<string|null>,
  *   expiresAt: import('vue').ComputedRef<Date|null>,
+ *   held: import('vue').ComputedRef<boolean>,
+ *   lockedAt: import('vue').ComputedRef<Date|null>,
  *   acquire: () => Promise<void>,
  *   release: () => Promise<void>
  * }} Reactive lock state + actions.
  * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/object-lock/spec.md
+ * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-lock-without-an-expiry-holds-the-record
  */
 export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	const autoRenew = options.autoRenew !== false
@@ -110,13 +114,21 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 		if (!l) {
 			return false
 		}
-		if (l.expiresAt) {
-			const exp = new Date(l.expiresAt).getTime()
-			if (Number.isFinite(exp) && exp <= Date.now()) {
-				return false
-			}
+		const exp = lockExpiryOf(l)
+		return !exp || exp.getTime() > Date.now()
+	})
+
+	// A lock without an expiry holds the record until somebody unlocks it.
+	// Leaving the page must not release it the way it releases an edit lock.
+	const held = computed(() => locked.value && isHeldLock(readSelfLock()))
+
+	const lockedAt = computed(() => {
+		const raw = readSelfLock()?.created
+		if (!raw) {
+			return null
 		}
-		return true
+		const d = new Date(raw)
+		return Number.isNaN(d.getTime()) ? null : d
 	})
 
 	const lockedBy = computed(() => readSelfLock()?.user ?? readSelfLock()?.displayName ?? null)
@@ -127,14 +139,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 		return Boolean(me && lb && me === lb)
 	})
 
-	const expiresAt = computed(() => {
-		const raw = readSelfLock()?.expiresAt
-		if (!raw) {
-			return null
-		}
-		const d = new Date(raw)
-		return Number.isNaN(d.getTime()) ? null : d
-	})
+	const expiresAt = computed(() => lockExpiryOf(readSelfLock()))
 
 	function readSchemaSlug() {
 		return toValue(options.schemaSlug ?? schema)
@@ -265,7 +270,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 			if (!isVisible()) {
 				return
 			}
-			if (!lockedByMe.value) {
+			if (!lockedByMe.value || held.value) {
 				stopRenewTimer()
 				return
 			}
@@ -282,7 +287,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	}
 
 	function beaconRelease() {
-		if (!lockedByMe.value || !hasTarget()) {
+		if (!lockedByMe.value || held.value || !hasTarget()) {
 			return
 		}
 		try {
@@ -303,11 +308,11 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 
 	tryOnScopeDispose(() => {
 		stopRenewTimer()
-		if (lockedByMe.value) {
+		if (lockedByMe.value && !held.value) {
 			// Fire-and-forget; the Vue scope is gone, no point awaiting.
 			release().catch(() => {})
 		}
 	})
 
-	return { locked, lockedByMe, lockedBy, expiresAt, acquire, release }
+	return { locked, lockedByMe, lockedBy, expiresAt, held, lockedAt, acquire, release }
 }

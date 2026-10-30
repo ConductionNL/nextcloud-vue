@@ -375,6 +375,8 @@
 					variant="secondary"
 					data-testid="cn-detail-page-edit"
 					:aria-label="editActionLabel"
+					:disabled="recordHeld"
+					:title="recordHeld ? t('nextcloud-vue', 'Locked: unlock it first') : undefined"
 					@click="openEditForm">
 					<template #icon>
 						<Pencil :size="20" />
@@ -613,9 +615,12 @@
 		     neutral notice plus Unlock for your own. -->
 		<CnLockedBanner
 			v-if="lockState && lockState.locked.value"
-			:lockedBy="lockState.lockedBy.value"
+			:lockedBy="lockHolderName"
 			:lockedByMe="lockState.lockedByMe.value"
 			:expiresAt="lockState.expiresAt.value"
+			:held="recordHeld"
+			:lockedAt="lockState.lockedAt ? lockState.lockedAt.value : null"
+			:heldMessage="lockNotice ? effectiveTranslate(lockNotice) : ''"
 			:unlocking="releasingLock"
 			@unlock="onReleaseLock" />
 
@@ -2898,6 +2903,19 @@ export default {
 		},
 
 		/**
+		 * The sentence of a held lock (manifest `config.lockNotice`), run
+		 * through the host's translate, with `{user}`, `{date}` and `{time}`
+		 * filled in by CnLockedBanner: "Locked by {user} on {date} at {time}.
+		 * Nobody can change or delete this ticket. …". Empty uses the library's.
+		 *
+		 * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-held-lock-is-named-with-who-and-when-and-edit-waits-for-unlock
+		 */
+		lockNotice: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Fields shown as chips under the title (manifest `config.headerFields`):
 		 * each entry a property key, or `{ key, format, labelField, colorField,
 		 * warnWhenPast }`. `format` is `text` (default), `mono`, `strong` (bold text, no chip frame), `badge`, `user`
@@ -4352,7 +4370,7 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
 		 */
 		headerPills() {
-			return [['type', this.typePill], ['status', this.statusPill]]
+			const pills = [['type', this.typePill], ['status', this.statusPill]]
 				.map(([key, config]) => {
 					const pill = pillCountSource(config)
 						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
@@ -4370,6 +4388,42 @@ export default {
 					return { ...pill, ...look, key, label: pillLabelFilled(this.effectiveTranslate(pill.label), this.resolvedObject) }
 				})
 				.filter(Boolean)
+			// A held lock is part of where the record stands, so it is named
+			// beside the status before anybody reaches for Edit.
+			if (this.recordHeld) {
+				pills.push({ key: 'lock', label: t('nextcloud-vue', 'Locked'), colorKey: 'locked', colorMap: { locked: 'warning' }, icon: 'LockOutline' })
+			}
+			return pills
+		},
+
+		/**
+		 * Whether a held lock (one without an expiry) is on this record. Edit
+		 * waits for it to be unlocked, whoever holds it: the holder too, or
+		 * opening the form would trade the held lock for an edit lock that
+		 * lapses.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-held-lock-is-named-with-who-and-when-and-edit-waits-for-unlock
+		 */
+		/**
+		 * Who holds the lock, by name: the reader's display name for their
+		 * own lock, the holder's user id otherwise (the lock stores no name).
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-held-lock-is-named-with-who-and-when-and-edit-waits-for-unlock
+		 */
+		lockHolderName() {
+			if (!this.lockState) {
+				return ''
+			}
+			if (this.lockState.lockedByMe.value) {
+				return getCurrentUser()?.displayName || this.lockState.lockedBy.value || ''
+			}
+			return this.lockState.lockedBy.value || ''
+		},
+
+		recordHeld() {
+			return Boolean(this.lockState && this.lockState.held && this.lockState.held.value)
 		},
 
 		/**
@@ -7337,6 +7391,9 @@ export default {
 		 * @return {void}
 		 */
 		openEditForm() {
+			if (this.recordHeld) {
+				return
+			}
 			// 🔴 OPENING TAKES THE LOCK. Two people editing one record is not
 			// resolved by whoever presses Save last: the first person's work is
 			// gone and neither of them is told. The button is already withdrawn

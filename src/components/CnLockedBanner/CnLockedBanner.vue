@@ -167,6 +167,41 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Whether the lock is a held lock: taken without an expiry, it holds
+		 * the record until somebody unlocks it (a finished ticket locked from
+		 * its menu). Comes from `useObjectLock().held`.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-held-lock-is-named-with-who-and-when-and-edit-waits-for-unlock
+		 */
+		held: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * When the lock was taken. Comes from `useObjectLock().lockedAt`.
+		 *
+		 * @type {Date|null}
+		 */
+		lockedAt: {
+			type: Date,
+			default: null,
+		},
+
+		/**
+		 * The held lock's sentence, already translated by the host, with
+		 * `{user}`, `{date}` and `{time}` filled in here (manifest
+		 * `config.lockNotice` on CnDetailPage). Empty uses the library's.
+		 *
+		 * @type {string}
+		 */
+		heldMessage: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['unlock'],
@@ -214,6 +249,10 @@ export default {
 				return this.message
 			}
 
+			if (this.held) {
+				return this.heldText
+			}
+
 			if (this.lockedByMe) {
 				return t('nextcloud-vue', 'You are editing this. Others cannot change it until you unlock it.')
 			}
@@ -250,6 +289,27 @@ export default {
 		 */
 		subLine() {
 			return this.expiresLabel
+		},
+
+		/**
+		 * The held lock's sentence: who locked the record and when, and that
+		 * nobody can change it until it is unlocked.
+		 *
+		 * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-held-lock-is-named-with-who-and-when-and-edit-waits-for-unlock
+		 */
+		heldText() {
+			const at = this.lockedAt
+			const lang = (typeof document !== 'undefined' && document.documentElement?.lang) || undefined
+			const vars = {
+				user: this.lockedBy || t('nextcloud-vue', 'another user'),
+				date: at ? at.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) : '',
+				time: at ? `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}` : '',
+			}
+			const template = this.heldMessage
+				|| (at
+					? t('nextcloud-vue', 'Locked by {user} on {date} at {time}. Nobody can change or delete this until it is unlocked; who locked and unlocked it is in the history.')
+					: t('nextcloud-vue', 'Locked by {user}. Nobody can change or delete this until it is unlocked; who locked and unlocked it is in the history.'))
+			return template.replace(/\{(user|date|time)\}/g, (match, key) => vars[key])
 		},
 
 		/** Label on the release button. */

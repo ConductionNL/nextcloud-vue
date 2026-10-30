@@ -46,6 +46,37 @@ export function readLockPayload(object) {
 }
 
 /**
+ * When a lock lapses, or null for a held lock that lasts until it is
+ * unlocked. OpenRegister writes the moment as `expiration`; `expiresAt` is
+ * the older spelling and still read.
+ *
+ * @param {object|null} lock - The lock payload.
+ * @return {Date|null} The expiry, or null when the lock has none.
+ * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-lock-without-an-expiry-holds-the-record
+ */
+export function lockExpiryOf(lock) {
+	const raw = lock?.expiresAt ?? lock?.expiration ?? null
+	if (!raw) {
+		return null
+	}
+	const parsed = new Date(raw)
+	return Number.isFinite(parsed.getTime()) ? parsed : null
+}
+
+/**
+ * Whether a lock payload is a held lock: one taken without a duration, which
+ * holds the record until somebody unlocks it (a finished ticket locked from
+ * its menu), as opposed to the edit lock that lapses on its own.
+ *
+ * @param {object|null} lock - The lock payload.
+ * @return {boolean} True for a lock without an expiry.
+ * @spec openspec/changes/record-lock-held/specs/object-lock/spec.md#requirement-a-lock-without-an-expiry-holds-the-record
+ */
+export function isHeldLock(lock) {
+	return Boolean(lock && typeof lock === 'object' && !lock.expiresAt && !lock.expiration)
+}
+
+/**
  * Whether a record is locked RIGHT NOW.
  *
  * An expired lock reports false. The server has not necessarily cleared the
@@ -60,13 +91,8 @@ export function isObjectLocked(object) {
 	if (!lock) {
 		return false
 	}
-	if (lock.expiresAt) {
-		const expires = new Date(lock.expiresAt).getTime()
-		if (Number.isFinite(expires) && expires <= Date.now()) {
-			return false
-		}
-	}
-	return true
+	const expires = lockExpiryOf(lock)
+	return !expires || expires.getTime() > Date.now()
 }
 
 /**
@@ -124,13 +150,7 @@ export function resolveObjectLock(object) {
 		return { locked: false, byMe: false, holder: null, expiresAt: null }
 	}
 
-	let expiresAt = null
-	if (lock.expiresAt) {
-		const parsed = new Date(lock.expiresAt)
-		if (Number.isFinite(parsed.getTime())) {
-			expiresAt = parsed
-		}
-	}
+	const expiresAt = lockExpiryOf(lock)
 
 	const locked = !expiresAt || expiresAt.getTime() > Date.now()
 	if (!locked) {
