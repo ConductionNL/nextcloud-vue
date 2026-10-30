@@ -66,6 +66,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { formatTimeOfDay } from '../../utils/boardDate.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { readPath } from '../../utils/readPath.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 /** The page refresh channel the built-in widgets listen on. */
 const PAGE_REFRESH = 'cn:page:refresh'
@@ -85,7 +86,7 @@ let instances = 0
  * to `notes`. `hideLabel` keeps the label for screen readers only, for a
  * field under a heading that already names it. `outcomeBelow: true` puts the
  * outcome on its own line under the save status, at the start (PqContactmoment).
- * `actions: [{ label, icon?, variant?, request: { url, method?, body }, doneText? }]`
+ * `actions: [{ label, icon?, variant?, request: { url, method?, body }, doneText?, visibleWhen? }]`
  * are buttons that send the text to an app endpoint, `{text}` in a body value
  * standing for the typed text (PqTaak: Poging vastleggen, Afronden); the
  * endpoint checks the user may act. `autosave: false` writes nothing as you
@@ -197,6 +198,7 @@ export default {
 			const list = Array.isArray(this.content.actions) ? this.content.actions : []
 			return list
 				.filter((action) => action && typeof action.label === 'string' && action.label !== '' && action.request && typeof action.request.url === 'string')
+				.filter((action) => !action.visibleWhen || evaluateVisibleWhenLocal(action.visibleWhen, this.record || {}))
 				.map((action, index) => ({ ...action, key: `${index}-${action.label}`, label: this.tr(action.label) }))
 		},
 

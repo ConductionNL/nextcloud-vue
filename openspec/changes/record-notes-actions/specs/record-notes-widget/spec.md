@@ -10,7 +10,7 @@
 
 ### Requirement: A notes field can send its text with an action
 
-CnRecordNotesWidget SHALL draw `content.actions` as buttons under the text, `variant: "primary"` filled and any other outlined, each with its `icon`. A button SHALL be disabled while the text is empty or an action runs. Clicking SHALL send `request.body` to `request.url` (tokens resolved, default POST), with `{text}` in a body value replaced by the typed text. On success the text SHALL clear, the status line SHALL read the action's `doneText` and the page SHALL refresh; on a refusal the status line SHALL show the server's message and the text SHALL stay. With `autosave: false` the text SHALL not be written to the record as it is typed.
+CnRecordNotesWidget SHALL draw `content.actions` as buttons under the text, `variant: "primary"` filled and any other outlined, each with its `icon`. A button SHALL be disabled while the text is empty or an action runs. Clicking SHALL send `request.body` to `request.url` (tokens resolved, default POST), with `{text}` in a body value replaced by the typed text. On success the text SHALL clear, the status line SHALL read the action's `doneText` and the page SHALL refresh; on a refusal the status line SHALL show the server's message and the text SHALL stay. An action with `visibleWhen` SHALL show only while it holds on the record. With `autosave: false` the text SHALL not be written to the record as it is typed.
 
 #### Scenario: Finishing a callback task
 

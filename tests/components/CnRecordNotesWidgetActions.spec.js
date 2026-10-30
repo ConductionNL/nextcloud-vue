@@ -97,6 +97,14 @@ describe('CnRecordNotesWidget actions', () => {
 		expect(mockEmit).not.toHaveBeenCalled()
 	})
 
+	it('shows an action only while its visibleWhen holds on the record', async () => {
+		const actions = [CONTENT.actions[0], { ...CONTENT.actions[1], visibleWhen: { field: 'status', op: 'eq', value: 'in_progress' } }]
+		const open = mount(CnRecordNotesWidget, { props: { objectData: { ...TASK, status: 'open' }, content: { ...CONTENT, actions } }, global: { stubs: { CnIcon: true } } })
+		expect(buttons(open).map((b) => b.text())).toEqual(['Log attempt'])
+		const busy = mount(CnRecordNotesWidget, { props: { objectData: { ...TASK, status: 'in_progress' }, content: { ...CONTENT, actions } }, global: { stubs: { CnIcon: true } } })
+		expect(buttons(busy).map((b) => b.text())).toEqual(['Log attempt', 'Finish'])
+	})
+
 	it('keeps saving as you type without autosave false', async () => {
 		mockPatch.mockResolvedValue({ data: {} })
 		const w = mountCard({ ...CONTENT, autosave: undefined })
