@@ -424,6 +424,21 @@
 	padding: 0;
 }
 
+/* "Share: {name}" beside Save view: the same pill, filled with the dark
+   primary (PqTicketsSelectie "Delen: Klachten deze week").
+   @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar */
+.cn-look-board .cn-saved-views__save {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-look-board .cn-saved-views__save .button-vue.cn-saved-views__share,
+.cn-look-board .cn-saved-views__save .button-vue.cn-saved-views__share:hover {
+	background: var(--color-primary-element-hover, var(--color-primary-element));
+	color: var(--color-primary-element-text);
+}
+
 /* The toolbar's buttons are the board's neutral control (DqTeamwachtrij
    "Filter"): the main text at 600 on the main background with a grey border.
    The nldesign theme paints a secondary button in the primary colour with

@@ -318,8 +318,10 @@
 					:selectedViewId="appliedSavedViewId"
 					:save="toolbarSavesView"
 					:chips="savedViewChips"
+					:shareView="toolbarSharesView"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true" />
+					@saveRequest="showSaveViewDialog = true"
+					@shareRequest="onShareViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -2697,6 +2699,19 @@ export default {
 		savedViewSave: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Whether the toolbar offers to share the open saved view (manifest
+		 * `config.savedViewShare`): "Share: {name}" beside Save view, for a
+		 * view of the reader's own, opening the side panel's share dialog
+		 * (PqTicketsSelectie).
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 */
+		savedViewShare: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -9019,6 +9034,22 @@ export default {
 			// opened: changed by the reader, or, with no saved view open,
 			// filtered by the address.
 			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
+		},
+
+		/**
+		 * The open saved view the toolbar offers to share: with
+		 * `savedViewShare`, a stored view the reader owns. A default view and
+		 * a view shared with the reader are not theirs to share.
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 * @return {object|null}
+		 */
+		toolbarSharesView() {
+			const view = this.savedViewShare ? this.appliedSavedView : null
+			if (!view || view.seeded || !view.id) {
+				return null
+			}
+			return viewAccess(view, this.currentSavedViewsUserId) === 'owner' ? view : null
 		},
 
 		/**
