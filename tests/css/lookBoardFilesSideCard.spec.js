@@ -53,4 +53,10 @@ describe('look-board-detail.css: a file side card', () => {
 		expect(bodyOf(`${CARD} .cn-files-browser__side-facts`)).toContain('gap: 8px 16px;')
 		expect(bodyOf(`${CARD} .cn-files-browser__side-facts dd`)).toContain('font-weight: 500;')
 	})
+
+	it('drops the 12px the core dl padding puts above and below the facts', () => {
+		// Nextcloud core styles every dl with padding 12px 0, so the first fact
+		// stood 24px under the title where the board draws 10 (DqDocumentenBeheer r38).
+		expect(bodyOf(`${CARD} .cn-files-browser__side-facts`)).toContain('padding: 0;')
+	})
 })

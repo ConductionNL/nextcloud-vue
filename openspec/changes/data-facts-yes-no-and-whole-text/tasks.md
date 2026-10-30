@@ -1,0 +1,2 @@
+- [x] CnObjectDataWidget: boolean as Yes/No, formatValue without truncation
+- [x] tests/components/CnObjectDataWidgetBooleanAndLongText.spec.js (red first)

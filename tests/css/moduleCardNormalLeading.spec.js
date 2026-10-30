@@ -45,3 +45,15 @@ describe('the list cards on a links page (PqModules "Ook in Pipelinq", "Meer")',
 		expect(body(page, '.cn-link-cards-page__group--list .cn-link-cards-page__caption')).toContain('line-height: normal;')
 	})
 })
+
+describe('the Open button and the list rows keep the main ink under a theme that colours links', () => {
+	it('hands the theme the main ink for the Open button', () => {
+		expect(card).toMatch(/\n\.cn-module-card__open \{\s*--nldesign-color-on-surface: var\(--color-main-text\);\s*--nldesign-component-link-color: var\(--color-main-text\);/)
+	})
+
+	it('hands the theme the main ink for a list row', () => {
+		const row = body(page, '.cn-link-cards-page__row')
+		expect(row).toContain('--nldesign-color-on-surface: var(--color-main-text);')
+		expect(row).toContain('--nldesign-component-link-color: var(--color-main-text);')
+	})
+})

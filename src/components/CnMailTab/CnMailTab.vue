@@ -153,6 +153,28 @@ function keyOf(value) {
 }
 
 /**
+ * The template a `templates.preselect` rule picks: `"first"` the first one,
+ * `"only"` the one when the list holds exactly one, `{ field, value }` the
+ * first whose field holds the value.
+ *
+ * @param {object[]} list The templates.
+ * @param {string|object} rule The rule.
+ * @return {object|null} The template, or null.
+ */
+function preselectedTemplate(list, rule) {
+	if (rule === 'first') {
+		return list[0] || null
+	}
+	if (rule === 'only') {
+		return list.length === 1 ? list[0] : null
+	}
+	if (rule && typeof rule === 'object' && typeof rule.field === 'string') {
+		return list.find((item) => item && item[rule.field] === rule.value) || null
+	}
+	return null
+}
+
+/**
  * CnMailTab — the mail of one record: drafts in Nextcloud Mail, from a
  * template or empty, above the mail linked to the record.
  *
@@ -169,7 +191,7 @@ function keyOf(value) {
  *     "heading": "Email",
  *     "description": "Mail linked to this case",
  *     "hint": "The draft opens in Nextcloud Mail.",
- *     "templates": { "url": "/apps/app/api/types/@object.type/templates", "responsePath": "results", "labelField": "name", "idField": "id" },
+ *     "templates": { "url": "/apps/app/api/types/@object.type/templates", "responsePath": "results", "labelField": "name", "idField": "id", "preselect": "first" },
  *     "noTemplatesText": "No templates for this type yet",
  *     "draft": { "url": "/apps/app/api/records/@objectId/templates/{templateId}/draft", "blankTemplateId": "blank" },
  *     "closedWhen": { "field": "endDate", "op": "notEmpty" },
@@ -182,7 +204,10 @@ function keyOf(value) {
  * URLs take the `@objectId` / `@object.<field>` tokens of `endpointSource`;
  * `{templateId}` in the draft URL is the chosen template's id, or
  * `blankTemplateId` for an empty draft. Without `templates` the row offers
- * the empty draft only; without `draft` there is no row. `closedWhen` is a
+ * the empty draft only; without `draft` there is no row. `templates.preselect`
+ * picks a template when the list is read (`"first"`, `"only"` or
+ * `{ field, value }`), so the template draft button is ready without a pick;
+ * a pick still in the list is kept. `closedWhen` is a
  * local visibleWhen condition on the record that disables drafting.
  * `linkedMail: false` leaves the linked mail to a separate `email`
  * integration card. `headerActions` puts buttons beside the heading:
@@ -443,11 +468,27 @@ export default {
 				const payload = await fetchEndpointSource(this.templatesSource, this.tokenContext)
 				const list = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.results) ? payload.results : [])
 				this.templates = list
+				this.applyPreselect()
 			} catch (err) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnMailTab] could not read the templates', err)
 				this.templates = []
 			}
+		},
+
+		/**
+		 * Keep a pick that is still in the list; otherwise select what `templates.preselect` picks.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/mail-tab-template-preselect/specs/mail-tab-template-preselect/spec.md#requirement-the-mail-tab-can-preselect-a-template
+		 */
+		applyPreselect() {
+			const idField = this.templateIdField
+			const picked = this.selectedTemplate
+			if (picked && this.templates.some((item) => item && item[idField] === picked[idField])) {
+				return
+			}
+			this.selectedTemplate = preselectedTemplate(this.templates, this.templatesSource && this.templatesSource.preselect)
 		},
 
 		/** @return {Promise<void>} */

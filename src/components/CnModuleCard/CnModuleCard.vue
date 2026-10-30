@@ -235,7 +235,11 @@ export default {
 	text-decoration: none;
 }
 
+/* The theme paints every link in its link colour (`!important`, through its
+   link tokens); the button hands it the main ink. */
 .cn-module-card__open {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
 	border: 1px solid var(--color-border-dark);
 	border-radius: var(--border-radius-element, 8px);
 	background: var(--color-main-background);
