@@ -1226,6 +1226,14 @@
 					@close="closeContextMenu" />
 
 				<p
+					v-if="searchNoteText"
+					class="cn-index-page__content-search-note"
+					role="status"
+					data-testid="cn-index-search-note">
+					{{ searchNoteText }}
+				</p>
+
+				<p
 					v-if="searchInFiles && contentSearch"
 					class="cn-index-page__content-search-note"
 					data-testid="cn-index-content-search-note">
@@ -2896,6 +2904,20 @@ export default {
 		searchInFiles: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A handler from the app's registry that reads a typed search before
+		 * it is sent: `(term) => { search?, filters?, note? } | null`, or a
+		 * promise of one. A phone number can become a filter on a normalised
+		 * field with the note "Searching by phone number"; `null` sends the
+		 * term as typed. Self-fetch pages only. Manifest: `config.searchHandler`.
+		 *
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchHandler: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -5204,6 +5226,33 @@ export default {
 		/** True when self-fetch mode is active and the useListView instance exists. */
 		isSelfFetchMode() {
 			return this.isSelfFetch && !!this.list
+		},
+
+		/**
+		 * The `searchHandler` named on the page, from the app's registry, or
+		 * null when none is named or it is not registered.
+		 *
+		 * @return {((term: string) => (object|null|Promise<object|null>))|null} The handler.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchInterpreterFn() {
+			if (!this.searchHandler) {
+				return null
+			}
+			const handler = resolveRegisteredHandler(this.searchHandler, this.effectiveRegistry, this.resolvedCustomComponents)
+			return typeof handler === 'function' ? handler : null
+		},
+
+		/**
+		 * The line the search handler gives the current search, through the
+		 * app's translate; '' when it gave none.
+		 *
+		 * @return {string} The note.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchNoteText() {
+			const note = this.isSelfFetchMode && this.list.searchNote ? this.list.searchNote.value : ''
+			return note ? this.cnTranslate(note) : ''
 		},
 
 		/**

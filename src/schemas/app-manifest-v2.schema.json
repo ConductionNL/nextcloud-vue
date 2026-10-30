@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.169.0",
+	"version": "2.170.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4332,6 +4332,10 @@
 									}
 								]
 							}
+						},
+						"searchHandler": {
+							"type": "string",
+							"description": "Index pages (self-fetch): the name of a handler in the app's registry that reads a typed search before it is sent. It gets the term and answers `{ search?, filters?, note? }` (or a promise of it): `search` replaces `_search` (none when empty), `filters` are added to the query, and `note` shows above the list while the reading applies, e.g. a phone number becomes a filter on a normalised field with \"Searching by phone number\". `null`, a throw or an unregistered name sends the term as typed. Maps to CnIndexPage `searchHandler`."
 						},
 						"searchInFiles": {
 							"type": "boolean",
