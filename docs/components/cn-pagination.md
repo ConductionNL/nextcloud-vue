@@ -64,6 +64,7 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 | `lastLabel` | String | `'Last'` | Accessible label for the Last button |
 | `itemsPerPageLabel` | String | `'Items per page:'` | Label preceding the page-size dropdown |
 | `pageInfoFormat` | String | `'Page {current} of {total}'` | Format string for the page info text; `{current}` and `{total}` are replaced at runtime |
+| `pagerOnOnePage` | Boolean | `true` | Board variant: whether a list on one page still draws its count and the "1" with an inert Next. Off, one page shows the footer note alone (PqWachtrij); more than one page is unchanged. |
 
 ### Events
 
