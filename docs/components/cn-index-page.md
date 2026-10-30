@@ -1442,6 +1442,23 @@ With `look: "board"` (the page's `look` prop or `config.look`, else the app's `l
   "headerButtons": [{ "action": "add", "variant": "primary", "label": "New case" }, { "action": "export" }, { "action": "actions-menu" }] }
 ```
 
+## The count line while a filter narrows the list: `countTextFiltered`
+
+`countTextFiltered` (manifest `config.countTextFiltered`) is the count line while a filter narrows the list: a filter in the address (`?sendingRef=letter-5b`), the side panel, a filter strip, or a selected quick filter tab with a `filter`. It takes the `countText` tokens, `{shown}`, `{total}` and the names of `countValues`, and works in either look. Without a filter, or without the key, the count line stays as it is.
+
+A `countValues` entry is counted under the same filters, the address's included, so a link to one sending reads how many of its messages were read:
+
+```json
+{
+  "register": "portal",
+  "schema": "message",
+  "countTextFiltered": "{read} of {total} read",
+  "countValues": { "read": { "metric": "count", "filter": { "read": true } } }
+}
+```
+
+A detail page links to the filtered list with a `facts` row whose `route` carries the query (`{ "name": "Messages", "query": { "sendingRef": "@source.sendingRef" } }`); a record without the value draws no link.
+
 ## The row menu edits when the row opens the detail
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.
