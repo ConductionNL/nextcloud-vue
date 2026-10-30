@@ -65,6 +65,7 @@ With static items:
 | `maxPerDay` | `number` | none | The most items a day shows. The rest sit behind "+N more". Without it a day shows all its items and grows with them. |
 | `moreRoute` | `string \| object` | none | Where "+N more" leads: a route name or a route object (the full list). Without it "+N more" is a button that opens the day in place, and "Show less" closes it. |
 | `moreLabel` | `string` | "+N more" | Text of the control, with `{count}` for the number hidden. Goes through the host's translate. |
+| `lang` | `string` | the page's language | The language of the item texts, a tag such as `nl`. Long words hyphenate by its rules: "Parkeer-vergunningen" instead of a break mid-syllable. |
 
 ## Props
 
