@@ -9,6 +9,7 @@
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-is-one-chip
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-several-values-read-as-a-list
  * @spec openspec/changes/index-filter-labels/specs/active-filter-line-board-look/spec.md#requirement-a-range-from-today-is-named-in-words
+ * @spec openspec/changes/range-chip-reads-today-tokens/specs/range-chip-reads-today-tokens/spec.md
  */
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../src/utils/filterRangeLabel.js'
 
@@ -56,6 +57,16 @@ describe('rangeChipText', () => {
 	it('writes an open end as from or up to', () => {
 		expect(rangeChipText('2026-10-01', null, { locale: 'nl', now: NOW, translate: nl })).toBe('vanaf 1 oktober')
 		expect(rangeChipText(null, '2026-10-31', { locale: 'nl', now: NOW, translate: nl })).toBe('tot en met 31 oktober')
+	})
+
+	it('writes @today tokens as the dates they stand for', () => {
+		expect(rangeChipText('@today-12d', '@today+8d', { locale: 'nl', now: NOW, translate: nl })).not.toContain('@today')
+		const from = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() - 12)
+		const to = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 8)
+		expect(rangeChipText('@today-12d', '@today+8d', { locale: 'nl', now: NOW, translate: nl }))
+			.toBe(rangeChipText(from.toLocaleDateString('sv'), to.toLocaleDateString('sv'), { locale: 'nl', now: NOW, translate: nl }))
+		expect(rangeChipText('@today', null, { locale: 'nl', now: NOW, translate: nl }))
+			.toBe(rangeChipText(NOW.toLocaleDateString('sv'), null, { locale: 'nl', now: NOW, translate: nl }))
 	})
 
 	it('keeps values that are not dates as written', () => {
