@@ -2841,7 +2841,23 @@
     "The assistant could not answer.": "De assistent kon geen antwoord geven.",
     "Untitled agent": "Assistent zonder naam",
     "Untitled conversation": "Gesprek zonder titel",
-    "Colleague": "Collega"
+    "Colleague": "Collega",
+    "A step configuration must be a JSON object.": "De instellingen van een stap moeten een JSON-object zijn.",
+    "A structured value, as JSON.": "Een samengestelde waarde, als JSON.",
+    "Advanced: edit as JSON": "Geavanceerd: bewerken als JSON",
+    "Configuration (JSON)": "Instellingen (JSON)",
+    "For example 0 9 * * 1 — 09:00 every Monday.": "Bijvoorbeeld 0 9 * * 1: elke maandag om 09:00.",
+    "GET": "GET",
+    "Not valid JSON, so the configuration keeps its previous value.": "Geen geldige JSON, dus de instellingen houden hun vorige waarde.",
+    "Not valid JSON, so this option keeps its previous value.": "Geen geldige JSON, dus deze optie houdt haar vorige waarde.",
+    "Pick a user…": "Kies een gebruiker…",
+    "Pick one…": "Kies er een…",
+    "Remove step": "Stap verwijderen",
+    "Required.": "Verplicht.",
+    "Shown on the card. Leave empty to show the step type.": "Staat op de kaart. Laat leeg om het soort stap te tonen.",
+    "The full configuration document. The fields above update along.": "Alle instellingen in één document. De velden hierboven passen zich aan.",
+    "This step has no options.": "Deze stap heeft geen opties.",
+    "{uid} (you)": "{uid} (jij)"
   },
   "plurals": {
     "{count} member": [

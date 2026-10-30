@@ -2576,7 +2576,23 @@
     "The assistant could not answer.": "The assistant could not answer.",
     "Untitled agent": "Untitled agent",
     "Untitled conversation": "Untitled conversation",
-    "Colleague": "Colleague"
+    "Colleague": "Colleague",
+    "A step configuration must be a JSON object.": "A step configuration must be a JSON object.",
+    "A structured value, as JSON.": "A structured value, as JSON.",
+    "Advanced: edit as JSON": "Advanced: edit as JSON",
+    "Configuration (JSON)": "Configuration (JSON)",
+    "For example 0 9 * * 1 — 09:00 every Monday.": "For example 0 9 * * 1 — 09:00 every Monday.",
+    "GET": "GET",
+    "Not valid JSON, so the configuration keeps its previous value.": "Not valid JSON, so the configuration keeps its previous value.",
+    "Not valid JSON, so this option keeps its previous value.": "Not valid JSON, so this option keeps its previous value.",
+    "Pick a user…": "Pick a user…",
+    "Pick one…": "Pick one…",
+    "Remove step": "Remove step",
+    "Required.": "Required.",
+    "Shown on the card. Leave empty to show the step type.": "Shown on the card. Leave empty to show the step type.",
+    "The full configuration document. The fields above update along.": "The full configuration document. The fields above update along.",
+    "This step has no options.": "This step has no options.",
+    "{uid} (you)": "{uid} (you)"
   },
   "plurals": {
     "{count} member": [

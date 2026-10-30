@@ -73,7 +73,52 @@
 		<p v-if="lead" class="cn-field-list-widget__lead" data-testid="cn-field-list-lead">
 			{{ lead }}
 		</p>
-		<p v-if="rows.length === 0" class="cn-field-list-widget__empty" data-testid="cn-field-list-empty">
+		<!-- `variant: "pairs"`: a label and a value per entry, as a side card lists contact channels. -->
+		<dl v-if="isPairs" class="cn-field-list-widget__pairs" data-testid="cn-field-list-pairs">
+			<div
+				v-for="row in rows"
+				:key="row.key"
+				class="cn-field-list-widget__pair"
+				:data-testid="`cn-field-list-pair-${row.key}`">
+				<dt class="cn-field-list-widget__pair-label">
+					{{ row.label }}
+				</dt>
+				<dd class="cn-field-list-widget__pair-value">
+					<a
+						v-if="row.href"
+						class="cn-field-list-widget__pair-text"
+						:href="row.href"
+						v-bind="row.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}">{{ row.pairText }}</a>
+					<span v-else class="cn-field-list-widget__pair-text">{{ row.pairText }}</span>
+					<NcActions
+						v-if="pairMenuItems(row).length > 0"
+						:forceMenu="true"
+						:disabled="busy !== ''"
+						:ariaLabel="`${tr('More actions')}: ${row.title}`"
+						:data-testid="`cn-field-list-menu-${row.key}`">
+						<NcActionButton
+							v-for="item in pairMenuItems(row)"
+							:key="item.id"
+							:data-testid="`cn-field-list-menu-${item.id}-${row.key}`"
+							@click="item.run">
+							{{ item.label }}
+						</NcActionButton>
+					</NcActions>
+				</dd>
+			</div>
+			<div
+				v-if="rows.length === 0 && pairsEmptyLabel"
+				class="cn-field-list-widget__pair"
+				data-testid="cn-field-list-pair-empty">
+				<dt class="cn-field-list-widget__pair-label">
+					{{ pairsEmptyLabel }}
+				</dt>
+				<dd class="cn-field-list-widget__pair-value cn-field-list-widget__pair-value--empty">
+					{{ emptyLabel }}
+				</dd>
+			</div>
+		</dl>
+		<p v-else-if="rows.length === 0" class="cn-field-list-widget__empty" data-testid="cn-field-list-empty">
 			{{ emptyLabel }}
 		</p>
 		<div v-else-if="isTable" class="cn-field-list-widget__table-wrap">
@@ -430,6 +475,8 @@ export default {
 		 * - `add.fields[].type: 'checkbox'`; `add.exclusive` — flags only one entry holds; `add.requireOneOf` (+ `requireOneOfMessage`) — keys of which one must be filled.
 		 * - `row.href` may be `{ path, scheme: 'mailto'|'tel' }`.
 		 * - `afterSave` — `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens; when it fails the save stands and `failureText` shows.
+		 * - `variant: 'pairs'`: each entry a label (`row.label`: a literal or a list of parts, a string part a literal and `{ path, map? }` a value, joined with ", ") beside its value (`row.title`, then the `row.meta` parts, joined with ", "; a link with `row.href`); edit and remove go in a "..." menu; an empty list shows `emptyLabel` beside the empty text, or nothing without one.
+		 * - `mirror`: `{ field, path, prefer? }`: every save also writes `field` with the `path` of the entry flagged `prefer` (else the first entry, else ''), in the same PATCH.
 		 *
 		 * @type {object}
 		 */
@@ -514,10 +561,7 @@ export default {
 					? { ...item, ...(this.live[key] || {}) }
 					: { value: item, ...(this.live[key] || {}) }
 				const title = this.text(entry, spec.title) || this.text(entry, spec.titleFallback) || (typeof item === 'string' ? item : key)
-				const meta = (Array.isArray(spec.meta) ? spec.meta : [])
-					.map((part) => this.text(entry, part))
-					.filter((part) => part !== '')
-					.join(' · ')
+				const meta = this.metaParts(entry, spec.meta).join(' · ')
 				const href = spec.href ? rowHref(entry, spec.href) : ''
 				return {
 					key,
@@ -525,6 +569,8 @@ export default {
 					item,
 					entry,
 					title,
+					label: this.isPairs ? this.pairLabelOf(entry, spec.label) : '',
+					pairText: this.isPairs ? [title, ...this.metaParts(entry, spec.meta)].join(', ') : '',
 					href,
 					external: /^https?:\/\//i.test(href),
 					initials: spec.avatar ? this.initials(title) : '',
@@ -538,6 +584,16 @@ export default {
 					code: this.isOptions ? this.codeOf(item, entry) : '',
 				}
 			})
+		},
+
+		/** Whether the rows are drawn as label and value pairs (`variant: 'pairs'`). */
+		isPairs() {
+			return this.content.variant === 'pairs'
+		},
+
+		/** The label an empty pairs list shows beside its empty text (`emptyLabel`), '' for none. */
+		pairsEmptyLabel() {
+			return this.tr(this.content.emptyLabel || '')
 		},
 
 		/** Whether the rows are drawn as framed options (`variant: 'options'`): a grip, the name, a code chip. */
@@ -757,7 +813,7 @@ export default {
 		 * placed in the band, then remove.
 		 *
 		 * @param {object} row The row.
-		 * @return {Array<{id: string, label: string, run: Function}>}
+		 * @return {Array<{id: string, label: string, run: () => void}>}
 		 */
 		menuItems(row) {
 			const items = row.actions
@@ -786,6 +842,69 @@ export default {
 		 * @param {number} index Its position.
 		 * @return {string}
 		 */
+		/**
+		 * The filled meta parts of an entry, empty ones left out.
+		 *
+		 * @param {object} entry The entry.
+		 * @param {Array|undefined} meta The `row.meta` config.
+		 * @return {string[]}
+		 */
+		metaParts(entry, meta) {
+			return (Array.isArray(meta) ? meta : [])
+				.map((part) => this.text(entry, part))
+				.filter((part) => part !== '')
+		},
+
+		/**
+		 * The label of a pair: `row.label` as one literal or a list of parts, a
+		 * string part a literal and an object part a value off the entry
+		 * (`{ path, map? }`), the filled parts joined with ", " ("E-mail, privé").
+		 *
+		 * @spec openspec/changes/contact-side-cards-generic/specs/contact-side-cards-generic/spec.md#requirement-a-field-list-draws-its-entries-as-label-and-value-pairs
+		 * @param {object} entry The entry.
+		 * @param {string|Array|undefined} label The `row.label` config.
+		 * @return {string}
+		 */
+		pairLabelOf(entry, label) {
+			const parts = Array.isArray(label) ? label : [label]
+			return parts
+				.map((part) => (typeof part === 'string' ? this.tr(part) : this.text(entry, part)))
+				.filter((part) => typeof part === 'string' && part !== '')
+				.join(', ')
+		},
+
+		/**
+		 * The "..." menu of a pair: edit and remove.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<{id: string, label: string, run: Function}>}
+		 */
+		pairMenuItems(row) {
+			return [
+				...(this.canEdit ? [{ id: 'edit', label: this.editLabel, run: () => this.startEdit(row) }] : []),
+				...(this.canRemove ? [{ id: 'remove', label: this.removeLabel, run: () => this.remove(row) }] : []),
+			]
+		},
+
+		/**
+		 * The plain field `mirror` keeps in step with the list: the `path` of the
+		 * entry flagged `prefer`, else of the first entry, else ''.
+		 *
+		 * @spec openspec/changes/contact-side-cards-generic/specs/contact-side-cards-generic/spec.md#requirement-a-field-list-keeps-a-plain-field-in-step-with-its-preferred-entry
+		 * @param {Array} list The list about to be saved.
+		 * @return {object} `{ [mirror.field]: value }`, or `{}` without a mirror.
+		 */
+		mirrorOf(list) {
+			const mirror = this.content.mirror
+			if (!mirror || typeof mirror.field !== 'string' || mirror.field === '' || typeof mirror.path !== 'string') {
+				return {}
+			}
+			const entries = list.filter((entry) => entry && typeof entry === 'object')
+			const chosen = (mirror.prefer && entries.find((entry) => entry[mirror.prefer] === true)) || entries[0]
+			const value = chosen ? readPath(chosen, mirror.path) : ''
+			return { [mirror.field]: value === undefined || value === null ? '' : value }
+		},
+
 		keyOf(item, index) {
 			if (item === null || typeof item !== 'object') {
 				return String(item)
@@ -1153,7 +1272,7 @@ export default {
 				const { data: stored } = await axios.get(prefixUrl(this.objectUrl))
 				const current = readPath(stored || {}, this.content.field)
 				const next = change(Array.isArray(current) ? current : [])
-				const { data } = await axios.patch(prefixUrl(this.objectUrl), { [this.content.field]: next })
+				const { data } = await axios.patch(prefixUrl(this.objectUrl), { [this.content.field]: next, ...this.mirrorOf(next) })
 				const written = readPath(data || {}, this.content.field)
 				this.saved = Array.isArray(written) ? written : next
 				/**
@@ -1502,6 +1621,42 @@ export default {
 .cn-field-list-widget__lead {
 	margin: 0;
 	font-weight: bold;
+}
+
+.cn-field-list-widget__pairs {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+}
+
+.cn-field-list-widget__pair {
+	display: contents;
+}
+
+.cn-field-list-widget__pair-label {
+	width: auto;
+	margin: 0;
+	padding: 0;
+	text-align: start;
+	color: var(--color-text-maxcontrast);
+	white-space: normal;
+}
+
+.cn-field-list-widget__pair-value {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	overflow-wrap: anywhere;
+}
+
+.cn-field-list-widget__pair-value--empty {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-field-list-widget__rows {

@@ -28,7 +28,7 @@ function body(selector) {
 
 describe('the board table beside the open side panel', () => {
 	it('is as wide as its column, laid out by its content', () => {
-		const table = body('')
+		const table = body(':not(.cn-data-table--fit)')
 		expect(table).toContain('table-layout: auto;')
 		expect(table).toContain('width: 100% !important;')
 		expect(table).toContain('min-width: 0 !important;')

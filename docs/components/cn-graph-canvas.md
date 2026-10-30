@@ -117,6 +117,7 @@ The canvas never mutates `nodes`. Moves arrive on `@nodes-change` as Vue Flow's 
 | `readOnly` | `Boolean` | `false` | Refuses dragging, connecting **and** selection. Pan and zoom stay live so the graph is still explorable. |
 | `fitView` | `Boolean` | `true` | Frame the whole graph on first render, instead of computing a viewBox by hand. |
 | `fitMaxZoom` | `Number` | `0` | Caps the first frame's zoom. `0` allows `maxZoom`; `1` opens a graph that fits at its own size. The frame is taken once, when the nodes have a size. |
+| `fitInset` | `Object\|Function` | `null` | Pixels per side (`{ top, right, bottom, left }`) that chrome floating over the canvas covers, or a function returning them when the canvas fits. The first frame and the fit control keep the graph clear of them. |
 | `snapToGrid` | `Boolean` | `true` | Snap dragged nodes to `snapGrid`. |
 | `snapGrid` | `Array` | `[16, 16]` | Grid spacing as Vue Flow's `[x, y]`. |
 | `minZoom` | `Number` | `0.2` | Lower clamp. |

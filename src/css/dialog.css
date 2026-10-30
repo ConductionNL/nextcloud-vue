@@ -453,6 +453,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block: 0;
 }
 
+/* So does a search select (DqNieuweZaak "Aanvrager"): its 6px top margin set
+   it 6px below "Intakekanaal" beside it, and its suggestions with it.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-dialog__party-wrapper .cn-search-select > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
+}
+
+/* A field's label and its help line stand on the font's own leading, as the
+   boards set them: the body's 1.5 leading added 4px over each label and 4px
+   under each help line, so every row of DqNieuweZaak sat 4 to 8px lower.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-field__label,
+.cn-dialog-board .dialog__content .cn-form-field__optional,
+.cn-dialog-board .dialog__content .cn-form-dialog__helper {
+	line-height: normal;
+}
+
 /* A multiple select is the board's 40px field too (DqFilterDelen "Delen
    met"). The edge goes on the toggle, which holds the chips and the search,
    so the chosen people and groups sit inside the field; the search inside it
