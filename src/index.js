@@ -36,6 +36,7 @@ export {
 	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
+	CnActionTilesWidget,
 	CnAddressSearch,
 	CnAddWidgetModal,
 	CnAdminActionCard,

@@ -581,6 +581,44 @@
 	border-radius: var(--cn-board-card-radius);
 }
 
+/* A stack of sections (`sections: true`, PqLead "Overzicht") is one sheet:
+   the panel is the card again, and its widgets are sections of it without a
+   card of their own. A section that follows a titled one has a hairline
+   above it 24px under the previous section and 22px over its title; the
+   first titled section sits 24px under an untitled one (the stage strip).
+   The selectors follow the stack rules above and outweigh them.
+   @spec openspec/changes/tab-stack-sections/specs/tab-stack-sections/spec.md#requirement-a-stack-of-sections-is-one-sheet-in-the-board-look */
+.cn-look-board .cn-tabs--board.cn-tabs-widget__tabs .cn-tabs__content:has(> .cn-tab:not([hidden]) > .cn-tabs-widget__stack--sections) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: 0 var(--cn-board-card-radius) var(--cn-board-card-radius) var(--cn-board-card-radius);
+	padding: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack {
+	gap: 0;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > * > .cn-detail-widget-host > :is(.cn-widget-wrapper, .cn-detail-card) {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-widget-wrapper > .cn-widget-wrapper__header,
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > .cn-tabs-widget__stack-item > .cn-detail-widget-host > .cn-detail-card > .cn-detail-card__header {
+	padding-top: 4px;
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__content .cn-tab .cn-tabs-widget__stack--sections.cn-tabs-widget__stack > :has(.cn-widget-wrapper__title, .cn-detail-card__title) + .cn-tabs-widget__stack-item::before {
+	content: '';
+	display: block;
+	height: 1px;
+	margin: 4px var(--cn-board-card-inline-padding) 18px;
+	background: var(--cn-board-hairline);
+}
+
 /* A first widget that renders nothing (DqZaakEmail) takes no room: the next
    card starts under the strip and joins the open tab as the first card does.
    Heavier than the stack-item rule above, so it wins.
@@ -819,6 +857,15 @@
 
 .cn-look-board .cn-detail-page .cn-widget-wrapper__title,
 .cn-look-board .cn-detail-card .cn-detail-card__title {
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
+/* A timeline that titles itself in the main column (PqKlant "Activiteit")
+   is titled as every board card there.
+   @spec openspec/changes/board-timeline-title-and-header-gap/specs/board-timeline-title-and-header-gap/spec.md#requirement-a-main-column-timeline-is-titled-as-a-board-card */
+.cn-look-board .cn-detail-page .cn-timeline-widget__title:not(.cn-detail-page__side *) {
 	font-size: var(--cn-board-heading-size);
 	font-weight: 700;
 	line-height: normal;
@@ -1190,8 +1237,11 @@
 }
 
 /* A side card whose widget reports a header action (screens-relation-pages:
-   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button. */
-.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action) {
+   the "+ Toevoegen" of Contactkanalen and Relaties) keeps that one button,
+   also as the outlined card button.
+   @spec openspec/changes/header-item-card-button/specs/header-item-card-button/spec.md#requirement-a-side-card-shows-its-card-button */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-page__catalog-action),
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__actions:has(.cn-detail-widget-header-items__card-button) {
 	display: flex;
 }
 
@@ -2243,6 +2293,53 @@
 	font-weight: 600;
 }
 
+/* A facts card's error, warning or success notice is a tinted rounded box in
+   its own tone, the text and icon in the tone's ink, with no edge bar
+   (PqKassadienst "Buiten de marge."). NcNoteCard paints its ground and ink
+   with `!important`, so these do too. The info note keeps the board's
+   general info rule.
+   @spec openspec/changes/board-facts-notice-tinted/specs/board-facts-notice-tinted/spec.md#requirement-a-facts-cards-notice-is-a-tinted-box-in-its-tone */
+.cn-look-board .cn-facts-widget__notice.notecard--error:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-red-tag-ground);
+	--cn-facts-notice-ink: var(--color-error-text);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--warning:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-notice-bg);
+	--cn-facts-notice-ink: var(--cn-board-notice-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard--success:not(.cn-look-nextcloud *) {
+	--cn-facts-notice-ground: var(--cn-board-success-tint);
+	--cn-facts-notice-ink: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) {
+	--nldesign-color-on-surface: var(--cn-facts-notice-ink);
+	--note-card-icon-size: 18px;
+	--note-theme: var(--cn-facts-notice-ink);
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start: 0;
+	border-radius: 8px;
+	background-color: var(--cn-facts-notice-ground) !important;
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) p {
+	color: var(--cn-facts-notice-ink) !important;
+	font-size: inherit !important;
+	line-height: inherit;
+}
+
+.cn-look-board .cn-facts-widget__notice.notecard:is(.notecard--error, .notecard--warning, .notecard--success):not(.cn-look-nextcloud *) .notecard__icon {
+	align-self: flex-start;
+	padding-top: 1px;
+	color: var(--cn-facts-notice-ink);
+}
+
 /* ---- A card's Add ------------------------------------------------------ */
 /* The board draws a list card's Add as the neutral secondary right-aligned
    in the title row, at the title row's 34px (DqZaaktypeStatussen "Status
@@ -2980,12 +3077,34 @@
 	color: var(--color-primary-element);
 }
 
+/* A card table with `rowTitle: "strong"` (PqOfferte "Regels") names each row
+   at 14px weight 600 in the main ink; the row stays a link. Same weight as
+   the rule above, so it comes after it.
+   @spec openspec/changes/detail-table-strong-title/specs/board-tables/spec.md */
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
 /* A data card keeps its 14px under a subtitle too (DqZaakBetrokkenen
    "Zetels"): the subtitle rule's 12px won over the data card's 14px, so the
    labels sat 2.2px high (r31).
    @spec openspec/changes/board-data-card-under-subtitle/specs/board-card/spec.md */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
 	padding-top: 14px;
+}
+
+/* A facts card's action buttons are the boards' 34px card control in every
+   card (PqKassabon "Terugboeken", PqKassadienst "Goedkeuren"): CnActionButtons
+   carries the header's 40px secondary rule, which this outweighs at (0,5,0).
+   @spec openspec/changes/board-facts-card-actions-34/specs/board-facts-card-actions-34/spec.md#requirement-a-facts-cards-action-buttons-are-34px-in-every-card */
+.cn-look-board .cn-facts-widget__actions.cn-action-buttons:not(.cn-look-nextcloud *) > .button-vue {
+	--button-size: 34px;
+	--default-clickable-area: 34px;
+	height: 34px;
+	min-height: 34px;
 }
 
 /* Buttons in a side card stand as the boards draw them in a column: the full

@@ -666,6 +666,23 @@
 	margin-bottom: calc(3 * var(--default-grid-baseline));
 }
 
+/* The tabs' row: the tabs, and at its end the Actions menu a header button
+   places beside them (`placement: "tabs"`). */
+.cn-index-page__page-tabs-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.cn-index-page__page-tabs-row > .cn-index-page__page-tabs {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-index-page__page-tabs-menu {
+	flex: none;
+}
+
 .cn-index-page__page-tab {
 	display: inline-flex;
 	align-items: center;

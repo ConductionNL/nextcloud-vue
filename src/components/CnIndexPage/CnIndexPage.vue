@@ -30,76 +30,15 @@
 				     the actions bar. -->
 				<template v-if="headerButtonsShown || buildiqInHeader" #extra>
 					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
-						<template v-for="button in (headerButtonsShown ? orderedHeaderButtons : [])" :key="button.key">
+						<template v-for="button in (headerButtonsShown ? headerRowButtons : [])" :key="button.key">
 							<!-- The buildiq square (the in-app edit button), between the secondary buttons and the primary one. -->
 							<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
 							<!-- `actions-menu`: the page's header actions as one labelled menu. -->
-							<NcActions
+							<CnIndexHeaderMenu
 								v-else-if="button.action === 'actions-menu'"
-								:forceMenu="true"
-								:forceName="true"
-								:menuName="button.label"
-								:aria-label="button.label"
-								variant="secondary"
-								:data-testid="`cn-index-header-button-${button.key}`">
-								<template #icon>
-									<DotsHorizontal :size="20" />
-								</template>
-								<!-- The menu's entries (`items` on the button; the page's header
-								     actions when it names none): a header action, a built-in by
-								     name, or a link (an entry with `href`, the documentation). -->
-								<template v-for="entry in headerMenuEntries(button)" :key="entry.key">
-									<!-- A group heading and a separator (`{ heading }` and
-									     `separator` in items), as the board's "Ga naar" and
-									     "Selectie" groups. -->
-									<NcActionCaption
-										v-if="entry.kind === 'heading'"
-										class="cn-index-header-menu__heading"
-										:name="entry.label"
-										:data-testid="`cn-index-header-menu-${entry.key}`" />
-									<NcActionSeparator
-										v-else-if="entry.kind === 'separator'"
-										:data-testid="`cn-index-header-menu-${entry.key}`" />
-									<NcActionLink
-										v-else-if="entry.href"
-										:href="entry.href"
-										:target="entry.linkTarget || '_blank'"
-										rel="noopener noreferrer"
-										:data-testid="`cn-index-header-menu-${entry.key}`">
-										<template v-if="entry.icon" #icon>
-											<CnIcon :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionLink>
-									<NcActionLink
-										v-else-if="entry.link"
-										:href="entry.link.href"
-										:closeAfterClick="true"
-										:data-testid="`cn-index-header-menu-${entry.key}`"
-										@click="onHeaderMenuLinkClick(entry, $event)">
-										<template v-if="entry.icon" #icon>
-											<CnIcon :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionLink>
-									<NcActionButton
-										v-else
-										:disabled="entry.disabled"
-										:title="entry.title || null"
-										:closeAfterClick="true"
-										:data-testid="`cn-index-header-menu-${entry.key}`"
-										@click="entry.run()">
-										<!-- A built-in ships its own icon (`iconComponent`), so it
-										     never falls back to the "?" when the app has not
-										     registered that icon name. -->
-										<template v-if="entry.iconComponent || entry.icon" #icon>
-											<component :is="entry.iconComponent" v-if="entry.iconComponent" :size="20" />
-											<CnIcon v-else :name="entry.icon" :size="20" />
-										</template>
-										{{ entry.label }}
-									</NcActionButton>
-								</template>
-							</NcActions>
+								:button="button"
+								:entries="headerMenuEntries(button)"
+								@linkClick="onHeaderMenuLinkClick" />
 							<NcButton
 								v-else
 								:variant="button.variant"
@@ -127,22 +66,34 @@
 		<!-- Page tabs a named source declares (`pageTabs()`): sibling lists
 		     of the same thing, such as a flow list and its runs this week.
 		     Links, not tabs: each one is its own page. -->
-		<nav v-if="effectivePageTabs.length > 0"
-			class="cn-index-page__page-tabs"
-			:aria-label="title || t('nextcloud-vue', 'Pages')"
-			data-testid="cn-index-page-tabs">
-			<a v-for="tab in effectivePageTabs"
-				:key="tab.id || tab.to"
-				class="cn-index-page__page-tab"
-				:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
-				:href="pageTabHref(tab)"
-				:aria-current="isActivePageTab(tab) ? 'page' : undefined"
-				:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
-				@click="onPageTabClick(tab, $event)">
-				{{ tab.label }}
-				<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
-			</a>
-		</nav>
+		<!-- The tabs' row: the Actions menu a header button places beside the
+		     tabs (`placement: "tabs"`) stands at its end (PqBiExport). -->
+		<div v-if="effectivePageTabs.length > 0"
+			class="cn-index-page__page-tabs-row"
+			data-testid="cn-index-page-tabs-row">
+			<nav
+				class="cn-index-page__page-tabs"
+				:aria-label="title || t('nextcloud-vue', 'Pages')"
+				data-testid="cn-index-page-tabs">
+				<a v-for="tab in effectivePageTabs"
+					:key="tab.id || tab.to"
+					class="cn-index-page__page-tab"
+					:class="{ 'cn-index-page__page-tab--active': isActivePageTab(tab) }"
+					:href="pageTabHref(tab)"
+					:aria-current="isActivePageTab(tab) ? 'page' : undefined"
+					:data-testid="`cn-index-page-tab-${tab.id || tab.to}`"
+					@click="onPageTabClick(tab, $event)">
+					{{ tab.label }}
+					<span v-if="typeof tab.count === 'number'" class="cn-index-page__page-tab-count">{{ tab.count }}</span>
+				</a>
+			</nav>
+			<CnIndexHeaderMenu
+				v-if="tabsMenuButton"
+				class="cn-index-page__page-tabs-menu"
+				:button="tabsMenuButton"
+				:entries="headerMenuEntries(tabsMenuButton)"
+				@linkClick="onHeaderMenuLinkClick" />
+		</div>
 
 		<!-- KPI tiles above the list (`statRow`) and cards beside it
 		     (`sidePanel`), as DqTeamwachtrij and PqContracten
@@ -1439,14 +1390,13 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
-import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
@@ -1461,6 +1411,7 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
@@ -1943,6 +1894,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
 		CnStatusBadge,
@@ -1955,7 +1907,6 @@ export default {
 		NcActionLink,
 		NcActionButton,
 		NcActionCaption,
-		NcActionSeparator,
 		NcActionCheckbox,
 		NcButton,
 		AlertCircleOutline,
@@ -1972,7 +1923,6 @@ export default {
 		CnQuickFilterBar,
 		CnActionButtons,
 		CnActionsBar,
-		DotsHorizontal,
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
@@ -2527,9 +2477,13 @@ export default {
 		 * `documentation`), so the entries the bar's menu loses have a place.
 		 * `items` can group them: `{ heading }` draws a group heading (an i18n
 		 * key) and `separator` a rule, each only when an entry follows.
+		 * `placement: "tabs"` on the menu draws it at the end of the page
+		 * tabs' row instead of in the header (PqBiExport); without page tabs
+		 * it stays in the header.
 		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
-		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: Array<(string|{heading: string})>}>}
+		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string, items?: Array<(string|{heading: string})>, placement?: ('header'|'tabs')}>}
 		 */
 		headerButtons: {
 			type: Array,
@@ -8669,6 +8623,7 @@ export default {
 						format: button.format === 'excel' ? 'excel' : 'csv',
 						run,
 						link: linked ? { href: linked.href, target: linked.linkTarget || undefined } : null,
+						placement: button.action === 'actions-menu' && button.placement === 'tabs' ? 'tabs' : 'header',
 						items: Array.isArray(button.items)
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
@@ -8722,6 +8677,34 @@ export default {
 				return [...sorted, square]
 			}
 			return [...sorted.slice(0, firstPrimary), square, ...sorted.slice(firstPrimary)]
+		},
+
+		/**
+		 * The Actions menu drawn at the end of the page tabs: the first
+		 * `actions-menu` header button with `placement: "tabs"`, while the
+		 * header buttons and the page tabs show. Without tabs it stays in the
+		 * header.
+		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
+		 * @return {object|null} The resolved header button, or null.
+		 */
+		tabsMenuButton() {
+			if (!this.headerButtonsShown || this.effectivePageTabs.length === 0) {
+				return null
+			}
+			return this.resolvedHeaderButtons.find((button) => button.action === 'actions-menu' && button.placement === 'tabs') || null
+		},
+
+		/**
+		 * The header buttons drawn beside the title: every ordered button but
+		 * the Actions menu that stands beside the page tabs.
+		 *
+		 * @spec openspec/changes/index-actions-menu-beside-tabs/specs/index-header/spec.md#requirement-the-header-actions-menu-can-stand-beside-the-page-tabs
+		 * @return {Array<object>} The buttons.
+		 */
+		headerRowButtons() {
+			const aside = this.tabsMenuButton
+			return aside ? this.orderedHeaderButtons.filter((button) => button !== aside) : this.orderedHeaderButtons
 		},
 
 		/**
