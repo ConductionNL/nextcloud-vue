@@ -17,6 +17,20 @@
 			@input="scheduleSave" />
 		<div class="cn-record-notes__foot" :class="{ 'cn-record-notes__foot--below': content.outcomeBelow === true }">
 			<span class="cn-record-notes__status" role="status" data-testid="cn-record-notes-status">{{ statusText }}</span>
+			<div v-if="actions.length > 0" class="cn-record-notes__actions">
+				<NcButton
+					v-for="action in actions"
+					:key="action.key"
+					:variant="action.variant === 'primary' ? 'primary' : 'secondary'"
+					:disabled="text.trim() === '' || running !== ''"
+					data-testid="cn-record-notes-action"
+					@click="runAction(action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="16" />
+					</template>
+					{{ action.label }}
+				</NcButton>
+			</div>
 			<div v-if="outcome" class="cn-record-notes__outcome">
 				<label class="cn-record-notes__outcome-label" :for="selectId">{{ tr(outcome.label || '') || t('nextcloud-vue', 'Outcome') }}</label>
 				<select
@@ -46,9 +60,15 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { emit } from '@nextcloud/event-bus'
 import { NcButton } from '@nextcloud/vue'
 import { formatTimeOfDay } from '../../utils/boardDate.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { readPath } from '../../utils/readPath.js'
+import CnIcon from '../CnIcon/CnIcon.vue'
+
+/** The page refresh channel the built-in widgets listen on. */
+const PAGE_REFRESH = 'cn:page:refresh'
 
 let instances = 0
 
@@ -65,6 +85,11 @@ let instances = 0
  * to `notes`. `hideLabel` keeps the label for screen readers only, for a
  * field under a heading that already names it. `outcomeBelow: true` puts the
  * outcome on its own line under the save status, at the start (PqContactmoment).
+ * `actions: [{ label, icon?, variant?, request: { url, method?, body }, doneText? }]`
+ * are buttons that send the text to an app endpoint, `{text}` in a body value
+ * standing for the typed text (PqTaak: Poging vastleggen, Afronden); the
+ * endpoint checks the user may act. `autosave: false` writes nothing as you
+ * type, for a text that only travels with an action.
  * `savedText` takes `{time}`, the time of the last save. A write is a PATCH
  * of only the edited key on the record's OpenRegister object, so a change
  * somebody else made to another key stays. Without a record id, register and
@@ -75,7 +100,7 @@ let instances = 0
 export default {
 	name: 'CnRecordNotesWidget',
 
-	components: { NcButton },
+	components: { CnIcon, NcButton },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -109,6 +134,8 @@ export default {
 			savedAt: null,
 			timer: null,
 			loadedId: null,
+			running: '',
+			notice: '',
 		}
 	},
 
@@ -160,8 +187,32 @@ export default {
 				.map((option) => ({ value: option.value, label: this.tr(option.label || option.value) }))
 		},
 
-		/** @return {string} The line under the text: saving, failed, or when it was last saved. */
+		/**
+		 * The buttons that send the text, labels translated.
+		 *
+		 * @spec openspec/changes/record-notes-actions/specs/record-notes-widget/spec.md#requirement-a-notes-field-can-send-its-text-with-an-action
+		 * @return {Array<object>}
+		 */
+		actions() {
+			const list = Array.isArray(this.content.actions) ? this.content.actions : []
+			return list
+				.filter((action) => action && typeof action.label === 'string' && action.label !== '' && action.request && typeof action.request.url === 'string')
+				.map((action, index) => ({ ...action, key: `${index}-${action.label}`, label: this.tr(action.label) }))
+		},
+
+		/** @return {boolean} Whether the text is written to the record as it is typed. */
+		autosave() {
+			return this.content.autosave !== false
+		},
+
+		/** @return {string} The line under the text: an action's outcome, saving, failed, or when it was last saved. */
 		statusText() {
+			if (this.notice !== '') {
+				return this.notice
+			}
+			if (!this.autosave) {
+				return ''
+			}
 			if (this.saving) {
 				return this.tr(this.content.savingText || '') || t('nextcloud-vue', 'Saving…')
 			}
@@ -225,7 +276,8 @@ export default {
 
 		/** Save the text a moment after the last keystroke. */
 		scheduleSave() {
-			if (!this.canWrite) {
+			this.notice = ''
+			if (!this.canWrite || !this.autosave) {
 				return
 			}
 			if (this.timer !== null) {
@@ -241,6 +293,45 @@ export default {
 		/** @return {Promise<boolean>} Whether the text was saved. */
 		saveText() {
 			return this.patch({ [this.field]: this.text })
+		},
+
+		/**
+		 * Send the text with an action, then clear it and refresh the page.
+		 *
+		 * @spec openspec/changes/record-notes-actions/specs/record-notes-widget/spec.md#requirement-a-notes-field-can-send-its-text-with-an-action
+		 * @param {object} action The action.
+		 * @return {Promise<boolean>} Whether the endpoint took it.
+		 */
+		async runAction(action) {
+			const text = this.text.trim()
+			if (text === '' || this.running !== '') {
+				return false
+			}
+			this.running = action.key
+			this.notice = ''
+			const body = {}
+			for (const [key, value] of Object.entries(action.request.body || {})) {
+				body[key] = typeof value === 'string' ? value.replace(/\{text\}/g, text) : value
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = interpolateUrlTokens(action.request.url, { objectId: this.target.id, object: this.record || {} })
+				const method = String(action.request.method || 'POST').toLowerCase()
+				await axios[['put', 'patch'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+				this.text = ''
+				this.notice = this.tr(action.doneText || '')
+				emit(PAGE_REFRESH, {})
+				return true
+			} catch (failure) {
+				const data = (failure && failure.response && failure.response.data) || {}
+				this.notice = String(data.error || data.message || t('nextcloud-vue', 'The action failed.'))
+				return false
+			} finally {
+				this.running = ''
+			}
 		},
 
 		/** @return {Promise<boolean>} Whether the outcome was saved. */
@@ -329,6 +420,12 @@ export default {
 .cn-record-notes__status {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+.cn-record-notes__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
 }
 
 .cn-record-notes__outcome {
