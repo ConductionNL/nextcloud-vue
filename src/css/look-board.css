@@ -3274,13 +3274,21 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 /* The pair placed at the foot of its own card (`recordAll.placement`,
-   DqDagAfsluiten "Klaar voor vandaag?"): 24px under the card's sentence, a
-   rule across the whole card, the buttons 15px under it.
-   @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md */
+   DqDagAfsluiten "Klaar voor vandaag?"): a band ruled across the whole card
+   under the sentence's 20px, the buttons 14px under the rule and 14px above
+   the card's edge, 24px in (23px and the pair's own 1px). The card's content
+   has no inset of its own, so the band takes none back.
+   @spec openspec/changes/board-close-day-card-insets/specs/board-close-day-card-insets/spec.md */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all.cn-record-notes__all--placed {
-	margin: 24px -22px 0;
-	padding: 15px 22px 0;
+	margin: 0;
+	padding: 14px 23px;
 	border-top: 1px solid var(--color-border);
+}
+
+/* The card holding that pair draws its title and sentence 24px in, as the
+   board draws it, not the dashboard cards' 22px. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(> .cn-widget-wrapper__content > .cn-record-notes__all--placed) {
+	--cn-board-dashboard-card-inset: 24px;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue.button-vue[data-testid="cn-record-list-record-all-button"] {
