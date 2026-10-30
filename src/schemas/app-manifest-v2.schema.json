@@ -5716,6 +5716,10 @@
 							"minLength": 1,
 							"description": "type='index', board look: free text after the footer's count, e.g. \"click a column header to sort\" (screens-index-list-parity). Maps to CnIndexPage `footerNote`."
 						},
+						"pagerOnOnePage": {
+							"type": "boolean",
+							"description": "type='index', board look: whether a list that fits on one page still draws its count and the \"1\" with an inert Next (default true). false ends it in its `footerNote` alone (index-footer-note-on-one-page). Maps to CnIndexPage `pagerOnOnePage`."
+						},
 						"queryPresets": {
 							"type": "array",
 							"minItems": 1,
