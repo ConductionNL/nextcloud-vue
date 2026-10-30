@@ -1034,16 +1034,20 @@
    line (the theme's label weight token set to 600 here), the control 40px,
    21px of room above it so the raised label does not rise over what stands
    above (DqZaakEmail "E-mailsjabloon": NcSelect drew
-   the label inside a 44px field, 15px/700). The quick filter bar's dropdown
-   keeps NcSelect's own look.
+   the label inside a 44px field, 15px/700). A plain CnDetailCard is a page
+   card too (PqKassa "Prijsweergave", "Betaalwijze"). The quick filter bar's
+   dropdown keeps NcSelect's own look.
    @spec openspec/changes/board-page-select-label-above/specs/board-page-select-label-above/spec.md#requirement-a-labelled-select-in-a-board-page-card-carries-its-label-above */
-.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *) {
 	--nldesign-component-form-field-label-font-weight: 600;
 	margin-block: 21px 0;
 }
 
 .cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select) .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *),
-.cn-look-board .cn-detail-widget-host .nc-select.v-select.select:not(.cn-quick-filter-bar__select) .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-widget-host .nc-select.v-select.select:not(.cn-quick-filter-bar__select) .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select) .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-card .nc-select.v-select.select:not(.cn-quick-filter-bar__select) .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *) {
 	inset-block-start: auto;
 	inset-block-end: calc(100% + 4px);
 	inset-inline: 0 auto;
@@ -1059,7 +1063,8 @@
 	transition: none;
 }
 
-.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-widget-host .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *) {
 	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
 }
 
@@ -2026,6 +2031,8 @@
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts {
 	gap: 8px 16px;
+	/* Nextcloud core pads every dl 12px 0. */
+	padding: 0;
 }
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {

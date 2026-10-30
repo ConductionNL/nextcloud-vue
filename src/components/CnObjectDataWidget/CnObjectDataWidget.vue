@@ -1163,7 +1163,13 @@ export default {
 					values[field.key] = formatTermDuration(raw, extension)
 					continue
 				}
-				values[field.key] = empty !== null ? empty : (enumLabel !== null ? enumLabel : formatValue(raw, prop || {}))
+				if (empty === null && enumLabel === null && typeof raw === 'boolean') {
+					// A fact reads yes/no as a word, as the boards draw it.
+					values[field.key] = raw ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No')
+					continue
+				}
+				// A fact shows its text whole; the cell wraps.
+				values[field.key] = empty !== null ? empty : (enumLabel !== null ? enumLabel : formatValue(raw, prop || {}, { truncate: Infinity }))
 			}
 			return values
 		},

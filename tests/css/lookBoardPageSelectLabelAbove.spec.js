@@ -48,3 +48,24 @@ describe('look-board-detail.css: a labelled select in a page card', () => {
 		expect(label).toMatch(/line-height:\s*normal/)
 	})
 })
+
+describe('look-board-detail.css: a labelled select in a plain page card', () => {
+	const CARD_SELECT = '.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label):not(.cn-look-nextcloud *)'
+	const CARD_LABEL = '.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select) .input-field__input + .input-field__label.input-field__label:not(.cn-look-nextcloud *)'
+	const CARD_FIELD = '.cn-look-board .cn-detail-card .v-select:not(.cn-quick-filter-bar__select):has(.input-field__label) .input-field__main-wrapper:not(.cn-look-nextcloud *)'
+
+	it('makes the same room above the control as in a widget host', () => {
+		expect(bodyOf(CARD_SELECT)).toMatch(/margin-block:\s*21px 0/)
+		expect(bodyOf(CARD_SELECT)).toMatch(/--nldesign-component-form-field-label-font-weight:\s*600/)
+	})
+
+	it('raises the label above the control at 14px/600', () => {
+		const label = bodyOf(CARD_LABEL)
+		expect(label).toMatch(/inset-block-end:\s*calc\(100% \+ 4px\)/)
+		expect(label).toMatch(/font-weight:\s*600/)
+	})
+
+	it('keeps the control 40px high', () => {
+		expect(bodyOf(CARD_FIELD)).toMatch(/--cn-field-height, 40px/)
+	})
+})

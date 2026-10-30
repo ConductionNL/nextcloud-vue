@@ -21,7 +21,8 @@ Compose in Mail actions.
       "url": "/apps/app/api/types/@object.type/email-templates",
       "responsePath": "results",
       "labelField": "name",
-      "idField": "id"
+      "idField": "id",
+      "preselect": "first"
     },
     "noTemplatesText": "No templates for this type yet",
     "draft": {
@@ -40,7 +41,7 @@ Compose in Mail actions.
 | `heading` | A heading above the row. None by default, since a tab already names the panel. |
 | `description` | A line under the heading. |
 | `hint` | A line under the row. |
-| `templates` | An `endpointSource`-shaped read of the templates: `url` takes the `@objectId` and `@object.<field>` tokens, `responsePath` plucks the list (a `{ results }` body is read too). `labelField` (default `name`) is shown in the select, `idField` (default `id`) goes into the draft URL. Without it the row offers the empty draft only. A failed read leaves the empty draft usable. |
+| `templates` | An `endpointSource`-shaped read of the templates: `url` takes the `@objectId` and `@object.<field>` tokens, `responsePath` plucks the list (a `{ results }` body is read too). `labelField` (default `name`) is shown in the select, `idField` (default `id`) goes into the draft URL. `preselect` picks a template once the list is read: `"first"` takes the first, `"only"` takes the one when there is exactly one, and `{ "field": "isDefault", "value": true }` takes the first template whose field holds the value. A pick the reader made stays while it is still in the list. Without `preselect` nothing is selected. Without `templates` the row offers the empty draft only. A failed read leaves the empty draft usable. |
 | `noTemplatesText` | The select's placeholder when there are no templates (default "No templates yet"). |
 | `draft` | `{ url, blankTemplateId?, blankButton? }`: the POST that creates the draft. `{templateId}` in the URL is the chosen template's id, or `blankTemplateId` (default `blank`) for an empty draft. Without it there is no row. `blankButton: true` keeps the row's Empty draft button beside a `compose` header action (DqZaakEmail). |
 | `closedWhen` | A local visibleWhen condition on the record. While it holds, both draft buttons are disabled. |

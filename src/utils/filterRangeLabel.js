@@ -68,7 +68,8 @@ function formatEnd(date, locale, options) {
  * The chip text for a range: "{from} through {to}", "from {from}" or "up to {to}".
  * Date ends get day and month in the locale; the month is written once when
  * both ends share month and year, the year only when an end is not in the
- * current one. Other values are written as they are.
+ * current one. An `@today` or `@today±Nd` end is written as the date it
+ * stands for. Other values are written as they are.
  *
  * @param {unknown} from The lower end, or null.
  * @param {unknown} to The upper end, or null.
@@ -77,10 +78,11 @@ function formatEnd(date, locale, options) {
  * @param {string} [options.locale] BCP 47 locale; the environment's when omitted.
  * @param {Date} [options.now] What counts as now, for the current year.
  * @return {string} The text.
+ * @spec openspec/changes/range-chip-reads-today-tokens/specs/range-chip-reads-today-tokens/spec.md#requirement-a-range-chip-writes-today-tokens-as-dates
  */
 export function rangeChipText(from, to, { translate, locale, now = new Date() }) {
-	const fromDate = asDate(from)
-	const toDate = asDate(to)
+	const fromDate = endDay(from, now)
+	const toDate = endDay(to, now)
 	const year = now.getFullYear()
 	const withYear = (fromDate && fromDate.getFullYear() !== year) || (toDate && toDate.getFullYear() !== year)
 	const full = withYear ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long' }

@@ -1144,7 +1144,11 @@ export default {
 	list-style: none;
 }
 
+/* A list row is a link the boards draw in the main ink; the row hands the
+   theme's link rule (`!important`) that ink. */
 .cn-link-cards-page__row {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
 	display: flex;
 	align-items: center;
 	gap: 12px;
