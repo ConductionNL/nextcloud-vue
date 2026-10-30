@@ -2026,6 +2026,8 @@
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts {
 	gap: 8px 16px;
+	/* Nextcloud core pads every dl 12px 0. */
+	padding: 0;
 }
 
 .cn-look-board .cn-files-browser__side-card:not(.cn-look-nextcloud *) .cn-files-browser__side-facts dd {
