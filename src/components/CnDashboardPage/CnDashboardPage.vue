@@ -1113,7 +1113,7 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
@@ -5180,8 +5180,9 @@ export default {
 				return reported.link
 			}
 			// Last, what the widget's own content asks for (`headerLink`, or the
-			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
-			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
+			// `viewAllRoute` / `viewAllLabel` of the tasks widget), unless it draws
+			// that view-all under its own rows (`viewAllPlacement: "footer"`).
+			return widgetHeaderLink({ content: item?.content }) || widgetHeaderLink({ content: def?.content })
 		},
 
 		/**
