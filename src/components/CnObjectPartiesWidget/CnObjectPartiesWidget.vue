@@ -127,13 +127,17 @@
 									class="cn-status-badge cn-status-badge--warning"
 									data-testid="cn-object-parties-not-accepted">{{ label('notAccepted') }}</span>
 								<span
+									v-if="noSecrecy(party)"
+									class="cn-status-badge cn-status-badge--default"
+									data-testid="cn-object-parties-no-secrecy">{{ label('noSecrecy') }}</span>
+								<span
 									v-for="indicator in indicatorsFor(party)"
 									:key="`${party.partyUuid}-${indicator.key}`"
-									class="cn-status-badge cn-status-badge--default"
-									:class="`cn-object-parties__indicator--${indicator.severity}`"
+									class="cn-status-badge"
+									:class="[`cn-object-parties__indicator--${indicator.severity}`, indicator.severity === 'error' ? 'cn-status-badge--error' : 'cn-status-badge--info']"
 									:data-effect="indicator.effect"
 									:title="indicator.verdict"
-									data-testid="cn-object-parties-indicator">{{ indicator.label }}</span>
+									data-testid="cn-object-parties-indicator">{{ label('indicatorPill').replaceAll('{label}', indicator.label) }}</span>
 								<span
 									v-if="untilPillFor(party)"
 									class="cn-status-badge cn-status-badge--warning"
@@ -251,6 +255,7 @@ import innerHeading from '../../mixins/innerHeading.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { initialsOf } from '../../utils/initials.js'
 import {
+	boardMetaLine,
 	documentsOfParty,
 	indicatorsOf,
 	indicatorVerdict,
@@ -261,6 +266,7 @@ import {
 	roleLabel,
 	rolesInOrder,
 	savedUuid,
+	showsNoSecrecy,
 	untilPillOf,
 } from '../../utils/objectParties.js'
 import { fetchCallerScope } from '../../utils/objectPermissions.js'
@@ -284,6 +290,8 @@ function defaultLabels() {
 		notAccepted: t('nextcloud-vue', 'Kind not accepted here'),
 		representedBy: t('nextcloud-vue', 'Represented by'),
 		noPrimary: t('nextcloud-vue', 'No main contact yet'),
+		noSecrecy: t('nextcloud-vue', 'No secrecy'),
+		indicatorPill: '{label}',
 	}
 }
 
@@ -1031,26 +1039,39 @@ export default {
 		 * @return {Array<object>}
 		 */
 		/**
-		 * The board row's meta line: the primary mark, the role, the kind,
-		 * whom the party represents, its extra lines, e-mail and documents,
-		 * separated by middots.
+		 * The board row's meta line (design-system #811): the primary mark,
+		 * the role, the link's note, whom the party represents when no note
+		 * says it, its extra lines, e-mail and documents.
 		 *
 		 * @param {object} party The party.
 		 * @param {object} group Its role group.
 		 * @return {string}
+		 * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-board-party-row-reads-as-design-system-811-draws-it
 		 */
 		boardMetaOf(party, group) {
-			const parts = []
-			if (this.primary && party.partyUuid === this.primary) {
-				parts.push(this.label('primary'))
-			}
-			parts.push(group.label, this.kindOf(party))
+			const extras = []
 			const represented = this.representedBy(party)
-			if (represented) {
-				parts.push(`${this.label('representedBy')}: ${represented}`)
+			if (represented && !party.note) {
+				extras.push(`${this.label('representedBy')}: ${represented}`)
 			}
-			parts.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
-			return parts.filter((part) => typeof part === 'string' && part !== '').join(' · ')
+			extras.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
+			return boardMetaLine({
+				primary: this.primary && party.partyUuid === this.primary ? this.label('primary') : '',
+				role: group.label,
+				note: typeof party.note === 'string' ? party.note : '',
+				extras,
+			})
+		},
+
+		/**
+		 * Whether the party's row says it has no secrecy (`content.secrecy`).
+		 *
+		 * @param {object} party The listing row.
+		 * @return {boolean}
+		 * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-party-of-a-listed-kind-says-it-has-no-secrecy
+		 */
+		noSecrecy(party) {
+			return showsNoSecrecy(party, this.partyRecords[party.partyUuid], this.content?.secrecy, this.primary)
 		},
 
 		/**

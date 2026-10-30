@@ -474,10 +474,30 @@ describe('CnObjectPartiesWidget in the board look (DqZaakBetrokkenen "Rollen")',
 		const jan = rows.find((row) => row.text().includes('Jan Jansen'))
 		expect(jan.find('.cn-object-parties__tile').text()).toBe('JJ')
 		const meta = jan.find('[data-testid="cn-object-parties-meta"]').text()
-		expect(meta).toContain('Primary party')
-		expect(meta).toContain('Requester')
+		expect(meta).toBe('Primary party · requester · Writing language: Dutch. Asked for by the party. · 1 sent, 1 received')
 		const mr = rows.find((row) => row.text().includes('Mr. Advocaat'))
 		expect(mr.find('.cn-object-parties__end').text()).toContain('Read first')
+	})
+
+	it('reads the link note and no kind word on the meta line, and names whom a party represents only without a note', async () => {
+		const noted = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', partyKind: 'person', note: 'namens Jan Jansen, Awb 2:1' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', partyKind: 'person' }] } }
+		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': noted })
+		const w = await mountParties(CONTENT, 'board')
+		const meta = w.find('[data-party="p-mr"] [data-testid="cn-object-parties-meta"]').text()
+		expect(meta).toBe('Requester · namens Jan Jansen, Awb 2:1')
+		expect(meta).not.toContain('Person')
+	})
+
+	it('says a primary person without the secrecy indicator has none, and draws a warning indicator in the info tone with the app\'s words', async () => {
+		serve()
+		const content = { ...CONTENT, secrecy: { indicator: 'geheimhouding', kinds: ['person'], primaryOnly: true }, labels: { noSecrecy: 'No secrecy', indicatorPill: 'Indicator: {label}' } }
+		const w = await mountParties(content, 'board')
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-no-secrecy"]').text()).toBe('No secrecy')
+		expect(w.findAll('[data-testid="cn-object-parties-no-secrecy"]')).toHaveLength(1)
+		const read = w.find('[data-party="p-mr"] [data-testid="cn-object-parties-indicator"]')
+		expect(read.text()).toBe('Indicator: Read first')
+		expect(read.classes()).toContain('cn-status-badge--info')
+		expect(w.find('[data-party="p-council"] [data-testid="cn-object-parties-indicator"]').classes()).toContain('cn-status-badge--error')
 	})
 
 	it('keeps the Nextcloud rows in the Nextcloud look', async () => {
