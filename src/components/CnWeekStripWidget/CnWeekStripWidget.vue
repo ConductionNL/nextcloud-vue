@@ -153,8 +153,7 @@ export default {
 		 * opens the day in place. `moreLabel` replaces the text (`{count}` is
 		 * the number hidden).
 		 *
-		 * @type {{lang?: string, maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
-		 * @type {{maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number, extend?: Array<string>}, dateField?: string, titleField?: string, metaFields?: Array<(string|Array<string>)>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
+		 * @type {{lang?: string, maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number, extend?: Array<string>}, dateField?: string, titleField?: string, metaFields?: Array<(string|Array<string>)>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
 		 */
 		content: {
 			type: Object,
