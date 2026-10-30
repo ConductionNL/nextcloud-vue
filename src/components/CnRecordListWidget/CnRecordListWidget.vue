@@ -876,10 +876,14 @@ export default {
 			},
 		)
 		// A footnote that reads another part of the same answer shares its
-		// request through the endpoint cache.
+		// request through the endpoint cache; one with a `source` of its own
+		// reads that.
 		const footnoteSource = useEndpointSource(
 			() => {
 				const note = props.content?.footnote
+				if (note && typeof note === 'object' && note.source && typeof note.source === 'object' && note.source.url) {
+					return note.source
+				}
 				const source = props.content?.endpointSource
 				if (!note || typeof note !== 'object' || typeof note.path !== 'string' || !source || typeof source !== 'object') {
 					return null
