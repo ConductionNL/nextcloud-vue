@@ -22,3 +22,8 @@ In the board look a CnFilesBrowser side card SHALL have radius `--cn-board-card-
 
 - **GIVEN** a ticked file in the documents page in the board look
 - **THEN** its "Controlegetal" card is titled as a side card, 15px at 600 in the muted colour
+
+#### Scenario: DqDocumentenBeheer "Documentgegevens" (r38)
+
+- **GIVEN** the "Documentgegevens" card of a ticked file in the board look
+- **THEN** its first fact stands 10px under the title, with none of the core `dl` padding above or below the facts
