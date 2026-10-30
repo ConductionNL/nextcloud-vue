@@ -259,7 +259,11 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	async function refresh(page = 1) {
 		const seq = ++refreshSeq
-		await interpretSearch()
+		// Only a page with an interpreter waits; every other fetch starts in
+		// the same tick as before.
+		if (typeof opts.searchInterpreter === 'function') {
+			await interpretSearch()
+		}
 		// This call's own result. `errors[getType()]` is shared by every call
 		// for the type and is not cleared on success, so it cannot say which
 		// request failed; it is only the fallback for a store that ignores
