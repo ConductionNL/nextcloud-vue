@@ -13,6 +13,7 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
+import { boardDateLocale, formatBoardDate } from './boardDate.js'
 import { readPath } from './readPath.js'
 
 /**
@@ -329,4 +330,21 @@ export function showsNoSecrecy(party, record, secrecy, primary) {
 	}
 	const indicators = Array.isArray(record?.indicators) ? record.indicators : []
 	return !indicators.some((indicator) => indicator && indicator.key === secrecy.indicator)
+}
+
+/**
+ * The pill that names when a party's link ends (`validUntil`), in the app's
+ * words with `{date}`: "Machtiging tot 31 dec". Empty without words or an end.
+ *
+ * @param {object} party The link row.
+ * @param {string} label The words, with `{date}`.
+ * @param {Date} [now] The reference moment, for the year.
+ * @param {string} [locale] BCP 47 tag (defaults to the user's).
+ * @return {string} The pill text, or ''.
+ * @spec openspec/changes/party-representation-end-pill/specs/record-widgets/spec.md#requirement-a-representatives-row-names-when-the-representation-ends
+ */
+export function untilPillOf(party, label, now = new Date(), locale = boardDateLocale()) {
+	const words = typeof label === 'string' ? label : ''
+	const date = words === '' ? '' : formatBoardDate(party?.validUntil, now, locale)
+	return date === '' ? '' : words.replaceAll('{date}', date)
 }

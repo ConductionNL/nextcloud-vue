@@ -7,7 +7,7 @@
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
  */
-import { boardMetaLine, documentsOfParty, indicatorsOf, indicatorVerdict, newPartyRecord, partiesInOrder, representedByMap, roleLabel, rolesInOrder, savedUuid, showsNoSecrecy } from '../../src/utils/objectParties.js'
+import { boardMetaLine, documentsOfParty, indicatorsOf, indicatorVerdict, newPartyRecord, partiesInOrder, representedByMap, roleLabel, rolesInOrder, savedUuid, showsNoSecrecy, untilPillOf } from '../../src/utils/objectParties.js'
 
 const LISTING = {
 	results: [],
@@ -129,5 +129,24 @@ describe('the board row after design-system #811', () => {
 		expect(showsNoSecrecy({ partyUuid: 'p-sv', partyKind: 'person' }, { indicators: [{ key: 'geheimhouding' }] }, secrecy, 'p-sv')).toBe(false)
 		expect(showsNoSecrecy({ partyUuid: 'p-bl', partyKind: 'organisation' }, { indicators: [] }, { ...secrecy, primaryOnly: false }, 'p-sv')).toBe(false)
 		expect(showsNoSecrecy({ partyUuid: 'p-sv', partyKind: 'person' }, { indicators: [] }, undefined, 'p-sv')).toBe(false)
+	})
+})
+
+describe('untilPillOf', () => {
+	const NOW = new Date('2026-10-30T12:00:00')
+	const WORDS = 'Authorisation until {date}'
+
+	it('names the end of a link in the app\'s words', () => {
+		expect(untilPillOf({ partyUuid: 'p-jw', validUntil: '2026-12-31' }, WORDS, NOW, 'en-GB')).toBe('Authorisation until 31 Dec')
+	})
+
+	it('adds the year outside the current one', () => {
+		expect(untilPillOf({ validUntil: '2027-01-05' }, WORDS, NOW, 'en-GB')).toBe('Authorisation until 5 Jan 2027')
+	})
+
+	it('draws nothing without words or without an end', () => {
+		expect(untilPillOf({ validUntil: '2026-12-31' }, '', NOW, 'en-GB')).toBe('')
+		expect(untilPillOf({ validUntil: '2026-12-31' }, undefined, NOW, 'en-GB')).toBe('')
+		expect(untilPillOf({ validUntil: null }, WORDS, NOW, 'en-GB')).toBe('')
 	})
 })
