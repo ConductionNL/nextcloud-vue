@@ -1154,6 +1154,12 @@ export default {
 		text-align: center;
 	}
 
+	/* A group is a label line (the boards' "Lead", "Zaak"), not an event
+	   row: its button holds the room, so all of it folds the group. */
+	.cn-notification-matrix__table tbody th[scope='colgroup'] {
+		padding: 0;
+	}
+
 	.cn-notification-matrix__table tbody td input[type='checkbox'] {
 		inline-size: 20px;
 		min-inline-size: 20px;
@@ -1190,8 +1196,14 @@ export default {
 		opacity: .5;
 	}
 
+	/* 14px above and 4px below the name, without Nextcloud's clickable height
+	   or margin; a block, so the cell's 14px line adds no strut. */
 	.cn-notification-matrix__group {
-		padding: 4px 0;
+		display: block;
+		min-height: 0;
+		margin: 0;
+		padding: 14px 0 4px;
+		line-height: normal;
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--color-text-maxcontrast);

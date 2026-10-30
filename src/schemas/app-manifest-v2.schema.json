@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.164.0",
+	"version": "2.165.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5858,6 +5858,7 @@
 									"icon": { "type": "string", "minLength": 1, "description": "MDI icon name." },
 									"format": { "type": "string", "enum": ["csv", "excel"], "default": "csv", "description": "For `export`." },
 									"run": { "type": "string", "minLength": 1, "description": "For `export`: the id of a `headerActions` entry the button runs instead of the export dialog. On a named or endpoint source an Export without `run` (and without a mass-export listener) is not drawn (2.127.0)." },
+									"placement": { "type": "string", "enum": ["header", "tabs"], "default": "header", "description": "For `actions-menu`: `tabs` draws the menu at the end of the page tabs' row instead of in the header, as PqBiExport and PqFlows draw \"Acties\" beside their tabs; a page without page tabs keeps it in the header (index-actions-menu-beside-tabs)." },
 									"items": { "type": "array", "minItems": 1, "items": { "anyOf": [ { "type": "string", "minLength": 1 }, { "type": "object", "additionalProperties": false, "required": ["heading"], "properties": { "heading": { "type": "string", "minLength": 1, "description": "i18n key of a group heading." } } } ] }, "description": "For `actions-menu`: the menu's entries, in order. Each is `header-actions` (every header action), the id of one `headerActions` entry, or a built-in of the actions bar's own menu, which the bar drops while header buttons show: `import`, `export`, `refresh`, `copy-selected`, `delete-selected` (disabled until a row is selected) or `documentation` (a link to the page's documentationUrl, left out without one). An unknown name is left out. Absent: the header actions only (screens-index-header-actions-menu, 2.90.0). Entries can be grouped: `{ \"heading\": \"<i18n key>\" }` draws a group heading and `\"separator\"` a rule, each only when an entry follows it, so a group whose entries are all left out leaves no empty heading (screens-index-header-menu-headings, 2.93.0)." }
 								}
 							}

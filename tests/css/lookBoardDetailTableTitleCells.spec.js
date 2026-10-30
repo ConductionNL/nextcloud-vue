@@ -27,3 +27,21 @@ describe('look-board-detail.css: a detail card table\'s row names', () => {
 		expect(css).toContain('td.cn-table-col--title .cn-cell-renderer:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *)')
 	})
 })
+
+describe('look-board-detail.css: a detail card table with rowTitle strong', () => {
+	const selector = '.cn-look-board .cn-detail-page .cn-object-list-widget .cn-table-container--title-strong td.cn-table-col--title:not(.cn-look-nextcloud *),'
+
+	it('names each row at 14px weight 600 in the main ink, not the link colour (PqOfferte "Regels")', () => {
+		const at = css.indexOf(selector)
+		expect(at).toBeGreaterThan(-1)
+		const body = css.slice(css.indexOf('{', at), css.indexOf('}', at))
+		expect(body).toContain('color: var(--color-main-text)')
+		expect(body).toContain('font-size: 14px')
+		expect(body).toContain('font-weight: 600')
+	})
+
+	it('comes after the link-colour rule, which has the same weight', () => {
+		const link = css.indexOf('.cn-look-board .cn-detail-page .cn-object-list-widget td.cn-table-col--title:not(.cn-look-nextcloud *):not(.cn-table-container--title-text *),')
+		expect(css.indexOf(selector)).toBeGreaterThan(link)
+	})
+})

@@ -109,10 +109,10 @@
 						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
 						:title="shownValueIsText ? shownValue : (isTextValue ? String(displayValue) : null)"
 						:style="valueStyle">
-						{{ shownValue }}
+						{{ limitOfText || shownValue }}
 					</span>
 					<span
-						v-if="formattedLimit !== ''"
+						v-if="formattedLimit !== '' && !limitOfText"
 						class="cn-stat-widget__limit"
 						data-testid="cn-stat-widget-limit">
 						/ {{ formattedLimit }}
@@ -158,6 +158,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -626,6 +627,8 @@ export default {
 			value: null,
 			// The caption's own count (`content.captionSource`), null until read.
 			captionValue: null,
+			// The limit `content.limitSource` counted, or null.
+			limitCount: null,
 			// The parts of a ratio caption (`captionSource.kind: "ratio"`): the
 			// numerator read (null: the tile's own value) and the denominator.
 			captionRatioParts: null,
@@ -789,6 +792,33 @@ export default {
 				return null
 			}
 			return (Number(num) / den) * 100
+		},
+
+		/**
+		 * Whether the limit is a count of its own (`content.limitSource` with
+		 * a register and schema, its own or the tile's).
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {boolean}
+		 */
+		hasLimitSource() {
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			return !!own && typeof own === 'object' && !!(own.register || base.register) && !!(own.schema || base.schema)
+		},
+
+		/**
+		 * `content.limitStyle: "of"`: the value and the limit as one
+		 * headline, "9 of 12". Empty without a limit or that style.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {string}
+		 */
+		limitOfText() {
+			if (this.content.limitStyle !== 'of' || this.formattedLimit === '' || this.displayValue === null || this.displayValue === undefined) {
+				return ''
+			}
+			return t('nextcloud-vue', '{shown} of {total}', { shown: this.shownValue, total: this.formattedLimit })
 		},
 
 		/**
@@ -1565,8 +1595,13 @@ export default {
 		 */
 		limitValue() {
 			let raw = this.content.limit
-			if (this.endpointMode && this.content.limitField) {
+			if (this.hasLimitSource) {
+				raw = this.limitCount
+			} else if (this.endpointMode && this.content.limitField) {
 				raw = getByPath(this.epData, this.content.limitField)
+			}
+			if (raw === null || raw === undefined) {
+				return null
 			}
 			const n = Number(raw)
 			return Number.isFinite(n) ? n : null
@@ -1595,7 +1630,7 @@ export default {
 		 * @return {boolean}
 		 */
 		atLimit() {
-			if (this.limitValue === null) {
+			if (this.limitValue === null || this.content.limitStyle === 'of') {
 				return false
 			}
 			const current = Number(this.displayValue)
@@ -2015,6 +2050,34 @@ export default {
 		},
 
 		/**
+		 * Read the limit's own count (`content.limitSource`: `{ register?,
+		 * schema?, metric?, field?, filter?, via? }`, register and schema
+		 * default to the tile's source). A failed read leaves the limit out.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {Promise<void>}
+		 */
+		async fetchLimitCount() {
+			if (!this.hasLimitSource) {
+				this.limitCount = null
+				return
+			}
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			const source = { register: own.register || base.register, schema: own.schema || base.schema }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				this.limitCount = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
+			} catch {
+				this.limitCount = null
+			}
+		},
+
+		/**
 		 * A ratio caption's share as the reader's number, with
 		 * `captionSource.decimals` fraction digits (0 by default).
 		 *
@@ -2040,9 +2103,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValue(refresh) {
-			// The caption's own count is read beside the value, whatever the
-			// value's source is.
+			// The caption's own count and the limit's are read beside the
+			// value, whatever the value's source is.
 			this.fetchCaptionValue()
+			this.fetchLimitCount()
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {

@@ -45,6 +45,14 @@
 					v-if="datePeriodInDescription || descriptionFilters.length > 0"
 					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
 					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
 					<span v-if="subtitleText">{{ subtitleText }}</span>
 					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
 					<!-- The page filters with `placement: "description"`, in the
@@ -88,8 +96,24 @@
 						data-testid="cn-dashboard-page-date-segmented"
 						@update:modelValue="onSegmentPick" />
 				</div>
-				<p v-else-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
-					{{ subtitleText }}
+				<!-- `headerPills` open the line under the title (PqWerkplekKlant: "Telefoon, inkomend", "Geïdentificeerd"). -->
+				<p
+					v-else-if="subtitleText || shownHeaderPills.length > 0"
+					class="cn-dashboard-page__description"
+					:class="{ 'cn-dashboard-page__description--pills': shownHeaderPills.length > 0 }"
+					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
+					<span v-if="shownHeaderPills.length > 0 && subtitleText">{{ subtitleText }}</span>
+					<template v-else>
+						{{ subtitleText }}
+					</template>
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
@@ -1074,6 +1098,7 @@ import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnHeaderTrail from '../CnPageHeader/CnHeaderTrail.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
@@ -1299,6 +1324,7 @@ export default {
 
 	components: {
 		CnHeaderTrail,
+		CnStatusBadge,
 		NcActions,
 		NcActionButton,
 		NcActionInput,
@@ -1432,6 +1458,19 @@ export default {
 		headerMeta: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Pills at the start of the line under the title (manifest
+		 * `config.headerPills`): `[{ label, variant?, when? }]`, `when` a
+		 * workspace condition; a pill without one always shows.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @type {Array<{label: string, variant?: string, when?: object}>}
+		 */
+		headerPills: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -2476,6 +2515,23 @@ export default {
 				today = new Intl.DateTimeFormat(undefined, options).format(new Date())
 			}
 			return meta.split('{today}').join(today)
+		},
+
+		/**
+		 * The header pills whose condition holds, labels translated.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @return {Array<{label: string, variant: string}>}
+		 */
+		shownHeaderPills() {
+			const workspace = this.workspaceContext || {}
+			return (Array.isArray(this.headerPills) ? this.headerPills : [])
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '')
+				.filter((pill) => !pill.when || (isWorkspaceCondition(pill.when) && evaluateWorkspaceCondition(pill.when, workspace)))
+				.map((pill) => ({
+					label: this.effectiveTranslate(pill.label),
+					variant: typeof pill.variant === 'string' && pill.variant !== '' ? pill.variant : 'primary',
+				}))
 		},
 
 		subtitleText() {
@@ -4879,6 +4935,14 @@ export default {
 			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
+		/**
+		 * The title a card shows: a person's custom title, else the placement's
+		 * title, else the widget's title, the last two translated.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {string}
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
+		 */
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
@@ -4898,8 +4962,11 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
+			// A placement's own `title` (manifest-authored, so translated) titles
+			// the card in that layout only, e.g. an in-call layout.
 			const title = item.customTitle
 				|| def?.customTitle
+				|| (typeof item.title === 'string' && item.title !== '' ? this.effectiveTranslate(item.title) : '')
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
 			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
@@ -4912,10 +4979,11 @@ export default {
 		 * @param {object} item Layout placement entry.
 		 * @return {boolean}
 		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
 		 */
 		titleHoldsCount(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const raw = item.customTitle || def?.customTitle || def?.title || ''
+			const raw = item.customTitle || def?.customTitle || item.title || def?.title || ''
 			return typeof raw === 'string' && raw.includes('{count}')
 		},
 
@@ -5641,6 +5709,14 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Header pills open the description line (PqWerkplekKlant). */
+.cn-dashboard-page__description--pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Board look (screens-dashboard-parity): h1 28/700, a 15px grey subtitle 6px
