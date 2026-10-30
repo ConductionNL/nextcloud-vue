@@ -703,6 +703,13 @@ export default {
 			handler() { this.evaluateVisibility() },
 		},
 
+		// A workspace condition (`{ workspace: "callActive" }`) follows the
+		// page's workspace, which a page control or a call may change after mount.
+		workspaceCtx: {
+			deep: true,
+			handler() { this.evaluateVisibility() },
+		},
+
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
 		// immediately so the host has the list on first paint, and again on
 		// every change of visibility, toggle state or pending flag — the three
