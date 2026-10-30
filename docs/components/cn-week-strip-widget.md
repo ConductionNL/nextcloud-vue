@@ -52,10 +52,10 @@ With static items:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `days` | `5 \| 7` | `5` | Working days, or the whole week. The week starts on Monday. |
-| `source` | `{ register, schema, filter?, limit? }` | none | The OpenRegister source. `filter` takes the shared @-token grammar (`@me`, `@today`). `limit` caps the request (default 100). |
+| `source` | `{ register, schema, filter?, limit?, extend? }` | none | The OpenRegister source. `filter` takes the shared @-token grammar (`@me`, `@today`). `limit` caps the request (default 100). `extend` lists relations to inline (`["caseType"]`), so a meta field can read `caseType.title`. |
 | `dateField` | `string` | none | The field the items are bucketed by. Required with a source. |
 | `titleField` | `string` | the object's display name | The field shown as the item title. |
-| `metaFields` | `string[]` | `[]` | Fields shown under the title, joined with a middle dot. |
+| `metaFields` | `Array<string \| string[]>` | `[]` | Fields shown under the title, joined with a middle dot. An entry that is a list shows the first of its fields that is filled: `["identifier", ["caseType.shortName", "caseType.title"]]` reads "2026-4837 · Woo". |
 | `itemRoute` | `string` | none | Route name an item links to. The record id goes in `params.id`. |
 | `lateWhen` | `{ op, value }` | `{ "op": "lt", "value": 0 }` | Rule on the number of days until the date. The default marks dates before today. `{ "op": "lte", "value": 0 }` also marks today. |
 | `lateField` | `string` | none | A boolean field that marks a record late, whatever its date. |
