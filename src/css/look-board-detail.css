@@ -2471,7 +2471,7 @@
 
 /* ---- An app's own table on the legacy `viewTable` class ----------------- */
 /* The same card table as above: the theme's bare `th` rule (grey ground,
-   bold) and the body's 15px/1.5 otherwise draw the head 15px on #edeff2,
+   bold) and the body's 15px/1.5 otherwise draw the head 15px on the theme's grey,
    58.5px high (PqService "Opbouw in stappen"). One class more than an app's
    scoped `.viewTable th` rule.
    @spec openspec/changes/board-view-table-head/specs/board-view-table-head/spec.md#requirement-a-board-view-table-is-the-boards-card-table */
