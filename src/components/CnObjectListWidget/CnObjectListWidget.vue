@@ -39,7 +39,7 @@
 			:name="resolvedEmptyText"
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
-			<template v-if="allowCreate && !waitingForContext" #action>
+			<template v-if="allowCreate && !waitingForContext && !addInHeader" #action>
 				<NcButton class="cn-object-list-widget__empty-add" :class="{ 'cn-button--tonal': addTonal }" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
@@ -329,7 +329,7 @@
 		     empty state is showing — that renders its own copy in its #action
 		     slot, and two Add buttons on one empty card read as a bug. -->
 		<div
-			v-if="allowCreate && !waitingForContext && !showingEmptyState"
+			v-if="allowCreate && !waitingForContext && !showingEmptyState && !addInHeader"
 			class="cn-object-list-widget__add">
 			<NcButton variant="tertiary"
 				:wide="!addTonal"
@@ -1593,6 +1593,37 @@ export default {
 		},
 
 		/**
+		 * Whether the Add sits in the card's title row (`content.addPlacement:
+		 * "header"`) instead of below the rows.
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {boolean}
+		 */
+		addInHeader() {
+			return this.content?.addPlacement === 'header'
+		},
+
+		/**
+		 * The title-row Add reported to the card, or null: an outlined button
+		 * with `content.addIcon` (default Plus).
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {object|null}
+		 */
+		headerAddAction() {
+			if (!this.addInHeader || !this.allowCreate || this.waitingForContext) {
+				return null
+			}
+			return {
+				label: this.addLabel,
+				icon: typeof this.content.addIcon === 'string' && this.content.addIcon !== '' ? this.content.addIcon : 'Plus',
+				add: true,
+				variant: 'secondary',
+				run: () => this.openCreate(),
+			}
+		},
+
+		/**
 		 * The extra adds (`content.addActions`: `[{ label, icon?, createDefaults? }]`),
 		 * each opening this list's create form with its own defaults over the
 		 * list's (board PqOfferte "Eigen regel toevoegen"). Labels go through the
@@ -1712,6 +1743,14 @@ export default {
 		/** The counts under the card title follow the rows (`content.headerSubtitle`). */
 		headerSubtitleText() {
 			this.emitHeader()
+		},
+
+		/** The title-row Add comes and goes with create rights (`content.addPlacement`). */
+		headerAddAction: {
+			immediate: true,
+			handler() {
+				this.emitHeader()
+			},
 		},
 
 		/** The counts beside the card title follow the rows (`content.headerNote`). */
@@ -2066,10 +2105,11 @@ export default {
 			const note = this.headerNoteText
 			// A line shown before is cleared with an empty one, so the card does
 			// not keep a stale count; a list that never had one stays silent.
-			if (!this.headerAction && subtitle === '' && note === '' && !this.headerSubtitleShown) {
+			const add = this.headerAddAction
+			if (!this.headerAction && !add && subtitle === '' && note === '' && !this.headerSubtitleShown) {
 				return
 			}
-			this.headerSubtitleShown = subtitle !== '' || note !== ''
+			this.headerSubtitleShown = subtitle !== '' || note !== '' || add !== null
 			/**
 			 * @event header The card header's parts: the Download action for the
 			 * list as filtered here (`content.export`) and the counts line under
@@ -2078,6 +2118,7 @@ export default {
 			 */
 			this.$emit('header', {
 				...(this.headerAction ? { action: this.headerAction } : {}),
+				...(add ? { actions: [add] } : {}),
 				subtitle,
 				note,
 			})
