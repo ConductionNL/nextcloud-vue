@@ -3096,6 +3096,7 @@
 											},
 											"emptyText": { "type": "string", "description": "Text of a day without items." },
 											"weekOffset": { "type": "integer", "description": "Whole weeks from the current one (1 = next week)." },
+											"lang": { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$", "description": "Language of the item texts (BCP 47, e.g. nl), so long words hyphenate by its rules. Without it they follow the page." },
 											"inset": { "type": "boolean", "default": false, "description": "Draw the strip inside the board's inset (16px above, 24px at the sides, 22px below) instead of from card edge to card edge (zuiddrecht-pixel-gaps-3). Theme hook --cn-widget-board-inset." }
 										}
 									}

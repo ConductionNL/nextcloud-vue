@@ -3,7 +3,11 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-week-strip" :class="{ 'cn-week-strip--inset': inset }" data-testid="cn-week-strip">
+	<div
+		class="cn-week-strip"
+		:class="{ 'cn-week-strip--inset': inset }"
+		:lang="lang"
+		data-testid="cn-week-strip">
 		<div v-if="loading" class="cn-week-strip__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span class="cn-week-strip__state-text">{{ loadingLabel }}</span>
@@ -138,13 +142,16 @@ export default {
 		 * `emptyText` is the text of a day without items. `weekOffset` moves
 		 * the strip whole weeks from the current one. `inset: true` draws the
 		 * strip inside the board's inset (16px above, 24px at the sides, 22px
-		 * below) instead of from card edge to card edge. `maxPerDay` caps the
+		 * below) instead of from card edge to card edge. `lang` is the language
+		 * of the item texts (a BCP 47 tag such as `nl`), so long words
+		 * hyphenate by that language's rules; without it they follow the page.
+		 * `maxPerDay` caps the
 		 * items a day shows; the rest sit behind "+N more", a link to
 		 * `moreRoute` (a route name or object) or, without one, a button that
 		 * opens the day in place. `moreLabel` replaces the text (`{count}` is
 		 * the number hidden).
 		 *
-		 * @type {{maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
+		 * @type {{lang?: string, maxPerDay?: number, moreRoute?: (string|object), moreLabel?: string, days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
 		 */
 		content: {
 			type: Object,
@@ -194,6 +201,18 @@ export default {
 		 */
 		inset() {
 			return Boolean(this.content && this.content.inset === true)
+		},
+
+		/**
+		 * The language of the item texts (`content.lang`), or null to follow
+		 * the page. Only a language tag is taken.
+		 *
+		 * @spec openspec/changes/week-strip-titles-hyphenate/specs/week-strip-titles-hyphenate/spec.md#requirement-a-week-strip-item-hyphenates-its-words
+		 * @return {string|null}
+		 */
+		lang() {
+			const value = this.content && this.content.lang
+			return typeof value === 'string' && /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(value) ? value : null
 		},
 
 		/**
@@ -777,15 +796,22 @@ export default {
 	box-shadow: inset 3px 0 0 0 var(--color-element-error, var(--color-error));
 }
 
+/* A long word in a narrow day breaks at a syllable with a hyphen, in the
+   language of the page or of `content.lang` ("Parkeer-vergunningen"). A word
+   the browser cannot hyphenate still breaks anywhere rather than overflow. */
 .cn-week-strip__title {
 	font-size: 0.95em;
 	line-height: 1.3;
+	-webkit-hyphens: auto;
+	hyphens: auto;
 	overflow-wrap: anywhere;
 }
 
 .cn-week-strip__meta {
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
+	-webkit-hyphens: auto;
+	hyphens: auto;
 	overflow-wrap: anywhere;
 }
 
