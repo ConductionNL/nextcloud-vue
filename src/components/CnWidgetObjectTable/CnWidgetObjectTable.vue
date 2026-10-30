@@ -981,6 +981,8 @@ export default {
 		 * Row-scoped actions mapped onto the CnRowActions shape: label + icon
 		 * pass through, `object-op` `delete` renders destructive, and the
 		 * handler routes back through the widget's confirm-gated dispatcher.
+		 * `visibleWhen` and `visible` pass through, so CnRowActions decides per
+		 * row whether the entry shows.
 		 *
 		 * @return {Array<object>}
 		 */
@@ -990,6 +992,8 @@ export default {
 				icon: action.icon,
 				destructive: action.type === 'object-op' && action.op === 'delete',
 				handler: (row) => this.onActionTriggered(action, row),
+				...(action.visibleWhen ? { visibleWhen: action.visibleWhen } : {}),
+				...(action.visible !== undefined ? { visible: action.visible } : {}),
 			}))
 		},
 
