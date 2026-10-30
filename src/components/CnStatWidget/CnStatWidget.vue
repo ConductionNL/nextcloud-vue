@@ -171,6 +171,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { daysUntil } from '../../utils/dateVariant.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
@@ -2041,12 +2042,59 @@ export default {
 					this.captionRatioParts = { num: num === undefined ? null : num, den }
 					return
 				}
-				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				const found = own.metric === 'daysSinceEarliest'
+					? await this.fetchDaysSinceEarliest(axios, generateUrl, source, own.field, own.filter || {})
+					: await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
 				this.captionValue = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
 			} catch {
 				this.captionValue = null
 				this.captionRatioParts = null
 			}
+		},
+
+		/**
+		 * The whole days from the earliest `field` date among the matching
+		 * records to today (`captionSource.metric: "daysSinceEarliest"`):
+		 * "longest: 9 days" over the days since each case entered its status.
+		 * One list read, ordered by the field, of the first record that has
+		 * it. 0 when no record matches, null when the date cannot be read.
+		 *
+		 * @spec openspec/changes/stat-caption-days-since-earliest/specs/stat-caption-days-since-earliest/spec.md#requirement-a-stat-caption-can-count-the-days-since-the-earliest-date
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} s The source (register/schema).
+		 * @param {string} field The date field.
+		 * @param {object} filter The filter map.
+		 * @return {Promise<number|null>} The days, or null.
+		 */
+		async fetchDaysSinceEarliest(axios, generateUrl, s, field, filter) {
+			if (typeof field !== 'string' || field === '') {
+				return null
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(this.resolveSourceFilter(filter))) {
+				if (value === null) {
+					params[`${key}[isnull]`] = 'true'
+				} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+					for (const [op, operand] of Object.entries(value)) {
+						params[`${key}[${op}]`] = operand
+					}
+				} else if (value !== '' && value !== undefined) {
+					params[key] = value
+				}
+			}
+			params[`${field}[isnull]`] = 'false'
+			params[`_order[${field}]`] = 'asc'
+			params._limit = 1
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: s.register, schema: s.schema })
+			const res = await axios.get(url, { params })
+			const first = Array.isArray(res?.data?.results) ? res.data.results[0] : undefined
+			if (!first) {
+				return 0
+			}
+			const raw = first[field] !== undefined ? first[field] : first['@self']?.[field]
+			const days = daysUntil(raw, new Date())
+			return days === null ? null : Math.max(0, -days)
 		},
 
 		/**
