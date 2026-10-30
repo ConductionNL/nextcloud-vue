@@ -219,12 +219,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    after the box: NcCheckboxRadioSwitch pads its row by half the clickable
    area, which set the box 9px in (DqBerichtVersturen "Dit is een besluit").
    A note under the checkbox lines up with its label through
-   --cn-dialog-check-label-inset (the 20px box and the gap). */
+   --cn-dialog-check-label-inset (the 20px box and the gap). A radio sits the
+   same way (PqAanvraagOmzetten "Klant", 7px in on live).
+   @spec openspec/changes/board-dialog-radio-flush/specs/board-dialog-radio-flush/spec.md */
 .cn-dialog-board {
 	--cn-dialog-check-label-inset: 30px;
 }
 
-.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content {
+.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content {
 	padding-inline: 0;
 	gap: 10px;
 }
@@ -236,7 +239,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    probed with these rules: field to note 50, as drawn).
    @spec openspec/changes/board-dialog-checkbox-24-note-flush/specs/board-dialog-checkbox-24-note-flush/spec.md#requirement-a-board-dialogs-checkbox-is-24px-and-its-notes-add-no-margin */
 .cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
-.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
 	min-height: 24px;
 	padding-block: 0;
 }
