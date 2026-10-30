@@ -11,12 +11,18 @@
  */
 const { validateManifestV2 } = require('../../src/utils/validateManifest.js')
 
-const manifest = (headerMetaCounts) => ({
-	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
-	version: '2.0.0',
-	menu: [],
-	pages: [{ id: 'organisation', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { entitySource: 'organisations', headerMeta: 'one of {count:organisations} organisations', headerMetaCounts } }],
-})
+/**
+ * @param {object} headerMetaCounts The page's counts.
+ * @return {object} A manifest with one detail page using them.
+ */
+function manifest(headerMetaCounts) {
+	return {
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '2.0.0',
+		menu: [],
+		pages: [{ id: 'organisation', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { entitySource: 'organisations', headerMeta: 'one of {count:organisations} organisations', headerMetaCounts } }],
+	}
+}
 
 describe('headerMetaCounts in the manifest schema', () => {
 	it('accepts a count of a named entity source', () => {
