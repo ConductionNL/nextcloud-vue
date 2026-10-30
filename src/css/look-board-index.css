@@ -1045,6 +1045,14 @@
 	margin-inline-start: 4px;
 }
 
+/* The filter and column menus in the row-actions head take the same 22px
+   head control, so the head row keeps the board's height (PqTaken: a 34px
+   menu button made it 58.5 against 49.5).
+   @spec openspec/changes/board-head-menu-keeps-head-row/specs/board-head-menu-keeps-head-row/spec.md#requirement-a-board-head-menu-keeps-the-head-row-height */
+.cn-look-board .cn-table-container--board .cn-data-table th.cn-table-col--actions .action-item {
+	--default-clickable-area: 22px;
+}
+
 /* The selection column: 18px checkboxes, 28px of content between 16px of
    padding either side, 60px in all (DqZaken and 130 other boards; the title
    column starts 77px in).
