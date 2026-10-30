@@ -906,6 +906,16 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
+				// A formatter draws the cell itself, but one that prints an enum's
+				// label reads it from the cell's property: hand it the schema's.
+				if (prop && out.formatter !== undefined && out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (labels && typeof labels === 'object') {
+						out.enum = prop.enum
+						out.enumLabels = labels
+					}
+					return out
+				}
 				// The `label` widget writes the enum's label, so it still takes the enum.
 				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
