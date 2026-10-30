@@ -9,7 +9,7 @@
  */
 
 /** The renderers a header chip can use. */
-export const HEADER_CHIP_FORMATS = Object.freeze(['text', 'mono', 'badge', 'user', 'date', 'strong'])
+export const HEADER_CHIP_FORMATS = Object.freeze(['text', 'mono', 'badge', 'user', 'date', 'strong', 'pill'])
 
 /**
  * The variants a colour name maps onto; anything else is neutral. A name is a

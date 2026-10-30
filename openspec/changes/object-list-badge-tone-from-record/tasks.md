@@ -1,0 +1,2 @@
+- [x] CnObjectListWidget: `refLookSpecs`, `loadRefLooks` after the rows load, `widgetProps.looks` on the badge column
+- [x] Spec tests/components/CnObjectListWidgetBadgeTone.spec.js

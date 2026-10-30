@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.166.0",
+	"version": "2.167.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4322,7 +4322,7 @@
 										"additionalProperties": false,
 										"properties": {
 											"key": { "type": "string", "minLength": 1 },
-											"format": { "enum": ["text", "mono", "badge", "user", "date", "strong"] },
+											"format": { "enum": ["text", "mono", "badge", "user", "date", "strong", "pill"] },
 											"labelField": { "type": "string" },
 											"colorField": { "type": "string" },
 											"warnWhenPast": { "type": "boolean" }
@@ -5520,16 +5520,28 @@
 						},
 						"headerMetaCounts": {
 							"type": "object",
-							"description": "type='index': the other lists headerMeta counts, by name. Each is read as one list total and fills `{count:<name>}` in headerMeta (\"{total} contracten bij {count:suppliers} leveranciers\"); while a count loads or when it fails, the note is left out.",
+							"description": "type='index' or 'detail': the other lists headerMeta counts, by name. Each is read as one list total and fills `{count:<name>}` in headerMeta (\"{total} contracten bij {count:suppliers} leveranciers\"); while a count loads or when it fails, the note is left out. A count reads a register + schema (with an optional filter) or a named entity source (`{ entitySource: \"organisations\" }`: DqTenant \"een van 6 organisaties op deze omgeving\").",
 							"additionalProperties": {
-								"type": "object",
-								"required": ["register", "schema"],
-								"additionalProperties": false,
-								"properties": {
-									"register": { "type": "string", "minLength": 1 },
-									"schema": { "type": "string", "minLength": 1 },
-									"filter": { "type": "object" }
-								}
+								"oneOf": [
+									{
+										"type": "object",
+										"required": ["register", "schema"],
+										"additionalProperties": false,
+										"properties": {
+											"register": { "type": "string", "minLength": 1 },
+											"schema": { "type": "string", "minLength": 1 },
+											"filter": { "type": "object" }
+										}
+									},
+									{
+										"type": "object",
+										"required": ["entitySource"],
+										"additionalProperties": false,
+										"properties": {
+											"entitySource": { "type": "string", "enum": ["flows", "flowRuns", "tasks", "endpoint", "search", "users", "organisations"] }
+										}
+									}
+								]
 							}
 						},
 						"tabsLabel": {

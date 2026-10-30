@@ -2575,7 +2575,8 @@
     "Sessions": "Sessions",
     "The assistant could not answer.": "The assistant could not answer.",
     "Untitled agent": "Untitled agent",
-    "Untitled conversation": "Untitled conversation"
+    "Untitled conversation": "Untitled conversation",
+    "Colleague": "Colleague"
   },
   "plurals": {
     "{count} member": [
