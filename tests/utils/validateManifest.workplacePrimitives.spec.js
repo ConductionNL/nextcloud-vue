@@ -70,6 +70,18 @@ describe('week-strip', () => {
 		}))).toEqual([])
 	})
 
+	it('accepts an extended relation and a meta entry with alternatives', () => {
+		expect(errorsOf(strip({
+			source: { register: 'dossiq', schema: 'case', extend: ['caseType'] },
+			dateField: 'deadline',
+			metaFields: ['identifier', ['caseType.shortName', 'caseType.title']],
+		}))).toEqual([])
+	})
+
+	it('rejects an empty list of meta alternatives', () => {
+		expect(errorsOf(strip({ source: { register: 'dossiq', schema: 'case' }, dateField: 'deadline', metaFields: [[]] })).length).toBeGreaterThan(0)
+	})
+
 	it('accepts static items', () => {
 		expect(errorsOf(strip({
 			items: [{ title: 'Meeting', meta: 'Town hall', date: '2026-10-07', route: 'Meetings', late: false }],

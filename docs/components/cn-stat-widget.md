@@ -273,6 +273,17 @@ With `kind: "ratio"` the caption is a share: the `numerator` over the `denominat
   "captionSource": { "kind": "ratio", "denominator": { "metric": "sum", "field": "grossAmount", "filter": { "lifecycleState": ["issued", "overdue", "disputed"] } } } }
 ```
 
+### The longest wait (`captionSource.metric: "daysSinceEarliest"`)
+
+With `metric: "daysSinceEarliest"` and a date `field`, `{count}` is the number of whole days from the earliest `field` date among the matching records to today. The tile reads it from one list request, ordered by the field, of the first record that has it. No matching record, or one dated today, counts 0, so the caption reads `zeroText` or is left out.
+
+```json
+{ "label": "Waiting on the applicant", "layout": "stacked",
+  "source": { "register": "dossiq", "schema": "case", "filter": { "waitingOnApplicant": true } },
+  "caption": "longest: {count} days",
+  "captionSource": { "metric": "daysSinceEarliest", "field": "currentStatusEnteredAt", "filter": { "waitingOnApplicant": true } } }
+```
+
 ## The stacked tile (`layout: "stacked"`)
 
 `content.layout: "stacked"` is the board's KPI tile: no icon circle, the label as plain 14px muted text, the value at 34px/700 in the text colour, and the caption on a line of its own under the value. A linked stacked tile is not underlined. Theme hooks: `--cn-kpi-stacked-padding` (10px 6px, which adds up with a dashboard cell's 8px 14px to 18px 20px), `--cn-kpi-stacked-gap`, `--cn-kpi-stacked-title-size`, `--cn-kpi-stacked-title-weight`, `--cn-kpi-stacked-value-size`, `--cn-kpi-stacked-value-color`.
