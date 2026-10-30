@@ -105,6 +105,47 @@ describe('CnRecordNotesWidget actions', () => {
 		expect(buttons(busy).map((b) => b.text())).toEqual(['Log attempt', 'Finish'])
 	})
 
+	it('runs an action\'s requests in order, each only while its when holds on the record', async () => {
+		mockPost.mockResolvedValue({ data: {} })
+		const finish = {
+			label: 'Finish',
+			requests: [
+				{ when: { field: 'status', op: 'eq', value: 'open' }, url: '/apps/openregister/api/objects/@objectId/transition', body: { action: 'claim' } },
+				{ url: '/apps/pipelinq/api/callbacks/@objectId/complete', body: { resultText: '{text}' } },
+			],
+			doneText: 'Task finished.',
+		}
+		const open = mount(CnRecordNotesWidget, { props: { objectData: { ...TASK, status: 'open' }, content: { ...CONTENT, actions: [finish] } }, global: { stubs: { CnIcon: true } } })
+		await open.find('textarea').setValue('Opgelost')
+		await buttons(open)[0].trigger('click')
+		await flushPromises()
+		expect(mockPost.mock.calls).toEqual([
+			['/index.php/apps/openregister/api/objects/task-7/transition', { action: 'claim' }],
+			['/index.php/apps/pipelinq/api/callbacks/task-7/complete', { resultText: 'Opgelost' }],
+		])
+		expect(open.find('[data-testid="cn-record-notes-status"]').text()).toBe('Task finished.')
+
+		mockPost.mockReset()
+		mockPost.mockResolvedValue({ data: {} })
+		const busy = mount(CnRecordNotesWidget, { props: { objectData: { ...TASK, status: 'in_progress' }, content: { ...CONTENT, actions: [finish] } }, global: { stubs: { CnIcon: true } } })
+		await busy.find('textarea').setValue('Opgelost')
+		await buttons(busy)[0].trigger('click')
+		await flushPromises()
+		expect(mockPost.mock.calls.map((call) => call[0])).toEqual(['/index.php/apps/pipelinq/api/callbacks/task-7/complete'])
+	})
+
+	it('stops at the first refused request and keeps the text', async () => {
+		mockPost.mockRejectedValueOnce({ response: { data: { error: 'Transition claim is not allowed' } } })
+		const finish = { label: 'Finish', requests: [{ url: '/x/@objectId/transition', body: { action: 'claim' } }, { url: '/x/@objectId/complete', body: {} }] }
+		const w = mount(CnRecordNotesWidget, { props: { objectData: TASK, content: { ...CONTENT, actions: [finish] } }, global: { stubs: { CnIcon: true } } })
+		await w.find('textarea').setValue('Opgelost')
+		await buttons(w)[0].trigger('click')
+		await flushPromises()
+		expect(mockPost).toHaveBeenCalledTimes(1)
+		expect(w.find('[data-testid="cn-record-notes-status"]').text()).toBe('Transition claim is not allowed')
+		expect(w.find('textarea').element.value).toBe('Opgelost')
+	})
+
 	it('keeps saving as you type without autosave false', async () => {
 		mockPatch.mockResolvedValue({ data: {} })
 		const w = mountCard({ ...CONTENT, autosave: undefined })

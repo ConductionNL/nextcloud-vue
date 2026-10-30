@@ -68,6 +68,17 @@ import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { readPath } from '../../utils/readPath.js'
 import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
+/**
+ * Whether an action names where it goes: `request`, or `requests` run in order.
+ *
+ * @param {object} action The action.
+ * @return {boolean}
+ */
+function validRequests(action) {
+	const requests = Array.isArray(action.requests) ? action.requests : [action.request]
+	return requests.length > 0 && requests.every((request) => request && typeof request.url === 'string' && request.url !== '')
+}
+
 /** The page refresh channel the built-in widgets listen on. */
 const PAGE_REFRESH = 'cn:page:refresh'
 
@@ -87,6 +98,8 @@ let instances = 0
  * field under a heading that already names it. `outcomeBelow: true` puts the
  * outcome on its own line under the save status, at the start (PqContactmoment).
  * `actions: [{ label, icon?, variant?, request: { url, method?, body }, doneText?, visibleWhen? }]`
+ * (or `requests: [{ url, method?, body?, when? }]`, sent in order, each only
+ * while its `when` holds on the record, stopping at the first refusal)
  * are buttons that send the text to an app endpoint, `{text}` in a body value
  * standing for the typed text (PqTaak: Poging vastleggen, Afronden); the
  * endpoint checks the user may act. `autosave: false` writes nothing as you
@@ -197,7 +210,7 @@ export default {
 		actions() {
 			const list = Array.isArray(this.content.actions) ? this.content.actions : []
 			return list
-				.filter((action) => action && typeof action.label === 'string' && action.label !== '' && action.request && typeof action.request.url === 'string')
+				.filter((action) => action && typeof action.label === 'string' && action.label !== '' && validRequests(action))
 				.filter((action) => !action.visibleWhen || evaluateVisibleWhenLocal(action.visibleWhen, this.record || {}))
 				.map((action, index) => ({ ...action, key: `${index}-${action.label}`, label: this.tr(action.label) }))
 		},
@@ -311,21 +324,26 @@ export default {
 			}
 			this.running = action.key
 			this.notice = ''
-			const body = {}
-			for (const [key, value] of Object.entries(action.request.body || {})) {
-				body[key] = typeof value === 'string' ? value.replace(/\{text\}/g, text) : value
-			}
+			const record = this.record || {}
+			const requests = (action.requests || [action.request]).filter((request) => !request.when || evaluateVisibleWhenLocal(request.when, record))
+			let sent = 0
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
-				const url = interpolateUrlTokens(action.request.url, { objectId: this.target.id, object: this.record || {} })
-				const method = String(action.request.method || 'POST').toLowerCase()
-				await axios[['put', 'patch'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+				for (const request of requests) {
+					const body = {}
+					for (const [key, value] of Object.entries(request.body || {})) {
+						body[key] = typeof value === 'string' ? value.replace(/\{text\}/g, text) : value
+					}
+					const url = interpolateUrlTokens(request.url, { objectId: this.target.id, object: record })
+					const method = String(request.method || 'POST').toLowerCase()
+					await axios[['put', 'patch'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+					sent += 1
+				}
 				this.text = ''
 				this.notice = this.tr(action.doneText || '')
-				emit(PAGE_REFRESH, {})
 				return true
 			} catch (failure) {
 				const data = (failure && failure.response && failure.response.data) || {}
@@ -333,6 +351,9 @@ export default {
 				return false
 			} finally {
 				this.running = ''
+				if (sent > 0) {
+					emit(PAGE_REFRESH, {})
+				}
 			}
 		},
 
