@@ -24,6 +24,7 @@
 			:channelFilter="content.channelChips === true"
 			:channels="channelLabels"
 			:payload="replyValues"
+			:messageKey="content.messageKey || 'message'"
 			@send="onSend"
 			@sent="onSent"
 			@messageAction="onMessageAction">
@@ -847,15 +848,21 @@ export default {
 		},
 
 		/**
-		 * Show an accepted reply at once, without waiting for the record.
+		 * Show an accepted reply at once, without waiting for the record. An
+		 * answer that does not echo the text makes the page read the record again.
 		 *
 		 * @param {object} data The endpoint's response.
-		 * @return {void}
+		 * @return {Promise<void>}
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
-		onSent(data) {
+		async onSent(data) {
 			const text = data?.message ?? data?.text
 			if (typeof text !== 'string' || text === '') {
+				// The answer does not echo the reply: read the record again so the stored message shows.
+				if (this.endpoint && !this.replyAction) {
+					const { emit } = await import('@nextcloud/event-bus')
+					emit('cn:page:refresh', {})
+				}
 				return
 			}
 			if (this.draftUrl) {
