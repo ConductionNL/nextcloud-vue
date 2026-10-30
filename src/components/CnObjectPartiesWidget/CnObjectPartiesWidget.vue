@@ -320,6 +320,22 @@ function defaultLabels() {
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
  */
+/**
+ * OpenRegister's built-in party kinds, named in the reader's language.
+ *
+ * @param {string} code The party kind code.
+ * @return {string} The name, or '' for a kind the library does not know.
+ */
+function builtinKindLabel(code) {
+	switch (code) {
+		case 'person': return t('nextcloud-vue', 'Person')
+		case 'organisation': return t('nextcloud-vue', 'Organisation')
+		case 'colleague': return t('nextcloud-vue', 'Colleague')
+		case 'address': return t('nextcloud-vue', 'Address')
+		default: return ''
+	}
+}
+
 export default {
 	name: 'CnObjectPartiesWidget',
 
@@ -934,7 +950,9 @@ export default {
 		},
 
 		/**
-		 * A party's kind: the accepted kind's label, else the listing's, else the code.
+		 * A party's kind: the accepted kind's label, else the library's name for
+		 * OpenRegister's built-in kinds (the listing labels those in English),
+		 * else the listing's, else the code.
 		 *
 		 * @param {object} party The listing row.
 		 * @return {string}
@@ -944,7 +962,7 @@ export default {
 				return ''
 			}
 			const offered = (this.kinds?.kinds || []).find((kind) => kindCode(kind) === party.partyKind)
-			return offered?.label || this.kindLabels[party.partyKind] || party.partyKind
+			return offered?.label || builtinKindLabel(party.partyKind) || this.kindLabels[party.partyKind] || party.partyKind
 		},
 
 		/**

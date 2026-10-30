@@ -2840,7 +2840,8 @@
     "Sessions": "Gesprekken",
     "The assistant could not answer.": "De assistent kon geen antwoord geven.",
     "Untitled agent": "Assistent zonder naam",
-    "Untitled conversation": "Gesprek zonder titel"
+    "Untitled conversation": "Gesprek zonder titel",
+    "Colleague": "Collega"
   },
   "plurals": {
     "{count} member": [
