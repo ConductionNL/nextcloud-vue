@@ -2315,6 +2315,13 @@ export default {
 				this.fitRows = null
 				return
 			}
+			// A cell that sizes to its content takes the list's height, so the
+			// cell is no budget; a row maximum ("4") still is.
+			const item = cell.closest('.grid-stack-item')
+			if (item && item.getAttribute('gs-size-to-content') === 'true' && !(this.content && this.content.fit === true)) {
+				this.fitRows = null
+				return
+			}
 			const table = this.$el.querySelector('.cn-object-list-widget__table table')
 			if (!table) {
 				return
