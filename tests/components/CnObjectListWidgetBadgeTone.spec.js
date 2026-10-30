@@ -29,9 +29,7 @@ function mountWith(columns, resolve) {
 
 describe('CnObjectListWidget badge tone from the referenced record', () => {
 	it('reads the colour field for the ids on screen and hands it to the badge column', async () => {
-		const resolve = jest.fn((register, schema, ids, field) => Promise.resolve(
-			field === 'colour' ? { s1: 'purple', s2: 'blue' } : {},
-		))
+		const resolve = jest.fn((register, schema, ids, field) => Promise.resolve(field === 'colour' ? { s1: 'purple', s2: 'blue' } : {}))
 		const w = mountWith([{ key: 'title' }, statusColumn], resolve)
 		w.vm.rows = [{ id: 'a', title: 'A', status: 's1' }, { id: 'b', title: 'B', status: 's2' }, { id: 'c', title: 'C', status: 's1' }]
 		await w.vm.loadRefLooks()

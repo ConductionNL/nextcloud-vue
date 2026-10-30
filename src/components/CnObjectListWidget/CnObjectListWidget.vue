@@ -407,8 +407,10 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { formatMoney } from '../../utils/formatMetric.js'
@@ -417,8 +419,6 @@ import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
-import { createRefLabelResolver } from '../../composables/useRefLabels.js'
-import { useObjectStore } from '../../store/index.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
@@ -1721,6 +1721,7 @@ export default {
 		rows() {
 			this.loadRefLooks()
 		},
+
 		presetRows(next) {
 			if (next !== null) {
 				this.rows = [...next]
