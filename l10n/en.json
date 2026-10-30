@@ -2559,7 +2559,23 @@
     "Archived as PDF": "Archived as PDF",
     "Archived as {format}": "Archived as {format}",
     "Collapse": "Collapse",
-    "Expand": "Expand"
+    "Expand": "Expand",
+    "Agent": "Agent",
+    "Agents for this page": "Agents for this page",
+    "All agents": "All agents",
+    "Allow": "Allow",
+    "Ask me anything about what you are viewing.": "Ask me anything about what you are viewing.",
+    "Could not load agents": "Could not load agents",
+    "Decline": "Decline",
+    "I approved that access. Please continue.": "I approved that access. Please continue.",
+    "No agents available": "No agents available",
+    "Read replies aloud (not supported here)": "Read replies aloud (not supported here)",
+    "Recent conversations": "Recent conversations",
+    "Session settings": "Session settings",
+    "Sessions": "Sessions",
+    "The assistant could not answer.": "The assistant could not answer.",
+    "Untitled agent": "Untitled agent",
+    "Untitled conversation": "Untitled conversation"
   },
   "plurals": {
     "{count} member": [

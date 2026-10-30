@@ -20,4 +20,11 @@ describe('look-board-index.css: grey person chip', () => {
 		expect(body).toContain('color: var(--cn-board-text-soft);')
 		expect(body).toContain('line-height: normal;')
 	})
+
+	it('sets a compact grey chip at 12px (PqLeads owner, 28px)', () => {
+		const selector = '.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral.cn-cell-renderer__avatar-initials--compact {'
+		const at = css.indexOf(selector)
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('font-size: 12px;')
+	})
 })

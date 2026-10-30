@@ -46,4 +46,14 @@ describe('dialog.css: user settings section buttons', () => {
 		expect(ruleFor(`${BUTTON} .button-vue__icon`)).toContain('display: none;')
 		expect(ruleFor(`${BUTTON} .button-vue__text.button-vue__text`)).toContain('padding-inline: 0;')
 	})
+
+	it('keeps the 16px icon on a labelled link (DqPersoonlijkeInstellingen "Verwerkingsactiviteiten (AVG)")', () => {
+		const LINK = BUTTON.replace(' .button-vue:has(', ' a.button-vue:has(')
+		const body = ruleFor(`${LINK} .button-vue__icon`)
+		expect(body).not.toBeNull()
+		expect(body).toContain('display: flex;')
+		expect(body).toContain('width: 16px;')
+		expect(body).toContain('min-width: 16px;')
+		expect(body).toContain('height: 16px;')
+	})
 })

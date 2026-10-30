@@ -1,6 +1,7 @@
 <template>
 	<div class="cn-index-page"
-		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:class="[lookClass, { 'cn-index-page--with-side-panel': hasSidePanel, 'cn-index-page--split-side': splitPaneAsSideColumn, 'cn-index-page--sidebar-open': sidebarPanelOpen, 'cn-index-page--quick-filters-toolbar': effectiveQuickFilterPlacement === 'toolbar' }]"
+		:style="splitPaneAsSideColumn ? { '--cn-index-split-pane-width': splitPaneWidth } : null"
 		data-testid="cn-index-page"
 		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
@@ -1298,7 +1299,7 @@
 				v-if="splitLayout !== 'list'"
 				class="cn-index-page__split-pane"
 				:class="{ 'cn-index-page__split-pane--full': splitLayout === 'detail' }"
-				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
+				:style="splitLayout === 'split' && !splitPaneAsSideColumn ? { width: splitPaneWidth } : null"
 				data-testid="cn-index-page-split-pane"
 				:data-split-layout="splitLayout">
 				<!-- An <a>, not a button: closing the pane pushes the list's
@@ -5501,6 +5502,19 @@ export default {
 		 * @return {'list'|'split'|'detail'}
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
+		/**
+		 * Whether the open record is the page's side column: in the board look
+		 * the pane stands beside the chips, the toolbar and the list from the
+		 * toolbar's top (PqKassaAudit), as a side panel does. A page that
+		 * already has a side panel or a folder pane keeps the pane in the body.
+		 *
+		 * @spec openspec/changes/board-split-pane-side-column/specs/board-split-pane-side-column/spec.md
+		 * @return {boolean}
+		 */
+		splitPaneAsSideColumn() {
+			return this.isBoardLook && this.splitLayout === 'split' && !this.hasSidePanel && !this.showsFolderPane
+		},
+
 		splitLayout() {
 			return splitLayoutFor({
 				enabled: this.splitViewEnabled,

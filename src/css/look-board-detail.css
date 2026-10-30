@@ -954,6 +954,17 @@
 	line-height: 1.6;
 }
 
+/* Running text over ruled three-column facts (DqSociaalDomein "De melding")
+   is a 14px column: the text 14px under the title, the facts 14px under it.
+   @spec openspec/changes/board-facts-text-over-ruled-columns/specs/board-facts-text-over-ruled-columns/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	padding-top: 14px;
+}
+
+.cn-look-board .cn-detail-page .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__rows--three):not(.cn-detail-page__side *) {
+	gap: 14px;
+}
+
 /* A header-less card keeps the full 20px 22px. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper:not(:has(.cn-widget-wrapper__header)) > .cn-widget-wrapper__content {
 	padding: var(--cn-board-card-padding);
@@ -2693,8 +2704,12 @@
 /* An appointments card starts its first row's rule 8px under the title, as
    DqTaak "Afspraken" draws it (r34: the row 64.5 against 60, the first
    appointment 44.8 under the title against 41).
-   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn */
-.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *) {
+   A subtitled card needs the second selector to outweigh the 12px start of
+   every subtitled card.
+   @spec openspec/changes/board-card-rhythm-r34/specs/board-card-rhythm-r34/spec.md#requirement-an-appointment-row-is-as-tall-as-drawn
+   @spec openspec/changes/board-events-card-under-subtitle/specs/board-events-card-under-subtitle/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-events-card):not(.cn-detail-page__side *),
+.cn-look-board .cn-detail-page .cn-widget-wrapper:not(.cn-detail-page__side *):has(> .cn-widget-wrapper__header .cn-widget-wrapper__subtitle) > .cn-widget-wrapper__content:has(> .cn-events-card) {
 	padding-top: 8px;
 }
 
@@ -3403,4 +3418,32 @@
 .cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__title:not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-page__band--compact .cn-kpi-card--stacked .cn-kpi-card__value:not(.cn-look-nextcloud *) {
 	line-height: normal;
+}
+
+/* ---- A body section in a card (CnBodySections `card: true`) ------------- */
+/* Drawn as every board card: 20px 22px in, a 12px radius, the title 17px at
+   700 with the body 14px under it and no rule between them (PqKlant and
+   PqOrganisatie "Contactmoment registreren"; the section's own scoped title
+   was 14px 600 over a hairline). The doubled title class outranks that
+   scoped rule.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-card-is-drawn-as-a-board-card */
+.cn-look-board .cn-body-sections__section--card:not(.cn-look-nextcloud *) {
+	padding: var(--cn-board-card-padding);
+	border-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-body-sections__section--card > .cn-body-sections__title.cn-body-sections__title:not(.cn-look-nextcloud *) {
+	margin: 0 0 14px;
+	padding: 0;
+	border-bottom: 0;
+	font-size: var(--cn-board-heading-size);
+	font-weight: 700;
+	line-height: normal;
+}
+
+/* Its labelled buttons are the board's 40px control (PqKlant "Annuleren",
+   "Opslaan", "Bericht versturen"); NcButton draws 34px.
+   @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-cards-labelled-buttons-are-40px */
+.cn-look-board .cn-body-sections__section--card .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
+	--button-size: var(--cn-board-control-height);
 }
