@@ -196,7 +196,6 @@
 					<CnDetailWidgetHost
 						:widget="entry.widget"
 						chrome="bare"
-						@panelHeader="onPanelHeader(entry.key, $event)"
 						:availableWidgets="availableWidgets"
 						:objectId="objectId"
 						:object="objectData"
@@ -208,6 +207,7 @@
 						:surface="surface"
 						:integrationContext="integrationContext"
 						:cnRegistry="cnRegistry"
+						@panelHeader="onPanelHeader(entry.key, $event)"
 						@geoSaved="onGeoSaved"
 						@openIntegration="onOpenIntegration"
 						@selectObject="onSelectObject" />
