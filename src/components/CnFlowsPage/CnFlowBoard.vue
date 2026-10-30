@@ -214,6 +214,7 @@
 					:run="run"
 					:layoutDirection="flowDirection === 'down' ? 'down' : 'right'"
 					:fitMaxZoom="flowDirection === 'down' ? 1 : 0"
+					:fitInset="canvasLayout ? canvasChromeInset : null"
 					:nodeBadge="nodeLook === 'card' ? nodeBadge : null"
 					:toolbarActions="false"
 					:addStep="!showPalette"
@@ -546,6 +547,7 @@ import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
 import { flowRunStatuses } from '../../utils/flowRunStatus.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
+import { overlayInset } from '../../utils/overlayInset.js'
 import { normaliseSelectOptions } from '../../utils/selectOptions.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -1199,6 +1201,22 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * How far the chrome floating over the canvas (toolbar, run card, side
+		 * panel) reaches into it, measured when the canvas fits.
+		 *
+		 * @return {{top: number, right: number, bottom: number, left: number}} Pixels per side.
+		 */
+		canvasChromeInset() {
+			const root = this.$el
+			const frame = root?.querySelector?.('.cn-flow-board__canvas')
+			if (!frame) {
+				return overlayInset(null, [])
+			}
+			const chrome = root.querySelectorAll('.cn-flow-detail__toolbar, .cn-flow-board__run-card, .cn-flow-board__inspector')
+			return overlayInset(frame.getBoundingClientRect(), Array.from(chrome, (el) => el.getBoundingClientRect()))
+		},
+
 		/**
 		 * Load the choices of the selected step's select fields that name a
 		 * url (`optionsFrom`), once per url.
@@ -1881,9 +1899,12 @@ export default {
 	min-height: 640px;
 }
 
+/* The canvas fills the body: a definite box, so the graph canvas inside
+   (height: 100%) and Vue Flow's pane measure a real height instead of
+   collapsing to their minimum. */
 .cn-flow-board--canvas .cn-flow-board__canvas {
-	height: 100%;
-	min-height: 640px;
+	position: absolute;
+	inset: 0;
 	border: 0;
 	border-radius: 0;
 	background: transparent;
