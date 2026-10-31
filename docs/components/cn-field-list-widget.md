@@ -136,3 +136,33 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 ## A list of plain values (`add.scalar`)
 
 A field that holds strings, such as a choice list's `enumValues`, takes `"add": { "scalar": true, "fields": [{ "key": "value", "label": "Option" }] }`. Add then appends the trimmed value of the first add field itself, not an object. With `unique`, a value the list already holds is refused. A row of a plain value reads as the value.
+
+## Label and value pairs (`variant: "pairs"`)
+
+A side card that lists contact channels (board PqKlant "Contactkanalen": "E-mail, privé" beside the address) draws each entry as a label and a value:
+
+```json
+{
+  "field": "emails",
+  "variant": "pairs",
+  "row": {
+    "label": ["Email", { "path": "kind", "map": { "private": "private", "work": "work" } }],
+    "title": "value",
+    "meta": [{ "path": "primary", "map": { "true": "preferred", "false": "" } }],
+    "href": { "path": "value", "scheme": "mailto" }
+  },
+  "mirror": { "field": "email", "path": "value", "prefer": "primary" },
+  "emptyLabel": "Email",
+  "emptyText": "None yet"
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `variant: "pairs"` | Each entry a label beside its value, in one description list. Edit and remove go in a "..." menu named after the entry. |
+| `row.label` | A literal, or a list of parts: a string is a literal (translated), `{ path, map? }` a value of the entry. The filled parts join with ", ". |
+| value | `row.title`, then the filled `row.meta` parts, joined with ", ". A link with `row.href`. Map a value to `""` to leave it out ("false" otherwise shows as is). |
+| `emptyLabel` | An empty list shows this label beside `emptyText`. Without it an empty list draws nothing. |
+| `mirror` | `{ field, path, prefer? }`: every save also writes `field`, in the same PATCH, with the `path` of the entry whose `prefer` flag is true, else of the first entry, else `""`. Keeps a plain `email` in step with `emails[]`. |
+
+Several of these lists in one card with one Add menu is the [`field-groups`](./cn-field-groups-widget.md) widget.

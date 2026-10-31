@@ -243,7 +243,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 249,
+			"transitive": 250,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -313,6 +313,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -920,7 +921,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 226,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -982,6 +983,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -1179,7 +1181,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 226,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1241,6 +1243,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -1692,6 +1695,15 @@
 			"via": [],
 			"page": "cn-federation-status"
 		},
+		"CnFieldGroupsWidget": {
+			"direct": 0,
+			"transitive": 4,
+			"tier": "medium",
+			"via": [
+				"CnFieldListWidget"
+			],
+			"page": "cn-field-groups-widget"
+		},
 		"CnFieldHelper": {
 			"direct": 0,
 			"transitive": 0,
@@ -1855,7 +1867,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 224,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1917,6 +1929,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -2303,7 +2316,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 224,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2365,6 +2378,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -2418,7 +2432,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 221,
+			"transitive": 222,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2479,6 +2493,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -3311,6 +3326,13 @@
 			],
 			"page": "cn-object-kanban"
 		},
+		"CnObjectLinksWidget": {
+			"direct": 1,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-object-links-widget"
+		},
 		"CnObjectList": {
 			"direct": 0,
 			"transitive": 16,
@@ -3618,7 +3640,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 242,
+			"transitive": 243,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3684,6 +3706,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -4138,7 +4161,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 227,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4201,6 +4224,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -5465,7 +5489,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 224,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5527,6 +5551,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",

@@ -1265,6 +1265,7 @@
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
 					:footerNote="effectiveFooterNote"
+					:pagerOnOnePage="pagerOnOnePage"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -1601,6 +1602,26 @@ function declaredFilterFields(props) {
 		}
 	}
 	return declared
+}
+
+/**
+ * Fill a count line template: `{shown}`, `{total}`, `{term}`, `{view}`,
+ * `{myTeam}` and the `countValues` names, after the app's translate.
+ *
+ * @param {object} vm The index page.
+ * @param {string} template The template, untranslated.
+ * @param {number} shown The rows on this page.
+ * @param {number} total All rows.
+ * @return {string} The line.
+ */
+function fillCountText(vm, template, shown, total) {
+	const translated = vm.cnTranslate(template)
+	return fillMyTeamToken(translated, translated.includes('{myTeam}') ? (peekMyTeamName() || '') : '')
+		.replace('{shown}', String(shown))
+		.replace('{total}', String(total))
+		.replace(/\{term\}/g, vm.sourceTerm)
+		.replace(/\{view\}/g, vm.appliedViewConditionsText)
+		.replace(/\{(\w+)\|[^}]*\}|\{(\w+)\}/g, (token, a, b) => vm.countValueToken(token, a || b))
 }
 
 /**
@@ -2267,6 +2288,21 @@ export default {
 		},
 
 		/**
+		 * The count line while a filter narrows the list (from the address,
+		 * the side panel, a filter strip or a quick filter), in either look:
+		 * a template with the `countText` tokens (`{shown}`, `{total}`,
+		 * `countValues` names), such as `"{read} of {total} read"` over the
+		 * messages of one sending. Manifest key `config.countTextFiltered`.
+		 * Empty (the default) keeps the count line as it is.
+		 *
+		 * @spec openspec/changes/index-count-text-filtered/specs/index-page/spec.md#requirement-the-count-line-can-differ-while-a-filter-narrows-the-list
+		 */
+		countTextFiltered: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Board look: the count line while a saved view is applied (manifest
 		 * `config.savedViewCountText`), a template as `countText` that may name
 		 * the view's conditions as `{view}`: its description, else its filters
@@ -2391,6 +2427,18 @@ export default {
 		footerNote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: whether a list that fits on one page still draws its
+		 * count and the "1" with an inert Next (manifest `config.pagerOnOnePage`).
+		 * Off, it ends in its `footerNote` alone, as PqWachtrij does.
+		 *
+		 * @spec openspec/changes/index-footer-note-on-one-page/specs/index-list-board-look/spec.md#requirement-a-board-list-on-one-page-can-end-in-its-note-alone
+		 */
+		pagerOnOnePage: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -9172,6 +9220,37 @@ export default {
 		},
 
 		/**
+		 * Whether a filter narrows the list now: an active filter (the
+		 * address, the side panel, a filter strip) or a selected quick filter
+		 * tab that carries a filter.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/index-count-text-filtered/specs/index-page/spec.md#requirement-the-count-line-can-differ-while-a-filter-narrows-the-list
+		 */
+		listIsNarrowed() {
+			const active = Object.values(this.effectiveActiveFilters || {})
+				.some((value) => !(value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)))
+			return active || this.quickFilterNarrows
+		},
+
+		/**
+		 * Whether a selected quick filter tab carries a filter (an "All" tab
+		 * does not).
+		 *
+		 * @return {boolean}
+		 */
+		quickFilterNarrows() {
+			const tabs = this.tabStripEntries || []
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices.some((index) => {
+				const filter = typeof index === 'number' && tabs[index] ? tabs[index].filter : null
+				return Boolean(filter && typeof filter === 'object' && Object.keys(filter).length > 0)
+			})
+		},
+
+		/**
 		 * The count line template: a scope's own, else the open view's
 		 * (`countTextByView`), else the page's `countText`.
 		 *
@@ -9226,6 +9305,9 @@ export default {
 
 		headerDescriptionBase() {
 			const total = this.effectivePagination?.total
+			if (this.countTextFiltered && this.listIsNarrowed && typeof total === 'number' && total >= 0) {
+				return fillCountText(this, this.countTextFiltered, this.effectiveObjects.length, total)
+			}
 			// Board look: the count line is a template over the rows on this page
 			// and all rows, "{shown} of {total}" unless the page says otherwise.
 			if (this.isBoardLook && typeof total === 'number' && total >= 0) {
@@ -9242,13 +9324,7 @@ export default {
 					return t('nextcloud-vue', '{shown} of {total}', { shown, total })
 				}
 				if (countText) {
-					const translated = this.cnTranslate(countText)
-					return fillMyTeamToken(translated, translated.includes('{myTeam}') ? (peekMyTeamName() || '') : '')
-						.replace('{shown}', String(shown))
-						.replace('{total}', String(total))
-						.replace(/\{term\}/g, this.sourceTerm)
-						.replace(/\{view\}/g, this.appliedViewConditionsText)
-						.replace(/\{(\w+)\|[^}]*\}|\{(\w+)\}/g, (token, a, b) => this.countValueToken(token, a || b))
+					return fillCountText(this, countText, shown, total)
 				}
 				return this.countLine(this.countSubtitle, total, shown)
 			}

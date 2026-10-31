@@ -9,7 +9,7 @@
 			:edges="edges"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
-			:fitViewOnInit="fitView && !fitMaxZoom"
+			:fitViewOnInit="fitOnInit"
 			:snapToGrid="snapToGrid"
 			:snapGrid="snapGrid"
 			:nodesDraggable="interactive"
@@ -126,7 +126,7 @@
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Fit the whole flow in view')"
 				:title="t('nextcloud-vue', 'Fit the whole flow in view')"
-				@click="fitViewNow()">
+				@click="fitToView()">
 				<FitToScreenOutline :size="20" />
 			</button>
 		</div>
@@ -142,6 +142,7 @@ import Minus from 'vue-material-design-icons/Minus.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFlowEdge from './CnFlowEdge.vue'
 import CnFlowNode from './CnFlowNode.vue'
+import { fitPaddingFor } from '../../utils/overlayInset.js'
 
 /**
  * A graph canvas built on Vue Flow — the library n8n runs.
@@ -220,6 +221,16 @@ export default {
 		fitMaxZoom: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * Pixels per side (`{ top, right, bottom, left }`) that chrome floating
+		 * over the canvas covers, or a function returning them when the canvas
+		 * fits. Every fit keeps the graph clear of them.
+		 */
+		fitInset: {
+			type: [Object, Function],
+			default: null,
 		},
 
 		/** Snap dragged nodes to the grid. */
@@ -318,6 +329,14 @@ export default {
 
 	computed: {
 		/**
+		 * @return {boolean} Whether Vue Flow frames the graph itself on init;
+		 *   a cap or an inset frames it in onNodesInitialized instead.
+		 */
+		fitOnInit() {
+			return this.fitView && !this.fitMaxZoom && !this.fitInset
+		},
+
+		/**
 		 * @return {boolean} Whether the canvas accepts interaction at all.
 		 */
 		interactive() {
@@ -346,11 +365,23 @@ export default {
 		 * @return {void}
 		 */
 		onNodesInitialized() {
-			if (!this.fitView || !this.fitMaxZoom || this.framedOnce) {
+			if (!this.fitView || (!this.fitMaxZoom && !this.fitInset) || this.framedOnce) {
 				return
 			}
 			this.framedOnce = true
-			this.fitViewNow({ maxZoom: this.fitMaxZoom, padding: 0.1 })
+			const inset = typeof this.fitInset === 'function' ? this.fitInset() : this.fitInset
+			const padding = fitPaddingFor(inset)
+			this.fitViewNow(this.fitMaxZoom ? { maxZoom: this.fitMaxZoom, padding } : { padding })
+		},
+
+		/**
+		 * Frame the whole graph, clear of `fitInset`.
+		 *
+		 * @return {void}
+		 */
+		fitToView() {
+			const inset = typeof this.fitInset === 'function' ? this.fitInset() : this.fitInset
+			this.fitViewNow({ padding: fitPaddingFor(inset) })
 		},
 
 		/**

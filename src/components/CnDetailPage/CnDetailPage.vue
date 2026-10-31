@@ -1335,6 +1335,7 @@
 				:item="currentObject"
 				:register="register"
 				:dialogTitle="editFormTitle"
+				:eyebrow="editFormEyebrow"
 				:subtitle="editFormSubtitle"
 				:confirmLabel="editFormConfirmLabel"
 				:excludeFields="excludeFields"
@@ -2498,6 +2499,16 @@ export default {
 
 		/** One line under the edit form's title, run through the host translate. Empty shows none. */
 		editSubtitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * One short line over the edit form's title (PqTicketBewerken "Bewerken ·
+		 * PQ-2026-0417"), run through the host translate. Like the title and
+		 * subtitle it may name the record with `{field}` tokens. Empty shows none.
+		 */
+		editEyebrow: {
 			type: String,
 			default: '',
 		},
@@ -5020,14 +5031,22 @@ export default {
 			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
-		/** @return {string} The edit form's title, translated; the Edit button's label when none is configured. */
+		/** @return {string} The edit form's title, translated and filled from the record; the Edit button's label when none is configured. */
 		editFormTitle() {
-			return this.editTitle ? this.effectiveTranslate(this.editTitle) : this.editActionLabel
+			return this.editTitle ? this.editFormHeaderText(this.editTitle) : this.editActionLabel
 		},
 
-		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
+		/** @return {string} The edit form's subtitle, translated and filled from the record; empty when none is configured. */
 		editFormSubtitle() {
-			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
+			return this.editSubtitle ? this.editFormHeaderText(this.editSubtitle) : ''
+		},
+
+		/**
+		 * @return {string} The edit form's eyebrow, translated and filled from the record; empty when none is configured.
+		 * @spec openspec/changes/detail-edit-form-header-from-record/specs/detail-page/spec.md#requirement-the-edit-forms-header-can-name-the-record
+		 */
+		editFormEyebrow() {
+			return this.editEyebrow ? this.editFormHeaderText(this.editEyebrow) : ''
 		},
 
 		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
@@ -6236,6 +6255,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A configured edit form title, subtitle or eyebrow, translated, with its
+		 * `{field}` tokens filled from the record as the header line fills them
+		 * (an enum value reads its label). Text without tokens stays as written.
+		 *
+		 * @spec openspec/changes/detail-edit-form-header-from-record/specs/detail-page/spec.md#requirement-the-edit-forms-header-can-name-the-record
+		 * @param {string} text The configured text.
+		 * @return {string} The text to show.
+		 */
+		editFormHeaderText(text) {
+			const translated = this.effectiveTranslate(text)
+			if (!/\{[^}]+\}/.test(translated)) {
+				return translated
+			}
+			return resolveHeaderMeta(translated, this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
+		},
+
 		/**
 		 * Read the record's newest create or update audit entry into
 		 * `lastChange`; a failed read leaves it null.

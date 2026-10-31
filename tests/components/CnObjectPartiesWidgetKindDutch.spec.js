@@ -49,13 +49,13 @@ describe('a party kind in the reader\'s language', () => {
 		globalThis._nc_l10n_language = 'en'
 	})
 
-	it('names OpenRegister\'s built-in kinds in Dutch on the board rows', async () => {
+	it('names OpenRegister\'s built-in kinds in Dutch (the Nextcloud look; the board rows carry no kind word since design-system #811)', async () => {
 		mockGet.mockImplementation((url) => (url === '/apps/openregister/api/objects/x/item/r-1/parties'
 			? Promise.resolve({ data: LISTING })
 			: Promise.reject(new Error(`404 ${url}`))))
 		const wrapper = mount(CnObjectPartiesWidget, {
 			props: { content: {}, objectId: 'r-1', register: 'x', schema: 'item' },
-			global: { provide: { cnLook: 'board' }, stubs: { NcLoadingIcon: true, NcEmptyContent: true, NcNoteCard: true } },
+			global: { provide: { cnLook: 'nextcloud' }, stubs: { NcLoadingIcon: true, NcEmptyContent: true, NcNoteCard: true } },
 		})
 		await flush()
 		const text = wrapper.text()

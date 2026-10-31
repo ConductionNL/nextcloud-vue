@@ -9,6 +9,7 @@
 | `subjectHref` | `string`  |          | `''`    | Where the run's subject opens, or '' to offer no link.                                                      |
 | `canRetry`    | `boolean` |          | `false` | Offer Run again. Off for a run that is still going.                                                         |
 | `iconActions` | `boolean` |          | `false` | Draw the buttons with their icons and Back as a secondary button, as the canvas flow page does (PqFlowRun). |
+| `statusIcon`  | `boolean` |          | `false` | Draw the status pill with an icon for its tone (PqFlowRun).                                                 |
 
 ### Events
 
