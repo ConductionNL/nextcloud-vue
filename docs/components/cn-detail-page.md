@@ -68,6 +68,9 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `appConfig` | Object | `{}` | **Page-level app config** exposed to declarative widget / section config via the **`@config.<key>` token** and `provide`d on `cnAppConfig`. Lets a stat widget's `format: { style: 'currency', currency: '@config.currency' }` format with a configured value (e.g. the reporting currency a setup wizard captures) instead of a hard-coded `EUR`, and an endpoint KPI's URL / params + filter values interpolate `@config.<key>`. A manifest renderer typically seeds it from `loadState(appId, 'config', {})`. Backwards-compatible: a literal `"EUR"` still works, and an unset required `@config.<key>` falls back to the format default. |
 | `editConfirmLabel` | String | `''` | The edit form's save button (manifest `config.editConfirmLabel`), through the host translate. Empty keeps the form's own label. |
 | `editEyebrow` | String | `''` | One short line over the edit form's title (PqTicketBewerken "Bewerken · PQ-2026-0417"), run through the host translate. Like the title and subtitle it may name the record with `{field}` tokens. Empty shows none. |
+| `draftAppId` | String | `''` | The app a form draft belongs to, forwarded to every form this page opens as CnFormDialog's `draftAppId`, so what a user typed and did not save is kept and offered back under this app's key (manifest `config.draftAppId`). |
+| `allowDraft` | Boolean | `false` | Offer "Save draft" on the create form, forwarded as CnFormDialog's `allowDraft`. On an edit form it is offered only while the record is still a draft (manifest `config.allowDraft`). |
+| `draftField` | String | `'isDraft'` | The boolean property that marks a record as a draft, CnFormDialog's `draftField` (manifest `config.draftField`). |
 | `headerActionsBelow` | Boolean | `false` | The header buttons on a row of their own under the title (manifest `config.headerActionsBelow`), instead of beside it. |
 
 ## The action model
