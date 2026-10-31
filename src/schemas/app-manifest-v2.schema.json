@@ -5001,6 +5001,20 @@
 							"default": 1,
 							"description": "How many columns the page's built-in Add/Edit form flows its fields into. Pair 2 with formSize 'large', or the two columns are merely two narrow ones. CnFormDialog collapses back to one column below 700px, and a textarea or JSON editor spans both columns regardless. Maps to CnIndexPage / CnDetailPage `formColumns`."
 						},
+						"draftAppId": {
+							"type": "string",
+							"description": "The app a form draft belongs to (type='index' and type='detail'). Every form the page opens keeps what the user typed and did not save under this app's key and the signed-in user, and offers it back on reopen. Maps to CnIndexPage / CnDetailPage `draftAppId`, forwarded to CnFormDialog."
+						},
+						"allowDraft": {
+							"type": "boolean",
+							"default": false,
+							"description": "Offer 'Save draft' on the page's create form, storing the record with `draftField` set instead of validating it. On an edit form it is offered only while the record is still a draft. Inert unless the schema declares `draftField`. Maps to CnIndexPage / CnDetailPage `allowDraft`."
+						},
+						"draftField": {
+							"type": "string",
+							"default": "isDraft",
+							"description": "The boolean property that marks a record as a draft. Maps to CnIndexPage / CnDetailPage `draftField`."
+						},
 						"excludeFields": {
 							"type": "array",
 							"items": { "type": "string" },
