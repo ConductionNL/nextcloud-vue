@@ -980,6 +980,39 @@
 	padding: 11px 12px;
 }
 
+/* A framed card table (`framed`, PqKassa "Aankoopgeschiedenis", PqKassaRetour,
+   PqLoyaliteit): the table in a 1px frame with an 8px radius inside its card,
+   18px outer insets, 12px rows and a rule under the head and every row but
+   the last, where the frame closes it. Dossiq's card tables have no frame.
+   @spec openspec/changes/data-table-framed/specs/data-table-framed/spec.md#requirement-a-data-table-in-a-card-can-be-framed */
+.cn-look-board .cn-table-container--board.cn-table-container--framed {
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--framed .cn-data-table th {
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--framed .cn-data-table td {
+	padding-block: 12px;
+	border-top: 0;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--framed .cn-data-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--framed .cn-data-table :is(th, td):first-child {
+	padding-inline-start: 18px;
+}
+
+.cn-look-board .cn-table-container--board.cn-table-container--framed .cn-data-table :is(th, td):last-child {
+	padding-inline-end: 18px;
+}
+
 .cn-look-board .cn-table-container--board:not(.cn-index-page__main--table > *) .cn-data-table .cn-table-col--checkbox {
 	padding-inline: 16px;
 }
@@ -1052,6 +1085,14 @@
 	min-height: 22px;
 	border-radius: 4px;
 	margin-inline-start: 4px;
+}
+
+/* The filter and column menus in the row-actions head take the same 22px
+   head control, so the head row keeps the board's height (PqTaken: a 34px
+   menu button made it 58.5 against 49.5).
+   @spec openspec/changes/board-head-menu-keeps-head-row/specs/board-head-menu-keeps-head-row/spec.md#requirement-a-board-head-menu-keeps-the-head-row-height */
+.cn-look-board .cn-table-container--board .cn-data-table th.cn-table-col--actions .action-item {
+	--default-clickable-area: 22px;
 }
 
 /* The selection column: 18px checkboxes, 28px of content between 16px of

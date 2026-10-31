@@ -7,6 +7,7 @@
  * board 23).
  *
  * @spec openspec/changes/board-related-side-inset/specs/board-related-side-inset/spec.md#requirement-a-related-side-card-puts-its-rows-on-the-cards-inset
+ * @spec openspec/changes/board-related-side-links-rhythm/specs/board-related-side-links-rhythm/spec.md#requirement-a-related-side-cards-links-take-the-boards-rhythm
  */
 const fs = require('fs')
 const path = require('path')
@@ -39,5 +40,14 @@ describe('look-board-detail.css: a related-objects card in the side column', () 
 	it('puts the configured link rows and "show all" on the same 22px', () => {
 		expect(ruleFor('.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links:not(.cn-look-nextcloud *)')).toContain('padding-inline: 8px;')
 		expect(ruleFor('.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__show-all:not(.cn-look-nextcloud *)')).toContain('margin-inline: 8px;')
+	})
+
+	it('sets its links 14px at the normal leading, 10px apart, the first 10px under the title (PqKassabon "Gerelateerd")', () => {
+		const links = ruleFor('.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links:not(.cn-look-nextcloud *)')
+		expect(links).toContain('gap: 10px;')
+		const link = ruleFor('.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__link:not(.cn-look-nextcloud *)')
+		expect(link).toContain('font-size: 14px;')
+		expect(link).toContain('line-height: normal;')
+		expect(ruleFor('.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-related-objects-widget > .cn-related-objects-widget__links:first-child):not(.cn-look-nextcloud *)')).toContain('padding-top: 10px;')
 	})
 })

@@ -41,7 +41,7 @@ describe('CnAuditTrailCard', () => {
 			}),
 		})
 		const wrapper = mount(CnAuditTrailCard, {
-			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 5 },
+			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 5, onShowAll: () => {} },
 		})
 		await flushPromises()
 		expect(wrapper.findAll('.cn-audit-card__row')).toHaveLength(5)
@@ -58,7 +58,7 @@ describe('CnAuditTrailCard', () => {
 			}),
 		})
 		const wrapper = mount(CnAuditTrailCard, {
-			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
+			propsData: { register: 'r1', schema: 's1', objectId: 'o1', onShowAll: () => {} },
 		})
 		await flushPromises()
 		await wrapper.find('.cn-audit-card__show-all').trigger('click')

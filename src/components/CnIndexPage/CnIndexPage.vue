@@ -1265,6 +1265,7 @@
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
 					:footerNote="effectiveFooterNote"
+					:pagerOnOnePage="pagerOnOnePage"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -2426,6 +2427,18 @@ export default {
 		footerNote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: whether a list that fits on one page still draws its
+		 * count and the "1" with an inert Next (manifest `config.pagerOnOnePage`).
+		 * Off, it ends in its `footerNote` alone, as PqWachtrij does.
+		 *
+		 * @spec openspec/changes/index-footer-note-on-one-page/specs/index-list-board-look/spec.md#requirement-a-board-list-on-one-page-can-end-in-its-note-alone
+		 */
+		pagerOnOnePage: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
