@@ -134,6 +134,10 @@
 									:data-effect="indicator.effect"
 									:title="indicator.verdict"
 									data-testid="cn-object-parties-indicator">{{ indicator.label }}</span>
+								<span
+									v-if="untilPillFor(party)"
+									class="cn-status-badge cn-status-badge--warning"
+									data-testid="cn-object-parties-until">{{ untilPillFor(party) }}</span>
 								<NcButton
 									v-if="canRemove && party.partyUuid"
 									class="cn-object-parties__remove"
@@ -182,6 +186,10 @@
 								:data-effect="indicator.effect"
 								:title="indicator.verdict"
 								data-testid="cn-object-parties-indicator">{{ indicator.label }} · {{ indicator.verdict }}</span>
+							<span
+								v-if="untilPillFor(party)"
+								class="cn-status-badge cn-status-badge--warning"
+								data-testid="cn-object-parties-until">{{ untilPillFor(party) }}</span>
 							<NcButton
 								v-if="canRemove && party.partyUuid"
 								class="cn-object-parties__remove"
@@ -253,6 +261,7 @@ import {
 	roleLabel,
 	rolesInOrder,
 	savedUuid,
+	untilPillOf,
 } from '../../utils/objectParties.js'
 import { fetchCallerScope } from '../../utils/objectPermissions.js'
 import { readPath } from '../../utils/readPath.js'
@@ -315,6 +324,10 @@ function defaultLabels() {
  * `link` (`{ label, href? | tab? }`, `{total}` = the number of parties) at
  * the foot; `tab` opens that tab of the page through the route hash. It
  * reads the listing only.
+ *
+ * `representationUntil` (words with `{date}`) draws a warning pill on a
+ * party that represents another, naming when its link ends (`validUntil`):
+ * "Machtiging tot 31 dec".
  *
  * A failed read says so and is never shown as "no parties".
  *
@@ -1038,6 +1051,22 @@ export default {
 			}
 			parts.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
 			return parts.filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
+		/**
+		 * When a representative's representation ends: the link's `validUntil`
+		 * in `content.representationUntil`, only for a party that represents another.
+		 *
+		 * @param {object} party The link row.
+		 * @return {string} The pill text, or ''.
+		 * @spec openspec/changes/party-representation-end-pill/specs/record-widgets/spec.md#requirement-a-representatives-row-names-when-the-representation-ends
+		 */
+		untilPillFor(party) {
+			const words = this.content?.representationUntil
+			if (!words || !this.representedBy(party)) {
+				return ''
+			}
+			return untilPillOf(party, this.cnTranslate(words))
 		},
 
 		indicatorsFor(party) {

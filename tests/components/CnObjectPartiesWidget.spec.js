@@ -178,6 +178,27 @@ describe('CnObjectPartiesWidget', () => {
 		expect(w.findAll('[data-testid="cn-object-parties-party"]').length).toBeGreaterThan(0)
 	})
 
+	it('names when a representation ends, as a warning pill in both looks', async () => {
+		const ending = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', validUntil: '2026-12-31' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', partyKind: 'person', validUntil: '2026-12-31' }] } }
+		const content = { ...CONTENT, representationUntil: 'Authorisation until {date}' }
+		for (const look of ['nextcloud', 'board']) {
+			serve({ '/apps/openregister/api/objects/x/item/r-1/parties': ending })
+			const w = await mountParties(content, look)
+			const pills = w.findAll('[data-testid="cn-object-parties-until"]')
+			expect(pills).toHaveLength(1)
+			expect(w.find('[data-party="p-mr"] [data-testid="cn-object-parties-until"]').text()).toMatch(/^Authorisation until .*31/)
+			expect(pills[0].classes()).toContain('cn-status-badge--warning')
+			w.unmount()
+		}
+	})
+
+	it('draws no end pill when the app gives no words for it', async () => {
+		const ending = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', validUntil: '2026-12-31' }] } }
+		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': ending })
+		const w = await mountParties(CONTENT, 'board')
+		expect(w.find('[data-testid="cn-object-parties-until"]').exists()).toBe(false)
+	})
+
 	it('says a failed read failed, never that there are no parties', async () => {
 		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': new Error('500') })
 		const w = await mountParties()
