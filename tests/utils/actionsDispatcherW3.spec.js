@@ -32,7 +32,7 @@ jest.mock('@nextcloud/dialogs', () => ({
 }))
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { post: jest.fn(), put: jest.fn(), patch: jest.fn(), get: jest.fn() },
+	default: { post: jest.fn(), put: jest.fn(), patch: jest.fn(), get: jest.fn(), delete: jest.fn() },
 }))
 jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
@@ -175,6 +175,28 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 			expect(axios.patch.mock.calls[0][0]).toBe('/nc/apps/openregister/api/objects/dossiq/toestemming/c1')
 			expect(axios.patch.mock.calls[0][1]).toEqual({ withdrawn: true })
 			expect(axios.post).not.toHaveBeenCalled()
+			expect(result.ok).toBe(true)
+		})
+
+		it('honours method: DELETE and sends the payload as request data', async () => {
+			axios.delete.mockResolvedValue({ data: { frozen: null } })
+			const result = await dispatchAction(
+				{
+					type: 'api-call',
+					method: 'DELETE',
+					url: '/apps/openregister/api/objects/pipelinq/client/@objectId/freeze',
+					payload: { reason: 'Address correction' },
+				},
+				{ tokenCtx: { objectId: 'k1' } },
+			)
+			await flush()
+
+			expect(axios.delete).toHaveBeenCalledWith(
+				'/nc/apps/openregister/api/objects/pipelinq/client/k1/freeze',
+				{ data: { reason: 'Address correction' } },
+			)
+			expect(axios.post).not.toHaveBeenCalled()
+			expect(emit).toHaveBeenCalledWith('cn:page:refresh', {})
 			expect(result.ok).toBe(true)
 		})
 

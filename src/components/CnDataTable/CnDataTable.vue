@@ -9,6 +9,7 @@
 			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
+			'cn-table-container--framed': framed,
 			'cn-table-container--fill': fillHeight,
 		}">
 		<!-- Optional card header (folded from the retired CnTableWidget): a title
@@ -922,6 +923,19 @@ export default {
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
 		 */
 		borderless: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Frame a table that sits straight in a card, as the Pipelinq POS boards
+		 * draw it (PqKassa "Aankoopgeschiedenis"): a 1px frame with an 8px
+		 * radius, 18px outer cell insets and a rule under the head and every row
+		 * but the last. Board look only; the Nextcloud look ignores it.
+		 *
+		 * @spec openspec/changes/data-table-framed/specs/data-table-framed/spec.md#requirement-a-data-table-in-a-card-can-be-framed
+		 */
+		framed: {
 			type: Boolean,
 			default: false,
 		},

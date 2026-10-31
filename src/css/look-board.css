@@ -3958,6 +3958,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	height: 34px;
 }
 
+/* A list an app draws itself on a settings card (`cn-settings-list`, rows
+   `cn-settings-row`) is flat: rows flush with the card's title, a hairline
+   below each, no box per row (PqBeheer Vaardigheden, Medewerkerprofielen,
+   Productcategorieën). The repeated class outranks the app's scoped row box.
+   @spec openspec/changes/board-settings-list-rows/specs/board-settings-list-rows/spec.md */
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-list.cn-settings-list {
+	gap: 0;
+}
+
+.cn-look-board .settings-section:not(.cn-look-nextcloud *) .cn-settings-row.cn-settings-row {
+	padding: 10px 0;
+	border: 0;
+	border-bottom: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+	background: transparent;
+}
+
 /* A delete in a settings row does not shout. In a list row an app draws
    itself it is the soft error tint with red text and no edge (PqBeheer
    "Verwijderen"); in a settings table row it is white with a red edge and red

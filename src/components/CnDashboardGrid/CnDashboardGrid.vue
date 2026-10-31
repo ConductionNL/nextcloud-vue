@@ -923,6 +923,12 @@ export default {
 			const resize = grid.resizeToContent.bind(grid)
 			const growing = new Set()
 			grid.resizeToContent = (el) => {
+				if (this.pendingSizes) {
+					if (!this.pendingSizes.includes(el)) {
+						this.pendingSizes.push(el)
+					}
+					return
+				}
 				this.matchRowHeights()
 				this.resizeKeepingOrder(grid, resize, growing, el)
 				if (growing.size === 0) {
@@ -1557,22 +1563,58 @@ export default {
 			return nodes.find((n) => String(n.id) === String(id)) || null
 		},
 
+		/**
+		 * Make the cards a layout change brings in GridStack widgets, in the
+		 * order given (row order), and size the size-to-content ones only once
+		 * all are placed, in the same order. GridStack sizes such a cell the
+		 * moment it is added, and a card added after it onto a cell that has
+		 * grown pushes that cell below itself: the in-call tile row on
+		 * PqWerkplekKlant ended under every column card.
+		 *
+		 * @spec openspec/changes/dashboard-layout-swap-keeps-order/specs/dashboard-grid/spec.md#requirement-cards-a-layout-change-adds-keep-their-authored-order
+		 * @param {Array<HTMLElement>} els The new cells, top to bottom.
+		 * @return {void}
+		 */
+		addWidgetsInOrder(els) {
+			if (els.length === 0) {
+				return
+			}
+			const grid = toRaw(this.grid)
+			const queued = []
+			this.pendingSizes = queued
+			try {
+				for (const el of els) {
+					grid.makeWidget(el)
+				}
+			} finally {
+				this.pendingSizes = null
+			}
+			for (const el of queued) {
+				grid.resizeToContent(el)
+			}
+		},
+
 		syncGridItems(newLayout) {
 			// Add new items, and re-adopt items whose backing DOM element was
 			// replaced. When a consumer's `itemKey` changes for an unchanged
 			// `id` (e.g. a style edit — the documented use of `itemKey`), Vue
 			// swaps the element. GridStack keeps tracking the old, now-detached
 			// element, leaving the new one unmanaged (no positioning/sizing) —
-			// so re-register it against the new element.
-			for (const item of newLayout) {
-				this.$nextTick(() => {
+			// so re-register it against the new element. New items are added
+			// together, top to bottom (`addWidgetsInOrder`).
+			this.$nextTick(() => {
+				if (!this.grid || !this.$refs.gridContainer) {
+					return
+				}
+				const added = []
+				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
-						return
+						continue
 					}
 					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
-						this.grid.makeWidget(el)
+						added.push(el)
 					} else if (node.el === el) {
 						// The layout MOVED an item the grid already tracks: the
 						// page re-compacts its display layout when a widget's
@@ -1601,8 +1643,9 @@ export default {
 						this.grid.removeWidget(node.el, false, false)
 						this.grid.makeWidget(el)
 					}
-				})
-			}
+				}
+				this.addWidgetsInOrder(added)
+			})
 
 			// Remove items no longer in layout
 			const ids = newLayout.map((i) => String(i.id))

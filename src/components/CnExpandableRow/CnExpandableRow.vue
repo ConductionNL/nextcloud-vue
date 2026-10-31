@@ -869,7 +869,9 @@ export default {
 	align-items: center;
 }
 
-.cn-expandable-row__sort {
+/* With the wrapper class, so these outrank Nextcloud's plain-button rule
+   (`button:not(.button-vue,...)`, 0,2,1), which drew a grey 22px button. */
+.cn-expandable-row__th .cn-expandable-row__sort {
 	display: inline-flex;
 	gap: 4px;
 	align-items: center;
@@ -877,6 +879,7 @@ export default {
 	margin: 0;
 	padding: 0;
 	border: 0;
+	border-radius: 0;
 	background: transparent;
 	color: inherit;
 	font: inherit;
@@ -902,7 +905,7 @@ export default {
 	display: inline-flex;
 }
 
-.cn-expandable-row__filter {
+.cn-expandable-row__filter-anchor .cn-expandable-row__filter {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -918,8 +921,8 @@ export default {
 	cursor: pointer;
 }
 
-.cn-expandable-row__filter:hover,
-.cn-expandable-row__filter--active {
+.cn-expandable-row__filter-anchor .cn-expandable-row__filter:hover,
+.cn-expandable-row__filter-anchor .cn-expandable-row__filter--active {
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text, var(--color-primary-element));
 }

@@ -56,12 +56,15 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * `handoff` is one action on one record; the card and title come from the host.
  * `macros` lists a record's macros with their buttons; the card and title come from the host.
  * `record-notes` edits a text field of the record in view, with no card of its own.
+ * `field-groups` draws several list fields of the record as label and value pairs, and
+ * `object-links` the record's links to other records; both take the titled wrapper
+ * and report their own Add for its title row, so the catalog Add does not apply.
  * `grouped-cards` draws groups of cards (DqZaaktype "Fasen en taken") with no card of
  * its own; the card, title and subtitle come from the host, and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes', 'field-groups', 'object-links'])
 
 /**
  * The stored content/config blob for a widget definition.

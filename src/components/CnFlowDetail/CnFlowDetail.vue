@@ -210,6 +210,7 @@
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
 			:fitMaxZoom="fitMaxZoom"
+			:fitInset="fitInset"
 			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
 			@nodeActivate="onNodeActivate"
@@ -487,6 +488,15 @@ export default {
 		fitMaxZoom: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * Pixels per side that the host's chrome covers over the canvas, or a
+		 * function returning them; passed to CnGraphCanvas `fitInset`.
+		 */
+		fitInset: {
+			type: [Object, Function],
+			default: null,
 		},
 
 		/**
