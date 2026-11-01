@@ -218,7 +218,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary, 'cn-record-list__list--headline': headLine }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
