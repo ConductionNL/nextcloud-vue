@@ -348,6 +348,7 @@
 									:disabled="field.readOnly"
 									:placeholder="fieldPlaceholder(field)"
 									:rows="textareaRows(field)"
+									:style="textareaRowsStyle(field)"
 									@input="updateField(field.key, $event.target.value)" />
 								<CnFieldHelper
 									:id="helpId(field)"
@@ -4683,6 +4684,20 @@ export default {
 		textareaRows(field) {
 			const rows = Number(field && field.rows)
 			return Number.isInteger(rows) && rows > 0 ? rows : 4
+		},
+
+		/**
+		 * The rows a textarea field's own `rows` asks for, as the
+		 * `--cn-textarea-rows` the board look sizes it by; none without them,
+		 * so the board look keeps its own three-line height.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @return {object|null} The style binding.
+		 * @spec openspec/changes/form-textarea-follows-rows/specs/form-dialog/spec.md#requirement-a-board-text-area-is-as-many-lines-as-its-rows
+		 */
+		textareaRowsStyle(field) {
+			const rows = Number(field && field.rows)
+			return Number.isInteger(rows) && rows > 0 ? { '--cn-textarea-rows': String(rows) } : null
 		},
 
 		/**

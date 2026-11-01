@@ -249,6 +249,9 @@ many lines high as its override's `rows` (default 4):
 { "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
 ```
 
+In the board look a textarea is three lines tall on the normal leading; a field
+with its own `rows` is that many lines tall instead.
+
 A manifest `open-form` action declares `size` and `columns` directly:
 
 ```json static
