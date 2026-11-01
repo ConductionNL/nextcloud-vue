@@ -4,7 +4,19 @@
 -->
 
 <template>
+	<div v-if="sections.length > 0" class="cn-record-list-sections" data-testid="cn-record-list-sections">
+		<!-- `sections`: one card, several sources, each drawn as a record list of its own in order. -->
+		<CnRecordListWidget
+			v-for="(section, index) in sections"
+			:key="`section-${index}`"
+			:content="section"
+			:objectId="objectId"
+			:objectData="objectData"
+			:data-testid="`cn-record-list-section-${index}`"
+			@header="index === 0 ? $emit('header', $event) : null" />
+	</div>
 	<div
+		v-else
 		class="cn-record-list"
 		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--meta-beside': presentation === 'rows' && content.metaBeside === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
 		data-testid="cn-record-list">
@@ -234,11 +246,17 @@
 						<span v-if="item.leading"
 							class="cn-record-list__leading"
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
-						<span v-if="item.initials"
+						<span v-if="item.initials || item.avatarIcon"
 							class="cn-record-list__avatar"
 							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
-							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+							data-testid="cn-record-list-avatar">
+							<CnIcon v-if="item.avatarIcon"
+								:name="item.avatarIcon"
+								:size="16"
+								data-testid="cn-record-list-avatar-icon" />
+							<template v-else>{{ item.initials }}</template>
+						</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
 							:class="{ 'cn-record-list__dot--small': dotSmall }"
@@ -312,11 +330,17 @@
 								:variant="item.pill.variant"
 								size="small" />
 						</span>
-						<span v-if="item.initials"
+						<span v-if="item.initials || item.avatarIcon"
 							class="cn-record-list__avatar"
 							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
-							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+							data-testid="cn-record-list-avatar">
+							<CnIcon v-if="item.avatarIcon"
+								:name="item.avatarIcon"
+								:size="16"
+								data-testid="cn-record-list-avatar-icon" />
+							<template v-else>{{ item.initials }}</template>
+						</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
 							:class="{ 'cn-record-list__dot--small': dotSmall }"
@@ -734,6 +758,13 @@ function groupToneOf(tones, value) {
 	return ['error', 'warning', 'success', 'primary'].includes(tone) ? tone : ''
 }
 
+/**
+ * Card keys that end the card, given to the last of its `sections` only.
+ *
+ * @type {string[]}
+ */
+const SECTION_FOOTER_KEYS = ['footnote', 'footnoteVariant', 'footerLink', 'footerAction']
+
 export default {
 	name: 'CnRecordListWidget',
 
@@ -832,6 +863,16 @@ export default {
 		 * title at 600 in the board look (DqZaakTaken "Incidenten").
 		 * `metaBeside: true` sets the meta line on the title's line, 14px
 		 * after it, for a one-line summary (DqTermijnen "Totale dwangsom").
+		 * `sections` (a list of configs of this shape) draws several sources in
+		 * one card, in order, each with its own empty and error text; a section
+		 * takes the card's other keys unless it sets them, and the card's
+		 * footnote and footer go under the last one (DqZaakBetrokkenen Toegang).
+		 * `meta` as `{ cases: [{ when, text }], text? }` writes the text of the
+		 * first case whose condition holds on the row. `avatar.icon` (`{ field,
+		 * map }`) draws an icon in the avatar for a row whose field maps to one.
+		 * `hideWhen` (a condition over the row) leaves out endpoint or object
+		 * rows it holds for. `refusalText` shows a refused (401/403) endpoint
+		 * read in the app's words instead of the server's.
 		 *
 		 * @type {object}
 		 */
@@ -962,6 +1003,38 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The card's sections (`content.sections`), each a record list config.
+		 *
+		 * A section inherits the card's own keys (the look: `presentation`,
+		 * `ruleAbove`, `density` ...) and overrides them with its own. The card's
+		 * footer (`footnote`, `footnoteVariant`, `footerLink`, `footerAction`)
+		 * goes to the last section only, so it ends the card once.
+		 *
+		 * @return {Array<object>} The section configs, [] for a single-source list.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-record-list-card-can-draw-several-sources-as-sections
+		 */
+		sections() {
+			const declared = this.content?.sections
+			if (!Array.isArray(declared)) {
+				return []
+			}
+			const list = declared.filter((section) => section && typeof section === 'object' && !Array.isArray(section))
+			const shared = {}
+			const footer = {}
+			Object.keys(this.content).forEach((key) => {
+				if (key === 'sections') {
+					return
+				}
+				if (SECTION_FOOTER_KEYS.includes(key)) {
+					footer[key] = this.content[key]
+				} else {
+					shared[key] = this.content[key]
+				}
+			})
+			return list.map((section, index) => ({ ...shared, ...(index === list.length - 1 ? footer : {}), ...section }))
+		},
+
 		/**
 		 * Whether the row dot is the small list marker (`dot.size: 10`).
 		 *
@@ -1316,6 +1389,7 @@ export default {
 					tag: link ? 'router-link' : (href ? 'a' : 'div'),
 					attrs: link ? { to: link } : (href ? { href } : {}),
 					initials: this.initialsFor(row),
+					avatarIcon: this.avatarIconFor(row),
 					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
@@ -1818,15 +1892,18 @@ export default {
 		},
 
 		/**
-		 * The error line: an endpoint's refusal (401/403) in its own words,
-		 * through the app's catalogue, else `errorText`, else the default.
+		 * The error line: an endpoint's refusal (401/403) as `refusalText`, else
+		 * in the server's own words, through the app's catalogue; any other
+		 * failure as `errorText`, else the default.
 		 *
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-refused-section-can-say-why-in-the-apps-words
 		 * @return {string} The error line.
 		 * @spec openspec/changes/record-list-endpoint-refusal/specs/record-list/spec.md#requirement-a-refused-endpoint-read-says-why
 		 */
 		errorLabel() {
 			if (this.endpointActive && this.epRefusal) {
-				return this.translate(this.epRefusal)
+				const own = this.content?.refusalText
+				return this.translate(typeof own === 'string' && own !== '' ? own : this.epRefusal)
 			}
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
@@ -2081,6 +2158,25 @@ export default {
 			}
 			const variant = tone.map[String(readPath(row, tone.field) ?? '')]
 			return ['default', 'success', 'warning', 'error', 'info', 'purple', 'teal'].includes(variant) ? variant : ''
+		},
+
+		/**
+		 * The icon a row's avatar shows instead of initials, from `avatar.icon:
+		 * { field, map }` (`{ field: "principal.type", map: { group:
+		 * "AccountGroup" } }`: a group's grant row shows the group icon, a
+		 * user's its initials); '' without.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} An icon name, or ''.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-row-avatar-can-show-an-icon-by-the-row
+		 */
+		avatarIconFor(row) {
+			const icon = this.content?.avatar?.icon
+			if (!icon || typeof icon !== 'object' || typeof icon.field !== 'string' || !icon.map || typeof icon.map !== 'object') {
+				return ''
+			}
+			const name = icon.map[String(readPath(row, icon.field) ?? '')]
+			return typeof name === 'string' ? name : ''
 		},
 
 		/**
@@ -2615,6 +2711,24 @@ export default {
 		},
 
 		/**
+		 * The rows without those `content.hideWhen` (a local condition over the
+		 * row) holds for: plumbing an app knows about and the endpoint does not,
+		 * such as a service account among a case's grants. Applied to the rows
+		 * read from an endpoint or from the page record.
+		 *
+		 * @param {Array<object>} records The rows read.
+		 * @return {Array<object>} The rows to draw.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-record-list-can-hide-rows-by-a-condition
+		 */
+		withoutHidden(records) {
+			const hide = this.content?.hideWhen
+			if (!hide || typeof hide !== 'object') {
+				return records
+			}
+			return records.filter((record) => !evaluateVisibleWhenLocal(hide, scalarRow(record) || {}))
+		},
+
+		/**
 		 * The rows of a read with `flattenPath` set: each entry of the list at
 		 * that path on a record becomes a row, with the record at `@parent`.
 		 * A record without the list adds no row. Without `flattenPath` the
@@ -2954,14 +3068,22 @@ export default {
 		 * empties it. `{ parts: ["{identifier}", "{caseTypeName}", "{handler}"],
 		 * separator? }` fills each part on its own, drops the empty ones and
 		 * joins the rest (default " · "), so a row without a handler still
-		 * reads "2026-0082 · Woo-verzoek".
+		 * reads "2026-0082 · Woo-verzoek". `{ cases: [{ when, text }], text? }`
+		 * writes the text of the first case whose `when` (a local condition over
+		 * the row) holds, else its own `text` ("via het zaaktype", "gedeeld door
+		 * {sharedBy.displayName}").
 		 *
 		 * @param {object} row The row.
 		 * @return {string} The meta line, '' when nothing fills.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-meta-line-can-depend-on-the-row
 		 * @spec openspec/changes/screens-record-list-meta-parts/specs/record-list-meta-parts/spec.md#requirement-a-meta-line-of-parts-skips-the-empty-ones
 		 */
 		metaOf(row) {
 			const meta = this.content?.meta
+			if (meta && typeof meta === 'object' && Array.isArray(meta.cases)) {
+				const found = meta.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+				return this.fill((found || meta).text, row)
+			}
 			if (!meta || typeof meta !== 'object' || !Array.isArray(meta.parts)) {
 				return this.fill(meta, row)
 			}
@@ -3171,7 +3293,7 @@ export default {
 		 * @spec openspec/changes/endpoint-source-card-grid-record-list/specs/dashboard-page/spec.md#requirement-a-record-list-and-a-card-grid-can-read-an-endpoint
 		 */
 		takeEndpointRows() {
-			this.rows = this.flattenRows(Array.isArray(this.epData) ? this.epData : [])
+			this.rows = this.withoutHidden(this.flattenRows(Array.isArray(this.epData) ? this.epData : []))
 			this.total = this.rows.length
 			this.loading = this.epLoading === true
 			this.error = Boolean(this.epError)
@@ -3200,7 +3322,7 @@ export default {
 				return
 			}
 			if (this.objectRowsActive) {
-				this.rows = this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row)))
+				this.rows = this.withoutHidden(this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row))))
 				this.total = this.rows.length
 				this.loading = false
 				this.error = false
