@@ -286,12 +286,14 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
-							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined, 'cn-record-list__action--icon': item.action.iconOnly }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
 							<CnIcon v-if="item.action.icon" :name="item.action.icon" :size="16" />
-							{{ item.action.label }}
+							<template v-if="!item.action.iconOnly">
+								{{ item.action.label }}
+							</template>
 						</component>
 					</div>
 					<!-- rows: title, meta and text, then the pill, the date and a chevron. -->
@@ -2202,7 +2204,10 @@ export default {
 		 * The one action that ends a row (`rowAction`): its label (from
 		 * `labels.map` by the row's `labels.field`, else `label`), and how it
 		 * renders: a link when it only navigates, else a button that
-		 * dispatches. Null without the key or a label.
+		 * dispatches. Null without the key or a label. A button with
+		 * `iconOnly: true` and an `icon` shows the icon alone.
+		 *
+		 * @spec openspec/changes/record-list-icon-row-action/specs/record-list/spec.md#requirement-a-rows-one-action-can-be-an-icon-button
 		 *
 		 * @param {object} row The row.
 		 * @return {{label: string, tag: string, attrs: object}|null}
@@ -2231,7 +2236,14 @@ export default {
 					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
 					: { label, tag: 'router-link', attrs: { to: link.to } }
 			}
-			return { label, tag: 'button', attrs: { type: 'button' }, icon: typeof action.icon === 'string' ? action.icon : '' }
+			const icon = typeof action.icon === 'string' ? action.icon : ''
+			// `iconOnly` draws the icon alone; the label names the button for
+			// assistive technology and as its tooltip (DqZaakBetrokkenen
+			// Toegang "Link intrekken").
+			if (action.iconOnly === true && icon !== '') {
+				return { label, tag: 'button', attrs: { type: 'button', 'aria-label': label, title: label }, icon, iconOnly: true }
+			}
+			return { label, tag: 'button', attrs: { type: 'button' }, icon }
 		},
 
 		/**
@@ -3838,6 +3850,13 @@ export default {
    doubled class outranks it. */
 .cn-record-list__action.cn-record-list__action {
 	margin: 0;
+}
+
+/* `rowAction.iconOnly`: a 34px square holding the icon alone. */
+.cn-record-list__action.cn-record-list__action--icon {
+	flex: 0 0 34px;
+	width: 34px;
+	padding: 0;
 }
 
 .cn-record-list__action:hover,
