@@ -49,10 +49,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * on a card surface both need the titled wrapper, and neither has an Add.
  * `object-translations` is a bare per-language editor that takes the titled
  * wrapper and has no Add.
+ * `rubric-scorer` is a bare scoring form that saves the record it scores, so
+ * it takes the titled wrapper and has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'rubric-scorer'])
 
 /**
  * The stored content/config blob for a widget definition.

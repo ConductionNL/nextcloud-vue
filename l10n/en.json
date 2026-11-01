@@ -2236,7 +2236,13 @@
     "How this app compares": "How this app compares",
     "This field is required": "This field is required",
     "Creating…": "Creating…",
-    "This could not be created. Try again.": "This could not be created. Try again."
+    "This could not be created. Try again.": "This could not be created. Try again.",
+    "Total: {score} of {max} points": "Total: {score} of {max} points",
+    "There is no rubric to score against.": "There is no rubric to score against.",
+    "weight {weight}": "weight {weight}",
+    "The rubric could not be loaded: {reason}": "The rubric could not be loaded: {reason}",
+    "The scores were saved, but the next step was refused.": "The scores were saved, but the next step was refused.",
+    "Saved and sent on.": "Saved and sent on."
   },
   "plurals": {
     "{count} member": [
@@ -2393,6 +2399,14 @@
     "Also written on %n other record": [
       "Also written on %n other record",
       "Also written on %n other records"
+    ],
+    "%n criterion still to score": [
+      "%n criterion still to score",
+      "%n criteria still to score"
+    ],
+    "%n point": [
+      "%n point",
+      "%n points"
     ]
   }
 }
