@@ -33,7 +33,7 @@ messages: [
   @sent="reload" />
 ```
 
-The reply is posted as `{ message, ...payload }`. The box clears when the request succeeds. When it fails, the text stays and an error is announced, so nothing typed is lost.
+The reply is posted as `{ message, ...payload }`; `message-key` names another field for the text (`body`). The box clears when the request succeeds. When it fails, the text stays and an error is announced, so nothing typed is lost.
 
 Press Ctrl+Enter, or Cmd+Enter on a Mac, to send from the keyboard.
 
@@ -79,6 +79,7 @@ The `conversation` widget type reads the messages from a field on the record and
 | `usLabel` | String | `'You'` | Author shown on an `us` message that names none. |
 | `endpoint` | String | `''` | URL the reply is posted to. Empty means you handle `send` yourself. |
 | `payload` | Object | `{}` | Extra fields sent along with `message`. |
+| `messageKey` | String | `'message'` | The field the reply text is posted under when `endpoint` is set, for an endpoint that takes it by another name (`body`). |
 | `loading` | Boolean | `false` | While true and there are no messages yet, the thread says "Loading messages…" in a status region. |
 | `channelFilter` | Boolean | `false` | Draw channel chips above the messages: All, then one per channel with its count. Choosing one shows only that channel's messages. |
 | `channels` | Array | `[]` | Channel labels that always get a chip, in this order, also when no message uses them yet. |

@@ -32,6 +32,7 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 | `counts` | `Object` | `null` | Record counts by view id or slug, shown on the chips. |
 | `selectedViewId` | `String` | `''` | The applied view; its chip renders selected. |
 | `chips` | `Boolean` | `true` | Whether the board look draws the views as chips. `false` keeps only Save view (CnIndexPage `config.savedViewChips: false`), for a page whose views live in the side panel's Weergaven tab. |
+| `shareView` | `Object` | `null` | The open view to offer to share: a "Share: {name}" button beside Save view that emits `share-request`. CnIndexPage passes it with `config.savedViewShare: true` for a stored view the reader owns (PqTicketsSelectie). |
 
 ## Events
 
@@ -39,6 +40,7 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 |---|---|---|
 | `apply` | View | A chip was clicked. |
 | `save-request` | none | Save view was clicked. |
+| `share-request` | View | "Share: {name}" was clicked; CnIndexPage opens the share dialog for that view. |
 
 ## Save view given up for the header (`save`)
 

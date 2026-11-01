@@ -318,8 +318,10 @@
 					:selectedViewId="appliedSavedViewId"
 					:save="toolbarSavesView"
 					:chips="savedViewChips"
+					:shareView="toolbarSharesView"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true" />
+					@saveRequest="showSaveViewDialog = true"
+					@shareRequest="onShareViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -665,6 +667,9 @@
 				:size="formSize"
 				:columns="formColumns"
 				:initialData="resolvedCreateDefaults"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
+				:draftField="draftField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -2748,6 +2753,19 @@ export default {
 		},
 
 		/**
+		 * Whether the toolbar offers to share the open saved view (manifest
+		 * `config.savedViewShare`): "Share: {name}" beside Save view, for a
+		 * view of the reader's own, opening the side panel's share dialog
+		 * (PqTicketsSelectie).
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 */
+		savedViewShare: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Whether an applied saved view names the page and its side panel
 		 * (manifest `config.savedViewTitle`): a view opened from the menu or
 		 * the panel heads the list with its own name (DqFilterInMenu "Termijn
@@ -3683,6 +3701,33 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The app a form draft belongs to, forwarded to every form this page
+		 * opens as CnFormDialog's `draftAppId`, so what a user typed and did not
+		 * save is kept and offered back under this app's key.
+		 */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Offer "Save draft" on the create form, forwarded as CnFormDialog's
+		 * `allowDraft`. On an edit form it is offered only while the record is
+		 * still a draft: saving a record that is already in use as a draft
+		 * would take it out of use.
+		 */
+		allowDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The boolean property that marks a record as a draft (CnFormDialog's `draftField`). */
+		draftField: {
+			type: String,
+			default: 'isDraft',
 		},
 
 		/**
@@ -9067,6 +9112,22 @@ export default {
 			// opened: changed by the reader, or, with no saved view open,
 			// filtered by the address.
 			return !this.isBoardLook || this.viewChanged || (!this.appliedSavedViewId && this.activeFilterChips.length > 0)
+		},
+
+		/**
+		 * The open saved view the toolbar offers to share: with
+		 * `savedViewShare`, a stored view the reader owns. A default view and
+		 * a view shared with the reader are not theirs to share.
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 * @return {object|null}
+		 */
+		toolbarSharesView() {
+			const view = this.savedViewShare ? this.appliedSavedView : null
+			if (!view || view.seeded || !view.id) {
+				return null
+			}
+			return viewAccess(view, this.currentSavedViewsUserId) === 'owner' ? view : null
 		},
 
 		/**
