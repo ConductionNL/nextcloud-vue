@@ -752,19 +752,24 @@ export default {
 		},
 
 		/**
-		 * The `badge` widget's entries when the value is a list, each as text;
-		 * null for a single value.
+		 * The `badge` widget's entries when the value is a list, each as its
+		 * label: the items' `x-enum-labels` (or the normalised `enumLabels`),
+		 * translated, else the entry as stored. Null for a single value.
 		 *
 		 * @return {string[]|null}
 		 * @spec openspec/changes/badge-cell-list/specs/badge-cell-list/spec.md#requirement-a-badge-cell-draws-one-chip-per-entry-of-a-list
+		 * @spec openspec/changes/badge-list-labels-and-tags/specs/badge-cell-list/spec.md#requirement-a-badge-list-chip-shows-its-entrys-label
 		 */
 		badgeList() {
 			if (!Array.isArray(this.value)) {
 				return null
 			}
+			const items = (this.property && this.property.items) || {}
+			const labels = items.enumLabels || items['x-enum-labels'] || (this.property && (this.property.enumLabels || this.property['x-enum-labels'])) || {}
 			return this.value
 				.filter((entry) => entry !== null && entry !== undefined && entry !== '' && typeof entry !== 'object')
 				.map((entry) => String(entry))
+				.map((entry) => (typeof labels[entry] === 'string' ? this.cnTranslate(labels[entry]) : entry))
 		},
 
 		/**
