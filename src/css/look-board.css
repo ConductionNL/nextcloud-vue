@@ -1563,6 +1563,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	padding: 4px 0 8px;
 }
 
+/* The header's buttons keep their width (the board draws them `flex: none`),
+   so a long path note wraps under the title instead of pushing the buildiq
+   square onto a second row (DqBeheerGeavanceerd).
+   @spec openspec/changes/admin-header-buttons-keep-their-width/specs/admin-header-buttons-keep-their-width/spec.md#requirement-the-admin-header-buttons-stay-on-one-row */
+.cn-look-board .cn-admin-settings-shell__header-buttons:not(.cn-look-nextcloud *) {
+	flex: none;
+}
+
 .cn-look-board .cn-admin-settings-shell__crumb-list:not(.cn-look-nextcloud *) {
 	display: flex;
 	flex-wrap: wrap;
