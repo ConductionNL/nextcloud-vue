@@ -2503,6 +2503,28 @@
 	line-height: 1.2;
 }
 
+/* In its framed `viewTableContainer` it is the framed card table, as
+   CnDataTable `framed` draws it (PqService "Opbouw in stappen", PqResource):
+   18px outer insets, 12px rows, a hairline under each row but the last.
+   @spec openspec/changes/board-view-table-framed/specs/board-view-table-head/spec.md#requirement-a-framed-board-view-table-is-the-boards-framed-card-table */
+.cn-look-board .viewTableContainer .viewTable :is(th, td):first-child:not(.cn-look-nextcloud *) {
+	padding-inline-start: 18px;
+}
+
+.cn-look-board .viewTableContainer .viewTable :is(th, td):last-child:not(.cn-look-nextcloud *) {
+	padding-inline-end: 18px;
+}
+
+.cn-look-board .viewTableContainer .viewTable td:not(.cn-look-nextcloud *) {
+	padding-block: 12px;
+	border-top: 0;
+	border-bottom: 1px solid var(--cn-board-hairline);
+}
+
+.cn-look-board .viewTableContainer .viewTable tbody tr:last-child td:not(.cn-look-nextcloud *) {
+	border-bottom: 0;
+}
+
 /* The contacts tab's rows as DqZaakBetrokkenen "Partijen" draws them: the
    role heading 15px bold ink in sentence case, each person on a row 12px
    high-padded under a hairline, the details and the period 13px muted.
