@@ -1201,8 +1201,10 @@
 }
 
 /* `rowTitle: "plain"` (PqTickets, OcPublicaties): the title is bold text in
-   the main text colour without an underline, the secondary line 13px muted,
-   2px under it. The row stays clickable through its stretched row link. */
+   the main text colour without an underline, the secondary line 13px muted
+   at a normal line height, 2px under it (PqTaken). The row stays clickable
+   through its stretched row link.
+   @spec openspec/changes/board-plain-title-secondary-normal-leading/specs/board-plain-title-secondary-normal-leading/spec.md */
 .cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title {
 	font-weight: 700;
 	text-decoration: none;
@@ -1211,6 +1213,7 @@
 .cn-look-board .cn-table-container--board.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-table-cell__secondary {
 	margin-top: 2px;
 	font-size: 13px;
+	line-height: normal;
 }
 
 /* `rowTitle: "text"` (DqZaakContact's contact moments): the title column is

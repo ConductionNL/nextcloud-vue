@@ -11,6 +11,7 @@
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-the-title-link-underlines-the-title-only
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-the-row-menu-keeps-its-board-border-under-any-theme
  * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
+ * @spec openspec/changes/board-plain-title-secondary-normal-leading/specs/board-plain-title-secondary-normal-leading/spec.md#requirement-a-plain-titles-secondary-line-runs-at-a-normal-line-height
  */
 const fs = require('fs')
 const path = require('path')
@@ -47,6 +48,11 @@ describe('look-board-index.css: table rows', () => {
 		const secondary = rulesEndingWith('.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-table-cell__secondary')
 		expect(secondary).toMatch(/font-size:\s*13px/)
 		expect(secondary).toMatch(/margin-top:\s*2px/)
+	})
+
+	it('runs a plain title\'s 13px secondary line at a normal line height, not the table\'s 1.35', () => {
+		const secondary = rulesEndingWith('.cn-table-container--title-plain .cn-data-table td.cn-table-col--title .cn-table-cell__secondary')
+		expect(secondary).toMatch(/line-height:\s*normal/)
 	})
 
 	it('draws a text title as an ordinary cell: weight 400, the cell size, no underline', () => {
