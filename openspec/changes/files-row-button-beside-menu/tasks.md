@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser scoped style
+- [x] tests/css/filesRowButtonBesideMenu.spec.js (red first)
