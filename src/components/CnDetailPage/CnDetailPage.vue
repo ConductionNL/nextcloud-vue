@@ -1341,6 +1341,7 @@
 				:eyebrow="editFormEyebrow"
 				:subtitle="editFormSubtitle"
 				:confirmLabel="editFormConfirmLabel"
+				:footnote="editFormFootnote"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -2549,6 +2550,18 @@ export default {
 
 		/** The edit form's save button, run through the host translate. Empty keeps the form's own label. */
 		editConfirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A note the record edit form closes on, under its fields
+		 * (PqTicketBewerken "De status wijzig je hier niet: ..."), run through
+		 * the host translate. Empty shows none.
+		 *
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFootnote: {
 			type: String,
 			default: '',
 		},
@@ -5086,6 +5099,14 @@ export default {
 		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
 		editFormConfirmLabel() {
 			return this.editConfirmLabel ? this.effectiveTranslate(this.editConfirmLabel) : ''
+		},
+
+		/**
+		 * @return {string} The edit form's closing note, translated; empty when none is configured.
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFormFootnote() {
+			return this.editFootnote ? this.effectiveTranslate(this.editFootnote) : ''
 		},
 
 		/**
