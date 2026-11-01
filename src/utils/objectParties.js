@@ -284,11 +284,50 @@ export function savedUuid(saved) {
 }
 
 /**
+ * The role rows of a record keyed by their participant.
+ *
+ * @param {Array<object>} rows The role rows.
+ * @return {object} participant uuid → row.
+ * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-party-row-can-read-its-note-from-the-role-record
+ */
+export function roleRowsByParticipant(rows) {
+	const map = {}
+	for (const row of Array.isArray(rows) ? rows : []) {
+		const participant = String(row?.participant || '').trim()
+		if (participant !== '') {
+			map[participant] = row
+		}
+	}
+	return map
+}
+
+/**
+ * The note a board row prints: the link's note, or with `spec`
+ * (`{ from: 'roles', field }`) that field of the party's role row, and
+ * nothing when the party has no role row.
+ *
+ * @param {object} party The listing row (`partyUuid` or `contactUid`, `note`).
+ * @param {object} rolesByParticipant The role rows by participant.
+ * @param {{from?: string, field?: string}|undefined} spec Where the note comes from.
+ * @return {string} The note, or ''.
+ * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-party-row-can-read-its-note-from-the-role-record
+ */
+export function partyNoteOf(party, rolesByParticipant, spec) {
+	if (spec?.from === 'roles' && typeof spec.field === 'string' && spec.field !== '') {
+		const row = (rolesByParticipant || {})[party?.partyUuid || party?.contactUid || '']
+		const value = row ? row[spec.field] : ''
+		return typeof value === 'string' ? value.trim() : ''
+	}
+	return typeof party?.note === 'string' ? party.note : ''
+}
+
+/**
  * The board row's meta line (DqZaakBetrokkenen "Rollen", design-system #811):
- * the primary mark, the role, the link's note and the extra lines, by middots.
+ * the primary mark, the role, the note and the extra lines, by middots.
  * A role that follows the primary mark reads in lower case ("Primaire partij ·
- * verzoeker"), unless it is an abbreviation. No kind word: the row's role and
- * note already say what the party is.
+ * verzoeker"), unless it is an abbreviation. A note that starts in lower case
+ * continues the role ("Gemachtigde namens Van Wijk B.V."). No kind word: the
+ * row's role and note already say what the party is.
  *
  * @param {{primary: string, role: string, note: string, extras: Array<string>}} parts The parts.
  * @return {string} The line.
@@ -300,7 +339,13 @@ export function boardMetaLine({ primary = '', role = '', note = '', extras = [] 
 	if (primary && shownRole !== '' && !abbreviation) {
 		shownRole = shownRole[0].toLowerCase() + shownRole.slice(1)
 	}
-	return [primary, shownRole, note, ...(Array.isArray(extras) ? extras : [])]
+	let shownNote = typeof note === 'string' ? note.trim() : ''
+	const continues = shownRole !== '' && shownNote !== '' && shownNote[0] !== shownNote[0].toUpperCase()
+	if (continues) {
+		shownRole = `${shownRole} ${shownNote}`
+		shownNote = ''
+	}
+	return [primary, shownRole, shownNote, ...(Array.isArray(extras) ? extras : [])]
 		.filter((part) => typeof part === 'string' && part.trim() !== '')
 		.join(' · ')
 }

@@ -1608,11 +1608,13 @@ export default {
 		},
 
 		/**
-		 * An integration widget's `labels` (prop name to text), translated in
-		 * the host's language: a leaf cannot translate the host app's words.
+		 * An integration widget's `labels` (prop name to text, or to a map of
+		 * texts), translated in the host's language: a leaf cannot translate
+		 * the host app's words.
 		 *
-		 * @return {object} Prop name to translated text.
+		 * @return {object} Prop name to translated text or map.
 		 * @spec openspec/changes/leaf-labels-in-the-host-language/specs/leaf-labels-in-the-host-language/spec.md#requirement-an-integration-widget-gives-its-leaf-labels-in-the-hosts-language
+		 * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-contact-row-can-lead-with-the-word-for-its-kind
 		 */
 		leafLabels() {
 			const labels = this.widget?.labels
@@ -1623,6 +1625,10 @@ export default {
 			for (const [prop, text] of Object.entries(labels)) {
 				if (typeof text === 'string') {
 					out[prop] = this.translateLabel(text)
+				} else if (text && typeof text === 'object' && !Array.isArray(text)) {
+					out[prop] = Object.fromEntries(Object.entries(text)
+						.filter(([, word]) => typeof word === 'string')
+						.map(([key, word]) => [key, this.translateLabel(word)]))
 				}
 			}
 			return out
