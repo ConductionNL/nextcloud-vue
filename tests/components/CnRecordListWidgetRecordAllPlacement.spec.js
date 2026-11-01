@@ -158,5 +158,6 @@ describe('record-all placement', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
 		expect(css).toMatch(/\.cn-record-notes__all--placed[^{]*\{[^}]*border-top: 1px solid/)
 		expect(css).toMatch(/\.cn-record-notes__all-sentence--placed \{[^}]*padding: 0 24px 20px;/)
+		expect(css).toMatch(/:has\(> \.cn-record-notes__all-sentence--placed\) > \.cn-text-widget \{[^}]*display: none;/)
 	})
 })

@@ -3299,6 +3299,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 0 24px 20px;
 }
 
+/* The placed sentence replaces the card's own text, which stays as the
+   sentence for a library without placement. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-record-notes__all-sentence--placed) > .cn-text-widget {
+	display: none;
+}
+
 /* The card holding that pair draws its title and sentence 24px in, as the
    board draws it, not the dashboard cards' 22px. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(> .cn-widget-wrapper__content > .cn-record-notes__all--placed) {
