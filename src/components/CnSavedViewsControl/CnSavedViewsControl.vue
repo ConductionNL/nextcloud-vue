@@ -35,8 +35,9 @@
 	<!-- The wrapper carries the board look's class, so the bar's row rules
 	     and the ghost-button rules reach the button the way they did when it
 	     was an NcActions trigger. -->
-	<div v-if="save" v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
+	<div v-if="save || shareView" v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
 		<NcButton
+			v-if="save"
 			:variant="isBoardLook ? 'tertiary' : 'secondary'"
 			:aria-label="t('nextcloud-vue', 'Save view')"
 			data-testid="cn-saved-views-control"
@@ -46,12 +47,27 @@
 			</template>
 			{{ t('nextcloud-vue', 'Save view') }}
 		</NcButton>
+		<!-- Share the open view from the toolbar (PqTicketsSelectie): the
+		     same share dialog as the side panel's Share. -->
+		<NcButton
+			v-if="shareView"
+			class="cn-saved-views__share"
+			variant="primary"
+			aria-haspopup="dialog"
+			data-testid="cn-saved-views-share-current"
+			@click="onShareRequest">
+			<template #icon>
+				<ShareVariantOutline :size="isBoardLook ? 14 : 20" />
+			</template>
+			{{ t('nextcloud-vue', 'Share: {name}', { name: shareView.name || '' }) }}
+		</NcButton>
 	</div>
 </template>
 
 <script>
 import { NcButton } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { savedViewsList } from '../../mixins/savedViewsList.js'
 
@@ -65,11 +81,12 @@ import { savedViewsList } from '../../mixins/savedViewsList.js'
  *
  * @event {object} apply — A chip was clicked; apply its view. Payload: the View API object.
  * @event {void} save-request — "Save view" clicked; open the save dialog.
+ * @event {object} share-request — "Share: {name}" clicked; open the share dialog. Payload: `shareView`.
  */
 export default {
 	name: 'CnSavedViewsControl',
 
-	components: { NcButton, ContentSaveOutline },
+	components: { NcButton, ContentSaveOutline, ShareVariantOutline },
 
 	mixins: [savedViewsList],
 
@@ -101,9 +118,20 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * The open saved view the toolbar offers to share, or null for no
+		 * share button. The page passes it only for the reader's own view.
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 */
+		shareView: {
+			type: Object,
+			default: null,
+		},
 	},
 
-	emits: ['apply', 'save-request'],
+	emits: ['apply', 'save-request', 'share-request'],
 
 	computed: {
 		/** @return {boolean} Whether the saved views draw as chips. */
@@ -129,6 +157,11 @@ export default {
 		onSaveRequest() {
 			/** @event save-request "Save view" clicked; open the save dialog. */
 			this.$emit('save-request')
+		},
+
+		onShareRequest() {
+			/** @event share-request "Share: {name}" clicked; open the share dialog for `shareView`. */
+			this.$emit('share-request', this.shareView)
 		},
 	},
 }

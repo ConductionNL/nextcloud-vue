@@ -18,10 +18,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `selectedViewId` | `string`                               |          | `''`    | The id (or slug) of the applied view.                                                                                                                                                                |
 | `save`           | `boolean`                              |          | `true`  | Whether the toolbar draws its Save view button. `false` when the page header already saves the view (a `save-view` header button), so the page offers one way to save, as DqZoekresultaten draws it. |
 | `chips`          | `boolean`                              |          | `true`  | Whether the board look draws the saved views as chips. `false` leaves only Save view, for a page whose views live in the side panel (DqZaken).                                                       |
+| `shareView`      | `object`                               |          | `null`  | The open saved view the toolbar offers to share, or null for no share button. The page passes it only for the reader's own view.                                                                     |
 
 ### Events
 
-| Name           | Payload | Description                                 |
-| -------------- | ------- | ------------------------------------------- |
-| `apply`        | —       | A chip was clicked; apply its stored state. |
-| `save-request` | —       | "Save view" clicked; open the save dialog.  |
+| Name            | Payload | Description                                                       |
+| --------------- | ------- | ----------------------------------------------------------------- |
+| `apply`         | —       | A chip was clicked; apply its stored state.                       |
+| `save-request`  | —       | "Save view" clicked; open the save dialog.                        |
+| `share-request` | —       | "Share: \{name\}" clicked; open the share dialog for `shareView`. |

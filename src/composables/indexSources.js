@@ -830,6 +830,33 @@ function readRowsPath(body, path) {
 }
 
 /**
+ * The parts of an answer a detail page's `sourceConfig.attach` puts on its
+ * record: record key to dot-path in the answer. A path the answer does not
+ * hold is left out, so it never overwrites a field of the record with nothing.
+ *
+ * @param {object|Array|null} body The endpoint's answer.
+ * @param {object|null} attach The declared map, `{ <record key>: <answer path> }`.
+ * @return {object} The parts found, by record key.
+ * @spec openspec/changes/detail-endpoint-answer-parts/specs/detail-page/spec.md#requirement-a-detail-page-over-an-app-endpoint-keeps-the-other-parts-of-the-answer
+ */
+function attachedParts(body, attach) {
+	if (!attach || typeof attach !== 'object' || Array.isArray(attach)) {
+		return {}
+	}
+	const out = {}
+	for (const [name, path] of Object.entries(attach)) {
+		if (typeof path !== 'string' || path === '') {
+			continue
+		}
+		const value = readRowsPath(body, path)
+		if (value !== undefined) {
+			out[name] = value
+		}
+	}
+	return out
+}
+
+/**
  * The `sourceConfig` keys the endpoint source reads itself; every other key
  * goes along as a query parameter.
  *
@@ -1103,9 +1130,10 @@ function endpointSource(declared = {}, context = {}) {
 
 		/**
 		 * Take the detail page's source config: `url` names one record, with
-		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`), and
+		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`),
 		 * `recordPath` where the record sits in the answer (the whole answer
-		 * by default).
+		 * by default), and `attach`, other parts of the answer put on the
+		 * record (`{ messages: 'messages' }`).
 		 *
 		 * @param {object|null} config The detail page's `sourceConfig`.
 		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
@@ -1135,11 +1163,12 @@ function endpointSource(declared = {}, context = {}) {
 				const { default: axios } = await import('@nextcloud/axios')
 				const res = await axios.get(generateUrl(template.replace(/\{id\}/g, encodeURIComponent(key))))
 				const body = res ? res.data : null
-				const record = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
-				if (!record || typeof record !== 'object' || Array.isArray(record)) {
+				const found = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
+				if (!found || typeof found !== 'object' || Array.isArray(found)) {
 					state.recordErrors = { ...state.recordErrors, [key]: 404 }
 					return null
 				}
+				const record = { ...found, ...attachedParts(body, recordConfig.attach) }
 				state.records = { ...state.records, [key]: record }
 				const { [key]: dropped, ...rest } = state.recordErrors
 				state.recordErrors = rest

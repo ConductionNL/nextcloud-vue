@@ -381,6 +381,9 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
 | `editConfirmLabel` | String | `''` | The edit form's save button, run through the host translate (manifest `config.editConfirmLabel`), such as "Save changes". Empty keeps the form's own label. |
 | `editEyebrow` | String | `''` | One short line over the edit form's title (PqTicketBewerken "Bewerken · PQ-2026-0417"), run through the host translate. Like the title and subtitle it may name the record with `{field}` tokens. Empty shows none. |
+| `draftAppId` | String | `''` | The app a form draft belongs to, forwarded to every form this page opens as CnFormDialog's `draftAppId`, so what a user typed and did not save is kept and offered back under this app's key (manifest `config.draftAppId`). |
+| `allowDraft` | Boolean | `false` | Offer "Save draft" on the create form, forwarded as CnFormDialog's `allowDraft`. On an edit form it is offered only while the record is still a draft (manifest `config.allowDraft`). |
+| `draftField` | String | `'isDraft'` | The boolean property that marks a record as a draft, CnFormDialog's `draftField` (manifest `config.draftField`). |
 | `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Emits `@request-feature`; the default opens the forge's feature-request issue form (repo and forge injected by CnAppRoot) in a new tab, pre-filled with the page title and `surface: "detail:<id>"`. |
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |
