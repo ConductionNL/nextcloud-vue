@@ -108,6 +108,9 @@ export function useListView(objectTypeOrOptions, options) {
 	// current ones.
 	const error = ref(null)
 	let refreshSeq = 0
+	// The mount's schema request, and whether it is still in flight.
+	let schemaLoading = null
+	let schemaPending = false
 	let pendingRefreshes = 0
 
 	let searchTimeout = null
@@ -197,8 +200,15 @@ export function useListView(objectTypeOrOptions, options) {
 	 *
 	 * @param {number} [page] Page to fetch
 	 * @return {Promise<void>}
+	 * @spec openspec/changes/list-waits-for-its-schema/specs/list-waits-for-its-schema/spec.md#requirement-a-list-fetch-waits-for-the-schema-the-mount-is-loading
 	 */
 	async function refresh(page = 1) {
+		// The store asks for facets only once it holds the schema, so a refresh
+		// that starts while the mount is still loading it (a watcher applying
+		// default filters, say) waits for it.
+		if (schemaPending) {
+			await schemaLoading.catch(() => null)
+		}
 		const seq = ++refreshSeq
 		// This call's own result. `errors[getType()]` is shared by every call
 		// for the type and is not cleared on success, so it cannot say which
@@ -378,7 +388,13 @@ export function useListView(objectTypeOrOptions, options) {
 
 	onMounted(async () => {
 		try {
-			schema.value = await objectStore.fetchSchema(getType())
+			schemaPending = true
+			schemaLoading = Promise.resolve(objectStore.fetchSchema(getType()))
+			try {
+				schema.value = await schemaLoading
+			} finally {
+				schemaPending = false
+			}
 			if (sidebarState) {
 				setupSidebar()
 			}
