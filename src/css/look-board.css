@@ -3127,6 +3127,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	gap: 8px 16px;
 }
 
+/* `headLine` rows as DqDagAfsluiten "Vandaag vastgelegd" draws them: 16px
+   above and below, the pill 12px from the done mark, the note 4px under the
+   head line at the normal leading, the title underlined as the link it is.
+   @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-row-can-put-its-pill-title-and-meta-on-one-line */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__list--headline .cn-record-list__row {
+	padding-block: 16px;
+	gap: 8px 12px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__list--headline .cn-record-list__main {
+	gap: 4px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__headline .cn-record-list__title--link {
+	text-decoration: underline !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__note {
+	line-height: normal;
+}
+
 /* A status pill, a due text and the initials in the row keep their own tone
    (DqProcesanalyse "Knelpunt" red, "Let op" amber; PqMijnWerk "JP" soft ink).
    @spec openspec/changes/board-dashboard-row-pill-ink/specs/board-dashboard-row-pill-ink/spec.md#requirement-a-dashboard-rows-pill-keeps-its-tone */
