@@ -2508,8 +2508,9 @@
    high-padded under a hairline, the details and the period 13px muted.
    @spec openspec/changes/board-contacts-rows/specs/contacts/spec.md */
 .cn-look-board .cn-contacts-tab .cn-contacts-tab__group-title {
-	margin: 6px 0 0;
+	margin: 0;
 	font-size: 15px;
+	line-height: 1.2;
 	font-weight: 700;
 	letter-spacing: 0;
 	text-transform: none;
@@ -2543,7 +2544,11 @@
 }
 
 .cn-look-board .cn-contacts-tab .cn-contacts-tab__group {
-	margin-bottom: 8px;
+	margin-bottom: 14px;
+}
+
+.cn-look-board .cn-contacts-tab .cn-contacts-tab__group:last-child {
+	margin-bottom: 0;
 }
 
 /* The name and the details line at line height 1.2 with no top inset, so a
@@ -2869,9 +2874,17 @@
    ruled row per party, a 32px initials tile, the name over a muted meta line
    that names the role, the pills at the end. The role headings stay for
    assistive tech only.
-   @spec openspec/changes/board-parties-rows/specs/parties/spec.md */
-.cn-look-board .cn-object-parties--board {
+   The root class is named twice: the widget's scoped 12px gap has the same
+   specificity as a two-class rule and loads later.
+   @spec openspec/changes/board-parties-rows/specs/parties/spec.md
+   @spec openspec/changes/board-party-rows-as-drawn/specs/parties/spec.md */
+.cn-look-board .cn-object-parties.cn-object-parties--board {
 	gap: 8px;
+}
+
+/* Each role is its own group in the widget; the board draws one list. */
+.cn-look-board .cn-object-parties--board .cn-object-parties__role + .cn-object-parties__role {
+	margin-top: -8px;
 }
 
 .cn-look-board .cn-object-parties--board .cn-object-parties__role-label {
@@ -2925,6 +2938,11 @@
 .cn-look-board .cn-object-parties--board .cn-object-parties__meta {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-object-parties--board .cn-object-parties__name,
+.cn-look-board .cn-object-parties--board .cn-object-parties__meta {
+	line-height: normal;
 }
 
 /* The calendar and Deck cards' rows as DqZaakTaken "Afspraken" and "Kaarten"
