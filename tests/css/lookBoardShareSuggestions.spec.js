@@ -36,8 +36,9 @@ function ruleFor(selector) {
 const LIST = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option)'
 
 describe('look-board.css: share suggestions', () => {
-	it('edges the list with 1px', () => {
-		expect(ruleFor(LIST)).toContain('border-width: 0 1px 1px;')
+	it('edges the list with 1px and sets it 6px in, over NcSelect\'s own !important edge', () => {
+		expect(ruleFor(LIST)).toContain('border-width: 0 1px 1px !important;')
+		expect(ruleFor(LIST)).toContain('padding: 4px 6px !important;')
 	})
 
 	it('sets the rows 14px in', () => {
