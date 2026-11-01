@@ -89,6 +89,9 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	// A field of the record a start-here attention card names (`@subject.<field>`, dot path),
 	// read by the banner widget's action routes.
 	subject: '^@subject\\.[A-Za-z][A-Za-z0-9_.]*$',
+	// A field of the record a facts card shows (`@source.<field>`, dot path), read by
+	// its actions, routes and link.
+	source: '^@source\\.[A-Za-z@][A-Za-z0-9_.@]*$',
 	// A record a detail page reads beside the loaded one (`visibilityContext`), read by a
 	// grid widget's or a tab's `visibleWhen` as `@context.<name>.<field>` (dot path).
 	context: '^@context\\.[A-Za-z][A-Za-z0-9_.]*$',
@@ -115,6 +118,7 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'answer',
 	'row',
 	'subject',
+	'source',
 	'context',
 ])
 
@@ -175,6 +179,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'CnBannerWidget (action route params and query)',
 		description: 'A field of the record an attention card names (the first row of its ordered `visibleWhen` source query), read when the card builds an action\'s route. Dot paths are allowed (`@subject.owner.id`).',
 		members: ['@subject.<field>'],
+	},
+	source: {
+		resolver: 'CnFactsWidget (actions, title route and link)',
+		description: 'A field of the record a facts card shows: its `source` object, else the page object. Dot paths are allowed (`@source.paymentProvider`); `@source.id` reads `id`, else `@self.id`.',
+		members: ['@source.<field>'],
 	},
 	context: {
 		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen',

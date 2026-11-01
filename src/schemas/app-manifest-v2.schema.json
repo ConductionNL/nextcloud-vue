@@ -930,6 +930,11 @@
 			"pattern": "^@subject\\.[A-Za-z][A-Za-z0-9_.]*$",
 			"description": "Subject context: a field of the record an attention card names (the first row of its ordered `visibleWhen` source query), read by the banner widget's action route params and query (@subject.<field>, dot path allowed). Mirrors SENTINEL_TOKEN_PATTERNS.subject."
 		},
+		"sentinelSourceToken": {
+			"type": "string",
+			"pattern": "^@source\\.[A-Za-z@][A-Za-z0-9_.@]*$",
+			"description": "Source context: a field of the record a facts card shows (@source.<field>, dot path allowed), read by its actions, title route and link. Mirrors SENTINEL_TOKEN_PATTERNS.source."
+		},
 		"sentinelTokenAny": {
 			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
 			"anyOf": [
@@ -943,6 +948,7 @@
 				{ "$ref": "#/$defs/sentinelAnswerToken" },
 				{ "$ref": "#/$defs/sentinelRowToken" },
 				{ "$ref": "#/$defs/sentinelSubjectToken" },
+				{ "$ref": "#/$defs/sentinelSourceToken" },
 				{ "$ref": "#/$defs/sentinelContextToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]

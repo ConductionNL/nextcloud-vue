@@ -48,3 +48,14 @@ instance admin only; for anyone else it SHALL stay out of the header, as it does
 - **GIVEN** a pending refund whose primary action is the admin only Confirm
 - **WHEN** a cashier who is not an admin opens it
 - **THEN** no Confirm button is drawn
+
+### Requirement: A facts card names the record it shows with @source
+
+`@source.<field>` SHALL be a known sentinel token, so a manifest that names a field of a facts card's record in an action,
+a route or a link validates.
+
+#### Scenario: A retry payload
+
+- **GIVEN** a facts action whose payload is `{ "provider": "@source.paymentProvider" }`
+- **THEN** the manifest validates
+
