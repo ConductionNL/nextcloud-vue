@@ -574,6 +574,7 @@
 			:margin="gridMargin"
 			:float="gridFloat"
 			:sideColumn="section.sideColumn"
+			:columnWeights="section.columnWeights"
 			@layoutChange="section.view ? onViewLayoutChange($event) : onLayoutChange($event)">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
@@ -1499,7 +1500,9 @@ export default {
 		 * on). Editing the page shows the page's own layout.
 		 *
 		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
-		 * @type {Array<{when: object, layout: Array<object>}>}
+		 * An entry can carry `gridColumnWeights` for its own layout.
+		 *
+		 * @type {Array<{when: object, layout: Array<object>, gridColumnWeights?: Array<object>}>}
 		 */
 		layoutWhen: {
 			type: Array,
@@ -1655,6 +1658,20 @@ export default {
 		 */
 		gridSideColumn: {
 			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Weights for groups of the grid's twelve columns (manifest
+		 * `config.gridColumnWeights`): `[{ span, weight }]`, see
+		 * CnDashboardGrid's `columnWeights`. A `layoutWhen` entry can carry
+		 * its own `gridColumnWeights` for the layout it draws
+		 * (PqWerkplekKlant in a call: 332 / 415 / 332).
+		 *
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 */
+		gridColumnWeights: {
+			type: Array,
 			default: null,
 		},
 
@@ -3124,7 +3141,7 @@ export default {
 			if (!this.gridSectionsShown) {
 				return []
 			}
-			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, sideColumn: this.gridSideColumn, attrs: {} }
+			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, sideColumn: this.gridSideColumn, columnWeights: this.pageColumnWeights(), attrs: {} }
 			if (!this.hasViews) {
 				return [page]
 			}
@@ -3398,13 +3415,40 @@ export default {
 		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
 		 */
 		layoutFromWorkspace() {
+			const entry = this.layoutEntryFromWorkspace()
+			return entry ? entry.layout : null
+		},
+
+		/**
+		 * The first `layoutWhen` entry whose condition holds on the workspace,
+		 * or null when none applies.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 */
+		layoutEntryFromWorkspace() {
 			const workspace = this.workspaceContext || {}
 			for (const entry of Array.isArray(this.layoutWhen) ? this.layoutWhen : []) {
 				if (entry && Array.isArray(entry.layout) && isWorkspaceCondition(entry.when) && evaluateWorkspaceCondition(entry.when, workspace)) {
-					return entry.layout
+					return entry
 				}
 			}
 			return null
+		},
+
+		/**
+		 * The column weights of the page's grid: the applying `layoutWhen`
+		 * entry's own, else the page's.
+		 *
+		 * @return {Array<object>|null}
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 */
+		pageColumnWeights() {
+			const entry = this.layoutEntryFromWorkspace()
+			if (entry && Array.isArray(entry.gridColumnWeights)) {
+				return entry.gridColumnWeights
+			}
+			return Array.isArray(this.gridColumnWeights) ? this.gridColumnWeights : null
 		},
 
 		/**
