@@ -812,7 +812,9 @@
 .cn-look-board .cn-detail-page__side .cn-countdown-widget__sub,
 .cn-look-board .cn-detail-page__side .cn-facts-widget__link,
 .cn-look-board .cn-detail-page__side .cn-facts-widget__link-note,
+.cn-look-board .cn-detail-page__side .cn-linked-widget__link,
 .cn-look-board .cn-detail-page__side .cn-linked-widget__empty,
+.cn-look-board .cn-detail-page__side .cn-linked-widget__action,
 .cn-look-board .cn-detail-page__side .cn-status-explainer__muted,
 .cn-look-board .cn-detail-page__side .cn-status-explainer__dwell,
 .cn-look-board .cn-detail-page__side .cn-attention-flag__heading,
@@ -2058,9 +2060,12 @@
 /* ---- A file list's bulk bar (CnFilesBrowser) ---------------------------- */
 /* The band over the ticked files is the case list's selection band: 10px
    14px, radius 10, the count bold in the band's ink, 34px buttons with their words
-   only (DqDocumentenBeheer "2 documenten geselecteerd").
+   only (DqDocumentenBeheer "2 documenten geselecteerd"). It stands 10px under
+   the bar and 14px over the list, where the bar's 8px margin and the browser's
+   8px gap would give 16 and 8.
    @spec openspec/changes/board-files-bulk-bar/specs/board-files-bulk-bar/spec.md#requirement-the-files-bulk-bar-is-the-boards-selection-band */
 .cn-look-board .cn-files-browser__bulk-bar:not(.cn-look-nextcloud *) {
+	margin-block: -6px 6px;
 	padding: 10px 14px;
 	border-radius: 10px;
 	font-size: 14px;

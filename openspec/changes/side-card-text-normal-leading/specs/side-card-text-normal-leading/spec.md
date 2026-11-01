@@ -16,3 +16,8 @@ In the board look the texts of a detail page's side cards (countdown sub line, f
 
 - GIVEN the case "Verlichting fietspad Lindelaan" in the board look
 - THEN the Termijn card is 188px and the Werkinstructie card 144px tall, as the board
+
+#### Scenario: Gekoppeld's rows and actions (DqZaak r43)
+
+- **GIVEN** a case's Gekoppeld card in the side column, with a two-line dossier row, a pipelinq row and the Nieuw project / Openen in Planninq actions
+- **THEN** the row links and the actions read at the normal line height too, so the card is as tall as drawn and Werkinstructie and Status stand where the board draws them

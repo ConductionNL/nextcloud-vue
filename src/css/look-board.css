@@ -3127,6 +3127,27 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	gap: 8px 16px;
 }
 
+/* `headLine` rows as DqDagAfsluiten "Vandaag vastgelegd" draws them: 16px
+   above and below, the pill 12px from the done mark, the note 4px under the
+   head line at the normal leading, the title underlined as the link it is.
+   @spec openspec/changes/record-list-headline-rows/specs/record-list/spec.md#requirement-a-row-can-put-its-pill-title-and-meta-on-one-line */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__list--headline .cn-record-list__row {
+	padding-block: 16px;
+	gap: 8px 12px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__list--headline .cn-record-list__main {
+	gap: 4px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__headline .cn-record-list__title--link {
+	text-decoration: underline !important;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list__note {
+	line-height: normal;
+}
+
 /* A status pill, a due text and the initials in the row keep their own tone
    (DqProcesanalyse "Knelpunt" red, "Let op" amber; PqMijnWerk "JP" soft ink).
    @spec openspec/changes/board-dashboard-row-pill-ink/specs/board-dashboard-row-pill-ink/spec.md#requirement-a-dashboard-rows-pill-keeps-its-tone */
@@ -3303,6 +3324,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	margin: 0;
 	padding: 14px 23px;
 	border-top: 1px solid var(--color-border);
+}
+
+/* A sentence the list places with the pair (`placement.sentence`) stands 24px
+   in and 20px above the band, as the card's own sentence did.
+   @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-sentence--placed {
+	padding: 0 24px 20px;
+}
+
+/* The placed sentence replaces the card's own text, which stays as the
+   sentence for a library without placement. */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-record-notes__all-sentence--placed) > .cn-text-widget {
+	display: none;
 }
 
 /* The card holding that pair draws its title and sentence 24px in, as the
