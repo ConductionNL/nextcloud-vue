@@ -112,6 +112,10 @@ function joinList(items) {
  * requests whose case reference is this case). It is left out when
  * `requiredApp` is not installed. Texts go through the host translate.
  *
+ * An integration leaf may be written `{ id, noun }` to name it in the host's
+ * own words: the card uses that noun, through the host translate, instead of
+ * the one the leaf reports (DqZaak "Leges en betalingen" for the finance leaf).
+ *
  * @spec openspec/changes/linked-integrations-card/specs/linked-integrations-card/spec.md#requirement-one-card-lists-the-linked-integrations-of-a-record
  */
 export default {
@@ -169,9 +173,22 @@ export default {
 			return Array.isArray(leaves) ? leaves : []
 		},
 
-		/** @return {string[]} The configured integration ids. */
+		/** @return {string[]} The configured integration ids, written bare or as `{ id, noun }`. */
 		leafIds() {
-			return this.leaves.filter((id) => typeof id === 'string' && id !== '')
+			return this.leaves
+				.map((leaf) => (typeof leaf === 'string' ? leaf : (this.isNamedLeaf(leaf) ? leaf.id : '')))
+				.filter((id) => id !== '')
+		},
+
+		/** @return {{[id: string]: string}} The host's translated noun per integration leaf written `{ id, noun }`. */
+		hostNouns() {
+			const out = {}
+			for (const leaf of this.leaves) {
+				if (this.isNamedLeaf(leaf) && typeof leaf.noun === 'string' && leaf.noun !== '') {
+					out[leaf.id] = this.cnTranslate(leaf.noun)
+				}
+			}
+			return out
 		},
 
 		/** @return {object[]} The record leaves whose app is here. */
@@ -276,6 +293,17 @@ export default {
 
 	methods: {
 		/**
+		 * Whether a configured leaf is an integration leaf written as an object
+		 * (an id, no register or schema of its own).
+		 *
+		 * @param {string|object} leaf The configured leaf.
+		 * @return {boolean}
+		 */
+		isNamedLeaf(leaf) {
+			return Boolean(leaf) && typeof leaf === 'object' && typeof leaf.id === 'string' && leaf.id !== '' && !leaf.register && !leaf.schema
+		},
+
+		/**
 		 * Read a record leaf's records and report them as its summary. A
 		 * failed read reports nothing, so the leaf is not listed as empty.
 		 *
@@ -316,13 +344,14 @@ export default {
 		 */
 		onSummary(id, summary) {
 			const s = summary && typeof summary === 'object' ? summary : {}
+			const noun = this.hostNouns[id] ?? (typeof s.noun === 'string' ? s.noun : '')
 			const usableRow = (row) => row && typeof row.label === 'string' && row.label !== ''
 			const usableAction = (action) => action && typeof action.run === 'function' && typeof action.label === 'string' && action.label !== ''
 			this.summaries = {
 				...this.summaries,
 				[id]: {
 					count: Number.isFinite(s.count) ? s.count : 0,
-					noun: typeof s.noun === 'string' ? s.noun : '',
+					noun,
 					rows: Array.isArray(s.rows) ? s.rows.filter(usableRow) : [],
 					actions: Array.isArray(s.actions) ? s.actions.filter(usableAction) : [],
 				},
