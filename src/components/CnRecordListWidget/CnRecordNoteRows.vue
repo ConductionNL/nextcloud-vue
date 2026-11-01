@@ -82,6 +82,12 @@
 		<!-- `recordAll.placement.widget`: the pair goes to the foot of that
 		     dashboard card, which carries the title and sentence itself. -->
 		<Teleport v-if="recordAll" :to="placedTarget || 'body'" :disabled="!placedTarget">
+			<p
+				v-if="placedTarget && recordAll.placement && recordAll.placement.sentence && allSentence"
+				class="cn-record-notes__all-sentence cn-record-notes__all-sentence--placed"
+				data-testid="cn-record-list-record-all-sentence">
+				{{ allSentence }}
+			</p>
 			<div
 				class="cn-record-notes__all"
 				:class="{ 'cn-record-notes__all--placed': !!placedTarget }"
@@ -90,8 +96,8 @@
 					<h3 v-if="recordAll.title" class="cn-record-notes__all-title">
 						{{ recordAll.title }}
 					</h3>
-					<p v-if="recordAll.text" class="cn-record-notes__all-sentence">
-						{{ recordAll.text }}
+					<p v-if="allSentence" class="cn-record-notes__all-sentence">
+						{{ allSentence }}
 					</p>
 				</div>
 				<div class="cn-record-notes__all-actions">
@@ -170,7 +176,7 @@ export default {
 			required: true,
 		},
 
-		/** `recordAll`, already translated: `{ label, title?, text?, icon?, cancel?: { label, to }, placement?: { widget } }`, or null. */
+		/** `recordAll`, already translated: `{ label, title?, text?: (string|{ zero?, one?, other }), icon?, cancel?: { label, to }, placement?: { widget, sentence? } }`, or null. */
 		recordAll: {
 			type: Object,
 			default: null,
@@ -201,6 +207,27 @@ export default {
 		/** @return {number} The rows with a note typed and not yet recorded. */
 		readyCount() {
 			return this.items.filter((item) => this.hasDraft(item.key)).length
+		},
+
+		/**
+		 * The record-all sentence for the notes filled in now: a plain
+		 * sentence as it is, else the `zero`, `one` or `other` form with
+		 * `{count}` filled in.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md
+		 */
+		allSentence() {
+			const text = this.recordAll?.text
+			if (typeof text === 'string') {
+				return text
+			}
+			if (!text || typeof text !== 'object') {
+				return ''
+			}
+			const count = this.readyCount
+			const form = (count === 0 && text.zero) || (count === 1 && text.one) || text.other || text.one || ''
+			return form.replace(/\{count\}/g, String(count))
 		},
 
 		/** @return {string} The label of the ready figure. */
@@ -587,6 +614,12 @@ export default {
 .cn-record-notes__all-sentence {
 	margin: 4px 0 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-notes__all-sentence--placed {
+	margin: 0;
+	padding: 0 0 12px;
+	color: var(--color-main-text);
 }
 
 .cn-record-notes__all-actions {

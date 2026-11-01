@@ -3292,6 +3292,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	border-top: 1px solid var(--color-border);
 }
 
+/* A sentence the list places with the pair (`placement.sentence`) stands 24px
+   in and 20px above the band, as the card's own sentence did.
+   @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-sentence--placed {
+	padding: 0 24px 20px;
+}
+
 /* The card holding that pair draws its title and sentence 24px in, as the
    board draws it, not the dashboard cards' 22px. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:has(> .cn-widget-wrapper__content > .cn-record-notes__all--placed) {

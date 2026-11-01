@@ -1687,10 +1687,10 @@ export default {
 			return {
 				label: this.translate(all.label),
 				title: all.title ? this.translate(all.title) : '',
-				text: all.text ? this.translate(all.text) : '',
+				text: this.recordAllText(all.text),
 				icon: all.icon || '',
 				cancel,
-				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget } : null,
+				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget, sentence: all.placement.sentence === true } : null,
 			}
 		},
 
@@ -2414,6 +2414,30 @@ export default {
 			if (id === this.aggregateRequestId) {
 				this.aggregateValues = Object.fromEntries(next)
 			}
+		},
+
+		/**
+		 * The record-all sentence, translated: a string, or its count forms
+		 * (`{ zero?, one?, other }`, `{count}` the notes filled in) each translated.
+		 *
+		 * @param {unknown} text The declared sentence.
+		 * @return {string|object} The sentence, or its translated forms.
+		 * @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md
+		 */
+		recordAllText(text) {
+			if (typeof text === 'string') {
+				return text ? this.translate(text) : ''
+			}
+			if (!text || typeof text !== 'object') {
+				return ''
+			}
+			const forms = {}
+			for (const key of ['zero', 'one', 'other']) {
+				if (typeof text[key] === 'string' && text[key] !== '') {
+					forms[key] = this.translate(text[key])
+				}
+			}
+			return forms
 		},
 
 		/**

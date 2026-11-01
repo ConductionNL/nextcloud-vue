@@ -117,10 +117,46 @@ describe('record-all placement', () => {
 		w.unmount()
 	})
 
+	it('draws a counted sentence above the placed pair when the placement asks for it', async () => {
+		const OPEN2 = [...OPEN, { id: 'task:t1', title: 'Advies boomdeskundige beoordelen', routeName: 'TaskDetail', subjectId: 't1', notesUrl: '/n/t1' }]
+		window.sessionStorage.setItem('cn-record-list-notes:end-of-day-placed', JSON.stringify({ 'case:c1': 'Gebeld', 'task:t1': 'Gelezen' }))
+		axios.get.mockResolvedValue({ data: { open: OPEN2 } })
+		const c = content({ widget: 'eod-ready', sentence: true })
+		c.noteAction.recordAll.text = { zero: 'Every note you fill in is recorded.', one: 'The button records the filled-in note.', other: 'The button records the {count} filled-in notes.' }
+		const w = mountList(c)
+		await flush()
+		const card = document.querySelector('[data-cn-widget-id="eod-ready"] .cn-widget-wrapper__content')
+		const sentence = card.querySelector('[data-testid="cn-record-list-record-all-sentence"]')
+		expect(sentence).not.toBeNull()
+		expect(sentence.textContent.trim()).toBe('The button records the 2 filled-in notes.')
+		// The sentence stands above the ruled band, not inside it.
+		expect(sentence.nextElementSibling.getAttribute('data-testid')).toBe('cn-record-list-record-all')
+		window.sessionStorage.clear()
+		w.unmount()
+	})
+
+	it('reads the zero form when nothing is filled in, and keeps a plain sentence as it is', async () => {
+		window.sessionStorage.clear()
+		axios.get.mockResolvedValue({ data: { open: OPEN } })
+		const c = content({ widget: 'eod-ready', sentence: true })
+		c.noteAction.recordAll.text = { zero: 'Every note you fill in is recorded.', one: 'The button records the filled-in note.', other: 'The button records the {count} filled-in notes.' }
+		const w = mountList(c)
+		await flush()
+		const sentence = document.querySelector('[data-testid="cn-record-list-record-all-sentence"]')
+		expect(sentence.textContent.trim()).toBe('Every note you fill in is recorded.')
+		w.unmount()
+
+		const plain = mountList(content({ widget: 'eod-ready' }))
+		await flush()
+		expect(document.querySelector('[data-testid="cn-record-list-record-all-sentence"]')).toBeNull()
+		plain.unmount()
+	})
+
 	it('names each dashboard grid item by its widget, and draws a placed pair under a rule', () => {
 		const grid = fs.readFileSync(path.join(__dirname, '../../src/components/CnDashboardGrid/CnDashboardGrid.vue'), 'utf8')
 		expect(grid).toMatch(/:data-cn-widget-id="item\.widgetId/)
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
 		expect(css).toMatch(/\.cn-record-notes__all--placed[^{]*\{[^}]*border-top: 1px solid/)
+		expect(css).toMatch(/\.cn-record-notes__all-sentence--placed \{[^}]*padding: 0 24px 20px;/)
 	})
 })
