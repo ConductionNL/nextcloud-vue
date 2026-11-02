@@ -3,9 +3,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
 
+import { mount } from '@vue/test-utils'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnTreeView from '../../src/components/CnTreeView/CnTreeView.vue'
 
