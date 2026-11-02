@@ -2574,15 +2574,17 @@ export default {
 		 * How the board look draws the table's title column (manifest
 		 * `config.rowTitle`): `link` (the default) underlines the title,
 		 * `plain` draws it as bold text without an underline over a 13px muted
-		 * secondary line. The row stays clickable. The Nextcloud look ignores
-		 * it. Maps to CnDataTable `rowTitle`.
+		 * secondary line, `text` as an ordinary 14px cell and `strong` as a
+		 * 14px weight 600 name in the main ink. The row stays clickable. The
+		 * Nextcloud look ignores it. Maps to CnDataTable `rowTitle`.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/index-row-title-text-strong/specs/index-list-board-look/spec.md#requirement-an-index-list-takes-every-title-look-the-table-draws
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */

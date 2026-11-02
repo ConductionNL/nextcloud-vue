@@ -348,6 +348,7 @@
 									:disabled="field.readOnly"
 									:placeholder="fieldPlaceholder(field)"
 									:rows="textareaRows(field)"
+									:style="textareaRowsStyle(field)"
 									@input="updateField(field.key, $event.target.value)" />
 								<CnFieldHelper
 									:id="helpId(field)"
@@ -900,6 +901,12 @@
 
 				<!-- @slot after-fields Content below the last auto-generated field. -->
 				<slot name="after-fields" />
+
+				<!-- `footnote`: a note the form closes on, under its fields. -->
+				<p v-if="footnote" class="cn-form-dialog__footnote" data-testid="cn-form-dialog-footnote">
+					<InformationOutline :size="18" class="cn-form-dialog__footnote-icon" />
+					<span>{{ footnote }}</span>
+				</p>
 			</template>
 		</div>
 
@@ -1002,6 +1009,7 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
 import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
@@ -1319,6 +1327,7 @@ export default {
 		CnFieldHelper,
 		Plus,
 		ContentSaveOutline,
+		InformationOutline,
 	},
 
 	mixins: [dialogBoardMixin, formDraftMixin()],
@@ -1587,6 +1596,18 @@ export default {
 
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A note the form closes on, under its fields (PqTicketBewerken "De
+		 * status wijzig je hier niet: ..."). The host translates it. Empty
+		 * shows none.
+		 *
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		footnote: {
 			type: String,
 			default: '',
 		},
@@ -4686,6 +4707,20 @@ export default {
 		},
 
 		/**
+		 * The rows a textarea field's own `rows` asks for, as the
+		 * `--cn-textarea-rows` the board look sizes it by; none without them,
+		 * so the board look keeps its own three-line height.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @return {object|null} The style binding.
+		 * @spec openspec/changes/form-textarea-follows-rows/specs/form-dialog/spec.md#requirement-a-board-text-area-is-as-many-lines-as-its-rows
+		 */
+		textareaRowsStyle(field) {
+			const rows = Number(field && field.rows)
+			return Number.isInteger(rows) && rows > 0 ? { '--cn-textarea-rows': String(rows) } : null
+		},
+
+		/**
 		 * Copy what the chosen record already answers into the empty fields
 		 * that ask the same question.
 		 *
@@ -5913,6 +5948,25 @@ export default {
 	gap: 8px;
 	padding: 8px 0;
 	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-dialog__footnote {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0;
+	padding: 12px 14px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-background-dark);
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--color-main-text);
+}
+
+.cn-form-dialog__footnote-icon {
+	flex: none;
+	margin-top: 1px;
 	color: var(--color-text-maxcontrast);
 }
 </style>
