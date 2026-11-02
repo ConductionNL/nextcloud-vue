@@ -3342,9 +3342,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 /* The placed sentence replaces the card's own text, which stays as the
-   sentence for a library without placement. */
+   sentence for a library without placement. Important: the text widget sets
+   its display in its style attribute. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-record-notes__all-sentence--placed) > .cn-text-widget {
-	display: none;
+	display: none !important;
 }
 
 /* The card holding that pair draws its title and sentence 24px in, as the
