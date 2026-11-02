@@ -42,3 +42,16 @@ describe('look-board-detail.css: an object list table edge to edge', () => {
 		expect(rule(TABLE + ' :is(th, td):last-child')).toContain('padding-inline-end: var(--cn-board-card-inline-padding)')
 	})
 })
+
+describe('look-board-detail.css: a bleed table that ends its card', () => {
+	const LAST = '.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed:last-child:has(> .cn-object-list-widget__table):not(:has(> :is(.cn-object-list-widget__pager, .cn-object-list-widget__view-all, .cn-object-list-widget__more, .cn-object-list-widget__summary, .cn-object-list-widget__footnote, .cn-object-list-widget__foot, .cn-object-list-widget__links, .cn-object-list-widget__hidden-note)))'
+
+	it('runs to the card\'s bottom edge through its 20px bottom padding (DqZaakContact "Contactmomenten op deze zaak")', () => {
+		expect(rule(LAST)).toContain('margin-block-end: -20px')
+	})
+
+	it('keeps its last row square against the card\'s rounded edge', () => {
+		expect(rule(LAST + ' .cn-table-container tbody tr:last-child > :first-child')).toContain('border-end-start-radius: var(--cn-board-card-radius)')
+		expect(rule(LAST + ' .cn-table-container tbody tr:last-child > :last-child')).toContain('border-end-end-radius: var(--cn-board-card-radius)')
+	})
+})
