@@ -78,6 +78,7 @@ export {
 	CnChoicePickerWidget,
 	CnColorPicker,
 	CnCommandPalette,
+	CnConditionGroupEditor,
 	CnConditionListEditor,
 	CnConfigurationCard,
 	CnConnectionsPanel,

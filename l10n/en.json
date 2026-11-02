@@ -2594,7 +2594,19 @@
     "Shown on the card. Leave empty to show the step type.": "Shown on the card. Leave empty to show the step type.",
     "The full configuration document. The fields above update along.": "The full configuration document. The fields above update along.",
     "This step has no options.": "This step has no options.",
-    "{uid} (you)": "{uid} (you)"
+    "{uid} (you)": "{uid} (you)",
+    "How the conditions combine": "How the conditions combine",
+    "Match all conditions": "Match all conditions",
+    "Match any condition": "Match any condition",
+    "Where": "Where",
+    "and": "and",
+    "all of these": "all of these",
+    "one of these": "one of these",
+    "Add group": "Add group",
+    "Remove group": "Remove group",
+    "Condition": "Condition",
+    "These conditions are kept as written": "These conditions are kept as written",
+    "This group has no conditions yet.": "This group has no conditions yet."
   },
   "plurals": {
     "{count} member": [

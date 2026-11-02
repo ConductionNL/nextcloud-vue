@@ -752,6 +752,13 @@
 			"via": [],
 			"page": "cn-command-palette"
 		},
+		"CnConditionGroupEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-condition-group-editor"
+		},
 		"CnConditionListEditor": {
 			"direct": 0,
 			"transitive": 0,

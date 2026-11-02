@@ -177,7 +177,7 @@
 	margin-top: 16px;
 }
 
-/* Row 2: pills, breadcrumb, dot, meta, chips. */
+/* Row 2: pills, breadcrumb, chips, dot, meta. */
 .cn-look-board .cn-detail-page__header-row2 {
 	align-items: center;
 	display: flex;
@@ -204,6 +204,15 @@
 .cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 0;
+}
+
+/* The header chips sit on row 2's own line, after the breadcrumb (DqTenant
+   "Gemeente Waterland  waterland  · een van ..."), so the list drops the 6px
+   top margin it keeps under the title outside this look. The doubled class
+   outranks the component's scoped rule.
+   @spec openspec/changes/board-header-chips-after-breadcrumb/specs/detail-page-board-look/spec.md#requirement-board-header-chips-follow-the-breadcrumb */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips.cn-detail-header-chips {
+	margin: 0;
 }
 
 /* The breadcrumb is a line of 14px text between the pills and the meta, as
@@ -883,6 +892,20 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A plan card's rows carry their own 10px padding and a map has no text, so
+   no half-leading comes off the 12px under the title; a Doelen footer row
+   placed under the plan stands 4px under it (DqZaak "Zaakplan", DqZaakMeer
+   "Locaties").
+   @spec openspec/changes/board-plan-card-as-drawn/specs/plan/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-plan:first-child):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-map-widget:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-plan + .cn-detail-widget-host--bare > .cn-record-list--rows > .cn-record-list__footer--row:first-child:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+}
+
 /* A card that opens on a record-list table starts 12px under its title: the
    table's head row sets its own padding and line height, so no first line
    carries the half-leading the rule above takes off (r31 DqZaaktype
@@ -1179,6 +1202,14 @@
 
 .cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__show-all:not(.cn-look-nextcloud *) {
 	margin-inline: 8px;
+}
+
+/* A Gekoppeld side card's rows and empty line read at the normal leading, so
+   the first one starts the board's 10px under the title with no half-leading
+   to take off (DqZaak "Gekoppeld").
+   @spec openspec/changes/side-card-text-normal-leading/specs/side-card-text-normal-leading/spec.md#requirement-a-side-cards-texts-read-at-normal-leading */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-linked-widget):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
 }
 
 /* A side card that opens on a list draws its first row's hairline 10px below
@@ -1891,6 +1922,23 @@
 	padding-inline-end: var(--cn-board-card-inline-padding);
 }
 
+/* A bleed table with nothing under it closes its card: it runs through the
+   card's 20px bottom padding to the bottom edge, its last row rounded with
+   the card (DqZaakContact "Contactmomenten op deze zaak"). A pager, a view
+   all link, a footnote or a total under the table keeps the padding.
+   @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-an-object-list-can-run-its-table-edge-to-edge-in-its-card */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed:last-child:has(> .cn-object-list-widget__table):not(:has(> :is(.cn-object-list-widget__pager, .cn-object-list-widget__view-all, .cn-object-list-widget__more, .cn-object-list-widget__summary, .cn-object-list-widget__footnote, .cn-object-list-widget__foot, .cn-object-list-widget__links, .cn-object-list-widget__hidden-note))) {
+	margin-block-end: -20px;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed:last-child:has(> .cn-object-list-widget__table):not(:has(> :is(.cn-object-list-widget__pager, .cn-object-list-widget__view-all, .cn-object-list-widget__more, .cn-object-list-widget__summary, .cn-object-list-widget__footnote, .cn-object-list-widget__foot, .cn-object-list-widget__links, .cn-object-list-widget__hidden-note))) .cn-table-container tbody tr:last-child > :first-child {
+	border-end-start-radius: var(--cn-board-card-radius);
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed:last-child:has(> .cn-object-list-widget__table):not(:has(> :is(.cn-object-list-widget__pager, .cn-object-list-widget__view-all, .cn-object-list-widget__more, .cn-object-list-widget__summary, .cn-object-list-widget__footnote, .cn-object-list-widget__foot, .cn-object-list-widget__links, .cn-object-list-widget__hidden-note))) .cn-table-container tbody tr:last-child > :last-child {
+	border-end-end-radius: var(--cn-board-card-radius);
+}
+
 /* A row menu in the last column keeps its 34px button and 16px start
    padding beside the card's end padding, so it is not cut off. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container .cn-data-table .cn-table-col--actions:last-child {
@@ -2362,6 +2410,21 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
+/* An authored note row reads in the main ink with no underline, its
+   "author · time" line muted (DqZaakEmail "Notities"). NcListItem draws the
+   row as an anchor, and a theme's `a { color; text-decoration }` carries
+   `!important` (thematiq), hence the same here.
+   @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__row--authored .list-item__anchor:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__row--authored .cn-notes-tab__meta:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast) !important;
+	text-decoration: none !important;
+}
+
 /* The notes tab's "Add note" button, when the add form waits behind it, is
    the board's 40px control (DqZaakEmail "Notitie toevoegen").
    @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
@@ -2667,6 +2730,32 @@
 
 .cn-look-board .cn-checklist-widget__item .checkbox-content__text {
 	font-weight: 600;
+}
+
+/* A record-list checklist (DqTenant "Inrichten") as the board draws it: rows
+   20px high and 8px apart, the 20px mark 10px before a 15px label, a done mark
+   on the soft green with a 12px tick, the bar 12px above the rows. The
+   component's own rows are 28px tall with a 14px tick. The doubled classes
+   outrank its scoped rules.
+   @spec openspec/changes/board-record-list-checklist-rows/specs/record-list/spec.md#requirement-a-board-checklist-row-is-drawn-as-the-board */
+.cn-look-board .cn-record-list__check.cn-record-list__check {
+	min-height: 20px;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-record-list__checklist-bar.cn-record-list__checklist-bar {
+	margin-block-end: 12px;
+}
+
+.cn-look-board .cn-record-list__check--done .cn-record-list__check-mark.cn-record-list__check-mark {
+	background: var(--cn-board-success-tint);
+	color: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-record-list__check-mark svg {
+	width: 12px;
+	height: 12px;
 }
 
 /* The parties widget's "Dit zaaktype accepteert" strip as DqZaakBetrokkenen
@@ -3204,6 +3293,36 @@
 
 .cn-look-board .cn-timeline-manage__draft-label:not(.cn-look-nextcloud *) {
 	line-height: 1.2;
+}
+
+/* The visibility select stands 8px under the kind chips without NcSelect's
+   6px above and 4px under it, so the first entry starts 60px under the
+   chips' foot as DqZaakHistorie draws it. The footer starts 16px under the
+   last entry on one 20px line: the checkbox box without its 3px top margin,
+   the audit trail as a 20px link, as drawn, not a 34px button.
+   @spec openspec/changes/board-history-controls-and-footer/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage__chips:not(.cn-look-nextcloud *) {
+	margin-block-end: 8px;
+}
+
+.cn-look-board .cn-timeline-manage__controls .v-select.select:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__footer:not(.cn-look-nextcloud *) {
+	margin-block-start: 16px;
+}
+
+.cn-look-board .cn-timeline-manage__footer .checkbox-content__icon:not(.cn-look-nextcloud *) {
+	margin-block-start: 0;
+}
+
+.cn-look-board .cn-timeline-manage__footer .cn-timeline-manage__audit-link.button-vue:not(.cn-look-nextcloud *) {
+	--button-size: 20px;
+	--button-padding: 0;
+	min-height: 20px;
+	height: 20px;
+	padding: 0;
 }
 
 /* A facts card's link with an icon (Werkinstructie) sets the icon beside its

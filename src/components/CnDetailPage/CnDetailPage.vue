@@ -523,8 +523,14 @@
 					:rootText="breadcrumbCrumbs[0].icon === undefined"
 					:separator="breadcrumbSeparator || '/'"
 					data-testid="cn-detail-page-breadcrumbs" />
+				<CnDetailHeaderChips
+					v-if="headerFields.length > 0"
+					:fields="headerFields"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:register="register" />
 				<span
-					v-if="breadcrumbCrumbs.length > 0 && hasHeaderMeta"
+					v-if="(breadcrumbCrumbs.length > 0 || headerFields.length > 0) && headerMetaText"
 					class="cn-detail-page__header-dot"
 					aria-hidden="true"
 					data-testid="cn-detail-page-header-dot">&middot;</span>
@@ -532,12 +538,6 @@
 					v-if="headerMetaText"
 					class="cn-detail-page__header-meta"
 					data-testid="cn-detail-page-header-meta">{{ headerMetaText }}</span>
-				<CnDetailHeaderChips
-					v-if="headerFields.length > 0"
-					:fields="headerFields"
-					:object="resolvedObject"
-					:schema="currentSchema"
-					:register="register" />
 			</div>
 			<!-- Row 3 of the board look's header: the Follow control under the
 			     breadcrumb, clear of the title row and its actions (DqZaak
@@ -3814,7 +3814,7 @@ export default {
 		},
 
 		/**
-		 * Whether row 2 has a meta line or header chips to draw after the
+		 * Whether row 2 has a meta line or header chips to draw beside the
 		 * breadcrumb.
 		 *
 		 * @return {boolean} True with meta or chips.

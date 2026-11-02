@@ -224,6 +224,15 @@
 	border-width: 0;
 }
 
+/* A stacked board tile keeps its label on its top inset when its row is
+   taller than the tile itself (a `sameHeight` row where another tile has a
+   caption), as the boards draw every tile; centred, the label sat 10px low
+   (DqProcesanalyse).
+   @spec openspec/changes/board-stat-tile-content-from-top/specs/kpi-card/spec.md#requirement-a-board-stat-tile-holds-its-content-at-the-top */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-kpi-card--board.cn-kpi-card--stacked {
+	justify-content: flex-start;
+}
+
 /* ---- Dashboard switch row --------------------------------------------- */
 /* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
    The link pills take the deep primary ink of the boards' primary pills: the
@@ -809,6 +818,29 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- The flow page head (cards layout) ---------------------------------- */
+/* Board DqFlow stacks the page head, the notice and the cards 20px apart, and
+   the head is one block: the title row 4px under its top, the path 6px under
+   the title row and 8px of the head below the path. The canvas layout keeps
+   its own head (PqFlow).
+   @spec openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-cards-layout-spaces-its-head-as-the-board */
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) {
+	gap: 20px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__header {
+	padding-top: 4px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__path {
+	margin-top: -14px;
+	padding-bottom: 8px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__notice {
+	margin: 0;
+}
+
 /* ---- An ordered list field ----------------------------------------------- */
 /* DqPersoonlijkeInstellingen "Weergaven in mijn menu": a row's labelled remove
    button ("Uit menu halen") is an outlined secondary button, and the select
@@ -1275,6 +1307,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 
 body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
 	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
+}
+
+/* A destructive row action (CnRowActions `destructive`) is the same red, the
+   error tag's #a30000 (PtUitnodigingen "Uitnodiging intrekken", PtPortals
+   "Verwijderen"); it outranks the menu-wide error colour in context-menu.css. */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-button,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-link {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text))) !important;
 }
 
 /* ---- A search select's open list (CnSearchSelect) ------------------------ */
@@ -3342,9 +3382,10 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 }
 
 /* The placed sentence replaces the card's own text, which stays as the
-   sentence for a library without placement. */
+   sentence for a library without placement. Important: the text widget sets
+   its display in its style attribute. */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper__content:has(> .cn-record-notes__all-sentence--placed) > .cn-text-widget {
-	display: none;
+	display: none !important;
 }
 
 /* The card holding that pair draws its title and sentence 24px in, as the
