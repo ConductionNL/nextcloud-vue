@@ -30,6 +30,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
+| `footnote` | String | `''` | A short note the form closes on, drawn under its fields with an information icon. Empty shows none. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
