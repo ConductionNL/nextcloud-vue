@@ -2732,6 +2732,32 @@
 	font-weight: 600;
 }
 
+/* A record-list checklist (DqTenant "Inrichten") as the board draws it: rows
+   20px high and 8px apart, the 20px mark 10px before a 15px label, a done mark
+   on the soft green with a 12px tick, the bar 12px above the rows. The
+   component's own rows are 28px tall with a 14px tick. The doubled classes
+   outrank its scoped rules.
+   @spec openspec/changes/board-record-list-checklist-rows/specs/record-list/spec.md#requirement-a-board-checklist-row-is-drawn-as-the-board */
+.cn-look-board .cn-record-list__check.cn-record-list__check {
+	min-height: 20px;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-look-board .cn-record-list__checklist-bar.cn-record-list__checklist-bar {
+	margin-block-end: 12px;
+}
+
+.cn-look-board .cn-record-list__check--done .cn-record-list__check-mark.cn-record-list__check-mark {
+	background: var(--cn-board-success-tint);
+	color: var(--cn-board-success-ink);
+}
+
+.cn-look-board .cn-record-list__check-mark svg {
+	width: 12px;
+	height: 12px;
+}
+
 /* The parties widget's "Dit zaaktype accepteert" strip as DqZaakBetrokkenen
    draws it: a sunken strip rounded at 8px, the label 14px bold, the kinds
    as outlined 13px chips.
