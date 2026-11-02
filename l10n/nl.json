@@ -2859,7 +2859,22 @@
     "Shown on the card. Leave empty to show the step type.": "Staat op de kaart. Laat leeg om het soort stap te tonen.",
     "The full configuration document. The fields above update along.": "Alle instellingen in één document. De velden hierboven passen zich aan.",
     "This step has no options.": "Deze stap heeft geen opties.",
-    "{uid} (you)": "{uid} (jij)"
+    "{uid} (you)": "{uid} (jij)",
+    "The action applies to the following items. Remove any items you want to leave out.": "De actie geldt voor de volgende items. Haal items weg die je wilt overslaan.",
+    "No items selected.": "Geen items geselecteerd.",
+    "Are you sure you want to continue with {count}?": "Weet je zeker dat je wilt doorgaan met {count}?",
+    "How the conditions combine": "Hoe de voorwaarden samengaan",
+    "Match all conditions": "Voldoet aan alle voorwaarden",
+    "Match any condition": "Voldoet aan een van de voorwaarden",
+    "Where": "Waarbij",
+    "and": "en",
+    "all of these": "al deze",
+    "one of these": "een van deze",
+    "Add group": "Groep toevoegen",
+    "Remove group": "Groep verwijderen",
+    "Condition": "Voorwaarde",
+    "These conditions are kept as written": "Deze voorwaarden blijven zoals ze zijn geschreven",
+    "This group has no conditions yet.": "Deze groep heeft nog geen voorwaarden."
   },
   "plurals": {
     "{count} member": [

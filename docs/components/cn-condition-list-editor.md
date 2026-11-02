@@ -42,3 +42,5 @@ The value is `[{ field: 'bouwkosten', operator: 'gt', value: 100000 }]`.
 | Event | When |
 |-------|------|
 | `update:modelValue`, `input` | Any change, with the whole list. |
+
+For conditions in groups ("this, and one of these"), see [`CnConditionGroupEditor`](./cn-condition-group-editor.md), which draws the same rows.

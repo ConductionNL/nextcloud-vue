@@ -107,7 +107,7 @@
 							<strong v-else class="cn-notes-card__author cn-notes-card__author--self">
 								{{ getNoteAuthorName(row.note) }}
 							</strong>
-							<span class="cn-notes-card__time">{{ formatDate(row.note.creationDateTime || row.note.created || row.note.createdAt) }}</span>
+							<span class="cn-notes-card__time">{{ formatDate(noteCreatedAt(row.note)) }}</span>
 						</div>
 						<div v-if="visibilityShown" class="cn-notes-card__visibility">
 							<CnVisibilityChip :visibility="row.note.visibility" />
@@ -182,7 +182,7 @@ import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { initialsOf } from '../../utils/initials.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
-import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
+import { noteCreatedAt, quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -493,11 +493,17 @@ export default {
 			return this.replyTo ? t('nextcloud-vue', 'Replying to {author}', { author: this.getNoteAuthorName(this.replyTo) }) : ''
 		},
 
+		/**
+		 * The notes newest first, up to the card's limit.
+		 *
+		 * @return {Array<object>} The notes shown.
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {
-				const dateA = new Date(a.creationDateTime || a.created || a.createdAt || 0)
-				const dateB = new Date(b.creationDateTime || b.created || b.createdAt || 0)
+				const dateA = new Date(noteCreatedAt(a) || 0)
+				const dateB = new Date(noteCreatedAt(b) || 0)
 				return dateB - dateA
 			})
 			return sorted.slice(0, this.maxDisplay)
@@ -534,6 +540,8 @@ export default {
 	},
 
 	methods: {
+		noteCreatedAt,
+
 		/**
 		 * A note's visibility; an entry with no value reads as internal.
 		 *

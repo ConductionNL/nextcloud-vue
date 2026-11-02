@@ -101,7 +101,7 @@
 						</template>
 						<template v-if="authoredRows" #subname>
 							<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
-							<span class="cn-notes-tab__meta">{{ authorOf(row.note) }} · {{ formatDate(row.note.creationDateTime || row.note.created) }}</span>
+							<span class="cn-notes-tab__meta">{{ authorOf(row.note) }} · {{ authoredTime(row.note) }}</span>
 							<span
 								v-if="wasEdited(row.note)"
 								class="cn-notes-tab__edited"
@@ -114,7 +114,7 @@
 							</span>
 						</template>
 						<template v-if="!authoredRows" #details>
-							{{ formatDate(row.note.creationDateTime || row.note.created) }}
+							{{ formatDate(noteCreatedAt(row.note)) }}
 							<!-- An edited note says so where its time is, because that
 							     is where a reader already looks to date what they are
 							     reading. The line names the editor, so nobody has to
@@ -204,10 +204,11 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { initialsOf } from '../../utils/initials.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
-import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
+import { noteCreatedAt, quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -766,6 +767,25 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to delete note', err)
 			}
+		},
+
+		noteCreatedAt,
+
+		/**
+		 * The time on an authored row, as the boards write it: "6 okt 15:52",
+		 * with the year outside the current one.
+		 *
+		 * @param {object} note The note.
+		 * @return {string} The time, or '' when the note has none.
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
+		authoredTime(note) {
+			const value = noteCreatedAt(note)
+			const date = value ? new Date(value) : null
+			if (date === null || Number.isNaN(date.getTime())) {
+				return ''
+			}
+			return formatBoardDate(date) + ' ' + formatTimeOfDay(date)
 		},
 
 		formatDate(dateStr) {

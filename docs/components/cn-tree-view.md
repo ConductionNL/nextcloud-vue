@@ -66,6 +66,16 @@ const nodes = [
 ## Slots
 
 - `#actions` — inline per-row actions. Scope: `{ node, depth }`. Click handlers should call `@click.stop` to avoid bubbling into the row's select.
+- `#label` — the label of every row, at every depth. Scope: `{ node, depth, expanded }`. Use it for an icon, a marker or a test id beside the text. Unused, the row shows `node[labelKey]`.
+
+```vue
+<CnTreeView :nodes="dashboards" label-key="name">
+  <template #label="{ node }">
+    <CnDashboardIcon :name="node.icon" :size="20" />
+    <span :data-testid="`dashboard-${node.uuid}`">{{ node.name }}</span>
+  </template>
+</CnTreeView>
+```
 
 ## Follow-up
 

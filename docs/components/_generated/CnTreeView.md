@@ -34,6 +34,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name      | Bindings | Description                     |
-| --------- | -------- | ------------------------------- |
-| `actions` | —        | actions Per-row actions. Scope: |
+| Name      | Bindings | Description                                        |
+| --------- | -------- | -------------------------------------------------- |
+| `actions` | —        | actions Per-row actions. Scope:                    |
+| `label`   | —        | label Replaces the label text of every row. Scope: |

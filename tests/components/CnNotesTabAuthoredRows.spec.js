@@ -11,6 +11,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import CnNotesTab from '../../src/components/CnObjectSidebar/CnNotesTab.vue'
 import { notesIntegration } from '../../src/integrations/builtin/notes.js'
+import { formatBoardDate, formatTimeOfDay } from '../../src/utils/boardDate.js'
 
 jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	searchNextcloudUsers: jest.fn().mockResolvedValue([]),
@@ -68,7 +69,7 @@ describe('CnNotesTab authored rows', () => {
 		const wrapper = await mountTab({ noteRows: 'authored' })
 
 		const row = wrapper.findAll('.stub.NcListItem')[0]
-		const time = wrapper.vm.formatDate(NOTES[0].creationDateTime)
+		const time = wrapper.vm.authoredTime(NOTES[0])
 		expect(row.find('.cn-notes-tab__text').text()).toBe('Stukken uit 2025 staan in het dossier')
 		expect(row.find('.cn-notes-tab__meta').text()).toBe(`Pieter Jansen · ${time}`)
 		// The time stands in the meta line only, not again at the row's end.
@@ -82,6 +83,21 @@ describe('CnNotesTab authored rows', () => {
 		const count = (wrapper) => wrapper.findAll('.stub.NcListItem .stub.NcActionButton').length
 		expect(count(plain)).toBeGreaterThan(0)
 		expect(count(authored)).toBe(count(plain))
+	})
+})
+
+describe('CnNotesTab authored rows on OpenRegister notes', () => {
+	it('reads the time from createdAt and writes it as the board\'s short date and time', async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ results: [{ id: 7, message: 'Stukken uit 2025', actorId: 'lars', actorDisplayName: 'Lars de Koning', createdAt: '2026-10-06T09:31:00+02:00', versionCount: 0 }] }),
+		})
+		const wrapper = await mountTab({ noteRows: 'authored' })
+
+		const at = new Date('2026-10-06T09:31:00+02:00')
+		const expected = `${formatBoardDate(at)} ${formatTimeOfDay(at)}`
+		expect(wrapper.find('.cn-notes-tab__meta').text()).toBe(`Lars de Koning · ${expected}`)
 	})
 })
 
