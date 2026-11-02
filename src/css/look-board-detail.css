@@ -1939,6 +1939,25 @@
 	border-end-end-radius: var(--cn-board-card-radius);
 }
 
+/* The lines under a bleed table stand as the boards draw them in the card's
+   12px column (DqZaakGerelateerd Deelzaken "(0/2 voltooid)" and its footnote,
+   Objecten "Objecttypen beheren"): 12px apart at the font's normal leading. The
+   summary sat flush under the table at a 1.5 leading.
+   @spec openspec/changes/object-list-table-bleed/specs/object-list-table-bleed/spec.md#requirement-the-lines-under-a-bleed-table-stand-as-drawn */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed > .cn-object-list-widget__summary {
+	margin-block-start: 12px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed > .cn-object-list-widget__summary + .cn-object-list-widget__footnote {
+	margin-block-start: 12px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed > .cn-object-list-widget__links {
+	line-height: normal;
+}
+
 /* A row menu in the last column keeps its 34px button and 16px start
    padding beside the card's end padding, so it is not cut off. */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed .cn-table-container .cn-data-table .cn-table-col--actions:last-child {
