@@ -12,28 +12,31 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------------------- | --------- | -------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `confirmValue`      | `string`  |          | `''`                                                                                                                 | Value the user must type before the destructive button enables. Empty: no field.                                   |
 | `confirmFieldLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Type to confirm')`                                                                     | Label of the type-to-confirm field.                                                                                |
-| `items`             | `array`   | ✓        | —                                                                                                                    | Items to delete. Each must have an `id` property.                                                                  |
+| `items`             | `array`   | ✓        | —                                                                                                                    | Items the action applies to. Each must have an `id` property.                                                      |
 | `nameField`         | `string`  |          | `'title'`                                                                                                            | Property name used for display (e.g., 'title', 'name')                                                             |
 | `nameFormatter`     | `func`    |          | `null`                                                                                                               | Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. |
 | `dialogTitle`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete items')`                                                                        | Dialog title                                                                                                       |
 | `warningText`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'The following items will be permanently deleted. Remove any items you want to keep.')` | Warning text shown above the item list                                                                             |
 | `emptyText`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'No items selected for deletion.')`                                                     | Text when all items removed from list                                                                              |
 | `successText`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Items successfully deleted.')`                                                         | Success message                                                                                                    |
-| `cancelLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                                              | Label for the cancel button (visible before the delete runs).                                                      |
-| `closeLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                                               | Label for the close button (visible after delete completes).                                                       |
+| `cancelLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                                              | Label for the cancel button (visible before the action runs).                                                      |
+| `closeLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                                               | Label for the close button (visible after the action completes).                                                   |
 | `confirmLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                                                                              | Label for the primary confirm button that triggers the delete.                                                     |
 | `removeLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Remove from list')`                                                                    | Aria label for the per-row "remove from list" icon button.                                                         |
+| `variant`           | `string`  |          | `'error'`                                                                                                            | Visual variant of the primary button.                                                                              |
+| `confirmIcon`       | `union`   |          | `() =&gt; markRaw(TrashCanOutline)`                                                                                  | Icon on the primary button: a CnIcon name or an icon component. Defaults to a trash can.                           |
+| `sentence`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Are you sure you want to permanently delete \{count\}?')`                              | Board look: the question above the list, with `{count}` where the bold item count goes.                            |
 | `irreversible`      | `boolean` |          | `true`                                                                                                               | Board look: end the sentence with "This action cannot be undone."                                                  |
 
 ### Events
 
-| Name      | Payload | Description                                                                    |
-| --------- | ------- | ------------------------------------------------------------------------------ |
-| `close`   | —       |                                                                                |
-| `confirm` | —       | Emitted when the user confirms deletion. Payload: array of item IDs to delete. |
+| Name      | Payload | Description                                                                                 |
+| --------- | ------- | ------------------------------------------------------------------------------------------- |
+| `close`   | —       | Emitted when the dialog should close: cancel, close button, or 2 seconds after a success.   |
+| `confirm` | —       | Emitted when the user confirms the action. Payload: the ids of the items still on the list. |
 
 ### Methods
 
-| Name        | Description                                                                                     |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| `setResult` | Set the result of the delete operation. Call this from the parent after the API call completes. |
+| Name        | Description                                                                           |
+| ----------- | ------------------------------------------------------------------------------------- |
+| `setResult` | Set the result of the action. Call this from the parent after the API call completes. |
