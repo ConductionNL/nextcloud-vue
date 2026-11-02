@@ -306,7 +306,9 @@ function idOf(object) {
  *
  * `startAt: "firstOpen"` opens a run that was started earlier at the page of
  * its first unanswered question (the last page when all are answered), once
- * per record; without it the run opens at the first page.
+ * per record; `startAt: "lastAnswered"` at the page of its last answered
+ * question, where the inspector was; without it the run opens at the first
+ * page.
  *
  * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
  * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
@@ -524,7 +526,8 @@ export default {
 		/**
 		 * The questions of this page that get a photo control: with a
 		 * `photoRequired` field, those whose rule is not never (and photo
-		 * questions); without one, the first question of the page.
+		 * questions), less a `{ whenAnswer }` question answered otherwise that
+		 * holds no photo; without one, the first question of the page.
 		 *
 		 * @return {object[]} The questions.
 		 * @spec openspec/changes/checklist-run-photo-rule/specs/checklist-run-photo-rule/spec.md#requirement-a-question-can-require-a-photo
@@ -534,7 +537,7 @@ export default {
 				return []
 			}
 			if (this.fields.photoRequired) {
-				return this.pageQuestions.filter((q) => q.kind === 'photo' || q.photoRule !== 'never')
+				return this.pageQuestions.filter((q) => q.kind === 'photo' || (q.photoRule !== 'never' && !this.photoRuledOut(q)))
 			}
 			const first = this.currentQuestion
 			const extra = this.pageQuestions.filter((q) => q.kind === 'photo' && q !== first)
@@ -750,6 +753,19 @@ export default {
 		},
 
 		/**
+		 * Whether a question's answer rules its photo out: a `{ whenAnswer }`
+		 * question answered with another value and holding no photo.
+		 *
+		 * @param {object} question The question.
+		 * @return {boolean} True when no photo control is needed.
+		 */
+		photoRuledOut(question) {
+			const rule = question.photoRule
+			const value = String(this.draft[question.id]?.value ?? '')
+			return Boolean(rule && typeof rule === 'object' && value !== '' && value !== rule.whenAnswer && !this.hasPhoto(question))
+		},
+
+		/**
 		 * Whether a question has a photo, stored or held.
 		 *
 		 * @param {object} question The question.
@@ -901,6 +917,9 @@ export default {
 				if (this.positionedFor !== key && this.content?.startAt === 'firstOpen') {
 					const open = questions.findIndex((question) => !this.isAnswered(question))
 					this.page = open === -1 ? lastPage : Math.floor(open / this.pageSize)
+				} else if (this.positionedFor !== key && this.content?.startAt === 'lastAnswered') {
+					const last = questions.findLastIndex((question) => this.isAnswered(question))
+					this.page = last === -1 ? 0 : Math.floor(last / this.pageSize)
 				}
 				this.positionedFor = key
 				this.page = Math.min(this.page, lastPage)
@@ -1314,6 +1333,8 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	font-size: 14px;
+	font-weight: 600 !important;
 	line-height: 1.2;
 }
 
