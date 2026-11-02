@@ -48,7 +48,7 @@ const nodes = [
 | `expandLabel` / `collapseLabel` | String or `(node) => string` | `'Expand'` / `'Collapse'` | A11y labels for the caret button. A function gives every row its own name, such as "Expand HR". |
 | `toggleAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row's caret button, such as a test id per node. |
 | `rowAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row: a class, `data-*` attributes, or a `role` and `aria-label`. `class` and `style` merge with the row's own. |
-| `focusableRows` | Boolean | `false` | Rows get `tabindex="0"`, and Enter or Space on a row selects its node, like a click. Keys pressed on the caret or an action inside the row stay theirs. |
+| `focusableRows` | Boolean | `false` | Rows get `tabindex="0"`, and Enter or Space on a row selects its node, like a click. Keys pressed on the caret or an action inside the row stay theirs. A focused row shows a focus ring in `--color-primary-element`. |
 | `expandAllOnMount` | Boolean | `false` | Expand every node on mount (emits `update:expanded-ids`). |
 
 ## Events

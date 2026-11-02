@@ -1,5 +1,36 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`CnTreeView default render draws a focused focusable row with tabindex and a focus ring 1`] = `
+"<div class="cn-tree-view" data-testid="cn-tree-view">
+  <!--v-if-->
+  <ul class="cn-tree-view__root" role="tree">
+    <li class="cn-tree-node cn-tree-node--expanded" data-node-id="1" role="treeitem" aria-expanded="true" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;" tabindex="0"><button type="button" class="cn-tree-node__toggle" aria-label="Collapse"><span class="cn-tree-node__caret cn-tree-node__caret--open">▸</span></button><span class="cn-tree-node__icon">📁</span><span class="cn-tree-node__label">Root</span>
+        <!--v-if-->
+        
+      </div>
+      <ul class="cn-tree-node__children" role="group">
+        <li class="cn-tree-node" data-node-id="2" role="treeitem" aria-expanded="false" aria-selected="false">
+          <div class="cn-tree-node__row" style="padding-left: 18px;" tabindex="0"><button type="button" class="cn-tree-node__toggle" aria-label="Expand"><span class="cn-tree-node__caret">▸</span></button>
+            <!--v-if--><span class="cn-tree-node__label">Child</span><span class="cn-tree-node__badge">3</span>
+            
+          </div>
+          <!--v-if-->
+        </li>
+      </ul>
+    </li>
+    <li class="cn-tree-node" data-node-id="4" role="treeitem" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;" tabindex="0"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+        <!--v-if--><span class="cn-tree-node__label">Other</span>
+        <!--v-if-->
+        
+      </div>
+      <!--v-if-->
+    </li>
+  </ul>
+</div>"
+`;
+
 exports[`CnTreeView default render draws the actions and label slots as before 1`] = `
 "<div class="cn-tree-view" data-testid="cn-tree-view">
   <!--v-if-->

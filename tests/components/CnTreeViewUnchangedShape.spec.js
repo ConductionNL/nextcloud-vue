@@ -3,6 +3,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
 
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnTreeView from '../../src/components/CnTreeView/CnTreeView.vue'
@@ -58,6 +60,22 @@ describe('CnTreeView default render', () => {
 			},
 		})
 		expect(shape(wrapper)).toMatchSnapshot()
+	})
+
+	it('draws a focused focusable row with tabindex and a focus ring', () => {
+		const wrapper = mount(CnTreeView, { propsData: { nodes, expandedIds: [1], focusableRows: true }, attachTo: document.body })
+		const row = wrapper.findAll('.cn-tree-node__row')[1]
+		row.element.focus()
+		expect(document.activeElement).toBe(row.element)
+		expect(shape(wrapper)).toMatchSnapshot()
+		wrapper.unmount()
+	})
+
+	it('styles the focus ring of a focusable row with the theme focus token', () => {
+		const source = readFileSync(join(__dirname, '../../src/components/CnTreeView/CnTreeNode.vue'), 'utf8')
+		const rule = source.match(/\.cn-tree-node__row\[tabindex\]:focus-visible \{([^}]*)\}/)
+		expect(rule).not.toBeNull()
+		expect(rule[1]).toContain('outline: 2px solid var(--color-primary-element)')
 	})
 
 	it('a row has no tabindex and ignores Enter without the opt-in', async () => {

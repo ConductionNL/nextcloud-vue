@@ -211,6 +211,12 @@ export default {
 	background: var(--color-background-hover);
 }
 
+/* A row made focusable by `focusableRows` shows where keyboard focus is (WCAG 2.4.7). */
+.cn-tree-node__row[tabindex]:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+
 .cn-tree-node--selected > .cn-tree-node__row {
 	background: var(--color-primary-element-light);
 	color: var(--color-main-text);
