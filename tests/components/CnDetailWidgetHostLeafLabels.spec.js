@@ -11,7 +11,7 @@ import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetail
 import { contactsIntegration } from '../../src/integrations/builtin/contacts.js'
 import { integrations } from '../../src/integrations/registry.js'
 
-const NL = { 'Create a proposal for this ticket': 'Voorstel maken voor dit ticket' }
+const NL = { 'Create a proposal for this ticket': 'Voorstel maken voor dit ticket', Organisation: 'Organisatie', Colleague: 'Collega' }
 
 /**
  * Mount the host on a contacts integration widget.
@@ -45,6 +45,12 @@ describe('CnDetailWidgetHost: a leaf gets labels in the host language', () => {
 		expect(w.findComponent({ name: 'CnContactsCard' }).props('createLabel')).toBe('Voorstel maken voor dit ticket')
 		expect(w.vm.integrationMountProps.createLabel).toBe('Voorstel maken voor dit ticket')
 		expect(w.vm.integrationMountProps).not.toHaveProperty('ignored')
+		w.unmount()
+	})
+
+	it('translates each word of a label map, keeping its keys', () => {
+		const w = mountHost({ labels: { kindLabels: { organisation: 'Organisation', colleague: 'Colleague', odd: 4 } } })
+		expect(w.vm.integrationProps.kindLabels).toEqual({ organisation: 'Organisatie', colleague: 'Collega' })
 		w.unmount()
 	})
 
