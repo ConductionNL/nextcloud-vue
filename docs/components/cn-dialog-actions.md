@@ -1,6 +1,6 @@
 # CnDialogActions
 
-The footer of a hand-built dialog: a cancel button and a primary button. While the dialog saves, the primary button is disabled and shows a loading icon.
+The footer of a hand-built dialog: a cancel button and a primary button. While the dialog saves, both buttons are disabled and the primary button shows a loading icon. A cancel cannot stop a save that already runs, so it is not offered.
 
 Use it in the `actions` slot of [`CnDialog`](./cn-dialog.md) when the body is too custom for [`CnFormDialog`](./cn-form-dialog.md). The component keeps no state: your dialog owns `saving` and `canSubmit` and does the work on `submit`.
 
@@ -30,7 +30,7 @@ import { CnDialogActions } from '@conduction/nextcloud-vue'
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `saving` | Boolean | `false` | A save is running. Disables the primary button and draws a loading icon on it. |
+| `saving` | Boolean | `false` | A save is running. Disables both buttons and draws a loading icon on the primary one. |
 | `canSubmit` | Boolean | `true` | The dialog holds enough to submit. `false` disables the primary button. |
 | `confirmLabel` | String | `'Save'` | Primary button label. |
 | `cancelLabel` | String | `'Cancel'` | Cancel button label. |

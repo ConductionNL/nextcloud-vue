@@ -64,7 +64,11 @@ describe('CnConfirmDialog default render', () => {
 
 		it(`loading phase (${look})`, async () => {
 			const wrapper = mount(CnConfirmDialog, { propsData: { look } })
+			const cancel = wrapper.findAll('.stub.NcButton').at(-2)
+			expect(cancel.attributes('disabled')).toBeUndefined()
 			await wrapper.find('[data-testid="cn-confirm-dialog-confirm"]').trigger('click')
+			expect(cancel.text()).toBe('Cancel')
+			expect(cancel.attributes('disabled')).toBeDefined()
 			expect(markup(wrapper)).toMatchSnapshot()
 		})
 
@@ -127,8 +131,12 @@ describe('CnMassDeleteDialog default render', () => {
 
 		it(`loading phase (${look})`, async () => {
 			const wrapper = mount(CnMassDeleteDialog, { propsData: { look, items } })
+			const cancel = wrapper.findAll('.stub.NcButton').at(-2)
+			expect(cancel.attributes('disabled')).toBeUndefined()
 			await wrapper.find('[data-testid="cn-mass-delete-dialog-confirm"]').trigger('click')
 			expect(wrapper.emitted('confirm')).toEqual([[[1, 2, 3]]])
+			expect(cancel.text()).toBe('Cancel')
+			expect(cancel.attributes('disabled')).toBeDefined()
 			expect(markup(wrapper)).toMatchSnapshot()
 		})
 

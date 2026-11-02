@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcButton data-testid="cn-dialog-actions-cancel" @click="onCancel">
+	<NcButton :disabled="saving" data-testid="cn-dialog-actions-cancel" @click="onCancel">
 		{{ cancelLabel }}
 	</NcButton>
 	<NcButton
@@ -63,7 +63,7 @@ export default {
 	},
 
 	props: {
-		/** Whether a save is in flight. Disables the primary button and draws a loading icon on it. */
+		/** Whether a save is in flight. Disables both buttons and draws a loading icon on the primary one. */
 		saving: {
 			type: Boolean,
 			default: false,

@@ -50,7 +50,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton :disabled="loading" @click="$emit('close')">
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton

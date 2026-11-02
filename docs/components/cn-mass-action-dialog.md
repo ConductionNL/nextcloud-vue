@@ -2,7 +2,7 @@
 
 Two-phase confirmation dialog for one action on many items: publish, lock, validate, restore or delete. The review phase lists the items, and the user can take any item off the list. The result phase shows success or an error.
 
-The dialog does not perform the action. It emits `confirm` with the ids still on the list. Your code performs the call and reports back with `setResult()` on a ref.
+The dialog does not perform the action. It emits `confirm` with the ids still on the list. Your code performs the call and reports back with `setResult()` on a ref. Until then, Cancel is disabled: the action is already running.
 
 [`CnMassDeleteDialog`](./cn-mass-delete-dialog.md) is this dialog with the delete texts, the `error` variant and a trash icon as defaults.
 

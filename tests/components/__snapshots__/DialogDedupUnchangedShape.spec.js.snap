@@ -130,7 +130,7 @@ exports[`CnConfirmDialog default render loading phase (board) 1`] = `
     <p class="cn-dialog__sentence" data-testid="cn-confirm-sentence">Are you sure you want to continue?</p>
     <!--v-if-->
   </div>
-  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
   <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm" disabled="true"> Confirm
     
     <div class="stub NcLoadingIcon" size="20" name="Loading&nbsp;…"></div>
@@ -146,7 +146,7 @@ exports[`CnConfirmDialog default render loading phase (nextcloud) 1`] = `
     <div class="stub NcNoteCard" type="info">Are you sure you want to continue?</div>
     <!--v-if-->
   </div>
-  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
   <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm" disabled="true"> Confirm
     
     <div class="stub NcLoadingIcon" size="20" name="Loading&nbsp;…"></div>
@@ -246,7 +246,7 @@ exports[`CnMassDeleteDialog default render loading phase (board) 1`] = `
     <!--v-if-->
     <!--v-if-->
   </div>
-  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
   <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<div class="stub NcLoadingIcon" size="20"></div>
   </div>
 </div>"
@@ -271,7 +271,7 @@ exports[`CnMassDeleteDialog default render loading phase (nextcloud) 1`] = `
     <!--v-if-->
     <!--v-if-->
   </div>
-  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
   <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<div class="stub NcLoadingIcon" size="20"></div>
   </div>
 </div>"

@@ -79,6 +79,8 @@ warning:
 |--------|-------------|
 | `setResult({ success?, error? })` | Report the operation outcome — flips the dialog into its result phase (success auto-closes after 2s; an error stays open). |
 
+Between the confirm click and `setResult()`, Cancel is disabled, along with Esc and the close button. The operation is already running, so a cancel there would not stop it.
+
 ## Slots
 
 | Slot | Description |

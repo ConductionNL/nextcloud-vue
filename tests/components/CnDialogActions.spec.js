@@ -16,6 +16,7 @@ describe('CnDialogActions', () => {
 		expect(submit(wrapper).text()).toBe('Save')
 		expect(submit(wrapper).attributes('variant')).toBe('primary')
 		expect(submit(wrapper).attributes('disabled')).toBeUndefined()
+		expect(cancel(wrapper).attributes('disabled')).toBeUndefined()
 		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
 	})
 
@@ -41,6 +42,7 @@ describe('CnDialogActions', () => {
 		expect(spinner.exists()).toBe(true)
 		expect(spinner.attributes('name')).toBe('Loading\u00a0…')
 		expect(wrapper.findComponent({ name: 'CnIcon' }).exists()).toBe(false)
+		expect(cancel(wrapper).attributes('disabled')).toBeDefined()
 	})
 
 	it('emits cancel and submit from their buttons', async () => {

@@ -8,14 +8,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name           | Type      | Required | Default                                 | Description                                                                              |
-| -------------- | --------- | -------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `saving`       | `boolean` |          | `false`                                 | Whether a save is in flight. Disables the primary button and draws a loading icon on it. |
-| `canSubmit`    | `boolean` |          | `true`                                  | Whether the dialog holds enough to submit. False disables the primary button.            |
-| `confirmLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Save')`   | Label of the primary button.                                                             |
-| `cancelLabel`  | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')` | Label of the cancel button.                                                              |
-| `variant`      | `string`  |          | `'primary'`                             | Variant of the primary button. Use `error` for a destructive submit.                     |
-| `confirmIcon`  | `string`  |          | `''`                                    | A CnIcon name drawn on the primary button when it is not saving. Empty draws none.       |
+| Name           | Type      | Required | Default                                 | Description                                                                                     |
+| -------------- | --------- | -------- | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `saving`       | `boolean` |          | `false`                                 | Whether a save is in flight. Disables both buttons and draws a loading icon on the primary one. |
+| `canSubmit`    | `boolean` |          | `true`                                  | Whether the dialog holds enough to submit. False disables the primary button.                   |
+| `confirmLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Save')`   | Label of the primary button.                                                                    |
+| `cancelLabel`  | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')` | Label of the cancel button.                                                                     |
+| `variant`      | `string`  |          | `'primary'`                             | Variant of the primary button. Use `error` for a destructive submit.                            |
+| `confirmIcon`  | `string`  |          | `''`                                    | A CnIcon name drawn on the primary button when it is not saving. Empty draws none.              |
 
 ### Events
 
