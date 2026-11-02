@@ -14,8 +14,8 @@ A board dialog's field help reads as the boards draw it.
 
 ### Requirement: A board dialog field's help line is 13px muted under the control
 
-In a board dialog the help line of an NcTextField or NcTextArea SHALL be 13px at line height 1.3 in the muted ink,
-4px under the control, with no side inset. Outside the board look Nextcloud's own help line SHALL stay.
+In a board dialog the help line of an NcTextField or NcTextArea SHALL be 13px in the muted ink,
+4px under the control, with no side inset. (Its leading is set by board-dialog-help-normal-leading.) Outside the board look Nextcloud's own help line SHALL stay.
 
 #### Scenario: PtUitnodigen
 
