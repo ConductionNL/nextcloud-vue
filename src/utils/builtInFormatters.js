@@ -592,6 +592,23 @@ export function formatUserName(value) {
 	return userDisplayName(value) || String(value)
 }
 
+/**
+ * A Dutch postcode as people read it: "2999AA" (as the registers store it)
+ * becomes "2999 AA". Anything that is not a Dutch postcode comes back as it is.
+ *
+ * @param {*} value The postcode.
+ * @return {string} The postcode with its space, the value as it is, or ''.
+ * @spec openspec/changes/facts-postcode-format/specs/facts-postcode-format/spec.md#requirement-a-facts-part-can-write-a-dutch-postcode-with-its-space
+ */
+export function formatPostcode(value) {
+	if (value === null || value === undefined || typeof value === 'object') {
+		return ''
+	}
+	const text = String(value).trim()
+	const match = /^([1-9]\d{3})\s*([a-zA-Z]{2})$/.exec(text)
+	return match ? `${match[1]} ${match[2].toUpperCase()}` : text
+}
+
 export const BUILT_IN_FORMATTERS = {
 	date: formatDate,
 	datetime: formatDateTime,
@@ -609,4 +626,5 @@ export const BUILT_IN_FORMATTERS = {
 	termDuration: formatTermDuration,
 	valueMap: formatValueMap,
 	userName: formatUserName,
+	postcode: formatPostcode,
 }
