@@ -27,8 +27,8 @@ button SHALL take no vertical margin.
 
 ### Requirement: A side text keeps 8px to its link
 
-In the board look a side CnFactsWidget whose text is followed by its link SHALL keep 8px between them, the link
-taking no leading above it.
+In the board look a side CnFactsWidget that opens on a text followed by its link SHALL keep 8px between them, the
+link taking no leading above it. A card that opens on a lead keeps the lead card's 12px.
 
 #### Scenario: DqContact "Woonadres"
 

@@ -20,7 +20,8 @@ The same cards and feed are on PqKlant; DqOrganisatie draws the same feed.
 
 - A side facts card that opens on a lead and holds rows keeps 10px under the title and between its parts.
 - An inline row (a value with its button) keeps 10px to the next row, and its button takes no vertical margin.
-- A side text followed by its link keeps 8px to it, the link without leading above.
+- A side card that opens on a text followed by its link keeps 8px to it, the link without leading above. A card
+  that opens on a lead (DqOrganisatie "KvK en adres") keeps the lead card's 12px.
 - A side facts card's action is 34px tall with no vertical margin.
 - A feed's meta line and text are set on the normal line, 3px apart, and its rows are 4px apart.
 
