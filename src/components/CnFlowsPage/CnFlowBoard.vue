@@ -1011,7 +1011,8 @@ export default {
 					const options = field.optionsFrom
 						? [...(this.loadedOptions[field.optionsFrom] || [])]
 						: normaliseSelectOptions(field.options)
-					if (isSet(value) && typeof value !== 'object' && options.length > 0 && !options.some((o) => o.id === value)) {
+					const listed = (o) => o.id === value || (o.key !== undefined && o.key === value)
+					if (isSet(value) && typeof value !== 'object' && options.length > 0 && !options.some(listed)) {
 						options.push({ id: value, label: String(value) })
 					}
 					let widget = 'text'
@@ -1029,7 +1030,7 @@ export default {
 						widget,
 						value,
 						options,
-						option: options.find((o) => o.id === value) || null,
+						option: options.find((o) => o.id === value) || options.find(listed) || null,
 						isObject: value !== null && typeof value === 'object',
 					}
 				})
@@ -1037,7 +1038,8 @@ export default {
 
 		/**
 		 * Where the selected step goes next: each outgoing line by its name
-		 * ("Ja", "Nee"), else "Next", with the step it leads to.
+		 * ("Ja", "Nee"), else by the exit it leaves by (its label, else its id
+		 * with a capital), else "Next", with the step it leads to.
 		 *
 		 * @return {Array<{id: string, label: string, target: string}>} The outcomes.
 		 */
@@ -1050,9 +1052,18 @@ export default {
 				const node = this.store.nodes.find((item) => item.id === target)
 				return (node && (node.name || node.label)) || target
 			}
+			const exits = (this.store.selectedNode && Array.isArray(this.store.selectedNode.exits)) ? this.store.selectedNode.exits : []
+			const exitName = (line) => {
+				const exitId = line.data && line.data.edge && line.data.edge.fromExit
+				if (!exitId) {
+					return ''
+				}
+				const exit = exits.find((item) => item && item.id === exitId)
+				return (exit && exit.label) || String(exitId).charAt(0).toUpperCase() + String(exitId).slice(1)
+			}
 			return (this.store.canvasEdges || [])
 				.filter((line) => line.source === id)
-				.map((line) => ({ id: line.id, label: (line.data && line.data.label) || this.t('nextcloud-vue', 'Next'), target: nameOf(line.target) }))
+				.map((line) => ({ id: line.id, label: (line.data && line.data.label) || exitName(line) || this.t('nextcloud-vue', 'Next'), target: nameOf(line.target) }))
 		},
 
 		/**
@@ -1249,7 +1260,10 @@ export default {
 				try {
 					const response = await axios.get(url.startsWith('/') && !url.startsWith('/apps') && !url.startsWith('/index.php') ? generateUrl(url) : url)
 					const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
-					this.loadedOptions = { ...this.loadedOptions, [url]: normaliseSelectOptions(rows) }
+					// A row's `key` stays on its option: a step may name the row by its key (a stored decision table).
+					const keys = new Map(rows.filter((row) => row && typeof row === 'object' && row.key).map((row) => [row.id ?? row.value ?? row['@self']?.uuid ?? row.uuid, row.key]))
+					const options = normaliseSelectOptions(rows).map((option) => (keys.has(option.id) ? { ...option, key: keys.get(option.id) } : option))
+					this.loadedOptions = { ...this.loadedOptions, [url]: options }
 				} catch (error) {
 					// The field then shows the stored value; Edit step still reaches everything.
 					// eslint-disable-next-line no-console -- diagnostic for a failure this degrades from

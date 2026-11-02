@@ -829,6 +829,7 @@
 }
 
 .cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__header {
+	align-items: flex-start;
 	padding-top: 4px;
 }
 
@@ -839,6 +840,86 @@
 
 .cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__notice {
 	margin: 0;
+}
+
+/* The flow's name is set as every board page title (DqFlow, PqFlow: 28/700).
+   In the cards layout it sits at the top of the row, level with the buttons,
+   and the Active switch's row is as tall as they are.
+   @spec openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-board-look-flow-title-is-the-page-title */
+.cn-look-board .cn-flow-board__title:not(.cn-look-nextcloud *) {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__toggle-row {
+	height: var(--cn-board-control-height);
+}
+
+/* The cards start at the top of their row, each as tall as its content, and
+   the canvas card is 542px tall (DqFlow). The palette's app labels are muted
+   at a 1.2 line (the nldesign theme inks every heading through its surface
+   token); its steps and "Meer stappen" drop the core button margin and
+   height, the link at 400. A step card's name sits at a 1.2 line and its pill
+   at 12px, so the card is 63px. The inspector's outcomes are a plain 14px list.
+   @spec openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-cards-layout-sets-its-cards-as-the-board */
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__body {
+	align-items: start;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__canvas {
+	box-sizing: border-box;
+	height: 542px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__palette-app {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__palette-step {
+	margin: 0;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__palette-more {
+	--nldesign-component-button-font-weight: 400;
+	min-height: 0;
+	height: auto;
+	margin: 0;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__palette-note,
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__step-log summary {
+	line-height: normal;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-detail--card-nodes .cn-flow-detail__node-label {
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-detail--card-nodes .cn-flow-detail__node .cn-status-badge {
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 12px;
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__outcomes {
+	gap: 8px 16px;
+	padding: 0;
+	font-size: 14px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__outcome dt,
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__outcome dd {
+	padding: 0;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) .cn-flow-board__outcome dd {
+	font-weight: 500;
 }
 
 /* ---- An ordered list field ----------------------------------------------- */
