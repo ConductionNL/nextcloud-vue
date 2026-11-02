@@ -836,10 +836,11 @@ export default {
 </script>
 
 <style scoped>
+/* The parts stand 18px apart, as the board draws the dialog (DqArchiveren). */
 .cn-action-dialog {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: 18px;
 }
 
 .cn-action-dialog__summary {
@@ -910,6 +911,8 @@ export default {
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 12px 24px;
 	margin: 0;
+	/* The server pads every dl 12px. */
+	padding: 0;
 }
 
 .cn-action-dialog__fact {
