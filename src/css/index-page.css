@@ -615,6 +615,18 @@
 	cursor: pointer;
 }
 
+/* The server's `button:not(.button-vue,[class^=vs__]):not(.app-navigation-entry-button)`
+   rule (0,2,1) adds a 3px right margin the rule above cannot take back, so
+   the pills stood 11px apart where the board draws 8px. The active pill is
+   ink on ink and the board draws it without an edge. */
+.cn-index-page .cn-index-page__filter-strip > .cn-index-page__filter-strip-pill {
+	margin: 0;
+}
+
+.cn-index-page .cn-index-page__filter-strip > .cn-index-page__filter-strip-pill--active {
+	border-width: 0;
+}
+
 .cn-index-page .cn-index-page__filter-strip-pill:hover {
 	border-color: var(--color-main-text);
 	background: var(--color-main-background);

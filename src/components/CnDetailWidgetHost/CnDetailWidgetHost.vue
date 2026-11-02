@@ -764,6 +764,8 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
 		cnRecordEdit: { default: null },
+		/** The page's object sidebar (`{ open, requestedTab }`), for an `open-sidebar-tab` header action. */
+		objectSidebarState: { default: null },
 		/** The records the detail page reads beside the record (`@context.<name>`), for a subtitle that depends on them. */
 		cnDetailVisibilityRows: { default: null },
 		/**
@@ -1429,6 +1431,7 @@ export default {
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
 				recordEdit: this.cnRecordEdit,
+				sidebar: this.objectSidebarState,
 				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
 					? this.cnDispatchAction(action, extra)
 					: dispatchAction(action, { router: this.$router || null, ...extra })),

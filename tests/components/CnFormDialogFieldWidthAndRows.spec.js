@@ -86,4 +86,18 @@ describe('CnFormDialog field width and textarea rows', () => {
 
 		expect(wrapper.find('[data-cn-field="description"] textarea').attributes('rows')).toBe('4')
 	})
+
+	it('hands the board look the rows its override asks for', async () => {
+		const wrapper = mountForm({ fieldOverrides: { description: { widget: 'textarea', rows: 2 } } })
+		await flush()
+
+		expect(wrapper.find('[data-cn-field="description"] textarea').element.style.getPropertyValue('--cn-textarea-rows')).toBe('2')
+	})
+
+	it('hands the board look no rows without an override, so it keeps its own height', async () => {
+		const wrapper = mountForm({ fieldOverrides: { description: { widget: 'textarea' } } })
+		await flush()
+
+		expect(wrapper.find('[data-cn-field="description"] textarea').element.style.getPropertyValue('--cn-textarea-rows')).toBe('')
+	})
 })

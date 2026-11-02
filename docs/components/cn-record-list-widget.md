@@ -64,6 +64,18 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
+### One card, several sources (`sections`)
+
+`sections` draws several lists in one card, one after the other, as board DqZaakBetrokkenen draws the Toegang card: the case's access links, then the users and groups that can open the case. Each entry is a record list config of its own (`endpointSource`, `avatar`, `title`, `meta`, `pill`, `rowAction`, `emptyText`, `errorText` ...) and reads its own source, so a section that fails shows its own error text and the other sections stay. A section takes the card's other keys (`presentation`, `ruleAbove`, `density` ...) unless it sets them itself, and the card's `footnote`, `footnoteVariant`, `footerLink` and `footerAction` go under the last section only. The card's `header` event comes from the first section. Without `sections` the list reads its one source as before.
+
+Three row options make such a section read like the board:
+
+- `meta` as `{ "cases": [{ "when": <condition>, "text": "via the case type" }], "text": "..." }` writes the text of the first case whose `when` holds on the row (the condition vocabulary `pill.cases` uses, with `contains` for a list field and `empty` for a missing one), else its own `text`.
+- `avatar.icon` as `{ "field": "principal.type", "map": { "group": "AccountGroup" } }` shows the icon in the avatar circle for a row whose field maps to one, and the initials otherwise.
+- `hideWhen` (a condition over the row) leaves out the rows it holds for, such as a service account among a case's grants. It applies to rows read from an `endpointSource` or from `objectRows`.
+
+`refusalText` replaces the server's own words for a refused read (401 or 403) of an `endpointSource`: "Only the people this case is assigned to can see who has access". Any other failure still shows `errorText`.
+
 ### A colour dot and flags
 
 `dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
