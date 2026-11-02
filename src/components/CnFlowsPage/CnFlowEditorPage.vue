@@ -13,6 +13,7 @@
 		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
 		:layout="layout"
+		:toggleLabel="toggleLabel"
 		:nodeLook="nodeLook"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:saveAsVersion="saveAsVersion"
@@ -260,6 +261,17 @@ export default {
 		layout: {
 			type: String,
 			default: 'cards',
+		},
+
+		/**
+		 * Board look: how the Active switch is named. `state` names it
+		 * Active or Paused after the flow; `fixed` always names it Active
+		 * and the switch shows the state (DqFlow). Manifest key
+		 * `config.toggleLabel`.
+		 */
+		toggleLabel: {
+			type: String,
+			default: 'state',
 		},
 	},
 
