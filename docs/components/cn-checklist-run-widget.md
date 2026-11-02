@@ -41,7 +41,7 @@ the wording are all configuration; nothing in the widget knows what is being ins
 | `saveAction` | A manifest action that saves an answer instead, for an app that stores answers its own way. It is dispatched per changed answer with `{ questionId, value, note }` as its last argument. Photos are not offered then. |
 | `finishAction` | A manifest action dispatched after the last page is saved. The widget also emits `finished`. |
 | `pageSize` | Questions per page (default 1). |
-| `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. Without it the run opens at the first page. |
+| `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. `"lastAnswered"` opens it at the page of its last answered question (the first page when none is). Without it the run opens at the first page. |
 | `allowNote` | Show a note field per question (default `true`). `noteLabel` names it. |
 | `allowPhotos` | Offer photos for the first question of the page (default `true`, needs `answers.photosField`). A photo is uploaded through the answer object's own file upload and added to `photosField`; photos already there are kept. |
 | `caption` | Text after the position ("Question 7 of 24 · …"), with `{field}` filled from the record. |
@@ -93,7 +93,7 @@ answers with `answersPath` instead of `questions` and `answers`:
 `fields.photoRequired` names a question's photo rule, and `photoRequiredValues` maps its stored values onto `never`,
 `always` or `{ "whenAnswer": <value> }` (a photo is needed when the answer is that value). `true` / `false` and
 `always` / `never` map by themselves. With a rule, every question of the page that is not `never` gets its own photo
-control, and Next holds the page, saying "This answer needs a photo", until the photo is attached:
+control, except a `whenAnswer` question answered with another value that holds no photo, and Next holds the page, saying "This answer needs a photo", until the photo is attached:
 
 ```json
 {

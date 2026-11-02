@@ -36,3 +36,15 @@ Without `tableBleed: true` the table SHALL stay inside the card's padding. The N
 - **GIVEN** a case page whose contact moments list declares `tableBleed: true` and shows no pager, view all link, footnote, summary or total
 - **THEN** the table runs through the card's 20px bottom padding to the card's bottom edge, and its last row's outer corners follow the card's radius
 - **AND** a bleed list with a pager, a link or a footnote under its table keeps the card's bottom padding
+
+### Requirement: The lines under a bleed table stand as drawn
+
+In the board look the lines under a bleed object list table on a detail page SHALL stand at the font's normal leading: the summary 12px under the table, a footnote under the summary 12px under it, and the footer links row at normal leading.
+
+#### Scenario: DqZaakGerelateerd Deelzaken
+- **GIVEN** the case's Deelzaken card with two sub-cases
+- **THEN** "(0/2 voltooid)" starts 12px under the table and the footnote 12px under it, and the card is as tall as the board draws it
+
+#### Scenario: DqZaakGerelateerd Objecten
+- **GIVEN** the case's Objecten card
+- **THEN** the "Objecttypen beheren" row is one line at normal leading, 12px under the table
