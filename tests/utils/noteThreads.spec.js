@@ -4,7 +4,7 @@
  *
  * @spec openspec/changes/notes-replies-group-mentions-and-images/tasks.md#task-2
  */
-import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../src/utils/noteThreads.js'
+import { noteCreatedAt, quoteFor, supportsReplies, threadNotes, threadRootId } from '../../src/utils/noteThreads.js'
 
 const note = (id, parentId, created, message = `note ${id}`) => ({ id, parentId, created, message })
 
@@ -67,5 +67,23 @@ describe('quoteFor', () => {
 		expect(quote.length).toBeLessThanOrEqual(80)
 		expect(quote).not.toContain('\n')
 		expect(quote.endsWith('…')).toBe(true)
+	})
+})
+
+describe('noteCreatedAt', () => {
+	it('reads OpenRegister\'s createdAt, then the older creationDateTime and created keys', () => {
+		expect(noteCreatedAt({ createdAt: '2026-10-06T15:52:00+02:00' })).toBe('2026-10-06T15:52:00+02:00')
+		expect(noteCreatedAt({ creationDateTime: '2026-10-06T09:31:00Z' })).toBe('2026-10-06T09:31:00Z')
+		expect(noteCreatedAt({ created: '2026-01-01' })).toBe('2026-01-01')
+		expect(noteCreatedAt({})).toBe('')
+	})
+
+	it('orders replies that carry only createdAt oldest first', () => {
+		const notes = [
+			{ id: 1, parentId: null, createdAt: '2026-01-01T10:00:00Z' },
+			{ id: 3, parentId: 1, createdAt: '2026-01-01T13:00:00Z' },
+			{ id: 2, parentId: 1, createdAt: '2026-01-01T12:00:00Z' },
+		]
+		expect(threadNotes(notes)[0].replies.map((r) => r.id)).toEqual([2, 3])
 	})
 })
