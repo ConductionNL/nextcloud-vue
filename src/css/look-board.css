@@ -1277,6 +1277,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
+/* A destructive row action (CnRowActions `destructive`) is the same red, the
+   error tag's #a30000 (PtUitnodigingen "Uitnodiging intrekken", PtPortals
+   "Verwijderen"); it outranks the menu-wide error colour in context-menu.css. */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-button,
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-link {
+	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text))) !important;
+}
+
 /* ---- A search select's open list (CnSearchSelect) ------------------------ */
 /* NcSelect teleports its list to <body>, so the rules key on the body as the
    menus above do. The board draws the list as a card 4px under the field: a
