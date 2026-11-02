@@ -1041,6 +1041,7 @@ export default {
 		 * ("Ja", "Nee"), else by the exit it leaves by (its label, else its id
 		 * with a capital), else "Next", with the step it leads to.
 		 *
+		 * @spec openspec/changes/flow-board-inspector-fields/specs/flow-board/spec.md#requirement-the-flow-board-inspector-edits-the-selected-steps-settings-and-names-its-outcomes
 		 * @return {Array<{id: string, label: string, target: string}>} The outcomes.
 		 */
 		stepOutcomes() {
@@ -1240,8 +1241,9 @@ export default {
 
 		/**
 		 * Load the choices of the selected step's select fields that name a
-		 * url (`optionsFrom`), once per url.
+		 * url (`optionsFrom`), once per url. A row's `key` stays on its option.
 		 *
+		 * @spec openspec/changes/flow-board-inspector-fields/specs/flow-board/spec.md#requirement-the-flow-board-inspector-edits-the-selected-steps-settings-and-names-its-outcomes
 		 * @return {Promise<void>}
 		 */
 		async loadStepOptions() {
@@ -1260,7 +1262,6 @@ export default {
 				try {
 					const response = await axios.get(url.startsWith('/') && !url.startsWith('/apps') && !url.startsWith('/index.php') ? generateUrl(url) : url)
 					const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
-					// A row's `key` stays on its option: a step may name the row by its key (a stored decision table).
 					const keys = new Map(rows.filter((row) => row && typeof row === 'object' && row.key).map((row) => [row.id ?? row.value ?? row['@self']?.uuid ?? row.uuid, row.key]))
 					const options = normaliseSelectOptions(rows).map((option) => (keys.has(option.id) ? { ...option, key: keys.get(option.id) } : option))
 					this.loadedOptions = { ...this.loadedOptions, [url]: options }
@@ -1614,6 +1615,12 @@ export default {
 
 .cn-flow-board__toggle[aria-checked='true']::after {
 	transform: translateX(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-flow-board__toggle::after {
+		transition: none;
+	}
 }
 
 .cn-flow-board__toggle:focus-visible {
