@@ -2194,12 +2194,6 @@ export default {
 	text-align: center;
 }
 
-.cn-detail-page__catalog-note {
-	color: var(--color-text-maxcontrast);
-	font-size: 14px;
-	white-space: nowrap;
-}
-
 .cn-detail-widget-host,
 .cn-detail-widget-host > * {
 	height: 100%;

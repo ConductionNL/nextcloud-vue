@@ -113,6 +113,12 @@ export default {
 	gap: 12px;
 }
 
+.cn-detail-page__catalog-note {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
 .cn-detail-page__catalog-action {
 	align-items: center;
 	background: var(--color-primary-element-light);

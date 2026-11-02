@@ -883,6 +883,20 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A plan card's rows carry their own 10px padding and a map has no text, so
+   no half-leading comes off the 12px under the title; a Doelen footer row
+   placed under the plan stands 4px under it (DqZaak "Zaakplan", DqZaakMeer
+   "Locaties").
+   @spec openspec/changes/board-plan-card-as-drawn/specs/plan/spec.md */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-plan:first-child):not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-map-widget:first-child):not(.cn-look-nextcloud *) {
+	padding-top: 12px;
+}
+
+.cn-look-board .cn-detail-page .cn-plan + .cn-detail-widget-host--bare > .cn-record-list--rows > .cn-record-list__footer--row:first-child:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+}
+
 /* A card that opens on a record-list table starts 12px under its title: the
    table's head row sets its own padding and line height, so no first line
    carries the half-leading the rule above takes off (r31 DqZaaktype
