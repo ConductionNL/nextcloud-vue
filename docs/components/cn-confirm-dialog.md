@@ -78,3 +78,23 @@ warning:
 | Method | Description |
 |--------|-------------|
 | `setResult({ success?, error? })` | Report the operation outcome — flips the dialog into its result phase (success auto-closes after 2s; an error stays open). |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Extra body content below the message in the confirm phase: a checkbox, a list or a note. Unused, the dialog renders as before. |
+
+```vue
+<CnConfirmDialog
+  :dialog-title="t('myapp', 'Mark as read')"
+  :message="t('myapp', 'Confirm that you have read this page.')"
+  @confirm="onConfirm"
+  @close="...">
+  <NcCheckboxRadioSwitch v-model="alsoNotify">
+    {{ t('myapp', 'Tell the author') }}
+  </NcCheckboxRadioSwitch>
+</CnConfirmDialog>
+```
+
+The `open` attribute and the `update:open` listener fall through to the dialog frame, as with `CnDialog`.

@@ -41,6 +41,8 @@
 			<NcNoteCard v-else :type="variant === 'error' ? 'warning' : 'info'">
 				{{ message }}
 			</NcNoteCard>
+			<!-- @slot default Extra body content below the message in the confirm phase, such as a checkbox, a list or a note. -->
+			<slot />
 			<CnConfirmValueField v-if="confirmValue !== ''"
 				v-model="typedConfirmValue"
 				:value="confirmValue"
