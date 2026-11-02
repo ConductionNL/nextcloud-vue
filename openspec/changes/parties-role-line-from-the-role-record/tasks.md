@@ -1,0 +1,4 @@
+- [x] 1.1 `roleRowsByParticipant`, `partyNoteOf`, `boardMetaLine` continuation (tests/utils/objectParties.spec.js)
+- [x] 1.2 parties widget reads `content.note` from the role rows (tests/components/CnObjectPartiesWidget.spec.js)
+- [x] 1.3 contacts tab `kindLabels` (src/integrations/builtin/contacts/__tests__/CnContactsTabBoardRows.spec.js)
+- [x] 1.4 host translates a `labels` map (tests/components/CnDetailWidgetHostLeafLabels.spec.js)

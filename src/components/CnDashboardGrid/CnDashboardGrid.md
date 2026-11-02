@@ -99,6 +99,7 @@ export default {
 | `editable` | Boolean | `false` | Enable drag and resize interactions |
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Cell height in pixels |
+| `columnWeights` | Array | `null` | Optional weights for the twelve-column grid's column groups, as `[{ span, weight }]` (e.g. three groups of 4 weighted 352/435/352). Applies only on the full twelve-column grid and not while editing; items on a side-column track are left alone. `null` keeps twelve equal shares. |
 | `margin` | Number | `12` | Gutter between grid items in pixels |
 | `minWidth` | Number | `2` | Minimum widget width in grid units |
 | `minHeight` | Number | `2` | Minimum widget height in grid units |

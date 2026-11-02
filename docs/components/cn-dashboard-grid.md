@@ -50,6 +50,7 @@ function onLayoutChange(updated) {
 | `editable` | Boolean | | `false` | Enables drag and resize interactions |
 | `columns` | Number | | `12` | Number of grid columns |
 | `cellHeight` | Number | | `80` | Cell height in pixels |
+| `columnWeights` | Array | | `null` | Optional weights for the twelve-column grid's column groups, as `[{ span, weight }]` (e.g. three groups of 4 weighted 352/435/352). Applies only on the full twelve-column grid and not while editing; items on a side-column track are left alone. `null` keeps twelve equal shares. |
 | `margin` | Number | | `12` | Gap between grid items in pixels |
 | `marginBottom` | Number | | `null` | Margin under each item in pixels, in place of `margin` on that side only (CnDetailPage passes 8 in the board look, so stacked cards stand 20px apart) |
 | `minWidth` | Number | | `2` | Minimum widget width in grid units |
