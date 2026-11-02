@@ -808,11 +808,21 @@
 	font-size: 13px;
 }
 
-/* The attention flag under the status sits under a hairline (DqZaak). */
+/* The attention flag under the status sits under a hairline (DqZaak), 10px
+   under the status: the sections column's gap is 8px. */
 .cn-look-board .cn-detail-page__sections-card .cn-attention-flag.cn-attention-flag:not(.cn-look-nextcloud *) {
 	gap: 6px;
+	margin-block-start: 2px;
 	padding: 10px 0 0;
 	border-top: 1px solid var(--cn-board-hairline);
+}
+
+/* The flag's button sits the column gap (6px) under its hint, as the case
+   boards draw it; the hint's own 8px margin stood the button 14px under it
+   (Status card 317 vs 311 on every case board).
+   @spec openspec/changes/board-attention-flag-button-height/specs/board-attention-flag-button-height/spec.md#requirement-the-attention-flags-button-sits-under-its-hint */
+.cn-look-board .cn-detail-page__sections-card .cn-attention-flag:not(.cn-look-nextcloud *) .cn-attention-flag__hint {
+	margin-block-end: 0;
 }
 
 /* The side cards' texts read at the font's normal leading, as the boards draw
