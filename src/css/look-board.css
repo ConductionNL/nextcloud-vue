@@ -224,6 +224,15 @@
 	border-width: 0;
 }
 
+/* A stacked board tile keeps its label on its top inset when its row is
+   taller than the tile itself (a `sameHeight` row where another tile has a
+   caption), as the boards draw every tile; centred, the label sat 10px low
+   (DqProcesanalyse).
+   @spec openspec/changes/board-stat-tile-content-from-top/specs/kpi-card/spec.md#requirement-a-board-stat-tile-holds-its-content-at-the-top */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-kpi-card--board.cn-kpi-card--stacked {
+	justify-content: flex-start;
+}
+
 /* ---- Dashboard switch row --------------------------------------------- */
 /* The switch row under a board dashboard's header (DqMijnWerk, DqMijnTeam).
    The link pills take the deep primary ink of the boards' primary pills: the
