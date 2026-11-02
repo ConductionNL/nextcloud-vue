@@ -1181,6 +1181,14 @@
 	margin-inline: 8px;
 }
 
+/* A Gekoppeld side card's rows and empty line read at the normal leading, so
+   the first one starts the board's 10px under the title with no half-leading
+   to take off (DqZaak "Gekoppeld").
+   @spec openspec/changes/side-card-text-normal-leading/specs/side-card-text-normal-leading/spec.md#requirement-a-side-cards-texts-read-at-normal-leading */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-linked-widget):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
 /* A side card that opens on a list draws its first row's hairline 10px below
    the title box; the row has no leading for the glyph gap above to subtract
    (DqZaaktypeRegels, DqZaaktypeStatussen "Versies").
