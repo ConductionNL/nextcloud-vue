@@ -54,3 +54,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 ## Board look
 
 In the board look the sentence ends with "This action cannot be undone." unless you pass `:irreversible="false"`.
+
+## Other actions
+
+This dialog is `CnMassActionDialog` with delete defaults. Pass `variant` (default `'error'`), `confirmIcon` (a CnIcon name or an icon component, default a trash can) and `sentence` to change them, or use `CnMassActionDialog` for an action that is not a delete.

@@ -59,7 +59,9 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnCopyDialog](./cn-copy-dialog.md) | Two-phase single-item copy with naming pattern |
 | [CnFormDialog](./cn-form-dialog.md) | Schema-driven create/edit form dialog with async select and custom option slots |
 | [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) | Create/edit with properties table, JSON tab, and optional metadata/store |
+| [CnMassActionDialog](./cn-mass-action-dialog.md) | Two-phase confirmation of one action on many items, with item review |
 | [CnMassDeleteDialog](./cn-mass-delete-dialog.md) | Two-phase mass delete with item review |
+| [CnDialogActions](./cn-dialog-actions.md) | Cancel and primary footer buttons for a hand-built dialog |
 | [CnMassCopyDialog](./cn-mass-copy-dialog.md) | Two-phase mass copy with pattern selector |
 | [CnMassExportDialog](./cn-mass-export-dialog.md) | Export format selection dialog |
 | [CnMassImportDialog](./cn-mass-import-dialog.md) | File upload with options and results summary |

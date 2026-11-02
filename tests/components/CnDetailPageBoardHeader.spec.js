@@ -112,10 +112,22 @@ describe('CnDetailPage: the board header', () => {
 		expect(row2(w).find('[data-testid="cn-detail-page-header-dot"]').exists()).toBe(false)
 	})
 
-	it('renders the header chips on row 2 after the meta line', () => {
+	it('renders the header chips on row 2 after the breadcrumb, before the dot and the meta line', () => {
 		const w = mountPage({ headerFields: ['identifier'] })
 		expect(row2(w).find('[data-testid="cn-detail-header-chips"]').exists()).toBe(true)
 		expect(w.findAll('[data-testid="cn-detail-header-chips"]')).toHaveLength(1)
+		const order = row2(w).element.children
+		const testIds = Array.from(order).map((el) => el.getAttribute('data-testid') || el.className)
+		const at = (id) => testIds.findIndex((t) => String(t).includes(id))
+		expect(at('cn-detail-page-breadcrumbs')).toBeLessThan(at('cn-detail-header-chips'))
+		expect(at('cn-detail-header-chips')).toBeLessThan(at('cn-detail-page-header-dot'))
+		expect(at('cn-detail-page-header-dot')).toBeLessThan(at('cn-detail-page-header-meta'))
+	})
+
+	it('draws no dot after the chips when there is no meta line', () => {
+		const w = mountPage({ headerFields: ['identifier'], headerMeta: '' })
+		expect(row2(w).find('[data-testid="cn-detail-header-chips"]').exists()).toBe(true)
+		expect(row2(w).find('[data-testid="cn-detail-page-header-dot"]').exists()).toBe(false)
 	})
 
 	it('does not draw the header as a card in the board look', () => {

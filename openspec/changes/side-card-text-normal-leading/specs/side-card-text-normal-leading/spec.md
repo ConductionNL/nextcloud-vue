@@ -21,3 +21,9 @@ In the board look the texts of a detail page's side cards (countdown sub line, f
 
 - **GIVEN** a case's Gekoppeld card in the side column, with a two-line dossier row, a pipelinq row and the Nieuw project / Openen in Planninq actions
 - **THEN** the row links and the actions read at the normal line height too, so the card is as tall as drawn and Werkinstructie and Status stand where the board draws them
+
+#### Scenario: Gekoppeld starts 10px under its title and its actions sit flush (DqZaak r44)
+
+- **GIVEN** a case's Gekoppeld card in the side column, its rows and empty line at the normal line height
+- **THEN** the first row starts 10px under the title, as drawn, with no half-leading taken off
+- **AND** its row buttons and empty-state actions carry no margin, so Nextcloud's 3px button margin does not make the action line 23px where the board draws 17

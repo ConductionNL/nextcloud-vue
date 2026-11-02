@@ -13,3 +13,9 @@ button pair.
 
 - **GIVEN** "Klaar voor vandaag?" with the placed sentence and two of three rows filled in
 - **THEN** the card reads "De knop legt de 2 ingevulde notities en hun uren vast op hun zaak." above Annuleren and Dag afsluiten
+
+#### Scenario: The placed sentence replaces the card's own text
+
+- **GIVEN** "Klaar voor vandaag?" is a text card whose text widget sets its display in its style attribute
+- **WHEN** the list places its sentence in that card
+- **THEN** only the placed sentence shows; the card's own text is hidden, so the card is as tall as drawn (DqDagAfsluiten r44: 247 vs 183 with both texts)
