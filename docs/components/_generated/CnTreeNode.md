@@ -24,6 +24,7 @@
 
 ### Slots
 
-| Name      | Bindings | Description                                 |
-| --------- | -------- | ------------------------------------------- |
-| `actions` | —        | actions Inline per-row actions slot. Scope: |
+| Name      | Bindings | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `label`   | —        | label The row's label. Scope: \{ node, depth, expanded \}. Defaults to the node's label text. |
+| `actions` | —        | actions Inline per-row actions slot. Scope:                                                   |

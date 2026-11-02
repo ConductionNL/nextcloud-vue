@@ -33,6 +33,12 @@
 					     { node, depth }. -->
 					<slot name="actions" v-bind="scope" />
 				</template>
+				<template v-if="$slots.label" #label="scope">
+					<!-- @slot label Replaces the label text of every row. Scope:
+					     { node, depth, expanded }. Unused, the row shows
+					     `node[labelKey]`. -->
+					<slot name="label" v-bind="scope" />
+				</template>
 			</CnTreeNode>
 		</ul>
 	</div>
@@ -69,6 +75,9 @@ import CnTreeNode from './CnTreeNode.vue'
  * Slots:
  * - `#actions` — inline per-row actions (e.g. edit / delete
  *   buttons). Scope: `{ node, depth }`.
+ * - `#label` — the label of every row, for an icon, a marker or a test id
+ *   next to the text. Scope: `{ node, depth, expanded }`. Unused, the row
+ *   shows `node[labelKey]`.
  */
 export default {
 	name: 'CnTreeView',

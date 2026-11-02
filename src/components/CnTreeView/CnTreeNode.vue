@@ -21,7 +21,13 @@
 			<span v-else class="cn-tree-node__toggle cn-tree-node__toggle--leaf" />
 
 			<span v-if="node.icon" class="cn-tree-node__icon">{{ node.icon }}</span>
-			<span class="cn-tree-node__label">{{ node[labelKey] }}</span>
+			<span class="cn-tree-node__label">
+				<!-- @slot label The row's label. Scope: { node, depth, expanded }. Defaults to the node's label text. -->
+				<slot name="label"
+					:node="node"
+					:depth="depth"
+					:expanded="isExpanded">{{ node[labelKey] }}</slot>
+			</span>
 			<span v-if="node.badge !== undefined" class="cn-tree-node__badge">{{ node.badge }}</span>
 
 			<!-- @slot actions Inline per-row actions slot. Scope:
@@ -46,6 +52,9 @@
 				@select="$emit('select', $event)">
 				<template #actions="scope">
 					<slot name="actions" v-bind="scope" />
+				</template>
+				<template v-if="$slots.label" #label="scope">
+					<slot name="label" v-bind="scope" />
 				</template>
 			</CnTreeNode>
 		</ul>
