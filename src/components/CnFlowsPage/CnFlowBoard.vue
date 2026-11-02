@@ -15,9 +15,9 @@
 	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView }" data-testid="flow-board">
 		<header class="cn-flow-board__header">
 			<div class="cn-flow-board__heading">
-				<h2 class="cn-flow-board__title" data-testid="flow-board-title">
+				<h1 class="cn-flow-board__title" data-testid="flow-board-title">
 					{{ titleText }}
-				</h2>
+				</h1>
 			</div>
 			<div v-if="!store.inRunView || canvasLayout" class="cn-flow-board__actions">
 				<template v-if="!store.inRunView">
@@ -39,7 +39,7 @@
 							data-testid="flow-board-enabled-switch"
 							@click="onEnabledChange(store.flow.enabled === false)" />
 						<span :id="toggleLabelId" class="cn-flow-board__toggle-label">
-							{{ store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
+							{{ toggleLabel === 'fixed' || store.flow.enabled !== false ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'Paused') }}
 						</span>
 					</span>
 					<NcButton :disabled="store.checking || !store.nodes.length"
@@ -639,6 +639,13 @@ export default {
 		 * over the canvas. `cards` (default) keeps the DqFlow grid.
 		 */
 		layout: { type: String, default: 'cards' },
+
+		/**
+		 * How the Active switch is named. `state` (default) names it after
+		 * the flow's state, Active or Paused (PqFlow). `fixed` always names
+		 * it Active and lets the switch show whether the flow runs (DqFlow).
+		 */
+		toggleLabel: { type: String, default: 'state' },
 	},
 
 	emits: ['save', 'run', 'retried'],

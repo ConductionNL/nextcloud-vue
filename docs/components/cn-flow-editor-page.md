@@ -43,6 +43,7 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `listLabel` | `String` | `''` | Board look: the list's name at the start of the path, such as "Settings / Flows" (`config.listLabel`, translated). Empty reads "Flows". |
 | `breadcrumb` | `Array` | `[]` | Board look: the levels before the flow, each its own link (`config.breadcrumb`, `[{ label, href? }]`, labels translated): `[{ "label": "Settings", "href": "/index.php/settings/admin/dossiq" }, { "label": "Flows" }]` reads "Settings / Flows / the flow". A crumb without an href links to the flow list. Wins over `listLabel`. |
 | `layout` | `String` | `'cards'` | Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun draw it (see below); `cards` keeps the DqFlow grid (`config.layout`). |
+| `toggleLabel` | `String` | `'state'` | Board look: `state` names the Active switch Active or Paused after the flow; `fixed` always names it Active and the switch shows the state (DqFlow, `config.toggleLabel`). |
 
 ## The board look
 

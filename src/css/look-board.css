@@ -809,6 +809,29 @@
 	background: var(--color-background-hover);
 }
 
+/* ---- The flow page head (cards layout) ---------------------------------- */
+/* Board DqFlow stacks the page head, the notice and the cards 20px apart, and
+   the head is one block: the title row 4px under its top, the path 6px under
+   the title row and 8px of the head below the path. The canvas layout keeps
+   its own head (PqFlow).
+   @spec openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-cards-layout-spaces-its-head-as-the-board */
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) {
+	gap: 20px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__header {
+	padding-top: 4px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__path {
+	margin-top: -14px;
+	padding-bottom: 8px;
+}
+
+.cn-look-board .cn-flow-board:not(.cn-flow-board--canvas):not(.cn-look-nextcloud *) > .cn-flow-board__notice {
+	margin: 0;
+}
+
 /* ---- An ordered list field ----------------------------------------------- */
 /* DqPersoonlijkeInstellingen "Weergaven in mijn menu": a row's labelled remove
    button ("Uit menu halen") is an outlined secondary button, and the select
