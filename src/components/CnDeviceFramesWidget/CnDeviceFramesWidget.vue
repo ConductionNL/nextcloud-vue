@@ -50,6 +50,9 @@ import CloudCheckOutline from 'vue-material-design-icons/CloudCheckOutline.vue'
 import CloudOffOutline from 'vue-material-design-icons/CloudOffOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import CnSectionsWidget from '../CnSectionsWidget/CnSectionsWidget.vue'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { readPath } from '../../utils/readPath.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /** Counter for unique heading ids across instances. */
 let instanceCounter = 0
@@ -96,12 +99,16 @@ export default {
 		/**
 		 * The widget configuration.
 		 *
-		 * - `frames` — `[{ key?, title, widgetIds? | sections?, status? }]`, in order. `widgetIds` names
+		 * - `frames` — `[{ key?, title, titleFrom?, widgetIds? | sections?, status? }]`, in order. `widgetIds` names
 		 *   widgets of the surface, stacked; `sections` takes the `sections` widget's entries instead.
+		 *   `titleFrom: { source: { register, schema, filter, sort? }, field }` titles the frame by that field of the
+		 *   first matching record, read under the reader's rights; `title` stays while none matches.
 		 * - `status` — the status line of every frame (a frame's own `status` wins): `{ text?, tone?,
 		 *   followConnection?, onlineText?, offlineText? }`. With `followConnection` the line reads
 		 *   `offlineText` while the device is offline and `onlineText` otherwise. `tone` is `warning`
-		 *   (default while offline), `success` or `info`.
+		 *   (default while offline), `success` or `info`. With `syncedFrom: { source: { register, schema,
+		 *   filter }, field }` the newest value of that date field is the last synchronisation, and while
+		 *   offline the line reads `offlineSyncedText` with `{time}` as its time (`offlineText` without one).
 		 * - `width` — the frame width in pixels (default 350).
 		 * - `height` — the frame height in pixels (at least 400); what does not fit scrolls inside it. Without it the frame grows with its content.
 		 *
@@ -184,6 +191,8 @@ export default {
 		return {
 			uid: instanceCounter,
 			online: typeof navigator === 'undefined' || navigator.onLine !== false,
+			readTitles: {},
+			syncedTime: '',
 		}
 	},
 
@@ -215,7 +224,7 @@ export default {
 						: (Array.isArray(frame.widgetIds) ? frame.widgetIds : []).filter((id) => typeof id === 'string' && id !== '').map((widgetId) => ({ widgetId }))
 					return {
 						key: String(frame.key || `frame-${index}`).replace(/[^\w-]/g, '-'),
-						title: this.tr(frame.title || ''),
+						title: this.readTitles[index] || this.tr(frame.title || ''),
 						sections,
 						status: this.statusOf(frame.status || this.content?.status || null),
 					}
@@ -224,6 +233,7 @@ export default {
 	},
 
 	mounted() {
+		this.readSources()
 		if (typeof window !== 'undefined') {
 			window.addEventListener('online', this.onConnection)
 			window.addEventListener('offline', this.onConnection)
@@ -263,13 +273,74 @@ export default {
 			if (status.followConnection === true) {
 				text = this.online ? status.onlineText : status.offlineText
 				tone = tone || (this.online ? 'success' : 'warning')
+				if (!this.online && this.syncedTime && typeof status.offlineSyncedText === 'string' && status.offlineSyncedText !== '') {
+					return this.statusLine(this.tr(status.offlineSyncedText).replace('{time}', this.syncedTime), tone)
+				}
 			}
 			if (typeof text !== 'string' || text === '') {
 				return null
 			}
+			return this.statusLine(this.tr(text), tone)
+		},
+
+		/**
+		 * A status line of a text and a tone.
+		 *
+		 * @param {string} text The translated text.
+		 * @param {string} tone The tone.
+		 * @return {{text: string, tone: string, icon: object}}
+		 */
+		statusLine(text, tone) {
 			const known = ['warning', 'success', 'info'].includes(tone) ? tone : 'info'
 			const icon = known === 'warning' ? CloudOffOutline : (known === 'success' ? CloudCheckOutline : InformationOutline)
-			return { text: this.tr(text), tone: known, icon: markRaw(icon) }
+			return { text, tone: known, icon: markRaw(icon) }
+		},
+
+		/**
+		 * The first record of a `{ source: { register, schema, filter, sort? } }`, sorted by `sort` (or
+		 * newest first by `orderBy`), under the reader's rights; null without one or while a token is unresolved.
+		 *
+		 * @param {object} spec The source spec.
+		 * @param {string} [orderBy] A field to sort on, newest first, when the source names no sort.
+		 * @return {Promise<object|null>}
+		 */
+		async firstOf(spec, orderBy = '') {
+			const source = spec?.source
+			if (!source || typeof source !== 'object' || !source.register || !source.schema) {
+				return null
+			}
+			const filter = resolveFilterTokens(source.filter || {}, { objectId: this.objectId || null, object: this.objectData })
+			if (hasUnresolvedTokens(filter)) {
+				return null
+			}
+			const sort = source.sort?.field ? { [`_order[${source.sort.field}]`]: source.sort.dir === 'asc' ? 'asc' : 'desc' } : (orderBy ? { [`_order[${orderBy}]`]: 'desc' } : {})
+			try {
+				const rows = await fetchReferenceObjects({ register: source.register, schema: source.schema, filter: { ...filter, ...sort }, limit: 1 })
+				return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+			} catch {
+				return null
+			}
+		},
+
+		/** Read the frame titles (`titleFrom`) and the last synchronisation (`status.syncedFrom`). */
+		async readSources() {
+			const list = Array.isArray(this.content?.frames) ? this.content.frames.filter((frame) => frame && typeof frame === 'object') : []
+			const titles = {}
+			await Promise.all(list.map(async (frame, index) => {
+				if (!frame.titleFrom?.field) {
+					return
+				}
+				const value = readPath(await this.firstOf(frame.titleFrom), frame.titleFrom.field)
+				if (typeof value === 'string' && value !== '') {
+					titles[index] = value
+				}
+			}))
+			this.readTitles = titles
+			const synced = this.content?.status?.syncedFrom
+			if (synced?.field) {
+				const at = new Date(readPath(await this.firstOf(synced, synced.field), synced.field) ?? '')
+				this.syncedTime = Number.isNaN(at.getTime()) ? '' : `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+			}
 		},
 
 		/** Follow the browser's connection state. */

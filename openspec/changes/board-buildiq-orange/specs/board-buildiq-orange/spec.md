@@ -24,3 +24,8 @@ In the board look the buildiq edit square SHALL be filled with #c64e0b, the bran
 #### Scenario: The Nextcloud look
 - **GIVEN** an app without the board look
 - **THEN** the buildiq square keeps `var(--c-orange-knvb, #f36c21)`
+
+#### Scenario: An older copy of the library on the same page
+- **GIVEN** a dossiq case page in the board look whose Besluiten tab mounts decidiq's integration, bundled with an older nextcloud-vue that sets the board square to #e2611a
+- **WHEN** the tab is open
+- **THEN** the buildiq square's background is still rgb(198, 78, 11)

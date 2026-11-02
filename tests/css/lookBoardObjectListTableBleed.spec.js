@@ -54,4 +54,22 @@ describe('look-board-detail.css: a bleed table that ends its card', () => {
 		expect(rule(LAST + ' .cn-table-container tbody tr:last-child > :first-child')).toContain('border-end-start-radius: var(--cn-board-card-radius)')
 		expect(rule(LAST + ' .cn-table-container tbody tr:last-child > :last-child')).toContain('border-end-end-radius: var(--cn-board-card-radius)')
 	})
+
+	const BLEED = '.cn-look-board .cn-detail-page .cn-widget-wrapper__content > .cn-object-list-widget--bleed'
+
+	it('sets its summary 12px under the table at the font\'s normal leading (DqZaakGerelateerd "(0/2 voltooid)")', () => {
+		const body = rule(BLEED + ' > .cn-object-list-widget__summary')
+		expect(body).toContain('margin-block-start: 12px')
+		expect(body).toContain('line-height: normal')
+	})
+
+	it('sets a footnote under the summary 12px lower at the font\'s normal leading (DqZaakGerelateerd Deelzaken)', () => {
+		const body = rule(BLEED + ' > .cn-object-list-widget__summary + .cn-object-list-widget__footnote')
+		expect(body).toContain('margin-block-start: 12px')
+		expect(body).toContain('line-height: normal')
+	})
+
+	it('sets its footer links at the font\'s normal leading (DqZaakGerelateerd Objecten "Objecttypen beheren")', () => {
+		expect(rule(BLEED + ' > .cn-object-list-widget__links')).toContain('line-height: normal')
+	})
 })
