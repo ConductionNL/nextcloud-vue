@@ -3214,6 +3214,36 @@
 	line-height: 1.2;
 }
 
+/* The visibility select stands 8px under the kind chips without NcSelect's
+   6px above and 4px under it, so the first entry starts 60px under the
+   chips' foot as DqZaakHistorie draws it. The footer starts 16px under the
+   last entry on one 20px line: the checkbox box without its 3px top margin,
+   the audit trail as a 20px link, as drawn, not a 34px button.
+   @spec openspec/changes/board-history-controls-and-footer/specs/timeline/spec.md */
+.cn-look-board .cn-timeline-manage__chips:not(.cn-look-nextcloud *) {
+	margin-block-end: 8px;
+}
+
+.cn-look-board .cn-timeline-manage__controls .v-select.select:not(.cn-look-nextcloud *) {
+	margin: 0;
+}
+
+.cn-look-board .cn-timeline-manage .cn-timeline-manage__footer:not(.cn-look-nextcloud *) {
+	margin-block-start: 16px;
+}
+
+.cn-look-board .cn-timeline-manage__footer .checkbox-content__icon:not(.cn-look-nextcloud *) {
+	margin-block-start: 0;
+}
+
+.cn-look-board .cn-timeline-manage__footer .cn-timeline-manage__audit-link.button-vue:not(.cn-look-nextcloud *) {
+	--button-size: 20px;
+	--button-padding: 0;
+	min-height: 20px;
+	height: 20px;
+	padding: 0;
+}
+
 /* A facts card's link with an icon (Werkinstructie) sets the icon beside its
    text, 10px apart, the text on the normal line starting 10px under the
    title, as the Dq boards draw it. The anchor was a block, so the icon stood
