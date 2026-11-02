@@ -4887,3 +4887,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 .cn-look-board .cn-button--tonal.cn-button--tonal .action-item__menutoggle.button-vue:not(.cn-look-nextcloud *):hover:not(:disabled) {
 	background-color: var(--color-primary-element-light-hover);
 }
+
+/* Action tiles: 10px from the icon to a 14px label at normal leading, so a
+   tile is 97px high as the boards draw it (PqWerkplekKlant "Snelle acties").
+   @spec openspec/changes/board-action-tiles-as-drawn/specs/board-action-tiles-as-drawn/spec.md */
+.cn-look-board .cn-action-tiles .cn-action-tiles__tile:not(.cn-look-nextcloud *) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-action-tiles .cn-action-tiles__label:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
