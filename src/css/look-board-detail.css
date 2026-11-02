@@ -1005,6 +1005,22 @@
 	padding: var(--cn-board-card-padding);
 }
 
+/* A data grid placed bare in a section or a tab panel (PqJourney
+   "Journeygegevens", PqContract "Facturering", PqMailinglijst "Lijstgegevens")
+   is inset once, by the card around it: its chromeless wrapper has no header,
+   so the rule above gave it a second 20px 22px.
+   @spec openspec/changes/board-nested-data-card-single-inset/specs/board-card/spec.md#requirement-a-bare-data-grid-is-inset-once */
+.cn-look-board .cn-detail-page .cn-detail-widget-host--bare > .cn-widget-wrapper.cn-widget-wrapper--chromeless > .cn-widget-wrapper__content:has(> .cn-object-data-widget__grid-wrap) {
+	padding: 0;
+}
+
+/* A sections card that opens on such a grid starts it 14px under the card
+   title, as a data card does.
+   @spec openspec/changes/board-nested-data-card-single-inset/specs/board-card/spec.md#requirement-a-sections-card-that-opens-on-a-data-grid-starts-it-14px-under-the-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-sections-widget > .cn-sections-widget__column:first-child > .cn-sections-widget__section:first-child:not(:has(> .cn-sections-widget__heading)) > .cn-sections-widget__body > .cn-detail-widget-host--bare > .cn-widget-wrapper > .cn-widget-wrapper__content > .cn-object-data-widget__grid-wrap):not(.cn-detail-page__side *) {
+	padding-top: 14px;
+}
+
 /* The data card: 200px columns, a 12px 24px gap, label over value, hairline.
    Each selector holds one class more than the component's scoped rule
    (`.cn-object-data-widget__cell[data-v-...]`), which loads after this sheet:
