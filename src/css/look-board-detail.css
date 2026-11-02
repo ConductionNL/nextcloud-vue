@@ -1271,14 +1271,15 @@
 	margin-block: 0;
 }
 
-/* A side card's text followed by its link (DqContact "Woonadres", "Historie")
-   keeps 8px between them, the link without the first line's leading above.
+/* A side card that opens on a text followed by its link (DqContact
+   "Woonadres", "Historie") keeps 8px between them, the link without the
+   first line's leading above.
    @spec openspec/changes/board-contact-identity-and-feed-rhythm/specs/board-contact-identity-and-feed-rhythm/spec.md#requirement-a-side-text-keeps-8px-to-its-link */
-.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__text + .cn-facts-widget__link):not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__link):not(.cn-look-nextcloud *) {
 	gap: 8px;
 }
 
-.cn-look-board .cn-detail-page__side .cn-facts-widget__text + .cn-facts-widget__link:not(.cn-look-nextcloud *) {
+.cn-look-board .cn-detail-page__side .cn-facts-widget__text:first-child + .cn-facts-widget__link:not(.cn-look-nextcloud *) {
 	margin-top: 0;
 }
 

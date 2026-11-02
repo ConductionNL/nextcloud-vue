@@ -45,8 +45,8 @@ describe('look-board-detail.css: contact identity and feed rhythm', () => {
 	})
 
 	it('keeps 8px between a side text and its link, the link without leading above', () => {
-		expect(rule(`${side} .cn-facts-widget:has(> .cn-facts-widget__text + .cn-facts-widget__link)${NOT_NC}`)).toContain('gap: 8px;')
-		expect(rule(`${side} .cn-facts-widget__text + .cn-facts-widget__link${NOT_NC}`)).toContain('margin-top: 0;')
+		expect(rule(`${side} .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__link)${NOT_NC}`)).toContain('gap: 8px;')
+		expect(rule(`${side} .cn-facts-widget__text:first-child + .cn-facts-widget__link${NOT_NC}`)).toContain('margin-top: 0;')
 	})
 
 	it('draws a side facts action 34px tall without vertical margin', () => {
