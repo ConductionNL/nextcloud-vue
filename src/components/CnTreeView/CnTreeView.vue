@@ -26,6 +26,9 @@
 				:childrenKey="childrenKey"
 				:expandLabel="expandLabel"
 				:collapseLabel="collapseLabel"
+				:toggleAttrs="toggleAttrs"
+				:rowAttrs="rowAttrs"
+				:focusableRows="focusableRows"
 				@toggle="toggleNode"
 				@select="selectNode">
 				<template #actions="scope">
@@ -78,6 +81,14 @@ import CnTreeNode from './CnTreeNode.vue'
  * - `#label` — the label of every row, for an icon, a marker or a test id
  *   next to the text. Scope: `{ node, depth, expanded }`. Unused, the row
  *   shows `node[labelKey]`.
+ *
+ * Per-node hooks, all off by default:
+ * - `expandLabel` / `collapseLabel` take a function `(node) => string` for a
+ *   name per row, e.g. "Expand {name}".
+ * - `toggleAttrs` and `rowAttrs` add attributes per node to the expand button
+ *   and the row (test ids, `data-*`, an active class, a role).
+ * - `focusableRows` lets keyboard users reach a row and select it with
+ *   Enter or Space.
  */
 export default {
 	name: 'CnTreeView',
@@ -127,10 +138,26 @@ export default {
 		description: { type: String, default: '' },
 		/** Empty-state text when nodes[] is empty. */
 		emptyLabel: { type: String, default: 'No items.' },
-		/** A11y label for the expand button. */
-		expandLabel: { type: String, default: 'Expand' },
-		/** A11y label for the collapse button. */
-		collapseLabel: { type: String, default: 'Collapse' },
+		/** A11y label for the expand button, or `(node) => string` for a name per row. */
+		expandLabel: { type: [String, Function], default: 'Expand' },
+		/** A11y label for the collapse button, or `(node) => string` for a name per row. */
+		collapseLabel: { type: [String, Function], default: 'Collapse' },
+		/**
+		 * Extra attributes for each row's expand button, as `(node, depth) => object`,
+		 * e.g. a test id per node. Null adds none.
+		 */
+		toggleAttrs: { type: Function, default: null },
+		/**
+		 * Extra attributes for each row, as `(node, depth) => object`: a class,
+		 * `data-*` attributes, or a `role` and `aria-label`. `class` and `style`
+		 * merge with the row's own. Null adds none.
+		 */
+		rowAttrs: { type: Function, default: null },
+		/**
+		 * Makes each row reachable with Tab (`tabindex="0"`); Enter or Space on
+		 * the row selects its node, like a click. Off, rows are click-only.
+		 */
+		focusableRows: { type: Boolean, default: false },
 		/** Expand all nodes on mount. */
 		expandAllOnMount: { type: Boolean, default: false },
 	},
