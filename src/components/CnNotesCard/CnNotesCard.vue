@@ -493,6 +493,12 @@ export default {
 			return this.replyTo ? t('nextcloud-vue', 'Replying to {author}', { author: this.getNoteAuthorName(this.replyTo) }) : ''
 		},
 
+		/**
+		 * The notes newest first, up to the card's limit.
+		 *
+		 * @return {Array<object>} The notes shown.
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {

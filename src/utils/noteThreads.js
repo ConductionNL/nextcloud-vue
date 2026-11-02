@@ -18,6 +18,7 @@ export const QUOTE_DISTANCE = 5
  *
  * @param {object} note The note.
  * @return {string} The moment as the backend wrote it, or '' when unknown.
+ * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
  */
 export function noteCreatedAt(note) {
 	return note?.createdAt || note?.creationDateTime || note?.created || ''
