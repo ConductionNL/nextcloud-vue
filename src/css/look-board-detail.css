@@ -177,7 +177,7 @@
 	margin-top: 16px;
 }
 
-/* Row 2: pills, breadcrumb, dot, meta, chips. */
+/* Row 2: pills, breadcrumb, chips, dot, meta. */
 .cn-look-board .cn-detail-page__header-row2 {
 	align-items: center;
 	display: flex;
@@ -204,6 +204,15 @@
 .cn-look-board .cn-detail-page__header-row2 .cn-detail-page__breadcrumbs {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 0;
+}
+
+/* The header chips sit on row 2's own line, after the breadcrumb (DqTenant
+   "Gemeente Waterland  waterland  · een van ..."), so the list drops the 6px
+   top margin it keeps under the title outside this look. The doubled class
+   outranks the component's scoped rule.
+   @spec openspec/changes/board-header-chips-after-breadcrumb/specs/detail-page-board-look/spec.md#requirement-board-header-chips-follow-the-breadcrumb */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips.cn-detail-header-chips {
+	margin: 0;
 }
 
 /* The breadcrumb is a line of 14px text between the pills and the meta, as
