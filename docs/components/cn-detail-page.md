@@ -687,6 +687,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 | `editTitle` | String | `''` | Title of the record edit form, run through the host translate. Empty uses the Edit button's label. |
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
+| `editFootnote` | String | `''` | A note under the edit form's fields (manifest `config.editFootnote`), run through the host translate and passed to the form as its `footnote`. Empty shows none. |
 
 ### Widget icons (ADR-062)
 
