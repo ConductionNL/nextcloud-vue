@@ -381,6 +381,7 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
 | `editConfirmLabel` | String | `''` | The edit form's save button, run through the host translate (manifest `config.editConfirmLabel`), such as "Save changes". Empty keeps the form's own label. |
 | `editEyebrow` | String | `''` | One short line over the edit form's title (PqTicketBewerken "Bewerken · PQ-2026-0417"), run through the host translate. Like the title and subtitle it may name the record with `{field}` tokens. Empty shows none. |
+| `editFootnote` | String | `''` | A note the record edit form closes on, under its fields (PqTicketBewerken "De status wijzig je hier niet: ..."), run through the host translate (manifest `config.editFootnote`). Empty shows none. |
 | `draftAppId` | String | `''` | The app a form draft belongs to, forwarded to every form this page opens as CnFormDialog's `draftAppId`, so what a user typed and did not save is kept and offered back under this app's key (manifest `config.draftAppId`). |
 | `allowDraft` | Boolean | `false` | Offer "Save draft" on the create form, forwarded as CnFormDialog's `allowDraft`. On an edit form it is offered only while the record is still a draft (manifest `config.allowDraft`). |
 | `draftField` | String | `'isDraft'` | The boolean property that marks a record as a draft, CnFormDialog's `draftField` (manifest `config.draftField`). |
