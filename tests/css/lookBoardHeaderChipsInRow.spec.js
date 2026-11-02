@@ -8,6 +8,7 @@
  * draws no layout, so the rule is read from the stylesheet text.
  *
  * @spec openspec/changes/board-header-chips-after-breadcrumb/specs/detail-page-board-look/spec.md#requirement-board-header-chips-follow-the-breadcrumb
+ * @spec openspec/changes/board-header-pill-soft-ink/specs/detail-page-board-look/spec.md#requirement-a-board-header-pill-takes-the-soft-ink
  */
 const fs = require('fs')
 const path = require('path')
@@ -28,5 +29,10 @@ function rule(selector) {
 describe('look-board-detail.css: header chips in row 2', () => {
 	it('drops the chips list margin in the board header row', () => {
 		expect(rule('.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips.cn-detail-header-chips')).toContain('margin: 0;')
+	})
+
+	// r45: the slug pill's ink 94,97,104 where the board draws #3d4047.
+	it('sets the soft pill in the boards\' soft ink', () => {
+		expect(rule('.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips__chip--pill.cn-detail-header-chips__chip--pill')).toContain('color: var(--cn-board-text-soft);')
 	})
 })
