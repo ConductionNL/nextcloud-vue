@@ -2362,6 +2362,21 @@
 	border-top: 1px solid var(--cn-board-hairline);
 }
 
+/* An authored note row reads in the main ink with no underline, its
+   "author · time" line muted (DqZaakEmail "Notities"). NcListItem draws the
+   row as an anchor, and a theme's `a { color; text-decoration }` carries
+   `!important` (thematiq), hence the same here.
+   @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__row--authored .list-item__anchor:not(.cn-look-nextcloud *) {
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__row--authored .cn-notes-tab__meta:not(.cn-look-nextcloud *) {
+	color: var(--color-text-maxcontrast) !important;
+	text-decoration: none !important;
+}
+
 /* The notes tab's "Add note" button, when the add form waits behind it, is
    the board's 40px control (DqZaakEmail "Notitie toevoegen").
    @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button */
