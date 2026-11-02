@@ -35,8 +35,15 @@ function rulesFor(css, selector) {
 
 describe('the board buildiq square', () => {
 	it('fills the board square with the brand orange darkened to AA', () => {
-		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue')
+		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue.button-vue')
 		expect(rule).toMatch(/--cn-buildiq-color:\s*#c64e0b;/)
+	})
+
+	it('outranks the same rule from an older copy of the library on the page', () => {
+		// Another app's bundle can inject an older patches.css after this one; the
+		// doubled class keeps this rule ahead whatever the order.
+		const older = '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue'
+		expect(rulesFor(read('css/patches.css'), older)).not.toMatch(/--cn-buildiq-color:/)
 	})
 
 	it('keeps the brand orange outside the board look', () => {
