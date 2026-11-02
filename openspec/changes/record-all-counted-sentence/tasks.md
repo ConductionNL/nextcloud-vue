@@ -1,3 +1,4 @@
 - [x] CnRecordListWidget: `recordAllText` translates the count forms; `placement.sentence` passes through
 - [x] CnRecordNoteRows: `allSentence` by the ready count; the placed sentence above the band; look-board.css insets
 - [x] Spec tests/components/CnRecordListWidgetRecordAllPlacement.spec.js
+- [x] The placed sentence hides the card text over its inline display (look-board.css, important); same spec

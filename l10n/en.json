@@ -2597,7 +2597,19 @@
     "{uid} (you)": "{uid} (you)",
     "The action applies to the following items. Remove any items you want to leave out.": "The action applies to the following items. Remove any items you want to leave out.",
     "No items selected.": "No items selected.",
-    "Are you sure you want to continue with {count}?": "Are you sure you want to continue with {count}?"
+    "Are you sure you want to continue with {count}?": "Are you sure you want to continue with {count}?",
+    "How the conditions combine": "How the conditions combine",
+    "Match all conditions": "Match all conditions",
+    "Match any condition": "Match any condition",
+    "Where": "Where",
+    "and": "and",
+    "all of these": "all of these",
+    "one of these": "one of these",
+    "Add group": "Add group",
+    "Remove group": "Remove group",
+    "Condition": "Condition",
+    "These conditions are kept as written": "These conditions are kept as written",
+    "This group has no conditions yet.": "This group has no conditions yet."
   },
   "plurals": {
     "{count} member": [

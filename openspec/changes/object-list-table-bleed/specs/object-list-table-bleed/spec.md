@@ -30,3 +30,9 @@ Without `tableBleed: true` the table SHALL stay inside the card's padding. The N
 
 - **GIVEN** an organisation page whose mandates list does not declare `tableBleed`
 - **THEN** its table stays inside the card's padding
+
+#### Scenario: A bleed table with nothing under it closes its card
+
+- **GIVEN** a case page whose contact moments list declares `tableBleed: true` and shows no pager, view all link, footnote, summary or total
+- **THEN** the table runs through the card's 20px bottom padding to the card's bottom edge, and its last row's outer corners follow the card's radius
+- **AND** a bleed list with a pager, a link or a footnote under its table keeps the card's bottom padding

@@ -36,6 +36,10 @@
    It previously sat behind `html[data-cn-ctx-menu]`, which meant a row actions
    menu only picked up the error colour while a right-click menu happened to be
    open (or, thanks to the stale attribute above, ever after the first one). */
-.cn-row-action--destructive {
+/* Nextcloud gives the button or link inside the <li> its own ink, so the
+   colour names them as well. */
+.cn-row-action--destructive,
+.cn-row-action--destructive > .action-button,
+.cn-row-action--destructive > .action-link {
 	color: var(--color-error) !important;
 }
