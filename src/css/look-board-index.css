@@ -1371,6 +1371,22 @@
 	line-height: normal;
 }
 
+/* A list in a table cell draws the boards' small tags, 18px tall and 4px
+   apart (PqServices "Geboekt op", PqBiExport "Dataset", DqContacten
+   "Geheimhouding"), not the 21px status tag.
+   @spec openspec/changes/badge-list-labels-and-tags/specs/badge-cell-list/spec.md#requirement-a-badge-list-draws-the-boards-small-tags */
+.cn-look-board .cn-cell-renderer__badges:not(.cn-look-nextcloud *) {
+	gap: 4px;
+}
+
+.cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__badges .cn-status-badge {
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: normal;
+}
+
 /* The row menu column holds one 34px button between 16px of padding, so 66px
    border to border (see the selection column for why the box model is forced). */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-table-col--actions {
