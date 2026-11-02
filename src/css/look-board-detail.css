@@ -1275,6 +1275,60 @@
 	gap: 12px;
 }
 
+/* A side lead card that also lists rows (DqContact "Identiteit") keeps the
+   rows rhythm: 10px under the title and between its parts. The 12px above is
+   for a lead followed by a link (DqZaak "Aanvrager"). An inline row (the BSN
+   with its Tonen button) keeps 10px to the next row, its button without
+   Nextcloud's 3px margin above and below.
+   @spec openspec/changes/board-contact-identity-and-feed-rhythm/specs/board-contact-identity-and-feed-rhythm/spec.md#requirement-a-side-lead-card-with-rows-keeps-the-rows-rhythm */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__lead:first-child):has(> .cn-facts-widget > .cn-facts-widget__rows):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__lead:first-child):has(> .cn-facts-widget__rows):not(.cn-look-nextcloud *) {
+	gap: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__row--inline:not(.cn-look-nextcloud *) {
+	margin-bottom: 2px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__inline-button:not(.cn-look-nextcloud *) {
+	margin-block: 0;
+}
+
+/* A side card that opens on a text followed by its link (DqContact
+   "Woonadres", "Historie") keeps 8px between them, the link without the
+   first line's leading above.
+   @spec openspec/changes/board-contact-identity-and-feed-rhythm/specs/board-contact-identity-and-feed-rhythm/spec.md#requirement-a-side-text-keeps-8px-to-its-link */
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__text:first-child + .cn-facts-widget__link):not(.cn-look-nextcloud *) {
+	gap: 8px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget__text:first-child + .cn-facts-widget__link:not(.cn-look-nextcloud *) {
+	margin-top: 0;
+}
+
+/* A side facts card's action ("Contact vastleggen") is 34px tall with no
+   margin above or below, as DqContact "Bereikbaar via" draws it.
+   @spec openspec/changes/board-contact-identity-and-feed-rhythm/specs/board-contact-identity-and-feed-rhythm/spec.md#requirement-a-side-facts-action-is-34px-with-no-vertical-margin */
+.cn-look-board .cn-detail-page__side .cn-facts-widget__action:not(.cn-look-nextcloud *) {
+	margin-block: 0;
+	min-height: 34px;
+}
+
+/* A feed row's meta line and text sit on the normal line, 3px apart, and the
+   rows are 4px apart (DqContact "Laatste contactmomenten": 65px per row).
+   @spec openspec/changes/board-contact-identity-and-feed-rhythm/specs/board-contact-identity-and-feed-rhythm/spec.md#requirement-a-feed-sets-its-lines-on-the-normal-line */
+.cn-look-board .cn-record-list--feed .cn-record-list__main:not(.cn-look-nextcloud *) {
+	gap: 3px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-record-list--feed .cn-record-list__item + .cn-record-list__item:not(.cn-look-nextcloud *) {
+	margin-top: 4px;
+}
+
 /* A side status card opens on its explanation, set on the normal line, so no
    leading comes off the 10px under the title (DqZaak "Status").
    @spec openspec/changes/board-side-lead-and-status-gaps/specs/board-side-lead-and-status-gaps/spec.md#requirement-a-side-status-card-starts-10px-under-its-title */
