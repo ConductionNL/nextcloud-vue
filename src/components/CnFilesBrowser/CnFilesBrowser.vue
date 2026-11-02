@@ -409,7 +409,7 @@
 							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
 								<!-- The host's one visible button on a file ("Beoordelen"),
 								     primary while the row still asks for it. -->
-								<NcButton v-if="rowButton && !isFolder(node) && hostActionApplies(rowButton, node)"
+								<NcButton v-if="rowButtonApplies(node)"
 									:variant="rowButtonPrimary(node) ? 'primary' : 'secondary'"
 									class="cn-files-browser__row-button"
 									:aria-label="t('nextcloud-vue', '{action}: {name}', { action: hostLabel(rowButton), name: node.basename })"
@@ -2302,6 +2302,20 @@ export default {
 		},
 
 		/**
+		 * Whether the row button is drawn on a file: never on a folder, and
+		 * only where its `when` and `visibleIf` (row included) hold.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean}
+		 */
+		rowButtonApplies(node) {
+			if (!this.rowButton || this.isFolder(node)) {
+				return false
+			}
+			return hostActionApplies(this.rowButton, node, this.rowValueOf(node))
+		},
+
+		/**
 		 * Whether a file's row button is the primary one: the row-data field
 		 * `primaryWhen.key` holds one of `primaryWhen.values`.
 		 *
@@ -2319,8 +2333,6 @@ export default {
 			}
 			return when.values.some((v) => String(v).toLowerCase() === String(raw).toLowerCase())
 		},
-
-		hostActionApplies,
 
 		/**
 		 * Re-read the folder once after a burst of change signals. One upload
