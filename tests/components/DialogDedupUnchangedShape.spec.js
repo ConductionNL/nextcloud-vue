@@ -17,9 +17,9 @@
 
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import CnConfirmDialog from '../../src/dialogs/CnConfirmDialog.vue'
 import CnMassDeleteDialog from '../../src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue'
 import CnTreeView from '../../src/components/CnTreeView/CnTreeView.vue'
+import CnConfirmDialog from '../../src/dialogs/CnConfirmDialog.vue'
 
 /**
  * The rendered markup without scoped-style attributes and authored comments.

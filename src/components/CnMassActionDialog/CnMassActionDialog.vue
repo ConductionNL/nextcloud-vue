@@ -105,10 +105,10 @@ import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import CnConfirmValueField from '../CnConfirmValueField/CnConfirmValueField.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
-import { CnIcon } from '../CnIcon/index.js'
 import { confirmValueMixin } from '../../mixins/confirmValue.js'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { splitAroundPlaceholder } from '../../utils/dialogSentence.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnMassActionDialog — two-phase confirmation dialog for one action on many
@@ -313,8 +313,10 @@ export default {
 			this.loading = true
 			const ids = this.localItems.map((i) => i.id)
 			/**
-			 * @event confirm Emitted when the user confirms the action.
-			 * Payload: array of the item IDs still on the list.
+			 * Emitted when the user confirms the action. Payload: the ids of the items still on the list.
+			 *
+			 * @event confirm
+			 * @type {Array<string|number>}
 			 */
 			this.$emit('confirm', ids)
 		},
@@ -331,6 +333,11 @@ export default {
 			this.result = resultData
 			if (resultData.success) {
 				this.closeTimeout = setTimeout(() => {
+					/**
+					 * Emitted when the dialog should close: cancel, close button, or 2 seconds after a success.
+					 *
+					 * @event close
+					 */
 					this.$emit('close')
 				}, 2000)
 			}

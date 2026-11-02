@@ -2594,7 +2594,10 @@
     "Shown on the card. Leave empty to show the step type.": "Shown on the card. Leave empty to show the step type.",
     "The full configuration document. The fields above update along.": "The full configuration document. The fields above update along.",
     "This step has no options.": "This step has no options.",
-    "{uid} (you)": "{uid} (you)"
+    "{uid} (you)": "{uid} (you)",
+    "The action applies to the following items. Remove any items you want to leave out.": "The action applies to the following items. Remove any items you want to leave out.",
+    "No items selected.": "No items selected.",
+    "Are you sure you want to continue with {count}?": "Are you sure you want to continue with {count}?"
   },
   "plurals": {
     "{count} member": [

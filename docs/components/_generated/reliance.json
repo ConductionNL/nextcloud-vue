@@ -1431,6 +1431,13 @@
 			"via": [],
 			"page": "cn-dialog"
 		},
+		"CnDialogActions": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-dialog-actions"
+		},
 		"CnDialogHeader": {
 			"direct": 0,
 			"transitive": 0,
@@ -3001,6 +3008,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-mass-action-bar"
+		},
+		"CnMassActionDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-mass-action-dialog"
 		},
 		"CnMassCopyDialog": {
 			"direct": 0,
