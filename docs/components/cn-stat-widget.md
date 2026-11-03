@@ -322,6 +322,14 @@ tone the value takes. It has no effect without the board look.
 { "type": "stat", "content": { "label": "Te laat", "icon": "AlertCircleOutline", "iconPlacement": "end", "variant": "error", "caption": "actie nodig" } }
 ```
 
+`content.iconPlacement: "top"` draws the icon in a 42px circle above the label
+(the learniq Today tiles), tinted the same way, with no glyph before the label.
+It has no effect without the board look either.
+
+```json
+{ "type": "stat", "content": { "label": "Openstaande betrokkenheidssignalen", "icon": "AlertOutline", "iconPlacement": "top", "variant": "warning" } }
+```
+
 ### Reading only when asked (`loadOn: "request"`)
 
 An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
