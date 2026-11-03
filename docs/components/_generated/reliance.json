@@ -243,7 +243,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 251,
+			"transitive": 252,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -267,6 +267,7 @@
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnCommandPalette",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -781,6 +782,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnConflictResolveCard": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-conflict-resolve-card"
+		},
 		"CnConnectionsPanel": {
 			"direct": 0,
 			"transitive": 2,
@@ -929,7 +937,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 228,
+			"transitive": 229,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -951,6 +959,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1190,7 +1199,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 228,
+			"transitive": 229,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1212,6 +1221,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1886,7 +1896,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 226,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1908,6 +1918,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2337,7 +2348,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 226,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2359,6 +2370,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2454,7 +2466,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 223,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2476,6 +2488,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -3670,7 +3683,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 244,
+			"transitive": 245,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3692,6 +3705,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -4192,7 +4206,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 229,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4214,6 +4228,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -5523,7 +5538,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 226,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5545,6 +5560,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
