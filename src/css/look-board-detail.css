@@ -921,6 +921,20 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A flush card holds a list or table that runs to the card's border, as the
+   board draws it, so the board card's inset does not apply.
+   @spec openspec/changes/board-detail-card-flush-and-untitled-inset/specs/board-detail-card-flush-and-untitled-inset/spec.md#requirement-a-flush-board-detail-card-has-no-inset */
+.cn-look-board .cn-detail-card .cn-detail-card__content.cn-detail-card__content--flush {
+	padding: 0;
+}
+
+/* A card without a title has no title to stand 12px under: its body starts
+   at the board card's full 20px inset (learniq LqProctoring, LqItemanalyse).
+   @spec openspec/changes/board-detail-card-flush-and-untitled-inset/specs/board-detail-card-flush-and-untitled-inset/spec.md#requirement-an-untitled-board-detail-card-takes-the-full-inset */
+.cn-look-board .cn-detail-card:not(.cn-detail-card--chromeless):not(:has(> .cn-detail-card__header)) > .cn-detail-card__content:not(.cn-detail-card__content--flush) {
+	padding: var(--cn-board-card-padding);
+}
+
 /* A plan card's rows carry their own 10px padding and a map has no text, so
    no half-leading comes off the 12px under the title; a Doelen footer row
    placed under the plan stands 4px under it (DqZaak "Zaakplan", DqZaakMeer
