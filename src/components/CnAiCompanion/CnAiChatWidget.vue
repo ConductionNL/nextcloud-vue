@@ -81,6 +81,7 @@ export default {
 		 * The approval cards' wording from the content, translated.
 		 *
 		 * @return {{titlePrefix: string, allow: string, deny: string}} The wording.
+		 * @spec openspec/changes/ai-chat-approval-wording/specs/ai-chat-approval-wording/spec.md#requirement-an-app-can-word-the-approval-card
 		 */
 		approvalWording() {
 			return {

@@ -619,13 +619,23 @@ export default {
 		},
 
 		/**
+		 * The title as written: the `title` prop, else `content.title`, else ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		rawTitle() {
+			return this.title || (this.content && this.content.title) || ''
+		},
+
+		/**
 		 * The attention card's title: `title`, else `text`, with `{value}` filled in.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayTitle() {
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			return title ? this.withFallback(this.fillValue(this.tl(title)), title, 'fallbackTitle') : this.displayText
 		},
 
@@ -641,7 +651,7 @@ export default {
 			if (reason) {
 				return this.withFallback(this.fillValue(this.tl(reason)), reason, 'fallbackReason')
 			}
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			// A card that sets `text` to the same words as its `title` says
 			// them once.
 			return title && this.displayText !== this.displayTitle ? this.displayText : ''
@@ -750,7 +760,7 @@ export default {
 			if (!this.connectionAllows) {
 				return false
 			}
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
 				return false
 			}
@@ -776,7 +786,7 @@ export default {
 		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		checkFailed() {
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			return this.isAttention
 				&& !!this.resolvedVisibleWhen
 				&& this.conditionFailed
@@ -866,6 +876,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The injected object context, unwrapped when it is a ref.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		pageObjectContext() {
+			const raw = this.cnObjectContext
+			return raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+		},
+
 		/** Follow the browser's connection, for `content.connection`. */
 		onConnection() {
 			this.online = typeof navigator === 'undefined' || navigator.onLine !== false
@@ -976,9 +997,7 @@ export default {
 				return null
 			}
 			if (isDeclaredAction(action)) {
-				const raw = this.cnObjectContext
-				const page = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
-				return declaredActionCall(action, this.actionRecord || {}, page || {})
+				return declaredActionCall(action, this.actionRecord || {}, this.pageObjectContext() || {})
 			}
 			return typeof action.type === 'string' && action.type !== '' ? action : null
 		},
@@ -1017,8 +1036,7 @@ export default {
 		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
 		 */
 		tokenContext() {
-			const raw = this.cnObjectContext
-			const ctx = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+			const ctx = this.pageObjectContext()
 			if (ctx && typeof ctx === 'object' && ctx.objectId) {
 				return { objectId: ctx.objectId, object: ctx.object || this.objectData || undefined }
 			}

@@ -668,7 +668,10 @@ export default {
 			return [1, 2, 3, 4].includes(this.columns) ? this.columns : 1
 		},
 
-		/** @return {object} The props of the card around the form. */
+		/**
+		 * @return {object} The props of the card around the form.
+		 * @spec openspec/changes/settings-section-title-translated/specs/settings-section-title-translated/spec.md#requirement-a-declared-settings-section-translates-its-title
+		 */
 		sectionProps() {
 			return {
 				name: this.tr(this.name),
