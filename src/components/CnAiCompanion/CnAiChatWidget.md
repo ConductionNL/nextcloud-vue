@@ -19,6 +19,7 @@ agents) as items of the card's Actions menu.
 | `note` | `string` | `''` | A line above the input, e.g. what the assistant can see. Translated. |
 | `placeholder` | `string` | `''` | The input's placeholder; empty keeps "Message input". Translated. |
 | `sendLabel` | `string` | `''` | A label on the send button instead of the send icon. Translated. |
+| `openSubjectSession` | `boolean` | `false` | Open the user's latest session about the page's record (the context's `objectUuid`) instead of an empty thread, with the proposals the assistant still waits on. No such session, a backend that cannot filter sessions by record, or a session about another record leaves the thread empty. |
 
 ## Example
 
