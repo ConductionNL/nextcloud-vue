@@ -61,6 +61,9 @@
     "testing/",
     "webpack/"
   ],
+  "engines": {
+    "npm": "^11.0.0"
+  },
   "scripts": {
     "prebuild": "npm run build:validators",
     "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
