@@ -1291,6 +1291,15 @@
 	line-height: normal;
 }
 
+/* The row itself takes the link's size and leading: at the body's 15px and
+   1.5 its line box put 3px of half-leading above the first link (PqKassabon,
+   PqContactpersoon "Gerelateerd" 13 under the title, board 10).
+   @spec openspec/changes/board-related-side-links-rhythm/specs/board-related-side-links-rhythm/spec.md#requirement-a-related-side-cards-links-take-the-boards-rhythm */
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links > li:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
+
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper__content:has(> .cn-related-objects-widget > .cn-related-objects-widget__links:first-child):not(.cn-look-nextcloud *) {
 	padding-top: 10px;
 }

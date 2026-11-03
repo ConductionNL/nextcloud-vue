@@ -2960,7 +2960,8 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    of its own (DqDoorlooptijd "Wettelijke Woo-termijnen", "Zaken met risico",
    "Prestaties per zaaktype"; r34 19.8 vs 22).
    @spec openspec/changes/board-card-title-above-table/specs/board-card-title-above-table/spec.md */
-.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content > .cn-widget-object-table__host) .cn-widget-wrapper__header {
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content > .cn-widget-object-table__host) .cn-widget-wrapper__header,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--nc-dashboard):not(.cn-widget-wrapper--borderless):has(> .cn-widget-wrapper__content > .cn-object-list-widget > .cn-object-list-widget__table) .cn-widget-wrapper__header {
 	padding-bottom: 12px;
 }
 
@@ -3843,12 +3844,40 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 0 22px 20px;
 }
 
+/* An object list's table, its groups and its "choose a client" line, and a
+   facts list, sit on the card's inset too, the table's head band 22px in as
+   above (PqOperationeel "Klachten", PqDashboard "Taken", "Klantverzoeken",
+   PqWerkplekKlant "Wie is het"); on the flush card they ran to its edge.
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-object-list-widget__table,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-object-list-widget__groups,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-object-list-widget__prompt,
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-facts-widget {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0 var(--cn-board-dashboard-card-inset) 20px;
+}
+
+/* A form or a knowledge-base search on a dashboard card takes the card's
+   inset in place of the library's 16px all round, 4px under the header as the
+   other widgets (PqLoyaliteit "Aanmelding loyaliteit", PqWerkplekKlant "Dit
+   contactmoment", "Kennisbank", PqDashboard "Nieuw contactmoment").
+   @spec openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-form-widget),
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-kb-search-widget) {
+	padding: 4px var(--cn-board-dashboard-card-inset) 20px;
+}
+
 /* Inside a plain or grid sections widget the sections body already takes
    the card's inset, so a widget table there takes none of its own (DqTermijnen Kwartaalrapport,
    1074px in a 1120px card).
    @spec openspec/changes/board-sections-table-single-inset/specs/board-sections-table-single-inset/spec.md#requirement-a-table-inside-a-dashboard-sections-card-is-inset-once */
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--plain .cn-widget-object-table,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget--grid .cn-widget-object-table {
+	padding: 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-widget-wrapper:not(.cn-widget-wrapper--borderless) .cn-sections-widget :is(.cn-object-list-widget__table, .cn-object-list-widget__groups, .cn-object-list-widget__prompt, .cn-facts-widget) {
 	padding: 0;
 }
 
