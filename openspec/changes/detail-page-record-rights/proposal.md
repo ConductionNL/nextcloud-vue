@@ -16,6 +16,7 @@ the write refuses.
   today's controls.
 - The rights reach the widgets as `cnRecordCan` and `cnRecordEdit.denied`, and the `actions` slot as `can`. Widgets show
   on them with the existing `visibleWhen` (`@self.can.<name>`).
+- The manifest token guard accepts a dotted path into `@self` (`@self.can.update`), so a `visibleWhen` can name a right.
 - A banner action with `declaredAction` runs that OpenRegister declared action on the page's record and refreshes the
   page. It shows only while `@self.can` grants the action; a banner whose every action is withheld stays hidden.
 

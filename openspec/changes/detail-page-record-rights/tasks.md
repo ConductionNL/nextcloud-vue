@@ -17,3 +17,9 @@
 - **files**: `src/components/CnBannerWidget/CnBannerWidget.vue`, `docs/components/cn-banner-widget.md`
 - [x] Implement: `declaredAction` runs through an `api-call` with a refresh, gated on `@self.can`
 - [x] Test: `tests/components/CnBannerWidgetDeclaredAction.spec.js`
+
+### Task 4: A manifest can name a dotted path into @self
+- **spec_ref**: `openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-manifest-can-name-a-dotted-path-into-self`
+- **files**: `src/utils/sentinelTokens.js`, `src/schemas/app-manifest-v2.schema.json`
+- [x] Implement: the declarative pattern takes further dotted segments
+- [x] Test: `tests/utils/sentinelTokens.spec.js`, `tests/schemas/sentinel-token-vocabulary.spec.js`

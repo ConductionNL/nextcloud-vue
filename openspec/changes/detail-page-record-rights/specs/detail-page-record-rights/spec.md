@@ -59,3 +59,16 @@ grant SHALL stay hidden.
 
 - **GIVEN** the same banner and a record whose `@self.can` is `{ update: false }`
 - **THEN** the banner does not show
+
+### Requirement: A manifest can name a dotted path into @self
+
+The manifest's token guard SHALL accept `@self.<field>` followed by further dotted segments, such as
+`@self.can.update` and `@self.can.claim-as-handler`, so a `visibleWhen` can read the record's rights. A path with an
+empty segment SHALL still be refused.
+
+#### Scenario: A banner on the record's update right
+
+- **GIVEN** a banner whose `visibleWhen.field` is `@self.can.update`
+- **WHEN** the manifest is validated
+- **THEN** it is valid, and `@self.can.` is not
+

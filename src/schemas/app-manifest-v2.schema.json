@@ -933,8 +933,8 @@
 		},
 		"sentinelDeclarativeToken": {
 			"type": "string",
-			"pattern": "^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$",
-			"description": "Declarative context (OpenRegister direction, resolved server-side): @self.<field> (the object's own field in a cross-object calc), @ref:<path>, @aggregate:<expr>. @ref/@aggregate are first-class members even though currently unused fleet-wide. Mirrors SENTINEL_TOKEN_PATTERNS.declarative."
+			"pattern": "^@self\\.[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$",
+			"description": "Declarative context (OpenRegister direction, resolved server-side): @self.<field> (the object's own field in a cross-object calc, or a dotted path into @self such as @self.can.update), @ref:<path>, @aggregate:<expr>. @ref/@aggregate are first-class members even though currently unused fleet-wide. Mirrors SENTINEL_TOKEN_PATTERNS.declarative."
 		},
 		"sentinelDeprecatedToken": {
 			"type": "string",

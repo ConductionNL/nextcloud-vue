@@ -1445,7 +1445,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.169.0 lets an api-call send DELETE, its payload as request data (api-call-delete).
 		// 2.170.0 lets an index or detail page keep form drafts (draftAppId), offer Save draft (allowDraft) and name the draft flag (draftField; pages-forward-form-drafts).
 		// 2.171.0 lets an index page draw its title column as text or strong (rowTitle; index-row-title-text-strong).
-		// 2.172.0 lets a detail page read the record's rights (permissions; detail-page-record-rights).
+		// 2.172.0 lets a detail page read the record's rights (permissions) and a manifest name a dotted path into @self such as @self.can.update (detail-page-record-rights).
 		expect(schema.version).toBe('2.172.0')
 	})
 
