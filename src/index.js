@@ -385,6 +385,7 @@ export {
 	CnTimelineView,
 	CnTimelineWidget,
 	CnToggleTableWidget,
+	CnTransferCard,
 	CnTransitionInputFields,
 	CnTranslatedBadge,
 	CnTreeView,
