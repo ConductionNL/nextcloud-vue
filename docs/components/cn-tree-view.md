@@ -45,14 +45,17 @@ const nodes = [
 | `indent` | Number | `18` | Pixels of padding per depth level. |
 | `title` / `description` | String | `''` | Optional header. |
 | `emptyLabel` | String | `'No items.'` | Empty-state text. |
-| `expandLabel` / `collapseLabel` | String | `'Expand'` / `'Collapse'` | A11y labels for the caret button. |
+| `expandLabel` / `collapseLabel` | String or `(node) => string` | `'Expand'` / `'Collapse'` | A11y labels for the caret button. A function gives every row its own name, such as "Expand HR". |
+| `toggleAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row's caret button, such as a test id per node. |
+| `rowAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row: a class, `data-*` attributes, or a `role` and `aria-label`. `class` and `style` merge with the row's own. |
+| `focusableRows` | Boolean | `false` | Rows get `tabindex="0"`, and Enter or Space on a row selects its node, like a click. Keys pressed on the caret or an action inside the row stay theirs. A focused row shows a focus ring in `--color-primary-element`. |
 | `expandAllOnMount` | Boolean | `false` | Expand every node on mount (emits `update:expanded-ids`). |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `select` | `node` | Row clicked. Original node object. |
+| `select` | `node` | Row clicked, or Enter or Space on a focusable row. Original node object. |
 | `update:selected-id` | id | `.sync` of `selectedId`. |
 | `update:expanded-ids` | `Array<id>` | `.sync` of `expandedIds`. |
 
@@ -75,6 +78,28 @@ const nodes = [
     <span :data-testid="`dashboard-${node.uuid}`">{{ node.name }}</span>
   </template>
 </CnTreeView>
+```
+
+## Per-node names, attributes and keyboard
+
+All off by default; without them the tree renders as before. A dashboard switcher that names each caret, keeps its test ids and lets keyboard users open a dashboard:
+
+```vue
+<CnTreeView
+  :nodes="dashboards"
+  label-key="name"
+  id-key="uuid"
+  :expand-label="(node) => t('app', 'Expand {name}', { name: node.name })"
+  :collapse-label="(node) => t('app', 'Collapse {name}', { name: node.name })"
+  :toggle-attrs="(node) => ({ 'data-testid': `tree-expand-${node.uuid}` })"
+  :row-attrs="(node, depth) => ({
+    role: 'button',
+    'aria-label': node.name,
+    'data-depth': depth,
+    class: { active: node.uuid === activeUuid },
+  })"
+  focusable-rows
+  @select="open" />
 ```
 
 ## Follow-up

@@ -9,12 +9,16 @@
 		:aria-expanded="hasChildren ? isExpanded : undefined"
 		:aria-selected="isSelected">
 		<div class="cn-tree-node__row"
+			v-bind="extraRowAttrs"
 			:style="{ paddingLeft: (depth * indent) + 'px' }"
-			@click="onRowClick">
+			:tabindex="focusableRows ? 0 : undefined"
+			@click="onRowClick"
+			@keydown="onRowKeydown">
 			<button v-if="hasChildren"
 				type="button"
+				v-bind="extraToggleAttrs"
 				class="cn-tree-node__toggle"
-				:aria-label="isExpanded ? collapseLabel : expandLabel"
+				:aria-label="toggleLabel"
 				@click.stop="toggle">
 				<span class="cn-tree-node__caret" :class="{ 'cn-tree-node__caret--open': isExpanded }">▸</span>
 			</button>
@@ -48,6 +52,9 @@
 				:childrenKey="childrenKey"
 				:expandLabel="expandLabel"
 				:collapseLabel="collapseLabel"
+				:toggleAttrs="toggleAttrs"
+				:rowAttrs="rowAttrs"
+				:focusableRows="focusableRows"
 				@toggle="$emit('toggle', $event)"
 				@select="$emit('select', $event)">
 				<template #actions="scope">
@@ -87,10 +94,16 @@ export default {
 		labelKey: { type: String, default: 'label' },
 		/** Node-field key for the children array. */
 		childrenKey: { type: String, default: 'children' },
-		/** A11y label for the expand button. */
-		expandLabel: { type: String, default: 'Expand' },
-		/** A11y label for the collapse button. */
-		collapseLabel: { type: String, default: 'Collapse' },
+		/** A11y label for the expand button, or `(node) => string`. */
+		expandLabel: { type: [String, Function], default: 'Expand' },
+		/** A11y label for the collapse button, or `(node) => string`. */
+		collapseLabel: { type: [String, Function], default: 'Collapse' },
+		/** Extra expand-button attributes per node, `(node, depth) => object`. */
+		toggleAttrs: { type: Function, default: null },
+		/** Extra row attributes per node, `(node, depth) => object`. */
+		rowAttrs: { type: Function, default: null },
+		/** Rows take focus and select on Enter or Space. */
+		focusableRows: { type: Boolean, default: false },
 	},
 
 	emits: ['select', 'toggle'],
@@ -122,6 +135,34 @@ export default {
 		isSelected() {
 			return this.selectedId === this.node[this.idKey]
 		},
+
+		/**
+		 * The expand button's accessible name for this node.
+		 *
+		 * @return {string}
+		 */
+		toggleLabel() {
+			const label = this.isExpanded ? this.collapseLabel : this.expandLabel
+			return typeof label === 'function' ? label(this.node) : label
+		},
+
+		/**
+		 * The host's extra attributes for this row.
+		 *
+		 * @return {object}
+		 */
+		extraRowAttrs() {
+			return this.rowAttrs ? this.rowAttrs(this.node, this.depth) : {}
+		},
+
+		/**
+		 * The host's extra attributes for this row's expand button.
+		 *
+		 * @return {object}
+		 */
+		extraToggleAttrs() {
+			return this.toggleAttrs ? this.toggleAttrs(this.node, this.depth) : {}
+		},
 	},
 
 	methods: {
@@ -131,6 +172,22 @@ export default {
 
 		onRowClick() {
 			this.$emit('select', this.node)
+		},
+
+		/**
+		 * Enter or Space on a focusable row selects its node. Keys pressed on
+		 * the expand button or an action inside the row are theirs.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 */
+		onRowKeydown(event) {
+			if (!this.focusableRows || event.target !== event.currentTarget) {
+				return
+			}
+			if (event.key === 'Enter' || event.key === ' ') {
+				event.preventDefault()
+				this.$emit('select', this.node)
+			}
 		},
 	},
 }
@@ -152,6 +209,12 @@ export default {
 
 .cn-tree-node__row:hover {
 	background: var(--color-background-hover);
+}
+
+/* A row made focusable by `focusableRows` shows where keyboard focus is (WCAG 2.4.7). */
+.cn-tree-node__row[tabindex]:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
 }
 
 .cn-tree-node--selected > .cn-tree-node__row {
