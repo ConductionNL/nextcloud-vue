@@ -58,6 +58,7 @@ const URL_HELPERS = [
 	'chatHealthUrl',
 	'attachmentsUrl',
 	'conversationsUrl',
+	'sessionsUrl',
 	'conversationMessagesUrl',
 	'conversationUrl',
 	'agentsUrl',

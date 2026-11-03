@@ -81,6 +81,25 @@ describe('the cards layout head spacing (DqFlow)', () => {
 		expect(rule(`${cards} > .cn-flow-board__path`)).toMatch(/margin-top: -14px;[^}]*padding-bottom: 8px;/)
 	})
 
+	it('sets the title as every board page title, in both layouts', () => {
+		expect(rule('.cn-look-board .cn-flow-board__title:not(.cn-look-nextcloud *)')).toMatch(/font-size: 28px;[^}]*font-weight: 700;[^}]*line-height: 1.2;/)
+		expect(rule(`${cards} > .cn-flow-board__header`)).toMatch(/align-items: flex-start;/)
+		expect(rule(`${cards} .cn-flow-board__toggle-row`)).toMatch(/height: var\(--cn-board-control-height\);/)
+	})
+
+	it('starts the cards at the top of their row, the canvas 542px tall', () => {
+		expect(rule(`${cards} > .cn-flow-board__body`)).toMatch(/align-items: start;/)
+		expect(rule(`${cards} .cn-flow-board__canvas`)).toMatch(/box-sizing: border-box;[^}]*height: 542px;/)
+	})
+
+	it('sets the palette, the step cards and the outcomes as drawn', () => {
+		expect(rule(`${cards} .cn-flow-board__palette-app`)).toMatch(/--nldesign-color-on-surface: var\(--color-text-maxcontrast\);[^}]*line-height: 1.2;/)
+		expect(rule(`${cards} .cn-flow-board__palette-step`)).toMatch(/margin: 0;/)
+		expect(rule(`${cards} .cn-flow-board__palette-more`)).toMatch(/min-height: 0;[^}]*margin: 0;[^}]*font-weight: 400;/)
+		expect(rule(`${cards} .cn-flow-detail--card-nodes .cn-flow-detail__node .cn-status-badge`)).toMatch(/padding: 2px 8px;[^}]*font-size: 12px;/)
+		expect(rule(`${cards} .cn-flow-board__outcomes`)).toMatch(/gap: 8px 16px;[^}]*font-size: 14px;/)
+	})
+
 	it('leaves the canvas layout and the Nextcloud look alone', () => {
 		const flowRules = css.split('}').filter((block) => /\.cn-flow-board(?:[ :>]|__header|__path|__notice)/.test(block) && !/__actions/.test(block))
 		flowRules.forEach((block) => {

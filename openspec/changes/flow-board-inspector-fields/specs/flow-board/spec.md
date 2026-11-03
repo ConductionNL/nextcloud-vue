@@ -14,6 +14,14 @@ undoable edits, disabled on a locked flow, and MUST list each outgoing line with
 - GIVEN lines "Ja" to "Deelzaak welstandsadvies" and "Nee" to "Besluit publiceren"
 - THEN the inspector lists "Ja  Deelzaak welstandsadvies" and "Nee  Besluit publiceren"
 
+#### Scenario: Outcomes named by their exit
+- GIVEN "Welstand nodig?" has exits "ja" and "nee" and unnamed lines leave by them to "Deelzaak welstandsadvies" and "Besluit publiceren"
+- THEN the inspector lists "Ja  Deelzaak welstandsadvies" and "Nee  Besluit publiceren" (an exit's own label wins over its id)
+
+#### Scenario: A stored table named by its key
+- GIVEN the step's tableRef is the key "dossiq.welstandsgebieden-zuiddrecht" and the listed tables carry that key
+- THEN Beslistabel shows "Welstandsgebieden Zuiddrecht" and lists no extra option for the key
+
 #### Scenario: A locked flow
 - GIVEN a retired flow
 - THEN the fields are disabled and a write is refused
