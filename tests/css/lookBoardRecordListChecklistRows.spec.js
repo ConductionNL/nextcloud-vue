@@ -4,9 +4,10 @@
  *
  * DqTenant "Inrichten": a record-list checklist draws its rows as the board
  * does: 20px rows 8px apart, the 20px mark 10px before a 15px label, a done
- * mark the soft green with a 12px tick, the bar 12px above the rows (r44: the
- * card 198.3 vs 175, rows 36px apart vs 28). jsdom draws no layout, so the
- * rules are read from the stylesheet text.
+ * mark the soft green with a 12px tick, the bar 14px under the title and 14px
+ * above the rows (r44: the card 198.3 vs 175, rows 36px apart vs 28; r45: 9.8
+ * under the title, rows 22.5 high). jsdom draws no layout, so the rules are
+ * read from the stylesheet text.
  *
  * @spec openspec/changes/board-record-list-checklist-rows/specs/record-list/spec.md#requirement-a-board-checklist-row-is-drawn-as-the-board
  */
@@ -32,10 +33,12 @@ describe('look-board-detail.css: record-list checklist rows', () => {
 		expect(row).toContain('min-height: 20px;')
 		expect(row).toContain('gap: 10px;')
 		expect(row).toContain('font-size: 15px;')
+		expect(row).toContain('line-height: normal;')
 	})
 
-	it('puts the bar 12px above the rows', () => {
-		expect(rule('.cn-look-board .cn-record-list__checklist-bar.cn-record-list__checklist-bar')).toContain('margin-block-end: 12px;')
+	it('puts the bar 14px under the title and 14px above the rows', () => {
+		expect(rule('.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--checklist)')).toContain('padding-top: 14px;')
+		expect(rule('.cn-look-board .cn-record-list__checklist-bar.cn-record-list__checklist-bar')).toContain('margin-block-end: 14px;')
 	})
 
 	it('draws a done mark on the soft green with the board ink and a 12px tick', () => {
