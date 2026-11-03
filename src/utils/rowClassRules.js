@@ -46,7 +46,7 @@ export function compileRowClass(rowClass) {
  * @param {object} row The row.
  * @return {boolean} True when it holds.
  */
-function ruleHolds(when, row) {
+export function ruleHolds(when, row) {
 	const conditions = Array.isArray(when) ? when : [when || {}]
 	return conditions.length > 0 && conditions.every((condition) => {
 		const actual = readVisibleWhenPath(row, condition && condition.field)

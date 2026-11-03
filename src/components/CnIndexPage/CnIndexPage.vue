@@ -3354,12 +3354,14 @@ export default {
 		/**
 		 * Optional leading icon for every table row — a static MDI icon name or
 		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
-		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column. An
+		 * object `{ field, icons, tones?, icon? }` picks the icon and its tile
+		 * tone by a field of the row (see CnDataTable).
 		 *
-		 * @type {string | ((row: object) => string) | null}
+		 * @type {string | ((row: object) => string) | {field: string, icons: object, tones?: object, icon?: string} | null}
 		 */
 		rowIcon: {
-			type: [String, Function],
+			type: [String, Function, Object],
 			default: null,
 		},
 
