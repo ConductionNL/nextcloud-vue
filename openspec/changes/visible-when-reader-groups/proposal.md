@@ -44,7 +44,7 @@ Neither reaches `visibleWhen`, which is what header actions, detail widgets, sid
 
 ## Scope
 
-- `src/utils/visibleWhen.js`: `readerGroups` precondition in `evaluateVisibleWhen()` and `evaluateVisibleWhenLocal()`, plus `isLocallyDecidableVisibleWhen()` once groups are loaded.
+- `src/utils/visibleWhen.js`: `readerGroups` precondition in `evaluateVisibleWhen()` and `evaluateVisibleWhenLocal()`, `isLocallyDecidableVisibleWhen()` counts it as local (the sync evaluation reads the cached groups reactively, false until they arrive).
 - `src/utils/widgetVisibility.js` / `userGroupsPeek.js`: reuse the cached lookup, no new request.
 - `src/schemas/app-manifest-v2.schema.json`: `readerGroups` on the visibleWhen definition.
 - a new `docs/utilities/visible-when.md` page and the CnActionButtons docs.
