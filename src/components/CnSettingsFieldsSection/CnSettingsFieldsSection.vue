@@ -419,19 +419,19 @@ export default {
 			default: 'primary',
 		},
 
-		/** The section title. */
+		/** The section title, through the app's translate function as the field texts. */
 		name: {
 			type: String,
 			required: true,
 		},
 
-		/** The line under the title. */
+		/** The line under the title, translated as the title. */
 		description: {
 			type: String,
 			default: '',
 		},
 
-		/** A longer explanation in its own block under the title. */
+		/** A longer explanation in its own block under the title, translated as the title. */
 		detailedDescription: {
 			type: String,
 			default: '',
@@ -668,12 +668,15 @@ export default {
 			return [1, 2, 3, 4].includes(this.columns) ? this.columns : 1
 		},
 
-		/** @return {object} The props of the card around the form. */
+		/**
+		 * @return {object} The props of the card around the form.
+		 * @spec openspec/changes/settings-section-title-translated/specs/settings-section-title-translated/spec.md#requirement-a-declared-settings-section-translates-its-title
+		 */
 		sectionProps() {
 			return {
-				name: this.name,
-				description: this.description,
-				detailedDescription: this.detailedDescription,
+				name: this.tr(this.name),
+				description: this.tr(this.description),
+				detailedDescription: this.tr(this.detailedDescription),
 				docUrl: this.docUrl,
 				wide: this.wide,
 				loading: this.loading,
