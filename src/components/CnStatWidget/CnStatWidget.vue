@@ -21,7 +21,7 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
-			{ 'cn-kpi-card--board': isBoardLook },
+			{ 'cn-kpi-card--board': isBoardLook, 'cn-kpi-card--icon-top': hasTopBadge },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
@@ -33,6 +33,17 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
+			<!-- Board look, `content.iconPlacement: "top"`: the icon sits in a
+			     42px circle above the label, tinted by the tile's state
+			     (LqTlVandaag). -->
+			<span
+				v-if="hasTopBadge"
+				class="cn-kpi-card__badge cn-kpi-card__badge--top cn-stat-widget__badge-icon"
+				:class="'cn-kpi-card__badge--' + stateTone"
+				data-testid="cn-stat-widget-icon-top"
+				aria-hidden="true">
+				<CnWidgetIcon :name="resolvedIcon" :size="22" />
+			</span>
 			<div
 				v-if="content.label || rangePresets.length"
 				class="cn-kpi-card__title cn-stat-widget__label"
@@ -40,7 +51,7 @@
 				<!-- Board look: the icon is an 18px glyph before the label, and
 				     only when the tile links to a filtered list. -->
 				<span
-					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge"
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge && !hasTopBadge"
 					class="cn-kpi-card__glyph cn-stat-widget__glyph"
 					data-testid="cn-stat-widget-glyph"
 					aria-hidden="true">
@@ -1525,6 +1536,20 @@ export default {
 		hasEndBadge() {
 			return this.isBoardLook
 				&& (this.content || {}).iconPlacement === 'end'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted 42px circle above
+		 * the label (`content.iconPlacement: "top"`), as the learniq Today
+		 * tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label
+		 * @return {boolean}
+		 */
+		hasTopBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'top'
 				&& Boolean(this.resolvedIcon)
 		},
 
