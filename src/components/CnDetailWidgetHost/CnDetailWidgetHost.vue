@@ -103,7 +103,7 @@
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
 			:fieldLook="content.fieldLook || ''"
-			:editable="inlineEditable" />
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
 		     integrations. Honours bare mode via its own `bare` prop. -->
@@ -146,7 +146,7 @@
 			:objectData="object"
 			:register="register"
 			:schema="schema"
-			:editable="inlineEditable"
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)"
 			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
 			:allowBasemapSwitch="content.allowBasemapSwitch === true"
@@ -1017,18 +1017,6 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * Whether the data and map widgets may edit inline: not when the
-		 * widget says so, and not while the record refuses this reader's
-		 * updates (CnDetailPage `permissions`).
-		 *
-		 * @return {boolean}
-		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
-		 */
-		inlineEditable() {
-			return this.content.editable !== false && !(this.cnRecordEdit && this.cnRecordEdit.denied === true)
-		},
-
 		/**
 		 * Whether the caller owns the title and card.
 		 *

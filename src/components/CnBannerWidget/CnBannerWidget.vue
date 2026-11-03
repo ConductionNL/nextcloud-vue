@@ -673,6 +673,7 @@ export default {
 		 * The actions that have a label, as written.
 		 *
 		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
 		 */
 		labelledActions() {
 			const raw = this.actions || (this.content && this.content.actions) || []
@@ -685,6 +686,7 @@ export default {
 		 * The page's record, for a declared action.
 		 *
 		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
 		 */
 		actionRecord() {
 			const ctx = this.tokenContext()
@@ -703,6 +705,13 @@ export default {
 			return all.length > 0 && all.every(isDeclaredAction) && !all.some((action) => declaredActionGranted(action, this.actionRecord))
 		},
 
+		/**
+		 * The actions the banner shows: labelled, a declared action only while the
+		 * record grants it, at most `actionCap`, each with its target or dispatch.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
 		resolvedActions() {
 			const usable = this.labelledActions
 				.filter((action) => !isDeclaredAction(action) || declaredActionGranted(action, this.actionRecord))

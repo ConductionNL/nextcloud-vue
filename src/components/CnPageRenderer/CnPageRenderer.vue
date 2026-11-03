@@ -2347,6 +2347,8 @@ export default {
 		 * need objectId / register (e.g. file-manager) render without
 		 * waiting for the object body; the getters go non-null the moment
 		 * the fetches populate the cache — no re-publish needed.
+		 *
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
 		 */
 		async loadDetailObject() {
 			const ctx = this.detailLoadContext

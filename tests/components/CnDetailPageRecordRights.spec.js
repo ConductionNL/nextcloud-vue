@@ -11,7 +11,7 @@
  * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
  */
 
-const { shallowMount } = require('@vue/test-utils')
+const { mount, shallowMount } = require('@vue/test-utils')
 const CnDetailPage = require('../../src/components/CnDetailPage/CnDetailPage.vue').default
 const CnDetailWidgetHost = require('../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue').default
 
@@ -111,15 +111,26 @@ describe('CnDetailPage — record rights', () => {
 })
 
 describe('CnDetailWidgetHost — inline editors follow the record', () => {
-	const inlineEditable = (content, cnRecordEdit) => CnDetailWidgetHost.computed.inlineEditable.call({ content, cnRecordEdit })
+	/**
+	 * @param {object} widget The widget definition.
+	 * @param {object|null} cnRecordEdit What the page provides.
+	 * @return {boolean} The data widget's `editable`.
+	 */
+	function dataEditable(widget, cnRecordEdit) {
+		const wrapper = mount(CnDetailWidgetHost, {
+			props: { widget, schemaObject: { type: 'object', properties: { title: { type: 'string' } } }, object: { title: 'A case' }, objectId: 'c-1' },
+			global: { stubs: { CnIcon: true, CnObjectDataWidget: { name: 'CnObjectDataWidget', props: ['editable'], template: '<div />' } }, provide: cnRecordEdit ? { cnRecordEdit } : {} },
+		})
+		return wrapper.findComponent({ name: 'CnObjectDataWidget' }).props('editable')
+	}
 
 	it('🔴 turns inline editing off while the record refuses updates', () => {
-		expect(inlineEditable({}, { available: false, denied: true })).toBe(false)
+		expect(dataEditable({ id: 'd', type: 'data' }, { available: false, denied: true })).toBe(false)
 	})
 
 	it('keeps inline editing on otherwise, also where the page has no Edit button', () => {
-		expect(inlineEditable({}, { available: false, denied: false })).toBe(true)
-		expect(inlineEditable({}, null)).toBe(true)
-		expect(inlineEditable({ editable: false }, null)).toBe(false)
+		expect(dataEditable({ id: 'd', type: 'data' }, { available: false, denied: false })).toBe(true)
+		expect(dataEditable({ id: 'd', type: 'data' }, null)).toBe(true)
+		expect(dataEditable({ id: 'd', type: 'data', content: { editable: false } }, null)).toBe(false)
 	})
 })

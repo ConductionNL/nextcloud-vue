@@ -5079,6 +5079,13 @@ export default {
 			]
 		},
 
+		/**
+		 * Whether the page offers its own record edit form: asked for, a record
+		 * and schema to edit, no lock held by somebody else, and updates allowed.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode
