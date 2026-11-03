@@ -6,7 +6,7 @@
  * shape, generalised in Wave 3 of nextcloud-vue#91 for manifest actions).
  *
  * A `visibleWhen` condition is
- * `{ appInstalled?, endpoint?, source?, field?, op?, value }`.
+ * `{ appInstalled?, readerGroups?, endpoint?, source?, field?, op?, value }`.
  *
  * `appInstalled` is a precondition rather than a mode: it names the Nextcloud
  * app that backs the guarded element, and it is checked before anything else.
@@ -14,6 +14,10 @@
  * it gates that mode. It exists because the menu's `visibleIf` already spoke
  * this word and `visibleWhen` did not, so the same manifest vocabulary meant
  * two different things in two places.
+ *
+ * `readerGroups` is a precondition the same way: the reader must be in at least
+ * one listed Nextcloud group. It hides a control and never replaces the check
+ * of the endpoint behind it. Until the groups are known it reads false.
  *
  * The value itself comes from one of THREE evaluation modes (first match wins):
  *
@@ -51,6 +55,7 @@ import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
+import { loadCurrentUserGroups, peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in', 'anyOf', 'contains']
@@ -156,6 +161,30 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 		return a < b
 	}
 	return a <= b
+}
+
+/**
+ * Whether the reader is in at least one of the listed groups. Unknown groups
+ * (`null`, still loading) and an empty list both read false.
+ *
+ * @param {string[]} listed The condition's `readerGroups`.
+ * @param {string[]|null} groups The reader's group ids, or null while loading.
+ * @return {boolean} Whether one listed group is the reader's.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ */
+export function readerInGroups(listed, groups) {
+	return Array.isArray(groups) && listed.some((id) => typeof id === 'string' && groups.includes(id))
+}
+
+/**
+ * Whether a `readerGroups` condition has nothing else to decide: no mode and
+ * no other precondition next to it.
+ *
+ * @param {object} cond The visibleWhen condition.
+ * @return {boolean} True when `readerGroups` is the whole condition.
+ */
+function isReaderGroupsOnly(cond) {
+	return !cond.field && !cond.endpoint && !cond.source && !cond.workspace && !cond.appInstalled
 }
 
 /**
@@ -271,6 +300,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
  * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
@@ -289,6 +319,14 @@ export async function evaluateVisibleWhen(cond, ctx) {
 			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
 		} catch {
 			return false
+		}
+	}
+	if (Array.isArray(cond.readerGroups) === true) {
+		if (!readerInGroups(cond.readerGroups, await loadCurrentUserGroups())) {
+			return false
+		}
+		if (isReaderGroupsOnly(cond)) {
+			return true
 		}
 	}
 	if (isWorkspaceCondition(cond)) {
@@ -339,6 +377,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export function evaluateVisibleWhenLocal(cond, data) {
 	if (cond === null || cond === undefined) {
@@ -361,6 +400,15 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	}
 	if (cond.endpoint || cond.source) {
 		return false
+	}
+	// The peek is reactive: a computed that reads it re-runs when the groups arrive.
+	if (Array.isArray(cond.readerGroups) === true) {
+		if (!readerInGroups(cond.readerGroups, peekCurrentUserGroups())) {
+			return false
+		}
+		if (isReaderGroupsOnly(cond)) {
+			return true
+		}
 	}
 	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
 		if (!isAppInstalled(cond.appInstalled)) {
@@ -394,7 +442,7 @@ export function evaluateVisibleWhenLocal(cond, data) {
  * the gate when it returns `false`.
  *
  * @param {object|null} cond The condition (or null).
- * @return {boolean} True when every leaf is a local `field` / `appInstalled` check.
+ * @return {boolean} True when every leaf is a local `field` / `appInstalled` / `readerGroups` check.
  */
 export function isLocallyDecidableVisibleWhen(cond) {
 	if (cond === null || cond === undefined) {
