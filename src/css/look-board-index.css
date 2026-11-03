@@ -2594,10 +2594,12 @@
 
 /* A row the manifest marks as asking for attention (`config.rowClass` with
    `class: "cn-row--attention"`) is tinted warm, as the boards draw the open
-   requests on top of a list (PtToegangsverzoeken, PtUitnodigingen).
+   requests on top of a list (PtToegangsverzoeken, PtUitnodigingen): a fifth
+   of the warning pill's light ground, #fffdf7 under the Zuiddrecht tokens.
+   The warning colour itself is a dark ink in some themes.
    @spec openspec/changes/board-attention-row/specs/board-attention-row/spec.md#requirement-a-board-table-row-marked-for-attention-is-tinted-warm */
 .cn-look-board .cn-data-table tr.cn-row--attention > td:not(.cn-look-nextcloud *) {
-	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
+	background: color-mix(in srgb, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))) 22%, var(--color-main-background));
 }
 
 /* A row the manifest marks overdue (`config.rowClass` with `class:
