@@ -300,6 +300,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
  * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
@@ -376,6 +377,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export function evaluateVisibleWhenLocal(cond, data) {
 	if (cond === null || cond === undefined) {
