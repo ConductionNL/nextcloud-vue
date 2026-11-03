@@ -179,6 +179,7 @@ export {
 	CnFormWidgetBase,
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
+	CnGeoCaptureField,
 	CnGraphCanvas,
 	CnGroupedCardsWidget,
 	CnGroupedMenu,
