@@ -75,6 +75,7 @@ export {
 	CnChipListManager,
 	CnChipsFieldWidget,
 	CnChoiceCards,
+	CnChoiceMatrix,
 	CnChoicePickerWidget,
 	CnColorPicker,
 	CnCommandPalette,

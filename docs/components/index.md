@@ -41,6 +41,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
+| [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
 
 ## Data Actions
 

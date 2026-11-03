@@ -899,6 +899,7 @@
     "Connecting...": "Connecting...",
     "Loading conversations...": "Loading conversations...",
     "Could not connect to AI service": "Could not connect to AI service",
+    "Nothing to set yet.": "Nothing to set yet.",
     "Tool: {toolId}": "Tool: {toolId}",
     "Reply was cancelled": "Reply was cancelled",
     "No cards linked yet": "No cards linked yet",
