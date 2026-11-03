@@ -2449,10 +2449,11 @@ export default {
 			}
 			if (typeof store.fetchObject === 'function') {
 				// The same read CnDetailPage makes: it asks for `@self.can` while the
-				// Follow toggle can render, and a plain read landing later would
-				// overwrite the object without it.
-				const extend = [...(Array.isArray(this.currentPage?.config?.extend) ? this.currentPage.config.extend : [])]
-				if (this.currentPage?.config?.follow !== false && !extend.includes('@self.can')) {
+				// Follow toggle can render or the page reads the record's rights, and
+				// a plain read landing later would overwrite the object without it.
+				const config = this.currentPage?.config || {}
+				const extend = [...(Array.isArray(config.extend) ? config.extend : [])]
+				if ((config.follow !== false || config.permissions === true) && !extend.includes('@self.can')) {
 					extend.push('@self.can')
 				}
 				tasks.push(store.fetchObject(ctx.slug, ctx.objectId, { extend }).catch(() => null))

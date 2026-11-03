@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.171.0', () => {
+	it('the manifest schema version reads 2.172.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1445,7 +1445,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.169.0 lets an api-call send DELETE, its payload as request data (api-call-delete).
 		// 2.170.0 lets an index or detail page keep form drafts (draftAppId), offer Save draft (allowDraft) and name the draft flag (draftField; pages-forward-form-drafts).
 		// 2.171.0 lets an index page draw its title column as text or strong (rowTitle; index-row-title-text-strong).
-		expect(schema.version).toBe('2.171.0')
+		// 2.172.0 lets a detail page read the record's rights (permissions; detail-page-record-rights).
+		expect(schema.version).toBe('2.172.0')
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {

@@ -56,6 +56,26 @@ subject. When a subject token has no value, the whole line is empty, so `fallbac
 A `visibleWhen.source` may carry `extend` (OpenRegister `_extend[]` names), so a card that names the first row of a query
 can also name what that row points at (`{subject.caseType.title}`).
 
+## A declared action on the record
+
+An action with `declaredAction` runs that OpenRegister declared action on the page's record
+(`POST /apps/openregister/api/objects/{register}/{schema}/{id}/actions/{name}`) and refreshes the page. Its
+`successMessage` and `errorMessage` go to the toasts. The button shows only while the record's `@self.can` grants the
+action, and a banner whose every action is a declared action the record does not grant stays hidden. On a detail page
+with `permissions: true`:
+
+```json
+{
+  "type": "banner",
+  "content": {
+    "layout": "attention",
+    "title": "Add yourself as handler to be able to edit.",
+    "visibleWhen": { "field": "@self.can.update", "op": "eq", "value": false },
+    "actions": [{ "label": "Add me as handler", "declaredAction": "claim-as-handler" }]
+  }
+}
+```
+
 ## Events
 
 | Event | Payload | Description |

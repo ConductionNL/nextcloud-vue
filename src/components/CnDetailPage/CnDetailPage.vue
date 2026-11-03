@@ -350,6 +350,7 @@
 					@binding {object} store The effective object store.
 					@binding {Function} openEditForm Opens this page's own record edit form. Lets an actions component put Edit inside ITS action cluster instead of leaving the page's button beside it — the page renders no button of its own once `showEditAction` is false, but this still opens the same dialog.
 					@binding {boolean} canEditRecord Whether the page would render its own Edit button (`showEditAction` plus a record and schema to edit).
+					@binding {object|null} can The record's rights (`@self.can`) on a page with `permissions`, else null.
 				-->
 				<slot
 					name="actions"
@@ -359,7 +360,8 @@
 					:objectType="resolvedObjectType"
 					:store="effectiveObjectStore"
 					:openEditForm="openEditForm"
-					:canEditRecord="canEditRecord" />
+					:canEditRecord="canEditRecord"
+					:can="recordCan" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
@@ -1558,6 +1560,17 @@ function isDefaultColumnOpts(opts) {
  */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
+/** Header-action roles that change the record, off while the record refuses updates. */
+const EDIT_ROLES = ['edit', 'update']
+
+/**
+ * @param {object} action A header action.
+ * @return {boolean} Whether it edits the record.
+ */
+function isEditRole(action) {
+	return Boolean(action) && EDIT_ROLES.includes(action.role)
+}
+
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -1784,6 +1797,8 @@ export default {
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
 		const canEditRecord = computed(() => this.canEditRecord)
+		const updateDenied = computed(() => this.recordUpdateDenied)
+		const recordCan = computed(() => this.recordCan)
 		const lastChange = computed(() => this.lastChange)
 		return {
 			// The page's own record edit form, for a widget header button whose
@@ -1793,8 +1808,16 @@ export default {
 					return canEditRecord.value
 				},
 
+				// The record refuses this reader's updates, so inline editors stay off.
+				get denied() {
+					return updateDenied.value
+				},
+
 				open: () => this.openEditForm(),
 			},
+
+			// The record's rights (`@self.can`) on a page with `permissions`, else null.
+			cnRecordCan: recordCan,
 
 			// The record's newest create or update entry, for a widget that names
 			// who changed it last (`recordLastChange`); null until read.
@@ -2412,6 +2435,17 @@ export default {
 		extend: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Read the record's rights (manifest `config.permissions`): the object
+		 * read asks for `@self.can`, and while `can.update` is false the edit
+		 * form, the header actions with role `edit` or `update` and the inline
+		 * editors are off. A record without `can` keeps today's controls.
+		 */
+		permissions: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -5027,7 +5061,8 @@ export default {
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
 			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
-			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const shown = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const declared = this.recordUpdateDenied ? shown.filter((action) => !isEditRole(action)) : shown
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -5050,6 +5085,7 @@ export default {
 				&& this.hasSchemaDrivenFetch
 				&& Boolean(this.currentSchema)
 				&& !this.editLockedByOther
+				&& !this.recordUpdateDenied
 		},
 
 		/**
@@ -5525,10 +5561,31 @@ export default {
 		 */
 		readExtend() {
 			const out = [...this.extend]
-			if (this.follow !== false && !out.includes('@self.can')) {
+			if ((this.follow !== false || this.permissions === true) && !out.includes('@self.can')) {
 				out.push('@self.can')
 			}
 			return out
+		},
+
+		/**
+		 * The record's rights (`@self.can`) on a page that asks for them, else null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
+		 */
+		recordCan() {
+			const can = this.resolvedSelf.can
+			return this.permissions === true && can && typeof can === 'object' && !Array.isArray(can) ? can : null
+		},
+
+		/**
+		 * Whether the record refuses this reader's updates (`can.update === false`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
+		recordUpdateDenied() {
+			return Boolean(this.recordCan && this.recordCan.update === false)
 		},
 
 		/**

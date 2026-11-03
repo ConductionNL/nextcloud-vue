@@ -101,6 +101,49 @@ const MAX_ACTIONS = 2
 const MAX_ACTIONS_BOARD = 4
 
 /**
+ * Whether the record grants the action's `declaredAction` (`@self.can[name] === true`).
+ *
+ * @param {object} action A banner action.
+ * @param {object|null} record The page's record.
+ * @return {boolean}
+ */
+function declaredActionGranted(action, record) {
+	const can = record && record['@self'] ? record['@self'].can : null
+	return Boolean(can) && typeof can === 'object' && can[action.declaredAction] === true
+}
+
+/**
+ * The api-call that runs the action's `declaredAction` on the record through
+ * OpenRegister, with a page refresh after it. The page's register and schema
+ * win over the record's own `@self` ones.
+ *
+ * @param {object} action A banner action with `declaredAction`.
+ * @param {object} record The page's record.
+ * @param {{register?: string, schema?: string}} [page] The detail page's register and schema.
+ * @return {object} The manifest action to dispatch.
+ */
+function declaredActionCall(action, record, page = {}) {
+	const self = record['@self'] || {}
+	const path = [page.register || self.register, page.schema || self.schema, self.id || record.id, action.declaredAction]
+		.map((part) => encodeURIComponent(String(part ?? '')))
+	const call = { type: 'api-call', method: 'POST', url: `/apps/openregister/api/objects/${path.slice(0, 3).join('/')}/actions/${path[3]}`, refresh: true }
+	for (const key of ['successMessage', 'errorMessage']) {
+		if (typeof action[key] === 'string' && action[key] !== '') {
+			call[key] = action[key]
+		}
+	}
+	return call
+}
+
+/**
+ * @param {unknown} action A banner action.
+ * @return {boolean} Whether it names a declared action.
+ */
+function isDeclaredAction(action) {
+	return Boolean(action) && typeof action.declaredAction === 'string' && action.declaredAction !== ''
+}
+
+/**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
  * (`banner` widget type, Wave 1 of nextcloud-vue#91).
  *
@@ -141,6 +184,12 @@ const MAX_ACTIONS_BOARD = 4
  * and up to two `actions` (the first is the primary one unless an action says
  * `primary` itself). `visibleWhen` works the same way. Without `layout` the
  * note card above renders, as it always did.
+ *
+ * An action with `declaredAction` runs that OpenRegister declared action on
+ * the page's record (`POST .../objects/{register}/{schema}/{id}/actions/{name}`)
+ * and refreshes the page. It shows only while the record's `@self.can` grants
+ * the action, and a banner whose every action is a declared action the record
+ * does not grant stays hidden.
  *
  * ```json
  * {
@@ -620,13 +669,43 @@ export default {
 			return normalizeLook(this.cnLook) === 'board' ? MAX_ACTIONS_BOARD : MAX_ACTIONS
 		},
 
-		resolvedActions() {
+		/**
+		 * The actions that have a label, as written.
+		 *
+		 * @return {Array<object>}
+		 */
+		labelledActions() {
 			const raw = this.actions || (this.content && this.content.actions) || []
-			if (!Array.isArray(raw)) {
-				return []
-			}
-			const usable = raw
-				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+			return Array.isArray(raw)
+				? raw.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				: []
+		},
+
+		/**
+		 * The page's record, for a declared action.
+		 *
+		 * @return {object|null}
+		 */
+		actionRecord() {
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
+		},
+
+		/**
+		 * Whether every action is a declared action the record does not grant,
+		 * so the banner has nothing the reader can do.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		declaredActionsWithheld() {
+			const all = this.labelledActions
+			return all.length > 0 && all.every(isDeclaredAction) && !all.some((action) => declaredActionGranted(action, this.actionRecord))
+		},
+
+		resolvedActions() {
+			const usable = this.labelledActions
+				.filter((action) => !isDeclaredAction(action) || declaredActionGranted(action, this.actionRecord))
 				.slice(0, this.actionCap)
 			const declaredPrimary = usable.findIndex((action) => action.primary === true)
 			const primaryIndex = declaredPrimary === -1 ? 0 : declaredPrimary
@@ -646,7 +725,7 @@ export default {
 					label: this.tl(action.label),
 					href,
 					target,
-					dispatch: !target && !href && typeof action.type === 'string' && action.type !== '' ? action : null,
+					dispatch: this.actionDispatch(action, target, href),
 					primary: index === primaryIndex,
 					index,
 				}
@@ -668,6 +747,9 @@ export default {
 			}
 			// Every line emptied by a subject token with no value: nothing to say.
 			if (!this.isAttention && this.displayText === '' && this.displayLead === '') {
+				return false
+			}
+			if (this.declaredActionsWithheld) {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -868,6 +950,28 @@ export default {
 				return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, this.resolveSubject(value)]))
 			}
 			return node
+		},
+
+		/**
+		 * The manifest action a button dispatches: the declared-action call,
+		 * an action with a `type`, or null for a link or a plain button.
+		 *
+		 * @param {object} action The action as written.
+		 * @param {object|null} target Its route target.
+		 * @param {string} href Its href.
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		actionDispatch(action, target, href) {
+			if (target || href) {
+				return null
+			}
+			if (isDeclaredAction(action)) {
+				const raw = this.cnObjectContext
+				const page = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+				return declaredActionCall(action, this.actionRecord || {}, page || {})
+			}
+			return typeof action.type === 'string' && action.type !== '' ? action : null
 		},
 
 		/**

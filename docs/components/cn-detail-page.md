@@ -829,6 +829,7 @@ When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegist
 | `followRow` | Object \| null | `null` | The board look's follow row (manifest `config.followRow`): `presence: true` says who else has the record open now, with their initials, before the Follow control ("Anouk Bakker is also looking at this record now", or "… and 2 others …"); `count: false` draws no follower count. |
 | `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
 | `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
+| `permissions` | Boolean | `false` | Read the record's rights (manifest `config.permissions: true`): the object read asks for `@self.can`, also with `follow: false`. While `can.update` is `false` the Edit button, the header actions with `role` `edit` or `update` and the inline editors of the data and map widgets are off. A record without `can` keeps every control. Widgets read the rights as `cnRecordCan` and `cnRecordEdit.denied`, the `actions` slot as `can`, and a `visibleWhen` as `@self.can.<name>`. |
 
 ## Read state: opening a record marks it read
 
