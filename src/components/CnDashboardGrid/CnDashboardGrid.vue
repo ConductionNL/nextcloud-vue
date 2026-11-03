@@ -1842,8 +1842,11 @@ export default {
 }
 
 /* A stretched `sameHeight` card keeps its content at the top, as the boards
-   draw a row of cards, not centred in the extra height. */
-.cn-dashboard-grid__item--same-height > :deep(.grid-stack-item-content > * > .cn-widget-wrapper__content) {
+   draw a row of cards, not centred in the extra height. `.grid-stack-item`
+   outranks the dashboard page's centring of a fitted card, which is as
+   strong and loads later (DqProcesanalyse stat tiles).
+   @spec openspec/changes/same-height-fit-card-content-top/specs/dashboard-grid/spec.md#requirement-a-stretched-fitted-card-keeps-its-content-at-the-top */
+.cn-dashboard-grid__item--same-height.grid-stack-item > :deep(.grid-stack-item-content > * > .cn-widget-wrapper__content) {
 	justify-content: flex-start;
 }
 

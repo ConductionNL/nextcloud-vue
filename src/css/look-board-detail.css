@@ -215,6 +215,13 @@
 	margin: 0;
 }
 
+/* The soft pill (`format: "pill"`, DqTenant slug "waterland") takes the
+   boards' soft ink on its grey, not the muted text colour.
+   @spec openspec/changes/board-header-pill-soft-ink/specs/detail-page-board-look/spec.md#requirement-a-board-header-pill-takes-the-soft-ink */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips__chip--pill.cn-detail-header-chips__chip--pill {
+	color: var(--cn-board-text-soft);
+}
+
 /* The breadcrumb is a line of 14px text between the pills and the meta, as
    the boards draw it (screens-detail-header-row-parity). NcBreadcrumbs grows to
    the full row and draws each crumb as a 34px tertiary button, which pushed the
@@ -763,6 +770,18 @@
 	font-size: 14px;
 }
 
+/* The reply box's head (DqZaakContact "Antwoord aan de inwoner" and its hint)
+   is set on the normal line, the label at 14px, so the field sits where the
+   board draws it (r45: the conversation card 4.9px taller).
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-the-reply-boxs-head-is-set-on-the-normal-line */
+.cn-look-board .cn-conversation-thread__reply-head:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
+.cn-look-board .cn-conversation-thread__reply-label:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+}
+
 /* The reply box's buttons (Opslaan als concept, Versturen) are the board's
    40px control, as DqBerichtVersturen draws Versturen; NcButton draws 34
    (DqZaakContact r29 controlHeight 34).
@@ -946,6 +965,13 @@
 .cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-calendar-card__list:first-child):not(.cn-look-nextcloud *),
 .cn-look-board .cn-detail-card .cn-detail-card__content:has(> .cn-deck-card__rows:first-child):not(.cn-look-nextcloud *) {
 	padding-top: 12px;
+}
+
+/* The calendar card's "Openen in Agenda" link is set on the normal line, as
+   drawn (DqZaakTaken "Afspraken": 179px, live 183 at 1.5).
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-cards-footnote-and-foot-link-are-set-on-the-normal-line */
+.cn-look-board .cn-calendar-card__open:not(.cn-look-nextcloud *) {
+	line-height: normal;
 }
 
 /* A data card (labels over values) starts 14px below its title (DqZaak
@@ -1140,6 +1166,15 @@
 	line-height: normal;
 }
 
+/* A card's footnote is a 13px line on the normal line height, under a data
+   grid (DqZaakContact "Ontvangstbevestiging") or a history list
+   (DqSociaalDomein, DqZaaktype "Historie"): 4.5px less than at 1.5.
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-cards-footnote-and-foot-link-are-set-on-the-normal-line */
+.cn-look-board .cn-object-data-widget__footnote:not(.cn-look-nextcloud *),
+.cn-look-board .cn-audit-card__footnote:not(.cn-look-nextcloud *) {
+	line-height: normal;
+}
+
 /* A note in a page card starts at the card's inset: no list-item padding
    around it, its icon 12px before the text (DqZaakEmail Notities r29: icon
    at 31 and text at 71 where the board draws 23 and 67).
@@ -1165,6 +1200,26 @@
 
 .cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__anchor > :first-child:not(.list-item-content):not(.cn-look-nextcloud *) {
 	align-self: flex-start;
+}
+
+/* A note row is as tall as its two lines, 35px: the list item keeps no
+   minimum height of its own, and the "author · time" line is 13px, 2px under
+   the note (DqZaakEmail "Notities" r45: 45px items, the card 19.8px taller).
+   Another author's initials are in the soft ink, as drawn.
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-note-row-is-as-tall-as-its-two-lines */
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item:not(.cn-look-nextcloud *),
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item__anchor:not(.cn-look-nextcloud *) {
+	height: auto;
+	min-height: 0;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__thread .list-item-content__subname:not(.cn-look-nextcloud *) {
+	margin-top: 2px;
+	font-size: 13px;
+}
+
+.cn-look-board .cn-detail-widget-host .cn-notes-tab__avatar:not(.cn-notes-tab__avatar--own):not(.cn-look-nextcloud *) {
+	color: var(--cn-board-text-soft);
 }
 
 /* Side cards: the heading is a 15px muted label, not a title. The tone
@@ -1307,6 +1362,23 @@
 
 .cn-look-board .cn-detail-page__side .cn-facts-widget__text:first-child + .cn-facts-widget__link:not(.cn-look-nextcloud *) {
 	margin-top: 0;
+}
+
+/* A side card of running text alone (DqTaak "Wat deze taak tegenhoudt") reads
+   as one paragraph: its sentences at 14px on 1.5 with no gap between them,
+   10px under its title, as drawn.
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-side-card-of-running-text-reads-as-one-paragraph */
+.cn-look-board .cn-detail-page__side .cn-widget-wrapper__header + .cn-widget-wrapper__content:has(> .cn-facts-widget > .cn-facts-widget__text:first-child):not(:has(> .cn-facts-widget > :not(.cn-facts-widget__text))):not(.cn-look-nextcloud *) {
+	padding-top: 10px;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__text:first-child):not(:has(> :not(.cn-facts-widget__text))):not(.cn-look-nextcloud *) {
+	gap: 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-facts-widget:has(> .cn-facts-widget__text:first-child):not(:has(> :not(.cn-facts-widget__text))):not(.cn-look-nextcloud *) > .cn-facts-widget__text {
+	font-size: 14px;
+	line-height: 1.5;
 }
 
 /* A side facts card's action ("Contact vastleggen") is 34px tall with no
@@ -2428,6 +2500,14 @@
 	margin-top: 2px;
 }
 
+/* A linked mail's sender line on the case's E-mail card wraps, as drawn
+   (DqZaakEmail "Aanvulling op Woo-verzoek": 75px over two lines, live cut it
+   to one).
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-linked-mails-sender-line-wraps-on-the-case-card */
+.cn-look-board .cn-mail-tab__linked .cn-email-tab__sender:not(.cn-look-nextcloud *) {
+	white-space: normal;
+}
+
 .cn-look-board .cn-email-tab__menu:not(.cn-look-nextcloud *) .action-item__menutoggle {
 	--button-size: 34px;
 	box-sizing: border-box;
@@ -2832,19 +2912,26 @@
 }
 
 /* A record-list checklist (DqTenant "Inrichten") as the board draws it: rows
-   20px high and 8px apart, the 20px mark 10px before a 15px label, a done mark
-   on the soft green with a 12px tick, the bar 12px above the rows. The
-   component's own rows are 28px tall with a 14px tick. The doubled classes
-   outrank its scoped rules.
+   20px high and 8px apart, the 20px mark 10px before a 15px label at the
+   font's normal line height, a done mark on the soft green with a 12px tick,
+   the bar 14px under the title and 14px above the rows. The component's own
+   rows are 28px tall with a 14px tick. The doubled classes outrank its scoped
+   rules. The bar has no first-line leading, so the card's 12px-less-leading
+   top padding gives way to the board's 14.
    @spec openspec/changes/board-record-list-checklist-rows/specs/record-list/spec.md#requirement-a-board-checklist-row-is-drawn-as-the-board */
 .cn-look-board .cn-record-list__check.cn-record-list__check {
 	min-height: 20px;
 	gap: 10px;
 	font-size: 15px;
+	line-height: normal;
+}
+
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--checklist) {
+	padding-top: 14px;
 }
 
 .cn-look-board .cn-record-list__checklist-bar.cn-record-list__checklist-bar {
-	margin-block-end: 12px;
+	margin-block-end: 14px;
 }
 
 .cn-look-board .cn-record-list__check--done .cn-record-list__check-mark.cn-record-list__check-mark {
@@ -3322,6 +3409,14 @@
 
 .cn-look-board .cn-detail-page .cn-record-list--rows.cn-record-list--rule-above:not(.cn-detail-page__side *):not(.cn-look-nextcloud *) .cn-record-list__row {
 	padding: 12px 0;
+}
+
+/* A ruled feed in a page card (DqContact and DqOrganisatie "Laatste
+   contactmomenten") starts as a ruled list does: the rule 12px under the
+   title, so the first moment's text is 25px under it (r45 22.8).
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-ruled-feed-starts-12px-under-the-title */
+.cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--feed.cn-record-list--rule-above):not(.cn-detail-page__side *) {
+	padding-top: 12px;
 }
 
 /* A card that opens on a grid of framed tiles (DqZaaktypeOverzicht

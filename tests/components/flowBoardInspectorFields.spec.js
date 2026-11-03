@@ -95,6 +95,28 @@ describe('the board inspector edits the selected step', () => {
 		expect(w.vm.stepFields[0].option).toEqual({ id: 'old-key', label: 'old-key' })
 	})
 
+	it('names an outcome after the exit its line leaves by when the line has no name', async () => {
+		const w = await mountBoard()
+		w.vm.store.flow.nodes[0].exits = [{ id: 'ja', label: 'Ja, welstand' }, { id: 'nee' }]
+		w.vm.store.flow.edges = [{ from: 'w', to: 'd', fromExit: 'ja' }, { from: 'w', to: 'b', fromExit: 'nee' }, { from: 'd', to: 'b' }]
+		await w.vm.$nextTick()
+		expect(w.vm.stepOutcomes.map((row) => [row.label, row.target])).toEqual([['Ja, welstand', 'Deelzaak welstandsadvies'], ['Nee', 'Besluit publiceren']])
+		w.vm.store.selectedNodeId = 'd'
+		await w.vm.$nextTick()
+		expect(w.vm.stepOutcomes.map((row) => row.label)).toEqual(['Next'])
+	})
+
+	it('shows a stored value that names a listed row by its key as that row', async () => {
+		const { default: axios } = require('@nextcloud/axios')
+		axios.get.mockImplementation((url) => Promise.resolve({ data: { results: url.includes('decision-table') ? [{ id: 'u-1', key: 'dossiq.welstand', name: 'Welstandsgebieden Zuiddrecht' }, { id: 'u-2', name: 'Parkeerzones' }] : [] } }))
+		const w = await mountBoard()
+		w.vm.store.nodeCatalog = [{ ...CATALOG[0], configForm: [{ key: 'tableRef', label: 'Beslistabel', type: 'select', optionsFrom: '/apps/openregister/api/objects/decision-tables/decision-table' }] }, ...CATALOG.slice(1)]
+		w.vm.store.flow.nodes[0].config.tableRef = 'dossiq.welstand'
+		await w.vm.loadStepOptions()
+		expect(w.vm.stepFields[0].option).toEqual(expect.objectContaining({ id: 'u-1', label: 'Welstandsgebieden Zuiddrecht' }))
+		expect(w.vm.stepFields[0].options).toHaveLength(2)
+	})
+
 	it('locks the fields on a locked flow', async () => {
 		const w = await mountBoard()
 		w.vm.store.flow.lifecycleStatus = 'deprecated'
