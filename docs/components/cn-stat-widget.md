@@ -239,6 +239,15 @@ The day count is taken when the tile renders. A tile left open across midnight k
 - Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present, in the `endpointSource` and in the tile's `route` alike, so a tile on a detail page can link to `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A route token that stays unresolved is dropped from the URL.
 - The tile injects `cnDashboardDateRange` — the same ref `CnChartWidget` reads — so a tile and a chart on one dashboard always agree on the period.
 
+## A caption for one and for many
+
+`caption` can be `{ singular, plural }`. The singular shows for a count of one, the plural otherwise. The count is the caption's own (`captionSource`), or the tile's number when the caption has none. Each form is translated on its own, so a Dutch reader sees "1 loopt vandaag af" and "2 lopen vandaag af". `zeroText` still applies at zero.
+
+```json
+{ "caption": { "singular": "{count} ends today", "plural": "{count} end today" },
+  "captionSource": { "filter": { "deadline": { "gte": "@today", "lt": "@today+1d" } }, "zeroText": "nothing ends today" } }
+```
+
 ## Colouring the caption (`captionVariant`, `captionVariantWhen`, overrides)
 
 The caption can be coloured without recolouring the tile: `captionVariant` sets it outright (`primary | success | warning | error`), `captionVariantWhen` is a list of `{ op, value, variant }` rules on the value (the `variantWhen` shape, first match wins), and a record override can carry `caption` and `captionVariant` to replace and colour it. `{value}` in a caption is the tile's own number, so a register-counted tile can read "1 due today".
