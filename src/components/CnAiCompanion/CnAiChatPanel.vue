@@ -254,8 +254,9 @@
 							  Reach is a FACT about the tool. The reason below is
 							  agent-authored text aimed at the person holding the
 							  permission, so the two are kept visually distinct.
+							  The boards draw no reach, so a host opts in.
 							-->
-							<span class="cn-ai-approval__reach">{{ approval.reach }}</span>
+							<span v-if="showApprovalReach" class="cn-ai-approval__reach">{{ approval.reach }}</span>
 						</div>
 						<p v-if="approval.reason" class="cn-ai-approval__reason">
 							{{ approval.reason }}
@@ -487,6 +488,16 @@ export default {
 		streamState: {
 			type: Object,
 			required: true,
+		},
+
+		/**
+		 * Show each approval's reach (`instance`, `write`) as a label beside its
+		 * title. Off by default: the proposal cards the boards draw name the
+		 * proposal, the reason and the buttons only.
+		 */
+		showApprovalReach: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
