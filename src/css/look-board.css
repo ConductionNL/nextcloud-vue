@@ -468,6 +468,17 @@
 	padding-inline: 0;
 }
 
+/* Its label sits at the font's normal line height, 6px over the field, as
+   DqTermijnen draws "Kwartaal (JJJJ-Qn)" and "Jaar" (63px, not 65).
+   @spec openspec/changes/board-report-card-rhythm/specs/board-report-card-rhythm/spec.md#requirement-a-board-workspace-filter-label-sits-6px-over-its-field */
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .cn-workspace-filter-widget__field {
+	gap: 6px;
+}
+
+.cn-look-board .cn-workspace-filter-widget__form:not(.cn-look-nextcloud *) .cn-workspace-filter-widget__field-label {
+	line-height: normal;
+}
+
 /* ---- A native radio or checkbox ---------------------------------------- */
 /* The boards draw a native radio or checkbox 18px square in the primary
    colour (DqVolgendeStap, DqBesluit option cards). The browser draws 13px and
@@ -3376,6 +3387,32 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked .cn-record-list__row {
 	min-height: 0;
 	padding-block: 0;
+}
+
+/* In plain sections (`dividers: false`) the sections' gap is the space under
+   a stacked list, as DqTermijnen draws its report summary lines; the card's
+   10px list padding came on top of it.
+   @spec openspec/changes/board-report-card-rhythm/specs/board-report-card-rhythm/spec.md#requirement-a-stacked-list-in-plain-sections-is-spaced-by-the-sections-gap */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--plain .cn-record-list--stacked {
+	padding-bottom: 0;
+}
+
+/* A stat in plain sections is a figure of its card: its label 4px over the
+   number, no tile padding or frame (DqTermijnen "Gegevenswaarschuwingen").
+   A theme sets the number at line height 1 through an id selector
+   (`#app-content-vue .cn-stat-widget__value`), hence `!important`.
+   @spec openspec/changes/board-report-card-rhythm/specs/board-report-card-rhythm/spec.md#requirement-a-stat-in-plain-sections-is-a-figure-of-its-card */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--plain .cn-kpi-card--board.cn-kpi-card--stacked {
+	--cn-kpi-stacked-padding: 0;
+	--cn-kpi-stacked-gap: 4px;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-sections-widget--plain .cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__value {
+	line-height: normal !important;
 }
 
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-list--stacked.cn-record-list--rows .cn-record-list__item + .cn-record-list__item {
