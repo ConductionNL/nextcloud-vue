@@ -105,6 +105,7 @@ export default {
 		 * The page a row opens on (`content.rowRoute`, a route name taking the
 		 * row's `id`), or '' when rows open nowhere.
 		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/index-list-widget/spec.md#requirement-a-list-in-a-detail-page-opens-its-rows-on-their-page
 		 * @return {string} The route name.
 		 */
 		rowRoute() {
@@ -170,12 +171,22 @@ export default {
 		},
 	},
 
+	/**
+	 * Keep the tab strip's menu in step with this list's entries.
+	 *
+	 * @spec openspec/changes/notice-list-in-a-tab/specs/index-list-widget/spec.md#requirement-a-list-in-a-tab-hands-its-actions-menu-to-the-tab-strip
+	 */
 	mounted() {
 		if (this.panelActionSink) {
-			this.$watch(() => this.panelMenuItems(), (items) => this.panelActionSink.set(items), { immediate: true })
+			this.watchPanelMenu()
 		}
 	},
 
+	/**
+	 * Take this list's entries back out of the tab strip's menu.
+	 *
+	 * @spec openspec/changes/notice-list-in-a-tab/specs/index-list-widget/spec.md#requirement-a-list-in-a-tab-hands-its-actions-menu-to-the-tab-strip
+	 */
 	beforeUnmount() {
 		if (this.panelActionSink) {
 			this.panelActionSink.clear()
@@ -186,6 +197,7 @@ export default {
 		/**
 		 * The location a row opens: `content.rowRoute` with the row's id.
 		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/index-list-widget/spec.md#requirement-a-list-in-a-detail-page-opens-its-rows-on-their-page
 		 * @param {object} row The row.
 		 * @return {object|null} The router location, null for a row without an id.
 		 */
@@ -206,6 +218,15 @@ export default {
 			if (this.rowRoute) {
 				openRowTarget(event, this.rowTarget(row), this.$router)
 			}
+		},
+
+		/**
+		 * Publish the list's menu entries to the tab strip, now and when they change.
+		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/index-list-widget/spec.md#requirement-a-list-in-a-tab-hands-its-actions-menu-to-the-tab-strip
+		 */
+		watchPanelMenu() {
+			this.$watch(() => this.panelMenuItems(), (items) => this.panelActionSink.set(items), { immediate: true })
 		},
 
 		/**

@@ -122,6 +122,7 @@
 						<!-- Checkbox column -->
 						<th
 							v-if="selectable"
+							scope="col"
 							class="cn-table-col--checkbox"
 							:class="pinClass(0)"
 							:style="pinStyle(0)">
@@ -135,6 +136,7 @@
 						<!-- Leading icon column (header is intentionally blank) -->
 						<th
 							v-if="rowIcon"
+							scope="col"
 							class="cn-table-col--icon"
 							:class="pinClass(selectable ? 1 : 0)"
 							:style="pinStyle(selectable ? 1 : 0)" />
@@ -211,7 +213,7 @@
 						</th>
 
 						<!-- Actions column -->
-						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+						<th v-if="$slots['row-actions']" scope="col" class="cn-table-col--actions">
 							<!-- The board look names the column for assistive tech; the menu buttons below it are the only thing drawn. -->
 							<span v-if="isBoardLook" class="hidden-visually">{{ actionsColumnLabel }}</span>
 							<!-- @slot Header cell content above the row-actions column (blank by default). -->
@@ -2088,6 +2090,7 @@ export default {
 		 * string, the result of the `rowIcon(row)` function, or the icon a
 		 * `rowIcon` object names for the row's field value ('' for none).
 		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row
 		 * @param {object} row The row object.
 		 * @return {string} The MDI icon name (PascalCase).
 		 */

@@ -717,3 +717,9 @@ a.cn-kpi-card--board * {
 		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-kpi-card {
+		transition: none;
+	}
+}

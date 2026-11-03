@@ -2405,7 +2405,7 @@ export default {
 		 * CnObjectCard `layout`.
 		 *
 		 * @type {object}
-		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
 		 */
 		cardLayout: {
 			type: Object,

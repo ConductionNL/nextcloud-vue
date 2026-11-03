@@ -29,7 +29,7 @@
  * Each icon is imported individually (no wildcard / barrel) so the bundle
  * stays tree-shake-friendly.
  *
- * @spec openspec/architecture/adr-077-semantic-icon-vocabulary.md
+ * @spec exclude the vocabulary decision (ADR-077) has no spec in this repository
  */
 
 import AccountArrowRightOutlineIcon from 'vue-material-design-icons/AccountArrowRightOutline.vue'

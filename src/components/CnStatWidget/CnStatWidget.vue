@@ -871,7 +871,7 @@ export default {
 		 * null. Colours the caption on the value without recolouring the
 		 * tile: "1 due today" turns red while the number stays ink.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {object|null}
 		 */
 		activeCaptionRule() {
@@ -920,7 +920,7 @@ export default {
 		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
 		 * variant, so an uncoloured caption is what it always was.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {string}
 		 */
 		captionVariantClass() {

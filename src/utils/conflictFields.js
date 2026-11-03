@@ -22,6 +22,7 @@ export const SNAPSHOT_KEYS = Object.freeze(['@self', 'id', 'uuid', 'created', 'u
  *
  * @param {unknown} value The value.
  * @return {string} The text, empty for no value.
+ * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
  */
 export function valueText(value) {
 	if (value === null || value === undefined) {
@@ -76,6 +77,7 @@ function snapshotKeys(local, office) {
  * @param {string} [options.fieldsPath] Path to the record's list of field paths.
  * @param {string[]} [options.fields] Field paths that win over the record's.
  * @return {Array<{path: string, local: string, office: string}>} The differing fields.
+ * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
  */
 export function conflictFields(record, options = {}) {
 	const local = asObject(readPath(record, options.localPath || 'clientVersion'))

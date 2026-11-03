@@ -49,6 +49,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import { conflictFields } from '../../utils/conflictFields.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { filterQueryParams } from '../../utils/filterQueryParams.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -65,16 +66,29 @@ function listParams(source) {
 	if (source.sort && source.sort.field) {
 		params[`_order[${source.sort.field}]`] = source.sort.dir === 'desc' ? 'desc' : 'asc'
 	}
-	for (const [key, value] of Object.entries(resolveFilterTokens(source.filter || {}))) {
-		if (value && typeof value === 'object' && !Array.isArray(value)) {
-			for (const [op, operand] of Object.entries(value)) {
-				params[`${key}[${op}]`] = operand
-			}
-		} else if (value !== '' && value !== null && value !== undefined) {
-			params[key] = value
-		}
-	}
-	return params
+	return { ...params, ...filterQueryParams(resolveFilterTokens(source.filter || {})) }
+}
+
+/**
+ * The HTTP method of the resolve call: `put` or `patch` when configured, else `post`.
+ *
+ * @param {unknown} method The configured method.
+ * @return {string} The lower-case method.
+ */
+function resolveMethod(method) {
+	const lower = String(method || '').toLowerCase()
+	return lower === 'put' || lower === 'patch' ? lower : 'post'
+}
+
+/**
+ * What a refused choice says: the server's message, else the library's text.
+ *
+ * @param {object} failure The caught request failure.
+ * @return {string} The text.
+ */
+function refusalText(failure) {
+	const body = failure && failure.response && failure.response.data
+	return String((body && (body.message || body.error)) || t('nextcloud-vue', 'This choice was not saved.'))
 }
 
 /**
@@ -113,10 +127,7 @@ export default {
 		 *
 		 * @type {object}
 		 */
-		content: {
-			type: Object,
-			default: () => ({}),
-		},
+		content: { type: Object, default: () => ({}) },
 	},
 
 	emits: ['resolved'],
@@ -132,7 +143,10 @@ export default {
 	},
 
 	computed: {
-		/** @return {object} The resolve config. */
+		/**
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-choosing-a-version-sends-it-and-the-card-leaves
+		 * @return {object} The resolve config.
+		 */
 		resolveConfig() {
 			return this.content.resolve && typeof this.content.resolve === 'object' ? this.content.resolve : {}
 		},
@@ -158,7 +172,10 @@ export default {
 			}
 		},
 
-		/** @return {Array<{key: string, label: string, resolution: string}>} The two buttons. */
+		/**
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-choosing-a-version-sends-it-and-the-card-leaves
+		 * @return {Array<{key: string, label: string, resolution: string}>} The two buttons.
+		 */
 		choices() {
 			const resolutions = { local: 'client_wins', office: 'server_wins', ...(this.resolveConfig.resolutions || {}) }
 			return [
@@ -180,12 +197,18 @@ export default {
 				.filter((card) => card.id !== '' && card.fields.length > 0)
 		},
 
-		/** @return {string} The card title. */
+		/**
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
+		 * @return {string} The card title.
+		 */
 		titleText() {
 			return this.text(this.content.title) || t('nextcloud-vue', 'Conflict: which version do you keep?')
 		},
 
-		/** @return {string} Why the buttons are off. */
+		/**
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-choosing-stays-off-until-the-server-offers-it
+		 * @return {string} Why the buttons are off.
+		 */
 		unavailableText() {
 			return this.text(this.content.unavailableText) || t('nextcloud-vue', 'Choosing a version is not possible here yet.')
 		},
@@ -200,6 +223,7 @@ export default {
 		/**
 		 * A config text through the host translate.
 		 *
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
 		 * @param {unknown} value The text.
 		 * @return {string}
 		 */
@@ -210,6 +234,7 @@ export default {
 		/**
 		 * One version's line.
 		 *
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
 		 * @param {unknown} template The configured template.
 		 * @param {string} fallback The library's translated template.
 		 * @param {string} value The value.
@@ -220,6 +245,7 @@ export default {
 		},
 
 		/**
+		 * @spec openspec/changes/conflict-resolve-card/specs/conflict-resolve-card/spec.md#requirement-a-card-shows-both-versions-of-each-differing-field
 		 * @param {string} path The field path.
 		 * @return {string} The field's label, or its path.
 		 */
@@ -269,14 +295,12 @@ export default {
 				if (url === '') {
 					throw new Error('unresolved url')
 				}
-				const method = ['put', 'patch'].includes(String(this.resolveConfig.method || '').toLowerCase()) ? this.resolveConfig.method.toLowerCase() : 'post'
-				await axios[method](generateUrl(url), { resolution: choice.resolution })
+				await axios[resolveMethod(this.resolveConfig.method)](generateUrl(url), { resolution: choice.resolution })
 				this.records = this.records.filter((record) => record !== card.record)
 				/** @event resolved A conflict was settled. Payload: `{ id, resolution }`. */
 				this.$emit('resolved', { id: card.id, resolution: choice.resolution })
 			} catch (failure) {
-				const body = failure && failure.response && failure.response.data
-				this.refusals = { ...this.refusals, [card.id]: String((body && (body.message || body.error)) || t('nextcloud-vue', 'This choice was not saved.')) }
+				this.refusals = { ...this.refusals, [card.id]: refusalText(failure) }
 			} finally {
 				this.busy = { ...this.busy, [card.id]: false }
 			}

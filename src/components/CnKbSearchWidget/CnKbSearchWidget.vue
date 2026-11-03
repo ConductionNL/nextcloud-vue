@@ -84,6 +84,7 @@ import { NcTextField } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { filterQueryParams } from '../../utils/filterQueryParams.js'
 import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -410,16 +411,7 @@ export default {
 			if (hasUnresolvedTokens(filter)) {
 				return ''
 			}
-			const params = {}
-			for (const [key, value] of Object.entries(filter)) {
-				if (value && typeof value === 'object' && !Array.isArray(value)) {
-					for (const [op, operand] of Object.entries(value)) {
-						params[`${key}[${op}]`] = operand
-					}
-				} else if (value !== '' && value !== null && value !== undefined) {
-					params[key] = value
-				}
-			}
+			const params = filterQueryParams(filter)
 			if (from.sort && typeof from.sort.field === 'string' && from.sort.field !== '') {
 				params[`_order[${from.sort.field}]`] = from.sort.dir === 'desc' ? 'desc' : 'asc'
 			}
