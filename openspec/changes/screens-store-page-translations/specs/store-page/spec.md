@@ -8,13 +8,13 @@
 
 ## Purpose
 
-The store page reads in one language.
+The marketplace page reads in one language.
 
 ## ADDED Requirements
 
 ### Requirement: The store page reads in the user's language
 
-The store page SHALL run its description through the app's translate, SHALL show a label for each kind of the default
+The marketplace page SHALL run its description through the app's translate, SHALL show a label for each kind of the default
 vocabulary instead of its id (an app's own translation of the id winning), and every text the page itself writes
 SHALL have a Dutch catalogue entry.
 

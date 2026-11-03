@@ -36,7 +36,7 @@ describe('CnStorePage translations', () => {
 		expect(keys.length).toBeGreaterThan(20)
 		expect(keys.filter((key) => en[key] !== key)).toEqual([])
 		expect(keys.filter((key) => typeof nl[key] !== 'string' || nl[key] === '')).toEqual([])
-		for (const key of ['Search the store', 'All kinds', 'Store', 'Install', 'App template']) {
+		for (const key of ['Search the marketplace', 'All kinds', 'Marketplace', 'Install', 'App template']) {
 			expect(nl[key]).not.toBe(key)
 		}
 		expect(keys.filter((key) => nl[key].includes('—'))).toEqual([])
