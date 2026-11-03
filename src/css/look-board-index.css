@@ -3135,6 +3135,14 @@
 	color: var(--color-main-text);
 }
 
+/* A warning row's tile in the warning pill's colours (PtMededelingenActies:
+   a warning notice), when a `rowIcon` object tones the row `warning`.
+   @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row */
+.cn-look-board .cn-data-table td.cn-table-col--icon-warning .material-design-icon {
+	background: var(--cn-status-warning-bg, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))));
+	color: var(--cn-status-warning-text, var(--nl-color-orange-text, var(--color-warning-text, var(--color-warning))));
+}
+
 .cn-look-board .cn-data-table td.cn-table-col--icon .material-design-icon svg {
 	width: 18px;
 	height: 18px;
