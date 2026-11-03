@@ -92,9 +92,9 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { readPath } from '../../utils/readPath.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * The fields an item is read from by default.
