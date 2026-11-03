@@ -2466,9 +2466,15 @@
 	display: none;
 }
 
+/* NcAvatar sizes its initials tile and their line from its inline
+   `--avatar-size` and line height, so the root alone at 32px left a 36px
+   tile inside it (r45 DqZaakEmail: the initials read 32 by 36).
+   @spec openspec/changes/board-mail-row-initials-size/specs/board-mail-row-initials-size/spec.md#requirement-a-linked-mails-initials-tile-is-32px-inside-and-out */
 .cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) {
+	--avatar-size: 32px !important;
 	width: 32px !important;
 	height: 32px !important;
+	line-height: 32px !important;
 }
 
 .cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials-wrapper {
