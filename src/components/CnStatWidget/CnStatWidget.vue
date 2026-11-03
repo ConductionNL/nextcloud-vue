@@ -671,6 +671,28 @@ export default {
 		},
 
 		/**
+		 * The caption before translation: the matching override's `caption`,
+		 * else `content.caption`. A `{ singular, plural }` caption takes the
+		 * singular for a count of one and the plural otherwise, counted by the
+		 * caption's own count, or by the tile's number when it has none.
+		 *
+		 * @return {string} The source string, '' for none.
+		 * @spec openspec/changes/stat-caption-plural/specs/stat-widget/spec.md#requirement-a-stat-caption-can-take-a-singular-and-a-plural-form
+		 */
+		captionSourceText() {
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
+			if (!caption || typeof caption !== 'object') {
+				return typeof caption === 'string' ? caption : ''
+			}
+			const count = this.hasCaptionSource ? this.captionCount : this.displayValue
+			const form = Number(count) === 1 ? caption.singular : caption.plural
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
 		 *
@@ -706,10 +728,7 @@ export default {
 		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
-			const override = this.activeOverride
-			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
-				? override.caption
-				: this.content.caption
+			const caption = this.captionSourceText
 			if (!caption) {
 				return ''
 			}
