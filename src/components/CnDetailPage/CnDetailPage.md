@@ -536,6 +536,10 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 
 `favourite` and `follow` (Boolean, default `null` = automatic): the star and the Follow toggle beside the title render when the object carries `@self.favourite` / `@self.watching`; `false` (manifest `config.favourite: false` / `config.follow: false`) removes them. `followNotifies` (Boolean, default `true`): `false` when the register sends no change notifications, so the Follow tooltip says so. `extend` (Array, default `[]`): extra `_extend[]` values for the object read; `@self.can` is added while the Follow toggle can render.
 
+### Record rights
+
+`permissions` (Boolean, default `false`, manifest `config.permissions: true`): the object read asks for `@self.can`, also with `follow: false`. While `can.update` is `false` the page's Edit button, the header actions with `role` `edit` or `update`, and the inline editors of the data and map widgets are off. A record without `can` keeps every control. The rights reach the widgets as `cnRecordCan` and `cnRecordEdit.denied`, and the `actions` slot as `can`. A widget can show on them with `visibleWhen`, for example `{ "field": "@self.can.update", "op": "eq", "value": false }`.
+
 ### Read state
 
 `markRead` (Boolean, default `true`): send `PUT .../read-state` once after an unread object has rendered; `false` (manifest `config.markRead: false`) sends nothing. `markUnreadNavigatesBack` (Boolean, default `false`): go back after Mark as unread. Event `marked-unread` after the Actions-menu entry Mark as unread.

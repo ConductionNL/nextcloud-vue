@@ -103,7 +103,7 @@
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
 			:fieldLook="content.fieldLook || ''"
-			:editable="content.editable !== false" />
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
 		     integrations. Honours bare mode via its own `bare` prop. -->
@@ -146,7 +146,7 @@
 			:objectData="object"
 			:register="register"
 			:schema="schema"
-			:editable="content.editable !== false"
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)"
 			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
 			:allowBasemapSwitch="content.allowBasemapSwitch === true"
