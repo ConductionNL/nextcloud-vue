@@ -215,6 +215,13 @@
 	margin: 0;
 }
 
+/* The soft pill (`format: "pill"`, DqTenant slug "waterland") takes the
+   boards' soft ink #3d4047 on its grey, not the muted text colour.
+   @spec openspec/changes/board-header-pill-soft-ink/specs/detail-page-board-look/spec.md#requirement-a-board-header-pill-takes-the-soft-ink */
+.cn-look-board .cn-detail-page__header-row2 .cn-detail-header-chips__chip--pill.cn-detail-header-chips__chip--pill {
+	color: var(--cn-board-text-soft);
+}
+
 /* The breadcrumb is a line of 14px text between the pills and the meta, as
    the boards draw it (screens-detail-header-row-parity). NcBreadcrumbs grows to
    the full row and draws each crumb as a 34px tertiary button, which pushed the
