@@ -81,6 +81,7 @@ export {
 	CnConditionGroupEditor,
 	CnConditionListEditor,
 	CnConfigurationCard,
+	CnConflictResolveCard,
 	CnConnectionsPanel,
 	CnContactCreate,
 	CnContactPicker,
