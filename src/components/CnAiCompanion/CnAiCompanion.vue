@@ -55,6 +55,7 @@
 			:note="note"
 			:inputPlaceholder="inputPlaceholder"
 			:sendLabel="sendLabel"
+			:approvalWording="approvalWording"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
 			:context="effectiveContext"
@@ -219,6 +220,12 @@ export default {
 		sendLabel: {
 			type: String,
 			default: '',
+		},
+
+		/** The approval cards' wording, already translated: `titlePrefix`, `allow`, `deny`. */
+		approvalWording: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/**

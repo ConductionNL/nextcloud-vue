@@ -14,6 +14,8 @@
   (`content.pill`, e.g. the assistant's name) and the session controls for the
   card's menu through the `header` event. `content.note` is a line above the
   input, `content.placeholder` and `content.sendLabel` word the input.
+  `content.approvalTitlePrefix`, `content.allowLabel` and `content.denyLabel`
+  word the cards of the approvals the assistant waits on.
 
   The page context (record, register, schema) is the one CnAppRoot provides and
   the detail page fills in, so the agents offered are the ones relevant here.
@@ -27,6 +29,7 @@
 			:note="tr(content.note)"
 			:inputPlaceholder="tr(content.placeholder)"
 			:sendLabel="tr(content.sendLabel)"
+			:approvalWording="approvalWording"
 			:chatAppId="content.chatAppId || defaultChatAppId"
 			:openSubjectSession="content.openSubjectSession === true"
 			@menu="onMenu" />
@@ -55,7 +58,9 @@ export default {
 		 * pill in the card's title row; `note`, a line above the input;
 		 * `placeholder` and `sendLabel`, the input's wording; `openSubjectSession`,
 		 * open the user's latest session about the page's record instead of an
-		 * empty thread. Texts go through the host's translate.
+		 * empty thread; `approvalTitlePrefix`, `allowLabel` and `denyLabel`, the
+		 * approval cards' title prefix and buttons. Texts go through the host's
+		 * translate.
 		 */
 		content: {
 			type: Object,
@@ -69,6 +74,21 @@ export default {
 		return {
 			defaultChatAppId: DEFAULT_CHAT_APP_ID,
 		}
+	},
+
+	computed: {
+		/**
+		 * The approval cards' wording from the content, translated.
+		 *
+		 * @return {{titlePrefix: string, allow: string, deny: string}} The wording.
+		 */
+		approvalWording() {
+			return {
+				titlePrefix: this.tr(this.content.approvalTitlePrefix),
+				allow: this.tr(this.content.allowLabel),
+				deny: this.tr(this.content.denyLabel),
+			}
+		},
 	},
 
 	mounted() {
