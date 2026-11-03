@@ -1,0 +1,3 @@
+- [x] `initialsOf(name, letters)`: a one-word name gives `letters` letters
+- [x] CnRecordListWidget reads `avatar.letters` and candidate `avatar.text`
+- [x] tests: tests/utils/initials.spec.js, tests/components/CnRecordListWidgetAvatarLetters.spec.js
