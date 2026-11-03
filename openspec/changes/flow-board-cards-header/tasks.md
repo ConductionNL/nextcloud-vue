@@ -11,3 +11,9 @@
 - **files**: `src/css/look-board.css`
 - [x] Implement: cards-layout rules under the board look
 - [x] Test: `tests/components/CnFlowBoardCardsHeader.spec.js`
+
+### Task 3: The board-look title and the cards
+- **spec_ref**: `openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-board-look-flow-title-is-the-page-title`, `openspec/changes/flow-board-cards-header/specs/flow-board/spec.md#requirement-the-cards-layout-sets-its-cards-as-the-board`
+- **files**: `src/css/look-board.css`
+- [x] Implement: title, header row, body, canvas height, palette, step card, inspector rules under the board look
+- [x] Test: `tests/components/CnFlowBoardCardsHeader.spec.js`

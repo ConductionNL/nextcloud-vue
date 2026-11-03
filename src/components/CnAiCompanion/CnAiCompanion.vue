@@ -220,6 +220,16 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Open the user's latest session about the page's record (the context's
+		 * `objectUuid`) instead of an empty thread, with its pending approvals.
+		 * No such session, or one about another record, leaves the thread empty.
+		 */
+		openSubjectSession: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['menu'],
@@ -232,6 +242,8 @@ export default {
 			// Cleared on unmount so a torn-down companion cannot stand itself
 			// down after the fact.
 			legacySiblingTimer: null,
+			// The record whose session was last asked for, so it is asked once.
+			openedSubjectUuid: '',
 			stream: useAiChatStream(this, { chatAppId: this.chatAppId, context: this.context }),
 		}
 	},
@@ -271,6 +283,33 @@ export default {
 		 */
 		effectiveContext() {
 			return this.context || this.cnAiContext || null
+		},
+
+		/**
+		 * The record whose session to open: the context's `objectUuid` once the
+		 * backend answered, when the companion opts in; '' otherwise.
+		 *
+		 * @return {string} The record's uuid or ''.
+		 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+		 */
+		subjectUuid() {
+			const uuid = this.effectiveContext && this.effectiveContext.objectUuid
+			return (this.openSubjectSession && this.probeSucceeded && typeof uuid === 'string') ? uuid : ''
+		},
+	},
+
+	watch: {
+		/**
+		 * Open the session about the record once it is known, once per record.
+		 *
+		 * @param {string} uuid The record's uuid or ''.
+		 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+		 */
+		subjectUuid(uuid) {
+			if (uuid !== '' && uuid !== this.openedSubjectUuid) {
+				this.openedSubjectUuid = uuid
+				this.stream.loadSubjectSession(uuid)
+			}
 		},
 	},
 

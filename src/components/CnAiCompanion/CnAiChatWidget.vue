@@ -28,6 +28,7 @@
 			:inputPlaceholder="tr(content.placeholder)"
 			:sendLabel="tr(content.sendLabel)"
 			:chatAppId="content.chatAppId || defaultChatAppId"
+			:openSubjectSession="content.openSubjectSession === true"
 			@menu="onMenu" />
 	</div>
 </template>
@@ -52,8 +53,9 @@ export default {
 		 * The widget's content: `chatAppId`, the backend app that answers the
 		 * chat (defaults to the companion's own); `pill` and `pillVariant`, a
 		 * pill in the card's title row; `note`, a line above the input;
-		 * `placeholder` and `sendLabel`, the input's wording. Texts go through
-		 * the host's translate.
+		 * `placeholder` and `sendLabel`, the input's wording; `openSubjectSession`,
+		 * open the user's latest session about the page's record instead of an
+		 * empty thread. Texts go through the host's translate.
 		 */
 		content: {
 			type: Object,
