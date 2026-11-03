@@ -36,6 +36,7 @@ import {
 	chatStreamUrl,
 	conversationMessagesUrl,
 	DEFAULT_CHAT_APP_ID,
+	sessionsUrl,
 } from './aiChatConfig.js'
 import { useAiContext } from './useAiContext.js'
 
@@ -483,8 +484,13 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * conversations identically to live ones. OR does not persist tool calls
 	 * on messages, so toolCalls degrades to [].
 	 *
+	 * The approvals the agent still waits on come with the messages
+	 * (`pendingApprovals`, the shape of the stream's `final` event), so a
+	 * reopened conversation shows them as a live turn does.
+	 *
 	 * @param {string} conversationUuid - UUID of the conversation to resume
 	 * @returns {Promise<void>}
+	 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-a-loaded-conversation-keeps-its-pending-approvals
 	 */
 	async function loadConversation(conversationUuid) {
 		try {
@@ -503,6 +509,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 				content: m.content || '',
 				toolCalls: m.toolCalls || m.tool_calls || [],
 			}))
+			state.pendingApprovals = Array.isArray(data.pendingApprovals) ? data.pendingApprovals : []
 			// Don't force a new thread — resume this conversation, and remember its
 			// uuid so the next send() continues it instead of starting a new one.
 			state._newThread = false
@@ -513,6 +520,35 @@ export function useAiChatStream(contextInstance, options = {}) {
 		}
 	}
 
+	/**
+	 * Open the user's most recent session about one record, if there is one.
+	 *
+	 * A session is accepted only when its subject is that record, so a backend
+	 * that ignores the `subject` filter leaves the thread empty instead of
+	 * opening a conversation about something else.
+	 *
+	 * @param {string} objectUuid The record the page is about.
+	 * @return {Promise<boolean>} Whether a session was opened.
+	 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+	 */
+	async function loadSubjectSession(objectUuid) {
+		let sessions
+		try {
+			const response = await axios.get(sessionsUrl(chatAppId), { params: { subject: objectUuid, limit: 1 } })
+			sessions = Array.isArray(response.data?.results) ? response.data.results : []
+		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.info('[useAiChatStream] Could not list the sessions about the record:', err?.message)
+			return false
+		}
+		const session = sessions.find((candidate) => subjectOf(candidate) === objectUuid)
+		if (!session) {
+			return false
+		}
+		await loadConversation(session.uuid || session.id)
+		return state.conversationUuid !== null
+	}
+
 	return {
 		// Reactive state (accessed as state.isStreaming etc. from the component)
 		state,
@@ -521,5 +557,22 @@ export function useAiChatStream(contextInstance, options = {}) {
 		abort,
 		startNewThread,
 		loadConversation,
+		loadSubjectSession,
 	}
+}
+
+/**
+ * The record a session is about: `subject.objectUuid`, or the same under its
+ * `metadata`, where the session stores it.
+ *
+ * @param {object} session A session from the session list.
+ * @return {string} The record's uuid, or '' when the session names none.
+ * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+ */
+function subjectOf(session) {
+	const subject = session?.subject || session?.metadata?.subject
+	if (typeof subject === 'string') {
+		return subject
+	}
+	return (subject && typeof subject.objectUuid === 'string') ? subject.objectUuid : ''
 }

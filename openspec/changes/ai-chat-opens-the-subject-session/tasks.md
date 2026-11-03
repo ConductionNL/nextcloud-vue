@@ -1,6 +1,6 @@
-- [ ] T01 `aiChatConfig.js`: a `sessionsUrl(appId)` builder for `GET /api/sessions` (the conversation list builder stays)
-- [ ] T02 `CnAiChatWidget` and `CnAiCompanion`: `content.openSubjectSession`; on mount with a context `objectUuid`, fetch the latest session about it and open it
-- [ ] T03 Accept a session only when its `subject` equals the page's `objectUuid` (D-3)
-- [ ] T04 `useAiChatStream().loadConversation()` keeps `pendingApprovals` from the messages response
-- [ ] T05 Unit tests: opens the subject's session; no session, a backend error and a mismatched subject each leave an empty thread; restored approvals render as approval cards; without the flag no request is made
-- [ ] T06 Document `openSubjectSession` in the widget's manifest schema and docs
+- [x] T01 `aiChatConfig.js`: a `sessionsUrl(appId)` builder for `GET /api/sessions` (the conversation list builder stays)
+- [x] T02 `CnAiChatWidget` and `CnAiCompanion`: `content.openSubjectSession`; on mount with a context `objectUuid`, fetch the latest session about it and open it
+- [x] T03 Accept a session only when its `subject` equals the page's `objectUuid` (D-3)
+- [x] T04 `useAiChatStream().loadConversation()` keeps `pendingApprovals` from the messages response
+- [x] T05 Unit tests: opens the subject's session; no session, a backend error and a mismatched subject each leave an empty thread; restored approvals render as approval cards; without the flag no request is made
+- [x] T06 Document `openSubjectSession` in the widget's manifest schema and docs

@@ -405,6 +405,9 @@
 									:widget="column.widget || null"
 									:widgetProps="cellWidgetProps(column, node)"
 									:row="node" />
+								<span v-if="column.key !== 'name' && cellSubline(column, node)"
+									class="cn-files-browser__cell-subline"
+									data-testid="cn-files-browser-cell-subline">{{ cellSubline(column, node) }}</span>
 							</td>
 							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
 								<!-- The host's one visible button on a file ("Beoordelen"),
@@ -1185,9 +1188,12 @@ export default {
 		 * The columns this browser shows, in order. An entry is a built-in name
 		 * (`name`, `size`, `modified`, `owner`, `type`, `tags`) or an object
 		 * declaring its own: `{ key, label, source, attribute, formatter,
-		 * sortable }`, where `source` is `node` (a property of the node),
+		 * sortable, subline }`, where `source` is `node` (a property of the node),
 		 * `attribute` (a DAV property, added to the PROPFIND before listing) or
-		 * `row` (a value from `rowData`).
+		 * `row` (a value from `rowData`). `subline` is a template drawn as a
+		 * muted second line under the value, filled from the file's `rowData`
+		 * entry ("ground {reviewGrounds|values}"); it is left out when it
+		 * names no value.
 		 *
 		 * Declaring none keeps today's table: name, size and modified.
 		 *
@@ -2219,8 +2225,7 @@ export default {
 			if ((!this.nameSecondary && fields === null) || this.isFolder(node)) {
 				return ''
 			}
-			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
-			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const entry = this.rowEntryOf(node)
 			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
 			const object = {
 				...entry,
@@ -2769,6 +2774,34 @@ export default {
 		 */
 		cellValue(column, node) {
 			return fileColumnValue(column, node, this.resolvedRowData)
+		},
+
+		/**
+		 * The host's row data for one file (`rowData`, by file id), `{}` without it.
+		 *
+		 * @param {object} node The node.
+		 * @return {object} The row entry.
+		 */
+		rowEntryOf(node) {
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			return byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+		},
+
+		/**
+		 * A declared column's second line under its value: the column's
+		 * `subline` template, translated and filled from the file's row data
+		 * ("ground {reviewGrounds|values}"), '' when it names no value.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/files-column-subline/specs/files-column-subline/spec.md#requirement-a-declared-column-can-draw-a-second-line-under-its-value
+		 */
+		cellSubline(column, node) {
+			if (!column || typeof column.subline !== 'string' || column.subline === '') {
+				return ''
+			}
+			return fillTemplate(this.cnTranslate(column.subline), this.rowEntryOf(node))
 		},
 
 		/**
@@ -3729,6 +3762,14 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-files-browser__cell-subline {
+	display: block;
+	margin-top: 3px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	line-height: normal;
 }
 
 .cn-files-browser__name-secondary {

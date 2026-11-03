@@ -17,6 +17,7 @@ whenever the OpenRegister chat backend is reachable.
 | `note` | String | No | `''` | A line above the input, already translated. |
 | `inputPlaceholder` | String | No | `''` | The input's placeholder, already translated. |
 | `sendLabel` | String | No | `''` | A label on the send button, already translated. |
+| `openSubjectSession` | Boolean | No | `false` | Open the user's latest session about the page's record (the context's `objectUuid`) instead of an empty thread, with its pending approvals. No such session, or one about another record, leaves the thread empty. |
 
 ## Architecture
 
