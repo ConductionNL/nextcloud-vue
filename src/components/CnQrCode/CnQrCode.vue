@@ -50,6 +50,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { prefixUrl } from '../../utils/headers.js'
 import { encodeQr } from '../../utils/qr.js'
 
 const TICK_MS = 1000
@@ -258,7 +259,7 @@ export default {
 			this.reading = true
 			const number = this.readNumber
 			try {
-				const { data } = await axios.get(this.refreshUrl)
+				const { data } = await axios.get(prefixUrl(this.refreshUrl))
 				if (number !== this.readNumber) {
 					return
 				}
