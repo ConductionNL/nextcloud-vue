@@ -2675,7 +2675,10 @@
     "No record has the code {code}.": "No record has the code {code}.",
     "More than one record has the code {code}.": "More than one record has the code {code}.",
     "The code {code} could not be looked up.": "The code {code} could not be looked up.",
-    "Added {name}.": "Added {name}."
+    "Added {name}.": "Added {name}.",
+    "Insert variable": "Insert variable",
+    "Unknown variable: {names}.": "Unknown variable: {names}.",
+    "Unknown variables: {names}.": "Unknown variables: {names}."
   },
   "plurals": {
     "{count} member": [

@@ -2940,7 +2940,10 @@
     "No record has the code {code}.": "Geen record heeft de code {code}.",
     "More than one record has the code {code}.": "Meer dan één record heeft de code {code}.",
     "The code {code} could not be looked up.": "De code {code} kon niet worden opgezocht.",
-    "Added {name}.": "{name} toegevoegd."
+    "Added {name}.": "{name} toegevoegd.",
+    "Insert variable": "Variabele invoegen",
+    "Unknown variable: {names}.": "Onbekende variabele: {names}.",
+    "Unknown variables: {names}.": "Onbekende variabelen: {names}."
   },
   "plurals": {
     "{count} member": [
