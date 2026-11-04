@@ -439,8 +439,24 @@
 								</NcButton>
 							</template>
 						</template>
+						<span
+							v-if="item.tag === 'div' && item.rowActions.length > 0 && rowActionsInline"
+							class="cn-record-list__row-actions-inline"
+							data-testid="cn-record-list-row-actions-inline">
+							<NcButton
+								v-for="entry in item.rowActions"
+								:key="`row-action-${entry.index}`"
+								:variant="entry.action.variant || 'secondary'"
+								:href="entry.href || undefined"
+								:target="entry.external ? '_blank' : undefined"
+								:ariaLabel="fillRow(entry.action.ariaLabel, item.row) || undefined"
+								:data-testid="`cn-record-list-row-action-${entry.index}`"
+								@click="entry.href ? undefined : runRowActionEntry(entry.action, item.row)">
+								{{ entry.action.label }}
+							</NcButton>
+						</span>
 						<NcActions
-							v-if="item.tag === 'div' && item.rowActions.length > 0"
+							v-else-if="item.tag === 'div' && item.rowActions.length > 0"
 							:aria-label="rowActionsLabel"
 							data-testid="cn-record-list-row-actions">
 							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
@@ -1842,6 +1858,17 @@ export default {
 			return this.content?.rowAction?.variant === 'outlined'
 		},
 
+		/**
+		 * Whether a row's actions are buttons on the row (`rowActionsInline`), as
+		 * board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen", not a menu.
+		 *
+		 * @spec openspec/changes/record-list-inline-row-actions/specs/record-list-inline-row-actions/spec.md#requirement-row-actions-can-be-buttons-on-the-row
+		 * @return {boolean}
+		 */
+		rowActionsInline() {
+			return this.content?.rowActionsInline === true
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
@@ -2181,16 +2208,18 @@ export default {
 
 		/**
 		 * The initials of the row's avatar (`avatar`: a name template such as
-		 * `"{client.name}"`, or `{ text }`), or '' without one.
+		 * `"{client.name}"`, or `{ text, letters }`; `text` may list candidates),
+		 * or '' without one. `letters` is how many letters a one-word name gives.
 		 *
 		 * @param {object} row The row.
-		 * @return {string} One or two letters.
+		 * @return {string} The letters.
 		 * @spec openspec/changes/screens-record-list-avatar/specs/record-list-avatar/spec.md#requirement-a-record-list-row-can-carry-an-avatar
+		 * @spec openspec/changes/record-list-avatar-letters/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-draw-two-letters-for-one-word
 		 */
 		initialsFor(row) {
 			const avatar = this.content?.avatar
-			const template = typeof avatar === 'string' ? avatar : (avatar && typeof avatar === 'object' ? avatar.text : '')
-			return initialsOf(this.fill(template, row))
+			const config = avatar && typeof avatar === 'object' && !Array.isArray(avatar) ? avatar : { text: avatar }
+			return initialsOf(this.fill(config.text || '', row), Number(config.letters) || 1)
 		},
 
 		/**
@@ -3406,6 +3435,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__row-actions-inline {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .cn-record-list__checklist-bar {
 	height: 8px;
 	margin-block-end: 16px;

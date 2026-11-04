@@ -37,10 +37,17 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnObjectCard](./cn-object-card.md) | Schema-driven card for object display |
 | [CnCardGrid](./cn-card-grid.md) | Responsive CSS grid for CnObjectCard instances |
 | [CnStatusBadge](./cn-status-badge.md) | Color-coded pill badge for status/priority |
+| [CnDisplayScreen](./cn-display-screen.md) | A full page without a menu, read from a distance: a title, a clock, rows and a bottom line |
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
+| [CnBlockListEditor](./cn-block-list-editor.md) | Typed blocks in order: a palette, drag and buttons with a spoken position, one editor slot per type, drafts |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
+| [CnQrCode](./cn-qr-code.md) | A QR code drawn in the browser, with a code to type in and a code that changes on a timer |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
+| [CnRevealField](./cn-reveal-field.md) | A protected value shown masked until the user asks, fetched on every reveal |
+| [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
+| [CnGeoCaptureField](./cn-geo-capture-field.md) | Where something was recorded, from the device, with an address by hand as the fallback |
+| [CnTransferCard](./cn-transfer-card.md) | A transfer that takes a while: how far it is, its parts, and resuming after a dropped connection |
 
 ## Data Actions
 

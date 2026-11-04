@@ -243,7 +243,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 250,
+			"transitive": 252,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -253,6 +253,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -266,6 +267,7 @@
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnCommandPalette",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -429,9 +431,9 @@
 			"page": null
 		},
 		"CnBannerWidget": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 3,
-			"tier": "light",
+			"tier": "medium",
 			"via": [],
 			"page": "cn-banner-widget"
 		},
@@ -780,6 +782,13 @@
 			"via": [],
 			"page": null
 		},
+		"CnConflictResolveCard": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-conflict-resolve-card"
+		},
 		"CnConnectionsPanel": {
 			"direct": 0,
 			"transitive": 2,
@@ -928,7 +937,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 227,
+			"transitive": 229,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -937,6 +946,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -949,6 +959,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1188,7 +1199,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 227,
+			"transitive": 229,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1197,6 +1208,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -1209,6 +1221,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1304,7 +1317,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 142,
+			"transitive": 143,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1312,6 +1325,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -1368,7 +1382,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 144,
+			"transitive": 145,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1376,6 +1390,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -1881,7 +1896,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 225,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1890,6 +1905,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -1902,6 +1918,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2018,7 +2035,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 143,
+			"transitive": 144,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2026,6 +2043,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -2330,7 +2348,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 225,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2339,6 +2357,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -2351,6 +2370,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2446,7 +2466,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 222,
+			"transitive": 224,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2455,6 +2475,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -2467,6 +2488,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -3661,7 +3683,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 243,
+			"transitive": 245,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3670,6 +3692,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -3682,6 +3705,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -4182,7 +4206,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 228,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4191,6 +4215,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -4203,6 +4228,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -4535,7 +4561,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 144,
+			"transitive": 145,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4543,6 +4569,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -5041,7 +5068,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 1,
-			"transitive": 146,
+			"transitive": 147,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5049,6 +5076,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -5510,7 +5538,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 225,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5519,6 +5547,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -5531,6 +5560,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",

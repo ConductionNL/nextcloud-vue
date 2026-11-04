@@ -14,6 +14,14 @@
 			:tabindex="focusableRows ? 0 : undefined"
 			@click="onRowClick"
 			@keydown="onRowKeydown">
+			<span v-for="key in reorderSlots"
+				:key="key"
+				class="cn-tree-node__handle"
+				:title="reorderLabels.drag"
+				aria-hidden="true"
+				@click.stop>
+				<DragVertical :size="18" />
+			</span>
 			<button v-if="hasChildren"
 				type="button"
 				v-bind="extraToggleAttrs"
@@ -34,12 +42,71 @@
 			</span>
 			<span v-if="node.badge !== undefined" class="cn-tree-node__badge">{{ node.badge }}</span>
 
+			<span v-for="key in reorderSlots"
+				:key="key"
+				class="cn-tree-node__move"
+				@click.stop>
+				<NcButton variant="tertiary"
+					:disabled="siblingIndex === 0"
+					:aria-label="moveName(reorderLabels.moveUp)"
+					data-move="up"
+					@click="moveBy(-1)">
+					{{ reorderLabels.moveUp }}
+				</NcButton>
+				<NcButton variant="tertiary"
+					:disabled="siblingIndex >= siblingCount - 1"
+					:aria-label="moveName(reorderLabels.moveDown)"
+					data-move="down"
+					@click="moveBy(1)">
+					{{ reorderLabels.moveDown }}
+				</NcButton>
+			</span>
+
 			<!-- @slot actions Inline per-row actions slot. Scope:
 			     { node, depth }. -->
 			<slot name="actions" :node="node" :depth="depth" />
 		</div>
 
-		<ul v-if="hasChildren && isExpanded" class="cn-tree-node__children" role="group">
+		<Draggable v-if="reorderable && hasChildren && isExpanded"
+			:modelValue="node[childrenKey]"
+			:itemKey="idKey"
+			tag="ul"
+			class="cn-tree-node__children"
+			role="group"
+			handle=".cn-tree-node__handle"
+			@change="onDragChange">
+			<template #item="{ element: child, index }">
+				<CnTreeNode :node="child"
+					:depth="depth + 1"
+					:indent="indent"
+					:expandedIds="expandedIds"
+					:selectedId="selectedId"
+					:idKey="idKey"
+					:labelKey="labelKey"
+					:childrenKey="childrenKey"
+					:expandLabel="expandLabel"
+					:collapseLabel="collapseLabel"
+					:toggleAttrs="toggleAttrs"
+					:rowAttrs="rowAttrs"
+					:focusableRows="focusableRows"
+					reorderable
+					:reorderLabels="reorderLabels"
+					:parentId="node[idKey]"
+					:siblingIndex="index"
+					:siblingCount="node[childrenKey].length"
+					@toggle="$emit('toggle', $event)"
+					@select="$emit('select', $event)"
+					@move="$emit('move', $event)">
+					<template #actions="scope">
+						<slot name="actions" v-bind="scope" />
+					</template>
+					<template v-if="$slots.label" #label="scope">
+						<slot name="label" v-bind="scope" />
+					</template>
+				</CnTreeNode>
+			</template>
+		</Draggable>
+		<ul v-else-if="hasChildren && isExpanded" class="cn-tree-node__children" role="group">
 			<CnTreeNode v-for="child in node[childrenKey]"
 				:key="child[idKey]"
 				:node="child"
@@ -69,6 +136,10 @@
 </template>
 
 <script>
+import { NcButton } from '@nextcloud/vue'
+import Draggable from 'vuedraggable'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+
 /**
  * CnTreeNode — Recursive tree row used inside CnTreeView. Renders
  * its own row + recurses for children when expanded. Not exported
@@ -77,6 +148,7 @@
  */
 export default {
 	name: 'CnTreeNode',
+	components: { Draggable, DragVertical, NcButton },
 	props: {
 		/** The node data. */
 		node: { type: Object, required: true },
@@ -104,10 +176,30 @@ export default {
 		rowAttrs: { type: Function, default: null },
 		/** Rows take focus and select on Enter or Space. */
 		focusableRows: { type: Boolean, default: false },
+		/** Rows can be moved among their siblings. */
+		reorderable: { type: Boolean, default: false },
+		/** The texts of the move controls, resolved by CnTreeView. */
+		reorderLabels: { type: Object, default: () => ({}) },
+		/** The parent's id, or null at the root. */
+		parentId: { type: [String, Number], default: null },
+		/** This node's index among its siblings. */
+		siblingIndex: { type: Number, default: 0 },
+		/** How many siblings there are, itself included. */
+		siblingCount: { type: Number, default: 1 },
 	},
 
-	emits: ['select', 'toggle'],
+	emits: ['select', 'toggle', 'move'],
 	computed: {
+		/**
+		 * One entry when the row draws its move controls. A `v-for` leaves no
+		 * placeholder in the markup when off, which `v-if` would.
+		 *
+		 * @return {string[]} The keys.
+		 */
+		reorderSlots() {
+			return this.reorderable ? ['reorder'] : []
+		},
+
 		/**
 		 * Whether this node has any children at all.
 		 *
@@ -168,6 +260,46 @@ export default {
 	methods: {
 		toggle() {
 			this.$emit('toggle', this.node[this.idKey])
+		},
+
+		/**
+		 * The accessible name of a move button: its visible label and the node's.
+		 *
+		 * @param {string} action The visible label.
+		 * @return {string} The name.
+		 */
+		moveName(action) {
+			return this.reorderLabels.controlName
+				.replace('{action}', action)
+				.replace('{label}', String(this.node[this.labelKey] ?? ''))
+		},
+
+		/**
+		 * Move this node one place among its siblings, with a button.
+		 *
+		 * @param {number} delta -1 up, 1 down.
+		 * @return {void}
+		 */
+		moveBy(delta) {
+			this.$emit('move', {
+				node: this.node,
+				parentId: this.parentId,
+				from: this.siblingIndex,
+				to: this.siblingIndex + delta,
+				byButton: true,
+			})
+		},
+
+		/**
+		 * A child was dragged to another place.
+		 *
+		 * @param {{moved?: {element: object, oldIndex: number, newIndex: number}}} change What the drag changed.
+		 * @return {void}
+		 */
+		onDragChange({ moved } = {}) {
+			if (moved) {
+				this.$emit('move', { node: moved.element, parentId: this.node[this.idKey], from: moved.oldIndex, to: moved.newIndex })
+			}
 		},
 
 		onRowClick() {
@@ -259,6 +391,17 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-tree-node__handle {
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+	display: inline-flex;
+}
+
+.cn-tree-node__move {
+	display: inline-flex;
+	gap: 4px;
 }
 
 .cn-tree-node__badge {

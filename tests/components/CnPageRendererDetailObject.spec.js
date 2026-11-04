@@ -61,6 +61,14 @@ const DETAIL_MANIFEST = {
 			widgets: [{ widgetKey: 'data', slot: 'body', gridX: 0, gridY: 0, gridWidth: 8, gridHeight: 4 }],
 		},
 		{
+			id: 'CaseDetail',
+			route: '/cases/:id',
+			type: 'detail',
+			title: 'Case',
+			config: { register: 'dossiq', schema: 'case', idParam: '@route.id', follow: false, permissions: true },
+			widgets: [{ widgetKey: 'data', slot: 'body', gridX: 0, gridY: 0, gridWidth: 8, gridHeight: 4 }],
+		},
+		{
 			id: 'Dashboard',
 			route: '/',
 			type: 'dashboard',
@@ -106,6 +114,12 @@ describe('CnPageRenderer — detail-page object loading', () => {
 		expect(mockStore.registerObjectType).toHaveBeenCalledWith('publication-publication', 'publication', 'publication')
 		expect(mockStore.fetchSchema).toHaveBeenCalledWith('publication-publication')
 		expect(mockStore.fetchObject).toHaveBeenCalledWith('publication-publication', 'pub-1', { extend: ['@self.can'] })
+	})
+
+	it('asks for @self.can on a page that reads the record\'s rights, also with Follow off', async () => {
+		mountRenderer('CaseDetail', { id: 'c-1' })
+		await flushPromises()
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('dossiq-case', 'c-1', { extend: ['@self.can'] })
 	})
 
 	it('publishes the loaded object + schema on the context holder', async () => {

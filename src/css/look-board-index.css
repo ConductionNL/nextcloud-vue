@@ -1303,8 +1303,9 @@
 	line-height: normal;
 }
 
-/* A grey chip of 28px or less sets its initials at 12px (PqLeads' owner,
-   DqUwWachtrij); the 36px chip keeps 13px (DqContacten).
+/* A grey chip of 32px or less sets its initials at 12px (PqLeads' owner,
+   DqUwWachtrij, PtToegangsverzoeken' requester); the 36px chip keeps 13px
+   (DqContacten).
    @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip */
 .cn-look-board .cn-table-container--board .cn-data-table .cn-cell-renderer__avatar-initials--neutral.cn-cell-renderer__avatar-initials--compact {
 	font-size: 12px;
@@ -2594,10 +2595,12 @@
 
 /* A row the manifest marks as asking for attention (`config.rowClass` with
    `class: "cn-row--attention"`) is tinted warm, as the boards draw the open
-   requests on top of a list (PtToegangsverzoeken, PtUitnodigingen).
+   requests on top of a list (PtToegangsverzoeken, PtUitnodigingen): a fifth
+   of the warning pill's light ground, #fffdf7 under the Zuiddrecht tokens.
+   The warning colour itself is a dark ink in some themes.
    @spec openspec/changes/board-attention-row/specs/board-attention-row/spec.md#requirement-a-board-table-row-marked-for-attention-is-tinted-warm */
 .cn-look-board .cn-data-table tr.cn-row--attention > td:not(.cn-look-nextcloud *) {
-	background: color-mix(in srgb, var(--color-warning) 4%, var(--color-main-background));
+	background: color-mix(in srgb, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))) 22%, var(--color-main-background));
 }
 
 /* A row the manifest marks overdue (`config.rowClass` with `class:
@@ -3133,6 +3136,14 @@
 .cn-look-board .cn-data-table td.cn-table-col--icon-neutral .material-design-icon {
 	background: var(--color-background-dark);
 	color: var(--color-main-text);
+}
+
+/* A warning row's tile in the warning pill's colours (PtMededelingenActies:
+   a warning notice), when a `rowIcon` object tones the row `warning`.
+   @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row */
+.cn-look-board .cn-data-table td.cn-table-col--icon-warning .material-design-icon {
+	background: var(--cn-status-warning-bg, var(--nl-color-orange-light, var(--color-warning-light, rgba(232, 163, 39, 0.15))));
+	color: var(--cn-status-warning-text, var(--nl-color-orange-text, var(--color-warning-text, var(--color-warning))));
 }
 
 .cn-look-board .cn-data-table td.cn-table-col--icon .material-design-icon svg {

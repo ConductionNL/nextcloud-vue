@@ -115,10 +115,10 @@ A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, done
 menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
 (`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
 whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
-template filled from the row ("Assign to {displayName}").
+template filled from the row ("Assign to \{displayName\}").
 
 `footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
-(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+(one request, through the endpoint cache) and fills `{value}` into `text` ("\{value\} matching colleagues at
 capacity"). It shows with no rows too, and not when the value is empty or zero.
 `{ source, text }` reads the value from a request of its own instead (`source` in the `endpointSource` shape, page
 tokens filled in), for a fact that does not live in the rows' answer (DqTenant "Historie": "Kenmerk TEN-0014").
@@ -133,6 +133,22 @@ shows nothing at 0.
 `requiresApp` names the app the rows come from. When it is not installed the list says `absentText` and reads nothing,
 so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
 candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
+
+`rowActionsInline: true` draws the entries of `rowActions` as buttons on the row, not in a menu, for a row with one or two acts that matter, as board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen" on the step that waits. Rows that have none (`visibleWhen`) draw nothing there. An entry can take a `variant` (`primary`, default `secondary`) and an `ariaLabel` template that names the row. With `dot`, `title` and `meta` this draws a route of steps:
+
+```json
+{
+  "objectRows": { "path": "route" },
+  "dot": { "field": "state", "colorMap": { "done": "var(--color-success)", "waiting": "var(--color-error)" } },
+  "title": "{name}",
+  "meta": "{who}, {due|date}",
+  "rowActionsInline": true,
+  "rowActions": [
+    { "label": "Goedkeuren", "variant": "primary", "ariaLabel": "Goedkeuren: {name}", "endpoint": "/apps/app/api/route/{id}/approve", "visibleWhen": { "field": "state", "value": "waiting" } },
+    { "label": "Afwijzen", "ariaLabel": "Afwijzen: {name}", "endpoint": "/apps/app/api/route/{id}/reject", "visibleWhen": { "field": "state", "value": "waiting" } }
+  ]
+}
+```
 
 ### An action under the list
 

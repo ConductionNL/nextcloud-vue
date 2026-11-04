@@ -59,7 +59,7 @@ An item with `deadlineTier: "overdue"` is drawn as late. `waiting` reads "Waitin
 | `emptyText` | Text when nothing is waiting, through the app's translate |
 | `itemsPath` | Read a flat list at this path of the answer (`{ items, total }`) as one group without a heading. An item's `routeName` opens `{ name: routeName, params: { id } }` |
 | `totalPath` | Where the answer holds the full count, for `viewAll` |
-| `viewAll` | `{ route \| href, label }`: a link under the list while the total exceeds what is shown; `{count}` in the label is the total (default "View all ({count})") |
+| `viewAll` | `{ route \| href, label }`: a link under the list while the total exceeds what is shown; `{count}` in the label is the total (default "View all (\{count\})") |
 | `dueField` | The item field shown as its due text (default `dueAt`) |
 | `lateField` | An item field that marks it late when true (default: `deadlineTier` is `overdue`) |
 | `subField` | An item field shown under the title |

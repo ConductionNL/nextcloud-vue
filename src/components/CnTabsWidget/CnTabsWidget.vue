@@ -74,6 +74,7 @@
 						<NcActionButton
 							v-for="action in activePanelActions"
 							:key="action.key"
+							:disabled="Boolean(action.disabled)"
 							:closeAfterClick="true"
 							@click="action.run()">
 							<template #icon>

@@ -16,9 +16,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                              | Payload | Description |
-| --------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:register`                                                                 | —       |             |
-| `update:schema`                                                                   | —       |             |
-| `update:register Emitted with the chosen register slug.`                          | —       |             |
-| `update:schema Emitted with the chosen schema slug (cleared on register change).` | —       |             |
+| Name              | Payload | Description                                                       |
+| ----------------- | ------- | ----------------------------------------------------------------- |
+| `update:register` | —       | Emitted with the chosen register slug.                            |
+| `update:schema`   | —       | Emitted with the chosen schema slug (cleared on register change). |

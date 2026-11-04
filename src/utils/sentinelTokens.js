@@ -74,7 +74,7 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	link: '^@object\\.[A-Za-z][A-Za-z0-9_]*\\|(?:tel|mailto|geo)$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
 	route: '^@route\\.[A-Za-z][A-Za-z0-9_-]*$',
-	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
+	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
 	// manifest-form-logic: the shared visibleWhen predicate's source-mode
 	// collection-total marker (`field: "@total"`), resolved client-side by
 	// evaluateVisibleWhen — not one of the four IAppConfig/OpenRegister

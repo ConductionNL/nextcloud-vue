@@ -27,7 +27,7 @@ A status a type derives is not a move anyone can pick. When it has not fired, no
 
 | Part | Read from | Shows |
 |---|---|---|
-| `derivation` | `{ name, unmet: [] }` | "This moves to {status} once these are on file", then each missing thing. |
+| `derivation` | `{ name, unmet: [] }` | "This moves to \{status\} once these are on file", then each missing thing. |
 | `explanation` | a string | The explanation an administrator wrote on the status. |
 | `withheld` | `[{ id, label, reasons: [] }]` | Each move that waits, with its first reason. An entry without a reason is left out. |
 | `waitingOn` | `us`, `applicant` or `thirdParty` | Who the record waits on, when it is not us. |

@@ -25,8 +25,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                           | Payload | Description                                   |
-| ------------------------------------------------------------------------------ | ------- | --------------------------------------------- |
-| `update:modelValue`                                                            | —       |                                               |
-| `resolved`                                                                     | —       | Emitted after a successful resolve of a pick. |
-| `update:modelValue Emitted with the identifier (or typed text in plain mode).` | —       |                                               |
+| Name                | Payload | Description                                                |
+| ------------------- | ------- | ---------------------------------------------------------- |
+| `update:modelValue` | —       | Emitted with the identifier (or typed text in plain mode). |
+| `resolved`          | —       | Emitted after a successful resolve of a pick.              |
