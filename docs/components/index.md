@@ -41,6 +41,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
 | [CnBlockListEditor](./cn-block-list-editor.md) | Typed blocks in order: a palette, drag and buttons with a spoken position, one editor slot per type, drafts |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
+| [CnQrCode](./cn-qr-code.md) | A QR code drawn in the browser, with a code to type in and a code that changes on a timer |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 | [CnRevealField](./cn-reveal-field.md) | A protected value shown masked until the user asks, fetched on every reveal |
 | [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
