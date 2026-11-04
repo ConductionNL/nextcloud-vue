@@ -60,7 +60,7 @@ On a record page (`objectUuid: "@objectId"`) the widget can let a handler finish
 - **The table as a board draws it** (DqZaakTaken): `dueFormat: "date"` shows the deadline as a short date, an overdue one still saying so to a screen reader; `stateLabels` and `stateColors` (`{ "active": "purple" }`) word and colour the status by its raw state; `viewAllPlacement: "footer"` draws the view-all link under the table instead of in the card header.
 - **A task that carries a form** opens CnTaskFormDialog from Complete in the table and the lists, and fills its form inline in the cards.
 
-A finished task toasts "Task {title} finished", a claim "Task {title} is yours"; a refusal shows the server's own sentence.
+A finished task toasts "Task \{title\} finished", a claim "Task \{title\} is yours"; a refusal shows the server's own sentence.
 
 ```json
 { "id": "case-tasks", "type": "tasks", "title": "Tasks",

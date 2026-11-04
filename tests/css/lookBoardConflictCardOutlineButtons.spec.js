@@ -58,7 +58,7 @@ describe('look-board.css: the conflict card choices', () => {
 		const selectors = css.match(/[^{}]*cn-conflict-resolve[^{}]*\{/g) || []
 		expect(selectors.length).toBeGreaterThan(0)
 		for (const s of selectors) {
-			for (const part of s.replace('{', '').split(/,(?![^(]*\))/)) {
+			for (const part of s.replace(/\{/g, '').split(/,(?![^(]*\))/)) {
 				expect(part.trim().startsWith('.cn-look-board ')).toBe(true)
 				expect(part).toContain(':not(.cn-look-nextcloud *)')
 			}
