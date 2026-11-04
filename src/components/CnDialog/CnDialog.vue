@@ -17,14 +17,14 @@
 			:noClose="noClose"
 			@close="onClosing()" />
 		<!-- @slot notice The dialog's state banners (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
-		<div v-if="noticesPlacement !== 'bottom' && ($slots.notice || hasNotices)" class="cn-dialog__notices cn-dialog__notices--top">
+		<div v-for="place in noticeBlocks('top')" :key="place" class="cn-dialog__notices cn-dialog__notices--top">
 			<slot name="notice">
 				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
 			</slot>
 		</div>
 		<!-- @slot default The dialog body, below the board header. -->
 		<slot />
-		<div v-if="noticesPlacement === 'bottom' && ($slots.notice || hasNotices)" class="cn-dialog__notices cn-dialog__notices--bottom">
+		<div v-for="place in noticeBlocks('bottom')" :key="place" class="cn-dialog__notices cn-dialog__notices--bottom">
 			<slot name="notice">
 				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
 			</slot>
@@ -132,6 +132,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The notice block to draw at one place: one entry when the notices go
+		 * there, else none. A list rather than `v-if`, so a dialog without
+		 * notices renders no placeholder and keeps its markup.
+		 *
+		 * @param {string} place `top` or `bottom`.
+		 * @return {string[]} `[place]` or `[]`.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		noticeBlocks(place) {
+			const at = this.noticesPlacement === 'bottom' ? 'bottom' : 'top'
+			return at === place && (this.$slots.notice || this.hasNotices) ? [place] : []
+		},
+
 		/**
 		 * Forward a close request.
 		 *
