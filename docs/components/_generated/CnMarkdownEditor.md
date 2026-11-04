@@ -27,12 +27,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                | Payload | Description                                                              |
-| ------------------- | ------- | ------------------------------------------------------------------------ |
-| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
-| `update:modelValue` | —       |                                                                          |
-| `update:mode`       | —       |                                                                          |
-
-| `update:modelValue The value changed. Vue 3's v-model
-  dialect — what a plain `v-model` listens for.` | — | |
-| `update:mode v-model:mode emit so consumers can bind the layout mode.` | — | |
+| Name                | Payload | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers.         |
+| `update:modelValue` | —       | The value changed. Vue 3's v-model dialect — what a plain `v-model` listens for. |
+| `update:mode`       | —       | v-model:mode emit so consumers can bind the layout mode.                         |

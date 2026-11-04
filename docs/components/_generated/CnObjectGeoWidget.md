@@ -33,8 +33,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                       | Payload | Description                                                                                     |
-| ---------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `saved`                                                    | —       | Emitted after `@self.geo` is persisted. Payload is the saved geo value (GeoJSON Point or null). |
-| `update:geo`                                               | —       |                                                                                                 |
-| `update:geo Sibling of `saved`for`.sync`-style consumers.` | —       |                                                                                                 |
+| Name         | Payload | Description                                                                                     |
+| ------------ | ------- | ----------------------------------------------------------------------------------------------- |
+| `saved`      | —       | Emitted after `@self.geo` is persisted. Payload is the saved geo value (GeoJSON Point or null). |
+| `update:geo` | —       | Sibling of `saved` for `.sync`-style consumers.                                                 |

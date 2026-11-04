@@ -16,11 +16,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `update:modelValue` | —       |             |
-
-| `update:modelValue The cron expression changed. Always five
-  space-separated fields, never a `@shortcut` — which scheduler
-  resolves those varies, and a schedule that validates and never
-  fires is worse than one that is refused.` | — | |
+| Name                | Payload | Description                                                                                                                                                                                                    |
+| ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update:modelValue` | —       | The cron expression changed. Always five space-separated fields, never a `@shortcut` — which scheduler resolves those varies, and a schedule that validates and never fires is worse than one that is refused. |

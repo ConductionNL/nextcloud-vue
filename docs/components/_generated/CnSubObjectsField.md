@@ -26,7 +26,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                | Payload | Description |
-| --------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                 | —       |             |
-| `update:modelValue The rows in their new sequence.` | —       |             |
+| Name                | Payload | Description                     |
+| ------------------- | ------- | ------------------------------- |
+| `update:modelValue` | —       | The rows in their new sequence. |

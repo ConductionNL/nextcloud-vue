@@ -23,10 +23,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                    | Payload | Description                                                     |
-| ----------------------------------------------------------------------- | ------- | --------------------------------------------------------------- |
-| `change`                                                                | —       | Emitted after a successful call. Payload: `{ favourite }`.      |
-| `error`                                                                 | —       | Emitted when the call failed; payload is the message shown.     |
-| `not-found`                                                             | —       | Emitted on a 404: the record went away or access was withdrawn. |
-| `update:favourite`                                                      | —       |                                                                 |
-| `update:favourite Emitted with the new state, for `v-model:favourite`.` | —       |                                                                 |
+| Name               | Payload | Description                                                     |
+| ------------------ | ------- | --------------------------------------------------------------- |
+| `change`           | —       | Emitted after a successful call. Payload: `{ favourite }`.      |
+| `error`            | —       | Emitted when the call failed; payload is the message shown.     |
+| `not-found`        | —       | Emitted on a 404: the record went away or access was withdrawn. |
+| `update:favourite` | —       | Emitted with the new state, for `v-model:favourite`.            |

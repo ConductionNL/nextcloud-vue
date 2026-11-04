@@ -39,7 +39,7 @@ All five are optional and end up in one list.
 
 ## A history in words
 
-The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one) and `{object.<path>}`. `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("{name} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
+The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one) and `{object.<path>}`. `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("\{name\} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
 
 ```json
 { "type": "timeline", "content": {
@@ -50,7 +50,7 @@ The audit trail takes the History card's words: `actionLabels` (by action), `cha
 } }
 ```
 
-`resolve` (`{ "<field>": { "register"?, "schema", "labelField"? } }`) names the record a reference points at: a label's `{object.<field>}` reads that record's label instead of its id, read once through the shared reference resolver ("Event created in campaign {object.campaign}" with `"resolve": { "campaign": { "schema": "campaign" } }`). The id stays until the label is known.
+`resolve` (`{ "<field>": { "register"?, "schema", "labelField"? } }`) names the record a reference points at: a label's `{object.<field>}` reads that record's label instead of its id, read once through the shared reference resolver ("Event created in campaign \{object.campaign\}" with `"resolve": { "campaign": { "schema": "campaign" } }`). The id stays until the label is known.
 
 An `actionLabels` value may also be a list of `{ when?, text }`: the first entry whose local visibleWhen condition holds for the record gives the words, and one without `when` is the fallback (`"create": [{ "when": { "field": "campaign", "op": "notEmpty" }, "text": "Event created in campaign {object.campaign}" }, { "text": "Event created" }]`). The History card (`audit-trail`) reads the same form.
 

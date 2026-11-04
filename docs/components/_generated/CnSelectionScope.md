@@ -17,7 +17,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                        | Payload | Description |
-| ----------------------------------------------------------- | ------- | ----------- |
-| `update:scope`                                              | —       |             |
-| `update:scope The scope the user picked: `page`or`result`.` | —       |             |
+| Name           | Payload | Description                                    |
+| -------------- | ------- | ---------------------------------------------- |
+| `update:scope` | —       | The scope the user picked: `page` or `result`. |
