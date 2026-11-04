@@ -354,6 +354,8 @@ function clockOf(seconds) {
  * follows that moment rather than the page's start, so a reload keeps it. At
  * zero the page is saved and the run finishes. `submitLabel` adds a button
  * that finishes from any page, and `savedText` says so while nothing is unsaved.
+ * `saveEachAnswer: true` (or a wait in ms) saves each answer a moment after
+ * it is given instead of when the user moves on.
  *
  * `noteWhen: { answers: [...] }` shows a question's note field only once its
  * answer is one of those stored values (the board shows a note under "Nee"),
@@ -402,7 +404,8 @@ export default {
 		 * answers | answersPath, answerKey?, answerFields?, recordPhotosField?,
 		 * record?, saveAction?, finishAction?, pageSize?, allowNote?, noteWhen?,
 		 * allowPhotos?, caption?, emptyText?, deadlineField?, serverNowField?,
-		 * timeLeftText?, timeWarningSeconds?, savedText?, submitLabel? }`, as in the component
+		 * timeLeftText?, timeWarningSeconds?, savedText?, submitLabel?,
+		 * saveEachAnswer? }`, as in the component
 		 * description and docs/components/cn-checklist-run-widget.md.
 		 *
 		 * @type {object}
@@ -471,11 +474,29 @@ export default {
 			now: Date.now(),
 			recordReadAt: Date.now(),
 			deadlineTimer: null,
+			// `saveEachAnswer`: the pending save, and the save that runs now.
+			answerSaveTimer: null,
+			pageSave: null,
 			finishedRun: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The wait before an answer saves on its own (`saveEachAnswer`: `true`
+		 * waits 800 ms, a number that many ms), or null to save on moving on.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/checklist-run-save-each-answer/specs/checklist-run-widget/spec.md#requirement-a-run-can-save-each-answer-as-it-is-given
+		 */
+		answerSaveDelay() {
+			const option = this.content?.saveEachAnswer
+			if (option === true) {
+				return 800
+			}
+			return typeof option === 'number' && option >= 0 ? option : null
+		},
+
 		/** @return {object} What the tokens resolve against. */
 		tokenCtx() {
 			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
@@ -785,6 +806,11 @@ export default {
 
 	beforeUnmount() {
 		clearInterval(this.deadlineTimer)
+		if (this.answerSaveTimer) {
+			clearTimeout(this.answerSaveTimer)
+			this.answerSaveTimer = null
+			this.savePage()
+		}
 	},
 
 	methods: {
@@ -1142,6 +1168,26 @@ export default {
 			this.dirty = { ...this.dirty, [id]: true }
 			this.missing = this.missing.filter((m) => m !== id)
 			this.startLocating(id)
+			this.scheduleAnswerSave()
+		},
+
+		/**
+		 * With `saveEachAnswer`, save the page a moment after the last change,
+		 * so typing saves once and a quick run of answers saves together.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/checklist-run-save-each-answer/specs/checklist-run-widget/spec.md#requirement-a-run-can-save-each-answer-as-it-is-given
+		 */
+		scheduleAnswerSave() {
+			const delay = this.answerSaveDelay
+			if (delay === null) {
+				return
+			}
+			clearTimeout(this.answerSaveTimer)
+			this.answerSaveTimer = setTimeout(() => {
+				this.answerSaveTimer = null
+				this.savePage()
+			}, delay)
 		},
 
 		/**
@@ -1174,6 +1220,7 @@ export default {
 		setLocation(id, location) {
 			this.draft[id].location = location
 			this.dirty = { ...this.dirty, [id]: true }
+			this.scheduleAnswerSave()
 		},
 
 		/**
@@ -1205,6 +1252,7 @@ export default {
 			}
 			this.photos = { ...this.photos, [id]: [...(this.photos[id] || []), ...files] }
 			this.dirty = { ...this.dirty, [id]: true }
+			this.scheduleAnswerSave()
 			this.missingPhoto = this.missingPhoto.filter((m) => m !== id)
 			if (event.target) {
 				event.target.value = ''
@@ -1220,6 +1268,24 @@ export default {
 		 * @spec openspec/changes/checklist-run-widget/specs/checklist-run-widget/spec.md#requirement-answers-are-saved-under-the-readers-own-rights
 		 */
 		async savePage() {
+			// One save at a time, so an answer is never created twice.
+			while (this.pageSave) {
+				await this.pageSave
+			}
+			this.pageSave = this.savePageNow()
+			try {
+				return await this.pageSave
+			} finally {
+				this.pageSave = null
+			}
+		},
+
+		/**
+		 * Save the changed answers of this page now (see `savePage`).
+		 *
+		 * @return {Promise<boolean>} True when everything saved.
+		 */
+		async savePageNow() {
 			const changed = this.pageQuestions.filter((q) => this.dirty[q.id])
 			if (changed.length === 0) {
 				return true
