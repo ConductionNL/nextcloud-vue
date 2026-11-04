@@ -1301,6 +1301,8 @@
     "This run recorded no steps.": "Deze uitvoering heeft geen stappen vastgelegd.",
     "Replay on the canvas": "Opnieuw afspelen op het canvas",
     "Add a step": "Een stap toevoegen",
+    "Start timer": "Timer starten",
+    "Stop timer": "Timer stoppen",
     "Version number. A semantic version appears once the flow is published.": "Versienummer. Een semantische versie verschijnt zodra de flow is gepubliceerd.",
     "Numbered when semantic versions were introduced, not derived from a comparison.": "Genummerd toen semantische versies werden ingevoerd, niet afgeleid uit een vergelijking.",
     "A major version means a step, a connection or a setting was removed.": "Een major versie betekent dat een stap, een verbinding of een instelling is verwijderd.",
