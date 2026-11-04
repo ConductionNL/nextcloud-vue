@@ -72,6 +72,20 @@
 		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
 			{{ unplottedLabel }}
 		</p>
+		<!-- The layer switches (`layerToggles`): DqZaakLocatie "Kaartlagen"
+		     with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)". -->
+		<fieldset v-if="layerToggleEntries.length > 0" class="cn-map-widget__toggles" data-testid="cn-map-layer-toggles">
+			<legend class="cn-map-widget__toggles-title">
+				{{ layerTogglesTitle }}
+			</legend>
+			<label v-for="entry in layerToggleEntries" :key="entry.id" class="cn-map-widget__toggle">
+				<input type="checkbox"
+					:checked="entry.on"
+					:data-testid="`cn-map-layer-toggle-${entry.id}`"
+					@change="setLayerToggle(entry.id, $event.target.checked)">
+				{{ entry.label }}
+			</label>
+		</fieldset>
 		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
@@ -443,6 +457,19 @@ export default {
 		},
 
 		/**
+		 * Layers a person can switch on and off under the map:
+		 * `[{ id, label, layer, on? }]`, `layer` in the `layers` shape (`tile`,
+		 * `wms`, `wfs`, `geojson`), `on` the starting state (default true).
+		 * `content.layerToggles` wins. The labels go through the host translate.
+		 *
+		 * @type {Array<{id: string, label: string, layer: object, on?: boolean}>}
+		 */
+		layerToggles: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Dashboard placement record. Declared so the grid's `:placement` binding is
 		 * consumed as a prop instead of leaking onto the root element; unused here.
 		 *
@@ -498,6 +525,8 @@ export default {
 			L: null,
 			map: null,
 			layerInstances: [],
+			// Layer toggle id to whether the person switched it on (unset: its `on`).
+			toggleState: {},
 			markerLayer: null,
 			clusterGroup: null,
 			leafletAvailable: true,
@@ -545,6 +574,7 @@ export default {
 		 *
 		 * @return {object} the resolved `{ center, zoom, layers, markers,
 		 *   clustering, height, autoFit, basemaps }`.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		cfg() {
 			const c = this.content || {}
@@ -560,7 +590,47 @@ export default {
 				height: (c.height !== undefined && c.height !== null && c.height !== '') ? c.height : p.height,
 				autoFit: typeof c.autoFit === 'boolean' ? c.autoFit : p.autoFit,
 				basemaps: Array.isArray(c.basemaps) ? c.basemaps : p.basemaps,
+				layerToggles: Array.isArray(c.layerToggles) ? c.layerToggles : p.layerToggles,
 			}
+		},
+
+		/**
+		 * The layer switches as drawn: an entry needs an id, a label and a layer.
+		 *
+		 * @return {Array<{id: string, label: string, layer: object, on: boolean}>} The switches.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerToggleEntries() {
+			const list = Array.isArray(this.cfg.layerToggles) ? this.cfg.layerToggles : []
+			return list
+				.filter((entry) => entry && entry.id && typeof entry.label === 'string' && entry.layer && typeof entry.layer === 'object')
+				.map((entry) => ({
+					id: String(entry.id),
+					label: this.cnTranslate(entry.label),
+					layer: entry.layer,
+					on: Object.hasOwn(this.toggleState, String(entry.id)) ? this.toggleState[String(entry.id)] : entry.on !== false,
+				}))
+		},
+
+		/**
+		 * The declared layers plus the switched-on toggles.
+		 *
+		 * @return {Array<object>} The layers to mount.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		mountedLayers() {
+			const toggled = this.layerToggleEntries.filter((entry) => entry.on).map((entry) => entry.layer)
+			return [...(this.cfg.layers || []), ...toggled]
+		},
+
+		/**
+		 * @return {string} The switches' legend: `content.layerTogglesTitle`, else "Map layers".
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerTogglesTitle() {
+			const title = this.content && this.content.layerTogglesTitle
+			return typeof title === 'string' && title !== '' ? this.cnTranslate(title) : t('nextcloud-vue', 'Map layers')
 		},
 
 		/**
@@ -742,6 +812,15 @@ export default {
 			}
 		},
 
+		/**
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		toggleState() {
+			if (this.map) {
+				this.renderLayers()
+			}
+		},
+
 		markersKey() {
 			if (this.map) {
 				this.renderMarkers()
@@ -808,6 +887,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Switch a toggled layer on or off.
+		 *
+		 * @param {string} id The toggle id.
+		 * @param {boolean} on Whether it is now on.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		setLayerToggle(id, on) {
+			this.toggleState = { ...this.toggleState, [id]: on === true }
+		},
+
 		/**
 		 * Mount the Leaflet map instance, attach event handlers, and
 		 * render the initial layer + marker set.
@@ -924,6 +1014,8 @@ export default {
 		 * Mount the configured `layers[]` onto the Leaflet map. Each entry
 		 * dispatches by `type` to a Leaflet factory; unknown types warn and
 		 * skip. `geojson` may supply inline `data` to skip the fetch.
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		renderLayers() {
 			const L = this.L
@@ -949,7 +1041,7 @@ export default {
 
 			this.renderBasemaps()
 
-			for (const def of this.cfg.layers) {
+			for (const def of this.mountedLayers) {
 				if (!def || typeof def !== 'object') {
 					continue
 				}
@@ -1772,6 +1864,29 @@ export default {
 	font-size: 15px;
 	line-height: 1.2;
 	color: var(--color-main-text);
+}
+
+.cn-map-widget__toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin: 12px 0 0;
+	padding: 0;
+	border: 0;
+	font-size: 14px;
+}
+
+.cn-map-widget__toggles-title {
+	width: 100%;
+	margin-bottom: 2px;
+	padding: 0;
+	font-weight: 600;
+}
+
+.cn-map-widget__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 }
 
 .cn-map-widget__note {

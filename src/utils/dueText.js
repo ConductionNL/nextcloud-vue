@@ -41,6 +41,14 @@ import { indicatorApplies } from './rowIndicators.js'
  * `tomorrowLabel`) and a later day within that many days its weekday and date
  * ("Friday 9 Oct").
  *
+ * `{date}` in `overdueLabel`, `todayLabel` and `upcomingLabel` is the short
+ * due date ("uiterlijk {date}, {count} dagen over"). With `doneField` (a date
+ * path on the row) a row whose done date is set reads `doneLabel` (default
+ * "{date}") in the `muted` tone instead of the term: `{date}` is the done
+ * date, `{value}` the row's `doneValueField` named through
+ * `doneValueLabels` ("ontvangen {date}, {value}" reads "ontvangen 6 mrt,
+ * negatief").
+ *
  * @param {unknown} value A Date, a timestamp or an ISO string.
  * @param {object} [config] The `due` config.
  * @param {(text: string) => string} [translate] The host's translate.
@@ -52,6 +60,10 @@ import { indicatorApplies } from './rowIndicators.js'
  */
 export function resolveDue(value, config, translate = (text) => text, now = new Date(), row = null) {
 	const cfg = config && typeof config === 'object' ? config : {}
+	const done = doneText(cfg, row, translate, now)
+	if (done !== null) {
+		return done
+	}
 	const date = parseDateValue(value)
 	if (date === null) {
 		const empty = typeof cfg.emptyText === 'string' && cfg.emptyText !== '' ? translate(cfg.emptyText) : ''
@@ -67,15 +79,65 @@ export function resolveDue(value, config, translate = (text) => text, now = new 
 	if (days > 0) {
 		const overdue = pluralLabel(cfg.overdueLabel, days, translate)
 		if (overdue !== null) {
-			return { text: overdue, tone: 'danger' }
+			return { text: withDate(overdue, date, now), tone: 'danger' }
 		}
 		return { text: n('nextcloud-vue', '{count} day overdue', '{count} days overdue', days, { count: days }), tone: 'danger' }
 	}
 	if (days === 0) {
-		const label = typeof cfg.todayLabel === 'string' && cfg.todayLabel !== '' ? translate(cfg.todayLabel) : t('nextcloud-vue', 'Due today')
+		const label = typeof cfg.todayLabel === 'string' && cfg.todayLabel !== '' ? withDate(translate(cfg.todayLabel), date, now) : t('nextcloud-vue', 'Due today')
 		return withSoon({ text: label, tone: cfg.todayTone === 'danger' ? 'danger' : 'today' }, 0, cfg)
 	}
-	return withSoon({ text: upcomingText(-days, cfg, translate) ?? nearText(date, -days, cfg, translate, now) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }, -days, cfg)
+	const upcoming = upcomingText(-days, cfg, translate)
+	return withSoon({ text: (upcoming === null || upcoming === undefined ? null : withDate(upcoming, date, now)) ?? nearText(date, -days, cfg, translate, now) ?? formatRelativeDate(date, { now }), tone: 'upcoming' }, -days, cfg)
+}
+
+/**
+ * Fill `{date}` with the short date.
+ *
+ * @param {string} text The label.
+ * @param {Date} date The date.
+ * @param {Date} now The reference moment.
+ * @return {string} The label with the date.
+ */
+function withDate(text, date, now) {
+	return text.indexOf('{date}') === -1 ? text : text.replace(/\{date\}/g, formatBoardDate(date, now))
+}
+
+/**
+ * The done text of a row whose `doneField` holds a date, else null.
+ *
+ * @param {object} cfg The `due` config.
+ * @param {object|null} row The row.
+ * @param {(text: string) => string} translate The host's translate.
+ * @param {Date} now The reference moment.
+ * @return {{text: string, tone: string}|null} The text in the muted tone, or null.
+ * @spec openspec/changes/due-text-done-and-date/specs/due-text/spec.md#requirement-a-due-text-names-the-date-and-a-done-row
+ */
+function doneText(cfg, row, translate, now) {
+	if (typeof cfg.doneField !== 'string' || cfg.doneField === '' || !row || typeof row !== 'object') {
+		return null
+	}
+	const doneDate = parseDateValue(readDuePath(row, cfg.doneField))
+	if (doneDate === null) {
+		return null
+	}
+	const raw = typeof cfg.doneValueField === 'string' && cfg.doneValueField !== '' ? readDuePath(row, cfg.doneValueField) : undefined
+	const labels = cfg.doneValueLabels && typeof cfg.doneValueLabels === 'object' ? cfg.doneValueLabels : {}
+	const value = raw === undefined || raw === null ? '' : (typeof labels[raw] === 'string' ? translate(labels[raw]) : String(raw))
+	const template = typeof cfg.doneLabel === 'string' && cfg.doneLabel !== '' ? translate(cfg.doneLabel) : '{date}'
+	const text = template.replace(/\{date\}/g, formatBoardDate(doneDate, now)).replace(/\{value\}/g, value)
+	return { text: value === '' ? text.replace(/[,·\s]+$/, '') : text, tone: 'muted' }
+}
+
+/**
+ * Read a dotted path from a row.
+ *
+ * @param {object} row The row.
+ * @param {string} path The path.
+ * @return {unknown} The value.
+ */
+function readDuePath(row, path) {
+	return path.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), row)
 }
 
 /**

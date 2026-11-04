@@ -146,3 +146,7 @@ The sidebar header displays an icon from the `icon` prop (or `schema.icon`). Ico
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexSidebar/CnIndexSidebar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## A note under a filter, and a switch
+
+A filter property may carry `facetNote`, drawn as a muted line under the filter (DqZaken "Het team staat op de zaak als groep; ..."). `inputControl: "switch"` with `switchLabel` draws the filter as one switch with its own words ("Ook concepten van anderen tonen"); on filters on `true`, off clears it.

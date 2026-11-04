@@ -161,6 +161,17 @@
 							:toLabel="filter.toLabel || toLabel"
 							:presetLabel="filter.label"
 							@update:modelValue="onRangeChange(filter.key, $event)" />
+						<!-- One on/off question (`inputControl: "switch"`): DqZaken
+						     "Ook concepten van anderen tonen". -->
+						<NcCheckboxRadioSwitch
+							v-else-if="filter.type === 'switch'"
+							type="switch"
+							class="cn-index-sidebar__filter-switch"
+							:modelValue="isChecked(filter, true)"
+							:data-testid="`cn-index-sidebar-switch-${filter.key}`"
+							@update:modelValue="onTextChange(filter.key, $event === true ? 'true' : '')">
+							{{ filter.switchLabel }}
+						</NcCheckboxRadioSwitch>
 						<NcTextField
 							v-else-if="filter.type === 'text'"
 							class="cn-index-sidebar__filter-text"
@@ -201,6 +212,12 @@
 							:keepOpen="filter.multiple !== false"
 							:clearable="true"
 							@update:modelValue="onFilterChange(filter.key, $event)" />
+						<!-- `facetNote`: what the filter reads, under it. -->
+						<p v-if="filter.note"
+							class="cn-index-sidebar__filter-note"
+							:data-testid="`cn-index-sidebar-note-${filter.key}`">
+							{{ filter.note }}
+						</p>
 					</div>
 				</div>
 

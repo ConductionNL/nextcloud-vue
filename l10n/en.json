@@ -2679,7 +2679,23 @@
     "Unknown variable: {names}.": "Unknown variable: {names}.",
     "Unknown variables: {names}.": "Unknown variables: {names}.",
     "Remove {row}": "Remove {row}",
-    "Removed {row}.": "Removed {row}."
+    "Removed {row}.": "Removed {row}.",
+    "Address search is not available right now": "Address search is not available right now",
+    "Type the address yourself.": "Type the address yourself.",
+    "Street and house number": "Street and house number",
+    "Check: {errors}, {warnings}.": "Check: {errors}, {warnings}.",
+    "all": "all",
+    "Revoke": "Revoke",
+    "Nothing is shared outside the organisation.": "Nothing is shared outside the organisation.",
+    "Shares": "Shares",
+    "The shares could not be read.": "The shares could not be read.",
+    "The link could not be copied.": "The link could not be copied.",
+    "Just updated by {actor}": "Just updated by {actor}",
+    "Choose an attribute from the catalogue": "Choose an attribute from the catalogue",
+    "Folders": "Folders",
+    "No attributes in this folder.": "No attributes in this folder.",
+    "All attributes": "All attributes",
+    "Uncategorised": "Uncategorised"
   },
   "plurals": {
     "{count} member": [
@@ -2904,6 +2920,18 @@
     "%n update is ready. An update keeps your own changes.": [
       "%n update is ready. An update keeps your own changes.",
       "%n updates are ready. An update keeps your own changes."
+    ],
+    "{count} error": [
+      "{count} error",
+      "{count} errors"
+    ],
+    "{count} warning": [
+      "{count} warning",
+      "{count} warnings"
+    ],
+    "in {count} place": [
+      "in {count} place",
+      "in {count} places"
     ]
   }
 }

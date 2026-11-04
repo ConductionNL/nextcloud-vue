@@ -329,3 +329,5 @@ An endpoint may answer a list of strings (`["…", "…"]`). Each is read as `{ 
   }
 }
 ```
+
+`due` labels take `{date}`, the short due date: `"overdueLabel": { "one": "due {date}, {count} day over", "other": "due {date}, {count} days over" }`. With `doneField` (a date path) a row whose done date is set reads `doneLabel` (default `{date}`) in the muted tone instead of the term; `{value}` is the row's `doneValueField` named through `doneValueLabels` (DqZaak Adviezen "ontvangen 6 mrt, negatief"). The advice list of DqZaak and DqZaakBesluiten is this widget with `rowActionsInline` and card notices.
