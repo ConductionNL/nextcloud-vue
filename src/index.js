@@ -54,6 +54,7 @@ export {
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
+	CnBlockListEditor,
 	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,

@@ -41,6 +41,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
+| [CnBlockListEditor](./cn-block-list-editor.md) | Typed blocks in order: a palette, drag and buttons with a spoken position, one editor slot per type, drafts |
 
 ## Data Actions
 
