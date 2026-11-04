@@ -2882,7 +2882,13 @@
     "The conflicts could not be read.": "De conflicten konden niet worden gelezen.",
     "This choice was not saved.": "Deze keuze is niet opgeslagen.",
     "On this device: \"{value}\"": "Op dit toestel: \"{value}\"",
-    "On the server: \"{value}\"": "Op de server: \"{value}\""
+    "On the server: \"{value}\"": "Op de server: \"{value}\"",
+    "Add from a list": "Toevoegen uit een lijst",
+    "Scan or type a code": "Scan of typ een code",
+    "No record has the code {code}.": "Geen record heeft de code {code}.",
+    "More than one record has the code {code}.": "Meer dan één record heeft de code {code}.",
+    "The code {code} could not be looked up.": "De code {code} kon niet worden opgezocht.",
+    "Added {name}.": "{name} toegevoegd."
   },
   "plurals": {
     "{count} member": [

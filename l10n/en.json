@@ -2617,7 +2617,13 @@
     "The conflicts could not be read.": "The conflicts could not be read.",
     "This choice was not saved.": "This choice was not saved.",
     "On this device: \"{value}\"": "On this device: \"{value}\"",
-    "On the server: \"{value}\"": "On the server: \"{value}\""
+    "On the server: \"{value}\"": "On the server: \"{value}\"",
+    "Add from a list": "Add from a list",
+    "Scan or type a code": "Scan or type a code",
+    "No record has the code {code}.": "No record has the code {code}.",
+    "More than one record has the code {code}.": "More than one record has the code {code}.",
+    "The code {code} could not be looked up.": "The code {code} could not be looked up.",
+    "Added {name}.": "Added {name}."
   },
   "plurals": {
     "{count} member": [
