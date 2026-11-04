@@ -5,8 +5,8 @@
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">SENTINEL_VOCABULARY | @conduction/nextcloud-vue</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://nextcloud-vue.conduction.nl/img/og-conduction.png"><meta data-rh="true" name="twitter:image" content="https://nextcloud-vue.conduction.nl/img/og-conduction.png"><meta data-rh="true" property="og:url" content="https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary/"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" property="og:locale:alternate" content="nl"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="twitter:site" content="@ConductionNL"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:type" content="website"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="SENTINEL_VOCABULARY | @conduction/nextcloud-vue"><meta data-rh="true" name="description" content="A frozen, human-readable catalog of the sentinel-token vocabulary: for each"><meta data-rh="true" property="og:description" content="A frozen, human-readable catalog of the sentinel-token vocabulary: for each"><link data-rh="true" rel="icon" href="/img/favicon.svg"><link data-rh="true" rel="canonical" href="https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary/"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary/" hreflang="en"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/nl/docs/utilities/sentinel-vocabulary/" hreflang="nl"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary/" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","@id":"https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary#article","mainEntityOfPage":"https://nextcloud-vue.conduction.nl/docs/utilities/sentinel-vocabulary","headline":"SENTINEL_VOCABULARY","inLanguage":"en","publisher":{"@id":"https://www.conduction.nl/#org"},"description":"A frozen, human-readable catalog of the sentinel-token vocabulary: for each","author":{"@type":"Organization","name":"Conduction","@id":"https://www.conduction.nl/#org"}}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://www.conduction.nl/#org","name":"Conduction B.V.","alternateName":"Conduction","url":"https://www.conduction.nl/","logo":"https://www.conduction.nl/img/brand/avatar-conduction-gold-on-white.svg","foundingDate":"2019","description":"Dutch open-source software company building EUPL-1.2 apps for the Nextcloud workspace.","address":{"@type":"PostalAddress","streetAddress":"Lauriergracht 14h","postalCode":"1016 RR","addressLocality":"Amsterdam","addressCountry":"NL"},"email":"info@conduction.nl","telephone":"+31-85-303-6840","taxID":"NL860784241B01","vatID":"NL860784241B01","identifier":{"@type":"PropertyValue","propertyID":"KvK","value":"76741850"},"sameAs":["https://github.com/ConductionNL","https://www.linkedin.com/company/conduction/"]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","@id":"https://nextcloud-vue.conduction.nl/#website","url":"https://nextcloud-vue.conduction.nl/","name":"@conduction/nextcloud-vue","publisher":{"@id":"https://www.conduction.nl/#org"},"inLanguage":["en","nl"]}</script><link rel="stylesheet" href="/assets/css/styles.6487dd0d.css">
-<script src="/assets/js/runtime~main.45b58749.js" defer="defer"></script>
-<script src="/assets/js/main.acb8568b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a3ffdf55.js" defer="defer"></script>
+<script src="/assets/js/main.471ac18a.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -24,9 +24,12 @@ machine-checkable truth lives in the token pattern set the resolver enforces.</p
 is for, and the member token grammar. The object is <code>Object.freeze</code>d — treat it
 as read-only.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-filter-context">The filter context<a href="#the-filter-context" class="hash-link" aria-label="Direct link to The filter context" title="Direct link to The filter context" translate="no">​</a></h2>
-<p><code>@me</code>, <code>@me.displayName</code>, <code>@me.email</code>, <code>@myGroups</code>, <code>@now</code>, <code>@today</code>,
+<p><code>@me</code>, <code>@me.displayName</code>, <code>@me.email</code>, <code>@myGroups</code>, <code>@myTeam</code>, <code>@now</code>, <code>@today</code>,
 <code>@today±Nd</code>, <code>@monthStart</code>, <code>@monthEnd</code>, <code>@nextMonthStart</code>, <code>@quarterStart</code> and
 <code>@yearStart</code>.</p>
+<p>The day count of <code>@today±Nd</code> may be an app setting: <code>@today-{@config.lead_stale_threshold_days}d</code>
+fills the value from the app config first, and stays as written while the config
+does not hold the key.</p>
 <p><code>@monthEnd</code> is the last day of the current month. Use it with <code>lte</code> on a date
 field. On a date-time field <code>lte</code> stops at midnight of that day, so write
 <code>lt: &quot;@nextMonthStart&quot;</code> there: &quot;closes this month&quot; is
@@ -37,6 +40,12 @@ an IN list (<code>[&quot;@myGroups&quot;, &quot;archive&quot;]</code>) the ids a
 come from <a class="" href="/docs/utilities/peek-current-user-groups/"><code>peekCurrentUserGroups</code></a>: while they
 load, and when the user is in no group, the token stays unresolved and the
 caller waits instead of sending an empty list.</p>
+<p><code>@myTeam</code> resolves to one group id: the current user&#x27;s primary team, as the app
+answers it through <code>registerMyTeamSource(() =&gt; Promise&lt;groupId|null&gt;)</code>. While it
+is read the token stays unresolved (the caller waits); for a user in no team, or
+an app that registers no source, it becomes the optional <code>@myTeam?</code> and the
+caller drops the key, so a &quot;my team&quot; view shows no team filter rather than all
+of the user&#x27;s groups. A saved view&#x27;s filters are resolved when it is applied.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="see-also">See also<a href="#see-also" class="hash-link" aria-label="Direct link to See also" title="Direct link to See also" translate="no">​</a></h2>
 <ul>
 <li class=""><a class="" href="/docs/utilities/sentinel-resolvers/"><code>SENTINEL_RESOLVERS</code></a> — the compact context → resolver map.</li>
