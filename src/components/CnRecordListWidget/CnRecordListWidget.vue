@@ -439,8 +439,24 @@
 								</NcButton>
 							</template>
 						</template>
+						<span
+							v-if="item.tag === 'div' && item.rowActions.length > 0 && rowActionsInline"
+							class="cn-record-list__row-actions-inline"
+							data-testid="cn-record-list-row-actions-inline">
+							<NcButton
+								v-for="entry in item.rowActions"
+								:key="`row-action-${entry.index}`"
+								:variant="entry.action.variant || 'secondary'"
+								:href="entry.href || undefined"
+								:target="entry.external ? '_blank' : undefined"
+								:ariaLabel="fillRow(entry.action.ariaLabel, item.row) || undefined"
+								:data-testid="`cn-record-list-row-action-${entry.index}`"
+								@click="entry.href ? undefined : runRowActionEntry(entry.action, item.row)">
+								{{ entry.action.label }}
+							</NcButton>
+						</span>
 						<NcActions
-							v-if="item.tag === 'div' && item.rowActions.length > 0"
+							v-else-if="item.tag === 'div' && item.rowActions.length > 0"
 							:aria-label="rowActionsLabel"
 							data-testid="cn-record-list-row-actions">
 							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
@@ -1840,6 +1856,17 @@ export default {
 		 */
 		rowActionOutlined() {
 			return this.content?.rowAction?.variant === 'outlined'
+		},
+
+		/**
+		 * Whether a row's actions are buttons on the row (`rowActionsInline`), as
+		 * board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen", not a menu.
+		 *
+		 * @spec openspec/changes/record-list-inline-row-actions/specs/record-list-inline-row-actions/spec.md#requirement-row-actions-can-be-buttons-on-the-row
+		 * @return {boolean}
+		 */
+		rowActionsInline() {
+			return this.content?.rowActionsInline === true
 		},
 
 		rowActionsHeader() {
@@ -3408,6 +3435,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__row-actions-inline {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .cn-record-list__checklist-bar {
 	height: 8px;
 	margin-block-end: 16px;
