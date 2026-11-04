@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 3 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 9 files reached through imports.
+
+Through: `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

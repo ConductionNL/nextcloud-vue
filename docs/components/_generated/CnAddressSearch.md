@@ -2,24 +2,32 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name            | Type      | Required | Default                         | Description                                                                 |
-| --------------- | --------- | -------- | ------------------------------- | --------------------------------------------------------------------------- |
-| `modelValue`    | `string`  |          | `null`                          | The chosen address text.                                                    |
-| `endpoint`      | `string`  |          | `''`                            | Base URL of the PDOK proxy; empty resolves it from `appCandidates`.         |
-| `appCandidates` | `array`   |          | `['integriq', 'openconnector']` | App ids that serve `/api/pdok`, newest first; the first installed one wins. |
-| `inputLabel`    | `string`  |          | `''`                            | The field's label; defaults to "Search an address".                         |
-| `labelOutside`  | `boolean` |          | `false`                         | Draw the label above the field.                                             |
-| `placeholder`   | `string`  |          | `''`                            | Placeholder; defaults to "Street, postcode or place".                       |
-| `clearable`     | `boolean` |          | `true`                          | Offer a clear button.                                                       |
-| `disabled`      | `boolean` |          | `false`                         | Disable the field.                                                          |
-| `minLength`     | `number`  |          | `3`                             | The fewest characters a search needs.                                       |
-| `rows`          | `number`  |          | `10`                            | The most results a free-text search returns.                                |
+| Name               | Type      | Required | Default                         | Description                                                                                       |
+| ------------------ | --------- | -------- | ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `modelValue`       | `string`  |          | `null`                          | The chosen address text.                                                                          |
+| `endpoint`         | `string`  |          | `''`                            | Base URL of the PDOK proxy; empty resolves it from `appCandidates`.                               |
+| `appCandidates`    | `array`   |          | `['integriq', 'openconnector']` | App ids that serve `/api/pdok`, newest first; the first installed one wins.                       |
+| `inputLabel`       | `string`  |          | `''`                            | The field's label; defaults to "Search an address".                                               |
+| `labelOutside`     | `boolean` |          | `false`                         | Draw the label above the field.                                                                   |
+| `placeholder`      | `string`  |          | `''`                            | Placeholder; defaults to "Street, postcode or place".                                             |
+| `clearable`        | `boolean` |          | `true`                          | Offer a clear button.                                                                             |
+| `disabled`         | `boolean` |          | `false`                         | Disable the field.                                                                                |
+| `minLength`        | `number`  |          | `3`                             | The fewest characters a search needs.                                                             |
+| `rows`             | `number`  |          | `10`                            | The most results a free-text search returns.                                                      |
+| `manualFallback`   | `boolean` |          | `false`                         | When the search is unavailable, offer fields to type the address in.                              |
+| `manual`           | `boolean` |          | `false`                         | Show the typed-address fields from the start.                                                     |
+| `manualCity`       | `boolean` |          | `false`                         | Ask for the place as well as street and postcode.                                                 |
+| `manualLabels`     | `object`  |          | `\{\}`                          | Labels of the typed-address fields: `{ street?, postcode?, city? }`.                              |
+| `unavailableTitle` | `string`  |          | `''`                            | The notice title when search is unavailable. Default "Address search is not available right now". |
+| `unavailableText`  | `string`  |          | `''`                            | The notice text when search is unavailable. Default "Type the address yourself."                  |
 
 ### Events
 

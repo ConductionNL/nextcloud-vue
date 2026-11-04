@@ -17,6 +17,11 @@
 | `toggleAttrs`   | `func`               |          | `null`       | Extra expand-button attributes per node, `(node, depth) =&gt; object`. |
 | `rowAttrs`      | `func`               |          | `null`       | Extra row attributes per node, `(node, depth) =&gt; object`.           |
 | `focusableRows` | `boolean`            |          | `false`      | Rows take focus and select on Enter or Space.                          |
+| `reorderable`   | `boolean`            |          | `false`      | Rows can be moved among their siblings.                                |
+| `reorderLabels` | `object`             |          | `\{\}`       | The texts of the move controls, resolved by CnTreeView.                |
+| `parentId`      | `string&#124;number` |          | `null`       | The parent's id, or null at the root.                                  |
+| `siblingIndex`  | `number`             |          | `0`          | This node's index among its siblings.                                  |
+| `siblingCount`  | `number`             |          | `1`          | How many siblings there are, itself included.                          |
 
 ### Events
 
@@ -24,6 +29,7 @@
 | -------- | ------- | ----------- |
 | `toggle` | —       |             |
 | `select` | —       |             |
+| `move`   | —       |             |
 
 ### Slots
 

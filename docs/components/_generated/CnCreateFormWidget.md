@@ -10,9 +10,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name      | Type     | Required | Default | Description                                       |
-| --------- | -------- | -------- | ------- | ------------------------------------------------- |
-| `content` | `object` |          | `\{\}`  | The widget config, see the component description. |
+| Name         | Type                 | Required | Default | Description                                                           |
+| ------------ | -------------------- | -------- | ------- | --------------------------------------------------------------------- |
+| `content`    | `object`             |          | `\{\}`  | The widget config, see the component description.                     |
+| `objectId`   | `string&#124;number` |          | `null`  | The record of a detail page, for `@objectId` in `values`.             |
+| `objectData` | `object`             |          | `null`  | The record of a detail page, for `@object.&lt;field&gt;` in `values`. |
 
 ### Events
 
