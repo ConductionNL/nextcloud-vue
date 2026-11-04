@@ -290,6 +290,7 @@ export {
 	CnPropertiesTab,
 	CnPropertySourceField,
 	CnPropertyValueCell,
+	CnQrCode,
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
@@ -614,6 +615,7 @@ export {
 } from './utils/folderCustomization.js'
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
+export { encodeQr } from './utils/qr.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
