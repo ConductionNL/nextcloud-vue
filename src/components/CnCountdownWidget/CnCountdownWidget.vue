@@ -38,15 +38,27 @@
 				data-testid="cn-countdown-progress">
 				<span class="cn-countdown-widget__progress-fill" :style="{ width: `${progress}%` }" />
 			</span>
-			<button
-				v-if="actionLabel"
-				type="button"
-				class="cn-countdown-widget__action"
-				:class="{ 'cn-countdown-widget__action--primary': content.action && content.action.variant === 'primary' }"
-				data-testid="cn-countdown-action"
-				@click="runAction">
-				{{ actionLabel }}
-			</button>
+			<CnNoteCard
+				v-if="stateNotice"
+				class="cn-countdown-widget__notice"
+				:type="stateNotice.type"
+				:heading="stateNotice.lead || undefined"
+				:text="stateNotice.text"
+				data-testid="cn-countdown-notice" />
+			<div v-if="actionButtons.length" class="cn-countdown-widget__actions">
+				<button
+					v-for="button in actionButtons"
+					:key="button.index"
+					type="button"
+					class="cn-countdown-widget__action"
+					:class="{ 'cn-countdown-widget__action--primary': button.primary }"
+					:disabled="button.disabled"
+					:aria-disabled="button.disabled ? 'true' : null"
+					data-testid="cn-countdown-action"
+					@click="runAction(button.action)">
+					{{ button.label }}
+				</button>
+			</div>
 		</div>
 	</div>
 </template>
@@ -54,6 +66,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { inject } from 'vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath } from '../../composables/useEndpointSource.js'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -63,6 +76,18 @@ import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/** The note-card types a state notice may take. */
+const NOTICE_TYPES = ['success', 'info', 'warning', 'error']
+
+/** The note-card type of each state's notice when the notice names none. */
+const DEFAULT_NOTICE_TYPES = Object.freeze({
+	onTrack: 'info',
+	warning: 'warning',
+	danger: 'error',
+	overdue: 'error',
+	extended: 'info',
+})
 
 const VARIANT_COLORS = Object.freeze({
 	default: 'var(--color-primary-element)',
@@ -113,6 +138,33 @@ const VARIANT_COLORS = Object.freeze({
  * content: { field: 'deadline', settledField: 'isFinalStatus', settledLabel: 'Handled' }
  * ```
  *
+ * ## The states of a term
+ *
+ * A term card reads differently as its date nears. `states` gives each state
+ * its own headline, caption and notice, and `actions` puts several buttons
+ * under the card, each greyed out in the states its `disabledIn` names:
+ *
+ * ```js
+ * content: {
+ *   field: 'deadline',
+ *   thresholds: { warn: 14, danger: 7 },
+ *   extendedField: 'extendedOn',
+ *   states: {
+ *     warning: { notice: { lead: 'Watch the term', text: 'Two weeks left.' } },
+ *     overdue: { headline: 'Term passed', caption: 'Was due {date}, {count} days ago' },
+ *   },
+ *   actions: [
+ *     { label: 'Extend', type: 'handler', handler: 'extendTerm', disabledIn: ['overdue', 'extended'] },
+ *     { label: 'Suspend', type: 'handler', handler: 'suspendTerm' },
+ *   ],
+ * }
+ * ```
+ *
+ * The state is `overdue` past the date, else `danger` or `warning` by the
+ * thresholds, else `extended` when `extendedField` is truthy, else `onTrack`.
+ * `extended` also counts for `disabledIn` while a threshold applies, so a
+ * term extended once cannot be extended again a week before its end.
+ *
  * ## An unset date
  *
  * Renders a dash and no threshold colour. A case with no deadline is not urgent
@@ -123,6 +175,7 @@ export default {
 	name: 'CnCountdownWidget',
 
 	components: {
+		CnNoteCard,
 		CnWidgetIcon,
 	},
 
@@ -144,8 +197,11 @@ export default {
 		 * - `emptyLabel` — the headline while the date is unset (default a dash).
 		 * - `emptyCaption` — the line under it while the date is unset, with `{date}` read from `emptyDateField`.
 		 * - `facts` — `[{ label, field }]` rows under the caption.
+		 * - `extendedField` — property on the record that is truthy once the term has been extended.
+		 * - `states` — per state (`onTrack`, `warning`, `danger`, `overdue`, `extended`) a `{ headline?, caption?, notice?: { lead?, text?, type? } }`; texts take `{date}` and `{count}` and run through the host's translate.
+		 * - `actions` — several manifest actions under the card, each with an optional `disabledIn` list of states.
 		 *
-		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object, emptyLabel?: string, emptyCaption?: string, emptyDateField?: string, facts?: Array<{label: string, field: string}> }}
+		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object, emptyLabel?: string, emptyCaption?: string, emptyDateField?: string, facts?: Array<{label: string, field: string}>, extendedField?: string, states?: object, actions?: Array<object> }}
 		 */
 		content: {
 			type: Object,
@@ -261,6 +317,9 @@ export default {
 				return t('nextcloud-vue', 'Closed')
 			}
 			const days = this.daysRemaining
+			if (this.stateConfig.headline) {
+				return this.fillStateText(this.stateConfig.headline)
+			}
 			if (days === null) {
 				return this.content?.emptyLabel ? this.translate(this.content.emptyLabel) : '—'
 			}
@@ -338,22 +397,109 @@ export default {
 				.filter((row) => row.value !== '')
 		},
 
-		/** @return {string} The accessible name of the progress bar. */
-		progressLabel() {
-			return t('nextcloud-vue', 'Time passed')
+		/**
+		 * Whether the record says its term has been extended (`extendedField`).
+		 *
+		 * @return {boolean} True for an extended term.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		isExtended() {
+			const field = this.content?.extendedField
+			return Boolean(field && this.record && getByPath(this.record, field))
 		},
 
 		/**
-		 * The label of `content.action`, translated, or ''.
+		 * The state of the term: `overdue`, `danger`, `warning`, `extended` or
+		 * `onTrack`; null while the date is unset or the record is settled.
 		 *
-		 * @return {string} The label.
-		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 * @return {string|null} The state.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
 		 */
-		actionLabel() {
-			const action = this.content?.action
-			return action && typeof action === 'object' && typeof action.label === 'string' && action.label !== ''
-				? this.translate(action.label)
-				: ''
+		termState() {
+			if (this.daysRemaining === null || this.isSettled) {
+				return null
+			}
+			if (this.daysRemaining < 0) {
+				return 'overdue'
+			}
+			if (this.variant === 'error') {
+				return 'danger'
+			}
+			if (this.variant === 'warning') {
+				return 'warning'
+			}
+			return this.isExtended ? 'extended' : 'onTrack'
+		},
+
+		/**
+		 * Every state that holds now: the term state, plus `extended` while a
+		 * threshold or the date outranks it.
+		 *
+		 * @return {string[]} The states.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		activeStates() {
+			if (this.termState === null) {
+				return []
+			}
+			return this.isExtended && this.termState !== 'extended' ? [this.termState, 'extended'] : [this.termState]
+		},
+
+		/**
+		 * The `states` entry of the current state, or an empty object.
+		 *
+		 * @return {{headline?: string, caption?: string, notice?: object}} The entry.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		stateConfig() {
+			const states = this.content?.states
+			const entry = this.termState && states && typeof states === 'object' ? states[this.termState] : null
+			return entry && typeof entry === 'object' ? entry : {}
+		},
+
+		/**
+		 * The notice of the current state, its texts filled in, or null.
+		 *
+		 * @return {{lead: string, text: string, type: string}|null} The notice.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		stateNotice() {
+			const notice = this.stateConfig.notice
+			if (!notice || typeof notice !== 'object' || (!notice.lead && !notice.text)) {
+				return null
+			}
+			const type = NOTICE_TYPES.includes(notice.type) ? notice.type : DEFAULT_NOTICE_TYPES[this.termState]
+			return {
+				lead: notice.lead ? this.fillStateText(notice.lead) : '',
+				text: notice.text ? this.fillStateText(notice.text) : '',
+				type,
+			}
+		},
+
+		/**
+		 * The buttons under the card: `content.actions`, or `content.action`
+		 * alone, each greyed out while a state its `disabledIn` names holds.
+		 *
+		 * @return {Array<{index: number, label: string, primary: boolean, disabled: boolean, action: object}>} The buttons.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		actionButtons() {
+			const list = Array.isArray(this.content?.actions) ? this.content.actions : [this.content?.action]
+			return list
+				.map((action, index) => ({ action, index }))
+				.filter(({ action }) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				.map(({ action, index }) => ({
+					index,
+					label: this.translate(action.label),
+					primary: action.variant === 'primary',
+					disabled: Array.isArray(action.disabledIn) && action.disabledIn.some((state) => this.activeStates.includes(state)),
+					action,
+				}))
+		},
+
+		/** @return {string} The accessible name of the progress bar. */
+		progressLabel() {
+			return t('nextcloud-vue', 'Time passed')
 		},
 
 		/**
@@ -371,6 +517,9 @@ export default {
 			}
 			if (!this.targetDate || this.content?.showDate === false) {
 				return ''
+			}
+			if (this.stateConfig.caption) {
+				return this.fillStateText(this.stateConfig.caption)
 			}
 			const date = this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
 			const caption = this.content?.caption
@@ -440,20 +589,38 @@ export default {
 		},
 
 		/**
-		 * Dispatch `content.action` with the record's tokens resolved, through
-		 * the page's dispatcher when there is one.
+		 * A state text through the host's translate, with `{date}` the long
+		 * date and `{count}` the days left, or the days past once overdue.
 		 *
-		 * @return {unknown}
-		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 * @param {string} text The text.
+		 * @return {string} The filled text.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
 		 */
-		runAction() {
-			const action = this.content?.action
+		fillStateText(text) {
+			const date = this.targetDate ? this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+			const count = this.daysRemaining === null ? '' : String(Math.abs(this.daysRemaining))
+			return this.translate(text).replace(/\{date\}/g, date).replace(/\{count\}/g, count)
+		},
+
+		/**
+		 * Dispatch a manifest action with the record's tokens resolved, through
+		 * the page's dispatcher when there is one. A greyed-out action does nothing.
+		 *
+		 * @param {object} [action] The action; `content.action` when left out.
+		 * @return {unknown}
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		runAction(action = this.content?.action) {
 			if (!action || typeof action !== 'object') {
 				return undefined
 			}
 			const ctx = resolveObjectTokenContext(this.cnObjectContextInjected, this.cnDetailObjectContextInjected) || {}
 			const tokenCtx = { ...ctx, object: this.record || ctx.object || null, objectId: this.record?.id ?? ctx.objectId ?? null }
-			const resolved = resolveDeepTokens(action, tokenCtx)
+			const { disabledIn, ...declared } = action
+			if (Array.isArray(disabledIn) && disabledIn.some((state) => this.activeStates.includes(state))) {
+				return undefined
+			}
+			const resolved = resolveDeepTokens(declared, tokenCtx)
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(resolved)
 			}
@@ -518,6 +685,34 @@ export default {
 	margin: 0;
 }
 
+.cn-countdown-widget__actions {
+	align-self: stretch;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-block-start: 10px;
+}
+
+.cn-countdown-widget__actions .cn-countdown-widget__action {
+	margin: 0;
+}
+
+.cn-countdown-widget__action:disabled {
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	cursor: not-allowed;
+}
+
+.cn-countdown-widget__notice {
+	align-self: stretch;
+	margin: 10px 0 0;
+}
+
+.cn-countdown-widget--board .cn-countdown-widget__actions,
+.cn-countdown-widget--board .cn-countdown-widget__notice {
+	margin: 0;
+}
+
 .cn-countdown-widget__action--primary {
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
@@ -538,7 +733,7 @@ export default {
 	margin: 0;
 }
 
-.cn-countdown-widget__action:hover,
+.cn-countdown-widget__action:not(:disabled):hover,
 .cn-countdown-widget__action:focus-visible {
 	background: var(--color-background-hover);
 }

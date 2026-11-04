@@ -20,6 +20,22 @@
 			class="cn-checklist-run__form"
 			novalidate
 			@submit.prevent="next">
+			<div v-if="timeLeftText || savedLine" class="cn-checklist-run__status">
+				<span v-if="timeLeftText"
+					class="cn-checklist-run__time-left"
+					:class="{ 'cn-checklist-run__time-left--warning': timeWarning }"
+					role="timer"
+					aria-live="off"
+					data-testid="cn-checklist-run-time-left">
+					{{ timeLeftText }}
+				</span>
+				<span v-if="savedLine"
+					class="cn-checklist-run__saved"
+					role="status"
+					data-testid="cn-checklist-run-saved">
+					{{ savedLine }}
+				</span>
+			</div>
 			<p
 				ref="position"
 				class="cn-checklist-run__position"
@@ -103,6 +119,13 @@
 						data-testid="cn-checklist-run-note"
 						@input="markDirty(question.id)" />
 				</label>
+				<CnGeoCaptureField
+					v-if="locationField && (locating[question.id] || draft[question.id].location)"
+					:modelValue="draft[question.id].location || null"
+					:busy="locating[question.id] === true"
+					:goodAccuracy="goodAccuracy"
+					data-testid="cn-checklist-run-location"
+					@update:modelValue="setLocation(question.id, $event)" />
 				<p
 					v-if="missing.includes(question.id)"
 					class="cn-checklist-run__error"
@@ -157,15 +180,22 @@
 			<div class="cn-checklist-run__nav">
 				<NcButton
 					variant="secondary"
-					:disabled="page === 0 || saving"
+					:disabled="page === 0 || saving || closed"
 					data-testid="cn-checklist-run-previous"
 					@click="previous">
 					{{ previousLabel }}
 				</NcButton>
-				<NcButton
+				<NcButton v-if="submitLabel"
+					variant="secondary"
+					:disabled="saving || closed"
+					data-testid="cn-checklist-run-submit"
+					@click="submit">
+					{{ submitLabel }}
+				</NcButton>
+				<NcButton v-if="!submitLabel || !isLastPage"
 					variant="primary"
 					type="submit"
-					:disabled="saving"
+					:disabled="saving || closed"
 					data-testid="cn-checklist-run-next">
 					{{ isLastPage ? finishLabel : nextLabel }}
 				</NcButton>
@@ -189,10 +219,16 @@ import CameraOutline from 'vue-material-design-icons/CameraOutline.vue'
 import { uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { captureLocation } from '../../utils/captureLocation.js'
+import { parseDateValue } from '../../utils/dateVariant.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { CnGeoCaptureField } from '../CnGeoCaptureField/index.js'
 
 const OBJECT_API = '/apps/openregister/api/objects'
+const TICK_MS = 1000
+const DEFAULT_TIME_WARNING_SECONDS = 300
+const LAST_MINUTE_SECONDS = 60
 
 let instanceCounter = 0
 
@@ -252,6 +288,21 @@ function idOf(object) {
 }
 
 /**
+ * A number of seconds as a clock: "18:42", or "1:04:05" from an hour.
+ *
+ * @param {number} seconds The seconds.
+ * @return {string} The clock.
+ */
+function clockOf(seconds) {
+	const pad = (value) => String(value).padStart(2, '0')
+	const hours = Math.floor(seconds / 3600)
+	const minutes = Math.floor((seconds % 3600) / 60)
+	return hours > 0
+		? `${hours}:${pad(minutes)}:${pad(seconds % 60)}`
+		: `${pad(minutes)}:${pad(seconds % 60)}`
+}
+
+/**
  * CnChecklistRunWidget — the `checklist-run` widget: a checklist answered a
  * page of questions at a time (board DqInspectie, the middle phone frame).
  *
@@ -299,6 +350,11 @@ function idOf(object) {
  * with no bound record, `record: { register, schema, filter, sort }` picks
  * the open record: the first match, under the reader's rights.
  *
+ * A timed run names the record's deadline in `deadlineField`: the time left
+ * follows that moment rather than the page's start, so a reload keeps it. At
+ * zero the page is saved and the run finishes. `submitLabel` adds a button
+ * that finishes from any page, and `savedText` says so while nothing is unsaved.
+ *
  * `noteWhen: { answers: [...] }` shows a question's note field only once its
  * answer is one of those stored values (the board shows a note under "Nee"),
  * or when the question already holds a note; without it every question shows
@@ -309,6 +365,11 @@ function idOf(object) {
  * per record; `startAt: "lastAnswered"` at the page of its last answered
  * question, where the inspector was; without it the run opens at the first
  * page.
+ *
+ * `captureLocation: { field, goodAccuracy? }` captures where each answer was
+ * given, unasked, the first time it changes: the page's save waits for the
+ * device, a rough fix or none says so and takes an address by hand, and the
+ * place is stored in `field` of the answer.
  *
  * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
  * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
@@ -321,7 +382,7 @@ function idOf(object) {
 export default {
 	name: 'CnChecklistRunWidget',
 
-	components: { CameraOutline, NcButton, NcLoadingIcon },
+	components: { CameraOutline, CnGeoCaptureField, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The detail page's object context (`{ objectId, object }`), for tokens. */
@@ -340,7 +401,8 @@ export default {
 		 * groupLabelField?, orderField?, fields?, typeMap?, choiceValues?,
 		 * answers | answersPath, answerKey?, answerFields?, recordPhotosField?,
 		 * record?, saveAction?, finishAction?, pageSize?, allowNote?, noteWhen?,
-		 * allowPhotos?, caption?, emptyText? }`, as in the component
+		 * allowPhotos?, caption?, emptyText?, deadlineField?, serverNowField?,
+		 * timeLeftText?, timeWarningSeconds?, savedText?, submitLabel? }`, as in the component
 		 * description and docs/components/cn-checklist-run-widget.md.
 		 *
 		 * @type {object}
@@ -393,6 +455,8 @@ export default {
 			recordAnswers: [],
 			draft: {},
 			dirty: {},
+			locating: {},
+			locationPending: {},
 			photos: {},
 			page: 0,
 			// The source the page was last positioned for; `startAt` applies once per source.
@@ -403,6 +467,11 @@ export default {
 			// `content.record` with a filter: the record it picked, or null.
 			pickedRecord: null,
 			liveText: '',
+			// The deadline ticker: the moment now, its timer, and whether the run has finished.
+			now: Date.now(),
+			recordReadAt: Date.now(),
+			deadlineTimer: null,
+			finishedRun: false,
 		}
 	},
 
@@ -479,6 +548,16 @@ export default {
 				const value = readPath(object, path)
 				return value === null || value === undefined ? '' : String(value)
 			}).trim()
+		},
+
+		/** @return {string} The answer field a captured place is stored in, '' when none is asked for. */
+		locationField() {
+			return this.content?.captureLocation?.field || ''
+		},
+
+		/** @return {number} The accuracy in metres above which a fix counts as low. */
+		goodAccuracy() {
+			return this.content?.captureLocation?.goodAccuracy ?? 50
 		},
 
 		/** @return {boolean} Whether a note field shows (default true). */
@@ -609,6 +688,60 @@ export default {
 		photoOnlyLabel: () => t('nextcloud-vue', 'Answer with a photo.'),
 		morePhotoLabel: () => t('nextcloud-vue', 'Another photo'),
 
+		/** @return {number|null} The deadline as read off the open record, on this device's clock; null without one. */
+		deadlineAt() {
+			const field = this.content?.deadlineField
+			const date = field ? parseDateValue(readPath(this.openRecord, field)) : null
+			return date ? date.getTime() + this.serverOffset : null
+		},
+
+		/** @return {number} How far this device's clock runs ahead of the server's, in milliseconds. */
+		serverOffset() {
+			const field = this.content?.serverNowField
+			const serverNow = field ? parseDateValue(readPath(this.openRecord, field)) : null
+			return serverNow ? this.recordReadAt - serverNow.getTime() : 0
+		},
+
+		/** @return {number|null} Whole seconds until the deadline, never below 0; null without one. */
+		secondsLeft() {
+			return this.deadlineAt === null ? null : Math.max(0, Math.ceil((this.deadlineAt - this.now) / 1000))
+		},
+
+		/** @return {boolean} Whether the time left is in its warning stretch. */
+		timeWarning() {
+			return this.secondsLeft !== null && this.secondsLeft <= (this.content?.timeWarningSeconds ?? DEFAULT_TIME_WARNING_SECONDS)
+		},
+
+		/** @return {string} The time left in words, or ''. */
+		timeLeftText() {
+			if (this.secondsLeft === null) {
+				return ''
+			}
+			const time = clockOf(this.secondsLeft)
+			return this.content?.timeLeftText
+				? this.translate(this.content.timeLeftText).replace('{time}', time)
+				: t('nextcloud-vue', 'Time left: {time}', { time })
+		},
+
+		/** @return {string} `savedText`, while nothing is unsaved and something was answered. */
+		savedLine() {
+			const text = this.content?.savedText
+			if (!text || this.answeredCount === 0 || Object.keys(this.dirty).length > 0 || this.saveError) {
+				return ''
+			}
+			return this.translate(text)
+		},
+
+		/** @return {boolean} A timed run finishes once: it is over, so nothing moves any more. */
+		closed() {
+			return this.finishedRun && this.deadlineAt !== null
+		},
+
+		/** @return {string} The label of the button that finishes from any page, or ''. */
+		submitLabel() {
+			return this.content?.submitLabel ? this.translate(this.content.submitLabel) : ''
+		},
+
 		/** @return {string} The note field's label. */
 		noteLabel() {
 			return this.content?.noteLabel ? this.translate(this.content.noteLabel) : t('nextcloud-vue', 'Note')
@@ -628,9 +761,77 @@ export default {
 
 			immediate: true,
 		},
+
+		openRecord: {
+			handler() {
+				this.recordReadAt = Date.now()
+			},
+
+			immediate: true,
+		},
+
+		deadlineAt() {
+			this.startDeadlineTimer()
+		},
+
+		'questions.length': function() {
+			this.startDeadlineTimer()
+		},
+	},
+
+	mounted() {
+		this.startDeadlineTimer()
+	},
+
+	beforeUnmount() {
+		clearInterval(this.deadlineTimer)
 	},
 
 	methods: {
+		/**
+		 * Run the ticker while a run with questions has a deadline.
+		 *
+		 * @return {void}
+		 */
+		startDeadlineTimer() {
+			clearInterval(this.deadlineTimer)
+			this.deadlineTimer = null
+			if (this.deadlineAt === null || this.questions.length === 0 || this.finishedRun) {
+				return
+			}
+			this.deadlineTimer = setInterval(this.onDeadlineTick, TICK_MS)
+			this.onDeadlineTick()
+		},
+
+		/**
+		 * Bring the time left up to date, say the warning and the last minute
+		 * once, and at zero save and finish. A failed save leaves the run open,
+		 * so the user can try again and sees why. While a save runs it waits for
+		 * the next tick.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onDeadlineTick() {
+			const before = this.secondsLeft
+			this.now = Date.now()
+			const left = this.secondsLeft
+			if (left === null) {
+				return
+			}
+			const warning = this.content?.timeWarningSeconds ?? DEFAULT_TIME_WARNING_SECONDS
+			if (left > 0 && before !== null && [warning, LAST_MINUTE_SECONDS].some((mark) => before > mark && left <= mark)) {
+				this.liveText = this.timeLeftText
+			}
+			if (left > 0 || this.saving) {
+				return
+			}
+			clearInterval(this.deadlineTimer)
+			this.deadlineTimer = null
+			if (await this.savePage()) {
+				await this.finish('deadline')
+			}
+		},
+
 		/**
 		 * Whether a question shows its note field: always, unless `noteWhen`
 		 * names the answers that ask for one and this question has none of
@@ -889,7 +1090,7 @@ export default {
 						const qid = String(readPath(entry, key) ?? '')
 						const question = questions.find((x) => x.id === qid)
 						if (question && !answerIds[qid]) {
-							draft[qid] = this.draftFromEntry(question, entry)
+							draft[qid] = { ...this.draftFromEntry(question, entry), location: this.locationField ? (readPath(entry, this.locationField) ?? null) : null }
 							answerIds[qid] = qid
 							const photos = readPath(entry, this.answerFields.photos)
 							storedPhotos[qid] = Array.isArray(photos) ? photos : []
@@ -902,6 +1103,7 @@ export default {
 						draft[qid] = {
 							value: String(readPath(answer, a.valueField || 'answer') ?? ''),
 							note: String(readPath(answer, a.noteField || 'note') ?? ''),
+							location: this.locationField ? (readPath(answer, this.locationField) ?? null) : null,
 						}
 						answerIds[qid] = idOf(answer)
 						const stored = a.photosField ? readPath(answer, a.photosField) : null
@@ -939,6 +1141,39 @@ export default {
 		markDirty(id) {
 			this.dirty = { ...this.dirty, [id]: true }
 			this.missing = this.missing.filter((m) => m !== id)
+			this.startLocating(id)
+		},
+
+		/**
+		 * Capture the place of an answer once, the first time it changes. The
+		 * promise is kept so the page's save can wait for it.
+		 *
+		 * @param {string} id The question id.
+		 * @return {void}
+		 * @spec openspec/changes/checklist-run-location/specs/checklist-run-location/spec.md#requirement-an-answer-carries-where-it-was-given
+		 */
+		startLocating(id) {
+			if (!this.locationField || this.draft[id]?.location || this.locating[id]) {
+				return
+			}
+			this.locating = { ...this.locating, [id]: true }
+			this.locationPending[id] = captureLocation().then((fix) => {
+				delete this.locationPending[id]
+				this.locating = { ...this.locating, [id]: false }
+				this.draft[id].location = fix ? { ...fix, low: fix.accuracy > this.goodAccuracy } : { low: true }
+			})
+		},
+
+		/**
+		 * The place was changed in the field: a new fix or a typed address.
+		 *
+		 * @param {string} id The question id.
+		 * @param {object} location The place.
+		 * @return {void}
+		 */
+		setLocation(id, location) {
+			this.draft[id].location = location
+			this.dirty = { ...this.dirty, [id]: true }
 		},
 
 		/**
@@ -992,6 +1227,7 @@ export default {
 			this.saving = true
 			this.saveError = ''
 			try {
+				await Promise.all(Object.values(this.locationPending))
 				if (this.inRecord && !this.content?.saveAction) {
 					await this.saveIntoRecord(changed)
 					this.dirty = Object.fromEntries(Object.entries(this.dirty).filter(([id]) => !changed.some((q) => q.id === id)))
@@ -1051,6 +1287,9 @@ export default {
 				if (af.at) {
 					entry[af.at] = new Date().toISOString()
 				}
+				if (this.locationField) {
+					entry[this.locationField] = draft.location ?? null
+				}
 				const held = this.photos[question.id] || []
 				if (this.photosEnabled && held.length) {
 					const field = c.recordPhotosField
@@ -1087,6 +1326,9 @@ export default {
 		async saveAnswer(question) {
 			const entry = this.draft[question.id]
 			const answer = { questionId: question.id, value: entry.value, note: entry.note }
+			if (this.locationField) {
+				answer.location = entry.location ?? null
+			}
 			const action = this.content?.saveAction
 			if (action && typeof action === 'object') {
 				const resolved = resolveDeepTokens(action, this.tokenCtx)
@@ -1105,6 +1347,9 @@ export default {
 			}
 			if (this.allowNote) {
 				body[a.noteField || 'note'] = entry.note
+			}
+			if (this.locationField) {
+				body[this.locationField] = entry.location ?? null
 			}
 			const base = generateUrl(`${OBJECT_API}/${encodeURIComponent(a.register)}/${encodeURIComponent(a.schema)}`)
 			let id = this.answerIds[question.id]
@@ -1154,11 +1399,39 @@ export default {
 			if (!(await this.savePage())) {
 				return
 			}
+			if (this.secondsLeft === 0) {
+				await this.finish('deadline')
+				return
+			}
 			if (this.isLastPage) {
-				await this.finish()
+				if (!this.submitLabel) {
+					await this.finish()
+				}
 				return
 			}
 			this.goTo(this.page + 1)
+		},
+
+		/**
+		 * Finish from any page. A required question without an answer holds it
+		 * back and opens that question's page.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async submit() {
+			const open = this.questions.findIndex((q) => q.required && !this.isAnswered(q))
+			if (open >= 0) {
+				if (!(await this.savePage())) {
+					return
+				}
+				this.missing = [this.questions[open].id]
+				this.goTo(Math.floor(open / this.pageSize))
+				return
+			}
+			this.missing = []
+			if (await this.savePage()) {
+				await this.finish()
+			}
 		},
 
 		/**
@@ -1192,9 +1465,16 @@ export default {
 		/**
 		 * The run is done: dispatch `finishAction` when set, and emit `finished`.
 		 *
+		 * @param {string} [reason] `user`, or `deadline` when the time ran out.
 		 * @return {Promise<void>}
 		 */
-		async finish() {
+		async finish(reason = 'user') {
+			if (this.closed) {
+				return
+			}
+			this.finishedRun = true
+			clearInterval(this.deadlineTimer)
+			this.deadlineTimer = null
 			const action = this.content?.finishAction
 			if (action && typeof action === 'object') {
 				const resolved = resolveDeepTokens(action, this.tokenCtx)
@@ -1204,9 +1484,9 @@ export default {
 			this.liveText = t('nextcloud-vue', 'Checklist finished.')
 			/**
 			 * @event finished The last page was saved.
-			 * @type {{answered: number, total: number}}
+			 * @type {{answered: number, total: number, reason: string}}
 			 */
-			this.$emit('finished', { answered: this.answeredCount, total: this.questions.length })
+			this.$emit('finished', { answered: this.answeredCount, total: this.questions.length, reason })
 		},
 	},
 }
@@ -1389,6 +1669,27 @@ export default {
    padding made them 4px wider. */
 .cn-checklist-run__nav :deep(.button-vue__text) {
 	padding-inline: 0;
+}
+
+.cn-checklist-run__status {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	justify-content: space-between;
+}
+
+.cn-checklist-run__time-left {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.cn-checklist-run__time-left--warning {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-checklist-run__saved {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-checklist-run__error {

@@ -95,3 +95,53 @@ export function durationSeconds(value) {
 	}
 	return Object.keys(p).reduce((sum, k) => sum + p[k] * SECONDS[k], 0)
 }
+
+/**
+ * Write a number of seconds as the canonical hours, minutes and seconds.
+ *
+ * @param {number} seconds The length; negative or fractional parts are dropped.
+ * @return {string} `PT1H4M23S`, `PT6M`, `PT0S`.
+ */
+export function secondsToDuration(seconds) {
+	const total = Math.max(0, Math.trunc(Number(seconds) || 0))
+	const h = Math.floor(total / 3600)
+	const m = Math.floor((total % 3600) / 60)
+	const s = total % 60
+	if (total === 0) {
+		return 'PT0S'
+	}
+	return `PT${h ? `${h}H` : ''}${m ? `${m}M` : ''}${s ? `${s}S` : ''}`
+}
+
+/**
+ * Show a number of seconds as a clock: `04:23`, or `1:04:23` from an hour.
+ *
+ * @param {number} seconds The length.
+ * @return {string}
+ */
+export function formatClock(seconds) {
+	const total = Math.max(0, Math.trunc(Number(seconds) || 0))
+	const h = Math.floor(total / 3600)
+	const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0')
+	const s = String(total % 60).padStart(2, '0')
+	return h ? `${h}:${m}:${s}` : `${m}:${s}`
+}
+
+/**
+ * Read what a user typed as a length: `6` is minutes, `04:23` is minutes and
+ * seconds, `1:04:23` adds hours.
+ *
+ * @param {string} text The typed text.
+ * @return {number|null} Seconds, or null when the text is no length.
+ */
+export function parseClock(text) {
+	const trimmed = String(text ?? '').trim()
+	if (/^\d+$/.test(trimmed)) {
+		return Number(trimmed) * 60
+	}
+	const m = trimmed.match(/^(?:(\d+):)?(\d{1,3}):([0-5]\d)$/)
+	if (!m) {
+		return null
+	}
+	return Number(m[1] || 0) * 3600 + Number(m[2]) * 60 + Number(m[3])
+}

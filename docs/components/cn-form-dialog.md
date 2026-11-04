@@ -679,7 +679,7 @@ A property that declares `x-openregister-property-source` (`provider`, `mode`, `
 
 ## Duration and sub-objects widgets
 
-`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). A field override with `timer`, `autoStart`, `norm` and `normLabel` draws it as a running clock. An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
 
 ## Child records
 

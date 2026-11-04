@@ -103,6 +103,35 @@
 							:placeholder="fill(field.placeholder)"
 							@search="(typed) => onSearch(field, typed)"
 							@update:modelValue="(value) => setValue(field.field, value && typeof value === 'object' ? value.id : value)" />
+						<!-- Several items to tick, listed from the record or the config
+						     (DqZaakDialogen "Documenten die meegaan"). -->
+						<fieldset v-else-if="field.type === 'checks'"
+							class="cn-action-dialog__checks"
+							:data-testid="`cn-action-dialog-checks-${field.field}`">
+							<legend class="cn-action-dialog__checks-legend">
+								{{ fill(field.label) || field.field }}
+							</legend>
+							<NcCheckboxRadioSwitch v-for="item in checkItems(field)"
+								:key="item.value"
+								:modelValue="checksValue(field).includes(item.value)"
+								type="checkbox"
+								@update:modelValue="(on) => setCheck(field, item.value, on)">
+								<span class="cn-action-dialog__checkbox-text">
+									<strong class="cn-action-dialog__checkbox-label">{{ item.label }}</strong>
+									<span v-if="item.secondary" class="cn-action-dialog__muted">{{ item.secondary }}</span>
+								</span>
+							</NcCheckboxRadioSwitch>
+							<span v-if="checkItems(field).length === 0" class="cn-action-dialog__muted">
+								{{ text(field.emptyText) || t('nextcloud-vue', 'Nothing to choose from.') }}
+							</span>
+						</fieldset>
+						<!-- One choice out of a few explained options (DqZaakSamenwerken
+						     "Delen" or "Overdragen"). -->
+						<CnChoiceCards v-else-if="field.type === 'cards'"
+							:modelValue="cardsValue(field)"
+							:options="cardOptions(field)"
+							:label="fill(field.label) || field.field"
+							@update:modelValue="(value) => setValue(field.field, value)" />
 						<!-- An optional select or text field: its label above the control,
 						     "(optional)" in grey after it (DqUwWachtrij "Sjabloon (niet
 						     verplicht)"). -->
@@ -126,7 +155,7 @@
 							:label="text(field.label) || field.field"
 							:placeholder="secretStored(field) ? t('nextcloud-vue', 'Stored. Type a new value to replace it.') : ''"
 							@update:modelValue="(value) => setValue(field.field, value)" />
-						<NcTextField v-else-if="field.type !== 'checkbox' && field.type !== 'search'"
+						<NcTextField v-else-if="!['checkbox', 'search', 'checks', 'cards'].includes(field.type)"
 							:id="controlId(field)"
 							:modelValue="values[field.field] || ''"
 							:type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'date' ? 'date' : 'text')"
@@ -173,7 +202,7 @@
 		</div>
 
 		<p v-else role="status" data-testid="cn-action-dialog-done">
-			{{ text(config.doneText) || t('nextcloud-vue', 'Done') }}
+			{{ answerText || text(config.doneText) || t('nextcloud-vue', 'Done') }}
 		</p>
 
 		<template #actions>
@@ -208,6 +237,7 @@ import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/use
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
+import { CnChoiceCards } from '../CnChoiceCards/index.js'
 import { CnDialog } from '../CnDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
@@ -256,7 +286,13 @@ let reasonSeq = 0
  *   `excludeSelf`, and sends the chosen record's id. Every field's `label`,
  *   `hint` and `placeholder` (search and select) are templates filled from the record.
  *   An optional select or text field (`required: false`) draws its label above
- *   the control with "(optional)" after it.
+ *   the control with "(optional)" after it. A `checks` field ticks several
+ *   items, listed in `options` or read off the record at `itemsPath`
+ *   (`optionValue`, `optionLabel` and `optionSecondary` name their parts),
+ *   starts on `default` (a list, or "all") and sends the ticked values as a
+ *   list; required means at least one. A `cards` field is one choice out of
+ *   `options` `[{ value, label, description? }]` drawn as cards, starting on
+ *   `default`.
  * - `reason`: `{ label?, hint?, required?, field?, rows? }`: a text area; required by
  *   default; sent as `field` (default `reason`). `rows` is its height in lines
  *   (default 2; board DqBesluit draws 4).
@@ -264,16 +300,18 @@ let reasonSeq = 0
  *   icon name in place of the variant's own ("LockOutline").
  * - `fieldsAfterNote`: true draws the fields after the reason and the note
  *   instead of before them (DqArchiveren's checkbox at the end).
- * - `confirm`: `{ label, icon?, request?: { method?, url, body? }, action? }`.
+ * - `confirm`: `{ label, icon?, request?: { method?, url, body?, answerPath? }, action? }`.
  *   `request` posts itself (`body` templates filled with the record and
  *   `{reason}`); `action` dispatches a manifest action through the page.
+ *   `answerPath` shows the text at that path of the answer once the act ran,
+ *   in place of `doneText` (a lookup that says what it found).
  *
  * Tokens (`@objectId`, `@object.<field>`) resolve in every url.
  */
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnDialog, CnFormField, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { CheckCircle, CircleOutline, CnChoiceCards, CnDialog, CnFormField, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -329,6 +367,7 @@ export default {
 			busy: false,
 			refusal: '',
 			done: false,
+			answerText: '',
 			reasonId: `cn-action-dialog-reason-${++reasonSeq}`,
 			fieldIdPrefix: `cn-action-dialog-field-${reasonSeq}`,
 		}
@@ -464,7 +503,13 @@ export default {
 		fieldValues() {
 			const out = { ...this.values }
 			for (const field of this.fields) {
-				out[field.field] = field.type === 'checkbox' ? this.checkboxValue(field) : (this.values[field.field] ?? '')
+				if (field.type === 'checks') {
+					out[field.field] = this.checksValue(field)
+				} else if (field.type === 'cards') {
+					out[field.field] = this.cardsValue(field)
+				} else {
+					out[field.field] = field.type === 'checkbox' ? this.checkboxValue(field) : (this.values[field.field] ?? '')
+				}
 			}
 			return out
 		},
@@ -484,6 +529,12 @@ export default {
 			return this.fields.every((f) => {
 				if (f.type === 'checkbox') {
 					return f.required !== true || this.checkboxValue(f)
+				}
+				if (f.type === 'checks') {
+					return f.required === false || this.checksValue(f).length > 0
+				}
+				if (f.type === 'cards') {
+					return f.required === false || String(this.cardsValue(f)) !== ''
 				}
 				return f.required === false || this.secretStored(f) || String(this.values[f.field] ?? '').trim() !== ''
 			})
@@ -518,7 +569,7 @@ export default {
 		 * @return {boolean}
 		 */
 		labelsOutside(field) {
-			return field.required === false && !['checkbox', 'search', 'secret'].includes(field.type)
+			return field.required === false && !['checkbox', 'search', 'secret', 'checks', 'cards'].includes(field.type)
 		},
 
 		/**
@@ -585,6 +636,83 @@ export default {
 			} finally {
 				this.searching = ''
 			}
+		},
+
+		/**
+		 * The items of a checks field, from `options` or the record's `itemsPath`.
+		 *
+		 * @spec openspec/changes/action-dialog-checks-cards/specs/action-dialog-checks-cards/spec.md#requirement-a-field-ticks-several-items
+		 * @param {object} field The field.
+		 * @return {Array<{value: string, label: string, secondary: string}>}
+		 */
+		checkItems(field) {
+			const listed = Array.isArray(field.options) ? field.options : readPath(this.record || {}, field.itemsPath || '')
+			return (Array.isArray(listed) ? listed : []).map((item) => {
+				if (item === null || typeof item !== 'object') {
+					return { value: String(item), label: String(item), secondary: '' }
+				}
+				return {
+					value: String(readPath(item, field.optionValue || 'value') ?? item.id ?? ''),
+					label: fillTemplate(field.optionLabel || '{label}', item),
+					secondary: field.optionSecondary ? fillTemplate(field.optionSecondary, item) : '',
+				}
+			}).filter((item) => item.value !== '')
+		},
+
+		/**
+		 * The ticked values of a checks field: what the reader ticked, else its
+		 * `default`, a list or "all".
+		 *
+		 * @spec openspec/changes/action-dialog-checks-cards/specs/action-dialog-checks-cards/spec.md#requirement-a-field-ticks-several-items
+		 * @param {object} field The field.
+		 * @return {Array<string>}
+		 */
+		checksValue(field) {
+			if (Array.isArray(this.values[field.field])) {
+				return this.values[field.field]
+			}
+			if (field.default === 'all') {
+				return this.checkItems(field).map((item) => item.value)
+			}
+			return Array.isArray(field.default) ? field.default.map(String) : []
+		},
+
+		/**
+		 * Tick or untick one item of a checks field.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} value The item's value.
+		 * @param {boolean} on Ticked.
+		 * @return {void}
+		 */
+		setCheck(field, value, on) {
+			const others = this.checksValue(field).filter((held) => held !== value)
+			this.values = { ...this.values, [field.field]: on ? [...others, value] : others }
+		},
+
+		/**
+		 * The options of a cards field, through the host translate.
+		 *
+		 * @spec openspec/changes/action-dialog-checks-cards/specs/action-dialog-checks-cards/spec.md#requirement-a-field-offers-one-choice-as-cards
+		 * @param {object} field The field.
+		 * @return {Array<object>}
+		 */
+		cardOptions(field) {
+			return (Array.isArray(field.options) ? field.options : []).map((option) => ({
+				...option,
+				label: this.text(option.label) || String(option.value),
+				description: this.text(option.description),
+			}))
+		},
+
+		/**
+		 * The value of a cards field: what the reader chose, else its `default`.
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 */
+		cardsValue(field) {
+			return this.values[field.field] ?? field.default ?? ''
 		},
 
 		/**
@@ -774,7 +902,11 @@ export default {
 					}
 					Object.assign(body, values)
 					const method = String(request.method || 'POST').toLowerCase()
-					await axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+					const answer = await axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+					if (request.answerPath) {
+						const said = readPath(answer?.data, request.answerPath)
+						this.answerText = said === null || said === undefined ? '' : String(said)
+					}
 				} else if (this.confirmConfig.action && typeof this.cnDispatchAction === 'function') {
 					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.fieldValues, reason }] })
 				}
@@ -803,7 +935,7 @@ export default {
 			}
 			const values = { ...this.values }
 			for (const field of this.fields) {
-				if (field.valuePath && field.type !== 'secret' && !(field.field in values)) {
+				if (field.valuePath && !['secret', 'checks'].includes(field.type) && !(field.field in values)) {
 					const value = readPath(this.record, field.valuePath)
 					if (value !== null && value !== undefined) {
 						values[field.field] = String(value)
@@ -1040,6 +1172,21 @@ export default {
 
 .cn-action-dialog__checkbox .cn-action-dialog__muted {
 	font-size: 13px;
+}
+
+.cn-action-dialog__checks {
+	border: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-action-dialog__checks-legend {
+	font-weight: 600;
+	margin-bottom: 4px;
+	padding: 0;
 }
 
 .cn-action-dialog__field {

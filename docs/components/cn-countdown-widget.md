@@ -32,7 +32,7 @@ It headlines the remaining time and carries the date itself underneath, because 
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | `{ field, label, icon, thresholds, showDate }`. `field` is the property holding the target date; `thresholds` is `{ warn, danger }` in days. |
+| `content` | `Object` | `{}` | `{ field, label, icon, thresholds, showDate }`, plus the term card keys below. `field` is the property holding the target date; `thresholds` is `{ warn, danger }` in days. |
 | `objectData` | `Object` | `null` | The bound record, when the surface passes it explicitly. Falls back to the injected `cnObjectContext` a detail page provides. |
 
 ## A term card
@@ -58,6 +58,41 @@ In the board look the card draws no icon circle and the headline takes the text 
   "action": { "label": "Termijn opschorten", "type": "handler", "handler": "suspendTerm", "args": ["@objectId"] }
 }
 ```
+
+## The states of a term
+
+Board DqZaakTermijn draws the term card in five states, and `states` gives each its own texts. The state is `overdue` once the date has passed, else `danger` or `warning` by the thresholds, else `extended` when the property `extendedField` names is truthy, else `onTrack`. A settled record and an unset date have no state.
+
+Each state takes an optional `headline`, `caption` and `notice` (`{ lead, text, type }`). The texts fill `{date}` with the long date and `{count}` with the days left, or the days past once the term has passed. The notice draws as a note card under the caption. Without a `type` it is info on track and extended, warning at `warning`, and error at `danger` and `overdue`.
+
+`actions` puts several buttons under the card. A button greys out in the states its `disabledIn` names. `extended` counts whenever the term was extended, so a term extended once cannot be extended again in its last week.
+
+```json
+{
+  "field": "deadline",
+  "label": "Termijn",
+  "daysLabel": { "one": "{count} dag", "other": "{count} dagen" },
+  "caption": "Beslissen uiterlijk {date}",
+  "thresholds": { "warn": 14, "danger": 7 },
+  "extendedField": "extendedOn",
+  "states": {
+    "warning": { "notice": { "lead": "Let op de termijn", "text": "Over twee weken moet het besluit de deur uit." } },
+    "danger": { "notice": { "lead": "Urgent: nog een week", "text": "Zonder besluit of verdaging verstrijkt de wettelijke termijn." } },
+    "overdue": {
+      "headline": "Termijn verlopen",
+      "caption": "Beslisdatum was {date}, {count} dagen geleden",
+      "notice": { "lead": "De wettelijke termijn is verstreken", "text": "Neem het besluit zo snel mogelijk." }
+    },
+    "extended": { "notice": { "text": "Verdagen kan één keer." } }
+  },
+  "actions": [
+    { "label": "Verdagen", "type": "open-modal", "modal": "extend-term", "disabledIn": ["overdue", "extended"] },
+    { "label": "Termijn opschorten", "type": "handler", "handler": "suspendTerm", "args": ["@objectId"] }
+  ]
+}
+```
+
+The "Termijn verdagen" dialog the board opens from "Verdagen" is a [`CnActionDialog`](./cn-action-dialog.md): the reason, what happens, and the confirm button.
 
 ## Notes
 
