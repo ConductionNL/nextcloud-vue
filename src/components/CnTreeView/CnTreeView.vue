@@ -235,7 +235,7 @@ export default {
 			return {
 				moveUp: t('nextcloud-vue', 'Move up'),
 				moveDown: t('nextcloud-vue', 'Move down'),
-				drag: t('nextcloud-vue', 'Drag to change the order'),
+				drag: t('nextcloud-vue', 'Drag to reorder'),
 				controlName: t('nextcloud-vue', '{action}: {label}'),
 				moved: t('nextcloud-vue', '{label} moved to position {position} of {total}.'),
 				...this.reorderLabels,
