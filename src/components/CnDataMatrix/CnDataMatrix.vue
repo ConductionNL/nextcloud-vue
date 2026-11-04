@@ -21,18 +21,27 @@
 							class="cn-data-matrix__col-header"
 							:style="col.width ? { width: col.width } : null">
 							{{ col.label || col.key }}
+							<span v-if="weightText(col)" class="cn-data-matrix__weight">{{ weightText(col) }}</span>
 						</th>
 						<th v-if="showRowTotals" class="cn-data-matrix__total-header">
 							{{ rowTotalsLabel }}
+						</th>
+						<th v-if="showRank" class="cn-data-matrix__total-header cn-data-matrix__rank-header">
+							{{ resolvedRankLabel }}
 						</th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr v-for="row in rows"
 						:key="row[rowIdKey]"
-						class="cn-data-matrix__row">
-						<th v-if="rowHeader" class="cn-data-matrix__row-header" :title="row[rowLabelKey]">
+						class="cn-data-matrix__row"
+						:class="{ 'cn-data-matrix__row--top': highlightTopRank && ranks.get(row[rowIdKey]) === 1 }">
+						<th v-if="rowHeader"
+							scope="row"
+							class="cn-data-matrix__row-header"
+							:title="row[rowLabelKey]">
 							{{ row[rowLabelKey] }}
+							<span v-if="rowSublabelKey && row[rowSublabelKey]" class="cn-data-matrix__row-sublabel">{{ row[rowSublabelKey] }}</span>
 						</th>
 						<td v-for="col in columns"
 							:key="col.key"
@@ -56,7 +65,10 @@
 							</span>
 						</td>
 						<td v-if="showRowTotals" class="cn-data-matrix__total-cell">
-							{{ formatCell(rowTotal(row), { type: 'number' }) }}
+							{{ formatTotal(rowTotal(row)) }}
+						</td>
+						<td v-if="showRank" class="cn-data-matrix__total-cell cn-data-matrix__rank-cell">
+							{{ ranks.has(row[rowIdKey]) ? ranks.get(row[rowIdKey]) : '' }}
 						</td>
 					</tr>
 					<tr v-if="showColumnTotals" class="cn-data-matrix__totals-row">
@@ -69,8 +81,9 @@
 							{{ formatCell(columnTotal(col), { type: 'number' }) }}
 						</td>
 						<td v-if="showRowTotals" class="cn-data-matrix__total-cell cn-data-matrix__grand-total">
-							{{ formatCell(grandTotal, { type: 'number' }) }}
+							{{ formatTotal(grandTotal) }}
 						</td>
+						<td v-if="showRank" class="cn-data-matrix__total-cell" />
 					</tr>
 				</tbody>
 			</table>
@@ -83,6 +96,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { userLocale } from '../../utils/userLocale.js'
 /**
  * CnDataMatrix — Inline-edit data grid for matrix-shaped data
@@ -94,6 +108,12 @@ import { userLocale } from '../../utils/userLocale.js'
  * Use for gradebooks, weight matrices, allocation tables, scoring
  * rubrics — the "spreadsheet" shape where cells are independently
  * editable values rather than a row/object form.
+ *
+ * A scoring matrix weighs its columns: give each column a `weight` (and an
+ * optional `weightLabel` such as "40%"), set `rowTotalsMode="weighted"` and
+ * the row total is the weighted mean of the row's scores. `showRank` ranks
+ * the rows by that total, highest first, and `highlightTopRank` tints the
+ * leading row.
  *
  * Not a full spreadsheet engine — there's no formula language, no
  * cell-range references, no charts. Consumers wanting that should
@@ -128,7 +148,7 @@ export default {
 		/**
 		 * Column declarations.
 		 *
-		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formatter?:(value: unknown) => string,aggregate?:'sum'|'avg'|'count'|'none',width?:string}>}
+		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formatter?:(value: unknown) => string,aggregate?:'sum'|'avg'|'count'|'none',width?:string,weight?:number,weightLabel?:string}>}
 		 */
 		columns: { type: Array, default: () => [] },
 		/** Field on each row carrying its id. */
@@ -153,6 +173,22 @@ export default {
 		rowTotalsLabel: { type: String, default: 'Total' },
 		/** Label preceding the column-totals row. */
 		columnTotalsLabel: { type: String, default: 'Total' },
+		/**
+		 * How a row total is computed: `sum` adds the number columns,
+		 * `weighted` takes the mean of the number columns weighted by each
+		 * column's `weight`, leaving out a cell without a value.
+		 */
+		rowTotalsMode: { type: String, default: 'sum', validator: (v) => ['sum', 'weighted'].includes(v) },
+		/** Fraction digits of the totals; null keeps the locale default. */
+		totalsFractionDigits: { type: Number, default: null },
+		/** Render a rank column: the rows ranked by their row total, highest first, ties sharing a rank. */
+		showRank: { type: Boolean, default: false },
+		/** Header of the rank column, already translated; the library default is "Rank". */
+		rankLabel: { type: String, default: '' },
+		/** Tint the row ranked first. */
+		highlightTopRank: { type: Boolean, default: false },
+		/** Field on each row with a second line under its label, such as a price. */
+		rowSublabelKey: { type: String, default: '' },
 	},
 
 	emits: ['cell-edit'],
@@ -163,6 +199,30 @@ export default {
 	},
 
 	computed: {
+		/** @return {string} The rank column header. */
+		resolvedRankLabel() {
+			return this.rankLabel || t('nextcloud-vue', 'Rank')
+		},
+
+		/**
+		 * The rank of every row with a row total: highest total first, rows
+		 * with an equal total sharing a rank (1, 2, 2, 4).
+		 *
+		 * @return {Map<unknown, number>} Rank per row id.
+		 */
+		ranks() {
+			const totals = this.rows
+				.map((row) => ({ id: row[this.rowIdKey], total: this.rowTotal(row) }))
+				.filter((entry) => Number.isFinite(entry.total))
+				.sort((a, b) => b.total - a.total)
+			const ranks = new Map()
+			totals.forEach((entry, index) => {
+				const previous = totals[index - 1]
+				ranks.set(entry.id, previous && previous.total === entry.total ? ranks.get(previous.id) : index + 1)
+			})
+			return ranks
+		},
+
 		/**
 		 * Grand total (sum of every numeric cell). Shown in the
 		 * bottom-right corner when both totals are enabled.
@@ -321,12 +381,58 @@ export default {
 		},
 
 		/**
-		 * Per-row total — sum of every numeric column.
+		 * The weight shown beside a column label: `weightLabel`, else the
+		 * `weight` itself, or '' for an unweighted column.
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string} The weight text.
+		 */
+		weightText(col) {
+			if (typeof col.weightLabel === 'string' && col.weightLabel !== '') {
+				return col.weightLabel
+			}
+			return Number.isFinite(col.weight) ? String(col.weight) : ''
+		},
+
+		/**
+		 * Format a total with `totalsFractionDigits` when set.
+		 *
+		 * @param {number|null} value The total.
+		 * @return {string} The display string.
+		 */
+		formatTotal(value) {
+			if (!Number.isFinite(value)) {
+				return ''
+			}
+			if (this.totalsFractionDigits === null) {
+				return this.formatCell(value, { type: 'number' })
+			}
+			const digits = this.totalsFractionDigits
+			return value.toLocaleString(userLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits })
+		},
+
+		/**
+		 * Per-row total: the sum of every numeric column, or in `weighted`
+		 * mode the weighted mean over the weighted columns that hold a value
+		 * (null when none does).
 		 *
 		 * @param {object} row Row record.
-		 * @return {number}
+		 * @return {number|null}
 		 */
 		rowTotal(row) {
+			if (this.rowTotalsMode === 'weighted') {
+				let weighted = 0
+				let weights = 0
+				for (const col of this.columns) {
+					const raw = row[col.key]
+					const v = Number(raw)
+					if (col.type === 'number' && Number.isFinite(col.weight) && col.weight > 0 && raw !== null && raw !== undefined && raw !== '' && Number.isFinite(v)) {
+						weighted += v * col.weight
+						weights += col.weight
+					}
+				}
+				return weights > 0 ? weighted / weights : null
+			}
 			let total = 0
 			for (const col of this.columns) {
 				if (col.type === 'number') {
@@ -480,6 +586,25 @@ export default {
 
 .cn-data-matrix__grand-total {
 	background: var(--color-primary-element-light);
+}
+
+.cn-data-matrix__weight {
+	color: var(--color-text-maxcontrast);
+	font-weight: 400;
+	white-space: nowrap;
+}
+
+.cn-data-matrix__row-sublabel {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	font-weight: 400;
+}
+
+.cn-data-matrix__row--top > th,
+.cn-data-matrix__row--top > td {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 
 .cn-data-matrix__empty {
