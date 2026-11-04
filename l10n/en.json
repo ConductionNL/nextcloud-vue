@@ -2614,7 +2614,9 @@
     "Remove group": "Remove group",
     "Condition": "Condition",
     "These conditions are kept as written": "These conditions are kept as written",
-    "This group has no conditions yet.": "This group has no conditions yet."
+    "This group has no conditions yet.": "This group has no conditions yet.",
+    "Remove {row}": "Remove {row}",
+    "Removed {row}.": "Removed {row}."
   },
   "plurals": {
     "{count} member": [

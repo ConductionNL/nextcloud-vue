@@ -2879,7 +2879,9 @@
     "Remove group": "Groep verwijderen",
     "Condition": "Voorwaarde",
     "These conditions are kept as written": "Deze voorwaarden blijven zoals ze zijn geschreven",
-    "This group has no conditions yet.": "Deze groep heeft nog geen voorwaarden."
+    "This group has no conditions yet.": "Deze groep heeft nog geen voorwaarden.",
+    "Remove {row}": "{row} verwijderen",
+    "Removed {row}.": "{row} verwijderd."
   },
   "plurals": {
     "{count} member": [
