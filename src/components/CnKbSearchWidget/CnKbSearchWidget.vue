@@ -390,6 +390,7 @@ export default {
 		 * or `{ register, schema, filter?, sort?, path }`, the field at `path`
 		 * of the first record that query finds.
 		 *
+		 * @spec exclude reads the suggestion text for loadSuggestions; suggestFrom has no spec of its own in this repository
 		 * @return {Promise<string>} The text, or '' when there is none.
 		 */
 		async suggestionText() {

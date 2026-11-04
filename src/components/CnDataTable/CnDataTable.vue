@@ -145,6 +145,7 @@
 						<th
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
+							scope="col"
 							:class="[
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
