@@ -85,7 +85,9 @@ describe('CnChecklistRunWidget saveEachAnswer', () => {
 
 	it('🔴 does not create the answer twice when the user moves on during a save', async () => {
 		let release
-		axios.post.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve({ data: { id: 'ans-new' } }) }))
+		axios.post.mockImplementationOnce(() => new Promise((resolve) => {
+			release = () => resolve({ data: { id: 'ans-new' } })
+		}))
 		const w = mountRun({ saveEachAnswer: 0 })
 		await flush()
 		await w.findAll('[data-testid="cn-checklist-run-choice"]')[0].setValue(true)
