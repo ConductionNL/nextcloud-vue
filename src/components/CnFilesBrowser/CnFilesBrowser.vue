@@ -3811,7 +3811,7 @@ export default {
 
 /* The row button and the row menu stand side by side on one line, not
    stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
-   @spec openspec/changes/files-row-button-beside-menu/specs/files-row-button-beside-menu/spec.md#requirement-a-files-row-button-stands-beside-the-row-menu */
+   @spec openspec/changes/files-row-button-gap-14/specs/files-row-button-gap-14/spec.md#requirement-the-row-button-and-menu-stand-14px-apart */
 .cn-files-browser__col-actions > .cn-files-browser__row-button,
 .cn-files-browser__col-actions > .cn-files-browser__row-menu {
 	display: inline-flex;

@@ -165,6 +165,12 @@
 	background-color: var(--color-background-hover);
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.cn-sidebar-columns__group-header {
+		transition: none;
+	}
+}
+
 .cn-sidebar-columns__group-header h4 {
 	margin: 0;
 	padding: 0;

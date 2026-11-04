@@ -62,7 +62,11 @@
 			<div
 				class="cn-sidebar-tab__dropzone"
 				:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
+				role="button"
+				tabindex="0"
 				@click="triggerFileInput"
+				@keydown.enter.prevent="triggerFileInput"
+				@keydown.space.prevent="triggerFileInput"
 				@dragover.prevent="onDragOver"
 				@dragleave.prevent="onDragLeave"
 				@drop.prevent="onDrop">
@@ -96,6 +100,7 @@
 					type="file"
 					multiple
 					class="cn-sidebar-tab__file-input"
+					:aria-label="dropZoneLabel"
 					@change="onFileUpload">
 				<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
 				<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
@@ -1139,6 +1144,10 @@ export default {
 .cn-sidebar-tab__dropzone--active {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-sidebar-tab__dropzone { transition: none; }
 }
 
 .cn-sidebar-tab__share { margin-bottom: 12px; }
