@@ -2618,7 +2618,11 @@
     "This choice was not saved.": "This choice was not saved.",
     "On this device: \"{value}\"": "On this device: \"{value}\"",
     "On the server: \"{value}\"": "On the server: \"{value}\"",
-    "Rank": "Rank"
+    "Rank": "Rank",
+    "Hide": "Hide",
+    "Hide {label}": "Hide {label}",
+    "Why do you need to see this?": "Why do you need to see this?",
+    "The value could not be shown. Try again later.": "The value could not be shown. Try again later."
   },
   "plurals": {
     "{count} member": [

@@ -309,6 +309,7 @@ export {
 	CnRelationshipGraph,
 	CnResourceSelect,
 	CnRetentionWidget,
+	CnRevealField,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,
