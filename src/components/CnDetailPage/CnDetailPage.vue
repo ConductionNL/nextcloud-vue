@@ -2449,6 +2449,24 @@ export default {
 		},
 
 		/**
+		 * A condition on the record, in the `visibleWhen` grammar (manifest
+		 * `config.readOnlyWhen`): while it holds, the page treats the record
+		 * as one it may not update, as with `can.update` false. The Edit
+		 * button, the header actions with role `edit` or `update` and the
+		 * inline editors are off. `{ field: "mergedInto", op: "notEmpty" }`
+		 * keeps a record merged into another from being edited. It is decided
+		 * on the page (no `endpoint` or `source`) and may read the
+		 * `visibilityContext` records as `@context.<name>.<path>`. Null
+		 * (the default) changes nothing.
+		 *
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyWhen: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Hide valueless fields on the auto-rendered data widget, instead of
 		 * showing them with an em dash. See `CnObjectDataWidget`'s `hide-empty`.
 		 *
@@ -5586,13 +5604,30 @@ export default {
 		},
 
 		/**
-		 * Whether the record refuses this reader's updates (`can.update === false`).
+		 * Whether the record refuses this reader's updates (`can.update === false`),
+		 * or the page's `readOnlyWhen` holds for it.
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
 		 */
 		recordUpdateDenied() {
-			return Boolean(this.recordCan && this.recordCan.update === false)
+			return Boolean(this.recordCan && this.recordCan.update === false) || this.readOnlyByCondition
+		},
+
+		/**
+		 * Whether the page's `readOnlyWhen` holds for the record (and its
+		 * `visibilityContext` records). False without the option, and while
+		 * the record or those records are still on their way.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyByCondition() {
+			const when = this.readOnlyWhen
+			if (!when || typeof when !== 'object' || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: when }, this.widgetVisibilityData)
 		},
 
 		/**
