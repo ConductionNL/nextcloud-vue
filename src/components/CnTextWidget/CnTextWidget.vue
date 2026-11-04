@@ -48,6 +48,11 @@
 				</tr>
 			</tbody>
 		</table>
+		<pre
+			v-else-if="monospace && hasText"
+			class="cn-text-widget__mono"
+			data-testid="cn-text-widget-mono"
+			:style="monoStyle">{{ text }}</pre>
 		<div
 			v-else-if="hasText"
 			class="cn-text-widget__content"
@@ -127,6 +132,11 @@ function ensureDomPurifyHook() {
  * attributes. Merge-swallowed cells are hidden via `v-show` so the visual
  * grid stays rectangular.
  *
+ * With `monospace: true` the text is shown as typed, in a fixed-width font
+ * with its spaces and line breaks kept, and is never parsed as HTML or
+ * markdown: a receipt or a log line. `textField` reads the text from that
+ * field of the detail page's object instead of `text`.
+ *
  * Registered as the `text` dashboard widget type via the renderer's
  * `index.js`.
  */
@@ -143,24 +153,59 @@ export default {
 	props: {
 		/**
 		 * Persisted widget content blob: `{text, fontSize, color,
-		 * backgroundColor, textAlign, contentMode, tableMode, tableData, link}`.
+		 * backgroundColor, textAlign, contentMode, tableMode, tableData, link,
+		 * monospace, textField}`.
 		 * All keys are optional; missing keys collapse to documented defaults.
 		 * `text` and `link.label` go through the app's translate function.
 		 * `link` is `{label, route}` (a page id, or a path starting with `/`) or
 		 * `{label, href}` (an external URL), drawn under the text.
+		 * `monospace` shows the text as typed in a fixed-width font;
+		 * `textField` reads the text from that field of `objectData`.
 		 *
-		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object, link: {label: string, route: string, href: string}}}
+		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object, link: {label: string, route: string, href: string}, monospace: boolean, textField: string}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/** The detail page's object, which `content.textField` reads from. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	computed: {
-		/** The author text through the app's translate function, or '' when absent / non-string. */
+		/**
+		 * The text: `content.textField` of the object as it is, else `content.text` translated; '' when absent.
+		 *
+		 * @spec openspec/changes/text-widget-monospace/tasks.md#task-2
+		 */
 		text() {
+			const field = this.content?.textField
+			if (typeof field === 'string' && field !== '') {
+				const value = this.objectData?.[field]
+				return value === undefined || value === null ? '' : String(value)
+			}
 			return typeof this.content?.text === 'string' ? this.tr(this.content.text) : ''
+		},
+
+		/**
+		 * Whether the text shows as typed, in a fixed-width font.
+		 *
+		 * @spec openspec/changes/text-widget-monospace/tasks.md#task-1
+		 */
+		monospace() {
+			return this.content?.monospace === true
+		},
+
+		/** Inline style for the fixed-width text. */
+		monoStyle() {
+			return {
+				'font-size': this.fontSize,
+				color: this.color,
+			}
 		},
 
 		/**
@@ -438,6 +483,20 @@ export default {
 }
 
 .cn-text-widget__content,
+.cn-text-widget__mono {
+	width: 100%;
+	margin: 0;
+	padding: 12px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	text-align: start;
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+}
+
 .cn-text-widget__placeholder {
 	/* Safety net — ensures long URLs / words inside the sanitised HTML wrap
 	   rather than overflowing horizontally. */

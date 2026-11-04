@@ -731,6 +731,10 @@
 									:inputLabel="fieldLabelText(field)"
 									:disabled="field.readOnly"
 									:error="!!errors[field.key]"
+									:timer="field.timer === true"
+									:autoStart="field.autoStart === true"
+									:norm="field.norm || null"
+									:normLabel="field.normLabel || ''"
 									@update:modelValue="value => updateField(field.key, value)" />
 								<CnFieldHelper
 									:id="helpId(field)"

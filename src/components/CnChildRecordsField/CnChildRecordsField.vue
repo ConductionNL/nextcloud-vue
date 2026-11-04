@@ -6,18 +6,47 @@
 	<div class="cn-child-records-field">
 		<div class="cn-child-records-field__head">
 			<span class="cn-child-records-field__label">{{ inputLabel }}</span>
-			<NcButton
-				v-if="!disabled"
-				data-testid="cn-child-records-add"
-				@click="addRow">
-				{{ t('nextcloud-vue', 'Add row') }}
-			</NcButton>
+			<div v-if="!disabled" class="cn-child-records-field__adds">
+				<CnSearchSelect
+					v-if="addFrom"
+					class="cn-child-records-field__pick"
+					data-testid="cn-child-records-add-from"
+					:modelValue="null"
+					:options="sourceOptions"
+					:loading="sourceLoading"
+					:inputLabel="addFromLabel"
+					:filterable="false"
+					@search="searchSource"
+					@update:modelValue="addFromPicked" />
+				<form
+					v-if="addFrom && addFrom.codeField"
+					class="cn-child-records-field__code"
+					data-testid="cn-child-records-code"
+					@submit.prevent="addByCode">
+					<NcTextField
+						:modelValue="code"
+						:label="codeLabel"
+						@update:modelValue="value => { code = value }" />
+					<NcButton type="submit" data-testid="cn-child-records-code-add">
+						{{ t('nextcloud-vue', 'Add') }}
+					</NcButton>
+				</form>
+				<NcButton
+					v-if="freeRows"
+					data-testid="cn-child-records-add"
+					@click="addRow">
+					{{ t('nextcloud-vue', 'Add row') }}
+				</NcButton>
+			</div>
 		</div>
 		<NcLoadingIcon v-if="loading" :name="t('nextcloud-vue', 'Loading …')" />
 		<table v-else class="cn-child-records-field__table">
 			<thead>
 				<tr>
-					<th v-for="col in columns" :key="col.key" scope="col">
+					<th v-for="col in columns"
+						:key="col.key"
+						scope="col"
+						:class="{ 'cn-child-records-field__num': col.numeric || col.computed }">
 						{{ col.label }}
 					</th>
 					<th v-if="!disabled" scope="col">
@@ -32,9 +61,10 @@
 					</td>
 				</tr>
 				<tr v-for="(row, index) in list" :key="index" data-testid="cn-child-records-row">
-					<td v-for="col in columns" :key="col.key">
+					<td v-for="col in columns" :key="col.key" :class="{ 'cn-child-records-field__num': col.numeric || col.computed }">
+						<span v-if="col.computed" data-testid="cn-child-records-computed">{{ computedText(row, col) }}</span>
 						<NcTextField
-							v-if="col.inline && !disabled"
+							v-else-if="col.inline && !disabled"
 							:modelValue="cellText(row, col)"
 							:label="`${col.label} ${index + 1}`"
 							:labelOutside="true"
@@ -55,7 +85,24 @@
 					</td>
 				</tr>
 			</tbody>
+			<tfoot v-if="totalRows.length > 0">
+				<tr v-for="totalRow in totalRows"
+					:key="totalRow.key"
+					:class="{ 'cn-child-records-field__total--emphasis': totalRow.emphasis }"
+					data-testid="cn-child-records-total">
+					<th scope="row" :colspan="Math.max(1, columns.length - 1)" class="cn-child-records-field__total-label">
+						{{ totalRow.label }}
+					</th>
+					<td class="cn-child-records-field__num" data-testid="cn-child-records-total-value">
+						{{ totalRow.text }}
+					</td>
+					<td v-if="!disabled" />
+				</tr>
+			</tfoot>
 		</table>
+		<p class="cn-child-records-field__sr" aria-live="polite" data-testid="cn-child-records-status">
+			{{ status }}
+		</p>
 		<p v-if="total > list.length" class="cn-child-records-field__more" data-testid="cn-child-records-more">
 			<template v-if="listUrl">
 				<a :href="listUrl">{{ moreLabel }}</a>
@@ -64,8 +111,8 @@
 				{{ moreLabel }}
 			</template>
 		</p>
-		<p v-if="error || problemText" class="cn-child-records-field__error" role="alert">
-			{{ error || problemText }}
+		<p v-if="error || problemText || addError" class="cn-child-records-field__error" role="alert">
+			{{ error || problemText || addError }}
 		</p>
 		<CnFormDialog
 			v-if="editing !== null && childSchema"
@@ -85,7 +132,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
+import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import { describeRowProblem, useChildRecords, validateChildRows } from '../../composables/useChildRecords.js'
+import { computeRow, computeTotals, rowFromSource, storeComputed } from '../../utils/childRecordTotals.js'
+import { formatMetricValue, normalizeMetricFormat } from '../../utils/formatMetric.js'
 
 /**
  * CnChildRecordsField — edits the records of another schema that point at this
@@ -99,6 +149,12 @@ import { describeRowProblem, useChildRecords, validateChildRows } from '../../co
  * the parent's payload. Each row is checked against the child schema's
  * required properties and the field reports the problems through `validity`.
  *
+ * `config.computed` adds read-only columns worked out per row from a formula,
+ * `config.totals` adds total rows under the table (a sum over the rows, or a
+ * formula over the totals before it), and `config.addFrom` adds rows from
+ * another schema's records: picked from a search, or found by a typed or
+ * scanned code.
+ *
  * ```vue
  * <CnChildRecordsField v-model="lines" register="shop" :config="{ schema: 'order-line', parentField: 'order' }" parentId="o-1" />
  * ```
@@ -109,6 +165,7 @@ export default {
 	components: {
 		// Lazy: CnFormDialog renders this field, so a static import is a cycle.
 		CnFormDialog: defineAsyncComponent(() => import('../CnFormDialog/CnFormDialog.vue')),
+		CnSearchSelect,
 		NcButton,
 		NcLoadingIcon,
 		NcTextField,
@@ -125,7 +182,16 @@ export default {
 		 * The relation: `schema` (child schema slug), `parentField` (the child
 		 * property pointing at the parent) and optional `columns` (keys shown).
 		 *
-		 * @type {{schema: string, parentField: string, columns?: string[]}}
+		 * Optional `computed`: read-only columns, each `{ key, label, formula,
+		 * format?, currency?, decimals?, store? }`; `store` writes the value into
+		 * the row when the row changes. Optional `totals`: rows under the table,
+		 * each `{ key, label, sum? | formula?, format?, currency?, decimals?,
+		 * emphasis? }`. Optional `addFrom`: `{ schema, register?, map,
+		 * titleField?, secondaryField?, label?, codeField?, codeLabel?,
+		 * freeRows? }`, where `map` names per row key the source key to copy
+		 * (`@id` for the source's id).
+		 *
+		 * @type {{schema: string, parentField: string, columns?: string[], computed?: object[], totals?: object[], addFrom?: object}}
 		 */
 		config: {
 			type: Object,
@@ -197,6 +263,13 @@ export default {
 		 * @type {Array<{row: number, field: string, label: string}>}
 		 */
 		'validity',
+		/**
+		 * The totals changed: the value per total key.
+		 *
+		 * @event totals
+		 * @type {{[key: string]: number|null}}
+		 */
+		'totals',
 	],
 
 	data() {
@@ -205,6 +278,11 @@ export default {
 			childSchema: null,
 			total: 0,
 			editing: null,
+			sourceOptions: [],
+			sourceLoading: false,
+			code: '',
+			addError: '',
+			status: '',
 		}
 	},
 
@@ -225,11 +303,59 @@ export default {
 				}
 				keys = keys.slice(0, this.maxColumns)
 			}
-			return keys.filter((k) => k !== this.config.parentField).map((key) => {
+			const computedKeys = this.computedColumns.map((c) => c.key)
+			const plain = keys.filter((k) => k !== this.config.parentField && !computedKeys.includes(k)).map((key) => {
 				const type = props[key]?.type || 'string'
 				const inline = ['string', 'number', 'integer'].includes(type) && !props[key]?.enum && !props[key]?.$ref
 				return { key, label: props[key]?.title || key, inline, numeric: type === 'number' || type === 'integer' }
 			})
+			const computed = this.computedColumns.map((c) => ({
+				key: c.key,
+				label: c.label || props[c.key]?.title || c.key,
+				computed: true,
+				format: normalizeMetricFormat(c) || { style: 'decimal', decimals: 2 },
+			}))
+			return [...plain, ...computed]
+		},
+
+		/** The computed columns as configured. */
+		computedColumns() {
+			return Array.isArray(this.config.computed) ? this.config.computed.filter((c) => c && c.key) : []
+		},
+
+		/** The totals per key. */
+		totals() {
+			return computeTotals(this.list, this.config.totals, this.computedColumns)
+		},
+
+		/** The total rows, each with its formatted text. */
+		totalRows() {
+			const totals = Array.isArray(this.config.totals) ? this.config.totals.filter((x) => x && x.key) : []
+			return totals.map((x) => ({
+				key: x.key,
+				label: x.label || x.key,
+				emphasis: !!x.emphasis,
+				text: formatMetricValue(this.totals[x.key], normalizeMetricFormat(x) || { style: 'decimal', decimals: 2 }),
+			}))
+		},
+
+		/** The add-from source, or null. */
+		addFrom() {
+			const source = this.config.addFrom
+			return source && typeof source === 'object' && source.schema ? source : null
+		},
+
+		/** Whether a free, empty row can be added. */
+		freeRows() {
+			return !this.addFrom || this.addFrom.freeRows !== false
+		},
+
+		addFromLabel() {
+			return this.addFrom?.label || t('nextcloud-vue', 'Add from a list')
+		},
+
+		codeLabel() {
+			return this.addFrom?.codeLabel || t('nextcloud-vue', 'Scan or type a code')
 		},
 
 		problems() {
@@ -259,6 +385,15 @@ export default {
 
 		parentId() {
 			this.load()
+		},
+
+		totals: {
+			immediate: true,
+			handler(totals) {
+				if (Object.keys(totals).length > 0) {
+					this.$emit('totals', totals)
+				}
+			},
 		},
 	},
 
@@ -319,8 +454,125 @@ export default {
 		 * @param {string} value The typed value.
 		 */
 		setCell(index, col, value) {
-			const next = this.list.map((r, i) => (i === index ? { ...r, [col.key]: col.numeric && value !== '' ? Number(value) : value } : r))
+			const next = this.list.map((r, i) => (i === index ? this.withComputed({ ...r, [col.key]: col.numeric && value !== '' ? Number(value) : value }) : r))
 			this.$emit('update:modelValue', next)
+		},
+
+		/**
+		 * The row with its stored computed columns written in.
+		 *
+		 * @param {object} row The row.
+		 * @return {object} The row.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-1
+		 */
+		withComputed(row) {
+			return storeComputed(row, this.computedColumns)
+		},
+
+		/**
+		 * The text of a computed cell.
+		 *
+		 * @param {object} row The row.
+		 * @param {{key: string, format: object}} col The computed column.
+		 * @return {string} The text.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-1
+		 */
+		computedText(row, col) {
+			return formatMetricValue(computeRow(row, this.computedColumns)[col.key], col.format)
+		},
+
+		/**
+		 * The URL of the add-from source's objects.
+		 *
+		 * @param {URLSearchParams} params The query.
+		 * @return {string} The URL.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-3
+		 */
+		sourceUrl(params) {
+			const register = this.addFrom.register || this.register
+			return generateUrl(`${this.apiBase}/objects/${register}/${this.addFrom.schema}?${params.toString()}`)
+		},
+
+		/**
+		 * Search the add-from source.
+		 *
+		 * @param {string} query The typed text.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-3
+		 */
+		async searchSource(query) {
+			if (!query) {
+				this.sourceOptions = []
+				return
+			}
+			this.sourceLoading = true
+			try {
+				const response = await axios.get(this.sourceUrl(new URLSearchParams({ _search: query, _limit: '20' })))
+				const results = Array.isArray(response?.data?.results) ? response.data.results : []
+				const titleField = this.addFrom.titleField || 'name'
+				this.sourceOptions = results.map((source) => ({
+					id: String(source.id ?? source.uuid),
+					label: String(source[titleField] ?? source.id ?? ''),
+					secondary: this.addFrom.secondaryField ? String(source[this.addFrom.secondaryField] ?? '') : '',
+					source,
+				}))
+			} catch {
+				this.sourceOptions = []
+			}
+			this.sourceLoading = false
+		},
+
+		/**
+		 * A source record was picked: add a row from it.
+		 *
+		 * @param {string|null} id The picked option's id.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-3
+		 */
+		addFromPicked(id) {
+			const option = this.sourceOptions.find((o) => o.id === id)
+			if (option) {
+				this.addSourceRow(option.source)
+			}
+		},
+
+		/**
+		 * Find the source record with the typed or scanned code and add a row from it.
+		 *
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-3
+		 */
+		async addByCode() {
+			const code = String(this.code || '').trim()
+			if (code === '') {
+				return
+			}
+			this.addError = ''
+			try {
+				const response = await axios.get(this.sourceUrl(new URLSearchParams({ [this.addFrom.codeField]: code, _limit: '2' })))
+				const results = Array.isArray(response?.data?.results) ? response.data.results : []
+				if (results.length === 1) {
+					this.addSourceRow(results[0])
+					this.code = ''
+				} else if (results.length === 0) {
+					this.addError = t('nextcloud-vue', 'No record has the code {code}.', { code })
+				} else {
+					this.addError = t('nextcloud-vue', 'More than one record has the code {code}.', { code })
+				}
+			} catch {
+				this.addError = t('nextcloud-vue', 'The code {code} could not be looked up.', { code })
+			}
+		},
+
+		/**
+		 * Append a row made from a source record.
+		 *
+		 * @param {object} source The source record.
+		 * @spec openspec/changes/child-records-totals/tasks.md#task-3
+		 */
+		addSourceRow(source) {
+			this.addError = ''
+			const row = this.withComputed(rowFromSource(source, this.addFrom.map))
+			this.$emit('update:modelValue', [...this.list, row])
+			const name = source?.[this.addFrom.titleField || 'name'] ?? ''
+			this.status = t('nextcloud-vue', 'Added {name}.', { name: String(name) })
 		},
 
 		/** Append an empty row. */
@@ -344,7 +596,7 @@ export default {
 		 */
 		onRowConfirm(values) {
 			const index = this.editing
-			this.$emit('update:modelValue', this.list.map((r, i) => (i === index ? { ...r, ...values } : r)))
+			this.$emit('update:modelValue', this.list.map((r, i) => (i === index ? this.withComputed({ ...r, ...values }) : r)))
 			this.editing = null
 		},
 	},
@@ -362,6 +614,45 @@ export default {
 
 .cn-child-records-field__label {
 	font-weight: 600;
+}
+
+.cn-child-records-field__head {
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-child-records-field__adds,
+.cn-child-records-field__code {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.cn-child-records-field__pick {
+	min-width: 240px;
+}
+
+.cn-child-records-field__table th.cn-child-records-field__num,
+.cn-child-records-field__table td.cn-child-records-field__num {
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-child-records-field__table tfoot th,
+.cn-child-records-field__table tfoot td {
+	border-bottom: none;
+}
+
+.cn-child-records-field__table .cn-child-records-field__total-label {
+	text-align: end;
+	font-weight: normal;
+}
+
+.cn-child-records-field__total--emphasis th,
+.cn-child-records-field__total--emphasis td {
+	font-weight: 600;
+	border-top: 1px solid var(--color-border);
 }
 
 .cn-child-records-field__table {

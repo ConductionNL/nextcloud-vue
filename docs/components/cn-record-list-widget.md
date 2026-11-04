@@ -134,6 +134,22 @@ shows nothing at 0.
 so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
 candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
 
+`rowActionsInline: true` draws the entries of `rowActions` as buttons on the row, not in a menu, for a row with one or two acts that matter, as board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen" on the step that waits. Rows that have none (`visibleWhen`) draw nothing there. An entry can take a `variant` (`primary`, default `secondary`) and an `ariaLabel` template that names the row. With `dot`, `title` and `meta` this draws a route of steps:
+
+```json
+{
+  "objectRows": { "path": "route" },
+  "dot": { "field": "state", "colorMap": { "done": "var(--color-success)", "waiting": "var(--color-error)" } },
+  "title": "{name}",
+  "meta": "{who}, {due|date}",
+  "rowActionsInline": true,
+  "rowActions": [
+    { "label": "Goedkeuren", "variant": "primary", "ariaLabel": "Goedkeuren: {name}", "endpoint": "/apps/app/api/route/{id}/approve", "visibleWhen": { "field": "state", "value": "waiting" } },
+    { "label": "Afwijzen", "ariaLabel": "Afwijzen: {name}", "endpoint": "/apps/app/api/route/{id}/reject", "visibleWhen": { "field": "state", "value": "waiting" } }
+  ]
+}
+```
+
 ### An action under the list
 
 `footerLink` (the shape of `headerLink`: `{ label, route, params?, query? }` or `{ label, href }`, `{total}` filled) ends the card with a text link under the rows, not drawn while the list is empty (DqDagAfsluiten "Naar Mijn werk", DqDashboard "Alles bekijken").

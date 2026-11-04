@@ -54,6 +54,7 @@ export {
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
+	CnBlockListEditor,
 	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,
@@ -75,6 +76,7 @@ export {
 	CnChipListManager,
 	CnChipsFieldWidget,
 	CnChoiceCards,
+	CnChoiceMatrix,
 	CnChoicePickerWidget,
 	CnColorPicker,
 	CnCommandPalette,
@@ -122,6 +124,7 @@ export {
 	CnDialog,
 	CnDialogActions,
 	CnDialogHeader,
+	CnDisplayScreen,
 	CnDividerWidget,
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
@@ -180,6 +183,7 @@ export {
 	CnFormWidgetBase,
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
+	CnGeoCaptureField,
 	CnGraphCanvas,
 	CnGroupedCardsWidget,
 	CnGroupedMenu,
@@ -290,6 +294,7 @@ export {
 	CnPropertiesTab,
 	CnPropertySourceField,
 	CnPropertyValueCell,
+	CnQrCode,
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
@@ -309,6 +314,7 @@ export {
 	CnRelationshipGraph,
 	CnResourceSelect,
 	CnRetentionWidget,
+	CnRevealField,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,
@@ -386,6 +392,7 @@ export {
 	CnTimelineView,
 	CnTimelineWidget,
 	CnToggleTableWidget,
+	CnTransferCard,
 	CnTransitionInputFields,
 	CnTranslatedBadge,
 	CnTreeView,
@@ -614,6 +621,7 @@ export {
 } from './utils/folderCustomization.js'
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
+export { encodeQr } from './utils/qr.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'

@@ -49,6 +49,9 @@ const nodes = [
 | `toggleAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row's caret button, such as a test id per node. |
 | `rowAttrs` | `(node, depth) => object` | `null` | Extra attributes for each row: a class, `data-*` attributes, or a `role` and `aria-label`. `class` and `style` merge with the row's own. |
 | `focusableRows` | Boolean | `false` | Rows get `tabindex="0"`, and Enter or Space on a row selects its node, like a click. Keys pressed on the caret or an action inside the row stay theirs. A focused row shows a focus ring in `--color-primary-element`. |
+| `reorderable` | Boolean | `false` | Rows move among their siblings: a drag handle, Move up and Move down. See [Reordering](#reordering). |
+| `reorderLabels` | Object | `{}` | Replacement texts: `moveUp`, `moveDown`, `drag`, `controlName` (`{action}`, `{label}`), `moved` (`{label}`, `{position}`, `{total}`). |
+| `moveStatus` | String | `''` | A status you set after saving a move; it replaces the spoken position. |
 | `expandAllOnMount` | Boolean | `false` | Expand every node on mount (emits `update:expanded-ids`). |
 
 ## Events
@@ -58,6 +61,8 @@ const nodes = [
 | `select` | `node` | Row clicked, or Enter or Space on a focusable row. Original node object. |
 | `update:selected-id` | id | `.sync` of `selectedId`. |
 | `update:expanded-ids` | `Array<id>` | `.sync` of `expandedIds`. |
+| `update:nodes` | `Array<node>` | The new tree after a move. The original nodes stay untouched. |
+| `move` | `{ node, parentId, from, to, siblings }` | A row moved. `parentId` is `null` at the root, and `siblings` is the new order to save. |
 
 ## Public methods
 
@@ -102,9 +107,28 @@ All off by default; without them the tree renders as before. A dashboard switche
   @select="open" />
 ```
 
+## Reordering
+
+Board LqCursus draws "Opbouw van de cursus": chapters with lessons, dragged or moved with Omhoog and Omlaag, saved at once and read out.
+
+```vue
+<CnTreeView
+  v-model:nodes="chapters"
+  reorderable
+  :move-status="saveStatus"
+  :reorder-labels="{
+    controlName: '{label} {action}',
+    moved: '{label} verplaatst naar positie {position} van {total}.',
+  }"
+  @move="saveOrder" />
+```
+
+A row moves among its siblings, not to another parent. Press Tab to reach Move up or Move down, and Enter to move. Focus stays on that button, or goes to the other one at the end of the list. A status line says "Reading moved to position 2 of 5.", after a drag too.
+
+You own the tree through `v-model:nodes`, and you save on `move`. When the save is done, set `moveStatus` to say so, or undo the move by setting `nodes` back.
+
 ## Follow-up
 
-- Drag-drop reorder (`draggable: true` + `@drop` event surface).
 - Keyboard navigation (arrow keys + Space/Enter for select).
 - Lazy-load children (`loadChildren(node) => Promise<children>`).
 
