@@ -66,6 +66,7 @@ export {
 	CnCapabilityTable,
 	CnCard,
 	CnCardGrid,
+	CnCardNotices,
 	CnCellRenderer,
 	CnChartWidget,
 	CnChartWidgetForm,

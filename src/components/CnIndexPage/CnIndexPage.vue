@@ -690,6 +690,14 @@
 				@close="closeFormDialog" />
 		</slot>
 
+		<!-- The page's state banners (R1, `notices`): a source that is down, a
+		     bulk move that was partly done. Above the list card. -->
+		<CnCardNotices
+			v-if="pageNotices.length > 0"
+			class="cn-index-page__notices"
+			:notices="pageNotices"
+			@noticeDismiss="onPageNoticeDismiss" />
+
 		<!-- Body -->
 		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
 			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
@@ -1396,6 +1404,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
@@ -1414,6 +1423,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
@@ -1442,6 +1452,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL } from '../../utils/cardNotices.js'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine, footerNoteForView } from '../../utils/countLine.js'
@@ -1921,6 +1932,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnCardNotices,
 		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
@@ -2183,6 +2195,21 @@ export default {
 		notice: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * The page's state banners above the list (R1, manifest
+		 * `config.notices`): each a `notice` content (`{ variant, role?,
+		 * layout?, title?, text, actions?, dismissible?, visibleWhen? }`). A
+		 * row action's answer that asks for a notice, and a notice raised on
+		 * the `cn:page:notice` event-bus channel, join them.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Optional description shown below the title */
@@ -4824,6 +4851,8 @@ export default {
 
 	data() {
 		return {
+			/** Notices this page's actions answered, or that were raised on the page channel. */
+			runtimeNotices: [],
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4985,6 +5014,14 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {Array<object>} The manifest's notices, then the ones this page's actions raised.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		pageNotices() {
+			return [...(Array.isArray(this.notices) ? this.notices : []), ...this.runtimeNotices]
+		},
+
 		/**
 		 * Whether the table card draws its title.
 		 *
@@ -8413,6 +8450,7 @@ export default {
 		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
 		 * for built-in defaults. Function-typed handlers (the existing
 		 * runtime path) pass through untouched.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
 		 */
 		mergedActions() {
 			const ctx = {
@@ -8426,6 +8464,8 @@ export default {
 				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 				// A row action of `type: "api-call"` reads the list again after it.
 				refresh: () => this.onRefreshEvent(),
+				// ...and an answer that asks for a notice shows above the list.
+				showNotice: (notice) => this.addPageNotice(notice),
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -9980,6 +10020,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.openSortSource()
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
@@ -10047,6 +10088,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
@@ -10061,6 +10103,38 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Show a notice above the list, replacing an earlier answer.
+		 *
+		 * @param {object} notice The notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		addPageNotice(notice) {
+			if (notice && typeof notice === 'object') {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * A notice raised on the page channel without a `widgetId`.
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeEvent(payload) {
+			if (payload && !payload.widgetId) {
+				this.addPageNotice(normalizeNotice(payload.notice, 'info'))
+			}
+		},
+
+		/**
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeDismiss(notice) {
+			this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+		},
+
 		/**
 		 * On mount: open on a source option the page defaults to
 		 * (`default: true`, unless the address carries an order of its own),
