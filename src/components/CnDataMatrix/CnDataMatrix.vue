@@ -97,7 +97,21 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { evalFormula } from '../../utils/evalFormula.js'
 import { userLocale } from '../../utils/userLocale.js'
+
+const ROUNDERS = Object.freeze({ round: Math.round, ceil: Math.ceil, floor: Math.floor })
+
+/**
+ * The number a cell holds; an empty cell is no number, rather than zero.
+ *
+ * @param {unknown} raw The cell.
+ * @return {number|null} The number, or null.
+ */
+function numberIn(raw) {
+	return raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw)) ? null : Number(raw)
+}
+
 /**
  * CnDataMatrix — Inline-edit data grid for matrix-shaped data
  * (rows × columns). Each cell is click-to-edit; commits emit
@@ -109,14 +123,19 @@ import { userLocale } from '../../utils/userLocale.js'
  * rubrics — the "spreadsheet" shape where cells are independently
  * editable values rather than a row/object form.
  *
+ * A column with `formula` computes its cells from the other columns and is
+ * read only: `now*(rate/100)`, with `prev_now` for the row above and `round`
+ * set to `round`, `ceil` or `floor`. A row where the formula has no answer shows
+ * its own stored value. Formulas are arithmetic only, through `evalFormula`.
+ *
  * A scoring matrix weighs its columns: give each column a `weight` (and an
  * optional `weightLabel` such as "40%"), set `rowTotalsMode="weighted"` and
  * the row total is the weighted mean of the row's scores. `showRank` ranks
  * the rows by that total, highest first, and `highlightTopRank` tints the
  * leading row.
  *
- * Not a full spreadsheet engine — there's no formula language, no
- * cell-range references, no charts. Consumers wanting that should
+ * Not a full spreadsheet engine — there are no cell-range references, no
+ * charts. Consumers wanting that should
  * embed a dedicated library (e.g. handsontable) and use this for
  * the simpler cases.
  *
@@ -148,7 +167,7 @@ export default {
 		/**
 		 * Column declarations.
 		 *
-		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formatter?:(value: unknown) => string,aggregate?:'sum'|'avg'|'count'|'none',width?:string,weight?:number,weightLabel?:string}>}
+		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formula?:string,round?:'round'|'ceil'|'floor',formatter?:(value: unknown) => string,aggregate?:'sum'|'avg'|'count'|'none',width?:string,weight?:number,weightLabel?:string}>}
 		 */
 		columns: { type: Array, default: () => [] },
 		/** Field on each row carrying its id. */
@@ -224,6 +243,45 @@ export default {
 		},
 
 		/**
+		 * The computed cells of every row, in order. A formula reads the row's
+		 * numbers by column key and the previous row's as `prev_<key>`, and sees
+		 * formula columns to its left. A formula without an answer has no entry
+		 * here, so the cell shows what the row itself holds.
+		 *
+		 * @return {Map<object, Record<string, number>>} Computed values per row.
+		 */
+		formulaValues() {
+			const values = new Map()
+			if (!this.columns.some((col) => col.formula)) {
+				return values
+			}
+			let previous = {}
+			for (const row of this.rows) {
+				const vars = { ...previous }
+				for (const col of this.columns) {
+					if (!col.formula && numberIn(row[col.key]) !== null) {
+						vars[col.key] = numberIn(row[col.key])
+					}
+				}
+				const computed = {}
+				for (const col of this.columns) {
+					if (col.formula) {
+						const answer = evalFormula(col.formula, vars)
+						if (answer !== null) {
+							computed[col.key] = (ROUNDERS[col.round] ?? Number)(answer)
+							vars[col.key] = computed[col.key]
+						} else if (numberIn(row[col.key]) !== null) {
+							vars[col.key] = numberIn(row[col.key])
+						}
+					}
+				}
+				values.set(row, computed)
+				previous = Object.fromEntries(Object.entries(vars).filter(([key]) => !key.startsWith('prev_')).map(([key, value]) => [`prev_${key}`, value]))
+			}
+			return values
+		},
+
+		/**
 		 * Grand total (sum of every numeric cell). Shown in the
 		 * bottom-right corner when both totals are enabled.
 		 *
@@ -234,7 +292,7 @@ export default {
 			for (const row of this.rows) {
 				for (const col of this.columns) {
 					if (col.type === 'number') {
-						const v = Number(row[col.key])
+						const v = Number(this.cellValue(row, col))
 						if (Number.isFinite(v)) {
 							total += v
 						}
@@ -265,7 +323,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isCellReadOnly(row, col) {
-			return Boolean(col.readOnly)
+			return Boolean(col.readOnly || col.formula)
 		},
 
 		/**
@@ -276,6 +334,9 @@ export default {
 		 * @return {unknown} The raw value.
 		 */
 		cellValue(row, col) {
+			if (col.formula && this.formulaValues.get(row)?.[col.key] !== undefined) {
+				return this.formulaValues.get(row)[col.key]
+			}
 			return row[col.key]
 		},
 
@@ -424,7 +485,7 @@ export default {
 				let weighted = 0
 				let weights = 0
 				for (const col of this.columns) {
-					const raw = row[col.key]
+					const raw = this.cellValue(row, col)
 					const v = Number(raw)
 					if (col.type === 'number' && Number.isFinite(col.weight) && col.weight > 0 && raw !== null && raw !== undefined && raw !== '' && Number.isFinite(v)) {
 						weighted += v * col.weight
@@ -436,7 +497,7 @@ export default {
 			let total = 0
 			for (const col of this.columns) {
 				if (col.type === 'number') {
-					const v = Number(row[col.key])
+					const v = Number(this.cellValue(row, col))
 					if (Number.isFinite(v)) {
 						total += v
 					}
@@ -464,7 +525,7 @@ export default {
 			// `Number(null)` is `0`, which would otherwise be counted and
 			// summed as a real zero value.
 			const values = this.rows
-				.map((r) => r[col.key])
+				.map((r) => this.cellValue(r, col))
 				.filter((v) => v !== null && v !== undefined && v !== '')
 				.map((v) => Number(v))
 				.filter((v) => Number.isFinite(v))
