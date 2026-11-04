@@ -84,6 +84,9 @@ describe('ADR-077 semantic icon vocabulary', () => {
 		expect(SEMANTIC_ICONS_TIER_A.settings).toBe('CogOutline')
 		expect(SEMANTIC_ICONS_TIER_A.documentation).toBe('BookOpenVariantOutline')
 		expect(SEMANTIC_ICONS_TIER_A['features-roadmap']).toBe('MapMarkerPath')
+		// The boards draw an inbox for My Work (ADR-077, hydra#762).
+		expect(SEMANTIC_ICONS_TIER_A['my-work']).toBe('InboxOutline')
+		expect(conceptForIcon('InboxOutline')).toBe('my-work')
 	})
 
 	describe('getSemanticIconComponent', () => {

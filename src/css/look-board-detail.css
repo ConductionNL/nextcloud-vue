@@ -84,6 +84,14 @@
 	justify-content: flex-end;
 }
 
+/* The primary button ends the header row, after Bewerken and Meer, as the
+   boards draw it (DqAanbesteding, DqKlachten, PqContract, PtPortal). It stays
+   first in the reading and tab order, where the skip link lands.
+   @spec openspec/changes/notice-list-in-a-tab/specs/detail-page/spec.md#requirement-the-board-look-draws-the-primary-button-last */
+.cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions > [data-testid="cn-detail-page-primary-action"] {
+	order: 1;
+}
+
 /* `headerActionsBelow`: the title takes the whole first row and the buttons
    start a row of their own under it, from the left (PqLead).
    @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title */
@@ -921,6 +929,20 @@
 	padding: calc(12px - var(--cn-board-first-line-leading)) var(--cn-board-card-inline-padding) 20px;
 }
 
+/* A flush card holds a list or table that runs to the card's border, as the
+   board draws it, so the board card's inset does not apply.
+   @spec openspec/changes/board-detail-card-flush-and-untitled-inset/specs/board-detail-card-flush-and-untitled-inset/spec.md#requirement-a-flush-board-detail-card-has-no-inset */
+.cn-look-board .cn-detail-card .cn-detail-card__content.cn-detail-card__content--flush {
+	padding: 0;
+}
+
+/* A card without a title has no title to stand 12px under: its body starts
+   at the board card's full 20px inset (learniq LqProctoring, LqItemanalyse).
+   @spec openspec/changes/board-detail-card-flush-and-untitled-inset/specs/board-detail-card-flush-and-untitled-inset/spec.md#requirement-an-untitled-board-detail-card-takes-the-full-inset */
+.cn-look-board .cn-detail-card:not(.cn-detail-card--chromeless):not(:has(> .cn-detail-card__header)) > .cn-detail-card__content:not(.cn-detail-card__content--flush) {
+	padding: var(--cn-board-card-padding);
+}
+
 /* A plan card's rows carry their own 10px padding and a map has no text, so
    no half-leading comes off the 12px under the title; a Doelen footer row
    placed under the plan stands 4px under it (DqZaak "Zaakplan", DqZaakMeer
@@ -1273,6 +1295,15 @@
    the title. At the body's 15px and 1.5 they stood 31px apart, 2px under it.
    @spec openspec/changes/board-related-side-links-rhythm/specs/board-related-side-links-rhythm/spec.md#requirement-a-related-side-cards-links-take-the-boards-rhythm */
 .cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__link:not(.cn-look-nextcloud *) {
+	font-size: 14px;
+	line-height: normal;
+}
+
+/* The row itself takes the link's size and leading: at the body's 15px and
+   1.5 its line box put 3px of half-leading above the first link (PqKassabon,
+   PqContactpersoon "Gerelateerd" 13 under the title, board 10).
+   @spec openspec/changes/board-related-side-links-rhythm/specs/board-related-side-links-rhythm/spec.md#requirement-a-related-side-cards-links-take-the-boards-rhythm */
+.cn-look-board .cn-detail-page__side .cn-related-objects-widget .cn-related-objects-widget__links > li:not(.cn-look-nextcloud *) {
 	font-size: 14px;
 	line-height: normal;
 }
@@ -2466,9 +2497,15 @@
 	display: none;
 }
 
+/* NcAvatar sizes its initials tile and their line from its inline
+   `--avatar-size` and line height, so the root alone at 32px left a 36px
+   tile inside it (r45 DqZaakEmail: the initials read 32 by 36).
+   @spec openspec/changes/board-mail-row-initials-size/specs/board-mail-row-initials-size/spec.md#requirement-a-linked-mails-initials-tile-is-32px-inside-and-out */
 .cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) {
+	--avatar-size: 32px !important;
 	width: 32px !important;
 	height: 32px !important;
+	line-height: 32px !important;
 }
 
 .cn-look-board .cn-email-tab__avatar:not(.cn-look-nextcloud *) .avatardiv__initials-wrapper {
@@ -3413,10 +3450,13 @@
 
 /* A ruled feed in a page card (DqContact and DqOrganisatie "Laatste
    contactmomenten") starts as a ruled list does: the rule 12px under the
-   title, so the first moment's text is 25px under it (r45 22.8).
-   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-ruled-feed-starts-12px-under-the-title */
+   title, so the first moment's text is 25px under it (r45 22.8). It ends 8px
+   under its last row, as the four contact boards draw it.
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-ruled-feed-starts-12px-under-the-title
+   @spec openspec/changes/board-feed-card-bottom-8/specs/board-feed-card-bottom-8/spec.md#requirement-a-ruled-feed-card-ends-8px-under-its-last-row */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--feed.cn-record-list--rule-above):not(.cn-detail-page__side *) {
 	padding-top: 12px;
+	padding-bottom: 8px;
 }
 
 /* A card that opens on a grid of framed tiles (DqZaaktypeOverzicht

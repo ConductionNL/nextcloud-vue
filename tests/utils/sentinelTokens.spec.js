@@ -37,6 +37,8 @@ describe('contextOf / isKnownToken', () => {
 		['@route.catalogSlug', 'route'],
 		['@self.id', 'declarative'],
 		['@self.administrationId', 'declarative'],
+		['@self.can.update', 'declarative'],
+		['@self.can.claim-as-handler', 'declarative'],
 		['@ref:foo/bar', 'declarative'],
 		['@aggregate:sum(amount)', 'declarative'],
 		['@total', 'visibleWhen'],
@@ -50,6 +52,8 @@ describe('contextOf / isKnownToken', () => {
 		['@yearStrt'],
 		['@runtimeFoo'],
 		['@object.'],
+		['@self.'],
+		['@self.can.'],
 		['@page'],
 		['@currentFiscalYear'], // deprecated ≠ canonical
 		['not-a-token'],

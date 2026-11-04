@@ -27,8 +27,8 @@ import { reactive } from 'vue'
  */
 const _peek = reactive({ byUser: {} })
 
-/** User ids whose groups a peek already asked for (not reactive on purpose). */
-const _peekRequested = new Set()
+/** The group lookup per user id, shared by every peek and load (not reactive on purpose). */
+const _requests = new Map()
 
 /**
  * Get the current Nextcloud user ID from OC.currentUser.
@@ -60,18 +60,39 @@ export function peekCurrentUserGroups() {
 	if (Array.isArray(known)) {
 		return known
 	}
-	if (!_peekRequested.has(userId)) {
-		_peekRequested.add(userId)
-		import('./widgetVisibility.js')
-			.then((module) => module.getCurrentUserGroups())
-			.then((groups) => {
-				_peek.byUser[userId] = Array.isArray(groups) ? [...groups] : []
-			})
-			.catch(() => {
-				_peek.byUser[userId] = []
-			})
-	}
+	loadCurrentUserGroups()
 	return null
+}
+
+/**
+ * The current user's group ids, for code that can await (`readerGroups` in an
+ * async `visibleWhen`). Shares one request with {@link peekCurrentUserGroups}
+ * and fills the peek when it settles. A failed lookup and a signed-out reader
+ * both resolve `[]`; it never rejects.
+ *
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ * @return {Promise<string[]>} The group ids.
+ */
+export function loadCurrentUserGroups() {
+	const userId = getCurrentUserId()
+	if (!userId) {
+		return Promise.resolve([])
+	}
+	const known = _peek.byUser[userId]
+	if (Array.isArray(known)) {
+		return Promise.resolve(known)
+	}
+	if (!_requests.has(userId)) {
+		_requests.set(userId, import('./widgetVisibility.js')
+			.then((module) => module.getCurrentUserGroups())
+			.then((groups) => (Array.isArray(groups) ? [...groups] : []))
+			.catch(() => [])
+			.then((groups) => {
+				_peek.byUser[userId] = groups
+				return groups
+			}))
+	}
+	return _requests.get(userId)
 }
 
 /**
@@ -80,7 +101,7 @@ export function peekCurrentUserGroups() {
  * @spec exclude test helper behind resetVisibilityCache, no behaviour of its own
  */
 export function resetGroupsPeek() {
-	_peekRequested.clear()
+	_requests.clear()
 	for (const key of Object.keys(_peek.byUser)) {
 		delete _peek.byUser[key]
 	}

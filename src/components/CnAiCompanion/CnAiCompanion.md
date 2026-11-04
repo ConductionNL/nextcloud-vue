@@ -24,6 +24,7 @@ The FAB and panel are both hidden when `useAiContext().pageKind === 'chat'` (i.e
 | `note` | `String` | `''` | A line above the input, already translated. |
 | `inputPlaceholder` | `String` | `''` | The input's placeholder, already translated. |
 | `sendLabel` | `String` | `''` | A label on the send button, already translated. |
+| `approvalWording` | `Object` | `{}` | The approval cards' wording, already translated: `titlePrefix`, `allow`, `deny`. |
 | `openSubjectSession` | `Boolean` | `false` | Open the user's latest session about the page's record (the context's `objectUuid`) instead of an empty thread, with its pending approvals. No such session, or one about another record, leaves the thread empty. |
 
 ## Inject
