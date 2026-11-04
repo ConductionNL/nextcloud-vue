@@ -2934,7 +2934,13 @@
     "Hide": "Verbergen",
     "Hide {label}": "{label} verbergen",
     "Why do you need to see this?": "Waarom wil je dit zien?",
-    "The value could not be shown. Try again later.": "De waarde kon niet worden getoond. Probeer het later opnieuw."
+    "The value could not be shown. Try again later.": "De waarde kon niet worden getoond. Probeer het later opnieuw.",
+    "Add from a list": "Toevoegen uit een lijst",
+    "Scan or type a code": "Scan of typ een code",
+    "No record has the code {code}.": "Geen record heeft de code {code}.",
+    "More than one record has the code {code}.": "Meer dan één record heeft de code {code}.",
+    "The code {code} could not be looked up.": "De code {code} kon niet worden opgezocht.",
+    "Added {name}.": "{name} toegevoegd."
   },
   "plurals": {
     "{count} member": [

@@ -2669,7 +2669,13 @@
     "Hide": "Hide",
     "Hide {label}": "Hide {label}",
     "Why do you need to see this?": "Why do you need to see this?",
-    "The value could not be shown. Try again later.": "The value could not be shown. Try again later."
+    "The value could not be shown. Try again later.": "The value could not be shown. Try again later.",
+    "Add from a list": "Add from a list",
+    "Scan or type a code": "Scan or type a code",
+    "No record has the code {code}.": "No record has the code {code}.",
+    "More than one record has the code {code}.": "More than one record has the code {code}.",
+    "The code {code} could not be looked up.": "The code {code} could not be looked up.",
+    "Added {name}.": "Added {name}."
   },
   "plurals": {
     "{count} member": [
