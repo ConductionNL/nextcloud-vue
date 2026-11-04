@@ -27,6 +27,16 @@
 				:clearable="false"
 				:allowCreate="false"
 				@update:modelValue="(id) => onFieldUpdate({ key: field.key, value: id || '' })" />
+			<NcTextField
+				v-else-if="field.type === 'date' || field.type === 'number'"
+				:modelValue="form[field.key]"
+				:type="field.type"
+				:label="field.label"
+				:step="field.type === 'number' ? (field.step || 'any') : undefined"
+				:min="field.min"
+				:max="field.max"
+				:data-testid="`cn-create-form-input-${field.key}`"
+				@update:modelValue="(v) => onFieldUpdate({ key: field.key, value: v })" />
 			<NcCheckboxRadioSwitch
 				v-else-if="field.type === 'checkbox'"
 				:modelValue="form[field.key] === true"
@@ -46,6 +56,16 @@
 		</template>
 
 		<template #actions>
+			<span v-if="timerConfig && timerStartedAt !== null"
+				class="cn-create-form-widget__elapsed"
+				role="timer"
+				data-testid="cn-create-form-elapsed">{{ elapsedText }}</span>
+			<NcButton
+				v-if="timerConfig"
+				data-testid="cn-create-form-timer"
+				@click="toggleTimer">
+				{{ timerStartedAt === null ? timerStartLabel : timerStopLabel }}
+			</NcButton>
 			<NcButton
 				variant="primary"
 				:wide="content.wideSubmit !== false"
@@ -63,7 +83,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
 import { camelize } from 'vue'
 import CnFormWidgetBase from '../CnFormWidgetBase/CnFormWidgetBase.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
@@ -100,7 +120,7 @@ import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilter
 export default {
 	name: 'CnCreateFormWidget',
 
-	components: { CnFormWidgetBase, CnIcon, CnResourceSelect, NcButton, NcCheckboxRadioSwitch },
+	components: { CnFormWidgetBase, CnIcon, CnResourceSelect, NcButton, NcCheckboxRadioSwitch, NcTextField },
 
 	inject: {
 		/** Page-level workspace context from CnDashboardPage, for `@workspace.<key>` defaults. */
@@ -121,6 +141,18 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/** The record of a detail page, for `@objectId` in `values`. */
+		objectId: {
+			type: [String, Number],
+			default: null,
+		},
+
+		/** The record of a detail page, for `@object.<field>` in `values`. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['saved'],
@@ -131,6 +163,8 @@ export default {
 			optionsByField: {},
 			saving: false,
 			errorMessage: '',
+			timerStartedAt: null,
+			timerNow: 0,
 		}
 	},
 
@@ -166,9 +200,9 @@ export default {
 				: { key: field.key, type: field.type === 'text' ? 'text' : 'custom', label: field.type === 'checkbox' ? '' : field.label }))
 		},
 
-		/** The fields drawn through a `field-<key>` slot: a reference or a checkbox. */
+		/** The fields drawn through a `field-<key>` slot. */
 		slotFields() {
-			return this.fields.filter((field) => field.type === 'reference' || field.type === 'checkbox')
+			return this.fields.filter((field) => ['reference', 'checkbox', 'date', 'number'].includes(field.type))
 		},
 
 		workspace() {
@@ -206,6 +240,27 @@ export default {
 			return t('nextcloud-vue', 'Creating…')
 		},
 
+		/** `content.timer` when it names a field of this form, else null. */
+		timerConfig() {
+			const timer = this.content.timer
+			return timer && this.fields.some((field) => field.key === timer.field) ? timer : null
+		},
+
+		timerStartLabel() {
+			return this.copy(this.timerConfig?.startLabel) || t('nextcloud-vue', 'Start timer')
+		},
+
+		timerStopLabel() {
+			return this.copy(this.timerConfig?.stopLabel) || t('nextcloud-vue', 'Stop timer')
+		},
+
+		/** The running timer as h:mm:ss. */
+		elapsedText() {
+			const seconds = Math.max(0, Math.floor((this.timerNow - this.timerStartedAt) / 1000))
+			const minutes = String(Math.floor(seconds / 60) % 60).padStart(2, '0')
+			return `${Math.floor(seconds / 3600)}:${minutes}:${String(seconds % 60).padStart(2, '0')}`
+		},
+
 		typeSlug() {
 			return `${this.register}-${this.schema}`
 		},
@@ -230,7 +285,37 @@ export default {
 		this.loadOptions()
 	},
 
+	beforeUnmount() {
+		clearInterval(this.timerInterval)
+	},
+
 	methods: {
+		/**
+		 * Start the timer, or stop it and write the time into its field: hours
+		 * with two decimals, minutes with `unit: "minutes"`, never less than the
+		 * smallest step so a short run does not read as nothing.
+		 *
+		 * @spec openspec/changes/create-form-date-number-timer/specs/create-form-date-number-timer/spec.md#requirement-a-timer-fills-a-field
+		 * @return {void}
+		 */
+		toggleTimer() {
+			if (this.timerStartedAt === null) {
+				this.timerStartedAt = Date.now()
+				this.timerNow = this.timerStartedAt
+				this.timerInterval = setInterval(() => {
+					this.timerNow = Date.now()
+				}, 1000)
+				return
+			}
+			clearInterval(this.timerInterval)
+			const milliseconds = Date.now() - this.timerStartedAt
+			this.timerStartedAt = null
+			const value = this.timerConfig.unit === 'minutes'
+				? Math.max(1, Math.round(milliseconds / 60000))
+				: Math.max(0.01, Math.round(milliseconds / 36000) / 100)
+			this.onFieldUpdate({ key: this.timerConfig.field, value: String(value) })
+		},
+
 		/**
 		 * A manifest string through the host's translate, else the library's.
 		 *
@@ -316,10 +401,11 @@ export default {
 			this.saving = true
 			this.errorMessage = ''
 			try {
-				const values = resolveDeepTokens(this.content.values || {}, { workspace: this.workspace })
+				const values = resolveDeepTokens(this.content.values || {}, { workspace: this.workspace, objectId: this.objectId, object: this.objectData })
 				const payload = { ...values }
 				for (const field of this.fields) {
-					payload[field.key] = this.form[field.key]
+					const value = this.form[field.key]
+					payload[field.key] = field.type === 'number' && value !== '' && value !== null && value !== undefined ? Number(value) : value
 				}
 				if (typeof store.registerObjectType === 'function' && !store.objectTypeRegistry?.[this.typeSlug]) {
 					store.registerObjectType(this.typeSlug, this.schema, this.register)
@@ -351,5 +437,10 @@ export default {
 	color: var(--color-primary-element);
 	font-weight: 600;
 	text-decoration: underline;
+}
+
+.cn-create-form-widget__elapsed {
+	align-self: center;
+	font-variant-numeric: tabular-nums;
 }
 </style>

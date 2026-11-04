@@ -1066,6 +1066,9 @@ export function fieldsFromSchema(schema, options = {}) {
 						schema: typeof prop.schema === 'string' && prop.schema !== '' ? prop.schema : (normalizeRef(prop.items && prop.items.$ref) ?? ''),
 						parentField: prop.parentField || prop.inversedBy || '',
 						columns: Array.isArray(prop.columns) ? prop.columns : [],
+						computed: Array.isArray(prop.computed) ? prop.computed : [],
+						totals: Array.isArray(prop.totals) ? prop.totals : [],
+						addFrom: prop.addFrom && typeof prop.addFrom === 'object' ? prop.addFrom : null,
 					}
 				: null,
 			// Select OR create (`x-allow-create: true`, on the property or on
