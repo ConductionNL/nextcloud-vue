@@ -2359,6 +2359,21 @@ export default {
 		},
 
 		/**
+		 * Text added to the count line after a middle dot while a quick filter
+		 * or lens is selected (manifest `config.countSuffixByFilter`),
+		 * `{ <tab id or label>: text }`: a lens that sorts by waiting time
+		 * says "longest waiting first". A quick filter tab can also carry
+		 * its own `countSuffix`, which comes first. The text goes through the
+		 * host translate function. Null (the default) adds nothing.
+		 *
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		countSuffixByFilter: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -9276,7 +9291,8 @@ export default {
 		 * @return {string}
 		 */
 		headerDescription() {
-			const base = this.headerDescriptionBase
+			const suffix = this.quickFilterCountSuffix
+			const base = suffix && this.headerDescriptionBase ? `${this.headerDescriptionBase} · ${suffix}` : this.headerDescriptionBase
 			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
 				return base
 			}
@@ -9296,6 +9312,29 @@ export default {
 			const active = Object.values(this.effectiveActiveFilters || {})
 				.some((value) => !(value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)))
 			return active || this.quickFilterNarrows
+		},
+
+		/**
+		 * The count line text of the selected quick filters or lenses: each
+		 * tab's `countSuffix`, else its entry in `countSuffixByFilter` (by
+		 * id, then by label), translated and joined by a middle dot.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		quickFilterCountSuffix() {
+			const tabs = this.tabStripEntries || []
+			const byFilter = this.countSuffixByFilter && typeof this.countSuffixByFilter === 'object' ? this.countSuffixByFilter : {}
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices
+				.map((index) => (typeof index === 'number' ? tabs[index] : null))
+				.filter(Boolean)
+				.map((tab) => [tab.countSuffix, byFilter[tab.id], byFilter[tab.label]].find((text) => typeof text === 'string' && text !== ''))
+				.filter(Boolean)
+				.map((text) => this.cnTranslate(text))
+				.join(' · ')
 		},
 
 		/**

@@ -15,6 +15,6 @@ A dashboard card's header action SHALL run through the page's provided action di
 
 #### Scenario: DqCatalogus
 
-- **GIVEN** the Store card with `headerActions: [{ label: "Import", action: { type: "open-modal", target: "CaseTypeImportDialog" } }]`
+- **GIVEN** the Marketplace card with `headerActions: [{ label: "Import", action: { type: "open-modal", target: "CaseTypeImportDialog" } }]`
 - **WHEN** the person clicks Importeren
 - **THEN** the case type import dialog opens
