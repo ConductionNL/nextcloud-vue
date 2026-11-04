@@ -13,6 +13,44 @@
 			{{ emptyLabel }}
 		</p>
 
+		<Draggable v-else-if="reorderable"
+			:modelValue="safeNodes"
+			:itemKey="idKey"
+			tag="ul"
+			class="cn-tree-view__root"
+			role="tree"
+			handle=".cn-tree-node__handle"
+			@change="onRootDragChange">
+			<template #item="{ element: node, index }">
+				<CnTreeNode :node="node"
+					:depth="0"
+					:indent="indent"
+					:expandedIds="expandedMap"
+					:selectedId="selectedId"
+					:idKey="idKey"
+					:labelKey="labelKey"
+					:childrenKey="childrenKey"
+					:expandLabel="expandLabel"
+					:collapseLabel="collapseLabel"
+					:toggleAttrs="toggleAttrs"
+					:rowAttrs="rowAttrs"
+					:focusableRows="focusableRows"
+					reorderable
+					:reorderLabels="reorderTexts"
+					:siblingIndex="index"
+					:siblingCount="safeNodes.length"
+					@toggle="toggleNode"
+					@select="selectNode"
+					@move="moveNode">
+					<template #actions="scope">
+						<slot name="actions" v-bind="scope" />
+					</template>
+					<template v-if="$slots.label" #label="scope">
+						<slot name="label" v-bind="scope" />
+					</template>
+				</CnTreeNode>
+			</template>
+		</Draggable>
 		<ul v-else class="cn-tree-view__root" role="tree">
 			<CnTreeNode v-for="node in safeNodes"
 				:key="node[idKey]"
@@ -44,10 +82,21 @@
 				</template>
 			</CnTreeNode>
 		</ul>
+
+		<p v-for="key in statusSlots"
+			:key="key"
+			class="cn-tree-view__status"
+			:class="{ 'hidden-visually': !statusText }"
+			role="status"
+			data-testid="cn-tree-view-status">
+			{{ statusText }}
+		</p>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import Draggable from 'vuedraggable'
 import CnTreeNode from './CnTreeNode.vue'
 
 /**
@@ -55,10 +104,11 @@ import CnTreeNode from './CnTreeNode.vue'
  * nodes with click-to-expand carets, optional badges + icons,
  * inline per-row actions slot, and select-on-click semantics.
  *
- * Drag-drop reorder is intentionally a follow-up (issue #278).
- * The widget's public contract (props, events, selection model)
- * is forward-compatible — adding `draggable: true` later won't
- * touch existing v-model bindings.
+ * With `reorderable` a row moves among its siblings by dragging or with Move
+ * up and Move down. Both say the new position, and the buttons keep focus, so
+ * the tree works without a pointer (WCAG 2.2 SC 2.1.1, 2.5.7). Moving between
+ * parents is not offered. The host owns the tree through `v-model:nodes`, and
+ * saves on `move`.
  *
  * ```vue
  * <CnTreeView
@@ -92,7 +142,7 @@ import CnTreeNode from './CnTreeNode.vue'
  */
 export default {
 	name: 'CnTreeView',
-	components: { CnTreeNode },
+	components: { CnTreeNode, Draggable },
 	props: {
 		/**
 		 * Tree nodes (root level). Each node:
@@ -158,12 +208,55 @@ export default {
 		 * the row selects its node, like a click. Off, rows are click-only.
 		 */
 		focusableRows: { type: Boolean, default: false },
+		/** Rows can be moved among their siblings: a drag handle, Move up and Move down. */
+		reorderable: { type: Boolean, default: false },
+		/**
+		 * Replacement texts for reordering, already translated: `moveUp`, `moveDown`, `drag`,
+		 * `controlName` (`{action}`, `{label}`), `moved` (`{label}`, `{position}`, `{total}`).
+		 */
+		reorderLabels: { type: Object, default: () => ({}) },
+		/** A status the host sets after saving a move, such as "Saved"; it replaces the spoken position. */
+		moveStatus: { type: String, default: '' },
 		/** Expand all nodes on mount. */
 		expandAllOnMount: { type: Boolean, default: false },
 	},
 
-	emits: ['select', 'update:expanded-ids', 'update:selected-id'],
+	emits: ['select', 'update:expanded-ids', 'update:selected-id', 'update:nodes', 'move'],
+
+	data() {
+		return {
+			announcement: '',
+		}
+	},
+
 	computed: {
+		/** @return {object} The texts of the move controls, with library defaults. */
+		reorderTexts() {
+			return {
+				moveUp: t('nextcloud-vue', 'Move up'),
+				moveDown: t('nextcloud-vue', 'Move down'),
+				drag: t('nextcloud-vue', 'Drag to change the order'),
+				controlName: t('nextcloud-vue', '{action}: {label}'),
+				moved: t('nextcloud-vue', '{label} moved to position {position} of {total}.'),
+				...this.reorderLabels,
+			}
+		},
+
+		/**
+		 * One entry when the status line shows. A `v-for` leaves no placeholder in the
+		 * markup when off, which `v-if` would.
+		 *
+		 * @return {string[]} The keys.
+		 */
+		statusSlots() {
+			return this.reorderable ? ['status'] : []
+		},
+
+		/** @return {string} What the status line says. */
+		statusText() {
+			return this.moveStatus || this.announcement
+		},
+
 		/**
 		 * The `nodes` prop coerced to a real array. Guards against a parent
 		 * that passes `null` / `undefined` (or a non-array) while its data is
@@ -242,6 +335,112 @@ export default {
 			 * @event update:expanded-ids
 			 */
 			this.$emit('update:expanded-ids', next)
+		},
+
+		/**
+		 * A row at the root was dragged to another place.
+		 *
+		 * @param {{moved?: {element: object, oldIndex: number, newIndex: number}}} change What the drag changed.
+		 * @return {void}
+		 */
+		onRootDragChange({ moved } = {}) {
+			if (moved) {
+				this.moveNode({ node: moved.element, parentId: null, from: moved.oldIndex, to: moved.newIndex })
+			}
+		},
+
+		/**
+		 * The nodes with one list of siblings in its new order. Only the path to
+		 * that list is copied.
+		 *
+		 * @param {Array<object>} list The nodes at this level.
+		 * @param {{parentId: string|number|null, from: number, to: number}} move The move.
+		 * @return {Array<object>} The new nodes.
+		 */
+		movedIn(list, { parentId, from, to }) {
+			if (parentId === null) {
+				const next = [...list]
+				next.splice(to, 0, next.splice(from, 1)[0])
+				return next
+			}
+			return list.map((node) => {
+				const children = node[this.childrenKey]
+				if (!Array.isArray(children)) {
+					return node
+				}
+				const reordered = node[this.idKey] === parentId
+					? this.movedIn(children, { parentId: null, from, to })
+					: this.movedIn(children, { parentId, from, to })
+				return { ...node, [this.childrenKey]: reordered }
+			})
+		},
+
+		/**
+		 * The list of siblings a parent holds.
+		 *
+		 * @param {Array<object>} list The nodes to look in.
+		 * @param {string|number|null} parentId The parent, or null for the root.
+		 * @return {Array<object>|null} Its children.
+		 */
+		siblingsOf(list, parentId) {
+			if (parentId === null) {
+				return list
+			}
+			for (const node of list) {
+				const children = node[this.childrenKey]
+				if (Array.isArray(children)) {
+					const found = node[this.idKey] === parentId ? children : this.siblingsOf(children, parentId)
+					if (found) {
+						return found
+					}
+				}
+			}
+			return null
+		},
+
+		/**
+		 * Apply a move: give the host the new tree, say where the node landed, and
+		 * after a button keep focus on that button, or on the other one at the end.
+		 *
+		 * @param {{node: object, parentId: string|number|null, from: number, to: number, byButton?: boolean}} move The move.
+		 * @return {void}
+		 */
+		moveNode({ node, parentId, from, to, byButton }) {
+			const nodes = this.movedIn(this.safeNodes, { parentId, from, to })
+			const siblings = this.siblingsOf(nodes, parentId)
+			if (!siblings || to < 0 || to >= siblings.length) {
+				return
+			}
+			this.$emit('update:nodes', nodes)
+			/**
+			 * @event move A row moved. Save the order here.
+			 * @type {{node: object, parentId: string|number|null, from: number, to: number, siblings: Array<object>}}
+			 */
+			this.$emit('move', { node, parentId, from, to, siblings })
+			this.announcement = this.reorderTexts.moved
+				.replace('{label}', String(node[this.labelKey] ?? ''))
+				.replace('{position}', String(to + 1))
+				.replace('{total}', String(siblings.length))
+			if (byButton) {
+				this.$nextTick(() => this.focusMoveButton(node[this.idKey], to < from ? 'up' : 'down'))
+			}
+		},
+
+		/**
+		 * Focus a row's move button, or its other one when that is disabled.
+		 *
+		 * @param {string|number} id The node.
+		 * @param {string} direction `up` or `down`.
+		 * @return {void}
+		 */
+		focusMoveButton(id, direction) {
+			const row = [...this.$el.querySelectorAll('.cn-tree-node')]
+				.find((element) => element.dataset.nodeId === String(id))
+				?.querySelector(':scope > .cn-tree-node__row')
+			const used = row?.querySelector(`[data-move="${direction}"]`)
+			const other = row?.querySelector(`[data-move="${direction === 'up' ? 'down' : 'up'}"]`)
+			const target = used && !used.disabled ? used : other
+			target?.focus()
 		},
 
 		/**
@@ -329,6 +528,11 @@ export default {
 .cn-tree-view__description {
 	margin: 4px 0 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-tree-view__status {
+	color: var(--color-text-maxcontrast);
+	margin: 8px 0 0;
 }
 
 .cn-tree-view__empty {
