@@ -4,6 +4,10 @@
  * site build: a `<word>` read as a JSX tag, a `{` read as an expression, an
  * unclosed code span inside a table cell.
  *
+ * It also fails on a `{word}` in prose. That compiles, as an expression
+ * reading a variable nothing defines, and then throws a ReferenceError when
+ * the site renders the page, so compiling alone does not catch it.
+ *
  * Why this exists: `check:docs` and `check:docs-fresh` read the pages as
  * text, so a page that MDX cannot compile passed both and only failed in the
  * "Deploy Documentation" run after the push to beta (docs/components/
@@ -84,12 +88,44 @@ function preprocess(source) {
 	return escapeMarkdownHeadingIds(unwrapMdxCodeBlocks(source))
 }
 
+/**
+ * Collects the MDX expressions in a page's prose that read a variable. A
+ * comment-only `{/* x *\/}` renders nothing and a function is a deliberate
+ * component on the page, so both are left out.
+ *
+ * @param {object} node mdast node
+ * @param {object[]} found receives each expression node
+ * @return {object[]} found
+ */
+function collectExpressions(node, found = []) {
+	if (node.type === 'mdxTextExpression' || node.type === 'mdxFlowExpression') {
+		const code = node.value.replace(/\/\*[\s\S]*?\*\//g, '').trim()
+		if (code !== '' && !/^(\(.*?\)|\w+)\s*=>|^function\b/.test(code)) {
+			found.push(node)
+		}
+	}
+	for (const child of node.children ?? []) {
+		collectExpressions(child, found)
+	}
+	return found
+}
+
 const pages = listPages(DOCS_DIR)
 const failures = []
 for (const page of pages) {
 	const source = preprocess(fs.readFileSync(page, 'utf8'))
 	try {
-		await compile(source, { remarkPlugins: REMARK_PLUGINS })
+		await compile(source, {
+			remarkPlugins: [
+				...REMARK_PLUGINS,
+				() => (tree) => {
+					for (const node of collectExpressions(tree)) {
+						const { line, column } = node.position.start
+						failures.push(`${path.relative(ROOT, page)}:${line}:${column}  {${node.value}} is read as an expression and throws when the page renders`)
+					}
+				},
+			],
+		})
 	} catch (error) {
 		const where = error.line ? `:${error.line}:${error.column ?? 1}` : ''
 		failures.push(`${path.relative(ROOT, page)}${where}  ${error.reason ?? error.message}`)

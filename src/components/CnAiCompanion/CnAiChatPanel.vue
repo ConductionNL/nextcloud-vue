@@ -249,13 +249,14 @@
 						:key="approval.id"
 						class="cn-ai-approval">
 						<div class="cn-ai-approval__head">
-							<span class="cn-ai-approval__title">{{ approval.title }}</span>
+							<span class="cn-ai-approval__title">{{ approvalTitle(approval) }}</span>
 							<!--
 							  Reach is a FACT about the tool. The reason below is
 							  agent-authored text aimed at the person holding the
 							  permission, so the two are kept visually distinct.
+							  The boards draw no reach, so a host opts in.
 							-->
-							<span class="cn-ai-approval__reach">{{ approval.reach }}</span>
+							<span v-if="showApprovalReach" class="cn-ai-approval__reach">{{ approval.reach }}</span>
 						</div>
 						<p v-if="approval.reason" class="cn-ai-approval__reason">
 							{{ approval.reason }}
@@ -266,14 +267,14 @@
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-allow-' + approval.id"
 								@click="onApprovalDecision(approval, 'granted')">
-								{{ cnTranslate('Allow') }}
+								{{ approvalWording.allow || cnTranslate('Allow') }}
 							</NcButton>
 							<NcButton
 								variant="tertiary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-deny-' + approval.id"
 								@click="onApprovalDecision(approval, 'refused')">
-								{{ cnTranslate('Decline') }}
+								{{ approvalWording.deny || cnTranslate('Decline') }}
 							</NcButton>
 						</div>
 					</li>
@@ -482,11 +483,31 @@ export default {
 		},
 
 		/**
+		 * The approval cards' wording, already translated: `titlePrefix` before
+		 * the tool's name, `allow` and `deny` on the buttons. A missing entry
+		 * keeps the default.
+		 */
+		approvalWording: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.
 		 */
 		streamState: {
 			type: Object,
 			required: true,
+		},
+
+		/**
+		 * Show each approval's reach (`instance`, `write`) as a label beside its
+		 * title. Off by default: the proposal cards the boards draw name the
+		 * proposal, the reason and the buttons only.
+		 */
+		showApprovalReach: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1115,6 +1136,18 @@ export default {
 			} catch {
 				// Nothing to cancel.
 			}
+		},
+
+		/**
+		 * An approval card's title: the tool's name after the widget's prefix.
+		 *
+		 * @param {object} approval The approval.
+		 * @return {string} The title.
+		 * @spec openspec/changes/ai-chat-approval-wording/specs/ai-chat-approval-wording/spec.md#requirement-an-app-can-word-the-approval-card
+		 */
+		approvalTitle(approval) {
+			const prefix = this.approvalWording.titlePrefix
+			return prefix ? `${prefix} ${approval.title}` : approval.title
 		},
 
 		/**

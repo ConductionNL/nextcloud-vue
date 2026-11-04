@@ -37,7 +37,7 @@ Present means any status but offline. The viewer comes first, marked "(you)", th
 |---|---|
 | `source` | `{ url, responsePath?, userField?, nameField?, countField? }`. The url goes through `generateUrl` and is read with the viewer's session. The rows are read at `responsePath` (else the body), each with the user id at `userField` (default `userId`), the name at `nameField` (default `displayName`) and the open count at `countField` (default `count`). |
 | `capacity` | The count at a full bar. Without it the highest count is. |
-| `countLabel` | `{ one, other }` with `{count}`, through the app's translate. Without it the count reads "{count} open". |
+| `countLabel` | `{ one, other }` with `{count}`, through the app's translate. Without it the count reads "\{count\} open". |
 | `emptyText` | Shown without anyone to list, through the app's translate. |
 | `hideWhenEmpty` | Render nothing at all when there is no one to list, including when the read is refused (a 403 for someone who is not a coordinator). Default `false`. |
 | `rowRoute` | Makes each person's row a button that opens their work. A route name is given the person as `query[rowRouteParam]`; a route location (`{ name, params?, query? }`) has `{user}` in its values replaced by the person's user id. |

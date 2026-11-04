@@ -25,8 +25,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                      | Payload | Description                                                          |
-| ------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------- |
-| `update:modelValue`                                                       | —       |                                                                      |
-| `search`                                                                  | —       | The user typed in the picker (with `searchable`). Payload: the text. |
-| `update:modelValue The list changed. Payload: the values in their order.` | —       |                                                                      |
+| Name                | Payload | Description                                                          |
+| ------------------- | ------- | -------------------------------------------------------------------- |
+| `update:modelValue` | —       | The list changed. Payload: the values in their order.                |
+| `search`            | —       | The user typed in the picker (with `searchable`). Payload: the text. |

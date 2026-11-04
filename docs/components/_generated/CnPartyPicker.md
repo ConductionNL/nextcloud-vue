@@ -23,8 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                             | Payload | Description                                                                      |
-| ---------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
-| `update:modelValue`                                              | —       |                                                                                  |
-| `select`                                                         | —       | The whole choice: `{ source, id, label, secondary, row }`, or null when cleared. |
-| `update:modelValue The chosen party's id, or null when cleared.` | —       |                                                                                  |
+| Name                | Payload | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `update:modelValue` | —       | The chosen party's id, or null when cleared.                                     |
+| `select`            | —       | The whole choice: `{ source, id, label, secondary, row }`, or null when cleared. |

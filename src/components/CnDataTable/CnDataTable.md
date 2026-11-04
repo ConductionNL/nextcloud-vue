@@ -193,8 +193,8 @@ export default {
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
-| `rowIcon` | String \| Function | `null` | Optional leading icon for every row: a static MDI name applied to all rows, or `(row) => iconName` to vary it per row (resolved via the CnIcon registry). Unset = no icon column. |
-| `rowIconTone` | String | `'primary'` | The tone of the leading icon's tile in the board look: `primary`, `teal` or `neutral` (DqOrganisaties draws a teal tile). |
+| `rowIcon` | String \| Function \| Object | `null` | Optional leading icon for every row: a static MDI name applied to all rows, `(row) => iconName` to vary it per row, or `{ field, icons, tones?, icon? }` to pick the icon (`icons[value]`, else `icon`) and its tile tone (`tones[value]`, else `rowIconTone`) by a field of the row, as a manifest can declare (resolved via the CnIcon registry). Unset = no icon column. |
+| `rowIconTone` | String | `'primary'` | The tone of the leading icon's tile in the board look: `primary`, `teal`, `neutral` or `warning` (DqOrganisaties draws a teal tile). |
 | `rowIndicators` | Array | `[]` | State indicators the page declares for its rows: `{ id, field, equals?, in?, icon, text, tooltip? }`. The condition is `equals`, `in`, or plain truthiness when neither is given. `text` is required, so an indicator is never colour and shape alone. The page declares which indicators exist; a record cannot add one it has not declared. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row before the rest move into the row menu, reachable as `indicatorsFor(row).overflow`. |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
@@ -289,3 +289,15 @@ draws "*****4054 Geheimhouding" for a protected resident (DqContacten). The cond
 the row-indicator grammar (`equals`, `in`, a date `after`/`before`, a number `lt`/`gt`, or
 truthiness), the label goes through the host translation, and `variant` is a
 `CnStatusBadge` variant (`default` when left out).
+
+## Value by rule (`col.valueWhen`)
+
+`valueWhen: [{ when, value }]` names what a cell holds by the row's fields: the first rule whose `when` holds (a condition `{ field, op?, value }` or a list of them, the `rowClass` grammar with `@now` and `@today`) gives the cell's value, drawn as any value; no rule holding leaves the stored value. PtMededelingenActies draws a published notice whose window runs as "Nu zichtbaar":
+
+```json
+{ "key": "status", "widget": "badge", "valueWhen": [
+  { "when": [{ "field": "status", "value": "published" }, { "field": "startsAt", "op": "lte", "value": "@now" }, { "field": "endsAt", "op": "gte", "value": "@now" }], "value": "visible" }
+] }
+```
+
+A list field on a `secondary` line names each value through `secondaryLabels` and reads as a list in the page's language: `{surfaces}` on `['site', 'portal']` with `{ surfaces: { site: "website", portal: "Mijn Zuiddrecht" } }` reads "website en Mijn Zuiddrecht".

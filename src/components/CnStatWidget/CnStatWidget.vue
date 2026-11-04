@@ -21,7 +21,7 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
-			{ 'cn-kpi-card--board': isBoardLook },
+			{ 'cn-kpi-card--board': isBoardLook, 'cn-kpi-card--icon-top': hasTopBadge },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
@@ -33,6 +33,17 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
+			<!-- Board look, `content.iconPlacement: "top"`: the icon sits in a
+			     42px circle above the label, tinted by the tile's state
+			     (LqTlVandaag). -->
+			<span
+				v-if="hasTopBadge"
+				class="cn-kpi-card__badge cn-kpi-card__badge--top cn-stat-widget__badge-icon"
+				:class="'cn-kpi-card__badge--' + stateTone"
+				data-testid="cn-stat-widget-icon-top"
+				aria-hidden="true">
+				<CnWidgetIcon :name="resolvedIcon" :size="22" />
+			</span>
 			<div
 				v-if="content.label || rangePresets.length"
 				class="cn-kpi-card__title cn-stat-widget__label"
@@ -40,7 +51,7 @@
 				<!-- Board look: the icon is an 18px glyph before the label, and
 				     only when the tile links to a filtered list. -->
 				<span
-					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge"
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge && !hasTopBadge"
 					class="cn-kpi-card__glyph cn-stat-widget__glyph"
 					data-testid="cn-stat-widget-glyph"
 					aria-hidden="true">
@@ -671,6 +682,28 @@ export default {
 		},
 
 		/**
+		 * The caption before translation: the matching override's `caption`,
+		 * else `content.caption`. A `{ singular, plural }` caption takes the
+		 * singular for a count of one and the plural otherwise, counted by the
+		 * caption's own count, or by the tile's number when it has none.
+		 *
+		 * @return {string} The source string, '' for none.
+		 * @spec openspec/changes/stat-caption-plural/specs/stat-widget/spec.md#requirement-a-stat-caption-can-take-a-singular-and-a-plural-form
+		 */
+		captionSourceText() {
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
+			if (!caption || typeof caption !== 'object') {
+				return typeof caption === 'string' ? caption : ''
+			}
+			const count = this.hasCaptionSource ? this.captionCount : this.displayValue
+			const form = Number(count) === 1 ? caption.singular : caption.plural
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
 		 *
@@ -706,10 +739,7 @@ export default {
 		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
-			const override = this.activeOverride
-			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
-				? override.caption
-				: this.content.caption
+			const caption = this.captionSourceText
 			if (!caption) {
 				return ''
 			}
@@ -841,7 +871,7 @@ export default {
 		 * null. Colours the caption on the value without recolouring the
 		 * tile: "1 due today" turns red while the number stays ink.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {object|null}
 		 */
 		activeCaptionRule() {
@@ -890,7 +920,7 @@ export default {
 		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
 		 * variant, so an uncoloured caption is what it always was.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {string}
 		 */
 		captionVariantClass() {
@@ -1506,6 +1536,20 @@ export default {
 		hasEndBadge() {
 			return this.isBoardLook
 				&& (this.content || {}).iconPlacement === 'end'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted 42px circle above
+		 * the label (`content.iconPlacement: "top"`), as the learniq Today
+		 * tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label
+		 * @return {boolean}
+		 */
+		hasTopBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'top'
 				&& Boolean(this.resolvedIcon)
 		},
 

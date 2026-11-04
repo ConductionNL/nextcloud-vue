@@ -2181,16 +2181,18 @@ export default {
 
 		/**
 		 * The initials of the row's avatar (`avatar`: a name template such as
-		 * `"{client.name}"`, or `{ text }`), or '' without one.
+		 * `"{client.name}"`, or `{ text, letters }`; `text` may list candidates),
+		 * or '' without one. `letters` is how many letters a one-word name gives.
 		 *
 		 * @param {object} row The row.
-		 * @return {string} One or two letters.
+		 * @return {string} The letters.
 		 * @spec openspec/changes/screens-record-list-avatar/specs/record-list-avatar/spec.md#requirement-a-record-list-row-can-carry-an-avatar
+		 * @spec openspec/changes/record-list-avatar-letters/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-draw-two-letters-for-one-word
 		 */
 		initialsFor(row) {
 			const avatar = this.content?.avatar
-			const template = typeof avatar === 'string' ? avatar : (avatar && typeof avatar === 'object' ? avatar.text : '')
-			return initialsOf(this.fill(template, row))
+			const config = avatar && typeof avatar === 'object' && !Array.isArray(avatar) ? avatar : { text: avatar }
+			return initialsOf(this.fill(config.text || '', row), Number(config.letters) || 1)
 		},
 
 		/**

@@ -19,7 +19,8 @@
     "**/*.vue2.js",
     "**/CnWidgetGrid/registerDashboardWidgets.js",
     "**/dashboardRegistration.js",
-    "**/Cn*Widget/index.js"
+    "**/Cn*Widget/index.js",
+    "**/CnConflictResolveCard/index.js"
   ],
   "exports": {
     ".": {
@@ -61,6 +62,9 @@
     "testing/",
     "webpack/"
   ],
+  "engines": {
+    "npm": "^11.0.0"
+  },
   "scripts": {
     "prebuild": "npm run build:validators",
     "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
