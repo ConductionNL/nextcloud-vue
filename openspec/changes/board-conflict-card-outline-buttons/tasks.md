@@ -1,0 +1,2 @@
+- [x] look-board.css rule for the conflict card's choice buttons
+- [x] Spec tests/css/lookBoardConflictCardOutlineButtons.spec.js

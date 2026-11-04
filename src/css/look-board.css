@@ -5087,3 +5087,30 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	font-size: 14px;
 	line-height: normal;
 }
+
+/* ---- The conflict card's choices ---------------------------------------- */
+/* Board DqInspectie (the "Synchroniseren" phone) draws "Deze houden" and "Die
+   van kantoor" as 34px outline buttons: no fill, a 1px control border, 14px
+   in, the main ink at 14px/600. NcButton's secondary is the filled light tint.
+   @spec openspec/changes/board-conflict-card-outline-buttons/specs/board-conflict-card-outline-buttons/spec.md#requirement-a-board-conflict-cards-choices-are-34px-outline-buttons */
+.cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue.button-vue--secondary,
+.cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue.button-vue--vue-secondary {
+	--button-size: 34px;
+	--button-radius: var(--cn-board-control-radius, 8px);
+	--button-padding: 14px;
+	--nldesign-color-on-surface: var(--color-main-text);
+	border: 1px solid var(--cn-board-control-border);
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue.button-vue--secondary:hover:not(:disabled),
+.cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue.button-vue--vue-secondary:hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+.cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}

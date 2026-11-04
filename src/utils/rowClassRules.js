@@ -45,8 +45,9 @@ export function compileRowClass(rowClass) {
  * @param {object|Array<object>} when The condition or conditions.
  * @param {object} row The row.
  * @return {boolean} True when it holds.
+ * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-column-can-name-its-value-by-the-rows-fields
  */
-function ruleHolds(when, row) {
+export function ruleHolds(when, row) {
 	const conditions = Array.isArray(when) ? when : [when || {}]
 	return conditions.length > 0 && conditions.every((condition) => {
 		const actual = readVisibleWhenPath(row, condition && condition.field)

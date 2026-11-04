@@ -19,7 +19,8 @@
     "**/*.vue2.js",
     "**/CnWidgetGrid/registerDashboardWidgets.js",
     "**/dashboardRegistration.js",
-    "**/Cn*Widget/index.js"
+    "**/Cn*Widget/index.js",
+    "**/CnConflictResolveCard/index.js"
   ],
   "exports": {
     ".": {

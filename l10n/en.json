@@ -2609,7 +2609,15 @@
     "Remove group": "Remove group",
     "Condition": "Condition",
     "These conditions are kept as written": "These conditions are kept as written",
-    "This group has no conditions yet.": "This group has no conditions yet."
+    "This group has no conditions yet.": "This group has no conditions yet.",
+    "Keep this one": "Keep this one",
+    "Keep the server one": "Keep the server one",
+    "Conflict: which version do you keep?": "Conflict: which version do you keep?",
+    "Choosing a version is not possible here yet.": "Choosing a version is not possible here yet.",
+    "The conflicts could not be read.": "The conflicts could not be read.",
+    "This choice was not saved.": "This choice was not saved.",
+    "On this device: \"{value}\"": "On this device: \"{value}\"",
+    "On the server: \"{value}\"": "On the server: \"{value}\""
   },
   "plurals": {
     "{count} member": [

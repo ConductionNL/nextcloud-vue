@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.172.0', () => {
+	it('the manifest schema version reads 2.173.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1446,7 +1446,16 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.170.0 lets an index or detail page keep form drafts (draftAppId), offer Save draft (allowDraft) and name the draft flag (draftField; pages-forward-form-drafts).
 		// 2.171.0 lets an index page draw its title column as text or strong (rowTitle; index-row-title-text-strong).
 		// 2.172.0 lets a detail page read the record's rights (permissions) and a manifest name a dotted path into @self such as @self.can.update (detail-page-record-rights).
-		expect(schema.version).toBe('2.172.0')
+		// 2.173.0 lets a visibleWhen condition require the reader to be in a Nextcloud group (readerGroups; visible-when-reader-groups).
+		expect(schema.version).toBe('2.173.0')
+	})
+
+	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
+		const visibleWhen = { all: [{ readerGroups: ['bezwaarcommissie', 'admin'] }, { field: 'status', op: 'eq', value: 'in-deliberation' }] }
+		const manifest = { ...MINIMAL_V2, pages: [{ id: 'advice', route: '/advice/:id', type: 'detail', title: 'Advice', config: { register: 'r', schema: 's', headerActions: [{ id: 'issue', label: 'Issue advice', type: 'api-call', url: '/apps/x/api/@objectId', visibleWhen }, { id: 'alone', label: 'Alone', type: 'api-call', url: '/apps/x/api', visibleWhen: { readerGroups: ['bezwaarcommissie'] } }] } }] }
+		expect(validateManifestV2(manifest)).toEqual({ valid: true, errors: [], warnings: [] })
+		const wrong = { ...MINIMAL_V2, pages: [{ ...manifest.pages[0], config: { ...manifest.pages[0].config, headerActions: [{ id: 'issue', label: 'Issue', type: 'api-call', url: '/apps/x/api', visibleWhen: { readerGroups: 'bezwaarcommissie' } }] } }] }
+		expect(validateManifestV2(wrong).valid).toBe(false)
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {

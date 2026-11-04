@@ -84,6 +84,14 @@
 	justify-content: flex-end;
 }
 
+/* The primary button ends the header row, after Bewerken and Meer, as the
+   boards draw it (DqAanbesteding, DqKlachten, PqContract, PtPortal). It stays
+   first in the reading and tab order, where the skip link lands.
+   @spec openspec/changes/notice-list-in-a-tab/specs/detail-page/spec.md#requirement-the-board-look-draws-the-primary-button-last */
+.cn-look-board .cn-detail-page__header--board .cn-detail-page__header-actions > [data-testid="cn-detail-page-primary-action"] {
+	order: 1;
+}
+
 /* `headerActionsBelow`: the title takes the whole first row and the buttons
    start a row of their own under it, from the left (PqLead).
    @spec openspec/changes/detail-actions-below-title/specs/detail-actions-below-title/spec.md#requirement-a-detail-page-can-put-its-header-buttons-under-the-title */
@@ -3442,10 +3450,13 @@
 
 /* A ruled feed in a page card (DqContact and DqOrganisatie "Laatste
    contactmomenten") starts as a ruled list does: the rule 12px under the
-   title, so the first moment's text is 25px under it (r45 22.8).
-   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-ruled-feed-starts-12px-under-the-title */
+   title, so the first moment's text is 25px under it (r45 22.8). It ends 8px
+   under its last row, as the four contact boards draw it.
+   @spec openspec/changes/board-dq-card-rhythm-r46/specs/board-dq-card-rhythm-r46/spec.md#requirement-a-ruled-feed-starts-12px-under-the-title
+   @spec openspec/changes/board-feed-card-bottom-8/specs/board-feed-card-bottom-8/spec.md#requirement-a-ruled-feed-card-ends-8px-under-its-last-row */
 .cn-look-board .cn-detail-page .cn-widget-wrapper__content:has(> .cn-record-list--feed.cn-record-list--rule-above):not(.cn-detail-page__side *) {
 	padding-top: 12px;
+	padding-bottom: 8px;
 }
 
 /* A card that opens on a grid of framed tiles (DqZaaktypeOverzicht

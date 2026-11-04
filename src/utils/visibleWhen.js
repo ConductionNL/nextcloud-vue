@@ -6,7 +6,7 @@
  * shape, generalised in Wave 3 of nextcloud-vue#91 for manifest actions).
  *
  * A `visibleWhen` condition is
- * `{ appInstalled?, endpoint?, source?, field?, op?, value }`.
+ * `{ appInstalled?, readerGroups?, endpoint?, source?, field?, op?, value }`.
  *
  * `appInstalled` is a precondition rather than a mode: it names the Nextcloud
  * app that backs the guarded element, and it is checked before anything else.
@@ -14,6 +14,10 @@
  * it gates that mode. It exists because the menu's `visibleIf` already spoke
  * this word and `visibleWhen` did not, so the same manifest vocabulary meant
  * two different things in two places.
+ *
+ * `readerGroups` is a precondition the same way: the reader must be in at least
+ * one listed Nextcloud group. It hides a control and never replaces the check
+ * of the endpoint behind it. Until the groups are known it reads false.
  *
  * The value itself comes from one of THREE evaluation modes (first match wins):
  *
@@ -51,6 +55,7 @@ import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
+import { loadCurrentUserGroups, peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in', 'anyOf', 'contains']
@@ -159,6 +164,30 @@ export function compareVisibleWhen(actual, op, expected, ctx) {
 }
 
 /**
+ * Whether the reader is in at least one of the listed groups. Unknown groups
+ * (`null`, still loading) and an empty list both read false.
+ *
+ * @param {string[]} listed The condition's `readerGroups`.
+ * @param {string[]|null} groups The reader's group ids, or null while loading.
+ * @return {boolean} Whether one listed group is the reader's.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ */
+export function readerInGroups(listed, groups) {
+	return Array.isArray(groups) && listed.some((id) => typeof id === 'string' && groups.includes(id))
+}
+
+/**
+ * Whether a `readerGroups` condition has nothing else to decide: no mode and
+ * no other precondition next to it.
+ *
+ * @param {object} cond The visibleWhen condition.
+ * @return {boolean} True when `readerGroups` is the whole condition.
+ */
+function isReaderGroupsOnly(cond) {
+	return !cond.field && !cond.endpoint && !cond.source && !cond.workspace && !cond.appInstalled
+}
+
+/**
  * Whether a condition reads the page workspace context (`workspace: "<key>"`).
  * Such a condition is answered synchronously from the reactive bag, so a
  * widget appears and disappears the moment a page control writes its key
@@ -263,6 +292,91 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 }
 
 /**
+ * Whether a condition composes others through `all` or `any`.
+ *
+ * @param {object} cond The condition.
+ * @return {boolean} True for a composition.
+ */
+function isComposition(cond) {
+	return Array.isArray(cond.all) === true || Array.isArray(cond.any) === true
+}
+
+/**
+ * The parts of a composition. Reads the key that IS an array: a malformed
+ * `{ all: {}, any: [] }` is a composition on `any`, and `cond.all ?? cond.any`
+ * would hand the object to `.map`.
+ *
+ * @param {object} cond The composition.
+ * @return {Array<object>} Its parts.
+ */
+function compositionParts(cond) {
+	return Array.isArray(cond.all) === true ? cond.all : cond.any
+}
+
+/**
+ * Whether a composition's results add up to true.
+ *
+ * @param {object} cond The composition.
+ * @param {Array<boolean>} results One result per part.
+ * @return {boolean} Every result for `all`, some result for `any`.
+ */
+function compositionHolds(cond, results) {
+	return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
+}
+
+/**
+ * Evaluate a composition; a malformed one hides the element.
+ *
+ * @param {object} cond The composition.
+ * @param {object} [ctx] The caller's context.
+ * @return {Promise<boolean>} Whether it holds.
+ */
+async function evaluateComposition(cond, ctx) {
+	try {
+		return compositionHolds(cond, await Promise.all(compositionParts(cond).map((part) => evaluateVisibleWhen(part, ctx))))
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Evaluate a composition synchronously. A malformed one hides the one element,
+ * rather than throwing out of the computed that calls it and taking the render
+ * with it.
+ *
+ * @param {object} cond The composition.
+ * @param {object} data The live data object.
+ * @return {boolean} Whether it holds.
+ */
+function evaluateCompositionLocal(cond, data) {
+	try {
+		return compositionHolds(cond, compositionParts(cond).map((part) => evaluateVisibleWhenLocal(part, data)))
+	} catch {
+		return false
+	}
+}
+
+/**
+ * The `readerGroups` precondition: false when the reader is in none of the
+ * groups, true when the groups are the whole condition, null when the rest of
+ * the condition decides.
+ *
+ * @param {object} cond The condition.
+ * @param {string[]|null} groups The reader's groups, null without `readerGroups`.
+ * @return {boolean|null} The verdict, null for none.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ */
+function readerGroupsVerdict(cond, groups) {
+	if (Array.isArray(cond.readerGroups) !== true) {
+		return null
+	}
+	if (!readerInGroups(cond.readerGroups, groups)) {
+		return false
+	}
+	return isReaderGroupsOnly(cond) ? true : null
+}
+
+/**
  * Evaluate a visibleWhen condition to a boolean, FAIL-SAFE: any error
  * (fetch failure, unusable condition, missing context) resolves `false`.
  * A `null` / `undefined` condition resolves `true` (no condition = always
@@ -271,6 +385,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
  * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
@@ -279,17 +394,12 @@ export async function evaluateVisibleWhen(cond, ctx) {
 	// `all` / `any` compose conditions, so a gate can be more than one fact.
 	// Without it a claim button could say "not closed" OR "nobody holds it",
 	// never both, and the weaker of the two is the one that ships.
-	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
-		try {
-			// Read the key that IS an array: a malformed `{ all: {}, any: [] }`
-			// enters this branch on `any`, and `cond.all ?? cond.any` would hand
-			// the object to `.map`.
-			const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
-			const results = await Promise.all(parts.map((part) => evaluateVisibleWhen(part, ctx)))
-			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
-		} catch {
-			return false
-		}
+	if (isComposition(cond)) {
+		return evaluateComposition(cond, ctx)
+	}
+	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? await loadCurrentUserGroups() : null)
+	if (groupsVerdict !== null) {
+		return groupsVerdict
 	}
 	if (isWorkspaceCondition(cond)) {
 		return evaluateWorkspaceCondition(cond, ctx && ctx.workspace)
@@ -339,6 +449,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export function evaluateVisibleWhenLocal(cond, data) {
 	if (cond === null || cond === undefined) {
@@ -347,20 +458,16 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	if (typeof cond !== 'object' || Array.isArray(cond)) {
 		return false
 	}
-	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
-		try {
-			const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
-			const results = parts.map((part) => evaluateVisibleWhenLocal(part, data))
-			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
-		} catch {
-			// Same posture as the async twin: a malformed composition hides the
-			// one element, rather than throwing out of the computed that calls it
-			// and taking the render with it.
-			return false
-		}
+	if (isComposition(cond)) {
+		return evaluateCompositionLocal(cond, data)
 	}
 	if (cond.endpoint || cond.source) {
 		return false
+	}
+	// The peek is reactive: a computed that reads it re-runs when the groups arrive.
+	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? peekCurrentUserGroups() : null)
+	if (groupsVerdict !== null) {
+		return groupsVerdict
 	}
 	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
 		if (!isAppInstalled(cond.appInstalled)) {
@@ -394,7 +501,7 @@ export function evaluateVisibleWhenLocal(cond, data) {
  * the gate when it returns `false`.
  *
  * @param {object|null} cond The condition (or null).
- * @return {boolean} True when every leaf is a local `field` / `appInstalled` check.
+ * @return {boolean} True when every leaf is a local `field` / `appInstalled` / `readerGroups` check.
  */
 export function isLocallyDecidableVisibleWhen(cond) {
 	if (cond === null || cond === undefined) {
