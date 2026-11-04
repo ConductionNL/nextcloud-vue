@@ -40,8 +40,8 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
-| [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 | [CnQrCode](./cn-qr-code.md) | A QR code drawn in the browser, with a code to type in and a code that changes on a timer |
+| [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 
 ## Data Actions
 
