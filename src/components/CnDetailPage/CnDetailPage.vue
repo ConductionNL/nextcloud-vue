@@ -1466,6 +1466,7 @@ import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { parentCrumb } from '../../utils/parentCrumb.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -3033,8 +3034,12 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
 		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
 		 * and then the record); `currentField` and `separator` may sit on any
-		 * of them.
+		 * of them. A crumb with `parent` (a `visibilityContext` name) instead
+		 * of `label` is the record's parent: its `labelField` value (else its
+		 * name), linked by `route` + `param` (default `id`) or `href` with
+		 * `{id}`; it drops out when the record has no parent.
 		 *
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
@@ -5657,7 +5662,7 @@ export default {
 		 */
 		declaredCrumbs() {
 			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
-			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== ''
+			return list.filter((crumb) => crumb && ((typeof crumb.label === 'string' && crumb.label !== '') || (typeof crumb.parent === 'string' && crumb.parent !== ''))
 				&& (!crumb.visibleWhen || detailWidgetVisible({ visibleWhen: crumb.visibleWhen }, this.widgetVisibilityData)))
 		},
 
@@ -5665,11 +5670,14 @@ export default {
 		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
 		 * as the current crumb. Empty without a declared crumb. A crumb
-		 * carries `icon` only when the manifest declares one.
+		 * carries `icon` only when the manifest declares one. A crumb with
+		 * `parent` is the record's parent (see `parentCrumb`) and drops out
+		 * when the record has none.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
@@ -5677,6 +5685,9 @@ export default {
 				return []
 			}
 			const crumbs = this.declaredCrumbs.map((crumb) => {
+				if (typeof crumb.parent === 'string' && crumb.parent !== '') {
+					return parentCrumb(crumb, this.visibilityRefs, this.visibilityRows, this.effectiveTranslate)
+				}
 				const entry = { label: this.effectiveTranslate(crumb.label) }
 				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
 					entry.icon = crumb.icon
@@ -5687,7 +5698,10 @@ export default {
 					entry.href = crumb.href
 				}
 				return entry
-			})
+			}).filter((crumb) => crumb !== null)
+			if (crumbs.length === 0) {
+				return []
+			}
 			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 

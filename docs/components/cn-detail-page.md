@@ -811,6 +811,19 @@ A case type with `"sideCards": ["consent", "people", "deadline"]` shows those th
 
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
 - `config.breadcrumb` may be a list of crumbs for a record that sits more than one level deep: `[{ "label": "Settings", "href": "..." }, { "label": "Case types", "route": "CaseTypes" }]` reads "Settings / Case types / Omgevingsvergunning regulier". `currentField` and `separator` may sit on any crumb of the list.
+- A crumb with `parent` instead of `label` is the record's parent, for a sub-record (a sub-case under its case). `parent` names a `config.visibilityContext` entry, which says which field holds the parent's id and where the parent lives; the page reads the parent once. The crumb shows the parent's `labelField` value (e.g. `identifier`), else its name or title, else the crumb's own `label`, and links to `route` with the parent's id as the `param` route parameter (default `id`), or to `href` with `{id}` filled in. A record without a parent drops the crumb; a trail left with no crumb before the record draws nothing.
+
+```json
+{
+  "visibilityContext": { "parentRecord": { "field": "parent", "register": "app", "schema": "case" } },
+  "breadcrumb": [
+    { "label": "Cases", "route": "Cases" },
+    { "parent": "parentRecord", "labelField": "identifier", "route": "CaseDetail" }
+  ]
+}
+```
+
+A sub-case of `Z-2026-001` reads "Cases / Z-2026-001 / Z-2026-001-1"; a case without a parent reads "Cases / Z-2026-002".
 - `config.headerMetaWhen` (`[{ when, text }]`) makes the meta line depend on the record: the first entry whose local `visibleWhen` condition holds replaces `headerMeta`, and none leaves it. PqOfferte reads "not sent yet · prices excl. VAT" on a draft (`{ "when": { "field": "status", "value": "draft" }, "text": "not sent yet · prices excl. VAT" }`).
 - `config.headerMetaCounts` (`{ <name>: { register, schema, filter? } | { entitySource } }`) lets `headerMeta` count a list as `{count:<name>}`, as on a list page: `"een van {count:organisations} organisaties op deze omgeving"` (DqTenant). While a count is missing the line is left out.
 - `config.headerMetaLastChange: true` reads the record's newest create or update entry from its audit trail and offers it to `headerMeta` as `{_lastChange.userName}`, `{_lastChange.user|user}` and `{_lastChange.created|date}`: "last changed \{_lastChange.created|date\} by \{_lastChange.userName\}" (DqZaaktype). A trail that cannot be read leaves the tokens empty.
