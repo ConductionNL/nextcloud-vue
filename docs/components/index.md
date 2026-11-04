@@ -44,6 +44,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnRevealField](./cn-reveal-field.md) | A protected value shown masked until the user asks, fetched on every reveal |
 | [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
 | [CnGeoCaptureField](./cn-geo-capture-field.md) | Where something was recorded, from the device, with an address by hand as the fallback |
+| [CnTransferCard](./cn-transfer-card.md) | A transfer that takes a while: how far it is, its parts, and resuming after a dropped connection |
 
 ## Data Actions
 
