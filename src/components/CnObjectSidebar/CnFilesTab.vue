@@ -39,6 +39,7 @@
 			:sideCardsPlacement="sideCardsPlacement"
 			:groupBy="groupBy"
 			:facets="facets"
+			:facetPresentation="facetPresentation"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -444,6 +445,8 @@ export default {
 		 * @type {string[]}
 		 */
 		facets: { type: Array, default: () => [] },
+		/** How the facets are drawn: `chips` or `menu` (CnFilesBrowser `facetPresentation`). */
+		facetPresentation: { type: String, default: 'chips' },
 		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
 		headerActions: { type: Array, default: () => [] },
 		/** Forwarded to CnFilesBrowser: one visible button on every file row. */

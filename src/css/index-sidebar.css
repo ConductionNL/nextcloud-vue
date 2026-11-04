@@ -221,3 +221,11 @@
 	cursor: grab;
 	color: var(--color-text-maxcontrast);
 }
+
+/* `facetNote`: a muted line under a filter (index-sidebar-filter-notes). */
+.cn-index-sidebar__filter-note {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	line-height: 1.4;
+}

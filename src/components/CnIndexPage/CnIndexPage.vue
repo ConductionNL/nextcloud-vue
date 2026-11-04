@@ -698,6 +698,15 @@
 			:notices="pageNotices"
 			@noticeDismiss="onPageNoticeDismiss" />
 
+		<!-- Someone else changed the list (`realtime`): DqWerkbord "Zojuist
+		     bijgewerkt door ..."; the list reads again. -->
+		<CnRealtimeToast
+			v-if="realtimeShown"
+			:source="{ url: realtime.url, interval: realtime.interval }"
+			:titleTemplate="realtime.titleTemplate || ''"
+			:refreshOnChange="false"
+			@change="onRefreshEvent()" />
+
 		<!-- Body -->
 		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
 			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
@@ -1426,6 +1435,7 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnRealtimeToast from '../CnRealtimeToast/CnRealtimeToast.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
@@ -1933,6 +1943,7 @@ export default {
 
 	components: {
 		CnCardNotices,
+		CnRealtimeToast,
 		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
@@ -2210,6 +2221,20 @@ export default {
 		notices: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Follow changes others make (manifest `config.realtime`):
+		 * `{ url, interval?, views?, titleTemplate? }`. A change shows the
+		 * "Just updated by ..." toast and reads the list again, while the page
+		 * is in one of `views` (every view when unset).
+		 *
+		 * @type {{url: string, interval?: number, views?: string[], titleTemplate?: string}|null}
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtime: {
+			type: Object,
+			default: null,
 		},
 
 		/** Optional description shown below the title */
@@ -5014,6 +5039,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {boolean} Whether the page follows changes now.
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtimeShown() {
+			const config = this.realtime
+			if (!config || typeof config.url !== 'string' || config.url === '') {
+				return false
+			}
+			return !Array.isArray(config.views) || config.views.length === 0 || config.views.includes(this.currentViewMode)
+		},
+
 		/**
 		 * @return {Array<object>} The manifest's notices, then the ones this page's actions raised.
 		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list

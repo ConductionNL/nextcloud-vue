@@ -2944,7 +2944,23 @@
     "Unknown variable: {names}.": "Onbekende variabele: {names}.",
     "Unknown variables: {names}.": "Onbekende variabelen: {names}.",
     "Remove {row}": "{row} verwijderen",
-    "Removed {row}.": "{row} verwijderd."
+    "Removed {row}.": "{row} verwijderd.",
+    "Address search is not available right now": "Adres zoeken is nu niet beschikbaar",
+    "Type the address yourself.": "Typ het adres zelf in.",
+    "Street and house number": "Straat en huisnummer",
+    "Check: {errors}, {warnings}.": "Controle: {errors}, {warnings}.",
+    "all": "alle",
+    "Revoke": "Intrekken",
+    "Nothing is shared outside the organisation.": "Er is niets gedeeld buiten de organisatie.",
+    "Shares": "Delingen",
+    "The shares could not be read.": "De delingen konden niet worden gelezen.",
+    "The link could not be copied.": "De link kon niet worden gekopieerd.",
+    "Just updated by {actor}": "Zojuist bijgewerkt door {actor}",
+    "Choose an attribute from the catalogue": "Attribuut kiezen uit de catalogus",
+    "Folders": "Mappen",
+    "No attributes in this folder.": "Geen attributen in deze map.",
+    "All attributes": "Alle attributen",
+    "Uncategorised": "Ongecategoriseerd"
   },
   "plurals": {
     "{count} member": [
@@ -3190,6 +3206,18 @@
     "%n update is ready. An update keeps your own changes.": [
       "%n update staat klaar. Een update bewaart je eigen wijzigingen.",
       "%n updates staan klaar. Een update bewaart je eigen wijzigingen."
+    ],
+    "{count} error": [
+      "{count} fout",
+      "{count} fouten"
+    ],
+    "{count} warning": [
+      "{count} waarschuwing",
+      "{count} waarschuwingen"
+    ],
+    "in {count} place": [
+      "in {count} plek",
+      "in {count} plekken"
     ]
   }
 }
