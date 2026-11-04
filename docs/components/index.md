@@ -37,6 +37,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnObjectCard](./cn-object-card.md) | Schema-driven card for object display |
 | [CnCardGrid](./cn-card-grid.md) | Responsive CSS grid for CnObjectCard instances |
 | [CnStatusBadge](./cn-status-badge.md) | Color-coded pill badge for status/priority |
+| [CnDisplayScreen](./cn-display-screen.md) | A full page without a menu, read from a distance: a title, a clock, rows and a bottom line |
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
 | [CnBlockListEditor](./cn-block-list-editor.md) | Typed blocks in order: a palette, drag and buttons with a spoken position, one editor slot per type, drafts |
