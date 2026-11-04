@@ -45,6 +45,7 @@ the wording are all configuration; nothing in the widget knows what is being ins
 | `timeLeftText` | The time left line, with `{time}` (default "Time left: {time}"). |
 | `timeWarningSeconds` | From how many seconds left the line turns red and a screen reader hears it (default 300). |
 | `savedText` | Says the answers are saved, while nothing is unsaved and something is answered. |
+| `saveEachAnswer` | `true` saves each answer 800 ms after it is given, a number waits that many milliseconds. Without it (the default) the page saves when the user moves on or finishes. See [Saving each answer](#saving-each-answer). |
 | `submitLabel` | Adds a button that finishes from any page, such as "Toets inleveren". The last page then has no Finish. |
 | `pageSize` | Questions per page (default 1). |
 | `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. `"lastAnswered"` opens it at the page of its last answered question (the first page when none is). Without it the run opens at the first page. |
@@ -150,6 +151,14 @@ The time left follows the record's deadline, not the page, so a reload keeps it.
 The submit button finishes from any page. A required question without an answer holds it back and opens that question's page.
 
 Answers save when the user moves on or finishes, so `savedText` goes away as soon as an answer changes, and comes back after the save. A start screen, "not open yet" and "no attempts left" stay with the app, which mounts this widget once the run is open.
+
+## Saving each answer
+
+With `saveEachAnswer` an answer saves a moment after it is given, so a closed tab or a lost connection loses at most the last answer. Changes within the wait save together, so typing a note saves once. A save never runs twice at the same time: Next during a save waits for it and does not create the answer again. A pending answer also saves when the widget goes away. `savedText` comes back after each save, and a failed save shows its error until the next answer or Next saves it.
+
+```json
+{ "type": "checklist-run", "content": { "saveEachAnswer": true, "savedText": "Your answers are saved" } }
+```
 
 ## Keyboard and screen readers
 

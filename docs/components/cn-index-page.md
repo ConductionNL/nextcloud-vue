@@ -1459,6 +1459,22 @@ A `countValues` entry is counted under the same filters, the address's included,
 
 A detail page links to the filtered list with a `facts` row whose `route` carries the query (`{ "name": "Messages", "query": { "sendingRef": "@source.sendingRef" } }`); a record without the value draws no link.
 
+## Count text per quick filter: `countSuffixByFilter`
+
+`countSuffixByFilter` (manifest `config.countSuffixByFilter`) adds a text to the count line, after a middle dot, while a quick filter or lens is selected. Its keys are tab ids (a saved view shown as a lens has its view id), else tab labels. A quick filter tab can carry the text itself as `countSuffix`, which comes first. The text goes through the app's translate. With several tabs selected, each selected tab's text is added. A tab without a text, an empty count line, or a page without the key keeps the count line as it is.
+
+```json
+{
+  "quickFilters": [
+    { "label": "All" },
+    { "id": "unassigned", "label": "Unassigned", "filter": { "assignee": { "isnull": true } }, "sort": { "key": "createdAt", "order": "asc" } }
+  ],
+  "countSuffixByFilter": { "unassigned": "longest waiting first" }
+}
+```
+
+On the Unassigned tab the line reads "12 of 40 · longest waiting first".
+
 ## The row menu edits when the row opens the detail
 
 When a click on a row navigates to the record's detail page, the built-in View is left out of that row's menu (and of the right-click menu): viewing is what the click does. The menu offers Edit (Dutch "Bewerken", pencil icon). A row whose `viewTo` answers `null`, or a page with no row-click target, keeps View. Actions the page declares itself are not touched. The rule applies in every look.

@@ -18,7 +18,7 @@
 -->
 <template>
 	<CnDialog
-		:name="t('nextcloud-vue', 'Publish to the store')"
+		:name="t('nextcloud-vue', 'Publish to the marketplace')"
 		:subtitle="t('nextcloud-vue', 'Share a template built from your own configuration with the registry.')"
 		data-testid="store-publish-dialog"
 		@closing="$emit('close')">
@@ -223,7 +223,7 @@ export default {
 				})
 				const body = await response.json()
 				if (body.outcome === 'ok') {
-					showSuccess(t('nextcloud-vue', 'Published to the store.'))
+					showSuccess(t('nextcloud-vue', 'Published to the marketplace.'))
 					this.$emit('published', body.slug)
 					return
 				}
@@ -244,14 +244,14 @@ export default {
 		 */
 		outcomeMessage(body, status) {
 			if (status === 403) {
-				return t('nextcloud-vue', 'You may not publish to this store.')
+				return t('nextcloud-vue', 'You may not publish to this marketplace.')
 			}
 			const messages = {
-				not_configured: t('nextcloud-vue', 'No store registry is configured. An administrator connects one under Administration settings.'),
-				store_unreachable: t('nextcloud-vue', 'The store registry did not answer. Try again later.'),
-				store_rejected: t('nextcloud-vue', 'The store registry refused the item.'),
+				not_configured: t('nextcloud-vue', 'No marketplace registry is configured. An administrator connects one under Administration settings.'),
+				store_unreachable: t('nextcloud-vue', 'The marketplace registry did not answer. Try again later.'),
+				store_rejected: t('nextcloud-vue', 'The marketplace registry refused the item.'),
 				too_large: t('nextcloud-vue', 'The item is too large to publish.'),
-				rate_limited: t('nextcloud-vue', 'The store registry is busy. Try again in a minute.'),
+				rate_limited: t('nextcloud-vue', 'The marketplace registry is busy. Try again in a minute.'),
 			}
 			return messages[body?.outcome] || body?.message || t('nextcloud-vue', 'The item could not be published.')
 		},

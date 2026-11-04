@@ -114,8 +114,8 @@
 					v-model="query"
 					type="search"
 					class="cn-store-page__lens-search-input"
-					:placeholder="t('nextcloud-vue', 'Search the store')"
-					:aria-label="t('nextcloud-vue', 'Search the store')"
+					:placeholder="t('nextcloud-vue', 'Search the marketplace')"
+					:aria-label="t('nextcloud-vue', 'Search the marketplace')"
 					:disabled="offline"
 					data-testid="store-search"
 					@input="onSearchInput">
@@ -124,7 +124,7 @@
 		<div v-else class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
-				:label="t('nextcloud-vue', 'Search the store')"
+				:label="t('nextcloud-vue', 'Search the marketplace')"
 				:disabled="offline"
 				data-testid="store-search"
 				@update:modelValue="onSearchInput" />
@@ -294,10 +294,10 @@
 			<aside v-if="isBoardLook && !loading && !offline && !unreachable" class="cn-store-page__aside">
 				<section class="cn-store-page__side-card" data-testid="store-installed">
 					<h2 class="cn-store-page__side-title">
-						{{ t('nextcloud-vue', 'Installed from this store') }}
+						{{ t('nextcloud-vue', 'Installed from this marketplace') }}
 					</h2>
 					<p v-if="installedCards.length === 0" class="cn-store-page__side-note">
-						{{ t('nextcloud-vue', 'Nothing from this store is installed yet.') }}
+						{{ t('nextcloud-vue', 'Nothing from this marketplace is installed yet.') }}
 					</p>
 					<ul v-else class="cn-store-page__installed">
 						<li v-for="card in installedCards" :key="card.slug">
@@ -625,7 +625,7 @@ export default {
 		 * @return {string} The heading to render.
 		 */
 		resolvedTitle() {
-			return this.title || this.page?.title || t('nextcloud-vue', 'Store')
+			return this.title || this.page?.title || t('nextcloud-vue', 'Marketplace')
 		},
 
 		/**
@@ -924,7 +924,7 @@ export default {
 		notConfiguredMessage() {
 			const base = t(
 				'nextcloud-vue',
-				'No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
+				'No marketplace registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
 			)
 
 			return this.builtIn.length > 0
@@ -938,7 +938,7 @@ export default {
 		 * @return {string} The unreachable note.
 		 */
 		unreachableMessage() {
-			const base = t('nextcloud-vue', 'The store registry did not answer.')
+			const base = t('nextcloud-vue', 'The marketplace registry did not answer.')
 
 			return this.builtIn.length > 0
 				? `${base} ${t('nextcloud-vue', 'The items below ship with this app.')}`
