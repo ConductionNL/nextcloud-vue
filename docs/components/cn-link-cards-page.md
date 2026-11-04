@@ -77,7 +77,7 @@ A `route` is resolved through the router, so the link is right with and without 
 | `enabledIf` | A `visibleIf` condition against `runtime`, read when `enabled` is not a boolean. |
 | `route` | Where Open goes. Defaults to the first page. |
 | `pages` | `[{ label, route \| href, highlight? }]`. A page whose route does not resolve is left out. |
-| `settings` | `{ label?, prefix?, route \| href, permission?, visibleIf? }`: shown on a module that is off as "{prefix} {label}" (default "Put it in the menu: Admin settings"). Give it a `permission` so only admins see it. |
+| `settings` | `{ label?, prefix?, route \| href, permission?, visibleIf? }`: shown on a module that is off as "\{prefix\} \{label\}" (default "Put it in the menu: Admin settings"). Give it a `permission` so only admins see it. |
 | `permission`, `visibleIf` | Hide the whole module, as on a card. |
 
 ## Groups as list cards

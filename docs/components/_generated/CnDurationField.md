@@ -18,7 +18,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                                                | Payload | Description |
-| --------------------------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                                                                 | —       |             |
-| `update:modelValue The ISO string for the chosen amount and unit; null when the amount is cleared.` | —       |             |
+| Name                | Payload | Description                                                                     |
+| ------------------- | ------- | ------------------------------------------------------------------------------- |
+| `update:modelValue` | —       | The ISO string for the chosen amount and unit; null when the amount is cleared. |

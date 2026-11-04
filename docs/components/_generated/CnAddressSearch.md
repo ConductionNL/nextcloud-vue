@@ -23,8 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                               | Payload | Description                                                                      |
-| ------------------------------------------------------------------ | ------- | -------------------------------------------------------------------------------- |
-| `update:modelValue`                                                | —       |                                                                                  |
-| `select`                                                           | —       | `{ result, coordinates, address }` for the chosen address, or null when cleared. |
-| `update:modelValue The chosen address text, or null when cleared.` | —       |                                                                                  |
+| Name                | Payload | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `update:modelValue` | —       | The chosen address text, or null when cleared.                                   |
+| `select`            | —       | `{ result, coordinates, address }` for the chosen address, or null when cleared. |

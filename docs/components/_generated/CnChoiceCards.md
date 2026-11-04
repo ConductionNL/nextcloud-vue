@@ -25,10 +25,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                            | Payload | Description |
-| ------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                                             | —       |             |
-| `update:modelValue The selected value, or the array of values when `multiple`.` | —       |             |
+| Name                | Payload | Description                                                 |
+| ------------------- | ------- | ----------------------------------------------------------- |
+| `update:modelValue` | —       | The selected value, or the array of values when `multiple`. |
 
 ### Slots
 

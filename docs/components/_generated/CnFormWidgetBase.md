@@ -22,11 +22,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                    | Payload | Description                                                                                                                                                                                                        |
-| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `update:field`                          | —       |                                                                                                                                                                                                                    |
-| `submit`                                | —       | The user asked to submit the form. Carries no payload — the host owns the model, so it already has the values. Only reachable while the button is enabled, i.e. while neither `submitting` nor `!canSubmit` holds. |
-| `update:field A field's value changed.` | —       |                                                                                                                                                                                                                    |
+| Name           | Payload | Description                                                                                                                                                                                                        |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `update:field` | —       | A field's value changed.                                                                                                                                                                                           |
+| `submit`       | —       | The user asked to submit the form. Carries no payload — the host owns the model, so it already has the values. Only reachable while the button is enabled, i.e. while neither `submitting` nor `!canSubmit` holds. |
 
 ### Slots
 

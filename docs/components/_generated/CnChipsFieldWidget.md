@@ -19,8 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                                     | Payload | Description           |
-| ---------------------------------------------------------------------------------------- | ------- | --------------------- |
-| `saved`                                                                                  | —       | The list was written. |
-| `update:modelValue`                                                                      | —       |                       |
-| `update:modelValue Form mode: the new list, for the parent to hold. Nothing is written.` | —       |                       |
+| Name                | Payload | Description                                                          |
+| ------------------- | ------- | -------------------------------------------------------------------- |
+| `saved`             | —       | The list was written.                                                |
+| `update:modelValue` | —       | Form mode: the new list, for the parent to hold. Nothing is written. |
