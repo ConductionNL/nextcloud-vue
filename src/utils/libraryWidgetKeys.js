@@ -106,6 +106,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'checklist-run',
 	'chips-field',
 	'choice-picker',
+	'conflict-resolve',
 	'container',
 	'conversation',
 	'countdown',

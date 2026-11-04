@@ -60,6 +60,13 @@ describe('the board look\'s linked mail rows', () => {
 		expect(initials).toMatch(/font-weight:\s*700/)
 	})
 
+	// @spec openspec/changes/board-mail-row-initials-size/specs/board-mail-row-initials-size/spec.md
+	it('sizes the tile inside NcAvatar to 32px too, on a 32px line', () => {
+		const tile = bodyOf(`.cn-look-board .cn-email-tab__avatar${G}`)
+		expect(tile).toMatch(/--avatar-size:\s*32px\s*!important/)
+		expect(tile).toMatch(/line-height:\s*32px\s*!important/)
+	})
+
 	it('sets the subject 15px/600 over the sender in 13px muted, 2px apart', () => {
 		const subject = bodyOf(`.cn-look-board .cn-email-tab__subject${G}`)
 		expect(subject).toMatch(/font-size:\s*15px/)

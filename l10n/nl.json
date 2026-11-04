@@ -2875,7 +2875,15 @@
     "Condition": "Voorwaarde",
     "These conditions are kept as written": "Deze voorwaarden blijven zoals ze zijn geschreven",
     "This group has no conditions yet.": "Deze groep heeft nog geen voorwaarden.",
-    "Rank": "Rang"
+    "Rank": "Rang",
+    "Keep this one": "Deze houden",
+    "Keep the server one": "Die van de server",
+    "Conflict: which version do you keep?": "Conflict: welke versie houdt u?",
+    "Choosing a version is not possible here yet.": "Een versie kiezen kan hier nog niet.",
+    "The conflicts could not be read.": "De conflicten konden niet worden gelezen.",
+    "This choice was not saved.": "Deze keuze is niet opgeslagen.",
+    "On this device: \"{value}\"": "Op dit toestel: \"{value}\"",
+    "On the server: \"{value}\"": "Op de server: \"{value}\""
   },
   "plurals": {
     "{count} member": [
