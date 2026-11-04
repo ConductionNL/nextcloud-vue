@@ -1122,6 +1122,7 @@
     "Search projects": "Projecten zoeken",
     "No projects available": "Geen projecten beschikbaar",
     "Nothing to choose from.": "Niets om uit te kiezen.",
+    "Time left: {time}": "Resterende tijd: {time}",
     "Create a project in NC Costs first, or use the create dialog.": "Maak eerst een project aan in NC Kosten, of gebruik het aanmaakvenster.",
     "NC Costs is not installed.": "NC Kosten is niet geïnstalleerd.",
     "Link project": "Project koppelen",

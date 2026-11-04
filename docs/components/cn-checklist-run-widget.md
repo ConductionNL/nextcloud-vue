@@ -40,6 +40,12 @@ the wording are all configuration; nothing in the widget knows what is being ins
 | `answers` | `{ register, schema, filter?, questionField, valueField, noteField?, photosField?, create? }`: one answer record per question. Answers already given fill the form. On Next or Previous the changed answers of the page are saved through the object API, so under the reader's own rights: an existing answer is updated, a new one is created with the `create` fields (tokens resolved). |
 | `saveAction` | A manifest action that saves an answer instead, for an app that stores answers its own way. It is dispatched per changed answer with `{ questionId, value, note }` as its last argument. Photos are not offered then. |
 | `finishAction` | A manifest action dispatched after the last page is saved. The widget also emits `finished`. |
+| `deadlineField` | A path on the open record to the moment the run ends. Shows the time left, and at zero saves the page and finishes. See [A run with a deadline](#a-run-with-a-deadline). |
+| `serverNowField` | A path on the open record to the server's time when it was read, so a wrong device clock does not change the time left. |
+| `timeLeftText` | The time left line, with `{time}` (default "Time left: {time}"). |
+| `timeWarningSeconds` | From how many seconds left the line turns red and a screen reader hears it (default 300). |
+| `savedText` | Says the answers are saved, while nothing is unsaved and something is answered. |
+| `submitLabel` | Adds a button that finishes from any page, such as "Toets inleveren". The last page then has no Finish. |
 | `pageSize` | Questions per page (default 1). |
 | `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. `"lastAnswered"` opens it at the page of its last answered question (the first page when none is). Without it the run opens at the first page. |
 | `allowNote` | Show a note field per question (default `true`). `noteLabel` names it. |
@@ -125,12 +131,32 @@ unresolved it reads nothing.
 { "record": { "register": "app", "schema": "run", "filter": { "inspector": "@me", "status": "in_execution" }, "sort": { "field": "startedAt", "dir": "desc" } } }
 ```
 
+## A run with a deadline
+
+Board LqLlToetsMaken draws a test: "Resterende tijd: 18:42", "Je antwoorden zijn opgeslagen", and Toets inleveren next to Vorige and Volgende.
+
+```json
+{
+  "deadlineField": "deadlineAt",
+  "serverNowField": "serverTime",
+  "timeLeftText": "Resterende tijd: {time}",
+  "savedText": "Je antwoorden zijn opgeslagen",
+  "submitLabel": "Toets inleveren"
+}
+```
+
+The time left follows the record's deadline, not the page, so a reload keeps it. Give the server more time on the record and the line follows. At zero the widget saves the open page and finishes, even with required questions open, and `finished` says `reason: "deadline"`. If that save fails the run stays open with the error, and the next Next or submit finishes it. A timed run finishes once.
+
+The submit button finishes from any page. A required question without an answer holds it back and opens that question's page.
+
+Answers save when the user moves on or finishes, so `savedText` goes away as soon as an answer changes, and comes back after the save. A start screen, "not open yet" and "no attempts left" stay with the app, which mounts this widget once the run is open.
+
 ## Keyboard and screen readers
 
 Each question is a fieldset whose legend is the question; the choices are native radio buttons, so the arrow keys move
 between them. A required question says so to a screen reader. The photo control is a native file input that opens the
 camera on a phone. On a new page focus moves to the position line ("Question 8 of 24") and a polite live region reads
-it. Progress is a progress bar of the questions answered.
+it. Progress is a progress bar of the questions answered. The time left has the `timer` role and does not read itself out every second. A screen reader hears it once at `timeWarningSeconds` and once at the last minute.
 
 ## Props
 
@@ -146,4 +172,4 @@ it. Progress is a progress bar of the questions answered.
 
 | Event | Payload | Description |
 |---|---|---|
-| `finished` | `{ answered, total }` | The last page was saved. |
+| `finished` | `{ answered, total, reason }` | The last page was saved. `reason` is `user`, or `deadline` when the time ran out. |
