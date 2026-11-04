@@ -122,6 +122,7 @@ export {
 	CnDialog,
 	CnDialogActions,
 	CnDialogHeader,
+	CnDisplayScreen,
 	CnDividerWidget,
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
