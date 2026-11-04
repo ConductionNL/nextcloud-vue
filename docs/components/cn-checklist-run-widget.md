@@ -53,6 +53,18 @@ values onto these kinds (an unknown type is a text field), and `choiceValues` (`
 Yes, No and Not applicable. A required question keeps the page until it is answered. Question texts, labels and options
 go through the app's translate.
 
+## Where an answer was given
+
+`captureLocation` records where each answer was given, as board DqInspectie draws under "Locatie bij elk antwoord":
+
+```json
+{ "captureLocation": { "field": "location", "goodAccuracy": 50 } }
+```
+
+The first time an answer changes, the widget asks the device for its position, and a line under the question shows it ("51.9012, 4.4831 · ±12 m · 10:52"). Moving on waits for the device, for at most ten seconds. A fix rougher than `goodAccuracy` metres, or no fix at all, says so. The inspector can then try again or type an address, and can always carry on.
+
+The place is stored in `field` of the answer as `{ lat, lng, accuracy, at, low, address? }`, in a separate answer record and in an answer on the open record alike. A `saveAction` gets it as `location`. `low` is true for a rough fix or none, which is the board's "gps: matig" marker. See [`CnGeoCaptureField`](./cn-geo-capture-field.md).
+
 ## Questions and answers inside the open record
 
 When a run keeps its questions and answers in its own record, read the questions with `questionsPath` and write the

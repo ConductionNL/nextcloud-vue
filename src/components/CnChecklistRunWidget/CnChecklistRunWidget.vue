@@ -103,6 +103,13 @@
 						data-testid="cn-checklist-run-note"
 						@input="markDirty(question.id)" />
 				</label>
+				<CnGeoCaptureField
+					v-if="locationField && (locating[question.id] || draft[question.id].location)"
+					:modelValue="draft[question.id].location || null"
+					:busy="locating[question.id] === true"
+					:goodAccuracy="goodAccuracy"
+					data-testid="cn-checklist-run-location"
+					@update:modelValue="setLocation(question.id, $event)" />
 				<p
 					v-if="missing.includes(question.id)"
 					class="cn-checklist-run__error"
@@ -189,8 +196,10 @@ import CameraOutline from 'vue-material-design-icons/CameraOutline.vue'
 import { uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { captureLocation } from '../../utils/captureLocation.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { CnGeoCaptureField } from '../CnGeoCaptureField/index.js'
 
 const OBJECT_API = '/apps/openregister/api/objects'
 
@@ -310,6 +319,11 @@ function idOf(object) {
  * question, where the inspector was; without it the run opens at the first
  * page.
  *
+ * `captureLocation: { field, goodAccuracy? }` captures where each answer was
+ * given, unasked, the first time it changes: the page's save waits for the
+ * device, a rough fix or none says so and takes an address by hand, and the
+ * place is stored in `field` of the answer.
+ *
  * Question kinds: `yes_no`, `yes_no_na`, `choice` (the question's `options`,
  * a list of strings or `{ value, label }`), `number`, `photo` and `text`.
  * `typeMap` maps the app's type values onto them, `choiceValues` the stored
@@ -321,7 +335,7 @@ function idOf(object) {
 export default {
 	name: 'CnChecklistRunWidget',
 
-	components: { CameraOutline, NcButton, NcLoadingIcon },
+	components: { CameraOutline, CnGeoCaptureField, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The detail page's object context (`{ objectId, object }`), for tokens. */
@@ -393,6 +407,8 @@ export default {
 			recordAnswers: [],
 			draft: {},
 			dirty: {},
+			locating: {},
+			locationPending: {},
 			photos: {},
 			page: 0,
 			// The source the page was last positioned for; `startAt` applies once per source.
@@ -479,6 +495,16 @@ export default {
 				const value = readPath(object, path)
 				return value === null || value === undefined ? '' : String(value)
 			}).trim()
+		},
+
+		/** @return {string} The answer field a captured place is stored in, '' when none is asked for. */
+		locationField() {
+			return this.content?.captureLocation?.field || ''
+		},
+
+		/** @return {number} The accuracy in metres above which a fix counts as low. */
+		goodAccuracy() {
+			return this.content?.captureLocation?.goodAccuracy ?? 50
 		},
 
 		/** @return {boolean} Whether a note field shows (default true). */
@@ -889,7 +915,7 @@ export default {
 						const qid = String(readPath(entry, key) ?? '')
 						const question = questions.find((x) => x.id === qid)
 						if (question && !answerIds[qid]) {
-							draft[qid] = this.draftFromEntry(question, entry)
+							draft[qid] = { ...this.draftFromEntry(question, entry), location: this.locationField ? (readPath(entry, this.locationField) ?? null) : null }
 							answerIds[qid] = qid
 							const photos = readPath(entry, this.answerFields.photos)
 							storedPhotos[qid] = Array.isArray(photos) ? photos : []
@@ -902,6 +928,7 @@ export default {
 						draft[qid] = {
 							value: String(readPath(answer, a.valueField || 'answer') ?? ''),
 							note: String(readPath(answer, a.noteField || 'note') ?? ''),
+							location: this.locationField ? (readPath(answer, this.locationField) ?? null) : null,
 						}
 						answerIds[qid] = idOf(answer)
 						const stored = a.photosField ? readPath(answer, a.photosField) : null
@@ -939,6 +966,39 @@ export default {
 		markDirty(id) {
 			this.dirty = { ...this.dirty, [id]: true }
 			this.missing = this.missing.filter((m) => m !== id)
+			this.startLocating(id)
+		},
+
+		/**
+		 * Capture the place of an answer once, the first time it changes. The
+		 * promise is kept so the page's save can wait for it.
+		 *
+		 * @param {string} id The question id.
+		 * @return {void}
+		 * @spec openspec/changes/checklist-run-location/specs/checklist-run-location/spec.md#requirement-an-answer-carries-where-it-was-given
+		 */
+		startLocating(id) {
+			if (!this.locationField || this.draft[id]?.location || this.locating[id]) {
+				return
+			}
+			this.locating = { ...this.locating, [id]: true }
+			this.locationPending[id] = captureLocation().then((fix) => {
+				delete this.locationPending[id]
+				this.locating = { ...this.locating, [id]: false }
+				this.draft[id].location = fix ? { ...fix, low: fix.accuracy > this.goodAccuracy } : { low: true }
+			})
+		},
+
+		/**
+		 * The place was changed in the field: a new fix or a typed address.
+		 *
+		 * @param {string} id The question id.
+		 * @param {object} location The place.
+		 * @return {void}
+		 */
+		setLocation(id, location) {
+			this.draft[id].location = location
+			this.dirty = { ...this.dirty, [id]: true }
 		},
 
 		/**
@@ -992,6 +1052,7 @@ export default {
 			this.saving = true
 			this.saveError = ''
 			try {
+				await Promise.all(Object.values(this.locationPending))
 				if (this.inRecord && !this.content?.saveAction) {
 					await this.saveIntoRecord(changed)
 					this.dirty = Object.fromEntries(Object.entries(this.dirty).filter(([id]) => !changed.some((q) => q.id === id)))
@@ -1051,6 +1112,9 @@ export default {
 				if (af.at) {
 					entry[af.at] = new Date().toISOString()
 				}
+				if (this.locationField) {
+					entry[this.locationField] = draft.location ?? null
+				}
 				const held = this.photos[question.id] || []
 				if (this.photosEnabled && held.length) {
 					const field = c.recordPhotosField
@@ -1087,6 +1151,9 @@ export default {
 		async saveAnswer(question) {
 			const entry = this.draft[question.id]
 			const answer = { questionId: question.id, value: entry.value, note: entry.note }
+			if (this.locationField) {
+				answer.location = entry.location ?? null
+			}
 			const action = this.content?.saveAction
 			if (action && typeof action === 'object') {
 				const resolved = resolveDeepTokens(action, this.tokenCtx)
@@ -1105,6 +1172,9 @@ export default {
 			}
 			if (this.allowNote) {
 				body[a.noteField || 'note'] = entry.note
+			}
+			if (this.locationField) {
+				body[this.locationField] = entry.location ?? null
 			}
 			const base = generateUrl(`${OBJECT_API}/${encodeURIComponent(a.register)}/${encodeURIComponent(a.schema)}`)
 			let id = this.answerIds[question.id]

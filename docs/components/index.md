@@ -43,6 +43,7 @@ import RelianceTable from '@site/src/components/RelianceTable'
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 | [CnRevealField](./cn-reveal-field.md) | A protected value shown masked until the user asks, fetched on every reveal |
 | [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
+| [CnGeoCaptureField](./cn-geo-capture-field.md) | Where something was recorded, from the device, with an address by hand as the fallback |
 
 ## Data Actions
 
