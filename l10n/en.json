@@ -2665,7 +2665,6 @@
     "This choice was not saved.": "This choice was not saved.",
     "On this device: \"{value}\"": "On this device: \"{value}\"",
     "On the server: \"{value}\"": "On the server: \"{value}\"",
-    "Rank": "Rank",
     "Hide": "Hide",
     "Hide {label}": "Hide {label}",
     "Why do you need to see this?": "Why do you need to see this?",
@@ -2678,7 +2677,9 @@
     "Added {name}.": "Added {name}.",
     "Insert variable": "Insert variable",
     "Unknown variable: {names}.": "Unknown variable: {names}.",
-    "Unknown variables: {names}.": "Unknown variables: {names}."
+    "Unknown variables: {names}.": "Unknown variables: {names}.",
+    "Remove {row}": "Remove {row}",
+    "Removed {row}.": "Removed {row}."
   },
   "plurals": {
     "{count} member": [

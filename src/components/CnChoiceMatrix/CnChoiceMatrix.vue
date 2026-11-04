@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<section class="cn-choice-matrix" data-testid="cn-choice-matrix">
+	<section class="cn-choice-matrix" data-testid="cn-choice-matrix" tabindex="-1">
 		<header v-if="title || description" class="cn-choice-matrix__header">
 			<h3 v-if="title" class="cn-choice-matrix__title">
 				{{ title }}
@@ -56,6 +56,14 @@
 					data-testid="cn-choice-matrix-row-error">
 					{{ rowError(row) }}
 				</p>
+				<NcButton v-if="removable(row)"
+					variant="tertiary"
+					class="cn-choice-matrix__remove"
+					:aria-label="removeLabel(row)"
+					:data-testid="`cn-choice-matrix-remove-${rowId(row)}`"
+					@click="removeRow(row)">
+					{{ t('nextcloud-vue', 'Remove') }}
+				</NcButton>
 			</fieldset>
 			<div v-if="scoreLine || $slots.scoreNote" class="cn-choice-matrix__score" data-testid="cn-choice-matrix-score">
 				<strong role="status">{{ scoreLine }}</strong>
@@ -82,6 +90,9 @@
 							<span>{{ column.label }}</span>
 							<span v-if="column.description" class="cn-choice-matrix__col-description">{{ column.description }}</span>
 						</th>
+						<th v-if="hasRemovable" scope="col" class="cn-choice-matrix__actions">
+							<span class="cn-choice-matrix__sr">{{ t('nextcloud-vue', 'Row actions') }}</span>
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -107,16 +118,28 @@
 								:class="toneClass(row, column)"
 								data-testid="cn-choice-matrix-value">{{ valueText(row, column) }}</span>
 						</td>
+						<td v-if="hasRemovable" class="cn-choice-matrix__actions">
+							<NcButton v-if="removable(row)"
+								variant="tertiary"
+								:aria-label="removeLabel(row)"
+								:data-testid="`cn-choice-matrix-remove-${rowId(row)}`"
+								@click="removeRow(row)">
+								{{ t('nextcloud-vue', 'Remove') }}
+							</NcButton>
+						</td>
 					</tr>
 				</tbody>
 			</table>
 		</div>
+		<p class="cn-choice-matrix__sr" aria-live="polite" data-testid="cn-choice-matrix-status">
+			{{ status }}
+		</p>
 	</section>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcSelect } from '@nextcloud/vue'
+import { NcButton, NcSelect } from '@nextcloud/vue'
 import { userLocale } from '../../utils/userLocale.js'
 
 let lastUid = 0
@@ -162,7 +185,7 @@ let lastUid = 0
 export default {
 	name: 'CnChoiceMatrix',
 
-	components: { NcSelect },
+	components: { NcButton, NcSelect },
 
 	props: {
 		/**
@@ -204,17 +227,26 @@ export default {
 		weightTemplate: { type: String, default: '' },
 		/** Errors per row, already translated: `{ [rowId]: text }`. */
 		rowErrors: { type: Object, default: () => ({}) },
+		/** A Remove button per row; a row with `removable: false` keeps none. Ignored when `readOnly`. */
+		removableRows: { type: Boolean, default: false },
 	},
 
-	emits: ['update:modelValue', 'cell-change', 'score-change'],
+	emits: ['update:modelValue', 'cell-change', 'score-change', 'remove-row'],
 
 	data() {
 		lastUid += 1
-		return { uid: `cn-choice-matrix-${lastUid}` }
+		return { uid: `cn-choice-matrix-${lastUid}`, status: '' }
 	},
 
 	computed: {
 		/** @return {boolean} Whether there is nothing to draw. */
+		/**
+		 * @return {boolean} Whether any row shows a Remove button, which adds the actions column.
+		 */
+		hasRemovable() {
+			return this.rows.some((row) => this.removable(row))
+		},
+
 		isEmpty() {
 			if (this.rows.length === 0) {
 				return true
@@ -347,6 +379,55 @@ export default {
 			const previous = this.pickedKey(row)
 			this.$emit('update:modelValue', { ...this.modelValue, [rowId]: option.key })
 			this.$emit('cell-change', { rowId, columnKey: option.key, value: option.key, previous })
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {boolean} Whether the row shows a Remove button.
+		 * @spec openspec/changes/choice-matrix-removable-rows/tasks.md#task-1
+		 */
+		removable(row) {
+			return this.removableRows && !this.readOnly && row.removable !== false
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {string} The accessible name of its Remove button.
+		 */
+		removeLabel(row) {
+			return t('nextcloud-vue', 'Remove {row}', { row: String(row[this.rowLabelKey] ?? '') })
+		},
+
+		/**
+		 * Remove a row: emit the map without it and `remove-row`, so the host
+		 * drops it from `rows`, and say so to a screen reader.
+		 *
+		 * @param {object} row A row.
+		 * @return {void}
+		 * @spec openspec/changes/choice-matrix-removable-rows/tasks.md#task-1
+		 */
+		removeRow(row) {
+			const rowId = this.rowId(row)
+			const next = { ...this.modelValue }
+			delete next[rowId]
+			this.$emit('update:modelValue', next)
+			this.$emit('remove-row', { rowId, row })
+			this.status = t('nextcloud-vue', 'Removed {row}.', { row: String(row[this.rowLabelKey] ?? '') })
+			const index = this.rows.indexOf(row)
+			this.$nextTick(() => this.focusAfterRemove(index))
+		},
+
+		/**
+		 * Keep the keyboard in the grid after a row is gone: the Remove button
+		 * now at the removed row's place, else the last one, else the grid.
+		 *
+		 * @param {number} index Where the removed row was.
+		 * @return {void}
+		 */
+		focusAfterRemove(index) {
+			const buttons = this.$el.querySelectorAll('[data-testid^="cn-choice-matrix-remove-"]')
+			const target = buttons[Math.min(index, buttons.length - 1)] || this.$el
+			target.focus()
 		},
 
 		/**
@@ -523,6 +604,24 @@ export default {
 
 .cn-choice-matrix__option-detail {
 	font-size: 0.9em;
+}
+
+.cn-choice-matrix__actions {
+	width: 1%;
+	white-space: nowrap;
+}
+
+.cn-choice-matrix__remove {
+	margin-top: 4px;
+}
+
+.cn-choice-matrix__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
 
 .cn-choice-matrix__error {

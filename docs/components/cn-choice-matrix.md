@@ -54,6 +54,7 @@ A row or column with `readOnly: true`, or the `readOnly` prop on the matrix, dra
 | `scoreMode` | `String` | `'sum'` | `sum` adds the points. `weighted` multiplies each by its row's `weight` first. |
 | `weightTemplate` | `String` | `''` | A row's weight in words, with `{weight}`. |
 | `rowErrors` | `Object` | `{}` | Errors per row: `{ [rowId]: text }`. |
+| `removableRows` | `Boolean` | `false` | A Remove button per row. A row with `removable: false` keeps none. Ignored when `readOnly`. |
 
 ## Events
 
@@ -62,6 +63,7 @@ A row or column with `readOnly: true`, or the `readOnly` prop on the matrix, dra
 | `update:modelValue` | the whole new map | A cell changed. |
 | `cell-change` | `{ rowId, columnKey, value, previous }` | A cell changed. |
 | `score-change` | `{ score, max, complete }` | With `pickPerRow`, on mount and on every change. `complete` says every open row has a pick. |
+| `remove-row` | `{ rowId, row }` | With `removableRows`, the user removed a row. Drop it from `rows`. |
 
 ## One pick per row
 
@@ -96,6 +98,25 @@ The value is `{ [rowId]: optionKey }`. Give a row `options` when its levels diff
 The component adds up and reports. What a score means, such as a late penalty or a grade, stays with you. `scoreMode` is `sum` unless you ask for `weighted`, because the board adds the points and shows the weight beside them.
 
 `rowErrors` also works in the grid without `pickPerRow`.
+
+## Removable rows
+
+Board PqIntakeFormulier maps fixed questions to fields. When a question is gone from the form, its row carries an error and the user removes it. `removableRows` draws a Remove button on every row, in the grid and with `pickPerRow`.
+
+```vue
+<CnChoiceMatrix
+	:rows="rows"
+	:columns="[{ key: 'field', label: 'Field' }]"
+	:choices="fields"
+	v-model="mapping"
+	:rowErrors="{ q2: 'This question is no longer on the form.' }"
+	removableRows
+	@remove-row="({ rowId }) => rows = rows.filter(r => r.id !== rowId)" />
+```
+
+- Remove emits the map without that row's entry and `remove-row`. The rows are yours, so you drop the row from `rows`.
+- A row with `removable: false` keeps no button. To offer Remove only on rows with an error, set `removable: false` on the others.
+- Each button is named after its row, "Remove Old question". After a removal a screen reader hears "Removed Old question.", and the focus moves to the Remove button now in that place, or to the grid.
 
 ## Accessibility
 

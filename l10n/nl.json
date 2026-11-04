@@ -2930,7 +2930,6 @@
     "This choice was not saved.": "Deze keuze is niet opgeslagen.",
     "On this device: \"{value}\"": "Op dit toestel: \"{value}\"",
     "On the server: \"{value}\"": "Op de server: \"{value}\"",
-    "Rank": "Rang",
     "Hide": "Verbergen",
     "Hide {label}": "{label} verbergen",
     "Why do you need to see this?": "Waarom wil je dit zien?",
@@ -2943,7 +2942,9 @@
     "Added {name}.": "{name} toegevoegd.",
     "Insert variable": "Variabele invoegen",
     "Unknown variable: {names}.": "Onbekende variabele: {names}.",
-    "Unknown variables: {names}.": "Onbekende variabelen: {names}."
+    "Unknown variables: {names}.": "Onbekende variabelen: {names}.",
+    "Remove {row}": "{row} verwijderen",
+    "Removed {row}.": "{row} verwijderd."
   },
   "plurals": {
     "{count} member": [
