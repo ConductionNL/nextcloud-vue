@@ -2617,7 +2617,10 @@
     "The conflicts could not be read.": "The conflicts could not be read.",
     "This choice was not saved.": "This choice was not saved.",
     "On this device: \"{value}\"": "On this device: \"{value}\"",
-    "On the server: \"{value}\"": "On the server: \"{value}\""
+    "On the server: \"{value}\"": "On the server: \"{value}\"",
+    "Insert variable": "Insert variable",
+    "Unknown variable: {names}.": "Unknown variable: {names}.",
+    "Unknown variables: {names}.": "Unknown variables: {names}."
   },
   "plurals": {
     "{count} member": [
