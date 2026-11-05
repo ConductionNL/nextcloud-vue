@@ -61,9 +61,13 @@
 		},
 		"CnActionDialog": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 9,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-action-dialog"
 		},
 		"CnActionTilesWidget": {
@@ -106,9 +110,14 @@
 		},
 		"CnAddressSearch": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-address-search"
 		},
 		"CnAdminActionCard": {
@@ -140,9 +149,14 @@
 		},
 		"CnAdvancedFormDialog": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 12,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-advanced-form-dialog"
 		},
 		"CnAiCompanion": {
@@ -393,10 +407,12 @@
 		},
 		"CnAssignDialog": {
 			"direct": 3,
-			"transitive": 6,
-			"tier": "medium",
+			"transitive": 9,
+			"tier": "heavy",
 			"via": [
-				"CnBulkJobProgress"
+				"CnActionDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-assign-dialog"
 		},
@@ -409,17 +425,26 @@
 		},
 		"CnAuditTrailCard": {
 			"direct": 1,
-			"transitive": 8,
-			"tier": "medium",
-			"via": [],
+			"transitive": 15,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-audit-trail-card"
 		},
 		"CnAuditTrailWidget": {
 			"direct": 0,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 16,
+			"tier": "heavy",
 			"via": [
-				"CnAuditTrailCard"
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-audit-trail-widget"
 		},
@@ -443,6 +468,13 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnBlockListEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-block-list-editor"
 		},
 		"CnBoardView": {
 			"direct": 0,
@@ -588,6 +620,18 @@
 			],
 			"page": "cn-card-grid"
 		},
+		"CnCardNotices": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-card-notices"
+		},
 		"CnCellRenderer": {
 			"direct": 1,
 			"transitive": 15,
@@ -700,9 +744,14 @@
 		},
 		"CnChipListManager": {
 			"direct": 1,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-chip-list-manager"
 		},
 		"CnChipsFieldWidget": {
@@ -718,6 +767,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-choice-cards"
+		},
+		"CnChoiceMatrix": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-choice-matrix"
 		},
 		"CnChoicePickerWidget": {
 			"direct": 0,
@@ -846,9 +902,14 @@
 		},
 		"CnCopyDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-copy-dialog"
 		},
 		"CnCospendCreate": {
@@ -1112,9 +1173,14 @@
 		},
 		"CnDeleteDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-delete-dialog"
 		},
 		"CnDeltaWidget": {
@@ -1145,9 +1211,14 @@
 		},
 		"CnDetailCard": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-detail-card"
 		},
 		"CnDetailGrid": {
@@ -1448,9 +1519,14 @@
 		},
 		"CnDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-dialog"
 		},
 		"CnDialogActions": {
@@ -1466,6 +1542,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-dialog-header"
+		},
+		"CnDisplayScreen": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-display-screen"
 		},
 		"CnDividerWidget": {
 			"direct": 0,
@@ -1490,9 +1573,14 @@
 		},
 		"CnDuplicateWarning": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-duplicate-warning"
 		},
 		"CnDurationField": {
@@ -1558,9 +1646,14 @@
 		},
 		"CnExportWizard": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-export-wizard"
 		},
 		"CnExportsWidget": {
@@ -1724,6 +1817,18 @@
 			"via": [],
 			"page": "cn-federation-status"
 		},
+		"CnFieldCatalogueDialog": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-field-catalogue-dialog"
+		},
 		"CnFieldGroupsWidget": {
 			"direct": 0,
 			"transitive": 4,
@@ -1791,9 +1896,14 @@
 		},
 		"CnFilesCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-files-card"
 		},
 		"CnFilesPage": {
@@ -1813,9 +1923,14 @@
 		},
 		"CnFilesWidget": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-files-widget"
 		},
 		"CnFilesWidgetForm": {
@@ -2202,6 +2317,13 @@
 				"CnRegisterSchemaSelect"
 			],
 			"page": "cn-gauge-widget-form"
+		},
+		"CnGeoCaptureField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-geo-capture-field"
 		},
 		"CnGraphCanvas": {
 			"direct": 1,
@@ -2597,9 +2719,14 @@
 		},
 		"CnIntegrationCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-integration-card"
 		},
 		"CnIntegrationTab": {
@@ -2792,9 +2919,13 @@
 		},
 		"CnLifecycleActions": {
 			"direct": 0,
-			"transitive": 14,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnResourceSelect",
 				"CnTemplateSelect"
 			],
@@ -3040,37 +3171,62 @@
 		},
 		"CnMassActionDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-action-dialog"
 		},
 		"CnMassCopyDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-copy-dialog"
 		},
 		"CnMassDeleteDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-delete-dialog"
 		},
 		"CnMassExportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-export-dialog"
 		},
 		"CnMassImportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-import-dialog"
 		},
 		"CnMenuItemEditor": {
@@ -3110,10 +3266,14 @@
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-nav-card-grid"
 		},
@@ -3214,18 +3374,27 @@
 		},
 		"CnNotesCard": {
 			"direct": 1,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 16,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnNoteComposer"
 			],
 			"page": "cn-notes-card"
 		},
 		"CnNoticeWidget": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-notice-widget"
 		},
 		"CnNotificationMatrix": {
@@ -3340,10 +3509,14 @@
 		},
 		"CnObjectGeoWidget": {
 			"direct": 3,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 12,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnMapWidget"
 			],
 			"page": "cn-object-geo-widget"
@@ -3371,9 +3544,14 @@
 		},
 		"CnObjectLinksWidget": {
 			"direct": 1,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-object-links-widget"
 		},
 		"CnObjectList": {
@@ -3547,9 +3725,13 @@
 		},
 		"CnObjectPartiesWidget": {
 			"direct": 6,
-			"transitive": 5,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnPartyPicker"
 			],
 			"page": "cn-object-parties-widget"
@@ -3961,6 +4143,13 @@
 			"via": [],
 			"page": "cn-property-source-field"
 		},
+		"CnQrCode": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-qr-code"
+		},
 		"CnQuickFilterBar": {
 			"direct": 0,
 			"transitive": 0,
@@ -3995,6 +4184,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-readiness-checklist"
+		},
+		"CnRealtimeToast": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-realtime-toast"
 		},
 		"CnRecordListWidget": {
 			"direct": 4,
@@ -4333,16 +4529,33 @@
 		},
 		"CnRetentionWidget": {
 			"direct": 5,
-			"transitive": 1,
-			"tier": "medium",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-retention-widget"
 		},
-		"CnRichSubmitDialog": {
+		"CnRevealField": {
 			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
+			"page": "cn-reveal-field"
+		},
+		"CnRichSubmitDialog": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-rich-submit-dialog"
 		},
 		"CnRoadmapItem": {
@@ -4375,9 +4588,14 @@
 		},
 		"CnSaveViewDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-save-view-dialog"
 		},
 		"CnSavedViewAlertWidget": {
@@ -4389,9 +4607,14 @@
 		},
 		"CnSavedViewEditDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-edit-dialog"
 		},
 		"CnSavedViewLookFields": {
@@ -4410,16 +4633,26 @@
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-presentation-dialog"
 		},
 		"CnSavedViewShareDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-share-dialog"
 		},
 		"CnSavedViewShareFields": {
@@ -4554,9 +4787,14 @@
 		},
 		"CnSecretAddressCard": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-secret-address-card"
 		},
 		"CnSectionsWidget": {
@@ -4704,9 +4942,14 @@
 		},
 		"CnSetupWizard": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 12,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-setup-wizard"
 		},
 		"CnShareCreate": {
@@ -4715,6 +4958,18 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnShareList": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-share-list"
 		},
 		"CnShippedConfigurationSection": {
 			"direct": 0,
@@ -4875,10 +5130,14 @@
 		},
 		"CnStateMachineEditor": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnGraphCanvas"
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnGraphCanvas",
+				"CnIndexPage"
 			],
 			"page": "cn-state-machine-editor"
 		},
@@ -5025,9 +5284,14 @@
 		},
 		"CnSupportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-support-dialog"
 		},
 		"CnSwitchRowsWidget": {
@@ -5039,9 +5303,14 @@
 		},
 		"CnTabbedFormDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tabbed-form-dialog"
 		},
 		"CnTableWidget": {
@@ -5141,9 +5410,14 @@
 		},
 		"CnTagsCard": {
 			"direct": 2,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tags-card"
 		},
 		"CnTalkRoomCreate": {
@@ -5220,9 +5494,14 @@
 		},
 		"CnTasksCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tasks-card"
 		},
 		"CnTasksWidget": {
@@ -5388,6 +5667,13 @@
 			"via": [],
 			"page": "cn-toggle-table-widget"
 		},
+		"CnTransferCard": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-transfer-card"
+		},
 		"CnTransitionInputFields": {
 			"direct": 0,
 			"transitive": 13,
@@ -5428,16 +5714,26 @@
 		},
 		"CnUserSettingsDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": null
 		},
 		"CnVersionHistory": {
 			"direct": 3,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-version-history"
 		},
 		"CnVersionInfoCard": {
@@ -5529,10 +5825,14 @@
 		},
 		"CnWidgetFormRenderer": {
 			"direct": 0,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-widget-form-renderer"
 		},
@@ -5656,10 +5956,14 @@
 		},
 		"CnWidgetMapViewer": {
 			"direct": 0,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 12,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnMapWidget"
 			],
 			"page": "cn-widget-map-viewer"
@@ -5698,10 +6002,14 @@
 		},
 		"CnWidgetWrapper": {
 			"direct": 0,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-widget-wrapper"
 		},
@@ -5714,9 +6022,14 @@
 		},
 		"CnWizardDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-wizard-dialog"
 		},
 		"CnWorkQueue": {

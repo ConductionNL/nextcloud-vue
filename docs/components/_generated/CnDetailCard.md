@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 3 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -18,18 +20,22 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `chevronStart` | `boolean`          |          | `false` | Draw the collapse chevron before the title instead of after the header actions (only relevant when collapsible is true).                                                                                                                                             |
 | `collapsed`    | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)                                                                                                                                                                                                     |
 | `flush`        | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge.                                                                                                                                                                                                 |
+| `notices`      | `Array<object>`    |          | `[]`    | The card's state banners, drawn at the top of the body (R1): each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`).                                                                                            |
 
 ### Events
 
 | Name               | Payload | Description |
 | ------------------ | ------- | ----------- |
+| `notice-action`    | —       |             |
 | `update:collapsed` | —       |             |
+| `notice-dismiss`   | —       |             |
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `icon`    | —        |             |
-| `actions` | —        |             |
-| `default` | —        |             |
-| `footer`  | —        |             |
+| Name      | Bindings | Description                                           |
+| --------- | -------- | ----------------------------------------------------- |
+| `icon`    | —        |                                                       |
+| `actions` | —        |                                                       |
+| `notice`  | —        |                                                       |
+| `default` | —        | notice The card's state banners, above the body (R1). |
+| `footer`  | —        |                                                       |

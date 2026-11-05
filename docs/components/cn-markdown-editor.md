@@ -50,6 +50,8 @@ export default {
 | `variables` | `Array<string\|{name,label?,description?}>` | `[]` | Variables the text may use as `{name}`. Given, an insert menu and the unknown-variable check appear. |
 | `unknownVariableText` | String | `''` | Message for unknown variables; `{names}` becomes the list. Defaults to "Unknown variable: {names}." |
 | `insertVariableText` | String | `''` | Name of the insert menu. Defaults to "Insert variable". |
+| `variableSyntax` | String | `'{name}'` | How a variable is written, `name` standing for its name: `{name}`, `{{name}}`, `[[name]]`. The menu inserts and the check reads this form. |
+| `plainText` | Boolean | `false` | A plain-text field: no formatting tools, no Markdown keys, no WYSIWYG, and a preview that shows the text as written with its variables marked. |
 
 > **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
 
@@ -70,6 +72,24 @@ Board PtMailsjablonen edits a mail template whose text may use only the variable
 - The editor reads every `{name}` and `{name|format:arg}` in the text, the form `fillTemplate` (`utils/fillTemplate`) fills. A name that is not listed shows under the editor as an alert, for example "Unknown variable: {besluit}.". A dotted name is allowed under its listed start, so `{zaak.nummer}` passes when `zaak` is listed.
 - `unknown-variables` emits the unknown names when they change. The editor does not block anything itself: the host decides not to save, and says so in `unknownVariableText`.
 - Without `variables` the editor checks nothing and shows no menu.
+
+## Another variable syntax and plain text
+
+A mail template body is plain text and its variables are written `{{name}}`. Set both, and the editor inserts `{{naam}}`, checks `{{ naam }}` with or without spaces, and names an unknown variable as `{{besluit}}`.
+
+```vue
+<CnMarkdownEditor
+	v-model="body"
+	mode="split"
+	variable-syntax="{{name}}"
+	plain-text
+	:variables="['naam', 'zaak']"
+	@unknown-variables="names => { blocked = names.length > 0 }" />
+```
+
+- In plain text the toolbar holds only the layout switch (none with `hideModeSwitch`), the keys add no Markdown, and `mode: 'wysiwyg'` edits instead.
+- The preview escapes the text, keeps its line breaks and marks each variable: known ones in the success colour, unknown ones in the error colour with a wavy underline (classes `cn-markdown-editor__var` and `cn-markdown-editor__var--unknown`).
+- Another syntax allows a `|format` before its close (`{{date|date}}`), as `{name|format}` does.
 
 ## WYSIWYG mode
 

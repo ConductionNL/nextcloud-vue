@@ -60,6 +60,17 @@
 
 		<!-- Content -->
 		<div v-show="!isCollapsed" class="cn-detail-card__content" :class="{ 'cn-detail-card__content--flush': flush }">
+			<!-- @slot notice The card's state banners, above the body (R1). -->
+			<div v-if="$slots.notice || cardNotices.list.length > 0" class="cn-detail-card__notices">
+				<slot name="notice">
+					<CnCardNotices
+						:notices="cardNotices.list"
+						:objectData="cardNotices.object"
+						:objectId="cardNotices.objectId"
+						@noticeAction="(entry, notice) => $emit('notice-action', entry, notice)"
+						@noticeDismiss="onNoticeDismiss" />
+				</slot>
+			</div>
 			<slot />
 		</div>
 
@@ -73,7 +84,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
+import { WIDGET_NOTICES } from '../../utils/cardNotices.js'
 import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 
 /**
@@ -108,12 +121,16 @@ export default {
 
 	components: {
 		ChevronDown,
+		CnCardNotices,
 		CnWidgetHeaderActionButtons,
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+	 */
 	provide() {
 		// A card inside this one does not draw the widget's header actions again.
-		return { [WIDGET_HEADER_ACTIONS]: null }
+		return { [WIDGET_HEADER_ACTIONS]: null, [WIDGET_NOTICES]: null }
 	},
 
 	inject: {
@@ -122,6 +139,8 @@ export default {
 		 * detail host. Null inside another card.
 		 */
 		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
+		/** The widget's notices, provided by the detail host. Null inside another card. */
+		cnWidgetNotices: { from: WIDGET_NOTICES, default: null },
 	},
 
 	props: {
@@ -184,9 +203,21 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * The card's state banners, drawn at the top of the body (R1): each a
+		 * `notice` content (`{ variant, role?, layout?, title?, text,
+		 * actions?, dismissible?, visibleWhen? }`).
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
-	emits: ['update:collapsed'],
+	emits: ['update:collapsed', 'notice-action', 'notice-dismiss'],
 
 	data() {
 		return {
@@ -195,6 +226,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The notices this card draws: its own, then the detail host's.
+		 *
+		 * @return {{list: Array<object>, object: object|null, objectId: string|number}} The notices and their record.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		cardNotices() {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			const own = Array.isArray(this.notices) ? this.notices : []
+			const hosted = host && Array.isArray(host.list) ? host.list : []
+			return { list: [...own, ...hosted], object: (host && host.object) || null, objectId: (host && host.objectId) || '' }
+		},
+
 		/**
 		 * The collapse button's name for the state it would change to.
 		 *
@@ -225,6 +270,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A notice was closed: tell the host and the parent.
+		 *
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		onNoticeDismiss(notice) {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			if (host && typeof host.dismiss === 'function') {
+				host.dismiss(notice)
+			}
+			this.$emit('notice-dismiss', notice)
+		},
+
 		toggleCollapse() {
 			this.isCollapsed = !this.isCollapsed
 			this.$emit('update:collapsed', this.isCollapsed)
@@ -337,12 +397,26 @@ export default {
 	transition: transform 0.2s ease;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.cn-detail-card__chevron--rotated {
+		transition: none;
+	}
+}
+
 .cn-detail-card__content {
 	padding: 16px;
 }
 
 .cn-detail-card__content--flush {
 	padding: 0;
+}
+
+.cn-detail-card__notices {
+	margin-bottom: 12px;
+}
+
+.cn-detail-card__content--flush > .cn-detail-card__notices {
+	margin: 0 var(--cn-card-notice-inset, 16px) 8px;
 }
 
 .cn-detail-card__footer {

@@ -1168,6 +1168,7 @@ function translateOverrideText(field, override, tr) {
  * @param {object} [options] Configuration options
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
+ * @spec openspec/changes/index-sidebar-filter-notes/specs/index-sidebar-filter-notes/spec.md#requirement-a-filter-can-carry-a-note-and-be-a-switch
  */
 export function filtersFromSchema(schema, options = {}) {
 	if (!schema || !schema.properties) {
@@ -1249,6 +1250,17 @@ export function filtersFromSchema(schema, options = {}) {
 				filter.type = 'reference'
 			} else if (control === 'boolean') {
 				filter.type = 'checkbox'
+			} else if (control === 'switch') {
+				// One on/off question with its own words beside the switch
+				// ("Ook concepten van anderen tonen"); on sends `true`.
+				filter.type = 'switch'
+				filter.switchLabel = tr(prop.switchLabel || prop.title || key)
+			}
+
+			// A line under the filter that says what it reads (DqZaken "Het
+			// team staat op de zaak als groep; ...").
+			if (typeof prop.facetNote === 'string' && prop.facetNote !== '') {
+				filter.note = tr(prop.facetNote)
 			}
 
 			if (prop.optionsSource && typeof prop.optionsSource === 'object') {

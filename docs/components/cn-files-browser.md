@@ -332,3 +332,7 @@ Exported alongside the component:
 - `crumbsFor(rootPath, currentPath, rootLabel?)` — the whole trail, outermost first; crumbs above the root carry `aboveRoot: true`.
 - `joinPath(dir, name)` — one slash between.
 - `ACTIONS_NEEDING_THE_FILES_PAGE` — the registered action ids that cannot run away from the Files page.
+
+## Facets as a toolbar menu
+
+`facet-presentation="menu"` draws each facet as a toolbar menu "<column>: all" instead of a row of chips, as DqZaakDocumenten draws "Trefwoord: alle": the menu holds "all" and each value in use with its count, one value at a time. `facet-all-label` names "all". CnFilesTab forwards `facetPresentation`.

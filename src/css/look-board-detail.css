@@ -17,6 +17,12 @@
 	--cn-board-notice-bg: var(--nl-color-orange-light, #fff4de);
 	/* The notice's text and icon. */
 	--cn-board-notice-ink: var(--color-warning-text, #7a4f00);
+	/* Card state banners (card-state-notices): the inset beside one in a
+	   flush card, the info and error tones, and a banner button's ink. */
+	--cn-card-notice-inset: 22px;
+	--cn-board-notice-info-ground: var(--color-primary-element-light, #eaf0f7);
+	--cn-board-notice-error-ink: var(--color-error-text, #a30000);
+	--cn-board-notice-action-ink: var(--color-primary-element-light-text, #3669a5);
 	/* The done marker of the next-step card. */
 	--cn-board-success-tint: var(--nl-color-green-light, var(--color-success-light, #e7f3ea));
 	/* The ink on that tint: a completed plan row's state. The theme's green
@@ -3939,4 +3945,42 @@
    @spec openspec/changes/board-body-section-card/specs/board-body-section-card/spec.md#requirement-a-board-body-section-cards-labelled-buttons-are-40px */
 .cn-look-board .cn-body-sections__section--card .button-vue:not(.action-item__menutoggle):has(> .button-vue__wrapper > .button-vue__text:not(:empty)):where(:not(.cn-look-nextcloud *)) {
 	--button-size: var(--cn-board-control-height);
+}
+
+/* Card state banners (R1, card-state-notices): the board draws them 10px
+   14px inside a radius-10 ground, 14px text at 1.5, the card's own inset
+   (22px) beside them, and a tone per state: DqZaakTaken success and refusal,
+   DqTeamwachtrij source down, DqZaken partial result. */
+.cn-look-board .cn-notice-widget.cn-notice-widget--inline {
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-notice-widget--inline.cn-notice-widget--info {
+	background: var(--cn-board-notice-info-ground);
+	color: var(--cn-board-primary-light-ink);
+}
+
+.cn-look-board .cn-notice-widget--inline.cn-notice-widget--warning {
+	background: var(--cn-board-notice-bg);
+	color: var(--cn-board-notice-ink);
+}
+
+.cn-look-board .cn-notice-widget--inline.cn-notice-widget--error {
+	background: var(--cn-board-red-tag-ground);
+	color: var(--cn-board-notice-error-ink);
+}
+
+.cn-look-board .cn-notice-widget--inline.cn-notice-widget--success {
+	background: var(--cn-board-success-tint);
+	color: var(--cn-board-success-ink);
+}
+
+/* A notice button reads as a text link: 600 13px in the link ink, 30px high. */
+.cn-look-board .cn-notice-widget__action.button-vue {
+	--button-size: 30px;
+	--button-padding: 8px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cn-board-notice-action-ink);
 }
