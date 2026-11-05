@@ -8,7 +8,7 @@
 - [x] Implement: provide `cnLook` from the root `look` (schema key from `screens-chrome-parity`), re-provide on a page with `config.look`, a `useLook(props)` helper (prop, else inject, else `nextcloud`), `cn-look-board` on the teleported container
 - [x] Test: unset, manifest key, page override, prop override; the class on the container under `document.body`
 
-### Task 2: A dialog takes one of three widths
+### Task 2: A dialog takes one of four widths
 - **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-a-dialog-takes-one-of-three-widths`
 - **files**: `src/css/dialog.css` (new), every dialog component listed in design.md (`src/components/Cn*Dialog/`, `src/dialogs/`)
 - [x] Implement: `width` prop with the per-component default, `--cn-dialog-width` on the container in the board look (`CnDialog` wraps `NcDialog` for all 18 dialogs; `src/utils/dialogWidths.js`, `src/mixins/dialogBoard.js`)

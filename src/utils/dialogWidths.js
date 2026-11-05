@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 /**
- * The three dialog widths of the screens canon (section 5 of UNIFORM-canon.md),
- * by role. No other width is reachable through the `width` prop of a `Cn*`
- * dialog.
+ * The dialog widths of the screens canon (section 5 of UNIFORM-canon.md), by
+ * role. `browse` is the search-and-pick dialog with a filter column beside its
+ * results (learniq/LqOpenLesmateriaal). No other width is reachable through the
+ * `width` prop of a `Cn*` dialog.
  *
- * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-a-dialog-takes-one-of-three-widths
+ * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-a-dialog-takes-one-of-four-widths
  * @type {Readonly<Record<string, number>>}
  */
 export const DIALOG_WIDTHS = Object.freeze({
 	confirm: 560,
 	form: 640,
 	wizard: 720,
+	browse: 1120,
 })
 
 /**
