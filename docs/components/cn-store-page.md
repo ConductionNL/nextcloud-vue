@@ -18,8 +18,8 @@ every key below can be written in the manifest.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `app` | String | `''` | The app id. The only app-specific part of the request URL (`/apps/<app>/api/store/items`). Empty means no request and the not-configured note. |
-| `title` | String | `''` | Page heading. Falls back to the page title, then to "Store". |
-| `description` | String | `''` | Lead paragraph: what this app's store offers. |
+| `title` | String | `''` | Page heading. Falls back to the page title, then to "Marketplace". |
+| `description` | String | `''` | Lead paragraph: what this app's marketplace offers. |
 | `kinds` | `Array<string>` | ADR-080 vocabulary | Kind quick-filters. Kinds the engine serves win over this prop. |
 | `builtIn` | `Array<object>` | `[]` | Items the app ships itself, shown when the registry is not configured, does not answer, or offers nothing. Items the engine serves win over this prop. Each item's `title` and `description` go through the app's translate, so a manifest writes them in English and the app's catalogue translates them. |
 | `canInstall` | `Boolean\|null` | `null` | Whether the signed-in user sees Install on the remote cards, as the app resolved it. `true` shows it, `false` hides it from everyone, administrators included. `null` keeps the default: administrators only. |
@@ -73,10 +73,10 @@ app can write them before it upgrades and keep the administrator default until t
   "id": "Store",
   "route": "/store",
   "type": "store",
-  "title": "Store",
+  "title": "Marketplace",
   "config": {
     "app": "learniq",
-    "title": "Store",
+    "title": "Marketplace",
     "description": "Find courses other schools share and install your own copy.",
     "publishRoute": "CoursePackageExport"
   }
@@ -97,6 +97,6 @@ redirect refusal and the registry token stay on the server.
 
 Under the board look the catalogue cards lay out on the same 260px track and take the screens' shape: a 40px icon chip (`card.icon`, else a package), the title, "&lt;kind&gt; · &lt;publisher&gt;", a state pill ("Installed" when `card.installed`, "Update" when `card.updateAvailable`), the description, and a footer with the version and one named action: Open (`card.openUrl`), Install or Update. Install and Update stay hidden when the viewer may not install.
 
-### Store item fields the board look reads (contract)
+### Marketplace item fields the board look reads (contract)
 
 `installed` (boolean, "Installed" pill), `updateAvailable` (boolean, "Update" pill and action), `openUrl` (string, target of Open for an installed item) and `icon` (registered icon name for the icon chip; a package icon without it).

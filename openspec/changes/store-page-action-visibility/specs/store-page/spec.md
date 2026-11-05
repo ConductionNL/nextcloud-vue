@@ -13,7 +13,7 @@ ADR-023 (action authorization, which is where a consuming app resolves the answe
 
 ### Requirement: REQ-STP-1 — The consuming app decides who sees Install
 
-The store page SHALL accept a `canInstall` prop that is `true`, `false` or `null`. When it
+The marketplace page SHALL accept a `canInstall` prop that is `true`, `false` or `null`. When it
 is `true` every remote card SHALL show an Install button. When it is `false` no card SHALL
 show one, administrators included. When it is `null` or not passed, the page SHALL show
 Install to administrators only, which is the behaviour before this change.
@@ -41,7 +41,7 @@ Install to administrators only, which is the behaviour before this change.
 
 ### Requirement: REQ-STP-2 — The consuming app decides who sees Publish, and where it leads
 
-The store page SHALL accept a `canPublish` prop that is `true`, `false` or `null`, and a
+The marketplace page SHALL accept a `canPublish` prop that is `true`, `false` or `null`, and a
 `publishRoute` prop that is a route name (string) or a route location (object). The page
 SHALL show a Publish button in its header only when `publishRoute` is set AND publishing
 is allowed: `canPublish` is `true`, or `canPublish` is `null` and the user is an

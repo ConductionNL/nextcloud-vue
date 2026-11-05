@@ -35,7 +35,7 @@ A manifest without `i18n` looks up nothing new: the host's `translate` runs as b
 
 ## Which labels
 
-Every manifest label the library shows passes the lookup: menu labels, page titles, column headers, header and bulk actions, row actions (label and title), sidebar titles, tab labels and column group labels, related-collection section titles, the search and store page titles, and on a form page the field labels, help, step titles and descriptions, the submit label, the success message and enum option labels. A form page uses the injected lookup when it has no `translate` prop of its own.
+Every manifest label the library shows passes the lookup: menu labels, page titles, column headers, header and bulk actions, row actions (label and title), sidebar titles, tab labels and column group labels, related-collection section titles, the search and marketplace page titles, and on a form page the field labels, help, step titles and descriptions, the submit label, the success message and enum option labels. A form page uses the injected lookup when it has no `translate` prop of its own.
 
 Test ids and the emitted action stay on the text as written, so a translation never breaks a selector or a `@action` handler.
 
