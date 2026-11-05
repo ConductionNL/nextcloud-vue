@@ -168,8 +168,16 @@
 								@click="complete(task, outcomeId(outcomesOf(task)[0]))">
 								{{ tr('Complete') }}
 							</NcButton>
+							<!-- `cancelInline`: Cancel as a button beside Complete (DqZaakTaken). -->
+							<NcButton
+								v-if="content.cancelInline === true && canCancelRow(task)"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+								@click="cancel(task)">
+								{{ tr('Cancel') }}
+							</NcButton>
 							<NcActions
-								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || canCancelRow(task)"
+								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || (canCancelRow(task) && content.cancelInline !== true)"
 								:forceMenu="true"
 								:aria-label="tr('Task actions')">
 								<template v-if="canCompleteRow(task) && outcomesOf(task).length > 1">
@@ -182,7 +190,7 @@
 									</NcActionButton>
 								</template>
 								<NcActionButton
-									v-if="canCancelRow(task)"
+									v-if="canCancelRow(task) && content.cancelInline !== true"
 									:closeAfterClick="true"
 									:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
 									@click="cancel(task)">
@@ -541,6 +549,10 @@ export default {
 		 *   task is posted as an open task on `objectUuid`.
 		 * - `completeAny` — offer Complete on every open row, not only the
 		 *   viewer's own (the server still decides); `cancel` — offer Cancel.
+		 * - `cancelInline` — in the table, Cancel is a secondary button beside
+		 *   Complete instead of an entry in the row's menu.
+		 * - `summaryNote` — a text appended to the table's summary after " · "
+		 *   ("the tasks of the whole case, colleagues' too").
 		 * - `variant: 'focus'` — the first open task to work on in place: its
 		 *   number, handler, deadline, lock, who it is offered to, its form
 		 *   inline and its verbs, with the other open tasks listed under it.
@@ -846,9 +858,11 @@ export default {
 		summaryLabel() {
 			const open = this.rows.filter((task) => task.isTerminal !== true).length
 			const done = this.rows.length - open
-			return this.tr('{open} open, {done} done · sorted by deadline')
+			const line = this.tr('{open} open, {done} done · sorted by deadline')
 				.replace('{open}', String(open))
 				.replace('{done}', String(done))
+			const note = typeof this.content.summaryNote === 'string' && this.content.summaryNote !== '' ? this.tr(this.content.summaryNote) : ''
+			return note === '' ? line : `${line} · ${note}`
 		},
 
 		/**
