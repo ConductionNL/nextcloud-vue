@@ -1488,6 +1488,7 @@ export default {
 		 * @param {string} verb The lifecycle verb.
 		 * @param {object} body The verb body.
 		 * @return {Promise<void>} Resolves when the verb settled.
+		 * @spec openspec/changes/tasks-widget-cancel-url/specs/tasks-widget-cancel-url/spec.md#requirement-cancel-posts-to-the-app-route-when-one-is-set
 		 */
 		async postVerb(task, verb, body) {
 			const uuid = String(task.uuid || '')
