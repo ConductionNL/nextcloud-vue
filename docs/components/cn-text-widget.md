@@ -16,7 +16,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 Boards PqKassaAfrekenen and PqKassabon show a receipt: a column of plain text whose spaces line the amounts up. `content.monospace: true` shows the text in a fixed-width font, with its spaces and line breaks kept. The text is never parsed as HTML or markdown, so a `<` in it stays a `<`. Long lines wrap rather than scroll.
 
-On a detail page, `content.textField` reads the text from that field of the page's object instead of `content.text`. The field's value is shown as it is, without translation.
+On a detail page, `content.textField` reads the text from that field of the page's object (the `objectData` prop, which the detail page passes) instead of `content.text`. The field's value is shown as it is, without translation.
 
 ```json
 { "type": "text", "title": "Receipt", "props": { "content": { "textField": "receiptText", "monospace": true } } }

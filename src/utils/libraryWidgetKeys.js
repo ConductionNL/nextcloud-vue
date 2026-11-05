@@ -165,6 +165,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'sections',
 	'slot-grid',
 	'settings-form',
+	'share-list',
 	'spend-analytics',
 	'stacked-bar',
 	'stages',

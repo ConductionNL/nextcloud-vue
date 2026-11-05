@@ -55,6 +55,9 @@ A row or column with `readOnly: true`, or the `readOnly` prop on the matrix, dra
 | `weightTemplate` | `String` | `''` | A row's weight in words, with `{weight}`. |
 | `rowErrors` | `Object` | `{}` | Errors per row: `{ [rowId]: text }`. |
 | `removableRows` | `Boolean` | `false` | A Remove button per row. A row with `removable: false` keeps none. Ignored when `readOnly`. |
+| `sortable` | `Boolean` | `false` | A sort button in every head of the grid: the row column sorts by label, a column by the order of `choices` (a value outside them last). Ascending first, then descending. |
+| `filterable` | `Boolean` | `false` | A funnel in every head of the grid: the row column filters by the text typed, a column keeps the rows whose cell holds one of the values ticked. |
+| `pills` | `Boolean` | `false` | Draw a read-only cell as a pill (`CnStatusBadge`) in its choice's `variant` (`default` when it names none). |
 
 ## Events
 
@@ -117,6 +120,31 @@ Board PqIntakeFormulier maps fixed questions to fields. When a question is gone 
 - Remove emits the map without that row's entry and `remove-row`. The rows are yours, so you drop the row from `rows`.
 - A row with `removable: false` keeps no button. To offer Remove only on rows with an error, set `removable: false` on the others.
 - Each button is named after its row, "Remove Old question". After a removal a screen reader hears "Removed Old question.", and the focus moves to the Remove button now in that place, or to the grid.
+
+## Sort, filter and pills
+
+Board DqZaaktypeVelden shows who sees and fills in what, per role and status, as a read-only grid: every head sorts and filters, and every cell is a pill. Give the choices a `variant` and switch the three options on.
+
+```vue
+<CnChoiceMatrix
+	row-header="Field"
+	:rows="fields"
+	:columns="roles"
+	:choices="[
+		{ value: 'required', label: 'Required', variant: 'info' },
+		{ value: 'edit', label: 'Edit', variant: 'success' },
+		{ value: 'readOnly', label: 'Read only' },
+		{ value: 'hidden', label: 'Hidden', variant: 'error' },
+	]"
+	:model-value="rights"
+	default-value="edit"
+	read-only
+	sortable
+	filterable
+	pills />
+```
+
+A column sorts by the order of `choices`, so list them in the order a reader expects. A column's funnel offers only the values that column holds. When the filters leave no row, the grid says "No rows match the filters.". The options apply to the grid, not to `pickPerRow`.
 
 ## Accessibility
 

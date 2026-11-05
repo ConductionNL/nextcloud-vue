@@ -66,7 +66,7 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes', 'field-groups', 'object-links', 'kb-search'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes', 'field-groups', 'object-links', 'kb-search', 'share-list'])
 
 /**
  * The stored content/config blob for a widget definition.

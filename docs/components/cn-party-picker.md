@@ -40,3 +40,7 @@ Typing two characters or more searches every source at once (OpenRegister's `_se
 |-------|---------|-------------|
 | `update:modelValue` | id or `null` | The chosen party's id |
 | `select` | `{ source, id, label, secondary, row }` or `null` | The whole choice |
+
+## A switch between kinds
+
+`kind-switch` (`{ label }`) puts a segmented switch above the field, one segment per source named by its `kind` (else `label`), as DqNieuweZaak draws "Soort aanvrager" Persoon / Organisatie / Contact. Only the chosen source is searched; switching searches the new one for the last term. A CnFormDialog `party` field forwards its `kindSwitch`.

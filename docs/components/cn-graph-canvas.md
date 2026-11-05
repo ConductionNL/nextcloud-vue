@@ -200,3 +200,13 @@ A canvas **must not be your only authoring surface**. Keep a list/form path for 
 - Vue Flow wraps every `#node-default` in `.vue-flow__node-default`, and its `theme-default.css` gives that wrapper a border, a background and padding — a box around your box. The stylesheet here strips it, in the selected, hover and focus states too. `.cn-flow-node` is the only border a node draws.
 - Every Vue Flow plugin ships its own stylesheet and only core's used to be imported. `@vue-flow/node-resizer`'s is what gives a resize control its size and position — without it a resizable node looked exactly like one that is not.
 - Colours come from Nextcloud variables throughout, including the arrowhead, which Vue Flow writes as an inline style and which therefore needs `!important` to stay themed rather than a hard-coded hex passed through the marker definition.
+
+## What a check found
+
+`issues` draws a strip above the canvas, as DqFlow draws "Controle: 1 fout, 1 waarschuwing.": a count, then one line per finding, errors first. A finding with `nodeId` is a button that fits that step into view and emits `issue-select` with its id.
+
+```vue
+<CnGraphCanvas :nodes="nodes" :edges="edges"
+	:issues="[{ level: 'error', text: 'Step Receipt has no outgoing transition.', nodeId: 'n3' }]"
+	issues-title="Check: {errors}, {warnings}." />
+```

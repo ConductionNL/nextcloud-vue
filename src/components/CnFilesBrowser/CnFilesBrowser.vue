@@ -74,6 +74,36 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
+			<!-- `facetPresentation: "menu"`: each facet as a toolbar menu
+			     "<column>: <value>" (DqZaakDocumenten "Trefwoord: alle"),
+			     one value at a time, "all" clears it. -->
+			<template v-if="facetPresentation === 'menu'">
+				<NcActions v-for="facet in facetGroups"
+					:key="`facet-menu-${facet.key}`"
+					:menuName="facetMenuName(facet)"
+					:forceMenu="true"
+					:forceName="true"
+					variant="tertiary"
+					:data-testid="`cn-files-browser-facet-menu-${facet.key}`">
+					<NcActionButton
+						:closeAfterClick="true"
+						:modelValue="!facet.values.some((option) => option.active)"
+						type="radio"
+						:data-testid="`cn-files-browser-facet-all-${facet.key}`"
+						@click="chooseFacet(facet.key, null)">
+						{{ facetAllLabel }}
+					</NcActionButton>
+					<NcActionButton v-for="option in facet.values"
+						:key="option.value"
+						:closeAfterClick="true"
+						:modelValue="option.active"
+						type="radio"
+						data-testid="cn-files-browser-facet-option"
+						@click="chooseFacet(facet.key, option.value)">
+						{{ option.value }} ({{ option.count }})
+					</NcActionButton>
+				</NcActions>
+			</template>
 			<NcActions v-if="canChange && newMenu"
 				:menuName="newLabel"
 				:forceMenu="true"
@@ -206,7 +236,7 @@
 
 		<!-- The host's filter: per declared column, a chip per value in use
 		     with how many files carry it. Chips narrow the list. -->
-		<div v-if="facetGroups.length > 0 && !loading && error === ''"
+		<div v-if="facetPresentation !== 'menu' && facetGroups.length > 0 && !loading && error === ''"
 			class="cn-files-browser__facets"
 			data-testid="cn-files-browser-facets">
 			<div v-for="facet in facetGroups"
@@ -1337,6 +1367,22 @@ export default {
 		facets: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How the facets are drawn: `chips` (default, a row of chips with
+		 * counts under the toolbar) or `menu` (one toolbar menu per facet,
+		 * "<column>: <value>", one value at a time).
+		 */
+		facetPresentation: {
+			type: String,
+			default: 'chips',
+		},
+
+		/** The menu's word for no choice ("all"), through the host translate. */
+		facetAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'all'),
 		},
 
 		/** Label of the toolbar's Columns chooser. */
@@ -3151,6 +3197,29 @@ export default {
 		 * @param {string} value The value.
 		 * @return {void}
 		 */
+		/**
+		 * A facet menu's name: "<column>: <chosen value>", or "<column>: all".
+		 *
+		 * @param {{label: string, values: Array<{value: string, active: boolean}>}} facet The facet.
+		 * @return {string} The name.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		facetMenuName(facet) {
+			const chosen = facet.values.filter((option) => option.active).map((option) => option.value)
+			return `${facet.label}: ${chosen.length > 0 ? chosen.join(', ') : this.facetAllLabel}`
+		},
+
+		/**
+		 * Choose one value of a facet, or none.
+		 *
+		 * @param {string} key The facet column.
+		 * @param {string|null} value The value, or null for all.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		chooseFacet(key, value) {
+			this.facetSelections = { ...this.facetSelections, [key]: value === null ? [] : [value] }
+		},
+
 		toggleFacet(key, value) {
 			const chosen = this.facetSelections[key] || []
 			const next = chosen.includes(value) ? chosen.filter((entry) => entry !== value) : [...chosen, value]
@@ -3742,7 +3811,7 @@ export default {
 
 /* The row button and the row menu stand side by side on one line, not
    stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
-   @spec openspec/changes/files-row-button-beside-menu/specs/files-row-button-beside-menu/spec.md#requirement-a-files-row-button-stands-beside-the-row-menu */
+   @spec openspec/changes/files-row-button-gap-14/specs/files-row-button-gap-14/spec.md#requirement-the-row-button-and-menu-stand-14px-apart */
 .cn-files-browser__col-actions > .cn-files-browser__row-button,
 .cn-files-browser__col-actions > .cn-files-browser__row-menu {
 	display: inline-flex;

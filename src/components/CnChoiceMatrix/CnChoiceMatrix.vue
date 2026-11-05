@@ -79,15 +79,69 @@
 				</caption>
 				<thead>
 					<tr>
-						<th scope="col" class="cn-choice-matrix__corner">
-							{{ rowHeader }}
+						<th scope="col" class="cn-choice-matrix__corner" :aria-sort="ariaSort(rowColumn)">
+							<span v-if="sortable || filterable" class="cn-choice-matrix__head">
+								<button v-if="sortable"
+									type="button"
+									class="cn-choice-matrix__sort"
+									data-testid="cn-choice-matrix-sort-row"
+									@click="sortBy(rowColumn)">
+									{{ rowHeader }}
+									<ChevronUp v-if="sortIs(rowColumn, 'asc')" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</button>
+								<span v-else>{{ rowHeader }}</span>
+								<NcActions v-if="filterable"
+									class="cn-choice-matrix__filter"
+									:aria-label="filterLabel(rowHeader)"
+									data-testid="cn-choice-matrix-filter-row">
+									<template #icon>
+										<FilterOutline :size="14" />
+									</template>
+									<NcActionInput :modelValue="rowFilter"
+										:label="filterLabel(rowHeader)"
+										@update:modelValue="(typed) => rowFilter = String(typed || '')" />
+								</NcActions>
+							</span>
+							<template v-else>
+								{{ rowHeader }}
+							</template>
 						</th>
 						<th v-for="column in columns"
 							:key="column.key"
 							scope="col"
 							class="cn-choice-matrix__col-header"
+							:aria-sort="ariaSort(column.key)"
 							:data-testid="`cn-choice-matrix-col-${column.key}`">
-							<span>{{ column.label }}</span>
+							<span v-if="sortable || filterable" class="cn-choice-matrix__head">
+								<button v-if="sortable"
+									type="button"
+									class="cn-choice-matrix__sort"
+									:data-testid="`cn-choice-matrix-sort-${column.key}`"
+									@click="sortBy(column.key)">
+									{{ column.label }}
+									<ChevronUp v-if="sortIs(column.key, 'asc')" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</button>
+								<span v-else>{{ column.label }}</span>
+								<NcActions v-if="filterable"
+									class="cn-choice-matrix__filter"
+									:aria-label="filterLabel(column.label)"
+									:data-testid="`cn-choice-matrix-filter-${column.key}`">
+									<template #icon>
+										<FilterOutline :size="14" />
+									</template>
+									<NcActionCheckbox v-for="value in columnValues(column)"
+										:key="value"
+										:modelValue="(filters[column.key] || []).includes(value)"
+										@update:modelValue="toggleFilter(column.key, value)">
+										{{ choiceLabel(value) }}
+									</NcActionCheckbox>
+								</NcActions>
+							</span>
+							<template v-else>
+								<span>{{ column.label }}</span>
+							</template>
 							<span v-if="column.description" class="cn-choice-matrix__col-description">{{ column.description }}</span>
 						</th>
 						<th v-if="hasRemovable" scope="col" class="cn-choice-matrix__actions">
@@ -96,7 +150,12 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr v-for="row in rows" :key="rowId(row)">
+					<tr v-if="shownRows.length === 0" data-testid="cn-choice-matrix-no-match">
+						<td :colspan="columns.length + 1 + (hasRemovable ? 1 : 0)" class="cn-choice-matrix__no-match">
+							{{ t('nextcloud-vue', 'No rows match the filters.') }}
+						</td>
+					</tr>
+					<tr v-for="row in shownRows" :key="rowId(row)" data-testid="cn-choice-matrix-grid-row">
 						<th scope="row" class="cn-choice-matrix__row-header">
 							{{ row[rowLabelKey] }}
 							<span v-if="rowError(row)" class="cn-choice-matrix__error" data-testid="cn-choice-matrix-row-error">{{ rowError(row) }}</span>
@@ -113,6 +172,11 @@
 								:ariaLabelCombobox="cellLabel(row, column)"
 								label="label"
 								@update:modelValue="(choice) => setCell(row, column, choice)" />
+							<CnStatusBadge v-else-if="pills"
+								:label="valueText(row, column)"
+								:variant="pillVariant(row, column)"
+								size="small"
+								data-testid="cn-choice-matrix-pill" />
 							<span v-else
 								class="cn-choice-matrix__value"
 								:class="toneClass(row, column)"
@@ -139,8 +203,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect } from '@nextcloud/vue'
+import { NcActionCheckbox, NcActionInput, NcActions, NcButton, NcSelect } from '@nextcloud/vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import { nextSort, ROW_COLUMN, rowPasses, sortRows, valuesIn } from '../../utils/choiceMatrixView.js'
 import { userLocale } from '../../utils/userLocale.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 let lastUid = 0
 
@@ -176,6 +245,13 @@ let lastUid = 0
  * `{ [rowId]: optionKey }`. The options are the `columns`, or a row's own
  * `options` when its levels differ.
  *
+ * The grid's heads can sort and filter, and its read-only cells can be pills,
+ * as board DqZaaktypeVelden draws the field rights: `sortable` puts a sort
+ * button in every head (the row column by label, a column by the order of
+ * `choices`), `filterable` a funnel (the row column a text filter, a column
+ * a tick per value it holds), and `pills` draws a read-only cell as a
+ * `CnStatusBadge` in its choice's `variant`.
+ *
  * @event update:modelValue The whole new map after a cell changed.
  * @event cell-change One changed cell: `{ rowId, columnKey, value, previous }`.
  * @event score-change With `pickPerRow`, on mount and on every change: `{ score, max, complete }`.
@@ -185,7 +261,7 @@ let lastUid = 0
 export default {
 	name: 'CnChoiceMatrix',
 
-	components: { NcButton, NcSelect },
+	components: { ChevronDown, ChevronUp, CnStatusBadge, FilterOutline, NcActionCheckbox, NcActionInput, NcActions, NcButton, NcSelect },
 
 	props: {
 		/**
@@ -229,16 +305,43 @@ export default {
 		rowErrors: { type: Object, default: () => ({}) },
 		/** A Remove button per row; a row with `removable: false` keeps none. Ignored when `readOnly`. */
 		removableRows: { type: Boolean, default: false },
+		/** A sort button in every head of the grid: the row column by label, a column by the order of `choices`. */
+		sortable: { type: Boolean, default: false },
+		/** A filter in every head of the grid: a text filter on the row column, a tick per value on a column. */
+		filterable: { type: Boolean, default: false },
+		/** Draw a read-only cell as a pill (`CnStatusBadge`) in its choice's `variant`, `default` when it names none. */
+		pills: { type: Boolean, default: false },
 	},
 
 	emits: ['update:modelValue', 'cell-change', 'score-change', 'remove-row'],
 
 	data() {
 		lastUid += 1
-		return { uid: `cn-choice-matrix-${lastUid}`, status: '' }
+		return {
+			uid: `cn-choice-matrix-${lastUid}`,
+			status: '',
+			/** The heads' sort: the key sorted on (`@row` for the row column) and `asc` or `desc`. */
+			sort: { key: '', dir: '' },
+			/** The column heads' filters: the values each keeps, by column key. */
+			filters: {},
+			/** The row head's text filter. */
+			rowFilter: '',
+			rowColumn: ROW_COLUMN,
+		}
 	},
 
 	computed: {
+		/**
+		 * The grid's rows after the heads' filters, in the heads' sort.
+		 *
+		 * @spec openspec/changes/choice-matrix-sort-filter-pills/specs/choice-matrix/spec.md#requirement-a-column-head-sorts-the-rows
+		 * @return {Array<object>}
+		 */
+		shownRows() {
+			const view = { ...this.sort, filters: this.filters, text: this.rowFilter, valueAt: this.cellValue, labelOf: this.rowLabel, rank: this.rankOf }
+			return sortRows(this.rows.filter((row) => rowPasses(row, view)), view)
+		},
+
 		/** @return {boolean} Whether there is nothing to draw. */
 		/**
 		 * @return {boolean} Whether any row shows a Remove button, which adds the actions column.
@@ -298,6 +401,108 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Sort on a head: ascending first, then descending.
+		 *
+		 * @param {string} key The column key, or `@row`.
+		 * @return {void}
+		 */
+		sortBy(key) {
+			this.sort = nextSort(this.sort, key)
+		},
+
+		/**
+		 * @param {string} key The column key, or `@row`.
+		 * @param {string} dir `asc` or `desc`.
+		 * @return {boolean} Whether the grid sorts on that head in that direction.
+		 */
+		sortIs(key, dir) {
+			return this.sort.key === key && this.sort.dir === dir
+		},
+
+		/**
+		 * @param {string} key The column key, or `@row`.
+		 * @return {string|undefined} The head's `aria-sort` while it sorts.
+		 */
+		ariaSort(key) {
+			if (!this.sortable || this.sort.key !== key) {
+				return undefined
+			}
+			return this.sort.dir === 'desc' ? 'descending' : 'ascending'
+		},
+
+		/**
+		 * Keep or drop one value in a column's filter.
+		 *
+		 * @spec openspec/changes/choice-matrix-sort-filter-pills/specs/choice-matrix/spec.md#requirement-a-column-head-filters-the-rows
+		 * @param {string} key The column key.
+		 * @param {string} value The value.
+		 * @return {void}
+		 */
+		toggleFilter(key, value) {
+			const kept = this.filters[key] || []
+			this.filters = { ...this.filters, [key]: kept.includes(value) ? kept.filter((held) => held !== value) : [...kept, value] }
+		},
+
+		/**
+		 * @param {object} column A column.
+		 * @return {string[]} The values the column holds, in the order of the choices.
+		 */
+		columnValues(column) {
+			return valuesIn(this.rows.map((row) => this.cellValue(row, column.key)), this.choices)
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @param {string} key A column key.
+		 * @return {string} The cell's value, else `defaultValue`.
+		 */
+		cellValue(row, key) {
+			return this.valueOf(row, { key })
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {string} The row's label.
+		 */
+		rowLabel(row) {
+			return String(row[this.rowLabelKey] ?? '')
+		},
+
+		/**
+		 * @param {string} value A choice value.
+		 * @return {number} Its place in the choices; a value outside them sorts last.
+		 */
+		rankOf(value) {
+			const index = this.choices.findIndex((choice) => choice.value === value)
+			return index === -1 ? this.choices.length : index
+		},
+
+		/**
+		 * @param {string} value A choice value.
+		 * @return {string} The choice's label, else the value.
+		 */
+		choiceLabel(value) {
+			return this.choices.find((choice) => choice.value === value)?.label ?? String(value)
+		},
+
+		/**
+		 * @param {string} head The head's text.
+		 * @return {string} The name of its filter.
+		 */
+		filterLabel(head) {
+			return t('nextcloud-vue', 'Filter by {column}', { column: head })
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @param {object} column A column.
+		 * @return {string} The pill's variant: the choice's `variant`, else `default`.
+		 */
+		pillVariant(row, column) {
+			return this.choiceOf(row, column)?.variant || 'default'
+		},
 
 		/**
 		 * @param {number} value A number.
@@ -706,5 +911,49 @@ tbody tr:last-child > * {
 
 .cn-choice-matrix__value--strong {
 	font-weight: 600;
+}
+
+/* A head's text, its sort chevron and its 22px funnel on one line
+   (DqZaaktypeVelden). */
+.cn-choice-matrix__head {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.cn-choice-matrix__sort {
+	display: inline-flex;
+	flex: 0 1 auto;
+	gap: 4px;
+	align-items: center;
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-choice-matrix__filter {
+	flex: none;
+}
+
+.cn-choice-matrix__filter :deep(.button-vue) {
+	--button-size: 22px;
+	width: 22px;
+	min-width: 22px;
+	height: 22px;
+	min-height: 22px;
+	border-radius: 4px;
+}
+
+.cn-choice-matrix__no-match {
+	padding: 12px;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -24,6 +24,13 @@
 			</span>
 		</div>
 
+		<!-- @slot notice The table's state banners (R1), above the rows. -->
+		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<slot name="notice">
+				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+			</slot>
+		</div>
+
 		<!-- Active header filters, one removable chip each. -->
 		<ul
 			v-if="filterChips && !isLoading && activeColumnFilterChips.length > 0"
@@ -493,6 +500,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
@@ -599,6 +607,7 @@ export default {
 	name: 'CnDataTable',
 
 	components: {
+		CnCardNotices,
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
@@ -631,6 +640,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The table's state banners, above the rows (R1): each a `notice`
+		 * content (`{ variant, role?, layout?, title?, text, actions?,
+		 * dismissible?, visibleWhen? }`), such as a source that is down or
+		 * a bulk move that was partly done.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
 		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
@@ -1213,7 +1235,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter', 'notice-action', 'notice-dismiss'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
