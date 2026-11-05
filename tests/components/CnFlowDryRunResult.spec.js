@@ -48,4 +48,47 @@ describe('CnFlowDryRunResult', () => {
 		const w = mount(CnFlowDryRunResult, { props: { result: { status: 'failed', error: 'Step 2 is malformed', steps: [] } } })
 		expect(w.find('[data-testid="flow-dry-run-error"]').text()).toBe('Step 2 is malformed')
 	})
+
+	describe('the test run card', () => {
+		const card = (result) => mount(CnFlowDryRunResult, { props: { card: true, result } })
+
+		it('stays the plain panel unless asked', () => {
+			const w = mount(CnFlowDryRunResult, { props: { result: RESULT } })
+			expect(w.find('[data-testid="flow-dry-run-card"]').exists()).toBe(false)
+			expect(w.find('[data-testid="flow-dry-run-result"]').exists()).toBe(true)
+		})
+
+		it('draws one row per step with what it would do', () => {
+			const rows = card(RESULT).findAll('[data-testid="flow-dry-run-row"]')
+			expect(rows).toHaveLength(3)
+			expect(rows[0].text()).toContain('Large amount?')
+			expect(rows[1].text()).toContain('status: closed')
+			expect(rows[2].text()).toContain('bob, carol')
+		})
+
+		it('names the record, or the example payload', () => {
+			const onRecord = card({ ...RESULT, subject: { uuid: 'c-7' } })
+			const onPayload = card({ ...RESULT, subject: { payload: { amount: 1 } } })
+			expect(onRecord.find('th').text()).toBe('Record')
+			expect(onRecord.find('[data-testid="flow-dry-run-row"]').text()).toContain('c-7')
+			expect(onPayload.find('th').text()).toBe('Example')
+			expect(onPayload.find('[data-testid="flow-dry-run-row"]').text()).toContain('Example payload')
+		})
+
+		it('words the outcome of a step', () => {
+			const steps = [{ nodeId: 'a', status: 'failed' }, { nodeId: 'b', status: 'skipped' }, { nodeId: 'c', status: 'completed' }]
+			const rows = card({ status: 'failed', steps }).findAll('[data-testid="flow-dry-run-row"]')
+			expect(rows.map((row) => row.text())).toEqual([expect.stringContaining('Would fail'), expect.stringContaining('Skipped'), expect.stringContaining('Would succeed')])
+		})
+
+		it('says nothing was sent, shows the engine\'s error, tests again and closes', async () => {
+			const w = card({ status: 'failed', error: 'Stopped at step two', steps: [] })
+			expect(w.find('[data-testid="flow-dry-run-note"]').text()).toContain('Nothing was sent or changed')
+			expect(w.find('[data-testid="flow-dry-run-error"]').text()).toBe('Stopped at step two')
+			await w.find('[data-testid="flow-dry-run-again"]').trigger('click')
+			await w.find('[data-testid="flow-dry-run-close"]').trigger('click')
+			expect(w.emitted('again')).toHaveLength(1)
+			expect(w.emitted('close')).toHaveLength(1)
+		})
+	})
 })

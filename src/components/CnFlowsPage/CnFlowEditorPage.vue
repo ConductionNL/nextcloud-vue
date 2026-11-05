@@ -25,6 +25,7 @@
 		:pill="pill ? cnTranslate(pill) : ''"
 		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
+		:testPayload="testPayload"
 		@save="onSave"
 		@run="onRun" />
 	<CnFlowDetail v-else
@@ -182,6 +183,16 @@ export default {
 		testSubject: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Board look: test the flow on an example payload. `true` opens an
+		 * empty field, text opens it with that JSON. Manifest key
+		 * `config.testPayload`.
+		 */
+		testPayload: {
+			type: [Boolean, String],
+			default: false,
 		},
 
 		/**

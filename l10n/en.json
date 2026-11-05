@@ -2736,7 +2736,19 @@
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "The same flow and the same steps as on the canvas; what you change here changes there too.",
     "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.": "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.",
     "Flow steps": "Flow steps",
-    "Edit a step to see its settings.": "Edit a step to see its settings."
+    "Edit a step to see its settings.": "Edit a step to see its settings.",
+    "Test: a trial run without carrying anything out": "Test: a trial run without carrying anything out",
+    "Nothing was sent or changed; the saved flow was worked through, not the canvas.": "Nothing was sent or changed; the saved flow was worked through, not the canvas.",
+    "Step": "Step",
+    "Would do": "Would do",
+    "Test again": "Test again",
+    "Example payload": "Example payload",
+    "Would fail": "Would fail",
+    "Skipped": "Skipped",
+    "Would succeed": "Would succeed",
+    "This is not a JSON object.": "This is not a JSON object.",
+    "The saved flow is tried with the example you enter. Nothing is changed or sent.": "The saved flow is tried with the example you enter. Nothing is changed or sent.",
+    "Test": "Test"
   },
   "plurals": {
     "{count} member": [
