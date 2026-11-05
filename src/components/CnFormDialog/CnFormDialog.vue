@@ -218,6 +218,7 @@
 									:inputId="'cn-form-' + field.key"
 									:modelValue="formData[field.key] != null ? formData[field.key] : null"
 									:sources="field.sources || []"
+									:kindSwitch="field.kindSwitch || null"
 									:inputLabel="fieldLabelText(field)"
 									:labelOutside="true"
 									:placeholder="field.placeholder || ''"

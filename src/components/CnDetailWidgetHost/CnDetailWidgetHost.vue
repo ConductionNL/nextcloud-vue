@@ -635,6 +635,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton } from '@nextcloud/vue'
 import { computed } from 'vue'
@@ -654,6 +655,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL, WIDGET_NOTICES } from '../../utils/cardNotices.js'
 import { pickConditionalText } from '../../utils/conditionalText.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -788,6 +790,7 @@ export default {
 	 * injection resolves to null instead of finding a channel that goes nowhere.
 	 *
 	 * @return {object} The narrowed sink, or null.
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
 	 */
 	provide() {
 		const sink = this.panelActionSink
@@ -800,6 +803,9 @@ export default {
 			// The widget's manifest `bodyActions`, for a leaf that draws its
 			// own button row in the body (the contacts tab).
 			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
+			// The card's notices, and the dispatcher that can add to them.
+			[WIDGET_NOTICES]: computed(() => this.widgetNotices),
+			cnDispatchAction: this.dispatchFromCard,
 			// The hosted widget's id, read at call time, so a list can publish its
 			// rows under it for a card that follows them (side-card-follows-row).
 			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
@@ -1013,6 +1019,8 @@ export default {
 			 * with the list's total already filled in.
 			 */
 			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null, menuActions: [] },
+			/** The notices this card's actions answered, newest last. */
+			runtimeNotices: [],
 		}
 	},
 
@@ -1424,6 +1432,7 @@ export default {
 		 * What a header or body action resolves and dispatches with.
 		 *
 		 * @return {object} `{ object, objectId, translate, dispatch }`.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
 		 */
 		actionContext() {
 			return {
@@ -1432,9 +1441,26 @@ export default {
 				translate: (key) => this.translateLabel(key),
 				recordEdit: this.cnRecordEdit,
 				sidebar: this.objectSidebarState,
-				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
-					? this.cnDispatchAction(action, extra)
-					: dispatchAction(action, { router: this.$router || null, ...extra })),
+				dispatch: (action, extra = {}) => this.dispatchFromCard(action, extra),
+			}
+		},
+
+		/**
+		 * The card's notices: the manifest's `notices` (each with its own
+		 * `visibleWhen`), then what this card's actions answered.
+		 *
+		 * @return {{list: Array<object>, object: object, objectId: string|number, dismiss: Function}} What the card draws.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		widgetNotices() {
+			const declared = this.widget && Array.isArray(this.widget.notices) ? this.widget.notices : []
+			return {
+				list: [...declared, ...this.runtimeNotices],
+				object: this.object || {},
+				objectId: this.objectId,
+				dismiss: (notice) => {
+					this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+				},
 			}
 		},
 
@@ -1984,11 +2010,19 @@ export default {
 		},
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	mounted() {
 		this.publishOwnPanelActions()
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		// A closed tab's panel can be torn down while the strip lives on, and an
 		// item whose host is gone would call into nothing.
 		if (this.panelActionSink) {
@@ -1997,6 +2031,45 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A notice raised on the page channel for this card (`widgetId`).
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		onPageNoticeEvent(payload) {
+			const notice = payload && payload.widgetId && this.widget && payload.widgetId === this.widget.id
+				? normalizeNotice(payload.notice, 'info')
+				: null
+			if (notice) {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * Dispatch an action run from this card, through the page dispatcher,
+		 * with `showNotice` so an answer that asks for a notice lands in this
+		 * card. The card's earlier answer goes when the next action runs.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} [extra] Extra dispatch context.
+		 * @return {unknown} The dispatch result.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+		 */
+		dispatchFromCard(action, extra = {}) {
+			this.runtimeNotices = []
+			const context = {
+				showNotice: (notice) => {
+					this.runtimeNotices = [...this.runtimeNotices, notice]
+				},
+
+				...extra,
+			}
+			return typeof this.cnDispatchAction === 'function'
+				? this.cnDispatchAction(action, context)
+				: dispatchAction(action, { router: this.$router || null, ...context })
+		},
+
 		/**
 		 * The available widgets with the given ids, in that order, those whose
 		 * `visibleWhen` holds against the record and its page context.

@@ -4,6 +4,16 @@
 -->
 <template>
 	<div class="cn-party-picker">
+		<!-- The kind switch (`kindSwitch`): DqNieuweZaak "Soort aanvrager"
+		     Persoon / Organisatie / Contact; only the chosen source is searched. -->
+		<CnSegmentedControl
+			v-if="kindSwitch && kindOptions.length > 1"
+			class="cn-party-picker__kinds"
+			:modelValue="activeSourceId"
+			:options="kindOptions"
+			:ariaLabel="kindSwitchLabel"
+			data-testid="cn-party-picker-kinds"
+			@update:modelValue="onKind" />
 		<CnSearchSelect
 			:inputId="inputId"
 			:modelValue="selectedOption"
@@ -40,6 +50,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { CnSearchSelect } from '../CnSearchSelect/index.js'
+import { CnSegmentedControl } from '../CnSegmentedControl/index.js'
 
 /** How long typing rests before a search runs, in ms. */
 const SEARCH_DELAY = 250
@@ -84,7 +95,7 @@ const SEARCH_DELAY = 250
 export default {
 	name: 'CnPartyPicker',
 
-	components: { CnSearchSelect },
+	components: { CnSearchSelect, CnSegmentedControl },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -157,6 +168,18 @@ export default {
 			type: Number,
 			default: 2,
 		},
+
+		/**
+		 * A switch above the field between the sources (`{ label }`, the
+		 * group's name): one segment per source, named by its `kind` (else its
+		 * `label`), the first chosen; only the chosen source is searched.
+		 *
+		 * @type {{label?: string}|null}
+		 */
+		kindSwitch: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['update:modelValue', 'select'],
@@ -170,10 +193,53 @@ export default {
 			searchSeq: 0,
 			refusal: '',
 			unavailable: [],
+			chosenSource: null,
+			lastTerm: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * @return {Array<{value: string, label: string}>} One segment per source.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		kindOptions() {
+			return (this.sources || [])
+				.filter((source) => source && source.id)
+				.map((source) => ({ value: String(source.id), label: this.cnTranslate(source.kind || source.label || String(source.id)) }))
+		},
+
+		/**
+		 * @return {string} The chosen source id: the picked one, else the first.
+		 *
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		activeSourceId() {
+			const ids = this.kindOptions.map((option) => option.value)
+			return ids.includes(this.chosenSource) ? this.chosenSource : (ids[0] || '')
+		},
+
+		/**
+		 * @return {string} The switch's accessible name.
+		 *
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		kindSwitchLabel() {
+			const label = this.kindSwitch && this.kindSwitch.label
+			return typeof label === 'string' && label !== '' ? this.cnTranslate(label) : t('nextcloud-vue', 'Kind')
+		},
+
+		/**
+		 * @return {Array<object>} The sources a search asks: the chosen one with a kind switch, else all.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		searchedSources() {
+			const sources = this.sources || []
+			return this.kindSwitch && this.kindOptions.length > 1
+				? sources.filter((source) => source && String(source.id) === this.activeSourceId)
+				: sources
+		},
+
 		/**
 		 * The option for `modelValue`: in the list, else the known choice,
 		 * else one named by `selectedLabel`.
@@ -214,6 +280,21 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Switch the kind: clear the list and search the new source for the
+		 * last term.
+		 *
+		 * @param {string} id The chosen source id.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		onKind(id) {
+			this.chosenSource = String(id)
+			this.options = []
+			if (this.lastTerm) {
+				this.search(this.lastTerm)
+			}
+		},
 
 		/**
 		 * A source's row as a picker option.
@@ -284,10 +365,11 @@ export default {
 		 */
 		async search(term) {
 			const seq = ++this.searchSeq
+			this.lastTerm = term
 			this.searching = true
 			let refusal = ''
 			const unavailable = []
-			const sets = await Promise.all((this.sources || []).map(async (source) => {
+			const sets = await Promise.all(this.searchedSources.map(async (source) => {
 				try {
 					if (source.type === 'contacts') {
 						const { data } = await axios.post(generateUrl('/contactsmenu/contacts'), { filter: term })

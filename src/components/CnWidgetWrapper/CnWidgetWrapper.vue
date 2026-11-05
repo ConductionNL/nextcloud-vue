@@ -176,6 +176,19 @@
 			role="region"
 			:aria-labelledby="titleVisible ? titleId : null"
 			:aria-label="titleVisible ? null : resolvedTitle">
+			<!-- @slot notice The card's state banners, above the body (R1).
+			     Defaults to the `notices` prop, else the notices the detail
+			     host provides for the widget. -->
+			<div v-if="$slots.notice || cardNotices.list.length > 0" class="cn-widget-wrapper__notices">
+				<slot name="notice">
+					<CnCardNotices
+						:notices="cardNotices.list"
+						:objectData="cardNotices.object"
+						:objectId="cardNotices.objectId"
+						@noticeAction="(entry, notice) => $emit('notice-action', entry, notice)"
+						@noticeDismiss="onNoticeDismiss" />
+				</slot>
+			</div>
 			<slot />
 		</div>
 
@@ -196,8 +209,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { WIDGET_NOTICES } from '../../utils/cardNotices.js'
 import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
 import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
 import { slotRenders } from '../../utils/slotContent.js'
@@ -247,9 +262,13 @@ export default {
 
 	components: {
 		CnActionsMenu,
+		CnCardNotices,
 		CnWidgetHeaderActionButtons,
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+	 */
 	provide() {
 		return {
 			/**
@@ -261,6 +280,8 @@ export default {
 			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
 			// A card inside this one does not draw the widget's header actions again.
 			[WIDGET_HEADER_ACTIONS]: null,
+			// Nor its notices.
+			[WIDGET_NOTICES]: null,
 			// A titled card is a heading; a card inside it is one level deeper.
 			[HEADING_LEVEL]: () => resolveHeadingLevel(this.cnHeadingLevel) + (this.titleVisible ? 1 : 0),
 		}
@@ -281,6 +302,11 @@ export default {
 		 * variant, run }`). Null inside another card.
 		 */
 		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
+		/**
+		 * The widget's notices, provided by the detail host (a ref of
+		 * `{ list, object, objectId, dismiss }`). Null inside another card.
+		 */
+		cnWidgetNotices: { from: WIDGET_NOTICES, default: null },
 		/** The title's heading level, from the page or the card around this one (utils/headingLevel.js). */
 		cnHeadingLevel: { from: HEADING_LEVEL, default: DEFAULT_HEADING_LEVEL },
 		/** The app's look; the outline level applies in the board look only, the Nextcloud look keeps h3. */
@@ -462,6 +488,19 @@ export default {
 		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
 		 */
 		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The card's state banners, drawn at the top of the body (R1): each a
+		 * `notice` content (`{ variant, role?, layout?, title?, text,
+		 * actions?, dismissible?, visibleWhen? }`). A detail host's provided
+		 * notices come after these.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
 			type: Array,
 			default: () => [],
 		},
@@ -724,7 +763,7 @@ export default {
 		},
 	},
 
-	emits: ['refresh', 'request-feature'],
+	emits: ['refresh', 'request-feature', 'notice-action', 'notice-dismiss'],
 
 	data() {
 		return {
@@ -739,6 +778,20 @@ export default {
 		 * @return {Array<object>} The buttons, or none.
 		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
 		 */
+		/**
+		 * The notices this card draws: its own, then the detail host's.
+		 *
+		 * @return {{list: Array<object>, object: object|null, objectId: string|number}} The notices and the record they read.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		cardNotices() {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			const own = Array.isArray(this.notices) ? this.notices : []
+			const hosted = host && Array.isArray(host.list) ? host.list : []
+			return { list: [...own, ...hosted], object: (host && host.object) || null, objectId: (host && host.objectId) || '' }
+		},
+
 		declaredHeaderActions() {
 			const provided = this.cnWidgetHeaderActions
 			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
@@ -1055,6 +1108,22 @@ export default {
 
 	methods: {
 		/**
+		 * A notice was closed: tell the host (it drops a runtime notice) and
+		 * the parent.
+		 *
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		onNoticeDismiss(notice) {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			if (host && typeof host.dismiss === 'function') {
+				host.dismiss(notice)
+			}
+			this.$emit('notice-dismiss', notice)
+		},
+
+		/**
 		 * Whether the `actions` slot renders anything a reader can see.
 		 *
 		 * `CnObjectDataWidget` always PROVIDES the template and fills it only
@@ -1185,6 +1254,18 @@ export default {
 	overflow: auto;
 	min-height: 0;
 	padding: 16px;
+}
+
+/* The state banners sit above the body; in a flush card they keep the
+   card's inset so they do not touch its edge. */
+.cn-widget-wrapper__notices {
+	margin-bottom: 12px;
+}
+
+.cn-widget-wrapper--flush .cn-widget-wrapper__notices,
+.cn-widget-wrapper__content:has(> .cn-table-container) > .cn-widget-wrapper__notices,
+.cn-widget-wrapper__content:has(> .cn-widget-object-table) > .cn-widget-wrapper__notices {
+	margin: 0 var(--cn-card-notice-inset, 16px) 8px;
 }
 
 /* A TABLE GOES EDGE TO EDGE. ALWAYS.

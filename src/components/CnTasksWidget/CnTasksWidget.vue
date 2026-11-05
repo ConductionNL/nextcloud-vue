@@ -550,6 +550,8 @@ export default {
 		 * - `completeUrl` — the route Complete posts to instead of the engine's
 		 *   own (`{id}` is the task uuid), for an app that checks something of
 		 *   its own before the engine completes the task.
+		 * - `cancelUrl` — the same for Cancel, for an app that cancels through
+		 *   its own route; a refusal shows the server's message.
 		 * - `stateVariants` — the status pill's tone by engine state
 		 *   (`{ active: 'purple', enabled: 'warning' }`); a state it does not
 		 *   name keeps info while open and default once finished.
@@ -566,8 +568,8 @@ export default {
 		 * A task that carries a form is completed through CnTaskFormDialog, or
 		 * with its form inline in the focus and opened-row cards.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -1486,15 +1488,16 @@ export default {
 		 * @param {string} verb The lifecycle verb.
 		 * @param {object} body The verb body.
 		 * @return {Promise<void>} Resolves when the verb settled.
+		 * @spec openspec/changes/tasks-widget-cancel-url/specs/tasks-widget-cancel-url/spec.md#requirement-cancel-posts-to-the-app-route-when-one-is-set
 		 */
 		async postVerb(task, verb, body) {
 			const uuid = String(task.uuid || '')
 			if (uuid === '') {
 				return
 			}
-			const completeUrl = this.content.completeUrl
-			const route = verb === 'complete' && typeof completeUrl === 'string' && completeUrl !== ''
-				? completeUrl.replace('{id}', encodeURIComponent(uuid))
+			const appUrl = { complete: this.content.completeUrl, cancel: this.content.cancelUrl }[verb]
+			const route = typeof appUrl === 'string' && appUrl !== ''
+				? appUrl.replace('{id}', encodeURIComponent(uuid))
 				: `${FLOW_TASKS_URL}/${uuid}/${verb}`
 			try {
 				await axios.post(generateUrl(route), body)

@@ -757,3 +757,8 @@
 	line-height: 20px;
 	text-align: center;
 }
+
+/* The page's state banners (R1), above the list card. */
+.cn-index-page__notices {
+	margin-bottom: 12px;
+}

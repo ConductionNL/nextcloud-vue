@@ -2,14 +2,24 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name         | Type                                                                                                                                                                | Required | Default | Description                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------- |
-| `content`    | `{variant?: string, title?: string, text?: string, icon?: string, link?: {route?: string, params?: object, href?: string, label?: string, fallbackLabel?: string}}` |          | `\{\}`  | The notice: `{ variant?, title?, text, icon?, link? }`.    |
-| `objectData` | `object`                                                                                                                                                            |          | `null`  | The page's record, for `@object.&lt;path&gt;` in the link. |
-| `objectId`   | `string&#124;number`                                                                                                                                                |          | `''`    | The page's record id, for `@objectId` in the link.         |
+| Name         | Type                                                                                                                                                                | Required | Default | Description                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`    | `{variant?: string, title?: string, text?: string, icon?: string, link?: {route?: string, params?: object, href?: string, label?: string, fallbackLabel?: string}}` |          | `\{\}`  | The notice: `{ variant?, title?, text, icon?, link? }`.                                                                                |
+| `objectData` | `object`                                                                                                                                                            |          | `null`  | The page's record, for `@object.&lt;path&gt;` in the link.                                                                             |
+| `objectId`   | `string&#124;number`                                                                                                                                                |          | `''`    | The page's record id, for `@objectId` in the link.                                                                                     |
+| `inline`     | `boolean`                                                                                                                                                           |          | `false` | Draw the notice as a card's state banner: the tighter board inset, and a `status` / `alert` role unless `content.role` says otherwise. |
+
+### Events
+
+| Name      | Payload | Description |
+| --------- | ------- | ----------- |
+| `action`  | —       |             |
+| `dismiss` | —       |             |
