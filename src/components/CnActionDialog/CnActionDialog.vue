@@ -74,7 +74,7 @@
 			<template v-for="part in bodyParts" :key="part">
 				<template v-if="part === 'fields'">
 					<!-- Fields the action asks for, sent beside the reason. -->
-					<div v-for="field in fields"
+					<div v-for="field in shownFields"
 						:key="field.field"
 						class="cn-action-dialog__field"
 						:data-testid="`cn-action-dialog-field-${field.field}`">
@@ -111,7 +111,29 @@
 							<legend class="cn-action-dialog__checks-legend">
 								{{ fill(field.label) || field.field }}
 							</legend>
-							<NcCheckboxRadioSwitch v-for="item in checkItems(field)"
+							<!-- Several ticks per item, one per column ("moves" or "on both"). -->
+							<template v-if="hasColumns(field)">
+								<div class="cn-action-dialog__columns cn-action-dialog__columns--head" aria-hidden="true">
+									<span />
+									<span v-for="column in field.columns" :key="column.field">{{ text(column.label) || column.field }}</span>
+								</div>
+								<div v-for="item in checkItems(field)"
+									:key="item.value"
+									class="cn-action-dialog__columns"
+									:data-testid="`cn-action-dialog-columns-${field.field}-${item.value}`">
+									<span class="cn-action-dialog__checkbox-text">
+										<strong class="cn-action-dialog__checkbox-label">{{ item.label }}</strong>
+										<span v-if="item.secondary" class="cn-action-dialog__muted">{{ item.secondary }}</span>
+									</span>
+									<NcCheckboxRadioSwitch v-for="column in field.columns"
+										:key="column.field"
+										:modelValue="columnValue(column).includes(item.value)"
+										type="checkbox"
+										:ariaLabel="`${item.label}: ${text(column.label) || column.field}`"
+										@update:modelValue="(on) => setCheck(column, item.value, on)" />
+								</div>
+							</template>
+							<NcCheckboxRadioSwitch v-for="item in (hasColumns(field) ? [] : checkItems(field))"
 								:key="item.value"
 								:modelValue="checksValue(field).includes(item.value)"
 								type="checkbox"
@@ -123,6 +145,12 @@
 							</NcCheckboxRadioSwitch>
 							<span v-if="checkItems(field).length === 0" class="cn-action-dialog__muted">
 								{{ text(field.emptyText) || t('nextcloud-vue', 'Nothing to choose from.') }}
+							</span>
+							<span v-if="conflicts(field).length > 0"
+								class="cn-action-dialog__error"
+								role="alert"
+								:data-testid="`cn-action-dialog-conflict-${field.field}`">
+								{{ text(field.exclusiveText) || t('nextcloud-vue', 'An item cannot be ticked in more than one column.') }}
 							</span>
 						</fieldset>
 						<!-- One choice out of a few explained options (DqZaakSamenwerken
@@ -147,6 +175,9 @@
 							:labelOutside="labelsOutside(field)"
 							:placeholder="fill(field.placeholder)"
 							:clearable="field.required === false"
+							:filterable="!searchesRemotely(field)"
+							:loading="loadingOptions === field.field"
+							@search="(typed) => onOptionsSearch(field, typed)"
 							@update:modelValue="(option) => pick(field, option)" />
 						<NcTextField v-else-if="field.type === 'secret'"
 							:modelValue="values[field.field] || ''"
@@ -163,6 +194,10 @@
 							:labelOutside="labelsOutside(field)"
 							@update:modelValue="(value) => setValue(field.field, value)" />
 						<span v-if="field.hint && field.type !== 'checkbox'" class="cn-action-dialog__muted">{{ fill(field.hint) }}</span>
+						<span v-if="optionsErrors[field.field]"
+							class="cn-action-dialog__error"
+							role="alert"
+							:data-testid="`cn-action-dialog-options-error-${field.field}`">{{ optionsErrors[field.field] }}</span>
 					</div>
 
 				</template>
@@ -181,14 +216,14 @@
 
 				</template>
 				<template v-else>
-					<NcNoteCard v-if="config.note"
+					<NcNoteCard v-if="config.note && noteShown"
 						:type="noteType"
 						:heading="text(config.note.title)"
 						data-testid="cn-action-dialog-note">
 						<template v-if="config.note.icon" #icon>
 							<CnIcon class="cn-action-dialog__note-icon" :name="config.note.icon" :size="20" />
 						</template>
-						{{ text(config.note.text) }}
+						{{ noteText }}
 					</NcNoteCard>
 				</template>
 			</template>
@@ -202,7 +237,7 @@
 		</div>
 
 		<p v-else role="status" data-testid="cn-action-dialog-done">
-			{{ answerText || text(config.doneText) || t('nextcloud-vue', 'Done') }}
+			{{ answerText || text(doneTextOf) || t('nextcloud-vue', 'Done') }}
 		</p>
 
 		<template #actions>
@@ -214,10 +249,10 @@
 				:disabled="!canConfirm"
 				data-testid="cn-action-dialog-confirm"
 				@click="confirm">
-				<template v-if="confirmConfig.icon" #icon>
-					<CnIcon :name="confirmConfig.icon" :size="20" />
+				<template v-if="confirmIcon" #icon>
+					<CnIcon :name="confirmIcon" :size="20" />
 				</template>
-				{{ text(confirmConfig.label) || t('nextcloud-vue', 'Confirm') }}
+				{{ confirmText }}
 			</NcButton>
 		</template>
 	</CnDialog>
@@ -234,8 +269,9 @@ import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import { fetchEndpointSource, interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { bodyValue, checksSent, chosenRequest, isFilled, isShown, matchingRows, optionsRead, pickCase, tickedTwice } from '../../utils/actionDialogForm.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
-import { fillTemplate } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { readPath } from '../../utils/readPath.js'
 import { CnChoiceCards } from '../CnChoiceCards/index.js'
 import { CnDialog } from '../CnDialog/index.js'
@@ -306,6 +342,32 @@ let reasonSeq = 0
  *   `answerPath` shows the text at that path of the answer once the act ran,
  *   in place of `doneText` (a lookup that says what it found).
  *
+ * - `source`: an endpointSource the record is read from, beside or in place
+ *   of `summary.source` (a policy a field's `visibleWhen` reads).
+ * - A field's `visibleWhen`: `{ field | path, equals? | in? | includes? | filled? }`
+ *   shows the field only while another field's value (`field`) or a value of
+ *   the record (`path`) matches; a hidden field is not required and not sent.
+ *   The note takes `visibleWhen` too, and `note.textsBy: { field, cases }`
+ *   gives its text per chosen value.
+ * - A select or checks field's `optionsSource`: an endpointSource (`url`,
+ *   `params`, `responsePath`) its options are read from, `match` keeping the
+ *   entries whose fields equal it, `search: true` reading again as the reader
+ *   types (the term under `searchParam`, default `_search`) and `errorText`
+ *   saying a failed read. `optionValue` (default `id`) and `optionLabel` (a
+ *   template, or a list of them, the first that fills) name each option.
+ * - A checks field's `sendUnticked: true` sends the items left unticked, and
+ *   any field's `sendAs` sends its value under another key ("ticked means
+ *   shared" posted as `fieldExclusions`). `hideWhenEmpty` hides a checks field
+ *   with no items. `columns: [{ field, label }]` ticks each item once per
+ *   column, each column sent as its own list; `exclusive: true` refuses an
+ *   item ticked in two columns (`exclusiveText`).
+ * - `requireOneOf`: field names of which at least one must hold a value.
+ * - `confirm.requestsBy: { field, cases: { <value>: request } }` posts the
+ *   request of the chosen act, each with its own `url`, `method`, `body` and
+ *   optional `label`, `icon` and `doneText`. A body value that is one whole
+ *   token (`"{fields.permission}"`) sends the value as it is; `{fields.<name>}`
+ *   reads a field's value. `fieldsInBody: false` sends only the body.
+ *
  * Tokens (`@objectId`, `@object.<field>`) resolve in every url.
  */
 export default {
@@ -364,6 +426,12 @@ export default {
 			searchOptions: {},
 			/** The search field whose search runs, or ''. */
 			searching: '',
+			/** The entries an `optionsSource` gave, by field name. */
+			remoteOptions: {},
+			/** A failed `optionsSource` read in words, by field name. */
+			optionsErrors: {},
+			/** The field whose options are being read, or ''. */
+			loadingOptions: '',
 			busy: false,
 			refusal: '',
 			done: false,
@@ -396,6 +464,72 @@ export default {
 		/** @return {object} The confirm config. */
 		confirmConfig() {
 			return this.config.confirm && typeof this.config.confirm === 'object' ? this.config.confirm : {}
+		},
+
+		/**
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-each-act-posts-to-its-own-endpoint
+		 * @return {object|null} The request the chosen act posts.
+		 */
+		request() {
+			return chosenRequest(this.confirmConfig, this.fieldValues)
+		},
+
+		/** @return {string} The confirm button's text: the chosen act's, else the config's. */
+		confirmText() {
+			return this.text(this.request?.label) || this.text(this.confirmConfig.label) || t('nextcloud-vue', 'Confirm')
+		},
+
+		/** @return {string} The confirm button's icon name, or ''. */
+		confirmIcon() {
+			return this.request?.icon || this.confirmConfig.icon || ''
+		},
+
+		/** @return {string} The done text: the chosen act's, else the config's. */
+		doneTextOf() {
+			return this.request?.doneText || this.config.doneText
+		},
+
+		/** @return {{values: object, record: (object|null)}} What a `visibleWhen` reads. */
+		shownState() {
+			return { values: this.fieldValues, record: this.record }
+		},
+
+		/**
+		 * The fields that show: their `visibleWhen` holds, and a checks field
+		 * with `hideWhenEmpty` has items.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-field-shows-only-when-another-value-says-so
+		 * @return {Array<object>}
+		 */
+		shownFields() {
+			return this.fields.filter((field) => this.fieldShown(field, 0) && !(field.hideWhenEmpty === true && this.checkItems(field).length === 0))
+		},
+
+		/** @return {boolean} Whether the note shows. */
+		noteShown() {
+			return isShown(this.config.note, this.shownState)
+		},
+
+		/** @return {string} The note's text: the case of `textsBy` the chosen value names, else `text`. */
+		noteText() {
+			const picked = pickCase(this.config.note && this.config.note.textsBy, this.fieldValues)
+			return this.text(typeof picked === 'string' ? picked : this.config.note.text)
+		},
+
+		/**
+		 * The values sent: the shown fields only, each under its `sendAs`, a
+		 * checks field with `sendUnticked` as the items left unticked and one
+		 * with `columns` as a list per column.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-ticked-can-mean-left-out
+		 * @return {object}
+		 */
+		sentValues() {
+			const out = {}
+			for (const field of this.shownFields) {
+				Object.assign(out, this.sentOf(field))
+			}
+			return out
 		},
 
 		/**
@@ -503,13 +637,7 @@ export default {
 		fieldValues() {
 			const out = { ...this.values }
 			for (const field of this.fields) {
-				if (field.type === 'checks') {
-					out[field.field] = this.checksValue(field)
-				} else if (field.type === 'cards') {
-					out[field.field] = this.cardsValue(field)
-				} else {
-					out[field.field] = field.type === 'checkbox' ? this.checkboxValue(field) : (this.values[field.field] ?? '')
-				}
+				Object.assign(out, this.heldValues(field))
 			}
 			return out
 		},
@@ -526,18 +654,18 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldsFilled() {
-			return this.fields.every((f) => {
-				if (f.type === 'checkbox') {
-					return f.required !== true || this.checkboxValue(f)
-				}
-				if (f.type === 'checks') {
-					return f.required === false || this.checksValue(f).length > 0
-				}
-				if (f.type === 'cards') {
-					return f.required === false || String(this.cardsValue(f)) !== ''
-				}
-				return f.required === false || this.secretStored(f) || String(this.values[f.field] ?? '').trim() !== ''
-			})
+			return this.oneOfFilled && this.shownFields.every((f) => this.conflicts(f).length === 0 && this.fieldFilled(f))
+		},
+
+		/**
+		 * Whether one of the fields `requireOneOf` names holds a value.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-checks-field-can-tick-in-columns-that-exclude-each-other
+		 * @return {boolean}
+		 */
+		oneOfFilled() {
+			const names = Array.isArray(this.config.requireOneOf) ? this.config.requireOneOf : []
+			return names.length === 0 || names.some((name) => isFilled(this.sentValues[name]))
 		},
 	},
 
@@ -552,11 +680,12 @@ export default {
 	},
 
 	async mounted() {
-		await Promise.all([this.loadRecord(), this.loadChecklist(), this.loadPermission()])
+		await Promise.all([this.loadRecord(), this.loadChecklist(), this.loadPermission(), ...this.fields.map((field) => this.loadOptions(field, ''))])
 	},
 
 	beforeUnmount() {
 		clearTimeout(this.searchTimer)
+		clearTimeout(this.optionsTimer)
 	},
 
 	methods: {
@@ -646,14 +775,14 @@ export default {
 		 * @return {Array<{value: string, label: string, secondary: string}>}
 		 */
 		checkItems(field) {
-			const listed = Array.isArray(field.options) ? field.options : readPath(this.record || {}, field.itemsPath || '')
+			const listed = field.optionsSource ? this.remoteOptions[field.field] : (Array.isArray(field.options) ? field.options : readPath(this.record || {}, field.itemsPath || ''))
 			return (Array.isArray(listed) ? listed : []).map((item) => {
 				if (item === null || typeof item !== 'object') {
 					return { value: String(item), label: String(item), secondary: '' }
 				}
 				return {
 					value: String(readPath(item, field.optionValue || 'value') ?? item.id ?? ''),
-					label: fillTemplate(field.optionLabel || '{label}', item),
+					label: firstFilled(field.optionLabel || ['{label}', '{name}', '{title}'], item),
 					secondary: field.optionSecondary ? fillTemplate(field.optionSecondary, item) : '',
 				}
 			}).filter((item) => item.value !== '')
@@ -768,7 +897,7 @@ export default {
 
 		/** @return {Promise<void>} */
 		async loadRecord() {
-			const source = this.config.summary && this.config.summary.source
+			const source = this.config.source || (this.config.summary && this.config.summary.source)
 			if (!source || !source.url) {
 				return
 			}
@@ -815,7 +944,205 @@ export default {
 		 * @return {Array<{id: string, label: string, fills?: object}>}
 		 */
 		optionsOf(field) {
+			if (field.optionsSource) {
+				return this.remoteOptionsOf(field)
+			}
 			return (Array.isArray(field.options) ? field.options : []).map((o) => ({ id: String(o.value), label: this.text(o.label) || String(o.value), fills: o.fills }))
+		},
+
+		/**
+		 * A select field's options read from its `optionsSource`: each entry's
+		 * `optionValue` (default `id`) and the first `optionLabel` that fills.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-field-reads-its-options-from-an-endpoint
+		 * @param {object} field The field.
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		remoteOptionsOf(field) {
+			const labels = field.optionLabel || ['{label}', '{name}', '{title}']
+			return (this.remoteOptions[field.field] || [])
+				.map((row) => ({ id: String(readPath(row, field.optionValue || 'id') ?? ''), row }))
+				.filter((option) => option.id !== '')
+				.map(({ id, row }) => ({ id, label: firstFilled(labels, row, this.cnTranslate) || id }))
+		},
+
+		/**
+		 * Whether a field's `visibleWhen` holds, and the field it reads (if any)
+		 * shows too, so hiding one field hides the fields that depend on it.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-field-shows-only-when-another-value-says-so
+		 * @param {object} field The field.
+		 * @param {number} depth How many fields deep the check is, to stop a loop.
+		 * @return {boolean}
+		 */
+		fieldShown(field, depth) {
+			if (!isShown(field, this.shownState)) {
+				return false
+			}
+			const parent = this.parentOf(field)
+			return !parent || (depth < 8 && this.fieldShown(parent, depth + 1))
+		},
+
+		/**
+		 * The field another field's `visibleWhen` reads, or null.
+		 *
+		 * @param {object} field The field.
+		 * @return {object|null}
+		 */
+		parentOf(field) {
+			const name = field.visibleWhen && field.visibleWhen.field
+			return typeof name === 'string' ? (this.fields.find((other) => other.field === name) || null) : null
+		},
+
+		/**
+		 * A field's value by key: a checkbox as a boolean, a checks field as a
+		 * list (one per column with `columns`), the others as entered.
+		 *
+		 * @param {object} field The field.
+		 * @return {object}
+		 */
+		heldValues(field) {
+			if (this.hasColumns(field)) {
+				return Object.fromEntries(field.columns.map((column) => [column.field, this.columnValue(column)]))
+			}
+			const read = { checks: this.checksValue, cards: this.cardsValue, checkbox: this.checkboxValue }[field.type] || this.plainValue
+			return { [field.field]: read(field) }
+		},
+
+		/**
+		 * Whether a shown field holds what it needs: a checkbox is ticked when
+		 * `required: true`; any other field has a value unless `required: false`
+		 * or a secret is stored.
+		 *
+		 * @spec openspec/changes/action-dialog-fields-and-acts/specs/action-dialog/spec.md#requirement-an-action-dialog-asks-for-fields-and-reads-a-permission-from-a-list
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 */
+		fieldFilled(field) {
+			if (field.type === 'checkbox') {
+				return field.required !== true || this.checkboxValue(field)
+			}
+			if (field.required === false || this.secretStored(field)) {
+				return true
+			}
+			const held = Object.values(this.heldValues(field))
+			return this.hasColumns(field) ? held.some(isFilled) : isFilled(held[0])
+		},
+
+		/**
+		 * A select or text field's value: what was entered, else its `default`.
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 */
+		plainValue(field) {
+			if (field.field in this.values) {
+				return this.values[field.field] ?? ''
+			}
+			return field.type === 'select' && field.default !== undefined ? String(field.default) : ''
+		},
+
+		/**
+		 * Whether a select field reads its options again as the reader types.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 */
+		searchesRemotely(field) {
+			return Boolean(field.optionsSource && field.optionsSource.search === true)
+		},
+
+		/**
+		 * Read a searching select field's options again once typing rests.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} typed What the reader typed.
+		 * @return {void}
+		 */
+		onOptionsSearch(field, typed) {
+			if (!this.searchesRemotely(field)) {
+				return
+			}
+			clearTimeout(this.optionsTimer)
+			this.optionsTimer = setTimeout(() => this.loadOptions(field, String(typed || '').trim()), SEARCH_DELAY)
+		},
+
+		/**
+		 * Read a field's `optionsSource`, keep the entries `match` allows, and
+		 * say so when the read fails rather than offer an empty list.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-field-reads-its-options-from-an-endpoint
+		 * @param {object} field The field.
+		 * @param {string} term What the reader typed, or ''.
+		 * @return {Promise<void>}
+		 */
+		async loadOptions(field, term) {
+			const source = field.optionsSource
+			if (!source || !source.url) {
+				return
+			}
+			this.loadingOptions = field.field
+			try {
+				const rows = matchingRows(await this.read(optionsRead(source, term)), source.match)
+				this.remoteOptions = { ...this.remoteOptions, [field.field]: rows }
+				this.optionsErrors = { ...this.optionsErrors, [field.field]: '' }
+			} catch {
+				this.optionsErrors = { ...this.optionsErrors, [field.field]: this.text(source.errorText) || t('nextcloud-vue', 'The options could not be read.') }
+			} finally {
+				this.loadingOptions = ''
+			}
+		},
+
+		/**
+		 * Whether a checks field ticks per column.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 */
+		hasColumns(field) {
+			return field.type === 'checks' && Array.isArray(field.columns) && field.columns.length > 0
+		},
+
+		/**
+		 * The values ticked in one column of a checks field; nothing is ticked
+		 * at the start.
+		 *
+		 * @param {{field: string}} column The column.
+		 * @return {Array<string>}
+		 */
+		columnValue(column) {
+			return Array.isArray(this.values[column.field]) ? this.values[column.field] : []
+		},
+
+		/**
+		 * The items of an `exclusive` checks field ticked in more than one column.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-a-checks-field-can-tick-in-columns-that-exclude-each-other
+		 * @param {object} field The field.
+		 * @return {Array<string>}
+		 */
+		conflicts(field) {
+			return this.hasColumns(field) && field.exclusive === true ? tickedTwice(field.columns, this.values) : []
+		},
+
+		/**
+		 * What one shown field sends, by key.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-ticked-can-mean-left-out
+		 * @param {object} field The field.
+		 * @return {object}
+		 */
+		sentOf(field) {
+			if (this.hasColumns(field)) {
+				return this.heldValues(field)
+			}
+			if (field.type === 'secret' && String(this.values[field.field] ?? '') === '') {
+				return {}
+			}
+			const value = field.type === 'checks'
+				? checksSent(field, { ticked: this.checksValue(field), items: this.checkItems(field) })
+				: this.fieldValues[field.field]
+			return { [field.sendAs || field.field]: value }
 		},
 
 		/**
@@ -825,7 +1152,7 @@ export default {
 		 * @return {object|null}
 		 */
 		selectedOption(field) {
-			return this.optionsOf(field).find((o) => o.id === String(this.values[field.field] ?? '')) || null
+			return this.optionsOf(field).find((o) => o.id === String(this.plainValue(field))) || null
 		},
 
 		/**
@@ -882,44 +1209,77 @@ export default {
 			}
 			this.busy = true
 			this.refusal = ''
-			const reason = this.reason.trim()
 			try {
-				const request = this.confirmConfig.request
-				if (request && request.url) {
-					const url = interpolateUrlTokens(request.url, this.tokenCtx)
-					const body = {}
-					for (const [key, value] of Object.entries(request.body || {})) {
-						body[key] = typeof value === 'string' ? fillTemplate(value, { ...(this.record || {}), reason }) : value
-					}
-					if (this.config.reason) {
-						body[this.config.reason.field || 'reason'] = reason
-					}
-					const values = { ...this.fieldValues }
-					for (const field of this.fields) {
-						if (field.type === 'secret' && String(this.values[field.field] ?? '') === '') {
-							delete values[field.field]
-						}
-					}
-					Object.assign(body, values)
-					const method = String(request.method || 'POST').toLowerCase()
-					const answer = await axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post'](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
-					if (request.answerPath) {
-						const said = readPath(answer?.data, request.answerPath)
-						this.answerText = said === null || said === undefined ? '' : String(said)
-					}
-				} else if (this.confirmConfig.action && typeof this.cnDispatchAction === 'function') {
-					await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.fieldValues, reason }] })
-				}
+				await this.runAct(this.reason.trim())
 				this.done = true
 				emit(PAGE_REFRESH, {})
-				/** @event done The action ran. Payload: the field values and `reason`. */
-				this.$emit('done', { ...this.fieldValues, reason })
+				/** @event done The action ran. Payload: the sent field values and `reason`. */
+				this.$emit('done', { ...this.sentValues, reason: this.reason.trim() })
 			} catch (failure) {
 				const data = failure && failure.response && failure.response.data
 				this.refusal = String((data && (data.message || data.error)) || t('nextcloud-vue', 'The action could not be completed.'))
 			} finally {
 				this.busy = false
 			}
+		},
+
+		/**
+		 * Post the chosen act's request, or dispatch `confirm.action`.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-each-act-posts-to-its-own-endpoint
+		 * @param {string} reason The reason given.
+		 * @return {Promise<void>}
+		 */
+		async runAct(reason) {
+			const request = this.request
+			if (request && request.url) {
+				await this.post(request, reason)
+			} else if (this.confirmConfig.action && typeof this.cnDispatchAction === 'function') {
+				await this.cnDispatchAction({ ...this.confirmConfig.action, args: [...(this.confirmConfig.action.args || []), { ...this.sentValues, reason }] })
+			}
+		},
+
+		/**
+		 * Send one request and keep the text at its `answerPath`.
+		 *
+		 * @param {object} request The request.
+		 * @param {string} reason The reason given.
+		 * @return {Promise<void>}
+		 */
+		async post(request, reason) {
+			const url = interpolateUrlTokens(request.url, this.tokenCtx)
+			const method = String(request.method || 'POST').toLowerCase()
+			const send = axios[['post', 'put', 'patch', 'delete'].includes(method) ? method : 'post']
+			const answer = await send(/^https?:\/\//i.test(url) ? url : generateUrl(url), this.requestBody(request, reason))
+			if (request.answerPath) {
+				const said = readPath(answer?.data, request.answerPath)
+				this.answerText = said === null || said === undefined ? '' : String(said)
+			}
+		},
+
+		/**
+		 * A request's body: its `body` templates filled from the record, the
+		 * reason and `fields`, then the reason and the sent field values unless
+		 * `fieldsInBody` is false.
+		 *
+		 * @spec openspec/changes/action-dialog-acts-and-sources/specs/action-dialog/spec.md#requirement-each-act-posts-to-its-own-endpoint
+		 * @param {object} request The request.
+		 * @param {string} reason The reason given.
+		 * @return {object}
+		 */
+		requestBody(request, reason) {
+			const filler = { context: { fields: this.sentValues, ...(this.record || {}), reason }, fill: (value, context) => fillTemplate(value, context) }
+			const body = {}
+			for (const [key, value] of Object.entries(request.body || {})) {
+				body[key] = bodyValue(value, filler)
+			}
+			if (request.fieldsInBody === false) {
+				return body
+			}
+			if (this.config.reason) {
+				body[this.config.reason.field || 'reason'] = reason
+			}
+			return Object.assign(body, this.sentValues)
 		},
 
 		/**

@@ -2698,7 +2698,9 @@
     "You may not publish to this marketplace.": "You may not publish to this marketplace.",
     "{column}, {row}": "{column}, {row}",
     "{cell}: empty": "{cell}: empty",
-    "{cell}: {value}": "{cell}: {value}"
+    "{cell}: {value}": "{cell}: {value}",
+    "An item cannot be ticked in more than one column.": "An item cannot be ticked in more than one column.",
+    "The options could not be read.": "The options could not be read."
   },
   "plurals": {
     "{count} member": [
