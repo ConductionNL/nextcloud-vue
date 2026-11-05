@@ -257,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 252,
+			"transitive": 253,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -371,6 +371,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -998,7 +999,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 229,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1096,6 +1097,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -1270,7 +1272,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 229,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1368,6 +1370,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -2011,7 +2014,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 227,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2109,6 +2112,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -2470,7 +2474,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 227,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2568,6 +2572,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -2588,7 +2593,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 224,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2685,6 +2690,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -3865,7 +3871,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 245,
+			"transitive": 246,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3973,6 +3979,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -4402,7 +4409,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 230,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4501,6 +4508,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -4773,9 +4781,14 @@
 		},
 		"CnSearchPage": {
 			"direct": 1,
-			"transitive": 0,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-search-page"
 		},
 		"CnSearchSelect": {
@@ -5492,6 +5505,18 @@
 			"via": [],
 			"page": "cn-task-form-fields"
 		},
+		"CnTaskFormWidget": {
+			"direct": 1,
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-task-form-widget"
+		},
 		"CnTasksCard": {
 			"direct": 1,
 			"transitive": 14,
@@ -5838,7 +5863,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 227,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5936,6 +5961,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
