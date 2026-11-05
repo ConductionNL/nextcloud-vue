@@ -298,6 +298,7 @@ and filters, because the host declared it.
 | `preferenceKey` | `String` | `'files-browser-columns'` | The key the choice is stored under, so two browsers in one app remember separately. |
 | `columnsLabel` | `String` | `'Columns'` | Label of the Columns chooser. |
 | `selectionLabel` | `String` | `''` | The bulk bar's count as a template with `{count}`, translated by the app ("\{count\} documents selected"). Empty reads "\{count\} selected". |
+| `toolbarSelectionActions` | `Array` | `[]` | Actions on the ticked files drawn as toolbar buttons, declared as `bulkActions` plus `disabledReason` (translated; default "Select files first"). Each is disabled, saying why, while no file is ticked, and turns the row checkboxes on as `bulkActions` does. `CnFilesTab` forwards it. |
 | `selectionLabelOne` | `String` | `''` | The bulk bar's count for one file. |
 | `showClearSelection` | `Boolean` | `true` | Whether the bulk bar ends in Clear selection. |
 | `sideCards` | `Array` | `[]` | Cards beside the list about the last selected file: `{ id, title, fields, actions }`; see above. |
