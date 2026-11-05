@@ -301,3 +301,11 @@ truthiness), the label goes through the host translation, and `variant` is a
 ```
 
 A list field on a `secondary` line names each value through `secondaryLabels` and reads as a list in the page's language: `{surfaces}` on `['site', 'portal']` with `{ surfaces: { site: "website", portal: "Mijn Zuiddrecht" } }` reads "website en Mijn Zuiddrecht".
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn above the rows, such as a source that is down or a bulk move that was partly done: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](../../../docs/components/cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

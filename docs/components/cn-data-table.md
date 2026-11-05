@@ -296,3 +296,11 @@ The tones are `default`, `primary`, `success`, `warning`, `error`, `info`, `purp
 ## Board look
 
 Under the board look the table container is a white card (radius 12, no shadow), header cells are weight 600 on the hover ground, the first data cell is the title column (a 15px link with the `secondary` line under it) and the last column is headed by a visually hidden "Actions".
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn above the rows, such as a source that is down or a bulk move that was partly done: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](./cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).
