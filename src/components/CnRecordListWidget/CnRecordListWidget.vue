@@ -966,6 +966,7 @@ export default {
 
 	emits: ['header'],
 
+	/** @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer */
 	setup(props) {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
@@ -1795,7 +1796,11 @@ export default {
 			return this.content?.metaAt === 'end'
 		},
 
-		/** @return {string} What an open checklist row reads in place of its meta (`content.missingText`). */
+		/**
+		 * @return {string} What an open checklist row reads in place of its meta (`content.missingText`).
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-row-can-say-where-it-comes-from
+		 */
 		checklistMissingText() {
 			const text = this.content?.missingText
 			return typeof text === 'string' && text !== '' ? this.translate(text) : ''
@@ -2105,7 +2110,11 @@ export default {
 			this.fetchRows()
 		},
 
-		/** The header pill read from the answer arrives after the rows. */
+		/**
+		 * The header pill read from the answer arrives after the rows.
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+		 */
 		headerPill() {
 			this.emitHeader()
 		},
@@ -2326,6 +2335,7 @@ export default {
 		 *
 		 * @param {object} row The row.
 		 * @return {unknown} What the dispatcher returns.
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-can-mark-the-next-step
 		 */
 		runCheckNextAction(row) {
 			const action = readPath(row, 'action')
@@ -3392,7 +3402,11 @@ export default {
 			return 'CircleSmall'
 		},
 
-		/** Tell the card around this list what its header shows. */
+		/**
+		 * Tell the card around this list what its header shows.
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+		 */
 		emitHeader() {
 			const header = { link: this.headerLink, note: this.headerNote }
 			if (this.headerPill && !this.error) {

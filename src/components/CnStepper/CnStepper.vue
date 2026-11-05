@@ -198,6 +198,10 @@ button.cn-stepper__step {
 	z-index: 1;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.cn-stepper__dot { transition: none; }
+}
+
 .cn-wizard-dialog__progress-check {
 	font-size: 16px;
 	line-height: 1;

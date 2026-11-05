@@ -5535,7 +5535,11 @@ export default {
 			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
 		},
 
-		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		/**
+		 * Rows: store collection in self-fetch mode, else the `objects` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
@@ -7899,7 +7903,11 @@ export default {
 			return this.refreshing || this.internalRefreshing
 		},
 
-		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		/**
+		 * Pagination: store pagination in self-fetch mode, else the `pagination` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectivePagination() {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.pagination
@@ -10269,6 +10277,7 @@ export default {
 		 *
 		 * @param {string|object} value `formEyebrow` or `formSubtitle`.
 		 * @return {string} The translated text, or ''.
+		 * @spec openspec/changes/index-form-eyebrow-subtitle/specs/index-page/spec.md#requirement-an-index-pages-form-can-carry-an-eyebrow-and-a-subtitle
 		 */
 		formHeaderText(value) {
 			if (!value || this.rowFormTarget) {

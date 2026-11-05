@@ -529,6 +529,7 @@ export default {
 		 */
 		headerSubtitleText: {
 			immediate: true,
+			/** @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title */
 			handler(subtitle) {
 				if (this.content?.headerSubtitle) {
 					/**

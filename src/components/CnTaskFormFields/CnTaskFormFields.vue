@@ -237,6 +237,7 @@ export default {
 		 *
 		 * @param {{options?: Array, enum?: Array}} field The declared field.
 		 * @return {Array<{id: string, label: string}>}
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-task-form-field-can-be-a-text-area-a-date-or-a-choice
 		 */
 		optionsOf(field) {
 			const list = Array.isArray(field.options) ? field.options : (Array.isArray(field.enum) ? field.enum : [])
@@ -248,6 +249,7 @@ export default {
 		/**
 		 * @param {{field: string}} field The declared field.
 		 * @return {string} Its message from `errors`, or ''.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-task-form-field-can-be-a-text-area-a-date-or-a-choice
 		 */
 		errorOf(field) {
 			const message = this.errors && this.errors[field.field]

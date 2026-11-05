@@ -108,6 +108,7 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
@@ -119,6 +120,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
@@ -130,6 +132,7 @@
 							<textarea
 								v-else-if="field.widget === 'textarea'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								class="cn-object-data-widget__textarea"
 								:value="editData[field.key] || ''"
 								:placeholder="field.description"
@@ -145,6 +148,7 @@
 							<NcSelect
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="relationOptions[field.key] || []"
 								:modelValue="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
@@ -179,6 +183,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getSelectOptions(field)"
 								:modelValue="getSelectedOption(field)"
 								:clearable="!field.required"
@@ -189,6 +194,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getMultiselectOptions(field)"
 								:modelValue="getSelectedMultiselectOptions(field)"
 								:multiple="true"
@@ -200,6 +206,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:modelValue="editData[field.key] || []"
 								:multiple="true"
 								:keepOpen="true"
@@ -220,6 +227,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="date"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -230,6 +238,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="datetime-local"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -240,6 +249,7 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -251,12 +261,12 @@
 						<div
 							v-if="field.widget !== 'checkbox'"
 							class="cn-object-data-widget__editor-actions">
-							<NcButton variant="tertiary-no-background" @click="commitEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Save')" @click="commitEdit">
 								<template #icon>
 									<Check :size="20" />
 								</template>
 							</NcButton>
-							<NcButton variant="tertiary-no-background" @click="cancelEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Cancel')" @click="cancelEdit">
 								<template #icon>
 									<Close :size="20" />
 								</template>
@@ -364,7 +374,7 @@
 								<table class="cn-object-data-widget__mini-table">
 									<thead>
 										<tr>
-											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col" scope="col">
 												{{ col }}
 											</th>
 										</tr>
@@ -2196,6 +2206,7 @@ export default {
 		 *
 		 * @param {object} field The field.
 		 * @return {Array<string>}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
 		 */
 		tagsOf(field) {
 			const value = field.key in this.dirtyFields ? this.dirtyFields[field.key] : this.fieldValues[field.key]
@@ -2207,6 +2218,7 @@ export default {
 		 *
 		 * @param {object} field The field.
 		 * @return {string}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
 		 */
 		tagAddLabel(field) {
 			const override = this.resolvedOverrides[field.key]
@@ -2795,6 +2807,10 @@ export default {
 	color: var(--color-text-maxcontrast);
 	opacity: 0;
 	transition: opacity 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-object-data-widget__edit-icon { transition: none; }
 }
 
 .cn-object-data-widget__value--editable:hover .cn-object-data-widget__edit-icon,

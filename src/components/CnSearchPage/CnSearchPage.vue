@@ -475,6 +475,7 @@ export default {
 		 * keep what each found. A search started later wins over this one.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
 		 */
 		async searchSources() {
 			const run = this.sourceRun + 1

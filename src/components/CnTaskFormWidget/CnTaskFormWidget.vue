@@ -139,23 +139,39 @@ export default {
 	},
 
 	computed: {
-		/** @return {object|null} The task's form. */
+		/**
+		 * @return {object|null} The task's form.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		form() {
 			return taskForm(this.objectData)
 		},
 
-		/** @return {string} The task uuid. */
+		/**
+		 * @return {string} The task uuid.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		taskId() {
 			return String(this.objectData?.uuid || this.objectData?.id || this.objectId || '')
 		},
 
-		/** @return {object} The answers drawn: the task's stored data under what was typed. */
+		/**
+		 * @return {object} The answers drawn: the task's stored data under what was typed.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		values() {
 			const stored = this.objectData && typeof this.objectData.data === 'object' && this.objectData.data !== null ? this.objectData.data : {}
 			return { ...stored, ...this.answers }
 		},
 
-		/** @return {string} The question above the fields. */
+		/**
+		 * @return {string} The question above the fields.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		descriptionText() {
 			const template = this.content?.description
 			if (typeof template === 'string' && template !== '') {
@@ -165,28 +181,48 @@ export default {
 			return typeof own === 'string' ? own : ''
 		},
 
-		/** @return {string} The help line. */
+		/**
+		 * @return {string} The help line.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		helpText() {
 			return this.textOf('help', '')
 		},
 
-		/** @return {string} The draft route, `{id}` filled, or ''. */
+		/**
+		 * @return {string} The draft route, `{id}` filled, or ''.
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-task-form-can-be-saved-as-provisional-and-comes-back
+		 */
 		draftUrl() {
 			const url = this.content?.draft?.url
 			return typeof url === 'string' && url !== '' && this.taskId !== '' ? url.replace('{id}', encodeURIComponent(this.taskId)) : ''
 		},
 
-		/** @return {string} */
+		/**
+		 * @return {string}
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-task-form-can-be-saved-as-provisional-and-comes-back
+		 */
 		draftLabel() {
 			return this.textOf('draftLabel', t('nextcloud-vue', 'Save as provisional'))
 		},
 
-		/** @return {string} */
+		/**
+		 * @return {string}
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		completeLabel() {
 			return this.textOf('completeLabel', t('nextcloud-vue', 'Complete'))
 		},
 
-		/** @return {string} */
+		/**
+		 * @return {string}
+		 *
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
+		 */
 		emptyLabel() {
 			return this.textOf('emptyText', t('nextcloud-vue', 'This task asks nothing to fill in.'))
 		},
@@ -195,6 +231,7 @@ export default {
 	watch: {
 		draftUrl: {
 			immediate: true,
+			/** @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-task-form-can-be-saved-as-provisional-and-comes-back */
 			handler(url) {
 				if (url) {
 					this.loadDraft()
@@ -207,6 +244,7 @@ export default {
 		/**
 		 * @param {string} text A host text.
 		 * @return {string} It translated.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
 		 */
 		translate(text) {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
@@ -216,6 +254,7 @@ export default {
 		 * @param {string} key A content key.
 		 * @param {string} fallback The library's words.
 		 * @return {string} The content's text, translated, else the fallback.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
 		 */
 		textOf(key, fallback) {
 			const text = this.content?.[key]
@@ -224,6 +263,7 @@ export default {
 
 		/**
 		 * @param {{field: string, value: unknown}} answer One answer typed.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
 		 */
 		onAnswer({ field, value }) {
 			this.answers = { ...this.answers, [field]: value }
@@ -235,6 +275,7 @@ export default {
 
 		/**
 		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
 		 */
 		onDismiss(notice) {
 			this.notices = this.notices.filter((entry) => entry !== notice)
@@ -322,6 +363,7 @@ export default {
 		 * A refusal in the server's words, in the card.
 		 *
 		 * @param {unknown} error The caught error.
+		 * @spec openspec/changes/task-form-widget/specs/task-form-widget/spec.md#requirement-a-flow-tasks-form-is-a-card-of-its-own
 		 */
 		refused(error) {
 			const { message } = parseAxiosError(error)
