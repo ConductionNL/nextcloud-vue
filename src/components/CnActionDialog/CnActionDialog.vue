@@ -365,8 +365,9 @@ let reasonSeq = 0
  * - `confirm.requestsBy: { field, cases: { <value>: request } }` posts the
  *   request of the chosen act, each with its own `url`, `method`, `body` and
  *   optional `label`, `icon` and `doneText`. A body value that is one whole
- *   token (`"{fields.permission}"`) sends the value as it is; `{fields.<name>}`
- *   reads a field's value. `fieldsInBody: false` sends only the body.
+ *   token (`"{fields.permission}"`) sends the value as it is; `{fields.<key>}`
+ *   reads a sent value by the key it is sent under. `fieldsInBody: false`
+ *   sends only the body.
  *
  * Tokens (`@objectId`, `@object.<field>`) resolve in every url.
  */
