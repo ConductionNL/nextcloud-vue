@@ -2713,7 +2713,8 @@
     "Task form": "Task form",
     "No rows match the filters.": "No rows match the filters.",
     "An item cannot be ticked in more than one column.": "An item cannot be ticked in more than one column.",
-    "The options could not be read.": "The options could not be read."
+    "The options could not be read.": "The options could not be read.",
+    "Health": "Health"
   },
   "plurals": {
     "{count} member": [

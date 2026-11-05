@@ -117,6 +117,25 @@ describe('the flows source reads its run figures from the summary', () => {
 		expect(source.footerNote).toContain('paused flow')
 	})
 
+	it('keeps its default columns unless a page asks for more', () => {
+		expect(indexSources.flows().columns.map((column) => column.key)).toEqual(['name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'statusLabel'])
+	})
+
+	it('adds the health dot before the name and the owner before the status', () => {
+		const keys = indexSources.flows({ extraColumns: ['owner', 'health'] }).columns.map((column) => column.key)
+
+		expect(keys).toEqual(['lastRunStatus', 'name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'owner', 'statusLabel'])
+	})
+
+	it('draws a flow\'s health from its row', () => {
+		const cell = (row) => mount(CnCellRenderer, { props: { widget: 'flowHealth', value: row.lastRunStatus, row } }).find('[data-testid="flow-health"]').attributes('data-health')
+
+		expect(cell({ enabled: true, lastRunStatus: 'failed' })).toBe('error')
+		expect(cell({ enabled: true, lastRunStatus: 'completed' })).toBe('success')
+		expect(cell({ enabled: true, lastRunStatus: '' })).toBe('info')
+		expect(cell({ enabled: false, lastRunStatus: 'failed' })).toBe('disabled')
+	})
+
 	it('switches a flow off by writing the stored flow back whole', async () => {
 		mockGet.mockImplementation((url) => (url.endsWith('/api/flows/f1')
 			? Promise.resolve({ data: { ...FLOWS[0], nodes: [{ id: 'n1' }] } })
