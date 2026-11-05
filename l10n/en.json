@@ -2719,7 +2719,24 @@
     "{field} is empty": "{field} is empty",
     "A custom condition": "A custom condition",
     "Otherwise": "Otherwise",
-    "Only if {condition}": "Only if {condition}"
+    "Only if {condition}": "Only if {condition}",
+    "Then, in this order": "Then, in this order",
+    "A new step goes at the bottom; use the arrows to put it in place.": "A new step goes at the bottom; use the arrows to put it in place.",
+    "Change trigger": "Change trigger",
+    "This flow has no trigger yet.": "This flow has no trigger yet.",
+    "Not connected": "Not connected",
+    "Routes:": "Routes:",
+    "Actions for step {n}": "Actions for step {n}",
+    "Up": "Up",
+    "Down": "Down",
+    "Steps on a branch are moved on the canvas.": "Steps on a branch are moved on the canvas.",
+    "Step {n}": "Step {n}",
+    "View of the flow": "View of the flow",
+    "Canvas": "Canvas",
+    "The same flow and the same steps as on the canvas; what you change here changes there too.": "The same flow and the same steps as on the canvas; what you change here changes there too.",
+    "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.": "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.",
+    "Flow steps": "Flow steps",
+    "Edit a step to see its settings.": "Edit a step to see its settings."
   },
   "plurals": {
     "{count} member": [

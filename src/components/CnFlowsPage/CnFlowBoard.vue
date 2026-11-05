@@ -12,7 +12,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView }" data-testid="flow-board">
+	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView, 'cn-flow-board--list': inList, 'cn-flow-board--list-panel': inList && inspectorShown }" data-testid="flow-board">
 		<header class="cn-flow-board__header">
 			<div class="cn-flow-board__heading">
 				<h1 class="cn-flow-board__title" data-testid="flow-board-title">
@@ -167,6 +167,11 @@
 			<span v-if="metaText" class="cn-flow-board__meta"> · {{ metaText }}</span>
 		</p>
 
+		<CnFlowViewSwitch v-if="listMode"
+			v-model="activeView"
+			class="cn-flow-board__views"
+			note />
+
 		<NcNoteCard v-if="notice && !store.inRunView" type="info" class="cn-flow-board__notice">
 			{{ noticeText }}
 		</NcNoteCard>
@@ -208,7 +213,7 @@
 			</aside>
 			<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
 
-			<section class="cn-flow-board__card cn-flow-board__canvas" :aria-label="t('nextcloud-vue', 'Flow canvas')">
+			<section class="cn-flow-board__card cn-flow-board__canvas" :aria-label="inList ? t('nextcloud-vue', 'Flow steps') : t('nextcloud-vue', 'Flow canvas')">
 				<CnFlowDetail :id="id"
 					:app="app"
 					:run="run"
@@ -219,6 +224,8 @@
 					:toolbarActions="false"
 					:addStep="!showPalette"
 					:edgeConditions="edgeConditions"
+					:view="activeView"
+					stepPanel
 					quietRun
 					@save="$emit('save')"
 					@run="onRun">
@@ -511,7 +518,7 @@
 					<CnFlowSidebar embedded />
 				</template>
 				<div v-else class="cn-flow-board__inspector-empty" data-testid="flow-board-inspector-empty">
-					<p>{{ t('nextcloud-vue', 'Select a step on the canvas to see its settings.') }}</p>
+					<p>{{ inList ? t('nextcloud-vue', 'Edit a step to see its settings.') : t('nextcloud-vue', 'Select a step on the canvas to see its settings.') }}</p>
 					<NcButton variant="secondary"
 						data-testid="flow-board-show-runs"
 						@click="showRuns = true">
@@ -545,6 +552,7 @@ import CnFlowDryRunResult from '../CnFlowDetail/CnFlowDryRunResult.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
 import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
+import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
@@ -563,7 +571,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { ArrowLeft, Autorenew, Check, CheckCircleOutline, ChevronDown, Close, DockRight, History, InformationOutline, Play, Replay, NcActionButton, NcActions, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { ArrowLeft, Autorenew, Check, CheckCircleOutline, ChevronDown, Close, DockRight, History, InformationOutline, Play, Replay, NcActionButton, NcActions, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnFlowViewSwitch, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -603,6 +611,10 @@ export default {
 		notice: { type: String, default: '' },
 		/** Write a line's condition on the line when it has no name of its own. */
 		edgeConditions: { type: Boolean, default: false },
+		/** Offer the list view beside the canvas, with the Canvas / List switch. */
+		listMode: { type: Boolean, default: false },
+		/** The view on arrival when `listMode` is on: `canvas` or `list`. */
+		view: { type: String, default: 'canvas' },
 		/**
 		 * Edit a published flow in place; Save publishes the edits as the next
 		 * version, and runs already started keep theirs (DqFlow).
@@ -658,7 +670,7 @@ export default {
 	},
 
 	data() {
-		return { nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
+		return { activeView: this.listMode && this.view === 'list' ? 'list' : 'canvas', nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
@@ -732,7 +744,12 @@ export default {
 
 		/** @return {boolean} Whether the palette card is drawn. */
 		showPalette() {
-			return this.palette === 'column' && !this.store.inRunView
+			return this.palette === 'column' && !this.store.inRunView && !this.inList
+		},
+
+		/** @return {boolean} Whether the list view is on screen. */
+		inList() {
+			return this.activeView === 'list'
 		},
 
 		/** @return {string} The page title. */
@@ -1689,6 +1706,14 @@ export default {
 	background-size: 16px 16px;
 }
 
+.cn-flow-board--list .cn-flow-board__canvas {
+	background-image: none;
+}
+
+.cn-flow-board__views {
+	margin-block-end: 12px;
+}
+
 .cn-flow-board__palette {
 	gap: 14px;
 	padding: 14px;
@@ -2091,6 +2116,12 @@ export default {
 	box-sizing: border-box;
 	overflow-y: auto;
 	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+/* The floating inspector must not cover the rows of the list. */
+.cn-flow-board--canvas.cn-flow-board--list-panel .cn-flow-board__canvas {
+	inline-size: auto;
+	inset-inline-end: 358px;
 }
 
 .cn-flow-board__inspector-close {

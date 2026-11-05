@@ -21,7 +21,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView }">
+	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView, 'cn-flow-detail--list': inList }">
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
@@ -60,7 +60,7 @@
 					several seconds later. Pressing this produces an immediate
 					message beside the graph it is about.
 				-->
-				<NcButton v-if="addStep && editingShown"
+				<NcButton v-if="addStep && editingShown && !inList"
 					data-testid="flow-add-step"
 					@click="stepPickerOpen = true">
 					<template #icon>
@@ -106,7 +106,7 @@
 					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
-				<NcButton v-if="editingShown"
+				<NcButton v-if="editingShown && !inList"
 					variant="tertiary"
 					:disabled="!store.nodes.length"
 					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -140,7 +140,7 @@
 				{{ t('nextcloud-vue', 'Opening the run') }}
 			</span>
 
-			<div class="cn-flow-detail__toolbar-group">
+			<div v-if="!inList" class="cn-flow-detail__toolbar-group">
 				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
@@ -203,7 +203,12 @@
 		     existing `edges` prop: Vue Flow applies an edge's `class` to the
 		     line it draws, so the canvas itself stays a geometry-only renderer
 		     with no status concept (ADR-065). -->
+		<CnFlowStepList v-if="inList"
+			:stepState="listStepState"
+			@add="stepPickerOpen = true"
+			@edit="onListEdit" />
 		<CnGraphCanvas
+			v-else
 			ref="canvas"
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
@@ -333,7 +338,7 @@
 			</template>
 		</NcEmptyContent>
 		<NcEmptyContent
-			v-else-if="store.nodes.length === 0"
+			v-else-if="store.nodes.length === 0 && !inList"
 			class="cn-flow-detail__empty"
 			data-testid="flow-canvas-empty"
 			:name="t('nextcloud-vue', 'No steps yet')"
@@ -342,7 +347,7 @@
 				<Sitemap :size="20" />
 			</template>
 		</NcEmptyContent>
-		<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
+		<CnFlowStepPickerModal v-if="stepPickerOpen" :append="inList" @close="stepPickerOpen = false" />
 	</div>
 </template>
 
@@ -370,6 +375,7 @@ import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
+import CnFlowStepList from './CnFlowStepList.vue'
 import { useContextMenu } from '../../composables/useContextMenu.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
@@ -412,6 +418,9 @@ const REPLAY_HOP_MIN_MS = 200
 const REPLAY_HOP_MAX_MS = 1500
 
 /** The canvas messages a quiet run keeps: what went wrong with the run itself. */
+/** The badge colour of a step's outcome in the list view. */
+const RUN_STATE_VARIANTS = { active: 'info', done: 'success', failed: 'error', hold: 'warning' }
+
 const QUIET_RUN_MESSAGES = ['flow-not-found', 'action-failed', 'run-graph-unsaved', 'run-graph-unreadable', 'run-skipped']
 
 export default {
@@ -422,6 +431,7 @@ export default {
 		CnFlowCanvasMessages,
 		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
+		CnFlowStepList,
 		CnFlowStepPickerModal,
 		CnContextMenu,
 		CnGraphCanvas,
@@ -546,6 +556,24 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * What edits the flow: `canvas` draws the graph, `list` the trigger and
+		 * the steps in order. Both edit the one flow in the store.
+		 */
+		view: {
+			type: String,
+			default: 'canvas',
+		},
+
+		/**
+		 * The host shows the selected step in a panel of its own, so Edit in
+		 * the list view selects the step instead of opening the step dialog.
+		 */
+		stepPanel: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['save', 'run'],
@@ -656,6 +684,13 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {boolean} Whether the list view is on screen in place of the canvas.
+		 */
+		inList() {
+			return this.view === 'list'
+		},
+
 		/**
 		 * Whether a run named by the URL is still being opened.
 		 *
@@ -2319,6 +2354,27 @@ export default {
 		},
 
 		/**
+		 * @param {string} id A step.
+		 * @return {{label: string, variant: string}|null} Its outcome in the open run, for the list view.
+		 */
+		listStepState(id) {
+			const state = this.runStateOf(id)
+
+			return state ? { label: this.runStateLabel(state), variant: RUN_STATE_VARIANTS[state] || 'default' } : null
+		},
+
+		/**
+		 * @param {string} id The step to edit from the list view.
+		 * @return {void}
+		 */
+		onListEdit(id) {
+			this.store.selectedNodeId = id
+			if (!this.stepPanel) {
+				this.store.editingNodeId = id
+			}
+		},
+
+		/**
 		 * @param {object} edge A drawn line.
 		 * @return {string} What the line says: its name, else its condition when asked for.
 		 */
@@ -2407,6 +2463,19 @@ export default {
 	   drag alignment visible without a snapping feature. */
 	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
 	background-size: 20px 20px;
+}
+
+/* The list is not a canvas: no dotted grid under it, and its own scrolling. */
+.cn-flow-detail--list {
+	display: flex;
+	flex-direction: column;
+	background-image: none;
+}
+
+.cn-flow-detail--list .cn-flow-detail__toolbar {
+	position: static;
+	align-self: flex-start;
+	box-shadow: none;
 }
 
 /* The canvas paints an opaque main-background of its own, which sat exactly

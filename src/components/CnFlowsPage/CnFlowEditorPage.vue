@@ -16,6 +16,8 @@
 		:toggleLabel="toggleLabel"
 		:nodeLook="nodeLook"
 		:edgeConditions="edgeConditions"
+		:listMode="listMode"
+		:view="arrivalView"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:saveAsVersion="saveAsVersion"
 		:metaParts="metaParts"
@@ -30,12 +32,18 @@
 		:app="app"
 		:run="runUuid"
 		:edgeConditions="edgeConditions"
+		:view="activeView"
 		@save="onSave"
-		@run="onRun" />
+		@run="onRun">
+		<template v-if="listMode" #toolbar-start>
+			<CnFlowViewSwitch v-model="activeView" />
+		</template>
+	</CnFlowDetail>
 </template>
 
 <script>
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
+import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnFlowBoard from './CnFlowBoard.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 import { useLook } from '../../composables/useLook.js'
@@ -60,7 +68,7 @@ import { useLook } from '../../composables/useLook.js'
 export default {
 	name: 'CnFlowEditorPage',
 
-	components: { CnFlowBoard, CnFlowDetail },
+	components: { CnFlowBoard, CnFlowDetail, CnFlowViewSwitch },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -285,6 +293,26 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Offer the list view beside the canvas, with the Canvas / List switch:
+		 * the trigger and the steps in order, editing the same flow. Manifest
+		 * key `config.listMode`.
+		 */
+		listMode: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The view on arrival when `listMode` is on: `canvas` or `list`.
+		 * Defaults to the `view` query parameter, so a link can open the list.
+		 * Manifest key `config.view`.
+		 */
+		view: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
@@ -299,7 +327,20 @@ export default {
 		return { store: useFlowStore(), isBoard }
 	},
 
+	data() {
+		return { activeView: 'canvas' }
+	},
+
 	computed: {
+		/**
+		 * @return {string} The view asked for on arrival.
+		 */
+		arrivalView() {
+			const asked = this.view || this.$route?.query?.view
+
+			return this.listMode && asked === 'list' ? 'list' : 'canvas'
+		},
+
 		/**
 		 * @return {string} The flow id being edited.
 		 */
@@ -326,6 +367,10 @@ export default {
 		runUuid() {
 			return this.run || this.$route?.query?.run || ''
 		},
+	},
+
+	created() {
+		this.activeView = this.arrivalView
 	},
 
 	methods: {

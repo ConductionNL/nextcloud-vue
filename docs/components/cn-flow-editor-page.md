@@ -45,6 +45,8 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `layout` | `String` | `'cards'` | Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun draw it (see below); `cards` keeps the DqFlow grid (`config.layout`). |
 | `toggleLabel` | `String` | `'state'` | Board look: `state` names the Active switch Active or Paused after the flow; `fixed` always names it Active and the switch shows the state (DqFlow, `config.toggleLabel`). |
 | `edgeConditions` | `Boolean` | `false` | Write a line's condition on the line when it has no name of its own ("amount is more than 1000", "Otherwise" on the else), in both looks. The JSONLogic stays where the engine reads it, on the node's exit. Manifest key `config.edgeConditions`. |
+| `listMode` | `Boolean` | `false` | Offer the list view beside the canvas, with the Canvas / List switch, in both looks: the trigger, then the steps in run order with the conditions of a branch as text ([`CnFlowStepList`](./cn-flow-step-list.md)). Same flow in the same store, so what changes in one view is there in the other. Manifest key `config.listMode`. |
+| `view` | `String` | `''` | The view on arrival when `listMode` is on: `canvas` or `list`. Defaults to the `view` query parameter (`/flows/{id}?view=list`). Manifest key `config.view`. |
 
 ## The board look
 
