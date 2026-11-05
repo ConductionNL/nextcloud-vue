@@ -2963,7 +2963,9 @@
     "You may not publish to this marketplace.": "Je mag niet publiceren in deze marktplaats.",
     "{column}, {row}": "{column}, {row}",
     "{cell}: empty": "{cell}: leeg",
-    "{cell}: {value}": "{cell}: {value}"
+    "{cell}: {value}": "{cell}: {value}",
+    "An item cannot be ticked in more than one column.": "Een item kan niet in meer dan één kolom aangevinkt zijn.",
+    "The options could not be read.": "De keuzes konden niet worden gelezen."
   },
   "plurals": {
     "{count} member": [
