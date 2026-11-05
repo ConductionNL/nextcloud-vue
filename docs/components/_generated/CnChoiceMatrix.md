@@ -29,6 +29,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `weightTemplate` | `string`              |          | `''`      | A row's weight in words, already translated, with `{weight}`.                                                                                                                          |
 | `rowErrors`      | `object`              |          | `\{\}`    | Errors per row, already translated: `{ [rowId]: text }`.                                                                                                                               |
 | `removableRows`  | `boolean`             |          | `false`   | A Remove button per row; a row with `removable: false` keeps none. Ignored when `readOnly`.                                                                                            |
+| `sortable`       | `boolean`             |          | `false`   | A sort button in every head of the grid: the row column by label, a column by the order of `choices`.                                                                                  |
+| `filterable`     | `boolean`             |          | `false`   | A filter in every head of the grid: a text filter on the row column, a tick per value on a column.                                                                                     |
+| `pills`          | `boolean`             |          | `false`   | Draw a read-only cell as a pill (`CnStatusBadge`) in its choice's `variant`, `default` when it names none.                                                                             |
 
 ### Events
 
