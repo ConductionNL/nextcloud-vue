@@ -666,6 +666,8 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialData="resolvedCreateDefaults"
 				:draftAppId="draftAppId"
 				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
@@ -685,6 +687,8 @@
 				:includeFields="rowFormTarget ? null : includeFields"
 				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
@@ -3772,6 +3776,25 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The small line above the built-in Add/Edit form's title (board
+		 * look). A string for both, or `{ create, edit }` per mode; either
+		 * goes through the host `cnTranslate`. Empty draws none.
+		 */
+		formEyebrow: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The muted line under the built-in Add/Edit form's title. Same
+		 * shape as `formEyebrow`.
+		 */
+		formSubtitle: {
+			type: [String, Object],
+			default: '',
 		},
 
 		/**
@@ -8502,6 +8525,7 @@ export default {
 		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
 		 * for built-in defaults. Function-typed handlers (the existing
 		 * runtime path) pass through untouched.
+		 *
 		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
 		 */
 		mergedActions() {
@@ -10179,6 +10203,22 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The eyebrow or subtitle of the built-in Add/Edit form: `value` as a
+		 * string, or its `create` / `edit` entry for the open mode. A row
+		 * action's own form (`rowFormTarget`) draws none.
+		 *
+		 * @param {string|object} value `formEyebrow` or `formSubtitle`.
+		 * @return {string} The translated text, or ''.
+		 */
+		formHeaderText(value) {
+			if (!value || this.rowFormTarget) {
+				return ''
+			}
+			const text = typeof value === 'string' ? value : value[this.editItem ? 'edit' : 'create']
+			return text ? this.cnTranslate(text) : ''
+		},
+
 		/**
 		 * Show a notice above the list, replacing an earlier answer.
 		 *

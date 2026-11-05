@@ -254,9 +254,12 @@ button.cn-stepper__step {
 }
 
 /* The board look: one row, 28px circles, the label beside the circle. */
-/* The board leaves 16px between the stepper and the step's body (DqInstellen). */
+/* The board leaves 16px between the stepper and the step's body (DqInstellen).
+   The row never wraps: in a narrow dialog the connectors shrink first, then
+   the labels truncate. */
 .cn-stepper--board {
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	overflow: hidden;
 	align-items: center;
 	justify-content: flex-start;
 	gap: 8px;
@@ -269,6 +272,7 @@ button.cn-stepper__step {
 	flex-direction: row;
 	align-items: center;
 	gap: 8px;
+	min-width: 0;
 	max-width: none;
 	font-size: 14px;
 }
@@ -280,6 +284,7 @@ button.cn-stepper__step {
 .cn-stepper--board .cn-stepper__step {
 	flex-direction: row;
 	gap: 8px;
+	min-width: 0;
 }
 
 .cn-stepper--board .cn-stepper__dot {
@@ -291,8 +296,8 @@ button.cn-stepper__step {
 }
 
 .cn-stepper--board .cn-stepper__label {
-	overflow: visible;
-	text-overflow: clip;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 	font-size: 14px;
 }
@@ -300,7 +305,7 @@ button.cn-stepper__step {
 .cn-stepper--board .cn-stepper__connector {
 	position: static;
 	flex: 1 1 24px;
-	min-width: 16px;
+	min-width: 8px;
 	height: 2px;
 	background: var(--color-border);
 }
