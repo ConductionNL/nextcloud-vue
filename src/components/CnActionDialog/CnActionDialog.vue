@@ -11,7 +11,7 @@
 		:noClose="busy"
 		data-testid="cn-action-dialog"
 		@closing="close">
-		<div v-if="!done" class="cn-action-dialog">
+		<div v-if="!done" class="cn-action-dialog" :style="partsGap">
 			<!-- The record the action is about: its title, a meta line, a badge. -->
 			<div v-if="summary" class="cn-action-dialog__summary" data-testid="cn-action-dialog-summary">
 				<span class="cn-action-dialog__summary-icon">
@@ -83,6 +83,7 @@
 						     weten..."). -->
 						<NcCheckboxRadioSwitch v-if="field.type === 'checkbox'"
 							class="cn-action-dialog__checkbox"
+							:class="{ 'cn-action-dialog__checkbox--plain': field.look === 'plain' }"
 							:modelValue="checkboxValue(field)"
 							type="checkbox"
 							@update:modelValue="(on) => setChecked(field.field, on)">
@@ -159,6 +160,9 @@
 							:modelValue="cardsValue(field)"
 							:options="cardOptions(field)"
 							:label="fill(field.label) || field.field"
+							:layout="field.layout === 'rows' ? 'rows' : 'cards'"
+							:columns="typeof field.columns === 'number' ? field.columns : 0"
+							:hideLabel="field.hideLabel === true"
 							@update:modelValue="(value) => setValue(field.field, value)" />
 						<!-- An optional select or text field: its label above the control,
 						     "(optional)" in grey after it (DqUwWachtrij "Sjabloon (niet
@@ -237,7 +241,7 @@
 		</div>
 
 		<p v-else role="status" data-testid="cn-action-dialog-done">
-			{{ answerText || text(doneTextOf) || t('nextcloud-vue', 'Done') }}
+			{{ doneMessage }}
 		</p>
 
 		<template #actions>
@@ -260,6 +264,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
+import { showSuccess } from '@nextcloud/dialogs'
 import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
@@ -368,6 +373,16 @@ let reasonSeq = 0
  *   token (`"{fields.permission}"`) sends the value as it is; `{fields.<key>}`
  *   reads a sent value by the key it is sent under. `fieldsInBody: false`
  *   sends only the body.
+ * - `{chosen.<field>.<path>}` reads the entry a select field's
+ *   `optionsSource` gave for the chosen option, and `{objectId}` the record's
+ *   id, in a body and in `doneText`; `doneText` also reads `{fields.<key>}`.
+ * - `closeOnDone: true` says the done text as a toast and closes the dialog
+ *   rather than showing it in the dialog. `errorText` on the request or on
+ *   `confirm` words a failure the server gives no message for.
+ * - `gap`: the room between the dialog's parts in px (default 18). A cards
+ *   field takes `layout` (`rows`), `columns` and `hideLabel` as
+ *   `CnChoiceCards` does; a checkbox field with `look: 'plain'` is a plain
+ *   checkbox and label, without the tinted box.
  *
  * Tokens (`@objectId`, `@object.<field>`) resolve in every url.
  */
@@ -488,6 +503,38 @@ export default {
 		/** @return {string} The done text: the chosen act's, else the config's. */
 		doneTextOf() {
 			return this.request?.doneText || this.config.doneText
+		},
+
+		/**
+		 * What the dialog says once the act ran: the answer, else the done text
+		 * filled from the sent values, the chosen entries and the record.
+		 *
+		 * @spec openspec/changes/action-dialog-share-look-and-outcome/specs/action-dialog/spec.md#requirement-the-done-text-names-what-was-chosen
+		 * @return {string}
+		 */
+		doneMessage() {
+			return this.answerText || this.fill(this.doneTextOf, this.templateContext('')) || this.text(this.doneTextOf) || t('nextcloud-vue', 'Done')
+		},
+
+		/** @return {object|null} The room between the parts, when `gap` sets it. */
+		partsGap() {
+			return Number.isFinite(this.config.gap) ? { gap: `${this.config.gap}px` } : null
+		},
+
+		/**
+		 * The entry each select field's `optionsSource` gave for its chosen
+		 * option, by field name (null when nothing is chosen).
+		 *
+		 * @spec openspec/changes/action-dialog-share-look-and-outcome/specs/action-dialog/spec.md#requirement-the-done-text-names-what-was-chosen
+		 * @return {object}
+		 */
+		chosenRows() {
+			const out = {}
+			for (const field of this.fields.filter((f) => f.type === 'select' && f.optionsSource)) {
+				const value = String(this.plainValue(field))
+				out[field.field] = (this.remoteOptions[field.field] || []).find((row) => String(readPath(row, field.optionValue || 'id')) === value) || null
+			}
+			return out
 		},
 
 		/** @return {{values: object, record: (object|null)}} What a `visibleWhen` reads. */
@@ -1212,16 +1259,56 @@ export default {
 			this.refusal = ''
 			try {
 				await this.runAct(this.reason.trim())
-				this.done = true
-				emit(PAGE_REFRESH, {})
-				/** @event done The action ran. Payload: the sent field values and `reason`. */
-				this.$emit('done', { ...this.sentValues, reason: this.reason.trim() })
+				this.finish()
 			} catch (failure) {
-				const data = failure && failure.response && failure.response.data
-				this.refusal = String((data && (data.message || data.error)) || t('nextcloud-vue', 'The action could not be completed.'))
+				this.refusal = this.refusalOf(failure)
 			} finally {
 				this.busy = false
 			}
+		},
+
+		/**
+		 * After the act: refresh the page, report `done`, and show the done
+		 * text, or with `closeOnDone` say it as a toast and close.
+		 *
+		 * @spec openspec/changes/action-dialog-share-look-and-outcome/specs/action-dialog/spec.md#requirement-the-dialog-can-close-once-the-act-ran
+		 * @return {void}
+		 */
+		finish() {
+			const closing = this.config.closeOnDone === true
+			this.done = !closing
+			emit(PAGE_REFRESH, {})
+			/** @event done The action ran. Payload: the sent field values and `reason`. */
+			this.$emit('done', { ...this.sentValues, reason: this.reason.trim() })
+			if (closing) {
+				showSuccess(this.doneMessage)
+				this.$emit('close')
+			}
+		},
+
+		/**
+		 * A failed act in words: the server's message, else the configured
+		 * `errorText`, else the library's sentence.
+		 *
+		 * @param {unknown} failure The error axios threw.
+		 * @return {string}
+		 */
+		refusalOf(failure) {
+			const data = failure && failure.response && failure.response.data
+			const said = data && (data.message || data.error)
+			return String(said || this.text(this.request?.errorText || this.confirmConfig.errorText) || t('nextcloud-vue', 'The action could not be completed.'))
+		},
+
+		/**
+		 * What a body or done text template reads: the sent values under
+		 * `fields`, the record, the reason, the chosen entries under `chosen`
+		 * and the record's id as `objectId`.
+		 *
+		 * @param {string} reason The reason given.
+		 * @return {object}
+		 */
+		templateContext(reason) {
+			return { fields: this.sentValues, ...(this.record || {}), reason, chosen: this.chosenRows, objectId: this.recordId }
 		},
 
 		/**
@@ -1269,7 +1356,7 @@ export default {
 		 * @return {object}
 		 */
 		requestBody(request, reason) {
-			const filler = { context: { fields: this.sentValues, ...(this.record || {}), reason }, fill: (value, context) => fillTemplate(value, context) }
+			const filler = { context: this.templateContext(reason), fill: (value, context) => fillTemplate(value, context) }
 			const body = {}
 			for (const [key, value] of Object.entries(request.body || {})) {
 				body[key] = bodyValue(value, filler)
@@ -1533,6 +1620,26 @@ export default {
 
 .cn-action-dialog__checkbox .cn-action-dialog__muted {
 	font-size: 13px;
+}
+
+/* A plain checkbox: the box and its label on one line, no tinted card
+   (DqZaakSamenwerken "Alleen een deel van de zaakvelden delen"). */
+.cn-action-dialog__checkbox--plain.checkbox-radio-switch {
+	padding: 0;
+}
+
+.cn-action-dialog__checkbox--plain {
+	border: 0;
+	background: transparent;
+}
+
+.cn-action-dialog__checkbox--plain :deep(.checkbox-content) {
+	gap: 10px;
+	align-items: center;
+}
+
+.cn-action-dialog__checkbox--plain .cn-action-dialog__checkbox-label {
+	font-size: 14px;
 }
 
 .cn-action-dialog__checks {

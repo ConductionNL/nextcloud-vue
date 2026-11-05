@@ -2,10 +2,10 @@
 
 ### Props
 
-| Name      | Type     | Required | Default | Description                                                          |
-| --------- | -------- | -------- | ------- | -------------------------------------------------------------------- |
-| `button`  | `object` | ✓        | —       | The resolved header button: `{ key, label }`.                        |
-| `entries` | `array`  |          | `[]`    | The menu's entries, as CnIndexPage `headerMenuEntries` returns them. |
+| Name      | Type     | Required | Default | Description                                                                                  |
+| --------- | -------- | -------- | ------- | -------------------------------------------------------------------------------------------- |
+| `button`  | `object` | ✓        | —       | The resolved header button: `{ key, label, action?, icon? }`; an Export menu draws its icon. |
+| `entries` | `array`  |          | `[]`    | The menu's entries, as CnIndexPage `headerMenuEntries` returns them.                         |
 
 ### Events
 

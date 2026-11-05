@@ -87,6 +87,29 @@ One dialog can offer two acts that post to different endpoints, show a field for
 - `sendUnticked: true` on a `checks` field sends the items left unticked; `sendAs` on any field sends its value under another key.
 - `confirm.requestsBy: { field, cases }` posts the request the chosen value names (`url`, `method`, `body`, `answerPath`, and the button's `label`, `icon` and `doneText`), else `confirm.request`. In a `body`, `{fields.<key>}` reads a sent value by the key it is sent under (its `sendAs`, else its `field`); a body value that is only that token keeps its type (a list stays a list), and reads `''` while the field is hidden. `fieldsInBody: false` sends the body alone.
 
+### Board look and how the act ends
+
+- A `cards` field passes `layout` (`rows`), a numeric `columns` and `hideLabel` to `CnChoiceCards`: DqZaakSamenwerken draws Share and Hand over as two rows side by side without a label.
+- A `checkbox` field with `look: 'plain'` is a plain checkbox and label, without the tinted box.
+- `gap` sets the room between the dialog's parts in px (default 18).
+- `doneText` and a request `body` read `{fields.<key>}`, `{chosen.<field>.<path>}` (the entry a select's `optionsSource` gave for the chosen option, such as `{chosen.organisation.name}`) and `{objectId}`. A done text that does not fill is shown as written.
+- `closeOnDone: true` says the done text as a success toast and closes the dialog, in place of showing it in the dialog.
+- `errorText` on the chosen request or on `confirm` words a failure the server gives no `message` or `error` for.
+
+```json
+{
+  "gap": 16,
+  "closeOnDone": true,
+  "fields": [
+    { "field": "mode", "type": "cards", "layout": "rows", "columns": 2, "hideLabel": true, "default": "share", "options": [{ "value": "share", "label": "Share" }, { "value": "handover", "label": "Hand over" }] },
+    { "field": "limit", "type": "checkbox", "look": "plain", "label": "Share only some fields" }
+  ],
+  "confirm": { "errorText": "The case could not be shared.", "requestsBy": { "field": "mode", "cases": {
+    "share": { "url": "/apps/example/api/shares", "doneText": "The case is shared with {chosen.organisation.name}.", "body": { "caseId": "{objectId}" } }
+  } } }
+}
+```
+
 ### Ticks in columns
 
 A `checks` field with `columns: [{ field, label }]` draws one checkbox per column on every item, sends each column as its own list under its `field`, starts with nothing ticked, and with `exclusive: true` refuses an item ticked in two columns (`exclusiveText`, default "An item cannot be ticked in more than one column."). `hideWhenEmpty: true` hides a `checks` field that has no items.

@@ -40,6 +40,11 @@
 								:button="button"
 								:entries="headerMenuEntries(button)"
 								@linkClick="onHeaderMenuLinkClick" />
+							<!-- An Export with `menu`: one entry per format, and the note under them. -->
+							<CnIndexHeaderMenu
+								v-else-if="button.action === 'export' && button.exportMenu"
+								:button="button"
+								:entries="exportMenuEntries(button)" />
 							<NcButton
 								v-else
 								:variant="button.variant"
@@ -666,6 +671,8 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialData="resolvedCreateDefaults"
 				:draftAppId="draftAppId"
 				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
@@ -685,6 +692,8 @@
 				:includeFields="rowFormTarget ? null : includeFields"
 				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
@@ -800,19 +809,19 @@
 
 				<!-- A search the server refused for its grammar: the term with the
 				     character it stopped at, the server's reason, and what to do. -->
-				<div v-else-if="searchRefusal"
+				<div v-else-if="searchRefused && !searchRefusalAsNotice"
 					class="cn-index-page__search-refusal"
 					role="status"
 					data-testid="cn-index-page-search-refusal">
 					<NcNoteCard type="warning">
 						<p class="cn-index-page__search-refusal-headline">
-							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefusal.position }) }}
+							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefused.position }) }}
 						</p>
 						<p class="cn-index-page__search-refusal-term" data-testid="cn-index-page-search-refusal-term">
-							<span>{{ searchRefusal.before }}</span><mark v-if="searchRefusal.at">{{ searchRefusal.at }}</mark><span>{{ searchRefusal.after }}</span>
+							<span>{{ searchRefused.before }}</span><mark v-if="searchRefused.at">{{ searchRefused.at }}</mark><span>{{ searchRefused.after }}</span>
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
-							{{ searchRefusal.message }}
+							{{ searchRefused.message }}
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
 							{{ searchRefusalHintText }}
@@ -821,7 +830,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="selfFetchFailed || sourceFailed"
+				<div v-else-if="(selfFetchFailed && !searchRefusalAsNotice) || sourceFailed"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -1505,7 +1514,7 @@ import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
-import { readSearchRefusal } from '../../utils/searchRefusal.js'
+import { readSearchRefusal, searchRefusalNotice } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
@@ -2406,6 +2415,18 @@ export default {
 		 * @spec openspec/changes/count-text-per-view/specs/index-page/spec.md#requirement-the-count-line-can-differ-per-view
 		 */
 		countTextByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Header buttons per view (manifest `config.headerButtonsByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a list as
+		 * `headerButtons`: the board view reads "Downloaden" where the table
+		 * reads "Exporteren" with a menu (DqWerkbord, DqZaken). A view it does
+		 * not name keeps `headerButtons`; a scope's own buttons come first.
+		 */
+		headerButtonsByView: {
 			type: Object,
 			default: null,
 		},
@@ -3520,6 +3541,21 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A refused search keeps the rows the list had and says so in an
+		 * alert above the list, under the search field (DqZaken): `{ title?,
+		 * after? }` (manifest `config.searchRefusal`), the title with
+		 * `{position}` ("Search term not understood at position {position}:")
+		 * and the line after the server's reason ("The list is not filtered;
+		 * adjust the term."). Unset, the refusal replaces the rows.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
+		searchRefusal: {
+			type: Object,
+			default: null,
+		},
+
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
 		loadingText: {
 			type: String,
@@ -3772,6 +3808,25 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The small line above the built-in Add/Edit form's title (board
+		 * look). A string for both, or `{ create, edit }` per mode; either
+		 * goes through the host `cnTranslate`. Empty draws none.
+		 */
+		formEyebrow: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The muted line under the built-in Add/Edit form's title. Same
+		 * shape as `formEyebrow`.
+		 */
+		formSubtitle: {
+			type: [String, Object],
+			default: '',
 		},
 
 		/**
@@ -5069,9 +5124,16 @@ export default {
 		/**
 		 * @return {Array<object>} The manifest's notices, then the ones this page's actions raised.
 		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 * @spec openspec/changes/notice-text-from-endpoint/specs/card-state-notices/spec.md#requirement-an-index-page-notice-can-belong-to-saved-views
 		 */
 		pageNotices() {
-			return [...(Array.isArray(this.notices) ? this.notices : []), ...this.runtimeNotices]
+			const view = this.appliedSavedView
+			const names = [this.appliedSavedViewId, ...(view ? [view.id, view.slug, view.uuid] : [])].filter((v) => v !== undefined && v !== null && v !== '').map(String)
+			// `savedViews` keeps a notice to the saved views it names (DqTeamwachtrij).
+			const declared = (Array.isArray(this.notices) ? this.notices : [])
+				.filter((notice) => !notice || !Array.isArray(notice.savedViews) || notice.savedViews.some((id) => names.includes(String(id))))
+			const refusal = this.searchRefusalAsNotice ? [searchRefusalNotice(this.searchRefused, this.searchRefusal, (text) => this.cnTranslate(text))] : []
+			return [...refusal, ...declared, ...this.runtimeNotices]
 		},
 
 		/**
@@ -5372,8 +5434,19 @@ export default {
 		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
 		 * @return {object|null}
 		 */
-		searchRefusal() {
+		searchRefused() {
 			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/**
+		 * Whether a refused search keeps the rows and says so in a notice under
+		 * the search field (`searchRefusal` set), rather than in place of them.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 * @return {boolean}
+		 */
+		searchRefusalAsNotice() {
+			return this.searchRefused !== null && !!this.searchRefusal && typeof this.searchRefusal === 'object'
 		},
 
 		/**
@@ -5462,7 +5535,11 @@ export default {
 			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
 		},
 
-		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		/**
+		 * Rows: store collection in self-fetch mode, else the `objects` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
@@ -5477,7 +5554,7 @@ export default {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return []
 			}
 			const rows = this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
@@ -7826,12 +7903,16 @@ export default {
 			return this.refreshing || this.internalRefreshing
 		},
 
-		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		/**
+		 * Pagination: store pagination in self-fetch mode, else the `pagination` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectivePagination() {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.pagination
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
 			// A named source that reports its own total (the search source)
@@ -8502,6 +8583,7 @@ export default {
 		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
 		 * for built-in defaults. Function-typed handlers (the existing
 		 * runtime path) pass through untouched.
+		 *
 		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
 		 */
 		mergedActions() {
@@ -8771,10 +8853,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-header-buttons-can-differ-per-view
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string, link: ({href: string, target: (string|undefined)}|null)}>}
 		 */
 		resolvedHeaderButtons() {
-			const headerButtons = this.presented('headerButtons')
+			const byView = this.headerButtonsByView
+			const ownForView = byView && typeof byView === 'object' && (this.activeScopePresentation || {}).headerButtons === undefined
+				? byView[this.currentViewMode]
+				: undefined
+			const headerButtons = Array.isArray(ownForView) ? ownForView : this.presented('headerButtons')
 			const declared = Array.isArray(headerButtons) ? headerButtons : []
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
@@ -8831,6 +8918,10 @@ export default {
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
 							: null,
+						exportMenu: button.action === 'export' && Array.isArray(button.menu)
+							? button.menu.filter((entry) => entry && (entry.format === 'csv' || entry.format === 'excel') && typeof entry.label === 'string' && entry.label !== '')
+							: null,
+						note: typeof button.note === 'string' && button.note !== '' ? this.cnTranslate(button.note) : '',
 					}
 				})
 				.filter((button) => button.label !== '')
@@ -10180,6 +10271,23 @@ export default {
 
 	methods: {
 		/**
+		 * The eyebrow or subtitle of the built-in Add/Edit form: `value` as a
+		 * string, or its `create` / `edit` entry for the open mode. A row
+		 * action's own form (`rowFormTarget`) draws none.
+		 *
+		 * @param {string|object} value `formEyebrow` or `formSubtitle`.
+		 * @return {string} The translated text, or ''.
+		 * @spec openspec/changes/index-form-eyebrow-subtitle/specs/index-page/spec.md#requirement-an-index-pages-form-can-carry-an-eyebrow-and-a-subtitle
+		 */
+		formHeaderText(value) {
+			if (!value || this.rowFormTarget) {
+				return ''
+			}
+			const text = typeof value === 'string' ? value : value[this.editItem ? 'edit' : 'create']
+			return text ? this.cnTranslate(text) : ''
+		},
+
+		/**
 		 * Show a notice above the list, replacing an earlier answer.
 		 *
 		 * @param {object} notice The notice.
@@ -11355,6 +11463,28 @@ export default {
 			}
 			followItemActionLink(event, entry.link, this.$router)
 			this.$emit('header-action', { action: entry.key, id: entry.key })
+		},
+
+		/**
+		 * The entries of an Export button's menu (`menu`): one per format,
+		 * its label bold and its description muted, each running the export
+		 * in that format; the button's `note` as a muted line after them.
+		 *
+		 * @param {object} button The resolved Export button.
+		 * @return {Array<object>} The menu entries.
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-an-export-header-button-can-be-a-menu-of-formats
+		 */
+		exportMenuEntries(button) {
+			const entries = (button.exportMenu || []).map((entry) => ({
+				key: `export-${entry.format}`,
+				label: this.cnTranslate(entry.label),
+				description: typeof entry.description === 'string' && entry.description !== '' ? this.cnTranslate(entry.description) : '',
+				run: () => this.onHeaderButton({ ...button, format: entry.format }),
+			}))
+			if (button.note) {
+				entries.push({ key: 'export-note', kind: 'note', label: button.note })
+			}
+			return entries
 		},
 
 		/**

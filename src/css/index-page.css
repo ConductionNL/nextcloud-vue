@@ -762,3 +762,9 @@
 .cn-index-page__notices {
 	margin-bottom: 12px;
 }
+
+/* The muted line closing an Export menu (`headerButtons[].note`). */
+.cn-index-header-menu__note {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}

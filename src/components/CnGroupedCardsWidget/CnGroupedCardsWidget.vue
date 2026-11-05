@@ -45,6 +45,12 @@
 						{{ group.title }}
 					</component>
 					<span v-if="group.count" class="cn-grouped-cards__count" data-testid="cn-grouped-cards-count">{{ group.count }}</span>
+					<CnStatusBadge
+						v-if="group.pill"
+						:label="group.pill.label"
+						:variant="group.pill.variant"
+						size="small"
+						data-testid="cn-grouped-cards-group-pill" />
 				</header>
 				<p
 					v-for="(line, lineIndex) in group.lines"
@@ -66,6 +72,15 @@
 						<span class="cn-grouped-cards__item-title">{{ item.title }}</span>
 						<span v-if="item.meta" class="cn-grouped-cards__item-meta">{{ item.meta }}</span>
 						<span v-if="item.flag" class="cn-grouped-cards__item-flag" data-testid="cn-grouped-cards-flag">{{ item.flag }}</span>
+						<span v-if="item.date || item.pill" class="cn-grouped-cards__item-end">
+							<span v-if="item.date" class="cn-grouped-cards__item-date" data-testid="cn-grouped-cards-item-date">{{ item.date }}</span>
+							<CnStatusBadge
+								v-if="item.pill"
+								:label="item.pill.label"
+								:variant="item.pill.variant"
+								size="small"
+								data-testid="cn-grouped-cards-item-pill" />
+						</span>
 						<CnActionButtons
 							v-if="item.actions.length > 0"
 							class="cn-grouped-cards__item-actions"
@@ -132,8 +147,10 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcProgressBar } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { fieldPill } from '../../utils/fieldPill.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { languageMapText } from '../../utils/languageMapText.js'
@@ -206,7 +223,7 @@ function readable(row) {
 export default {
 	name: 'CnGroupedCardsWidget',
 
-	components: { CnActionButtons, NcButton, NcLoadingIcon, NcProgressBar },
+	components: { CnActionButtons, CnStatusBadge, NcButton, NcLoadingIcon, NcProgressBar },
 
 	mixins: [innerHeading],
 
@@ -263,6 +280,17 @@ export default {
 		 * - `itemsPath` with `itemGroupField` reads the cards from one flat list of the payload instead of
 		 *   from each group: a card belongs to the group whose `id` its `itemGroupField` names. Cards
 		 *   naming no group gather under `ungroupedTitle`; without that title they are left out.
+		 * - `groupPill` (a pill config as record-list's `pill`: `{ field, labels?, colorMap?, ... }`)
+		 *   draws a status pill beside the group's title, read from the group.
+		 * - `itemPill` (the same shape, plus `overdueWhen` and `overdueLabel`) draws a pill at the
+		 *   card's end; while the local condition `overdueWhen` holds on the card, the pill reads
+		 *   `overdueLabel` in the error tone. `itemDate` is a template drawn before that pill
+		 *   (`"{targetDate|date}"`).
+		 * - `headerSubtitle` is the line under the card title, reported to the host as `header`
+		 *   `{ subtitle }`: a template with `{groups}` and `{items}` (the numbers drawn), or
+		 *   `{ parts, separator?, suffix? }` where a part is such a template or `{ count: "groups" |
+		 *   "items", one, other }`; the parts join with `separator` (default ", "), and `suffix`
+		 *   follows after " · ".
 		 *
 		 * A language map (`{ nl, en }`) reads in the user's language, and a list
 		 * of plain values reads joined with ", ". Texts go through the app's
@@ -287,6 +315,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['header'],
 
 	setup(props) {
 		const objectCtxRaw = inject('cnObjectContext', null)
@@ -366,6 +396,7 @@ export default {
 					lines: this.linesOf(group, raw),
 					count: this.countOf(items.length),
 					items,
+					pill: this.groupPillOf(raw),
 					action: this.groupActionFor(raw, index),
 					progress: this.progressOf(raw, group),
 					...this.extraOf(raw),
@@ -416,6 +447,47 @@ export default {
 			}
 		},
 
+		/**
+		 * The line under the card title (`content.headerSubtitle`), once the
+		 * payload is read.
+		 *
+		 * @return {string} The line, '' without a declaration or a payload.
+		 * @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title
+		 */
+		headerSubtitleText() {
+			const spec = this.content?.headerSubtitle
+			if (!spec || this.payload === null || this.payload === undefined || this.error) {
+				return ''
+			}
+			const counts = {
+				groups: this.groups.length,
+				items: this.groups.reduce((sum, group) => sum + group.items.length, 0),
+			}
+			const fillCounts = (text) => this.translate(text).replace(/\{groups\}/g, String(counts.groups)).replace(/\{items\}/g, String(counts.items))
+			if (typeof spec === 'string') {
+				return fillCounts(spec)
+			}
+			if (typeof spec !== 'object' || !Array.isArray(spec.parts)) {
+				return ''
+			}
+			const line = spec.parts
+				.map((part) => {
+					if (typeof part === 'string') {
+						return fillCounts(part)
+					}
+					if (part && typeof part === 'object' && (part.count === 'groups' || part.count === 'items')) {
+						const count = counts[part.count]
+						const template = count === 1 ? part.one : part.other
+						return typeof template === 'string' && template !== '' ? this.translate(template).replace(/\{count\}/g, String(count)) : ''
+					}
+					return ''
+				})
+				.filter((text) => text !== '')
+				.join(typeof spec.separator === 'string' ? spec.separator : ', ')
+			const suffix = typeof spec.suffix === 'string' && spec.suffix !== '' ? this.translate(spec.suffix) : ''
+			return [line, suffix].filter((text) => text !== '').join(' · ')
+		},
+
 		/** @return {string} The heading above the groups, filled from the payload. */
 		heading() {
 			const template = this.content?.heading
@@ -449,7 +521,59 @@ export default {
 		},
 	},
 
+	watch: {
+		/**
+		 * Report the counts line to the card around the widget.
+		 *
+		 * @param {string} subtitle The line, or ''.
+		 */
+		headerSubtitleText: {
+			immediate: true,
+			/** @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title */
+			handler(subtitle) {
+				if (this.content?.headerSubtitle) {
+					/**
+					 * @event header The card header's line under the title.
+					 * @type {{subtitle: string}}
+					 */
+					this.$emit('header', { subtitle })
+				}
+			},
+		},
+	},
+
 	methods: {
+		/**
+		 * The status pill of a group (`content.groupPill`).
+		 *
+		 * @param {object} raw The group as read.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-groups-and-cards-can-carry-a-status-pill
+		 */
+		groupPillOf(raw) {
+			const spec = this.content?.groupPill
+			return spec ? fieldPill(raw, spec, { translate: (text) => this.translate(text), fill: (template, row) => this.fill(template, readable(row)) }) : null
+		},
+
+		/**
+		 * The status pill at a card's end (`content.itemPill`): `overdueLabel`
+		 * in the error tone while `overdueWhen` holds on the card.
+		 *
+		 * @param {object} rawItem The card as read.
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-groups-and-cards-can-carry-a-status-pill
+		 */
+		itemPillOf(rawItem) {
+			const spec = this.content?.itemPill
+			if (!spec || typeof spec !== 'object') {
+				return null
+			}
+			if (spec.overdueWhen && typeof spec.overdueLabel === 'string' && spec.overdueLabel !== '' && evaluateVisibleWhenLocal(spec.overdueWhen, rawItem)) {
+				return { label: this.translate(spec.overdueLabel), variant: 'error' }
+			}
+			return fieldPill(rawItem, spec, { translate: (text) => this.translate(text), fill: (template, row) => this.fill(template, readable(row)) })
+		},
+
 		/**
 		 * The `groupAction` for one group, with every `@group.<path>` token in
 		 * its strings read from that group, and its id made unique per group.
@@ -546,6 +670,8 @@ export default {
 						title: this.fill(titleTemplate, item),
 						meta: this.metaOf(item, rawItem, metaSpec),
 						flag,
+						pill: spec.title ? null : this.itemPillOf(rawItem),
+						date: spec.title || !c.itemDate ? '' : this.fill(c.itemDate, item),
 						actions: this.itemActionsFor(actions, rawItem, rawGroup, key),
 					}
 				})
@@ -850,6 +976,20 @@ export default {
 .cn-grouped-cards__item-title {
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-grouped-cards__item-end {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	align-self: flex-end;
+}
+
+.cn-grouped-cards__item-date {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	white-space: nowrap;
 }
 
 .cn-grouped-cards__item-flag {
