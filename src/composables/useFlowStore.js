@@ -26,6 +26,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { defineStore } from 'pinia'
+import { flowEdgeCondition, flowEdgeConditionText } from '../utils/flowCondition.js'
 import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
 import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
 
@@ -555,6 +556,8 @@ export const useFlowStore = defineStore('cnFlow', {
 				return (value === null || value === undefined || value === '') ? [] : [value]
 			}
 
+			const nodeOf = (id) => (state.flow.nodes || []).find((node) => node.id === id) || null
+
 			const lines = []
 			for (const [index, edge] of (state.flow.edges || []).entries()) {
 				const sources = toList(edge.source ?? edge.from)
@@ -630,6 +633,8 @@ export const useFlowStore = defineStore('cnFlow', {
 								lineType: edge.lineType || DEFAULT_EDGE_LINE_TYPE,
 								labelT: edge.labelT,
 								label: edge.title || edge.label || '',
+								condition: flowEdgeCondition(edge, nodeOf(source)),
+								conditionText: flowEdgeConditionText(edge, nodeOf(source)),
 								edge,
 							},
 						})

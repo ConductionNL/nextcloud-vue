@@ -2713,7 +2713,13 @@
     "Task form": "Task form",
     "No rows match the filters.": "No rows match the filters.",
     "An item cannot be ticked in more than one column.": "An item cannot be ticked in more than one column.",
-    "The options could not be read.": "The options could not be read."
+    "The options could not be read.": "The options could not be read.",
+    "{field} is more than {value}": "{field} is more than {value}",
+    "{field} is one of {value}": "{field} is one of {value}",
+    "{field} is empty": "{field} is empty",
+    "A custom condition": "A custom condition",
+    "Otherwise": "Otherwise",
+    "Only if {condition}": "Only if {condition}"
   },
   "plurals": {
     "{count} member": [

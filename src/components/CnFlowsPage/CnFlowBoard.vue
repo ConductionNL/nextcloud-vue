@@ -218,6 +218,7 @@
 					:nodeBadge="nodeLook === 'card' ? nodeBadge : null"
 					:toolbarActions="false"
 					:addStep="!showPalette"
+					:edgeConditions="edgeConditions"
 					quietRun
 					@save="$emit('save')"
 					@run="onRun">
@@ -600,6 +601,8 @@ export default {
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
+		/** Write a line's condition on the line when it has no name of its own. */
+		edgeConditions: { type: Boolean, default: false },
 		/**
 		 * Edit a published flow in place; Save publishes the edits as the next
 		 * version, and runs already started keep theirs (DqFlow).

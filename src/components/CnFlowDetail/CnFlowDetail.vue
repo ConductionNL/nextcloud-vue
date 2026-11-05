@@ -275,14 +275,15 @@
 				</div>
 			</template>
 
-			<!-- A connection's own name, on the connection.
+			<!-- A connection's own name, on the connection, else its condition in
+			     words when the host asks for that (`edgeConditions`).
 
-			     Rendered only when the author gave the line one: CnFlowEdge
-			     gates the label control on what this slot RENDERS, not on
-			     whether it exists, so an unnamed line draws no empty chip. -->
+			     Rendered only when there is text: CnFlowEdge gates the label
+			     control on what this slot RENDERS, not on whether it exists, so
+			     an unnamed line draws no empty chip. -->
 			<template #edge-label="{ edge }">
-				<template v-if="edge.data && edge.data.label">
-					{{ edge.data.label }}
+				<template v-if="edgeText(edge)">
+					{{ edgeText(edge) }}
 				</template>
 			</template>
 		</CnGraphCanvas>
@@ -535,6 +536,15 @@ export default {
 		addStep: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its own
+		 * ("amount is more than 1000"). Manifest key `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -2306,6 +2316,16 @@ export default {
 			}
 
 			return this.store.catalogEntry(type) === null
+		},
+
+		/**
+		 * @param {object} edge A drawn line.
+		 * @return {string} What the line says: its name, else its condition when asked for.
+		 */
+		edgeText(edge) {
+			const data = edge.data || {}
+
+			return data.label || (this.edgeConditions ? data.conditionText : '') || ''
 		},
 
 		/**

@@ -15,6 +15,7 @@
 		:layout="layout"
 		:toggleLabel="toggleLabel"
 		:nodeLook="nodeLook"
+		:edgeConditions="edgeConditions"
 		:notice="notice ? cnTranslate(notice) : ''"
 		:saveAsVersion="saveAsVersion"
 		:metaParts="metaParts"
@@ -28,6 +29,7 @@
 		:id="flowId"
 		:app="app"
 		:run="runUuid"
+		:edgeConditions="edgeConditions"
 		@save="onSave"
 		@run="onRun" />
 </template>
@@ -272,6 +274,16 @@ export default {
 		toggleLabel: {
 			type: String,
 			default: 'state',
+		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its
+		 * own ("amount is more than 1000"). Manifest key
+		 * `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
