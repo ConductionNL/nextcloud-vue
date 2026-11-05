@@ -51,7 +51,61 @@ Every app can open it by name with an `open-modal` action, without registering i
 | `note` | `{ variant?, title?, text, icon? }`: a read-only note (`info`, `warning`, `error`, `success`); `icon` an icon name in place of the variant's own (`LockOutline`). |
 | `confirm` | `{ label, icon?, request?, action? }`: `request` (`{ method?, url, body?, answerPath? }`) is sent by the dialog, `body` templates filled from the record and `{reason}`, and `answerPath` shows the text at that path of the answer once the act ran, in place of `doneText`, for a lookup that says what it found; else `action`, a manifest action, is dispatched through the page with the field values and `reason` as its last argument. |
 
+| `source` | An endpoint source the record is read from, beside or in place of `summary.source`: a policy that a field's `visibleWhen` reads (`{ path: 'allowed', includes: 'documents' }`). |
+| `requireOneOf` | Names of sent values of which at least one must hold something (a split that moves documents, parties, or both). |
+
 Every url takes `@objectId` and `@object.<field>`. After the act the page refreshes (`cn:page:refresh`).
+
+## Acts, conditional fields and options from an endpoint
+
+One dialog can offer two acts that post to different endpoints, show a field for one act only, read its options from the server, and send "ticked means shared" as the list of what is left out.
+
+```json
+{
+  "fields": [
+    { "field": "mode", "type": "cards", "default": "share", "options": [{ "value": "share", "label": "Share" }, { "value": "handover", "label": "Hand over" }] },
+    { "field": "organisation", "type": "select", "label": "Organisation",
+      "optionsSource": { "url": "/apps/openregister/api/organisations/search", "params": { "_limit": 100 }, "responsePath": "organisations", "match": { "type": "partner" }, "errorText": "The organisations could not be read." },
+      "optionLabel": ["{name} ({domain})", "{name}"] },
+    { "field": "permission", "type": "select", "default": "read", "visibleWhen": { "field": "mode", "equals": "share" }, "options": [{ "value": "read", "label": "Read only" }] },
+    { "field": "limit", "type": "checkbox", "label": "Share only some fields", "visibleWhen": { "field": "mode", "equals": "share" } },
+    { "field": "shared", "type": "checks", "label": "Fields they see", "default": "all", "sendUnticked": true, "sendAs": "fieldExclusions",
+      "visibleWhen": { "field": "limit", "equals": true }, "options": [{ "value": "title", "label": "Title" }, { "value": "status", "label": "Status" }] }
+  ],
+  "note": { "textsBy": { "field": "mode", "cases": { "share": "You see what they do on the record.", "handover": "They become the owner once they accept." } } },
+  "confirm": {
+    "requestsBy": { "field": "mode", "cases": {
+      "share": { "url": "/apps/example/api/shares", "label": "Share", "icon": "Send", "body": { "recordId": "{id}", "partnerId": "{fields.organisation}" } },
+      "handover": { "url": "/apps/example/api/transfers", "label": "Hand over", "fieldsInBody": false, "body": { "recordId": "{id}", "targetOrganization": "{fields.organisation}" } }
+    } }
+  }
+}
+```
+
+- `visibleWhen` on a field or the note: `{ field }` reads another field's value, `{ path }` a value of the record; then `equals`, `in` (a list), `includes` (the value is a list holding it) or `filled` (`true` by default). A hidden field is not drawn, not required and not sent, and a field that depends on a hidden field is hidden too.
+- `optionsSource` on a `select` or `checks` field: an endpoint source (`url`, `params`, `responsePath`). `match` keeps the entries whose fields equal it. `optionValue` (default `id` for a select) and `optionLabel` (a template, or a list of templates of which the first that fills wins) name each option. `search: true` reads again as the reader types, the term under `searchParam` (default `_search`). A failed read shows `errorText` (default "The options could not be read.") rather than an empty list. A select also takes `default`.
+- `sendUnticked: true` on a `checks` field sends the items left unticked; `sendAs` on any field sends its value under another key.
+- `confirm.requestsBy: { field, cases }` posts the request the chosen value names (`url`, `method`, `body`, `answerPath`, and the button's `label`, `icon` and `doneText`), else `confirm.request`. In a `body`, `{fields.<key>}` reads a sent value by the key it is sent under (its `sendAs`, else its `field`); a body value that is only that token keeps its type (a list stays a list), and reads `''` while the field is hidden. `fieldsInBody: false` sends the body alone.
+
+### Ticks in columns
+
+A `checks` field with `columns: [{ field, label }]` draws one checkbox per column on every item, sends each column as its own list under its `field`, starts with nothing ticked, and with `exclusive: true` refuses an item ticked in two columns (`exclusiveText`, default "An item cannot be ticked in more than one column."). `hideWhenEmpty: true` hides a `checks` field that has no items.
+
+```json
+{
+  "source": { "url": "/apps/example/api/records/@objectId/split" },
+  "requireOneOf": ["documents", "parties", "partiesOnBoth"],
+  "fields": [
+    { "field": "title", "label": "What the new record is called" },
+    { "field": "documents", "type": "checks", "required": false, "hideWhenEmpty": true, "visibleWhen": { "path": "allowed", "includes": "documents" },
+      "optionsSource": { "url": "/apps/openregister/api/objects/example/document", "params": { "record": "@objectId", "_limit": 100 }, "responsePath": "results" }, "optionLabel": ["{title}", "{name}"] },
+    { "field": "partyRows", "type": "checks", "required": false, "exclusive": true, "visibleWhen": { "path": "allowed", "includes": "parties" },
+      "optionsSource": { "url": "/apps/openregister/api/objects/example/role", "params": { "record": "@objectId" }, "responsePath": "results" },
+      "columns": [{ "field": "parties", "label": "Moves" }, { "field": "partiesOnBoth", "label": "On both" }] }
+  ],
+  "confirm": { "label": "Split", "request": { "url": "/apps/example/api/records/@objectId/split" } }
+}
+```
 
 ## Props
 
@@ -66,4 +120,4 @@ Every url takes `@objectId` and `@object.<field>`. After the act the page refres
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `close` | none | The dialog was closed |
-| `done` | the field values and `reason` | The act ran |
+| `done` | the sent field values and `reason` | The act ran |
