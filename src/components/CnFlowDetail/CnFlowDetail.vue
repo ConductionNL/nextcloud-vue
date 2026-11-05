@@ -204,6 +204,7 @@
 		     line it draws, so the canvas itself stays a geometry-only renderer
 		     with no status concept (ADR-065). -->
 		<CnFlowStepList v-if="inList"
+			:readonlySteps="readonlySteps"
 			:stepState="listStepState"
 			@add="stepPickerOpen = true"
 			@edit="onListEdit" />
@@ -573,6 +574,14 @@ export default {
 		stepPanel: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The ids of the steps the viewer can only read, for the list view.
+		 */
+		readonlySteps: {
+			type: Array,
+			default: () => [],
 		},
 	},
 

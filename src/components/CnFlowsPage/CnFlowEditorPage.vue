@@ -19,6 +19,8 @@
 		:listMode="listMode"
 		:view="arrivalView"
 		:notice="notice ? cnTranslate(notice) : ''"
+		:noticeLevel="noticeLevel"
+		:adminSteps="adminSteps"
 		:saveAsVersion="saveAsVersion"
 		:metaParts="metaParts"
 		:metaNote="metaNote ? cnTranslate(metaNote) : ''"
@@ -26,7 +28,16 @@
 		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
 		@save="onSave"
-		@run="onRun" />
+		@run="onRun">
+		<template v-if="$slots.notice" #notice>
+			<!-- @slot notice A notice under the path, such as a drift warning (board look). -->
+			<slot name="notice" />
+		</template>
+		<template v-if="$slots['step-notice']" #step-notice="scope">
+			<!-- @slot step-notice A notice on the selected step, `{ node }` (board look). -->
+			<slot name="step-notice" v-bind="scope" />
+		</template>
+	</CnFlowBoard>
 	<CnFlowDetail v-else
 		:id="flowId"
 		:app="app"
@@ -192,6 +203,25 @@ export default {
 		notice: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the look of `notice`, `info`, `warning` or `error`.
+		 * Manifest key `config.noticeLevel`.
+		 */
+		noticeLevel: {
+			type: String,
+			default: 'info',
+		},
+
+		/**
+		 * Board look: steps only an admin may change, by node id or step type.
+		 * Anyone else reads them. The server decides what is saved; this is
+		 * the screen's side. Manifest key `config.adminSteps`.
+		 */
+		adminSteps: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**

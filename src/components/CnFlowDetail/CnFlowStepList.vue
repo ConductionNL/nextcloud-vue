@@ -80,7 +80,11 @@
 						</span>
 					</div>
 					<CnStatusBadge v-if="stateOf(row)" :label="stateOf(row).label" :variant="stateOf(row).variant" />
-					<span v-if="editable"
+					<CnStatusBadge v-if="isReadonly(row)"
+						:label="t('nextcloud-vue', 'Admins only')"
+						variant="warning"
+						data-testid="flow-step-admin" />
+					<span v-if="editable && !isReadonly(row)"
 						role="group"
 						class="cn-flow-step-list__actions"
 						:aria-label="t('nextcloud-vue', 'Actions for step {n}', { n: row.n })">
@@ -173,6 +177,12 @@ export default {
 			type: Function,
 			default: () => null,
 		},
+
+		/** The ids of the steps the viewer can only read. */
+		readonlySteps: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: ['add', 'edit'],
@@ -226,6 +236,14 @@ export default {
 		 */
 		isSelected(row) {
 			return this.store.selectedNodeId === row.id
+		},
+
+		/**
+		 * @param {object} row A list row.
+		 * @return {boolean} Whether the viewer can only read this step.
+		 */
+		isReadonly(row) {
+			return this.readonlySteps.includes(row.id)
 		},
 
 		/**
