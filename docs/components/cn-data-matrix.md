@@ -4,7 +4,7 @@ sidebar_position: 34
 
 # CnDataMatrix
 
-Inline-edit data grid for matrix-shaped data (rows × columns). Each cell is click-to-edit; commits emit `@cell-edit({rowId, colKey, value, row})` so the parent persists. Optional row / column / grand totals computed from the live data, with per-column `aggregate` (`sum` default, `avg`, `count`, `none`).
+Inline-edit data grid for matrix-shaped data (rows × columns). Each cell is click-to-edit and keyboard editable (see [Keyboard](#keyboard)); commits emit `@cell-edit({rowId, colKey, value, row})` so the parent persists. Optional row / column / grand totals computed from the live data, with per-column `aggregate` (`sum` default, `avg`, `count`, `none`).
 
 Not a full spreadsheet engine — no range references, no charts. For richer needs embed `handsontable` (or similar) and use this for the simpler cases (gradebooks, weight matrices, scoring rubrics, allocation tables).
 
@@ -123,11 +123,17 @@ Board DqAanbesteding scores bidders against weighted award criteria. Give each c
 
 ## Keyboard
 
-| Key | Action |
-|-----|--------|
-| Enter | Commit the active edit. |
-| Esc   | Cancel the active edit (no `@cell-edit`). |
-| Blur  | Commit (same as Enter). |
+Every editable cell is in the tab order, so a keyboard user edits the matrix without a mouse (WCAG 2.1.1). Read-only cells, formula cells and a matrix with `readOnly` stay out of the tab order, as before.
+
+| Key | Where | Action |
+|-----|-------|--------|
+| Tab / Shift+Tab | Matrix | Move to the next or previous editable cell. |
+| Enter or F2 | Focused cell | Open the cell for editing; the input takes focus with its text selected. |
+| Enter | Open cell | Commit the edit (`@cell-edit`) and return focus to the cell. |
+| Esc | Open cell | Cancel the edit (no `@cell-edit`) and return focus to the cell. |
+| Blur | Open cell | Commit, the same as Enter. |
+
+A screen reader announces an editable cell as a button named by its column, row and value, such as "Q1, Alpha: 10" or "Q1, Bravo: empty". The open input is named by its column and row ("Q1, Alpha"). The row name comes from `rowLabelKey`, falling back to the row id.
 
 ## See also
 
