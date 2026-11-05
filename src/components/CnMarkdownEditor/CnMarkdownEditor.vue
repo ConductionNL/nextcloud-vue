@@ -1,8 +1,8 @@
 <template>
 	<div class="cn-markdown-editor" data-testid="cn-markdown-editor" :class="modeClass">
 		<!-- Toolbar with formatting shortcuts (textarea modes only; WYSIWYG has its own). -->
-		<div v-if="!hideToolbar && mode !== 'wysiwyg'" class="cn-markdown-editor__toolbar" role="toolbar">
-			<button v-for="tool in toolbar"
+		<div v-if="!hideToolbar && layout !== 'wysiwyg' && !(plainText && hideModeSwitch)" class="cn-markdown-editor__toolbar" role="toolbar">
+			<button v-for="tool in (plainText ? [] : toolbar)"
 				:key="tool.id"
 				type="button"
 				class="cn-markdown-editor__tool"
@@ -22,11 +22,11 @@
 			</button>
 		</div>
 
-		<div v-if="variableList.length > 0 && !disabled && mode !== 'preview'" class="cn-markdown-editor__variables" data-testid="cn-markdown-variables">
+		<div v-if="variableList.length > 0 && !disabled && layout !== 'preview'" class="cn-markdown-editor__variables" data-testid="cn-markdown-variables">
 			<NcActions :menuName="insertVariableLabel" :forceName="true">
 				<NcActionButton v-for="variable in variableList"
 					:key="variable.name"
-					:description="variable.description || `{${variable.name}}`"
+					:description="variable.description || writeVariable(variable.name, variableSyntax)"
 					:data-testid="'variable-' + variable.name"
 					@click="insertVariable(variable.name)">
 					{{ variable.label }}
@@ -35,8 +35,8 @@
 		</div>
 
 		<!-- Pane layout: edit / preview / split (textarea + rendered preview). -->
-		<div v-if="mode !== 'wysiwyg'" class="cn-markdown-editor__panes" :data-mode="mode">
-			<textarea v-if="mode !== 'preview'"
+		<div v-if="layout !== 'wysiwyg'" class="cn-markdown-editor__panes" :data-mode="layout">
+			<textarea v-if="layout !== 'preview'"
 				ref="textarea"
 				class="cn-markdown-editor__textarea"
 				:value="localValue"
@@ -46,11 +46,11 @@
 				:aria-label="ariaLabel"
 				data-testid="cn-markdown-textarea"
 				@input="onInput"
-				@keydown="onKeydown" />
-			<div v-if="mode !== 'edit'"
+				@keydown="onKey" />
+			<div v-if="layout !== 'edit'"
 				class="cn-markdown-editor__preview"
 				data-testid="cn-markdown-preview"
-				v-html="renderedHtml" /><!-- eslint-disable-line vue/no-v-html -- renderedHtml comes from cnRenderMarkdown(), which sanitises through DOMPurify -->
+				v-html="renderedHtml" /><!-- eslint-disable-line vue/no-v-html -- renderedHtml comes from cnRenderMarkdown(), which sanitises through DOMPurify, or from plainTextPreview(), which escapes the text -->
 		</div>
 
 		<!-- WYSIWYG mode: lazily-instantiated Toast UI editor. The editor is
@@ -80,7 +80,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions } from '@nextcloud/vue'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
-import { unknownTemplateVariables } from '../../utils/templateVariables.js'
+import { isVariableSyntax, plainTextPreview, unknownVariablesIn, writeVariable } from '../../utils/templateVariables.js'
 import { guardedToastUiEditorClass } from '../../utils/toastUiRawHtmlGuard.js'
 import { toastUiSanitizer } from '../../utils/toastUiSanitizer.js'
 
@@ -179,6 +179,11 @@ const DEFAULT_WYSIWYG_TOOLBAR = Object.freeze([
  * textarea modes carry no editor dependency. The `v-model` contract
  * is identical across all modes (`value` in, `input` out).
  *
+ * `variableSyntax` writes a variable another way (`{{name}}`), and
+ * `plainText` makes the editor a plain-text field: no formatting tools or
+ * Markdown keys, and a preview that shows the text as it is with its
+ * variables marked.
+ *
  * With `variables`, a menu inserts `{name}` at the caret and the editor
  * names every `{…}` in the text that is not allowed, under the editor and
  * through the `unknown-variables` event, so a host can refuse to save.
@@ -273,6 +278,18 @@ export default {
 		/** The name of the insert menu. Defaults to "Insert variable". */
 		insertVariableText: { type: String, default: '' },
 		/**
+		 * How a variable is written, `name` standing for its name: `{name}`
+		 * (the default), `{{name}}`, `[[name]]`. The menu inserts it this way
+		 * and the check reads it this way.
+		 */
+		variableSyntax: { type: String, default: '{name}', validator: isVariableSyntax },
+		/**
+		 * A plain-text field rather than Markdown: no formatting tools, no
+		 * Markdown keys (bold, italic, lists), no WYSIWYG, and a preview that
+		 * shows the text as written with its variables marked.
+		 */
+		plainText: { type: Boolean, default: false },
+		/**
 		 * WYSIWYG mode only: Toast UI toolbar layout (array of button groups).
 		 * Ignored in the textarea modes.
 		 *
@@ -325,7 +342,7 @@ export default {
 			if (this.variableList.length === 0) {
 				return []
 			}
-			return unknownTemplateVariables(this.localValue, this.variableList.map((v) => v.name))
+			return unknownVariablesIn(this.localValue, { allowed: this.variableList.map((v) => v.name), syntax: this.variableSyntax })
 		},
 
 		/**
@@ -335,7 +352,7 @@ export default {
 		 * @spec openspec/changes/markdown-editor-variables/tasks.md#task-2
 		 */
 		unknownVariableMessage() {
-			const names = this.unknownVariables.map((name) => `{${name}}`).join(', ')
+			const names = this.unknownVariables.map((name) => writeVariable(name, this.variableSyntax)).join(', ')
 			if (this.unknownVariableText) {
 				return this.unknownVariableText.split('{names}').join(names)
 			}
@@ -359,7 +376,18 @@ export default {
 		 * @return {string} The class.
 		 */
 		modeClass() {
-			return `cn-markdown-editor--${this.mode}`
+			return `cn-markdown-editor--${this.layout}`
+		},
+
+		/**
+		 * The layout drawn: the `mode`, except that a plain-text editor has no
+		 * WYSIWYG and edits instead.
+		 *
+		 * @spec openspec/changes/markdown-editor-variable-syntax-plain-text/specs/markdown-editor/spec.md#requirement-a-plain-text-mode-without-markdown
+		 * @return {string} The layout.
+		 */
+		layout() {
+			return this.plainText && this.mode === 'wysiwyg' ? 'edit' : this.mode
 		},
 
 		/**
@@ -398,6 +426,9 @@ export default {
 		 * @return {string} The rendered HTML.
 		 */
 		renderedHtml() {
+			if (this.plainText) {
+				return plainTextPreview(this.localValue, { allowed: this.variableList.map((v) => v.name), syntax: this.variableSyntax })
+			}
 			return cnRenderMarkdown(this.localValue || '')
 		},
 
@@ -407,7 +438,7 @@ export default {
 		 * @return {string} The label.
 		 */
 		currentModeLabel() {
-			return `▦ ${this.mode}`
+			return `▦ ${this.layout}`
 		},
 
 		/**
@@ -456,7 +487,7 @@ export default {
 			this.onBoundValueChange(this.boundValue)
 		},
 
-		mode(next) {
+		layout(next) {
 			if (next === 'wysiwyg') {
 				this.loadWysiwyg()
 			}
@@ -464,7 +495,7 @@ export default {
 	},
 
 	mounted() {
-		if (this.mode === 'wysiwyg') {
+		if (this.layout === 'wysiwyg') {
 			this.loadWysiwyg()
 		}
 	},
@@ -479,6 +510,7 @@ export default {
 
 	methods: {
 		t,
+		writeVariable,
 		/**
 		 * Lazily import and instantiate the Toast UI editor (and its CSS) the
 		 * first time WYSIWYG mode is entered. Keeps the ~200 KB editor out of
@@ -621,6 +653,18 @@ export default {
 		 * @param {KeyboardEvent} event The keydown event.
 		 * @return {void}
 		 */
+		/**
+		 * Hand a key to the Markdown handling, unless the editor is plain text.
+		 *
+		 * @param {KeyboardEvent} event The key.
+		 * @return {void}
+		 */
+		onKey(event) {
+			if (!this.plainText) {
+				this.onKeydown(event)
+			}
+		},
+
 		onKeydown(event) {
 			const ta = this.$refs.textarea
 			if (!ta) {
@@ -779,8 +823,8 @@ export default {
 		 * @return {void}
 		 */
 		cycleMode() {
-			const idx = MODES.indexOf(this.mode)
-			const next = MODES[(idx + 1) % MODES.length]
+			const modes = this.plainText ? MODES.filter((mode) => mode !== 'wysiwyg') : MODES
+			const next = modes[(modes.indexOf(this.layout) + 1) % modes.length]
 			/**
 			 * @event update:mode v-model:mode emit so consumers can bind the layout mode.
 			 * @type {'edit'|'split'|'preview'}
@@ -898,8 +942,8 @@ export default {
 		 * @spec openspec/changes/markdown-editor-variables/tasks.md#task-1
 		 */
 		insertVariable(name) {
-			const token = `{${name}}`
-			if (this.mode === 'wysiwyg' && this.toastEditor) {
+			const token = writeVariable(name, this.variableSyntax)
+			if (this.layout === 'wysiwyg' && this.toastEditor) {
 				this.toastEditor.insertText(token)
 				return
 			}
@@ -1014,6 +1058,19 @@ export default {
 .cn-markdown-editor__variables {
 	display: flex;
 	justify-content: flex-end;
+}
+
+/* A variable in a plain-text preview: known in the success colour, unknown
+   in the error colour and underlined, so the difference does not rest on
+   colour alone. */
+.cn-markdown-editor__preview :deep(.cn-markdown-editor__var) {
+	color: var(--color-success-text, var(--color-success));
+	font-weight: 600;
+}
+
+.cn-markdown-editor__preview :deep(.cn-markdown-editor__var--unknown) {
+	color: var(--color-error-text, var(--color-error));
+	text-decoration: underline wavy;
 }
 
 .cn-markdown-editor__error {

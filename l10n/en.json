@@ -2710,7 +2710,10 @@
     "Unsaved input restored: {count} of {total} fields from your previous visit, {date}. Check them and save.": "Unsaved input restored: {count} of {total} fields from your previous visit, {date}. Check them and save.",
     "Task completed.": "Task completed.",
     "This task asks nothing to fill in.": "This task asks nothing to fill in.",
-    "Task form": "Task form"
+    "Task form": "Task form",
+    "No rows match the filters.": "No rows match the filters.",
+    "An item cannot be ticked in more than one column.": "An item cannot be ticked in more than one column.",
+    "The options could not be read.": "The options could not be read."
   },
   "plurals": {
     "{count} member": [
