@@ -54,13 +54,17 @@
 								type="text"
 								class="cn-data-matrix__cell-input"
 								:value="cellValue(row, col)"
+								:aria-label="inputLabel(row, col)"
 								:disabled="readOnly || isCellReadOnly(row, col)"
 								@blur="commitEdit(row, col, $event.target.value)"
-								@keydown.enter="commitEdit(row, col, $event.target.value)"
-								@keydown.esc="cancelEdit">
+								@keydown="onInputKeydown($event, row, col)">
 							<span v-else
 								class="cn-data-matrix__cell-value"
-								@click="startEdit(row, col)">
+								:tabindex="isCellEditable(row, col) ? 0 : null"
+								:role="isCellEditable(row, col) ? 'button' : null"
+								:aria-label="isCellEditable(row, col) ? cellLabel(row, col) : null"
+								@click="startEdit(row, col)"
+								@keydown="onCellKeydown($event, row, col)">
 								{{ formatCell(cellValue(row, col), col) }}
 							</span>
 						</td>
@@ -114,7 +118,8 @@ function numberIn(raw) {
 
 /**
  * CnDataMatrix — Inline-edit data grid for matrix-shaped data
- * (rows × columns). Each cell is click-to-edit; commits emit
+ * (rows × columns). Each cell is click-to-edit, and keyboard editable:
+ * Tab reaches it, Enter or F2 opens it, Enter commits, Escape cancels. Commits emit
  * `@cell-edit({ rowId, colKey, value })` so the parent can persist.
  * Optional row / column / grand totals computed from the live data
  * with the column's `aggregate` setting (`sum` by default).
@@ -324,6 +329,97 @@ export default {
 		 */
 		isCellReadOnly(row, col) {
 			return Boolean(col.readOnly || col.formula)
+		},
+
+		/**
+		 * Whether a cell can be edited, and so takes keyboard focus.
+		 *
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {boolean}
+		 */
+		isCellEditable(row, col) {
+			return !this.readOnly && !this.isCellReadOnly(row, col)
+		},
+
+		/**
+		 * Accessible name of a cell's input: its column and row.
+		 *
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {string} The label.
+		 */
+		inputLabel(row, col) {
+			return t('nextcloud-vue', '{column}, {row}', {
+				column: col.label || col.key,
+				row: row[this.rowLabelKey] ?? row[this.rowIdKey],
+			}, undefined, { escape: false })
+		},
+
+		/**
+		 * Accessible name of an editable cell: its column, row and value.
+		 *
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {string} The label.
+		 */
+		cellLabel(row, col) {
+			const value = this.formatCell(this.cellValue(row, col), col)
+			const vars = { cell: this.inputLabel(row, col), value: String(value) }
+			return value === ''
+				? t('nextcloud-vue', '{cell}: empty', vars, undefined, { escape: false })
+				: t('nextcloud-vue', '{cell}: {value}', vars, undefined, { escape: false })
+		},
+
+		/**
+		 * Enter or F2 on a focused cell starts editing it.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {void}
+		 */
+		onCellKeydown(event, row, col) {
+			if ((event.key === 'Enter' || event.key === 'F2') && this.isCellEditable(row, col)) {
+				event.preventDefault()
+				this.startEdit(row, col)
+			}
+		},
+
+		/**
+		 * Enter commits and Escape cancels the edit; both return focus to the cell.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {void}
+		 */
+		onInputKeydown(event, row, col) {
+			if (event.key === 'Enter') {
+				event.preventDefault()
+				this.commitEdit(row, col, event.target.value)
+				this.focusCell(row, col)
+			} else if (event.key === 'Escape' || event.key === 'Esc') {
+				event.preventDefault()
+				this.cancelEdit()
+				this.focusCell(row, col)
+			}
+		},
+
+		/**
+		 * Move focus to a cell's value after the edit input is gone.
+		 *
+		 * @param {object} row Row record.
+		 * @param {object} col Column definition.
+		 * @return {void}
+		 */
+		focusCell(row, col) {
+			const rowId = String(row[this.rowIdKey])
+			this.$nextTick(() => {
+				const cell = Array.from(this.$el.querySelectorAll('.cn-data-matrix__cell'))
+					.find((td) => td.dataset.rowId === rowId && td.dataset.colKey === col.key)
+				cell?.querySelector('.cn-data-matrix__cell-value')?.focus()
+			})
 		},
 
 		/**
@@ -614,6 +710,11 @@ export default {
 	padding: 6px 10px;
 	cursor: cell;
 	min-height: 28px;
+}
+
+.cn-data-matrix__cell-value:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
 }
 
 .cn-data-matrix__cell--read-only .cn-data-matrix__cell-value {

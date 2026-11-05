@@ -2960,7 +2960,10 @@
     "The marketplace registry did not answer. Try again later.": "De marktplaats-registry antwoordde niet. Probeer het later opnieuw.",
     "The marketplace registry is busy. Try again in a minute.": "De marktplaats-registry is bezig. Probeer het over een minuut opnieuw.",
     "The marketplace registry refused the item.": "De marktplaats-registry weigerde het item.",
-    "You may not publish to this marketplace.": "Je mag niet publiceren in deze marktplaats."
+    "You may not publish to this marketplace.": "Je mag niet publiceren in deze marktplaats.",
+    "{column}, {row}": "{column}, {row}",
+    "{cell}: empty": "{cell}: leeg",
+    "{cell}: {value}": "{cell}: {value}"
   },
   "plurals": {
     "{count} member": [

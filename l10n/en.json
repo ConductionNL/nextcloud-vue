@@ -2695,7 +2695,10 @@
     "The marketplace registry did not answer. Try again later.": "The marketplace registry did not answer. Try again later.",
     "The marketplace registry is busy. Try again in a minute.": "The marketplace registry is busy. Try again in a minute.",
     "The marketplace registry refused the item.": "The marketplace registry refused the item.",
-    "You may not publish to this marketplace.": "You may not publish to this marketplace."
+    "You may not publish to this marketplace.": "You may not publish to this marketplace.",
+    "{column}, {row}": "{column}, {row}",
+    "{cell}: empty": "{cell}: empty",
+    "{cell}: {value}": "{cell}: {value}"
   },
   "plurals": {
     "{count} member": [
