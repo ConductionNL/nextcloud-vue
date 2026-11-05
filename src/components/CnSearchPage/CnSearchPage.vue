@@ -17,6 +17,13 @@
 					{{ searchLabel }}
 				</button>
 			</form>
+			<!-- A term the server could not read: said under the field, the
+			     results of the last readable term kept. -->
+			<CnCardNotices
+				v-if="refusalNotice"
+				class="cn-search-page__refusal"
+				:notices="[refusalNotice]"
+				data-testid="cn-search-page-refusal" />
 		</header>
 
 		<div class="cn-search-page__body">
@@ -95,7 +102,10 @@
 </template>
 
 <script>
+import { parseAxiosError } from '../../utils/errors.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { readSearchRefusal, searchRefusalNotice } from '../../utils/searchRefusal.js'
+import { CnCardNotices } from '../CnCardNotices/index.js'
 /**
  * CnSearchPage — Search surface with a query input, a facet
  * sidebar, and a results list. Mounted by CnPageRenderer when a
@@ -121,6 +131,8 @@ import { labelLang } from '../../utils/manifestTranslate.js'
  */
 export default {
 	name: 'CnSearchPage',
+
+	components: { CnCardNotices },
 
 	inject: {
 		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
@@ -194,6 +206,19 @@ export default {
 		},
 
 		/**
+		 * The words of a refused search (manifest `config.searchRefusal`):
+		 * `{ title?, after? }`, the title with `{position}`. A `sources` search
+		 * the server refuses for its grammar keeps the results it had and says
+		 * so under the search field.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
+		 */
+		searchRefusal: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The lists the page searches itself (manifest `config.sources`). Each
 		 * `{ id?, label, register, schema, route?, titleField?, snippetField?,
 		 * limit? }`: one request per list with `_search`, results in the order
@@ -219,10 +244,22 @@ export default {
 			sourceFacets: {},
 			sourceLoading: false,
 			sourceRun: 0,
+			// The latest `sources` search the server refused for its grammar.
+			refusal: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * The refused search as a notice under the field, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
+		 */
+		refusalNotice() {
+			return this.refusal ? searchRefusalNotice(this.refusal, this.searchRefusal, (text) => this.shown(text)) : null
+		},
+
 		/** @return {boolean} Whether the page searches its own `sources`. */
 		searchesSources() {
 			return Array.isArray(this.sources) && this.sources.some((source) => source && source.register && source.schema)
@@ -456,6 +493,11 @@ export default {
 					const rows = Array.isArray(data.results) ? data.results : []
 					return { source, rows, total: typeof data.total === 'number' ? data.total : rows.length }
 				} catch (e) {
+					const { status, message, data } = parseAxiosError(e)
+					const refused = readSearchRefusal({ status, message, position: data && data.position }, this.localQuery)
+					if (refused) {
+						return { source, refused }
+					}
 					// eslint-disable-next-line no-console
 					console.warn('[CnSearchPage] could not search', source.schema, e)
 					return { source, rows: [], total: 0 }
@@ -464,9 +506,11 @@ export default {
 			if (run !== this.sourceRun) {
 				return
 			}
+			const refusedRun = found.find((entry) => entry.refused)
+			this.refusal = refusedRun ? refusedRun.refused : null
 			const rows = { ...this.sourceRows }
 			const totals = { ...this.sourceTotals }
-			for (const { source, rows: list, total } of found) {
+			for (const { source, rows: list, total } of found.filter((entry) => !entry.refused)) {
 				rows[source.key] = list.map((row) => this.resultOf(source, row))
 				totals[source.key] = total
 			}
@@ -527,6 +571,10 @@ export default {
 /* Reserve room for NcAppNavigationToggle (matches CnPageRenderer / CnPageHeader). */
 .cn-search-page__header {
 	padding-inline-start: 56px;
+}
+
+.cn-search-page__refusal {
+	margin-block-start: 8px;
 }
 
 .cn-search-page__title {

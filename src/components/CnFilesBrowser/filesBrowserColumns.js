@@ -73,7 +73,8 @@ function requiredAppPresent(requiredApp) {
  *
  * A string names a built-in. An object declares its own: `key`, `label`,
  * `source` (`node`, `attribute` or `row`), `attribute`, `formatter` and
- * `sortable`, and `requiredApp` (an app id, or a list of which any one will
+ * `sortable`, `hidden` (`true`, or `{ not: <flag> }`: hidden unless the
+ * resolved flag is true), and `requiredApp` (an app id, or a list of which any one will
  * do; without it the column is left out). An entry naming an unknown built-in is dropped here and refused
  * by the manifest validator, so an author hears about it at authoring time
  * rather than finding a column missing at runtime.
@@ -102,14 +103,19 @@ export function normaliseFileColumns(columns) {
 		if (!requiredAppPresent(entry.requiredApp)) {
 			return
 		}
-		if (isBuiltInFileColumn(entry.key) && entry.source === undefined) {
-			out.push({ ...BUILT_IN_FILE_COLUMNS[entry.key], ...entry, builtIn: true })
+		// `hidden: { not: <flag> }`: hidden by default unless the flag is true
+		// (Type, Richting and Auteur show on a case type that reviews documents).
+		const own = entry.hidden && typeof entry.hidden === 'object' && 'not' in entry.hidden
+			? { ...entry, hidden: entry.hidden.not !== true }
+			: entry
+		if (isBuiltInFileColumn(own.key) && own.source === undefined) {
+			out.push({ ...BUILT_IN_FILE_COLUMNS[own.key], ...own, builtIn: true })
 			return
 		}
 		out.push({
 			source: 'node',
 			sortable: false,
-			...entry,
+			...own,
 			builtIn: false,
 		})
 	})

@@ -74,6 +74,26 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
+			<!-- `toolbarSelectionActions`: a bulk action as a toolbar button,
+			     off with its reason while nothing is ticked (DqZaakDocumenten
+			     "Samenvoegen tot één PDF"). -->
+			<template v-for="action in toolbarSelectionList" :key="`toolbar-selection-${action.id}`">
+				<NcButton
+					variant="secondary"
+					:disabled="selectedIds.length === 0"
+					:title="selectedIds.length === 0 ? action.reason : undefined"
+					:aria-describedby="selectedIds.length === 0 ? `${toolbarReasonPrefix}-${action.id}` : undefined"
+					:data-testid="`cn-files-browser-toolbar-selection-${action.id}`"
+					@click="runBulkAction(action.action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
+				</NcButton>
+				<span v-if="selectedIds.length === 0"
+					:id="`${toolbarReasonPrefix}-${action.id}`"
+					class="hidden-visually">{{ action.reason }}</span>
+			</template>
 			<!-- `facetPresentation: "menu"`: each facet as a toolbar menu
 			     "<column>: <value>" (DqZaakDocumenten "Trefwoord: alle"),
 			     one value at a time, "all" clears it. -->
@@ -265,7 +285,7 @@
 		</div>
 
 		<!-- The host's bulk actions, once something is selected. -->
-		<div v-if="bulkEnabled && selectedIds.length > 0"
+		<div v-if="bulkEnabled && bulkActions.length > 0 && selectedIds.length > 0"
 			class="cn-files-browser__bulk-bar"
 			role="toolbar"
 			:aria-label="t('nextcloud-vue', 'Actions for the selected files')"
@@ -835,6 +855,8 @@ const FOLDER_CHANGED_CHANNELS = ['cn:page:refresh', 'files:node:created', 'files
 
 const FOLDER_CHANGED_DEBOUNCE_MS = 300
 
+let reasonUid = 0
+
 export default {
 	name: 'CnFilesBrowser',
 
@@ -1289,6 +1311,20 @@ export default {
 		},
 
 		/**
+		 * Actions on the ticked files drawn as toolbar buttons, declared as
+		 * `bulkActions` plus `disabledReason` (translated; default "Select
+		 * files first"). Each is disabled, saying why, while no file is
+		 * ticked, and turns the row checkboxes on as `bulkActions` does.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, disabledReason?: string}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The bulk bar's count, as a translatable template with `{count}`
 		 * ("{count} documents selected"); `selectionLabelOne` is used for one.
 		 * Empty reads "{count} selected".
@@ -1395,7 +1431,10 @@ export default {
 	emits: ['changed'],
 
 	data() {
+		reasonUid += 1
 		return {
+			/** The id prefix of the toolbar selection buttons' reasons. */
+			toolbarReasonPrefix: `cn-files-browser-reason-${reasonUid}`,
 			/** The actions column's measured width while a row button stands in it, else null. */
 			actionsColumnWidth: null,
 			currentPath: this.rootPath,
@@ -1645,7 +1684,27 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		bulkEnabled() {
-			return Array.isArray(this.bulkActions) && this.bulkActions.length > 0
+			return (Array.isArray(this.bulkActions) && this.bulkActions.length > 0) || this.toolbarSelectionList.length > 0
+		},
+
+		/**
+		 * The toolbar's selection buttons (`toolbarSelectionActions`), labels translated.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, reason: string, action: object}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionList() {
+			return (Array.isArray(this.toolbarSelectionActions) ? this.toolbarSelectionActions : [])
+				.filter((action) => action && typeof action === 'object' && typeof action.id === 'string' && action.id !== '')
+				.map((action) => ({
+					id: action.id,
+					label: this.hostLabel(action),
+					icon: typeof action.icon === 'string' ? action.icon : '',
+					reason: typeof action.disabledReason === 'string' && action.disabledReason !== ''
+						? this.cnTranslate(action.disabledReason)
+						: t('nextcloud-vue', 'Select files first'),
+					action,
+				}))
 		},
 
 		/**

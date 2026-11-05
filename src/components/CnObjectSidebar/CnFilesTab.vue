@@ -32,6 +32,7 @@
 			:preferenceApp="preferenceApp"
 			:preferenceKey="preferenceKey"
 			:bulkActions="bulkActions"
+			:toolbarSelectionActions="toolbarSelectionActions"
 			:selectionLabel="selectionLabel"
 			:selectionLabelOne="selectionLabelOne"
 			:showClearSelection="showClearSelection"
@@ -426,6 +427,8 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
 		 */
 		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: bulk actions as toolbar buttons, off while nothing is ticked. */
+		toolbarSelectionActions: { type: Array, default: () => [] },
 		/** Forwarded to CnFilesBrowser: the bulk bar's count, a template with `{count}`. */
 		selectionLabel: { type: String, default: '' },
 		/** Forwarded to CnFilesBrowser: the bulk bar's count for one file. */

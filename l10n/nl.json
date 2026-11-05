@@ -2963,7 +2963,19 @@
     "You may not publish to this marketplace.": "Je mag niet publiceren in deze marktplaats.",
     "{column}, {row}": "{column}, {row}",
     "{cell}: empty": "{cell}: leeg",
-    "{cell}: {value}": "{cell}: {value}"
+    "{cell}: {value}": "{cell}: {value}",
+    "Search term not understood at position {position}:": "Zoekterm niet begrepen op positie {position}:",
+    "The list is not filtered; adjust the term.": "De lijst is niet gefilterd; pas de term aan.",
+    "+ Label": "+ Label",
+    "Remove {label}": "{label} verwijderen",
+    "Select files first": "Selecteer eerst bestanden",
+    "Save as provisional": "Opslaan als voorlopig",
+    "Completing was refused: fill in {field}.": "Afronden is geweigerd: vul {field} in.",
+    "Saved as provisional.": "Opgeslagen als voorlopig.",
+    "Unsaved input restored: {count} of {total} fields from your previous visit, {date}. Check them and save.": "Niet-opgeslagen invoer teruggezet: {count} van de {total} velden uit uw vorige bezoek, {date}. Controleer ze en sla op.",
+    "Task completed.": "Taak afgerond.",
+    "This task asks nothing to fill in.": "Deze taak vraagt niets in te vullen.",
+    "Task form": "Taakformulier"
   },
   "plurals": {
     "{count} member": [

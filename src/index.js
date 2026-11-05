@@ -382,6 +382,7 @@ export {
 	CnTagsCard,
 	CnTaskFormDialog,
 	CnTaskFormFields,
+	CnTaskFormWidget,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,
