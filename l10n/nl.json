@@ -2963,7 +2963,8 @@
     "You may not publish to this marketplace.": "Je mag niet publiceren in deze marktplaats.",
     "{column}, {row}": "{column}, {row}",
     "{cell}: empty": "{cell}: leeg",
-    "{cell}: {value}": "{cell}: {value}"
+    "{cell}: {value}": "{cell}: {value}",
+    "No rows match the filters.": "Geen rijen voldoen aan de filters."
   },
   "plurals": {
     "{count} member": [
