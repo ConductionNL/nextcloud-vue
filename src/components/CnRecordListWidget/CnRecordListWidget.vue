@@ -20,7 +20,14 @@
 		class="cn-record-list"
 		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--meta-beside': presentation === 'rows' && content.metaBeside === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
 		data-testid="cn-record-list">
-		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
+		<!-- `introAsHeading`: the intro is the group heading of a section
+		     ("Te laat", "Risico"), dropped with an empty section that says nothing. -->
+		<h3 v-if="intro && !absent && introAsHeading && !introHidden"
+			class="cn-record-list__group-heading cn-record-list__intro-heading"
+			data-testid="cn-record-list-intro">
+			{{ intro }}
+		</h3>
+		<p v-else-if="intro && !absent && !introAsHeading" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
 		</p>
 		<p v-if="absent" class="cn-record-list__empty" data-testid="cn-record-list-absent">
@@ -1934,6 +1941,27 @@ export default {
 			return this.content?.absentText ? this.translate(this.content.absentText) : t('nextcloud-vue', 'The app these come from is not installed')
 		},
 
+		/**
+		 * Whether the intro is drawn as a group heading (`content.introAsHeading`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-section-intro-heading/specs/record-list/spec.md#requirement-a-sections-intro-can-be-its-group-heading
+		 */
+		introAsHeading() {
+			return this.content?.introAsHeading === true
+		},
+
+		/**
+		 * Whether a heading intro drops out: the list read no rows and says
+		 * nothing about it (`emptyText: ""`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-section-intro-heading/specs/record-list/spec.md#requirement-a-sections-intro-can-be-its-group-heading
+		 */
+		introHidden() {
+			return this.content?.emptyText === '' && !this.loading && !this.error && this.rows.length === 0
+		},
+
 		/** @return {string} The line above the list (`intro`), translated. */
 		intro() {
 			const text = this.content?.intro
@@ -3716,6 +3744,10 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.4;
+}
+
+.cn-record-list__intro-heading {
+	margin: 0 0 6px;
 }
 
 .cn-record-list--group-cards .cn-record-list__group-heading {
