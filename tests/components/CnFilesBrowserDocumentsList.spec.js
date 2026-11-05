@@ -208,6 +208,29 @@ describe('CnFilesBrowser as a documents list', () => {
 		expect(rowNames(wrapper)).toEqual(['Scans', 'a.pdf', 'b.pdf', 'c.pdf'])
 		wrapper.unmount()
 	})
+
+	/**
+	 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+	 */
+	it('draws a facet as a toolbar menu "<column>: all" with one value at a time', async () => {
+		const wrapper = mountBrowser({ columns: COLUMNS, rowData: ROW_DATA, facets: ['keywords'], facetPresentation: 'menu' })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-files-browser-facets"]').exists()).toBe(false)
+		expect(wrapper.vm.facetMenuName(wrapper.vm.facetGroups[0])).toBe('Keywords: all')
+		const menu = wrapper.find('[data-testid="cn-files-browser-facet-menu-keywords"]')
+		expect(menu.exists()).toBe(true)
+		wrapper.vm.chooseFacet('keywords', 'advies')
+		await flushPromises()
+		expect(rowNames(wrapper)).toEqual(['Scans', 'b.pdf'])
+		expect(wrapper.vm.facetMenuName(wrapper.vm.facetGroups[0])).toBe('Keywords: advies')
+		wrapper.vm.chooseFacet('keywords', 'bezwaar')
+		await flushPromises()
+		expect(rowNames(wrapper)).toEqual(['Scans', 'a.pdf', 'b.pdf'])
+		wrapper.vm.chooseFacet('keywords', null)
+		await flushPromises()
+		expect(rowNames(wrapper)).toEqual(['Scans', 'a.pdf', 'b.pdf', 'c.pdf'])
+		wrapper.unmount()
+	})
 })
 
 describe('CnFilesTab forwards the documents list props', () => {

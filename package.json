@@ -20,7 +20,8 @@
     "**/CnWidgetGrid/registerDashboardWidgets.js",
     "**/dashboardRegistration.js",
     "**/Cn*Widget/index.js",
-    "**/CnConflictResolveCard/index.js"
+    "**/CnConflictResolveCard/index.js",
+    "**/CnShareList/index.js"
   ],
   "exports": {
     ".": {

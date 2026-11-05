@@ -861,3 +861,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	font-size: 13px;
 	line-height: normal;
 }
+
+/* CnDialog state banners (R1): under the header, or above the footer. */
+.cn-dialog__notices--top {
+	margin-bottom: 12px;
+}
+
+.cn-dialog__notices--bottom {
+	margin-top: 12px;
+}

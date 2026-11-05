@@ -1,0 +1,13 @@
+# party-picker-kind-switch Delta: party-picker-kind-switch
+
+**Status**: proposed
+**Scope**: nextcloud-vue
+**OpenSpec changes**:
+
+- [party-picker-kind-switch](../../)
+
+## ADDED Requirements
+
+### Requirement: A party picker can switch between kinds
+
+CnPartyPicker SHALL take `kindSwitch` (`{ label }`). With it and more than one source, a CnSegmentedControl named by `label` SHALL show one segment per source, named by its `kind` (else its `label`) through the host translate, the first chosen, and only the chosen source SHALL be searched; switching SHALL clear the list and search the new source for the last term. CnFormDialog SHALL forward a party field's `kindSwitch`. Without `kindSwitch` every source SHALL be searched as before.

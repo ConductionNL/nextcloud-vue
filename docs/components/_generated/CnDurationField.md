@@ -8,16 +8,26 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type      | Required | Default                               | Description                                  |
-| ------------ | --------- | -------- | ------------------------------------- | -------------------------------------------- |
-| `modelValue` | `string`  |          | `null`                                | ISO 8601 duration string (v-model), or null. |
-| `inputLabel` | `string`  |          | `''`                                  | Accessible label of the number input.        |
-| `unitLabel`  | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unit')` | Accessible label of the unit select.         |
-| `disabled`   | `boolean` |          | `false`                               | Disable both inputs.                         |
-| `error`      | `boolean` |          | `false`                               | Show the inputs in their error state.        |
+| Name                 | Type      | Required | Default                                | Description                                                      |
+| -------------------- | --------- | -------- | -------------------------------------- | ---------------------------------------------------------------- |
+| `modelValue`         | `string`  |          | `null`                                 | ISO 8601 duration string (v-model), or null.                     |
+| `inputLabel`         | `string`  |          | `''`                                   | Accessible label of the number input.                            |
+| `unitLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unit')`  | Accessible label of the unit select.                             |
+| `disabled`           | `boolean` |          | `false`                                | Disable both inputs.                                             |
+| `error`              | `boolean` |          | `false`                                | Show the inputs in their error state.                            |
+| `timer`              | `boolean` |          | `false`                                | Draw the field as a clock with Start, Stop and Reset.            |
+| `autoStart`          | `boolean` |          | `false`                                | With `timer`: start the clock when the field holds no value yet. |
+| `norm`               | `string`  |          | `null`                                 | With `timer`: an ISO 8601 length to show the time against.       |
+| `normWarningPercent` | `number`  |          | `80`                                   | Percentage of `norm` from which the bar warns.                   |
+| `normLabel`          | `string`  |          | `''`                                   | Words before the time on the norm line.                          |
+| `timerLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Timer')` | Accessible name of the Start, Stop and Reset group.              |
+| `hint`               | `string`  |          | `''`                                   | With `timer`: a line under the clock.                            |
 
 ### Events
 
 | Name                | Payload | Description                                                                     |
 | ------------------- | ------- | ------------------------------------------------------------------------------- |
 | `update:modelValue` | —       | The ISO string for the chosen amount and unit; null when the amount is cleared. |
+| `started`           | —       | The clock started.                                                              |
+| `stopped`           | —       | The clock stopped; carries the ISO string of the time.                          |
+| `reset`             | —       | The clock stopped and the value was cleared.                                    |

@@ -2497,7 +2497,7 @@ export default {
 		},
 
 		/**
-		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, upcomingLabel?, upcomingWeeksLabel?, upcomingWeeksFrom?, emptyText? }`):
+		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, upcomingLabel?, upcomingWeeksLabel?, upcomingWeeksFrom?, emptyText?, doneField?, doneLabel? }`):
 		 * "3 dagen te laat" in the danger tone, "Vandaag", the date or the time
 		 * left ("nog 4 dagen") otherwise, `emptyText` when the field is empty.
 		 *
@@ -2510,7 +2510,7 @@ export default {
 			if (!due || typeof due !== 'object' || !due.field) {
 				return null
 			}
-			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
+			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text), new Date(), row)
 		},
 
 		/**
