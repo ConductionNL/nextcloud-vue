@@ -169,6 +169,8 @@ its keyboard behaviour are the same either way.
 
 Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides. A shell given `look="board"` itself carries the board class, so an admin page that no `CnAppRoot` wraps (Nextcloud mounts admin settings on their own) still takes the board look. With `breadcrumbs`, the path line ("Beheerinstellingen / Launchpad / Algemeen · geldt voor de hele organisatie") replaces the description. A `wide` section spans the grid and is not capped at NcSettingsSection's 900px.
 
+An element that wraps sections takes no box of its own under the board look, so its sections become cards of the shell's grid. Give it the class `cn-settings-row` when it lays out its own cards, such as two cards side by side on a one-column page.
+
 ## Translations
 
 The shell and its version card register the library's translation catalogue for the user's language when the page has not done so yet. An admin page is its own webpack entry, and its chrome reads in the user's language even when that entry never calls `registerTranslations()`. Calling it in the entry as well does no harm.
