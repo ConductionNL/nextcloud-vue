@@ -32,7 +32,7 @@
   Spec: hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640).
 -->
 <template>
-	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard, 'cn-reports-page--catalogue': isCatalogue }">
+	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard, 'cn-reports-page--catalogue': isCatalogue, 'cn-reports-page--panel': isPanel }">
 		<div class="cn-reports-page__header">
 			<!-- The header buttons (`headerButtons`) beside the title, as the
 			     board's "Downloaden" and the buildiq square (board DcRapportages).
@@ -72,7 +72,55 @@
 		     as chips with their counts, the sections in a main column, each card
 		     with its category, a footer line and an Open link, and an aside with
 		     the category index and an optional note. -->
-		<template v-if="isBoard && isCatalogue">
+		<template v-if="isPanel">
+			<section class="cn-reports-page__panel" data-testid="cn-reports-panel">
+				<div class="cn-reports-page__panel-head">
+					<div class="cn-reports-page__panel-heading">
+						<h2 class="cn-reports-page__panel-title">
+							{{ tr(config.panel.title) }}
+						</h2>
+						<p v-if="config.panel.subtitle" class="cn-reports-page__panel-subtitle">
+							{{ tr(config.panel.subtitle) }}
+						</p>
+					</div>
+					<a v-if="panelLink"
+						class="cn-reports-page__panel-link"
+						data-testid="cn-reports-panel-link"
+						:href="hrefFor(panelLink)"
+						@click="open(panelLink, $event)">
+						{{ tr(panelLink.label) }}
+					</a>
+				</div>
+				<ul class="cn-reports-page__panel-grid" data-testid="cn-reports-grid">
+					<li v-for="card in resolvedCards"
+						:key="card.id"
+						class="cn-reports-page__panel-card"
+						:class="card.tone ? `cn-reports-page__panel-card--${card.tone}` : ''"
+						data-testid="cn-report-card">
+						<div class="cn-reports-page__panel-card-head">
+							<span v-if="card.unavailable" class="cn-reports-page__panel-card-title">{{ card.label }}</span>
+							<a v-else
+								class="cn-reports-page__panel-card-title"
+								:href="hrefFor(card)"
+								@click="open(card, $event)">{{ card.label }}</a>
+							<span v-if="card.pill" class="cn-reports-page__panel-card-pill">{{ card.pill }}</span>
+						</div>
+						<span v-if="card.unavailable"
+							class="cn-reports-page__panel-card-description"
+							data-testid="cn-report-unavailable">{{ card.missingText }}</span>
+						<template v-else>
+							<span v-if="card.description" class="cn-reports-page__panel-card-description">{{ card.description }}</span>
+							<span v-if="card.meta" class="cn-reports-page__panel-card-meta">{{ card.meta }}</span>
+							<a v-if="card.linkLabel"
+								class="cn-reports-page__panel-card-link"
+								:href="hrefFor(card)"
+								@click="open(card, $event)">{{ card.linkLabel }}</a>
+						</template>
+					</li>
+				</ul>
+			</section>
+		</template>
+		<template v-else-if="isBoard && isCatalogue">
 			<div class="cn-reports-page__chips"
 				role="group"
 				:aria-label="resolvedCategoryLabel"
@@ -260,6 +308,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 
 export default {
@@ -472,6 +521,19 @@ export default {
 		},
 
 		/**
+		 * The titled panel the board look draws the cards in
+		 * (`config.panel`): `{ title, subtitle?, link?: { label, route | href } }`.
+		 * No effect outside the board look.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @type {{title: string, subtitle: (string|undefined), link: (object|undefined)}|null}
+		 */
+		panel: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The look to draw in: `board` or `nextcloud`. Absent: the look
 		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
 		 *
@@ -530,6 +592,7 @@ export default {
 		 * the renderer has already resolved route sentinels in them.
 		 *
 		 * @return {object} The config.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
@@ -549,6 +612,7 @@ export default {
 				'catalogue',
 				'cardMeta',
 				'asideNote',
+				'panel',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -629,7 +693,7 @@ export default {
 		 */
 		headerButtonsRow() {
 			const buttons = this.resolvedHeaderButtons
-			if (buttons.length === 0 || !this.isBoard) {
+			if (!this.isBoard || (buttons.length === 0 && !this.isPanel)) {
 				return buttons
 			}
 			const square = { key: '__buildiq', action: '__buildiq', variant: 'secondary', label: '', icon: '' }
@@ -661,13 +725,16 @@ export default {
 		},
 
 		/**
-		 * The declared cards, ignoring any that name no route.
+		 * The declared cards, ignoring any that name neither a route nor an
+		 * href.
 		 *
-		 * A card with no route is a card that cannot be opened. Rendering it
+		 * A card with no target is a card that cannot be opened. Rendering it
 		 * would put a report on the page that silently does nothing, which is
-		 * worse than leaving it off.
+		 * worse than leaving it off. A card whose `requiresApp` is missing
+		 * stays in the panel, where it says so, and leaves the other layouts.
 		 *
 		 * @return {Array<object>} The usable cards.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		resolvedCards() {
 			const declared = this.config.cards
@@ -676,12 +743,18 @@ export default {
 			}
 
 			return declared
-				.filter((card) => card && card.route && card.label)
+				.filter((card) => card && (card.route || card.href) && card.label)
 				.map((card) => ({
 					...card,
 					label: this.tr(card.label),
 					description: this.tr(card.description || ''),
+					meta: this.tr(card.meta || ''),
+					pill: this.tr(card.pill || ''),
+					linkLabel: this.tr(card.linkLabel || ''),
+					missingText: this.tr(card.missingText || ''),
+					unavailable: Boolean(card.requiresApp) && !isAppInstalled(card.requiresApp),
 				}))
+				.filter((card) => this.isPanel || !card.unavailable)
 		},
 
 		/**
@@ -725,6 +798,28 @@ export default {
 				}
 			}
 			return sections
+		},
+
+		/**
+		 * Whether the board look draws the cards in one titled panel.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @return {boolean}
+		 */
+		isPanel() {
+			const panel = this.config.panel
+			return this.isBoard && Boolean(panel) && typeof panel.title === 'string' && panel.title !== ''
+		},
+
+		/**
+		 * The link in the panel's heading, when it names a target.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @return {object|null} The link.
+		 */
+		panelLink() {
+			const link = this.config.panel && this.config.panel.link
+			return link && link.label && (link.route || link.href) ? link : null
 		},
 
 		/**
@@ -933,14 +1028,18 @@ export default {
 		 *
 		 * @param {object} card The card.
 		 * @return {string} The href.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		hrefFor(card) {
+			if (card.href) {
+				return card.href
+			}
 			if (!this.$router) {
 				return '#'
 			}
 
 			try {
-				return this.$router.resolve({ name: card.route }).href
+				return this.$router.resolve(this.locationOf(card)).href
 			} catch {
 				return '#'
 			}
@@ -999,9 +1098,23 @@ export default {
 		 * @param {object} card The card.
 		 * @param {MouseEvent} event The click.
 		 * @return {void}
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		open(card, event) {
-			followLinkClick(event, { name: card.route }, this.$router)
+			if (!card.href) {
+				followLinkClick(event, this.locationOf(card), this.$router)
+			}
+		},
+
+		/**
+		 * The router location of a card: its route name and optional query.
+		 *
+		 * @param {object} card The card.
+		 * @return {{name: string, query: (object|undefined)}} The location.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 */
+		locationOf(card) {
+			return card.query ? { name: card.route, query: card.query } : { name: card.route }
 		},
 	},
 }

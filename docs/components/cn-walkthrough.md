@@ -127,6 +127,7 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 | `zIndex` | `number` | `10000` | Stacking order of the overlay. |
 | `nextLabel` / `backLabel` / `skipLabel` / `finishLabel` | `string` | localized | Control labels. |
 | `closeLabel` | `string` | `"Close tour"` | Accessible label for the corner ✕ button that ends the tour for good (marks it complete). |
+| `look` | `string` | - | `board` draws the board coachmark (step counter in words, dots, a wide first card). Unset, the look comes from `cnLook`. |
 | `translate` | `function` | `null` | Optional translator applied to step title/body/task i18n keys. |
 
 ## Events
