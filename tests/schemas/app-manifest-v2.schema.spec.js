@@ -1447,7 +1447,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.171.0 lets an index page draw its title column as text or strong (rowTitle; index-row-title-text-strong).
 		// 2.172.0 lets a detail page read the record's rights (permissions) and a manifest name a dotted path into @self such as @self.can.update (detail-page-record-rights).
 		// 2.173.0 lets a visibleWhen condition require the reader to be in a Nextcloud group (readerGroups; visible-when-reader-groups).
-		// 2.175.0 lets a breadcrumb crumb name the record's parent instead of a label (parent, labelField, param; detail-parent-crumb).
+		// 2.174.0 lets a breadcrumb crumb name the record's parent instead of a label (parent, labelField, param; detail-parent-crumb).
+		// 2.175.0 lets a setup summary step list readiness rows (rows, note, cancelLabel, submitLabel; setup-summary-readiness-rows) and a widget wrap its header (headerWrap).
 		expect(schema.version).toBe('2.175.0')
 	})
 
