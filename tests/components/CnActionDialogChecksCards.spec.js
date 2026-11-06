@@ -165,3 +165,19 @@ describe('the answer of the request', () => {
 		expect(w.find('[data-testid="cn-action-dialog-done"]').text()).toBe('Done looking')
 	})
 })
+
+describe('the readiness rows', () => {
+	const rows = (labels, items) => CnActionDialog.computed.checklist.call({ config: { checklist: { labels } }, items, fill: (value) => value })
+
+	it('drops a met row marked hideWhenMet and keeps it while unmet', () => {
+		const labels = { ended: { label: 'Ended', hideWhenMet: true } }
+		expect(rows(labels, [{ id: 'ended', met: true }])).toEqual([])
+		expect(rows(labels, [{ id: 'ended', met: false }]).map((row) => row.id)).toEqual(['ended'])
+	})
+
+	it('uses a detail with detailWhen only while that path is filled', () => {
+		const labels = { decision: { detail: 'on {date}', detailWhen: 'date' } }
+		expect(rows(labels, [{ id: 'decision', met: true, date: '2026-10-28' }])[0].detail).toBe('on {date}')
+		expect(rows(labels, [{ id: 'decision', met: true, detail: 'partly public' }])[0].detail).toBe('partly public')
+	})
+})
