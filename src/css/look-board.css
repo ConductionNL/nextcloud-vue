@@ -1905,10 +1905,12 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 /* An app component that wraps its sections in one element (decidiq's
    Settings.vue) takes no box of its own: its sections are grid items and
    cards, as if the shell held them directly. Only an element whose own
-   children are sections; anything else keeps spanning the grid. */
-.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section),
-.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) {
+   children are sections; anything else keeps spanning the grid. An element
+   with `cn-settings-cards` lays out its own cards (DqInstellingen "Urgentie in
+   de wachtrij" beside "Zoekindex") and keeps its box. */
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section),
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section) {
 	display: contents;
 }
 
@@ -5113,4 +5115,17 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 
 .cn-look-board .cn-conflict-resolve__actions:not(.cn-look-nextcloud *) .button-vue .button-vue__text.button-vue__text {
 	padding-inline: 0;
+}
+
+/* The party picker's kind switch on the board: 30px segments in 13px text, 6px
+   above the field (DqNieuweZaak "Soort aanvrager").
+   @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds */
+.cn-look-board .cn-party-picker__kinds.cn-segmented-control--compact:not(.cn-look-nextcloud *) {
+	margin-bottom: 6px;
+}
+
+.cn-look-board .cn-party-picker__kinds.cn-segmented-control--compact .cn-segmented-control__option:not(.cn-look-nextcloud *) {
+	min-height: 30px;
+	height: 30px;
+	font-size: 13px;
 }
