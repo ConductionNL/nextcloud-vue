@@ -28,6 +28,28 @@ function subtitleOf(template) {
 	return row.vm.subtitle
 }
 
+describe('CnObjectRow note', () => {
+	const rowWith = (object, config) => shallowMount(CnObjectRow, { propsData: { object, config } })
+
+	it('draws the note under the subtitle, in the error tone the row names', () => {
+		const note = rowWith({ title: 'A', routingNote: { text: 'Refused', level: 'error' } }, { noteTemplate: '{routingNote.text}', noteToneField: 'routingNote.level' })
+			.find('[data-testid="cn-object-row-note"]')
+		expect(note.text()).toBe('Refused')
+		expect(note.classes()).toContain('cn-object-row__note--error')
+	})
+
+	it('keeps the plain tone for any other level', () => {
+		const note = rowWith({ title: 'A', routingNote: { text: 'Split', level: 'info' } }, { noteTemplate: '{routingNote.text}', noteToneField: 'routingNote.level' })
+			.find('[data-testid="cn-object-row-note"]')
+		expect(note.classes()).not.toContain('cn-object-row__note--error')
+	})
+
+	it('draws nothing while the note is empty', () => {
+		const row = rowWith({ title: 'A' }, { noteTemplate: '{routingNote.text}' })
+		expect(row.find('[data-testid="cn-object-row-note"]').exists()).toBe(false)
+	})
+})
+
 describe('CnObjectRow subtitle formatters', () => {
 	it('reads a token through the named formatter, with the row', () => {
 		expect(subtitleOf('{identifier} · {status|statusTypeName} · {priority|priorityPhrase}')).toBe('2026-0076 · Ontvangen · prioriteit hoog')
