@@ -1,3 +1,7 @@
+---
+kind: code
+---
+
 # Walkthrough coachmark in the board look
 
 ## Why
