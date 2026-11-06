@@ -3463,6 +3463,35 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	gap: 8px 12px;
 }
 
+/* A note row's spacing (DqDagAfsluiten "Nog open van vandaag"): 16px around
+   the row, 12px between its fields, a 16px title, and fields flush at the
+   control height, so the label sits 6px over the edge the board draws.
+   @spec openspec/changes/board-record-notes-controls/specs/board-record-notes-controls/spec.md#requirement-board-note-rows-draw-the-boards-controls */
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__ready {
+	margin-bottom: 6px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__row {
+	padding: 16px 0;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__title {
+	font-size: 16px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__fields {
+	gap: 12px;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__field-label {
+	line-height: 1.2;
+}
+
+.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__fields .input-field__main-wrapper {
+	height: var(--cn-board-control-height);
+	padding: 0;
+}
+
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__fields .button-vue,
 .cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *) .cn-record-notes__all-actions .button-vue {
 	--button-size: var(--cn-board-control-height);
