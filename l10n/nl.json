@@ -2996,6 +2996,8 @@
     "Down": "Omlaag",
     "Steps on a branch are moved on the canvas.": "Stappen in een vertakking verplaatst u op het canvas.",
     "Step {n}": "Stap {n}",
+    "Close tour": "Rondleiding sluiten",
+    "Step {current} of {total}": "Stap {current} van {total}",
     "View of the flow": "Weergave van de flow",
     "Canvas": "Canvas",
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "Dezelfde flow en dezelfde stappen als op het canvas; wat u hier wijzigt, staat daar ook.",
