@@ -56,6 +56,7 @@ export function stagesOf(field, colorField = '') {
 					hidden: entry?.hidden === true,
 					color: colorOf(field, entry, colorField),
 					capacity: capacityValue(entry?.capacity),
+					merged: entry?.merged,
 					closed: entry?.closed === true,
 				}))
 		.filter((stage) => stage.key !== '')
@@ -172,6 +173,7 @@ export function buildBoardColumns({
 		label: stage.label,
 		color: stage.color,
 		capacity: stage.capacity ?? null,
+		merged: stage.merged ?? 1,
 		closed: stage.closed === true,
 		cards: [],
 		count: 0,
