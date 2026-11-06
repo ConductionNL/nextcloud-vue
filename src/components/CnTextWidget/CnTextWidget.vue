@@ -482,7 +482,6 @@ export default {
 	height: 100%;
 }
 
-.cn-text-widget__content,
 .cn-text-widget__mono {
 	width: 100%;
 	margin: 0;
@@ -497,6 +496,7 @@ export default {
 	border-radius: var(--border-radius);
 }
 
+.cn-text-widget__content,
 .cn-text-widget__placeholder {
 	/* Safety net — ensures long URLs / words inside the sanitised HTML wrap
 	   rather than overflowing horizontally. */

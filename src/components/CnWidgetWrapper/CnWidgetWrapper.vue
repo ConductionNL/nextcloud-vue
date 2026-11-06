@@ -33,7 +33,7 @@
 		     `headerIsWorthIt()` carries the reasoning. -->
 		<div v-if="headerIsWorthIt()"
 			class="cn-widget-wrapper__header"
-			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible }"
+			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible, 'cn-widget-wrapper__header--wrap': headerWrap }"
 			:style="[headerStyles, titleIconStyle]">
 			<!-- Title icon — left: rendered before the title group. Moved
 			     INSIDE header-left so the header's `space-between` cannot pull
@@ -338,6 +338,15 @@ export default {
 		subtitle: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Let the header actions drop under a title block that fills the
+		 * row, instead of squeezing it (widget `headerWrap`).
+		 */
+		headerWrap: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether to show the header with title */
@@ -1340,6 +1349,10 @@ export default {
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__header--wrap {
+	flex-wrap: wrap;
 }
 
 /* Actions with no title beside them. `header-left` is not rendered at all in
