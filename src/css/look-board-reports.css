@@ -406,3 +406,125 @@
 	line-height: 1.45;
 	color: var(--cn-board-text-soft);
 }
+
+/*
+ * `config.panel` (board DqRapportages): the report cards in one titled panel,
+ * as a flat grid with an optional external and a highlighted card.
+ */
+.cn-look-board .cn-reports-page--panel:not(.cn-look-nextcloud *) .cn-reports-page__description {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: var(--cn-board-card-padding);
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: var(--cn-board-card-radius);
+	background: var(--color-main-background);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-subtitle {
+	margin: 0;
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-link,
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-link {
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 10px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card--external {
+	border: 1px dashed var(--color-border-maxcontrast);
+	background: var(--cn-board-sunken-ground);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card--highlight {
+	gap: 4px;
+	padding: 12px 14px;
+	background: var(--cn-board-notice-info-ground);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-title {
+	color: var(--color-main-text);
+	font-size: 15px;
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card--highlight .cn-reports-page__panel-card-title {
+	color: var(--cn-board-primary-light-ink);
+	font-size: 16px;
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-pill {
+	padding: 3px 10px;
+	border: 1px solid var(--cn-board-hairline);
+	border-radius: 12px;
+	background: var(--color-main-background);
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-description {
+	font-size: 13px;
+	color: var(--cn-board-text-soft);
+}
+
+.cn-look-board .cn-reports-page:not(.cn-look-nextcloud *) .cn-reports-page__panel-card-meta {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
