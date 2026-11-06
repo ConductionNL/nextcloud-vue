@@ -304,6 +304,7 @@ export default {
 	name: 'CnSetupWizard',
 
 	components: {
+		Check,
 		CnWizardDialog,
 		CnChoiceCards,
 		CnLeafDependencySettings,
