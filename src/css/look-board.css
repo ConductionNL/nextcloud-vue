@@ -2844,6 +2844,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	background: var(--cn-board-notice-bg);
 }
 
+/* The compact footnote is the board's small note: 10px 12px, radius 8
+   (DqZaakTaken "Wat hierna komt"). */
+.cn-look-board .cn-record-list__notice--compact:not(.cn-look-nextcloud *) {
+	padding: 10px 12px;
+	border-radius: 8px;
+}
+
 /* ---- Date and age cells (screens-cell-date-parity) ---------------------- */
 /* The board sets every waiting time ("3 dagen", "4 uur") in weight 600; a
    late one is red through its variant class. */

@@ -81,9 +81,17 @@
 
 			<NcLoadingIcon v-if="loading" :size="32" />
 
-			<NcNoteCard v-else-if="error" type="error" data-testid="cn-timeline-error">
-				{{ error }}
-			</NcNoteCard>
+			<div v-else-if="error" class="cn-timeline-manage__failure">
+				<NcNoteCard type="error" data-testid="cn-timeline-error">
+					<strong v-if="readFailed && errorTitle">{{ errorTitle }}</strong>
+					{{ readFailed && errorText ? errorText : error }}
+				</NcNoteCard>
+				<NcButton v-if="readFailed"
+					data-testid="cn-timeline-retry"
+					@click="load">
+					{{ t('nextcloud-vue', 'Try again') }}
+				</NcButton>
+			</div>
 
 			<NcEmptyContent v-else-if="entries.length === 0"
 				:name="t('nextcloud-vue', 'Nothing recorded yet')"
@@ -327,6 +335,8 @@ export default {
 		 * beoordeeld: Mail aannemer over planning"), its author by display
 		 * name, and its kind's icon in the rail circle: `kindIcons`
 		 * (`{ kind: iconName }`), else the `icon` the kind declares.
+		 * `errorTitle` and `errorText` word a failed read in the host's own
+		 * words; a failed read always offers Try again.
 		 */
 		content: { type: Object, default: () => ({}) },
 	},
@@ -340,6 +350,7 @@ export default {
 			kinds: [],
 			loading: false,
 			error: '',
+			readFailed: false,
 			canManage: false,
 			kindFilter: null,
 			visibilityFilter: null,
@@ -357,6 +368,16 @@ export default {
 	},
 
 	computed: {
+		/** The heading of a failed read, in the host's words. */
+		errorTitle() {
+			return this.translate(this.content?.errorTitle)
+		},
+
+		/** The sentence of a failed read, in the host's words. */
+		errorText() {
+			return this.translate(this.content?.errorText)
+		},
+
 		titleText() {
 			return this.content.title ? this.translate(this.content.title) : t('nextcloud-vue', 'History')
 		},
@@ -642,6 +663,7 @@ export default {
 			}
 			this.loading = true
 			this.error = ''
+			this.readFailed = false
 			try {
 				const params = {}
 				if (this.visibilityFilter?.id) {
@@ -659,6 +681,7 @@ export default {
 				this.allEntries = []
 				this.entries = []
 				this.error = t('nextcloud-vue', 'The timeline could not be read. Try again, or ask an administrator to check OpenRegister.')
+				this.readFailed = true
 			} finally {
 				this.loading = false
 			}
@@ -997,6 +1020,13 @@ export default {
 	margin: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
+}
+
+.cn-timeline-manage__failure {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
 }
 
 .cn-timeline-manage__chips {
