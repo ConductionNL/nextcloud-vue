@@ -107,7 +107,7 @@
 						<!-- Several items to tick, listed from the record or the config
 						     (DqZaakDialogen "Documenten die meegaan"). -->
 						<fieldset v-else-if="field.type === 'checks'"
-							class="cn-action-dialog__checks"
+							class="cn-action-dialog__check-field"
 							:data-testid="`cn-action-dialog-checks-${field.field}`">
 							<legend class="cn-action-dialog__checks-legend">
 								{{ fill(field.label) || field.field }}
@@ -1642,7 +1642,7 @@ export default {
 	font-size: 14px;
 }
 
-.cn-action-dialog__checks {
+.cn-action-dialog__check-field {
 	border: 0;
 	display: flex;
 	flex-direction: column;
