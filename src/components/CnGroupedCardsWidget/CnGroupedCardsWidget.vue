@@ -533,7 +533,7 @@ export default {
 		headerSubtitleText: {
 			immediate: true,
 			/**
-			 * @param subtitle
+			 * @param {string} subtitle The line, or ''.
 			 * @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title
 			 */
 			handler(subtitle) {
