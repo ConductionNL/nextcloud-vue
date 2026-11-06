@@ -584,8 +584,8 @@ import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
-import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
-import { flowRunOutcome, flowRunStatuses } from '../../utils/flowRunStatus.js'
+import { flowOutcomeLevels, flowRunBadge, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
 import { overlayInset } from '../../utils/overlayInset.js'
 import { normaliseSelectOptions } from '../../utils/selectOptions.js'
@@ -758,8 +758,7 @@ export default {
 
 		/** @return {{label: string, variant: string}} The run's status pill. */
 		runStatus() {
-			const status = flowRunOutcome(this.runRecord)
-			return flowRunStatuses()[status] || { label: status, variant: 'default' }
+			return flowRunBadge(this.runRecord)
 		},
 
 		/** @return {number} How many of the run's steps warned. */

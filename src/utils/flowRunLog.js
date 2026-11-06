@@ -4,7 +4,7 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import { flowRunOutcome, isFlowEndStop } from './flowRunStatus.js'
+import { flowRunOutcome, flowRunStatuses, isFlowEndStop } from './flowRunStatus.js'
 
 /**
  * Reading a flow run's log as outcomes and lines.
@@ -133,6 +133,22 @@ export function flowRunSteps(run) {
 			entry,
 		}
 	})
+}
+
+/**
+ * The pill a run reads as: its outcome, or a warning when it finished past a
+ * step that failed.
+ *
+ * @param {object} run The run.
+ * @return {{label: string, variant: string}} The pill.
+ */
+export function flowRunBadge(run) {
+	const status = flowRunOutcome(run)
+	if (status === 'completed' && flowRunSteps(run).some((step) => step.level === 'warning')) {
+		return { label: t('nextcloud-vue', 'Finished with a warning'), variant: 'warning' }
+	}
+
+	return flowRunStatuses()[status] || { label: status, variant: 'default' }
 }
 
 /**

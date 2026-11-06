@@ -2753,7 +2753,8 @@
     "Test": "Test",
     "Health": "Health",
     "Subjects": "Subjects",
-    "The run ended here.": "The run ended here."
+    "The run ended here.": "The run ended here.",
+    "Finished with a warning": "Finished with a warning"
   },
   "plurals": {
     "{count} member": [
@@ -2990,6 +2991,10 @@
     "in {count} place": [
       "in {count} place",
       "in {count} places"
+    ],
+    "%n log line": [
+      "%n log line",
+      "%n log lines"
     ]
   }
 }

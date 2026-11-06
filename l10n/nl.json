@@ -3017,7 +3017,8 @@
     "Test": "Testen",
     "Health": "Gezondheid",
     "Subjects": "Onderwerpen",
-    "The run ended here.": "De uitvoering eindigde hier."
+    "The run ended here.": "De uitvoering eindigde hier.",
+    "Finished with a warning": "Afgerond met waarschuwing"
   },
   "plurals": {
     "{count} member": [
@@ -3275,6 +3276,10 @@
     "in {count} place": [
       "in {count} plek",
       "in {count} plekken"
+    ],
+    "%n log line": [
+      "%n logregel",
+      "%n logregels"
     ]
   }
 }
