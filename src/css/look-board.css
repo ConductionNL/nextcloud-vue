@@ -1906,11 +1906,11 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
    Settings.vue) takes no box of its own: its sections are grid items and
    cards, as if the shell held them directly. Only an element whose own
    children are sections; anything else keeps spanning the grid. An element
-   with `cn-settings-row` lays out its own cards (DqInstellingen "Urgentie in
+   with `cn-settings-cards` lays out its own cards (DqInstellingen "Urgentie in
    de wachtrij" beside "Zoekindex") and keeps its box. */
-.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-row):has(> .settings-section),
-.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-row):has(> .settings-section),
-.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-row):has(> .settings-section) {
+.cn-look-board .cn-admin-settings-shell__panel:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section),
+.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section),
+.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section) {
 	display: contents;
 }
 

@@ -80,9 +80,9 @@ describe('look-board.css: admin settings', () => {
 
 	it('makes sections inside a wrapping element grid items and cards', () => {
 		const wrapper = '.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section)'
-		expect(rulesFor('.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-row):has(> .settings-section)')).toMatch(/display: contents/)
+		expect(rulesFor('.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section)')).toMatch(/display: contents/)
 		expect(rulesFor(wrapper)).not.toMatch(/display: contents/)
-		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-row):has(> .settings-section)')).toMatch(/display: contents/)
+		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section)')).toMatch(/display: contents/)
 		expect(rulesFor(`${wrapper} > .settings-section`)).toMatch(/padding: 22px 24px/)
 		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section')).toMatch(/background: var\(--color-main-background\)/)
 	})
