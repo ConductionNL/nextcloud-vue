@@ -602,9 +602,10 @@
 		<div
 			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
 			class="cn-record-list__notice cn-record-list__notice--footnote"
-			:class="`cn-record-list__notice--${footnoteTone}`"
+			:class="[`cn-record-list__notice--${footnoteTone}`, { 'cn-record-list__notice--compact': content.footnoteCompact === true }]"
 			data-testid="cn-record-list-footnote">
 			<CnIcon
+				v-if="content.footnoteCompact !== true"
 				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
 				:size="16"
 				class="cn-record-list__notice-icon"
@@ -615,6 +616,14 @@
 		</div>
 		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
+		</p>
+		<p
+			v-for="(paragraph, index) in footnoteParagraphs"
+			v-show="!error && !absent && rows.length > 0"
+			:key="`footnote-${index}`"
+			class="cn-record-list__footnote"
+			data-testid="cn-record-list-footnote">
+			{{ paragraph }}
 		</p>
 		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
 		<router-link
@@ -894,7 +903,9 @@ export default {
 		 * and `variant` (Concept, Vastgezet, Actief). A label may carry the
 		 * row's values as template tokens ("{value|currency}").
 		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
-		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * as a toned notice box with its icon (DqZaaktype opt-out note);
+		 * `footnoteCompact: true` draws that box without the icon, in small
+		 * text (DqZaakTaken "Wat hierna komt").
 		 * `tableLook: "data"` marks a `table` as a data table, which the board
 		 * look draws as its card table (header band, 40px rows, hairlines)
 		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
@@ -1673,9 +1684,15 @@ export default {
 			return this.rows.length === 0 && typeof value === 'string' && value !== '' ? this.translate(value) : ''
 		},
 
-		/** @return {string} The note under the list (`footnote`), translated. */
+		/**
+		 * @return {string} The note under the list (`footnote`), translated.
+		 * @spec openspec/changes/record-list-footnote-compact/specs/record-list/spec.md#requirement-a-toned-footnote-can-be-compact
+		 */
 		footnote() {
 			const note = this.content?.footnote
+			if (Array.isArray(note)) {
+				return ''
+			}
 			if (note && typeof note === 'object') {
 				const value = this.footnoteValue
 				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
@@ -1684,6 +1701,18 @@ export default {
 				return this.translate(note.text).replace(/\{value\}/g, String(value))
 			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * A `footnote` given as a list: each entry is its own paragraph,
+		 * translated. An object or string footnote is not listed here.
+		 *
+		 * @return {Array<string>} The paragraphs.
+		 * @spec exclude a paragraph footnote has no spec of its own
+		 */
+		footnoteParagraphs() {
+			const note = this.content?.footnote
+			return Array.isArray(note) ? note.filter((text) => typeof text === 'string' && text !== '').map((text) => this.translate(text)) : []
 		},
 
 		/**
@@ -3902,6 +3931,11 @@ export default {
 	margin-top: 12px;
 }
 
+.cn-record-list__notice--compact {
+	font-size: 13px;
+	line-height: 1.4;
+}
+
 .cn-record-list__notice-icon {
 	flex: 0 0 auto;
 	margin-top: 1px;
@@ -4199,6 +4233,10 @@ export default {
 	margin: 8px 0 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+.cn-record-list__footnote + .cn-record-list__footnote {
+	margin-top: 12px;
 }
 
 .cn-record-list__due--soon {

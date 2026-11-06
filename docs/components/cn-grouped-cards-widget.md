@@ -47,6 +47,7 @@ at `GET /api/case-types/{id}/phases`; the widget is generic and reads any payloa
 | `groupProgress` | `{ valuePath, label? }`: a progress bar of the group's value (0 to 100) at `valuePath`, `label` filled from the group. |
 | `heading` | A template filled from the payload, drawn as a heading above the groups when the widget is a page of its own (`{name}` of an offer). |
 | `extraItemsKey`, `extraItemsHeading` | A second list of each group under its own heading (who did not sign up, the courses still to do). `extraItemTitle`, `extraItemMeta` and `extraItemActions` work as for the cards; a plain string entry reads as `{ value }`. |
+| `itemLook` | `"rows"` draws a group's entries as plain rows instead of cards (DqSociaalDomein Gezinsplan). |
 | `itemFlag` | `{ field, label }`: a card whose `field` is true carries `label` ("Overdue") in the error colour. |
 | `itemsPath`, `itemGroupField` | Read the cards from one flat list of the payload: a card joins the group whose `id` its `itemGroupField` names. |
 | `ungroupedTitle` | With `itemsPath`, the group of the cards that name no group. Without it they are left out. |

@@ -581,6 +581,9 @@ export default {
 			sourceVisibility: {},
 			// Bumped per evaluation round, so a slow answer from an earlier round is dropped.
 			visibilitySeq: 0,
+			// Answers of the endpoint and source conditions of stacked widgets, by widget id.
+			stackConditionAnswers: {},
+			stackConditionSeq: 0,
 			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
 			widgetCounts: {},
 			// Read-state parts this page has marked read since it opened
@@ -816,6 +819,27 @@ export default {
 		},
 
 		/**
+		 * The stacked widgets whose `visibleWhen` needs a request, with what
+		 * they ask, as one key: a change asks them again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		stackConditionsKey() {
+			if (!this.objectData) {
+				return '[]'
+			}
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const ids = new Set(tabs.flatMap((tab) => {
+				const stack = this.tabWidgetIds(tab)
+				return stack.length > 1 ? stack : []
+			}))
+			const remote = this.availableWidgets.filter((w) => w && ids.has(w.id) && w.visibleWhen && typeof w.visibleWhen === 'object'
+				&& !isWorkspaceCondition(w.visibleWhen) && !isLocallyDecidableVisibleWhen(w.visibleWhen))
+			return JSON.stringify(remote.map((w) => [w.id, w.visibleWhen]))
+		},
+
+		/**
 		 * Name of the menu that holds the tabs that are not in the strip.
 		 *
 		 * @return {string|undefined} The configured label, or undefined for the default.
@@ -964,9 +988,12 @@ export default {
 			this.syncHash()
 		},
 
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
 		objectId() {
 			this.sourceVisibility = {}
 			this.refreshSourceVisibility()
+			this.stackConditionAnswers = {}
+			this.refreshStackConditions()
 			this.widgetCounts = {}
 			this.refreshWidgetCounts()
 		},
@@ -977,6 +1004,11 @@ export default {
 
 		sourceConditionsKey() {
 			this.refreshSourceVisibility()
+		},
+
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
+		stackConditionsKey() {
+			this.refreshStackConditions()
 		},
 	},
 
@@ -1008,6 +1040,7 @@ export default {
 		}
 		this.activeKey = this.resolvedTabs[this.activeIndex]?.key || ''
 		this.refreshSourceVisibility()
+		this.refreshStackConditions()
 		this.refreshWidgetCounts()
 	},
 
@@ -1139,8 +1172,9 @@ export default {
 		 * own `visibleWhen` reads a field of the record or of a record the
 		 * page's `visibilityContext` names (`@context.<name>`), and does not
 		 * hold, as a grid widget's would not. Hidden while those records
-		 * load. Off a detail page (no record), and for a condition that needs
-		 * a request, nothing is hidden here.
+		 * load. A condition that needs a request hides the widget until its
+		 * answer says it holds. Off a detail page (no record) nothing is
+		 * hidden here.
 		 *
 		 * @param {object} widget The widget definition.
 		 * @return {boolean} True when the widget must not draw.
@@ -1148,10 +1182,30 @@ export default {
 		 */
 		hiddenByRecord(widget) {
 			const cond = widget.visibleWhen
-			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond)) {
 				return false
 			}
-			return !detailWidgetVisible(widget, this.conditionData)
+			return !detailWidgetVisible(widget, this.conditionData, { answers: this.stackConditionAnswers })
+		},
+
+		/**
+		 * Ask the endpoint and source conditions of the stacked widgets, once
+		 * per record. Each is fail-safe: an error hides the widget.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		async refreshStackConditions() {
+			const seq = ++this.stackConditionSeq
+			const entries = JSON.parse(this.stackConditionsKey)
+			const ctx = { objectId: this.objectId, object: this.conditionData || this.objectData || undefined }
+			const answers = {}
+			await Promise.all(entries.map(async ([id, cond]) => {
+				answers[id] = await evaluateVisibleWhen(cond, ctx)
+			}))
+			if (seq === this.stackConditionSeq) {
+				this.stackConditionAnswers = answers
+			}
 		},
 
 		/**
