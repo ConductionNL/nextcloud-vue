@@ -296,8 +296,9 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
  *
  * @param {object} cond The condition.
  * @return {boolean} True for a composition.
+ * @spec exclude helper of evaluateWidgetConditions, no behaviour of its own
  */
-function isComposition(cond) {
+export function isComposition(cond) {
 	return Array.isArray(cond.all) === true || Array.isArray(cond.any) === true
 }
 

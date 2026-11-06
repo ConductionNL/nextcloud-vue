@@ -90,6 +90,7 @@
 				class="cn-flow-dry-run__step"
 				data-testid="flow-dry-run-step">
 				<span class="cn-flow-dry-run__step-name">{{ step.label || step.type || step.nodeId }}</span>
+				<span v-if="step.error" class="cn-flow-dry-run__error" data-testid="flow-dry-run-step-error">{{ step.error }}</span>
 				<span v-if="summaryOf(step)" class="cn-flow-dry-run__summary">{{ summaryOf(step) }}</span>
 				<ul v-if="changesOf(step).length > 0" class="cn-flow-dry-run__list">
 					<li v-for="change in changesOf(step)" :key="change.field" data-testid="flow-dry-run-change">
@@ -133,7 +134,7 @@ export default {
 	props: {
 		/**
 		 * OpenRegister's dry-run answer: `{ status, error?, steps: [{ nodeId,
-		 * type, label, status, preview: { performed, summary?, changes?,
+		 * type, label, status, error?, preview: { performed, summary?, changes?,
 		 * messages? } }] }`.
 		 */
 		result: {
@@ -204,7 +205,7 @@ export default {
 			const fields = this.changesOf(step).map((change) => `${change.field}: ${this.valueText(change.value)}`)
 			const messages = this.messagesOf(step).map((message) => t('nextcloud-vue', 'To {recipients}', { recipients: (message.to || []).join(', ') }))
 
-			return [this.summaryOf(step), ...fields, ...messages].filter(Boolean).join(' · ')
+			return [step.error, this.summaryOf(step), ...fields, ...messages].filter(Boolean).join(' · ')
 		},
 
 		/**
@@ -265,6 +266,8 @@ export default {
 	inline-size: 100%;
 	border-collapse: collapse;
 	font-size: 13px;
+	table-layout: fixed;
+	overflow-wrap: anywhere;
 }
 
 .cn-flow-dry-run__table th {

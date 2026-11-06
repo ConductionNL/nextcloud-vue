@@ -8,8 +8,15 @@
  *
  * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick, reactive } from 'vue'
+
+const mockEvaluate = jest.fn()
+jest.mock('../../src/utils/visibleWhen.js', () => {
+	const actual = jest.requireActual('../../src/utils/visibleWhen.js')
+	return { ...actual, evaluateVisibleWhen: (...a) => mockEvaluate(...a) }
+})
+
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 
 const WIDGETS = [
@@ -17,11 +24,12 @@ const WIDGETS = [
 	{ id: 'w-interaction', type: 'custom', title: 'Contact moment', visibleWhen: { field: 'kind', op: 'eq', value: 'interaction' } },
 	{ id: 'w-review', type: 'custom', title: 'Review', visibleWhen: { field: '@context.ticketType.review', op: 'eq', value: true } },
 	{ id: 'w-note', type: 'text', title: 'Note' },
+	{ id: 'w-checklist', type: 'record-list', title: 'Checklist', visibleWhen: { endpoint: '/api/checklist', field: 'items', op: 'notEmpty' } },
 ]
 
-function mountTabs(objectData, provide = {}) {
+function mountTabs(objectData, provide = {}, widgetIds = ['w-data', 'w-interaction', 'w-review', 'w-note']) {
 	return mount(CnTabsWidget, {
-		props: { content: { tabs: [{ widgetIds: ['w-data', 'w-interaction', 'w-review', 'w-note'], label: 'Overview' }] }, availableWidgets: WIDGETS, objectData },
+		props: { content: { tabs: [{ widgetIds, label: 'Overview' }] }, availableWidgets: WIDGETS, objectData, objectId: objectData?.id },
 		global: {
 			provide,
 			stubs: { CnDetailWidgetHost: { name: 'CnDetailWidgetHost', props: ['widget'], template: '<div class="host">{{ widget.id }}</div>' } },
@@ -54,6 +62,38 @@ describe('CnTabsWidget stack on a detail page', () => {
 		state.rows = { ticketType: { review: true } }
 		await nextTick()
 		expect(shown(w)).toEqual(['w-data', 'w-interaction', 'w-review', 'w-note'])
+	})
+
+	it('draws a stacked widget with a request condition only once the answer holds', async () => {
+		let answer
+		mockEvaluate.mockReturnValueOnce(new Promise((resolve) => {
+			answer = resolve
+		}))
+		const w = mountTabs({ id: 't1' }, {}, ['w-data', 'w-checklist'])
+		await flushPromises()
+		expect(shown(w)).toEqual(['w-data'])
+		answer(true)
+		await flushPromises()
+		expect(shown(w)).toEqual(['w-data', 'w-checklist'])
+		expect(mockEvaluate.mock.calls[0][1].objectId).toBe('t1')
+	})
+
+	it('leaves a stacked widget out when the request condition does not hold', async () => {
+		mockEvaluate.mockResolvedValueOnce(false)
+		const w = mountTabs({ id: 't1' }, {}, ['w-data', 'w-checklist'])
+		await flushPromises()
+		expect(shown(w)).toEqual(['w-data'])
+	})
+
+	it('asks again for another record and hides until that answer is in', async () => {
+		mockEvaluate.mockResolvedValueOnce(true)
+		const w = mountTabs({ id: 't1' }, {}, ['w-data', 'w-checklist'])
+		await flushPromises()
+		expect(shown(w)).toEqual(['w-data', 'w-checklist'])
+		mockEvaluate.mockResolvedValueOnce(false)
+		await w.setProps({ objectId: 't2', objectData: { id: 't2' } })
+		await flushPromises()
+		expect(shown(w)).toEqual(['w-data'])
 	})
 
 	it('hides nothing without a record, as on a dashboard', async () => {

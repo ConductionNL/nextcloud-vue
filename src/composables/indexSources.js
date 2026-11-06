@@ -18,7 +18,7 @@ import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
-import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunOutcome, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
 import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
@@ -106,8 +106,9 @@ export function flowTriggerCell(flow, catalog = []) {
  * last run ended, how often it ran this week), read in one request from
  * the run summary rather than derived from a page of runs.
  *
- * `sourceConfig.extraColumns` adds `health` (a dot before the name) and `owner`
- * (before the status) to the default columns, as board OrFlows draws them.
+ * The columns are those of board OrFlows, with `health` (a dot before the name)
+ * and `owner` (before the status). `sourceConfig.extraColumns` narrows those
+ * two: `[]` leaves both out.
  *
  * The quick filters (All, Active, Paused, With errors) narrow the loaded
  * list in place: every flow of the app is already loaded, so the counts on
@@ -118,7 +119,7 @@ export function flowTriggerCell(flow, catalog = []) {
  */
 function flowsSource(config = {}) {
 	const store = useFlowStore()
-	const extraColumns = [].concat(config.extraColumns ?? [])
+	const extraColumns = [].concat(config.extraColumns ?? ['health', 'owner'])
 	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
 
@@ -131,19 +132,20 @@ function flowsSource(config = {}) {
 		const id = flow.id || flow.uuid
 		const summary = (store.runSummary || {})[id] || {}
 		const lastRun = summary.lastRun || null
-		const lastStatus = lastRun ? statuses[lastRun.status] : null
+		const lastOutcome = flowRunOutcome(lastRun)
+		const lastStatus = lastRun ? statuses[lastOutcome] : null
 		const trigger = flowTriggerCell(flow, store.eventCatalog)
 		return {
 			...flow,
 			triggerLabel: trigger.label,
 			triggerDetail: trigger.detail,
 			triggerIcon: trigger.icon,
-			lastRunStatus: lastRun ? lastRun.status : '',
+			lastRunStatus: lastOutcome,
 			lastRunLabel: lastRun
-				? ((lastStatus && lastStatus.label) || String(lastRun.status || ''))
+				? ((lastStatus && lastStatus.label) || lastOutcome)
 				: t('nextcloud-vue', 'Not run yet'),
 			lastRunAt: lastRun ? formatRelativeDate(lastRun.created, { withTime: true }) : '',
-			lastRunFailed: !!lastRun && FLOW_RUN_ERROR_STATUSES.includes(lastRun.status),
+			lastRunFailed: FLOW_RUN_ERROR_STATUSES.includes(lastOutcome),
 			runsThisWeek: Number(summary.runsSince) || 0,
 			// The switch reads `enabled`; the label is what a screen reader and
 			// an export see. A flow with no owner is enabled but cannot start,
@@ -225,7 +227,7 @@ function flowsSource(config = {}) {
 		loading: () => !!store.loading,
 
 		columns: [
-			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), widget: 'flowHealth' }] : []),
+			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), labelHidden: true, width: '32px', widget: 'flowHealth' }] : []),
 			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
 			{
 				key: 'triggerLabel',
@@ -421,7 +423,7 @@ function flowRunsSource(config = {}) {
 				...run,
 				id: run.uuid,
 				flowName: names[run.flowId] || run.flowId,
-				statusLabel: (statuses[run.status] && statuses[run.status].label) || String(run.status || ''),
+				statusLabel: (statuses[flowRunOutcome(run)] && statuses[flowRunOutcome(run)].label) || flowRunOutcome(run),
 				startedAt: formatRelativeDate(run.created, { withTime: true }),
 				subjectLabel: flowRunSubjects(run).map((subject) => subject.uuid).join(', '),
 				subjectRoles: flowRunSubjects(run).map((subject) => subject.role).filter(Boolean).join(', '),

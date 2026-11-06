@@ -67,6 +67,12 @@
 							data-testid="cn-board-sum">
 							{{ columnSum(column) }}
 						</span>
+						<span
+							v-if="columnNote(column) !== ''"
+							class="cn-board-view__column-note"
+							data-testid="cn-board-column-note">
+							{{ columnNote(column) }}
+						</span>
 					</div>
 					<h3 v-else class="cn-board-view__column-header">
 						{{ column.label }}
@@ -632,6 +638,29 @@ export default {
 		},
 
 		/**
+		 * The line under a full column's heading (manifest
+		 * `config.board.fullNote`), host-translated. Empty draws none.
+		 *
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		fullNote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The line under the heading of a column merged from several rows
+		 * (manifest `config.board.mergedNote`), host-translated, with `{count}`
+		 * for the rows. Empty draws none.
+		 *
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		mergedNote: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * The column a row belongs in, for a status whose raw value is not
 		 * the column key: a reference whose rows are merged by name
 		 * (screens-board-reference-columns). Absent, the row's `statusField`
@@ -1009,6 +1038,21 @@ export default {
 			}
 			const key = String(column.key)
 			return this.dragAllowed.keys.includes(key) ? '' : (this.dragAllowed.reasons[key] || '')
+		},
+
+		/**
+		 * The line under a column's heading: that it is full, or that it was
+		 * merged and so has no limit.
+		 *
+		 * @param {object} column The column.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
+		 */
+		columnNote(column) {
+			if (this.isFull(column)) {
+				return this.fullNote
+			}
+			return column?.merged > 1 ? this.mergedNote.replace('{count}', String(column.merged)) : ''
 		},
 
 		/**
