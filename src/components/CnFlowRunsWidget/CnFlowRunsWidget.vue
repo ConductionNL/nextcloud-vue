@@ -44,8 +44,8 @@
 						<span
 							v-if="!pills"
 							class="cn-flow-runs-widget__dot"
-							:class="`cn-flow-runs-widget__dot--${run.status}`"
-							:title="statusLabel(run.status)" />
+							:class="`cn-flow-runs-widget__dot--${outcomeOf(run)}`"
+							:title="statusLabel(outcomeOf(run))" />
 						<span class="cn-flow-runs-widget__body">
 							<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
 							<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
@@ -53,8 +53,8 @@
 						<CnStatusBadge
 							v-if="pills"
 							class="cn-flow-runs-widget__pill"
-							:label="statusLabel(run.status)"
-							:variant="statusVariant(run.status)"
+							:label="statusLabel(outcomeOf(run))"
+							:variant="statusVariant(outcomeOf(run))"
 							size="small" />
 						<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
 					</component>
@@ -90,8 +90,8 @@
 							<span
 								v-if="!pills"
 								class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
-								:class="`cn-flow-runs-widget__dot--${run.status}`"
-								:title="statusLabel(run.status)" />
+								:class="`cn-flow-runs-widget__dot--${outcomeOf(run)}`"
+								:title="statusLabel(outcomeOf(run))" />
 							<span class="cn-flow-runs-widget__body">
 								<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
 								<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
@@ -99,8 +99,8 @@
 							<CnStatusBadge
 								v-if="pills"
 								class="cn-flow-runs-widget__pill"
-								:label="statusLabel(run.status)"
-								:variant="statusVariant(run.status)"
+								:label="statusLabel(outcomeOf(run))"
+								:variant="statusVariant(outcomeOf(run))"
 								size="small" />
 							<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
 						</component>
@@ -122,6 +122,7 @@ import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
@@ -704,6 +705,14 @@ export default {
 		},
 
 		/**
+		 * @param {object} run The run row.
+		 * @return {string} How the run ended: a clean End reads as `completed`.
+		 */
+		outcomeOf(run) {
+			return flowRunOutcome(run)
+		},
+
+		/**
 		 * The human label for a status, falling back to the raw value so an
 		 * engine that gains a status still renders something truthful.
 		 *
@@ -746,7 +755,7 @@ export default {
 			if (typeof words === 'string' && words !== '') {
 				return this.tr(words)
 			}
-			const parts = this.pills ? [] : [this.statusLabel(run.status)]
+			const parts = this.pills ? [] : [this.statusLabel(flowRunOutcome(run))]
 			if (run.step) {
 				parts.push(String(run.step))
 			}

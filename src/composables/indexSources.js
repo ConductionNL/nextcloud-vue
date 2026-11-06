@@ -18,7 +18,7 @@ import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
-import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunOutcome, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
 import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
@@ -131,19 +131,20 @@ function flowsSource(config = {}) {
 		const id = flow.id || flow.uuid
 		const summary = (store.runSummary || {})[id] || {}
 		const lastRun = summary.lastRun || null
-		const lastStatus = lastRun ? statuses[lastRun.status] : null
+		const lastOutcome = flowRunOutcome(lastRun)
+		const lastStatus = lastRun ? statuses[lastOutcome] : null
 		const trigger = flowTriggerCell(flow, store.eventCatalog)
 		return {
 			...flow,
 			triggerLabel: trigger.label,
 			triggerDetail: trigger.detail,
 			triggerIcon: trigger.icon,
-			lastRunStatus: lastRun ? lastRun.status : '',
+			lastRunStatus: lastOutcome,
 			lastRunLabel: lastRun
-				? ((lastStatus && lastStatus.label) || String(lastRun.status || ''))
+				? ((lastStatus && lastStatus.label) || lastOutcome)
 				: t('nextcloud-vue', 'Not run yet'),
 			lastRunAt: lastRun ? formatRelativeDate(lastRun.created, { withTime: true }) : '',
-			lastRunFailed: !!lastRun && FLOW_RUN_ERROR_STATUSES.includes(lastRun.status),
+			lastRunFailed: FLOW_RUN_ERROR_STATUSES.includes(lastOutcome),
 			runsThisWeek: Number(summary.runsSince) || 0,
 			// The switch reads `enabled`; the label is what a screen reader and
 			// an export see. A flow with no owner is enabled but cannot start,
@@ -421,7 +422,7 @@ function flowRunsSource(config = {}) {
 				...run,
 				id: run.uuid,
 				flowName: names[run.flowId] || run.flowId,
-				statusLabel: (statuses[run.status] && statuses[run.status].label) || String(run.status || ''),
+				statusLabel: (statuses[flowRunOutcome(run)] && statuses[flowRunOutcome(run)].label) || flowRunOutcome(run),
 				startedAt: formatRelativeDate(run.created, { withTime: true }),
 				subjectLabel: flowRunSubjects(run).map((subject) => subject.uuid).join(', '),
 				subjectRoles: flowRunSubjects(run).map((subject) => subject.role).filter(Boolean).join(', '),

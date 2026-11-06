@@ -87,7 +87,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Replay from 'vue-material-design-icons/Replay.vue'
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowRunDurationMs, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
-import { flowRunStatuses } from '../../utils/flowRunStatus.js'
+import { flowRunOutcome, flowRunStatuses } from '../../utils/flowRunStatus.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -156,14 +156,14 @@ export default {
 		 * @return {object|null} The status entry for the run.
 		 */
 		status() {
-			return this.run ? (flowRunStatuses()[this.run.status] || null) : null
+			return this.run ? (flowRunStatuses()[flowRunOutcome(this.run)] || null) : null
 		},
 
 		/**
 		 * @return {string} The status pill label.
 		 */
 		statusLabel() {
-			return (this.status && this.status.label) || String(this.run?.status || '')
+			return (this.status && this.status.label) || flowRunOutcome(this.run)
 		},
 
 		/**

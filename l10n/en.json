@@ -2752,7 +2752,8 @@
     "The saved flow is tried with the example you enter. Nothing is changed or sent.": "The saved flow is tried with the example you enter. Nothing is changed or sent.",
     "Test": "Test",
     "Health": "Health",
-    "Subjects": "Subjects"
+    "Subjects": "Subjects",
+    "The run ended here.": "The run ended here."
   },
   "plurals": {
     "{count} member": [

@@ -45,8 +45,8 @@
 		</div>
 
 		<h4 class="cn-run-sidebar__title">
-			<span :class="`cn-run-sidebar__status cn-run-sidebar__status--${run?.status}`"
-				data-testid="run-status">{{ run?.status || t('nextcloud-vue', 'Run') }}</span>
+			<span :class="`cn-run-sidebar__status cn-run-sidebar__status--${outcome}`"
+				data-testid="run-status">{{ outcome || t('nextcloud-vue', 'Run') }}</span>
 			<time v-if="run?.created" class="cn-run-sidebar__when" :datetime="run.created">{{ run.created }}</time>
 		</h4>
 
@@ -247,6 +247,7 @@ import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue
 import Replay from 'vue-material-design-icons/Replay.vue'
 import CnFlowStepOutcomes from '../CnFlowStepOutcomes/CnFlowStepOutcomes.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 
 export default {
 	name: 'CnRunDetailSidebar',
@@ -397,6 +398,13 @@ export default {
 				node: group.node,
 				unaccounted: !stepNodes.has(String(group.node || '')),
 			})))
+		},
+
+		/**
+		 * @return {string} How the run ended, in the engine's status words.
+		 */
+		outcome() {
+			return flowRunOutcome(this.run)
 		},
 
 		/**

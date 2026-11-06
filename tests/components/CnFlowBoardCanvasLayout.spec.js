@@ -120,7 +120,7 @@ describe('the canvas layout', () => {
 		const w = await mountBoard({ layout: 'canvas', run: 'r1' }, { inspectedRunUuid: 'r1', runDetail: RUN })
 		const pills = w.find('[data-testid="flow-board-run-pills"]')
 		expect(pills.exists()).toBe(true)
-		expect(pills.text()).toContain('Finished')
+		expect(pills.text()).toContain('Succeeded')
 		expect(pills.text()).toContain('1 step with a warning')
 		expect(w.find('.cn-flow-board__canvas [data-testid="flow-board-run-card"]').exists()).toBe(true)
 		expect(inspector(w).find('.run-card').exists()).toBe(false)

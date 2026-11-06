@@ -16,7 +16,7 @@ import { translate as t } from '@nextcloud/l10n'
  */
 export function flowRunStatuses() {
 	return {
-		completed: { label: t('nextcloud-vue', 'Finished'), variant: 'success' },
+		completed: { label: t('nextcloud-vue', 'Succeeded'), variant: 'success' },
 		failed: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
 		dead_letter: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
 		stopped: { label: t('nextcloud-vue', 'Stopped early'), variant: 'warning' },
@@ -25,6 +25,41 @@ export function flowRunStatuses() {
 		suspended: { label: t('nextcloud-vue', 'Waiting'), variant: 'info' },
 		awaiting_consent: { label: t('nextcloud-vue', 'Awaiting consent'), variant: 'warning' },
 	}
+}
+
+/**
+ * Whether a log entry is a stop an End step made, not an oversight check. A
+ * check names itself in `checkId`.
+ *
+ * @param {object} entry A step's log entry.
+ * @return {boolean} True for a clean End.
+ */
+export function isFlowEndStop(entry) {
+	return entry?.status === 'stopped' && !entry?.checkId
+}
+
+/**
+ * How a run ended, in the engine's status words.
+ *
+ * The engine stores `stopped` for a clean End step, which is how a well-formed
+ * flow finishes, and for an oversight check closing the gate. OpenRegister
+ * serves the difference as `outcome`; a run from a server without it is read
+ * from its log.
+ *
+ * @param {object} run A run.
+ * @return {string} The status to show: `completed` for a clean End.
+ */
+export function flowRunOutcome(run) {
+	const status = String(run?.status || '')
+	if (status !== 'stopped') {
+		return status
+	}
+	if (run.outcome) {
+		return String(run.outcome)
+	}
+	const stops = (Array.isArray(run.log) ? run.log : []).filter((entry) => entry?.status === 'stopped')
+
+	return stops.length > 0 && stops.every(isFlowEndStop) ? 'completed' : status
 }
 
 /**
@@ -82,7 +117,7 @@ function subjectsCounter(runs) {
  * @return {Array<{id: string, label: string, count: number, note: string, variant: string}>} The tiles.
  */
 export function flowRunCounters(runs) {
-	const counted = (statuses) => runs.filter((run) => statuses.includes(run.status)).length
+	const counted = (statuses) => runs.filter((run) => statuses.includes(flowRunOutcome(run))).length
 	const finished = counted(['completed'])
 	const share = runs.length > 0 ? `${Math.round((finished / runs.length) * 100)}%` : ''
 
