@@ -106,8 +106,9 @@ export function flowTriggerCell(flow, catalog = []) {
  * last run ended, how often it ran this week), read in one request from
  * the run summary rather than derived from a page of runs.
  *
- * `sourceConfig.extraColumns` adds `health` (a dot before the name) and `owner`
- * (before the status) to the default columns, as board OrFlows draws them.
+ * The columns are those of board OrFlows, with `health` (a dot before the name)
+ * and `owner` (before the status). `sourceConfig.extraColumns` narrows those
+ * two: `[]` leaves both out.
  *
  * The quick filters (All, Active, Paused, With errors) narrow the loaded
  * list in place: every flow of the app is already loaded, so the counts on
@@ -118,7 +119,7 @@ export function flowTriggerCell(flow, catalog = []) {
  */
 function flowsSource(config = {}) {
 	const store = useFlowStore()
-	const extraColumns = [].concat(config.extraColumns ?? [])
+	const extraColumns = [].concat(config.extraColumns ?? ['health', 'owner'])
 	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
 
@@ -225,7 +226,7 @@ function flowsSource(config = {}) {
 		loading: () => !!store.loading,
 
 		columns: [
-			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), widget: 'flowHealth' }] : []),
+			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), labelHidden: true, width: '32px', widget: 'flowHealth' }] : []),
 			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
 			{
 				key: 'triggerLabel',
