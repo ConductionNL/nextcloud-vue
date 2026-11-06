@@ -201,7 +201,6 @@
 		"Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You write the prompt, they write the code, push the PR — same triage, same roadmap, faster path.",
 		"Click the map to set this object’s location.",
 		"Clicking a stage",
-		"Close tour",
 		"Closes in {n} days",
 		"Closes in {n} hours",
 		"Closing-stage property",

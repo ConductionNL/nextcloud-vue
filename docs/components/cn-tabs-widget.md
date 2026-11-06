@@ -189,8 +189,8 @@ those records load. So a contact-moment card shows only on interaction tickets:
 { "id": "ticket-interaction", "type": "custom", "visibleWhen": { "field": "kind", "op": "eq", "value": "interaction" } }
 ```
 
-A condition that needs a request (`source` or `endpoint`) is not evaluated on a
-stack child; the widget draws.
+A condition that needs a request (`source` or `endpoint`) is asked once per
+record, and the widget stays out until the answer says it holds.
 
 ## Props
 

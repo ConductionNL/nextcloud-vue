@@ -1532,6 +1532,43 @@
 	padding: 0;
 }
 
+/* The chat in that panel grows with its thread: no inner scrollbar, the
+   bubbles and the proposal 18px in, at most 92% wide, the question on the
+   light primary ground (DqZaakAssistent).
+   @spec openspec/changes/board-side-chat-grows/specs/board-side-chat-grows/spec.md#requirement-the-side-chat-grows-with-its-thread */
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window.cn-ai-chat-window--embedded:not(.cn-look-nextcloud *) {
+	height: auto;
+}
+
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window--embedded .cn-ai-chat-window__messages:not(.cn-look-nextcloud *) {
+	flex: none;
+	overflow: visible;
+	padding: 16px 18px 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window--embedded .cn-ai-message-list__bubble:not(.cn-look-nextcloud *) {
+	max-width: 92%;
+	padding: 10px 12px;
+	border-radius: 12px;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window--embedded .cn-ai-message-list__bubble--user:not(.cn-look-nextcloud *) {
+	background: var(--color-primary-element-light);
+	color: var(--color-main-text);
+}
+
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window--embedded .cn-ai-chat-window__approvals:not(.cn-look-nextcloud *) {
+	padding: 12px 18px 0;
+}
+
+.cn-look-board .cn-detail-page__side .cn-ai-chat-window--embedded .cn-ai-approval:not(.cn-look-nextcloud *) {
+	max-width: 92%;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 12px;
+}
+
 /* Its Actions menu is the board's 34px header control. */
 .cn-look-board .cn-detail-page__side .cn-widget-wrapper:has(.cn-ai-chat-widget) .cn-widget-wrapper__actions .action-item .button-vue {
 	height: 34px;
@@ -2404,6 +2441,29 @@
 	font-size: 14px;
 	font-weight: 600;
 	line-height: inherit;
+}
+
+/* A row with a button (DqZaakDocumenten Beoordelen): the button 13px, 10px
+   in, 6px before a 28px menu.
+   @spec openspec/changes/board-files-row-button/specs/board-files-row-button/spec.md#requirement-the-row-button-is-the-boards-compact-control */
+.cn-look-board .cn-files-browser__col-actions > .cn-files-browser__row-button:not(.cn-look-nextcloud *) {
+	min-width: 0;
+	padding-inline: 10px;
+}
+
+.cn-look-board .cn-files-browser__col-actions > .cn-files-browser__row-button:not(.cn-look-nextcloud *) .button-vue__text {
+	margin: 0;
+	padding: 0;
+	font-size: 13px;
+}
+
+.cn-look-board .cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu:not(.cn-look-nextcloud *) {
+	margin-inline-start: 6px;
+}
+
+.cn-look-board .cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu:not(.cn-look-nextcloud *) .button-vue {
+	width: 28px;
+	min-width: 28px;
 }
 
 /* The menu column holds the 34px bordered menu between 12px of padding. */

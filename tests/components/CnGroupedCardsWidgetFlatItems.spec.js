@@ -10,7 +10,7 @@
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-grouped-cards-can-join-a-flat-list-and-flag-a-card
  */
 import axios from '@nextcloud/axios'
-import { mount } from '@vue/test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
 import CnGroupedCardsWidget from '../../src/components/CnGroupedCardsWidget/CnGroupedCardsWidget.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
 
@@ -87,5 +87,14 @@ describe('CnGroupedCardsWidget — a flat list of cards', () => {
 		await w.find('[data-testid="cn-grouped-cards-retry"]').trigger('click')
 		await flush()
 		expect(w.findAll('[data-testid="cn-grouped-cards-group"]')).toHaveLength(2)
+	})
+})
+
+describe('CnGroupedCardsWidget itemLook', () => {
+	it('marks the root only when the entries are rows', () => {
+		const rows = shallowMount(CnGroupedCardsWidget, { props: { content: { itemLook: 'rows' } } })
+		const cards = shallowMount(CnGroupedCardsWidget, { props: { content: {} } })
+		expect(rows.classes()).toContain('cn-grouped-cards--item-rows')
+		expect(cards.classes()).not.toContain('cn-grouped-cards--item-rows')
 	})
 })

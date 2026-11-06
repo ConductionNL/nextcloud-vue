@@ -1089,6 +1089,8 @@
 					:sumField="board.sumField || ''"
 					:sumFormat="boardSumFormat"
 					:columnLimit="board.columnLimit || 0"
+					:fullNote="board.fullNote ? cnTranslate(board.fullNote) : ''"
+					:mergedNote="board.mergedNote ? cnTranslate(board.mergedNote) : ''"
 					:rowKey="rowKey"
 					:runTransition="boardRunTransition"
 					:paged="isPaged"

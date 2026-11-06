@@ -1,0 +1,4 @@
+- [x] Board coachmark in CnWalkthrough
+- [x] Dutch strings for the counter and the close label
+- [x] Tests in tests/components/CnWalkthroughBoardLook.spec.js
+- [x] `look` prop in docs/components/cn-walkthrough.md

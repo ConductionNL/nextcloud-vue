@@ -6,6 +6,8 @@
  * @spec openspec/changes/text-widget-monospace/tasks.md#task-2
  */
 import { mount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import CnTextWidget from '@/components/CnTextWidget/CnTextWidget.vue'
 
 const RECEIPT = 'Pen        2 x 1,00\n<b>Total</b>      2,00'
@@ -43,6 +45,13 @@ describe('CnTextWidget textField', () => {
 	it('reads the text from the named field of the detail object', () => {
 		const w = mount(CnTextWidget, { propsData: { content: { textField: 'receiptText', text: 'fallback', monospace: true }, objectData: { receiptText: RECEIPT } } })
 		expect(w.find('[data-testid="cn-text-widget-mono"]').element.textContent).toBe(RECEIPT)
+	})
+
+	it('keeps the fixed-width look off ordinary text', () => {
+		const source = readFileSync(join(__dirname, '../../src/components/CnTextWidget/CnTextWidget.vue'), 'utf8')
+		const css = source.slice(source.indexOf('<style'))
+		const monoRule = css.match(/([^{}]*)\{[^{}]*font-family: ui-monospace/)
+		expect(monoRule[1].trim()).toBe('.cn-text-widget__mono')
 	})
 
 	it('shows the placeholder when the field is empty on the object', () => {

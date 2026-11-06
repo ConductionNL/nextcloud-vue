@@ -3017,7 +3017,14 @@
     "Test": "Testen",
     "Health": "Gezondheid",
     "Subjects": "Onderwerpen",
-    "The run ended here.": "De uitvoering eindigde hier."
+    "The run ended here.": "De uitvoering eindigde hier.",
+    "Close tour": "Rondleiding sluiten",
+    "Step {current} of {total}": "Stap {current} van {total}",
+    "Readiness": "Gereedheid",
+    "{count} packages · {installed} installed": "{count} pakketten · {installed} geïnstalleerd",
+    "Package": "Pakket",
+    "Version {version} · shipped with {app}": "Versie {version} · meegeleverd met {app}",
+    "The packages could not be read.": "De pakketten konden niet worden gelezen."
   },
   "plurals": {
     "{count} member": [
