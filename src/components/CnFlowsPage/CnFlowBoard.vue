@@ -172,9 +172,15 @@
 			class="cn-flow-board__views"
 			note />
 
-		<NcNoteCard v-if="notice && !store.inRunView" type="info" class="cn-flow-board__notice">
-			{{ noticeText }}
-		</NcNoteCard>
+		<!-- @slot notice A notice under the path, such as a drift warning. Replaces the `notice` prop's card. -->
+		<slot name="notice">
+			<NcNoteCard v-if="notice && !store.inRunView"
+				:type="noticeLevel"
+				class="cn-flow-board__notice"
+				data-testid="flow-board-notice">
+				{{ noticeText }}
+			</NcNoteCard>
+		</slot>
 
 		<div class="cn-flow-board__body">
 			<aside v-if="showPalette"
@@ -225,6 +231,7 @@
 					:addStep="!showPalette"
 					:edgeConditions="edgeConditions"
 					:view="activeView"
+					:readonlySteps="readonlyStepIds"
 					stepPanel
 					quietRun
 					@save="$emit('save')"
@@ -390,10 +397,16 @@
 							</template>
 						</NcButton>
 					</div>
+					<!-- @slot step-notice A notice on the selected step, `{ node }`. Replaces the admin only note. -->
+					<slot name="step-notice" :node="store.selectedNode">
+						<NcNoteCard v-if="selectedAdminStep" type="warning" data-testid="flow-board-admin-step">
+							{{ t('nextcloud-vue', 'Only admins may use this action. You can read this step, but not change or save it; ask an admin.') }}
+						</NcNoteCard>
+					</slot>
 					<NcTextField v-if="canvasLayout"
 						:modelValue="nameDraft === null ? stepName : nameDraft"
 						:label="t('nextcloud-vue', 'Step name')"
-						:disabled="store.graphLocked"
+						:disabled="stepLocked"
 						data-testid="flow-board-step-name-field"
 						@update:modelValue="nameDraft = $event"
 						@blur="commitStepName"
@@ -420,13 +433,13 @@
 							<NcCheckboxRadioSwitch v-if="canvasLayout && field.widget === 'switch' && field.description"
 								type="switch"
 								:modelValue="field.value === true"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								:aria-labelledby="`${toggleLabelId}-${field.key}`"
 								@update:modelValue="setStepField(field, $event)" />
 							<NcCheckboxRadioSwitch v-else-if="field.widget === 'switch'"
 								type="switch"
 								:modelValue="field.value === true"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								@update:modelValue="setStepField(field, $event)">
 								{{ field.label }}
 							</NcCheckboxRadioSwitch>
@@ -435,20 +448,20 @@
 								:options="field.options"
 								:inputLabel="field.label"
 								:clearable="false"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								label="label"
 								@update:modelValue="setStepField(field, $event ? $event.id : '')" />
 							<NcTextArea v-else-if="field.widget === 'textarea'"
 								:modelValue="fieldDraft(field)"
 								:label="field.label"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								resize="vertical"
 								@update:modelValue="drafts[field.key] = $event"
 								@blur="commitStepField(field)" />
 							<NcTextField v-else
 								:modelValue="fieldDraft(field)"
 								:label="field.label"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								@update:modelValue="drafts[field.key] = $event"
 								@blur="commitStepField(field)"
 								@keydown.enter="commitStepField(field)" />
@@ -462,7 +475,9 @@
 						</div>
 					</dl>
 					<div class="cn-flow-board__step-actions">
-						<NcButton data-testid="flow-board-edit-step" @click="store.editingNodeId = store.selectedNodeId">
+						<NcButton :disabled="selectedAdminStep"
+							data-testid="flow-board-edit-step"
+							@click="store.editingNodeId = store.selectedNodeId">
 							{{ t('nextcloud-vue', 'Edit step') }}
 						</NcButton>
 						<NcButton v-if="lastRunUuid && !canvasLayout"
@@ -498,7 +513,7 @@
 					<div class="cn-flow-board__step-footer">
 						<NcButton variant="tertiary"
 							:class="{ 'cn-flow-board__delete-step': canvasLayout }"
-							:disabled="store.graphLocked"
+							:disabled="stepLocked"
 							data-testid="flow-board-delete-step"
 							@click="store.removeNode(store.selectedNodeId)">
 							{{ t('nextcloud-vue', 'Delete step') }}
@@ -531,6 +546,7 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -609,6 +625,14 @@ export default {
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
+		/** The look of `notice`: `info`, `warning` or `error`. */
+		noticeLevel: { type: String, default: 'info' },
+		/**
+		 * Steps only an admin may change, by node id or step type. Anyone else
+		 * reads them: the list view offers no buttons on them and the step
+		 * panel says why. This is the screen's side; the server decides.
+		 */
+		adminSteps: { type: Array, default: () => [] },
 		/** Write a line's condition on the line when it has no name of its own. */
 		edgeConditions: { type: Boolean, default: false },
 		/** Offer the list view beside the canvas, with the Canvas / List switch. */
@@ -745,6 +769,25 @@ export default {
 		/** @return {boolean} Whether the palette card is drawn. */
 		showPalette() {
 			return this.palette === 'column' && !this.store.inRunView && !this.inList
+		},
+
+		/** @return {Array<string>} The ids of the steps this viewer can only read. */
+		readonlyStepIds() {
+			if (this.adminSteps.length === 0 || getCurrentUser()?.isAdmin === true) {
+				return []
+			}
+
+			return this.store.nodes.filter((node) => this.adminSteps.includes(node.id) || this.adminSteps.includes(node.type)).map((node) => node.id)
+		},
+
+		/** @return {boolean} Whether the selected step is one this viewer can only read. */
+		selectedAdminStep() {
+			return this.readonlyStepIds.includes(this.store.selectedNodeId)
+		},
+
+		/** @return {boolean} Whether the selected step cannot be changed here. */
+		stepLocked() {
+			return this.store.graphLocked || this.selectedAdminStep
 		},
 
 		/** @return {boolean} Whether the list view is on screen. */

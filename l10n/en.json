@@ -2736,7 +2736,9 @@
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "The same flow and the same steps as on the canvas; what you change here changes there too.",
     "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.": "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.",
     "Flow steps": "Flow steps",
-    "Edit a step to see its settings.": "Edit a step to see its settings."
+    "Edit a step to see its settings.": "Edit a step to see its settings.",
+    "Admins only": "Admins only",
+    "Only admins may use this action. You can read this step, but not change or save it; ask an admin.": "Only admins may use this action. You can read this step, but not change or save it; ask an admin."
   },
   "plurals": {
     "{count} member": [

@@ -3001,7 +3001,9 @@
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "Dezelfde flow en dezelfde stappen als op het canvas; wat u hier wijzigt, staat daar ook.",
     "The same flow as a list: the trigger and the steps in order, for anyone who prefers no canvas.": "Dezelfde flow als lijst: de trigger en de stappen op volgorde, voor wie geen canvas wil.",
     "Flow steps": "Stappen van de flow",
-    "Edit a step to see its settings.": "Bewerk een stap om de instellingen te zien."
+    "Edit a step to see its settings.": "Bewerk een stap om de instellingen te zien.",
+    "Admins only": "Alleen beheerders",
+    "Only admins may use this action. You can read this step, but not change or save it; ask an admin.": "Alleen beheerders mogen deze actie gebruiken. U kunt deze stap lezen, maar niet wijzigen of opslaan; vraag een beheerder."
   },
   "plurals": {
     "{count} member": [
