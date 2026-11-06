@@ -126,14 +126,27 @@ describe('the flows source reads its run figures from the summary', () => {
 		expect(source.footerNote).toContain('paused flow')
 	})
 
-	it('keeps its default columns unless a page asks for more', () => {
-		expect(indexSources.flows().columns.map((column) => column.key)).toEqual(['name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'statusLabel'])
+	it('🔴 draws the columns of board OrFlows without a page asking: the health dot and the owner', () => {
+		const columns = indexSources.flows().columns
+
+		expect(columns.map((column) => column.key)).toEqual(['lastRunStatus', 'name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'owner', 'statusLabel'])
+		expect(columns[0].labelHidden).toBe(true)
 	})
 
-	it('adds the health dot before the name and the owner before the status', () => {
-		const keys = indexSources.flows({ extraColumns: ['owner', 'health'] }).columns.map((column) => column.key)
+	it('leaves the dot and the owner out when a page says so', () => {
+		const keys = indexSources.flows({ extraColumns: [] }).columns.map((column) => column.key)
 
-		expect(keys).toEqual(['lastRunStatus', 'name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'owner', 'statusLabel'])
+		expect(keys).toEqual(['name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'statusLabel'])
+	})
+
+	it('hands a flow\'s owner and its last run to the row', async () => {
+		const source = indexSources.flows()
+		await source.load({ app: 'pipelinq' })
+		await flushPromises()
+		const [row] = source.rows()
+
+		expect(row.owner).toBe('pieter')
+		expect(row.lastRunStatus).toBe('completed')
 	})
 
 	it('draws a flow\'s health from its row', () => {

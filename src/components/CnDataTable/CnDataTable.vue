@@ -195,7 +195,7 @@
 									{{ sortBadgeFor(col.key) }}
 								</span>
 							</button>
-							<span v-else :class="col.description ? 'cn-table-header--described' : ''">
+							<span v-else :class="[col.description ? 'cn-table-header--described' : '', col.labelHidden ? 'hidden-visually' : '']">
 								{{ translateLabel(col.label) }}
 							</span>
 							<!-- Header filter: a real button, so it is reachable with Tab
@@ -665,6 +665,9 @@ export default {
 		 * maturity level, a computed score, a domain term) can explain itself where the
 		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
 		 * description automatically, so schema-driven tables get it for free.
+		 *
+		 * `labelHidden` keeps a column's name for a screen reader and draws no
+		 * header text, for a column that reads by itself (a status dot).
 		 *
 		 * `secondary` draws a second, muted line under the cell's value: a field
 		 * key (`"number"`), a template with `{field}` placeholders
