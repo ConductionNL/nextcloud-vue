@@ -100,7 +100,7 @@ describe('CnFlowRunSummary', () => {
 	it('states the outcome, duration, trigger and steps run of total', async () => {
 		const w = mount(CnFlowRunSummary, { props: { run: RUN, stepsTotal: 8, canRetry: true } })
 
-		expect(w.text()).toContain('Succeeded')
+		expect(w.text()).toContain('Finished with a warning')
 		expect(w.find('[data-testid="flow-run-duration"]').text()).toBe('900 ms')
 		expect(w.find('[data-testid="flow-run-trigger"]').text()).toBe('object.created')
 		expect(w.find('[data-testid="flow-run-steps"]').text()).toBe('4 of 8 run')

@@ -2754,6 +2754,7 @@
     "Health": "Health",
     "Subjects": "Subjects",
     "The run ended here.": "The run ended here.",
+    "Finished with a warning": "Finished with a warning",
     "Close tour": "Close tour",
     "Step {current} of {total}": "Step {current} of {total}",
     "Readiness": "Readiness",
@@ -2997,6 +2998,10 @@
     "in {count} place": [
       "in {count} place",
       "in {count} places"
+    ],
+    "%n log line": [
+      "%n log line",
+      "%n log lines"
     ]
   }
 }

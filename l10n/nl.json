@@ -3018,6 +3018,7 @@
     "Health": "Gezondheid",
     "Subjects": "Onderwerpen",
     "The run ended here.": "De uitvoering eindigde hier.",
+    "Finished with a warning": "Afgerond met waarschuwing",
     "Close tour": "Rondleiding sluiten",
     "Step {current} of {total}": "Stap {current} van {total}",
     "Readiness": "Gereedheid",
@@ -3282,6 +3283,10 @@
     "in {count} place": [
       "in {count} plek",
       "in {count} plekken"
+    ],
+    "%n log line": [
+      "%n logregel",
+      "%n logregels"
     ]
   }
 }
