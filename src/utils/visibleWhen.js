@@ -297,7 +297,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
  * @param {object} cond The condition.
  * @return {boolean} True for a composition.
  */
-function isComposition(cond) {
+export function isComposition(cond) {
 	return Array.isArray(cond.all) === true || Array.isArray(cond.any) === true
 }
 
