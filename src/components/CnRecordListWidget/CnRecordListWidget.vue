@@ -616,6 +616,14 @@
 		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
 		</p>
+		<p
+			v-for="(paragraph, index) in footnoteParagraphs"
+			v-show="!error && !absent && rows.length > 0"
+			:key="`footnote-${index}`"
+			class="cn-record-list__footnote"
+			data-testid="cn-record-list-footnote">
+			{{ paragraph }}
+		</p>
 		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
 		<router-link
 			v-if="footerLink && footerLink.to"
@@ -1676,6 +1684,9 @@ export default {
 		/** @return {string} The note under the list (`footnote`), translated. */
 		footnote() {
 			const note = this.content?.footnote
+			if (Array.isArray(note)) {
+				return ''
+			}
 			if (note && typeof note === 'object') {
 				const value = this.footnoteValue
 				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
@@ -1684,6 +1695,17 @@ export default {
 				return this.translate(note.text).replace(/\{value\}/g, String(value))
 			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * A `footnote` given as a list: each entry is its own paragraph,
+		 * translated. An object or string footnote is not listed here.
+		 *
+		 * @return {Array<string>} The paragraphs.
+		 */
+		footnoteParagraphs() {
+			const note = this.content?.footnote
+			return Array.isArray(note) ? note.filter((text) => typeof text === 'string' && text !== '').map((text) => this.translate(text)) : []
 		},
 
 		/**
@@ -4199,6 +4221,10 @@ export default {
 	margin: 8px 0 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;
+}
+
+.cn-record-list__footnote + .cn-record-list__footnote {
+	margin-top: 12px;
 }
 
 .cn-record-list__due--soon {

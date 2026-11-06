@@ -2118,6 +2118,10 @@
 					"minimum": 1,
 					"description": "Row span (>= 1)."
 				},
+				"headerWrap": {
+					"type": "boolean",
+					"description": "Let the card's header actions drop under a title block that fills the row (DqZaaktypeOverzicht Rechten), instead of squeezing the title."
+				},
 				"headerLink": {
 					"type": "object",
 					"additionalProperties": false,
