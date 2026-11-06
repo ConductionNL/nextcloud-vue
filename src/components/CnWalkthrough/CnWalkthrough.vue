@@ -3,6 +3,7 @@
 <template>
 	<div v-if="active"
 		class="cn-walkthrough"
+		:class="{ 'cn-walkthrough--board': isBoard }"
 		:style="{ zIndex }"
 		role="dialog"
 		aria-modal="true"
@@ -55,7 +56,10 @@
 		<!-- Coachmark card -->
 		<div ref="card"
 			class="cn-walkthrough__card"
-			:class="[`cn-walkthrough__card--${cardPlacement}`, { 'cn-walkthrough__card--docked': quiet }]"
+			:class="[
+				`cn-walkthrough__card--${cardPlacement}`,
+				{ 'cn-walkthrough__card--docked': quiet, 'cn-walkthrough__card--centered': isCentered && !quiet },
+			]"
 			:style="cardStyle">
 			<NcButton class="cn-walkthrough__close"
 				variant="tertiary"
@@ -79,7 +83,7 @@
 				:skip="skip"
 				:skipLabel="skipLabel">
 				<div class="cn-walkthrough__counter">
-					{{ index + 1 }} / {{ total }}
+					{{ counterText }}
 				</div>
 				<h3 v-if="stepTitle" class="cn-walkthrough__title">
 					{{ stepTitle }}
@@ -88,9 +92,19 @@
 					{{ stepBody }}
 				</p>
 				<p v-if="stepTask" class="cn-walkthrough__task">
-					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ stepTask }}
+					<ChevronRight v-if="isBoard" :size="16" class="cn-walkthrough__task-icon" />
+					<span v-else class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ stepTask }}
 				</p>
 				<div class="cn-walkthrough__actions">
+					<div v-if="isBoard"
+						class="cn-walkthrough__dots"
+						aria-hidden="true"
+						data-testid="cn-walkthrough-dots">
+						<span v-for="dot in total"
+							:key="dot"
+							class="cn-walkthrough__dot"
+							:class="{ 'cn-walkthrough__dot--current': dot === index + 1 }" />
+					</div>
 					<NcButton v-if="!isFirst" variant="secondary" @click="back">
 						<template #icon>
 							<ChevronLeft :size="20" />
@@ -130,6 +144,7 @@ import { NcButton } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import { useLook } from '../../composables/useLook.js'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -192,6 +207,8 @@ export default {
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close tour') },
 		/** Optional translate function applied to step title/body/task i18n keys. */
 		translate: { type: Function, default: null },
+		/** `board` draws the board coachmark; unset, the look comes from `cnLook`. */
+		look: { type: String, default: undefined },
 	},
 
 	emits: ['complete', 'dismiss', 'pause', 'progress', 'step-change', 'advance', 'handoff'],
@@ -202,7 +219,8 @@ export default {
 			resume: props.resume,
 			onComplete: undefined,
 		})
-		return { wt }
+		const { isBoard } = useLook(props)
+		return { wt, isBoard }
 	},
 
 	data() {
@@ -253,6 +271,19 @@ export default {
 		 */
 		quiet() {
 			return this.appModalOpen || this.offPage
+		},
+
+		/**
+		 * The step counter: in words under the board look.
+		 *
+		 * @return {string} The counter.
+		 * @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look
+		 */
+		counterText() {
+			const current = this.index + 1
+			return this.isBoard
+				? t('nextcloud-vue', 'Step {current} of {total}', { current, total: this.total })
+				: `${current} / ${this.total}`
 		},
 
 		isCentered() {
@@ -350,6 +381,9 @@ export default {
 		cardStyle() {
 			if (this.quiet) {
 				return {}
+			}
+			if (this.isCentered && this.isBoard) {
+				return { top: '88px', left: '50%', transform: 'translateX(-50%)' }
 			}
 			if (this.isCentered || !this.rect) {
 				return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
@@ -1344,5 +1378,104 @@ export default {
 
 .cn-walkthrough__spacer {
 	flex: 1 1 auto;
+}
+
+/* Board look: the coachmark draws a footer of dots and buttons under a
+   hairline. A step without a target opens as a wide card near the top. */
+.cn-walkthrough--board {
+	--cn-walkthrough-inline: 16px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__dim {
+	background: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
+.cn-walkthrough--board .cn-walkthrough__card {
+	width: 300px;
+	padding: 14px var(--cn-walkthrough-inline);
+	border-radius: var(--cn-board-card-radius, 12px);
+	box-shadow: 0 16px 48px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+}
+
+.cn-walkthrough--board .cn-walkthrough__card--centered {
+	--cn-walkthrough-inline: 24px;
+	width: 560px;
+	padding-block: 22px 20px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__close {
+	top: 14px;
+	inset-inline-end: 16px;
+	--default-clickable-area: 36px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__card--centered .cn-walkthrough__close {
+	top: 22px;
+	inset-inline-end: 24px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__counter {
+	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-walkthrough--board .cn-walkthrough__title {
+	margin: 0 0 16px;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-walkthrough--board .cn-walkthrough__body {
+	margin: 0 0 18px;
+	font-size: 15px;
+	line-height: 1.55;
+}
+
+.cn-walkthrough--board .cn-walkthrough__task {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 12px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--cn-board-notice-info-ground, var(--color-primary-element-light));
+	color: var(--cn-board-primary-light-ink, var(--color-primary-element-light-text));
+	font-size: 14px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__task-icon {
+	margin-inline-end: 0;
+}
+
+.cn-walkthrough--board .cn-walkthrough__actions {
+	gap: 10px;
+	margin: 0 calc(-1 * var(--cn-walkthrough-inline));
+	padding: 14px var(--cn-walkthrough-inline) 0;
+	border-top: 1px solid var(--cn-board-hairline, var(--color-border));
+	--default-clickable-area: 40px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__dots {
+	display: flex;
+	gap: 6px;
+	order: -2;
+}
+
+.cn-walkthrough--board .cn-walkthrough__spacer {
+	order: -1;
+}
+
+.cn-walkthrough__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--color-border-maxcontrast);
+}
+
+.cn-walkthrough__dot--current {
+	width: 18px;
+	background: var(--color-primary-element);
 }
 </style>

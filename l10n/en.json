@@ -2731,6 +2731,8 @@
     "Down": "Down",
     "Steps on a branch are moved on the canvas.": "Steps on a branch are moved on the canvas.",
     "Step {n}": "Step {n}",
+    "Close tour": "Close tour",
+    "Step {current} of {total}": "Step {current} of {total}",
     "View of the flow": "View of the flow",
     "Canvas": "Canvas",
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "The same flow and the same steps as on the canvas; what you change here changes there too.",
