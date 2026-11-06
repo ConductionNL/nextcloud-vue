@@ -227,6 +227,12 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 |------|------|---------|-------------|
 | `titleTone` | `String` | `''` | `side` titles the card as a side card in the board look: 15px, weight 600, muted. For a card in a page's right column (DqDagAfsluiten "Uw dag"). In a manifest: `titleTone: "side"` on the widget definition; CnDashboardPage and CnDetailWidgetHost pass it on. |
 
+## Actions under a long title (`headerWrap`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `headerWrap` | `Boolean` | `false` | Lets the header actions drop to a row of their own when the title and subtitle fill the header, instead of squeezing them. A widget definition sets it as `headerWrap: true` (DqZaaktypeOverzicht Rechten). |
+
 ## A text link in the header (`headerLink`)
 
 | Prop | Type | Default | Description |

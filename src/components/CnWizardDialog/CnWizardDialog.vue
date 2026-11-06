@@ -92,7 +92,7 @@
 					{{ skipLabel }}
 				</NcButton>
 				<NcButton v-if="cancellable" data-testid="cn-wizard-cancel" @click="onClose">
-					{{ cancelLabel }}
+					{{ (currentStep && currentStep.cancelLabel) || cancelLabel }}
 				</NcButton>
 				<NcButton v-if="!isFirst"
 					data-testid="cn-wizard-back"
@@ -115,7 +115,7 @@
 							<component :is="submitIcon || Check" v-else :size="20" />
 						</template>
 					</template>
-					{{ isLast ? submitLabel : nextLabel }}
+					{{ isLast ? (currentStep && currentStep.submitLabel) || submitLabel : nextLabel }}
 				</NcButton>
 			</template>
 		</template>

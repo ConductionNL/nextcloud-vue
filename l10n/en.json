@@ -2754,7 +2754,14 @@
     "Health": "Health",
     "Subjects": "Subjects",
     "The run ended here.": "The run ended here.",
-    "Finished with a warning": "Finished with a warning"
+    "Finished with a warning": "Finished with a warning",
+    "Close tour": "Close tour",
+    "Step {current} of {total}": "Step {current} of {total}",
+    "Readiness": "Readiness",
+    "{count} packages · {installed} installed": "{count} packages · {installed} installed",
+    "Package": "Package",
+    "Version {version} · shipped with {app}": "Version {version} · shipped with {app}",
+    "The packages could not be read.": "The packages could not be read."
   },
   "plurals": {
     "{count} member": [

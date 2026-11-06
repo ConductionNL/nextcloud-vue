@@ -1,0 +1,4 @@
+- [x] Panel layout in CnReportsPage
+- [x] Board CSS in look-board-reports.css
+- [x] Tests in tests/components/CnReportsPagePanel.spec.js
+- [x] Docs in docs/components/cn-reports-page.md

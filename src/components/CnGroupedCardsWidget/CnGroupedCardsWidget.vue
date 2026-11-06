@@ -4,7 +4,10 @@
 -->
 
 <template>
-	<div class="cn-grouped-cards" data-testid="cn-grouped-cards">
+	<div
+		class="cn-grouped-cards"
+		:class="{ 'cn-grouped-cards--item-rows': content.itemLook === 'rows' }"
+		data-testid="cn-grouped-cards">
 		<h2 v-if="heading" class="cn-grouped-cards__heading" data-testid="cn-grouped-cards-heading">
 			{{ heading }}
 		</h2>
@@ -529,7 +532,10 @@ export default {
 		 */
 		headerSubtitleText: {
 			immediate: true,
-			/** @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title */
+			/**
+			 * @param {string} subtitle The line, or ''.
+			 * @spec openspec/changes/grouped-cards-pills-and-counts/specs/grouped-cards-widget/spec.md#requirement-a-grouped-cards-card-can-say-its-counts-under-its-title
+			 */
 			handler(subtitle) {
 				if (this.content?.headerSubtitle) {
 					/**
@@ -971,6 +977,14 @@ export default {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 8px);
 	background: var(--color-main-background);
+}
+
+/* `itemLook: "rows"`: the entries of a group are plain rows, not cards (DqSociaalDomein Gezinsplan). */
+.cn-grouped-cards--item-rows .cn-grouped-cards__item {
+	padding: 6px 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
 }
 
 .cn-grouped-cards__item-title {
