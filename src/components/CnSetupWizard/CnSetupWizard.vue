@@ -1001,7 +1001,7 @@ export default {
 				const fallback = recap ? recap.value : ''
 				return {
 					id: row.step || row.id,
-					title: recap ? recap.title : this.cnTranslate(row.title || ''),
+					title: row.title ? this.cnTranslate(row.title) : (recap ? recap.title : ''),
 					detail: detail ? this.cnTranslate(detail) : fallback,
 					done,
 					link: row.link ? { label: this.cnTranslate(row.link.label), href: row.link.href } : null,
