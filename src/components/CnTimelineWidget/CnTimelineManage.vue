@@ -368,12 +368,22 @@ export default {
 	},
 
 	computed: {
-		/** The heading of a failed read, in the host's words. */
+		/**
+		 * The heading of a failed read, in the host's words.
+		 *
+		 * @spec openspec/changes/timeline-read-failure-retry/specs/timeline/spec.md#requirement-a-failed-timeline-read-can-be-tried-again
+		 * @return {string} The words, or ''.
+		 */
 		errorTitle() {
 			return this.translate(this.content?.errorTitle)
 		},
 
-		/** The sentence of a failed read, in the host's words. */
+		/**
+		 * The sentence of a failed read, in the host's words.
+		 *
+		 * @spec openspec/changes/timeline-read-failure-retry/specs/timeline/spec.md#requirement-a-failed-timeline-read-can-be-tried-again
+		 * @return {string} The words, or ''.
+		 */
 		errorText() {
 			return this.translate(this.content?.errorText)
 		},
@@ -655,6 +665,7 @@ export default {
 		/**
 		 * Read the timeline with the visibility filter, if one is set.
 		 *
+		 * @spec openspec/changes/timeline-read-failure-retry/specs/timeline/spec.md#requirement-a-failed-timeline-read-can-be-tried-again
 		 * @return {Promise<void>}
 		 */
 		async load() {
