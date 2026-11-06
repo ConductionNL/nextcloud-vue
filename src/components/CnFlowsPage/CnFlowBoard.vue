@@ -21,7 +21,7 @@
 			</div>
 			<div v-if="!store.inRunView || canvasLayout" class="cn-flow-board__actions">
 				<template v-if="!store.inRunView">
-					<NcButton v-if="testSubjectReady"
+					<NcButton v-if="testReady"
 						:disabled="store.dryRunning || !store.flow.id"
 						data-testid="flow-board-test"
 						@click="testOpen = true">
@@ -116,20 +116,30 @@
 			data-testid="flow-board-test-dialog"
 			@closing="testOpen = false">
 			<p class="cn-flow-board__test-intro">
-				{{ t('nextcloud-vue', 'The saved flow is tried with the record you pick. Nothing is changed or sent.') }}
+				{{ testIntro }}
 			</p>
-			<CnResourceSelect v-model="testRecord"
+			<CnResourceSelect v-if="testSubjectReady"
+				v-model="testRecord"
 				:register="testSubject.register"
 				:schema="testSubject.schema"
 				:labelField="testSubject.labelField || 'title'"
 				:inputLabel="t('nextcloud-vue', 'Record')"
 				data-testid="flow-board-test-record" />
+			<NcTextArea v-if="payloadTest"
+				:modelValue="payloadText"
+				:label="t('nextcloud-vue', 'Example payload')"
+				:error="payloadInvalid"
+				:helperText="payloadInvalid ? t('nextcloud-vue', 'This is not a JSON object.') : ''"
+				resize="vertical"
+				rows="6"
+				data-testid="flow-board-test-payload"
+				@update:modelValue="payloadText = $event" />
 			<template #actions>
 				<NcButton data-testid="flow-board-test-cancel" @click="testOpen = false">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
 				<NcButton variant="primary"
-					:disabled="!testRecord || store.dryRunning"
+					:disabled="!testCanRun || store.dryRunning"
 					data-testid="flow-board-test-run"
 					@click="runTest">
 					{{ t('nextcloud-vue', 'Run test') }}
@@ -321,6 +331,8 @@
 				</NcButton>
 				<CnFlowDryRunResult v-if="store.dryRunResult && !store.inRunView"
 					:result="store.dryRunResult"
+					:card="payloadTest"
+					@again="testAgain"
 					@close="store.clearDryRun()" />
 				<template v-else-if="store.inRunView">
 					<CnFlowRunSummary v-if="!canvasLayout"
@@ -640,6 +652,12 @@ export default {
 		/** The view on arrival when `listMode` is on: `canvas` or `list`. */
 		view: { type: String, default: 'canvas' },
 		/**
+		 * Test the flow on an example payload (OrFlowTestrun): `true` opens an
+		 * empty field, text opens it with that JSON. The result shows as the
+		 * test run card. Without it only `testSubject` offers a test.
+		 */
+		testPayload: { type: [Boolean, String], default: false },
+		/**
 		 * Edit a published flow in place; Save publishes the edits as the next
 		 * version, and runs already started keep theirs (DqFlow).
 		 */
@@ -694,7 +712,7 @@ export default {
 	},
 
 	data() {
-		return { activeView: this.listMode && this.view === 'list' ? 'list' : 'canvas', nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
+		return { payloadText: typeof this.testPayload === 'string' ? this.testPayload : '', activeView: this.listMode && this.view === 'list' ? 'list' : 'canvas', nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
@@ -761,9 +779,48 @@ export default {
 			return Boolean(this.testSubject && this.testSubject.register && this.testSubject.schema)
 		},
 
+		/** @return {boolean} Whether the page tests on an example payload. */
+		payloadTest() {
+			return this.testPayload !== false
+		},
+
+		/** @return {boolean} Whether the test button is drawn. */
+		testReady() {
+			return this.testSubjectReady || this.payloadTest
+		},
+
+		/** @return {object|null} The example payload as data, null when the field holds no JSON object. */
+		payloadValue() {
+			try {
+				const value = JSON.parse(this.payloadText)
+				return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null
+			} catch {
+				return null
+			}
+		},
+
+		/** @return {boolean} Whether the field holds text that is no JSON object. */
+		payloadInvalid() {
+			return this.payloadText.trim() !== '' && this.payloadValue === null
+		},
+
+		/** @return {boolean} Whether the dialog has something to try the flow on. */
+		testCanRun() {
+			return Boolean(this.testRecord) || this.payloadValue !== null
+		},
+
+		/** @return {string} The line at the top of the test dialog. */
+		testIntro() {
+			return this.testSubjectReady
+				? t('nextcloud-vue', 'The saved flow is tried with the record you pick. Nothing is changed or sent.')
+				: t('nextcloud-vue', 'The saved flow is tried with the example you enter. Nothing is changed or sent.')
+		},
+
 		/** @return {string} The test button's label: the page's own, else the library's. */
 		testLabel() {
-			return (this.testSubject && this.testSubject.label) || t('nextcloud-vue', 'Test with a record')
+			const fallback = this.testSubjectReady ? t('nextcloud-vue', 'Test with a record') : t('nextcloud-vue', 'Test')
+
+			return (this.testSubject && this.testSubject.label) || fallback
 		},
 
 		/** @return {boolean} Whether the palette card is drawn. */
@@ -1469,13 +1526,36 @@ export default {
 		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
 		 */
 		async runTest() {
-			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
-			if (!uuid) {
+			const subject = this.testRunSubject()
+			if (subject === null) {
 				return
 			}
-			await this.store.dryRun({ uuid, register: this.testSubject.register, schema: this.testSubject.schema })
+			await this.store.dryRun(subject)
 			this.testOpen = false
 			this.testRecord = null
+		},
+
+		/**
+		 * What the dialog tries the flow on: the picked record, else the payload.
+		 *
+		 * @return {object|null} The subject for `store.dryRun`, or null.
+		 */
+		testRunSubject() {
+			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
+			if (uuid) {
+				return { uuid, register: this.testSubject.register, schema: this.testSubject.schema }
+			}
+
+			return this.payloadValue === null ? null : { payload: this.payloadValue }
+		},
+
+		/**
+		 * Try the flow again on what the last test used.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async testAgain() {
+			await this.store.dryRun(this.store.dryRunResult.subject)
 		},
 
 		t,

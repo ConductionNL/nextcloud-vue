@@ -2216,13 +2216,14 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
-		 * Try the saved flow with a record, changing and sending nothing.
+		 * Try the saved flow with a record or an example payload, changing and
+		 * sending nothing.
 		 *
 		 * OpenRegister's dry-run walks the flow against the record: steps without
 		 * side effects run, every other step says what it would do. The answer,
-		 * with the record, is kept in `dryRunResult` for the board to show.
+		 * with the subject, is kept in `dryRunResult` for the board to show.
 		 *
-		 * @param {object} subject `{uuid, register, schema}` of the record.
+		 * @param {object} subject `{uuid, register, schema}` of the record, or `{payload}`.
 		 * @return {Promise<object|null>} The answer (`{status, steps, error?}`), or null.
 		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
 		 */
@@ -2236,7 +2237,9 @@ export const useFlowStore = defineStore('cnFlow', {
 			try {
 				const response = await axios.post(
 					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/dry-run`),
-					{ register: subject.register, schema: subject.schema, objectId: subject.uuid },
+					subject.payload === undefined
+						? { register: subject.register, schema: subject.schema, objectId: subject.uuid }
+						: { payload: subject.payload },
 				)
 				const result = response.data || { status: '', steps: [] }
 				this.dryRunResult = { ...result, subject: { ...subject } }

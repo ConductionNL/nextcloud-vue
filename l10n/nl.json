@@ -3003,7 +3003,18 @@
     "Flow steps": "Stappen van de flow",
     "Edit a step to see its settings.": "Bewerk een stap om de instellingen te zien.",
     "Admins only": "Alleen beheerders",
-    "Only admins may use this action. You can read this step, but not change or save it; ask an admin.": "Alleen beheerders mogen deze actie gebruiken. U kunt deze stap lezen, maar niet wijzigen of opslaan; vraag een beheerder."
+    "Only admins may use this action. You can read this step, but not change or save it; ask an admin.": "Alleen beheerders mogen deze actie gebruiken. U kunt deze stap lezen, maar niet wijzigen of opslaan; vraag een beheerder.",
+    "Test: a trial run without carrying anything out": "Testen: proefrun zonder iets uit te voeren",
+    "Nothing was sent or changed; the saved flow was worked through, not the canvas.": "Er is niets verstuurd of gewijzigd; de opgeslagen flow is doorgerekend, niet het canvas.",
+    "Would do": "Zou doen",
+    "Test again": "Opnieuw testen",
+    "Example payload": "Voorbeeldgegevens",
+    "Would fail": "Zou mislukken",
+    "Skipped": "Overgeslagen",
+    "Would succeed": "Zou slagen",
+    "This is not a JSON object.": "Dit is geen JSON-object.",
+    "The saved flow is tried with the example you enter. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het voorbeeld dat u invult. Er wordt niets gewijzigd of verstuurd.",
+    "Test": "Testen"
   },
   "plurals": {
     "{count} member": [
