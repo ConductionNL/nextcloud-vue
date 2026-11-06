@@ -4,7 +4,69 @@
 -->
 
 <template>
-	<section class="cn-flow-dry-run" :aria-label="title" data-testid="flow-dry-run-result">
+	<section v-if="card"
+		class="cn-flow-dry-run cn-flow-dry-run--card"
+		:aria-label="title"
+		data-testid="flow-dry-run-card">
+		<h3 class="cn-flow-dry-run__title">
+			{{ t('nextcloud-vue', 'Test: a trial run without carrying anything out') }}
+		</h3>
+		<p class="cn-flow-dry-run__intro" data-testid="flow-dry-run-note">
+			<InformationOutline :size="18" />
+			<span>{{ t('nextcloud-vue', 'Nothing was sent or changed; the saved flow was worked through, not the canvas.') }}</span>
+		</p>
+		<p v-if="result.error"
+			class="cn-flow-dry-run__error"
+			role="alert"
+			data-testid="flow-dry-run-error">
+			{{ result.error }}
+		</p>
+		<table class="cn-flow-dry-run__table">
+			<thead>
+				<tr>
+					<th scope="col">
+						{{ subjectHead }}
+					</th>
+					<th scope="col">
+						{{ t('nextcloud-vue', 'Step') }}
+					</th>
+					<th scope="col">
+						{{ t('nextcloud-vue', 'Would do') }}
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(step, index) in steps"
+					:key="`${index}-${step.nodeId}`"
+					data-testid="flow-dry-run-row">
+					<td>
+						<strong v-if="index === 0">{{ subjectName }}</strong>
+					</td>
+					<td>{{ step.label || step.type || step.nodeId }}</td>
+					<td>
+						<CnStatusBadge :label="outcomeOf(step).label" :variant="outcomeOf(step).variant" size="small" />
+						{{ wouldDo(step) }}
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<div class="cn-flow-dry-run__foot">
+			<span class="cn-flow-dry-run__count">{{ n('nextcloud-vue', '%n step', '%n steps', steps.length) }}</span>
+			<NcButton data-testid="flow-dry-run-again" @click="$emit('again')">
+				<template #icon>
+					<Autorenew :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Test again') }}
+			</NcButton>
+			<NcButton variant="primary" data-testid="flow-dry-run-close" @click="$emit('close')">
+				{{ t('nextcloud-vue', 'Close') }}
+			</NcButton>
+		</div>
+	</section>
+	<section v-else
+		class="cn-flow-dry-run"
+		:aria-label="title"
+		data-testid="flow-dry-run-result">
 		<div class="cn-flow-dry-run__head">
 			<h3 class="cn-flow-dry-run__title">
 				{{ title }}
@@ -47,22 +109,26 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import Autorenew from 'vue-material-design-icons/Autorenew.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * CnFlowDryRunResult — what trying a flow with a record showed: every step
  * the flow reached, in order, what it did (a step without side effects) or
  * would do (any other step), the fields it would change and the messages it
  * would send. Drawn beside the canvas by CnFlowBoard (DqFlow "Testen met een
- * zaak"). Nothing was changed or sent, and the panel says so.
+ * zaak"). Nothing was changed or sent, and the panel says so. With `card` it
+ * is the test run card of board OrFlowTestrunKaart: the same answer as a table.
  *
  * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-the-result-shows-each-step-beside-the-canvas
  */
 export default {
 	name: 'CnFlowDryRunResult',
 
-	components: { NcButton },
+	components: { Autorenew, CnStatusBadge, InformationOutline, NcButton },
 
 	props: {
 		/**
@@ -74,9 +140,15 @@ export default {
 			type: Object,
 			required: true,
 		},
+
+		/** Draw the test run card, a table with Test again. */
+		card: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['close'],
+	emits: ['close', 'again'],
 
 	computed: {
 		/** @return {Array<object>} The steps reached, in order. */
@@ -88,10 +160,52 @@ export default {
 		title() {
 			return t('nextcloud-vue', 'Test result')
 		},
+
+		/** @return {boolean} Whether the flow was tried on an example payload. */
+		onPayload() {
+			return this.result.subject?.payload !== undefined
+		},
+
+		/** @return {string} The head of the first column. */
+		subjectHead() {
+			return this.onPayload ? t('nextcloud-vue', 'Example') : t('nextcloud-vue', 'Record')
+		},
+
+		/** @return {string} What the flow was tried on. */
+		subjectName() {
+			return this.onPayload ? t('nextcloud-vue', 'Example payload') : (this.result.subject?.label || this.result.subject?.uuid || '')
+		},
 	},
 
 	methods: {
 		t,
+		n,
+
+		/**
+		 * @param {object} step A step.
+		 * @return {{label: string, variant: string}} How the step came out.
+		 */
+		outcomeOf(step) {
+			if (step.status === 'failed') {
+				return { label: t('nextcloud-vue', 'Would fail'), variant: 'error' }
+			}
+			if (step.status === 'skipped') {
+				return { label: t('nextcloud-vue', 'Skipped'), variant: 'default' }
+			}
+
+			return { label: t('nextcloud-vue', 'Would succeed'), variant: 'success' }
+		},
+
+		/**
+		 * @param {object} step A step.
+		 * @return {string} What it would do, with the fields and messages it names.
+		 */
+		wouldDo(step) {
+			const fields = this.changesOf(step).map((change) => `${change.field}: ${this.valueText(change.value)}`)
+			const messages = this.messagesOf(step).map((message) => t('nextcloud-vue', 'To {recipients}', { recipients: (message.to || []).join(', ') }))
+
+			return [this.summaryOf(step), ...fields, ...messages].filter(Boolean).join(' · ')
+		},
 
 		/**
 		 * @param {object} step A step.
@@ -133,6 +247,50 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+.cn-flow-dry-run--card {
+	gap: 12px;
+}
+
+.cn-flow-dry-run__intro {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0;
+	font-size: 13px;
+}
+
+.cn-flow-dry-run__table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.cn-flow-dry-run__table th {
+	color: var(--color-text-maxcontrast);
+	font-weight: 600;
+	text-align: start;
+}
+
+.cn-flow-dry-run__table th,
+.cn-flow-dry-run__table td {
+	padding: 6px 8px 6px 0;
+	border-block-end: 1px solid var(--color-border);
+	vertical-align: top;
+}
+
+.cn-flow-dry-run__foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-flow-dry-run__count {
+	flex: 1 1 auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-flow-dry-run__head {

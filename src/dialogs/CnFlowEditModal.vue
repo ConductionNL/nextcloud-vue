@@ -1,11 +1,11 @@
 <!--
   CnFlowEditModal — edit a flow without leaving the page.
 
-  This is what Buildiq's "Edit flows…" opens. It hosts the SAME components as
-  the flow detail page — CnFlowDetail for the canvas, CnFlowSidebar for the
-  controls — rather than a second, simpler editor. A modal that could only edit
-  a flow's name would quietly become a different product surface from the page,
-  and the two would drift.
+  What Buildiq's "Edit flows…" opens for an app without a flow page in list mode.
+  It is no editor of its own: it hosts the SAME components as the flow detail
+  page, CnFlowDetail in its list view with the Canvas / List switch and
+  CnFlowSidebar for the controls, so a flow behaves the same wherever it opens.
+  New callers link to the flow page with `?view=list` instead (decision 379).
 
   `size="full"` because a graph needs the room: the canvas and the controls have
   to be on screen together, and at any smaller size the sidebar either wraps
@@ -22,8 +22,13 @@
 			<div class="cn-flow-modal__canvas">
 				<CnFlowDetail :id="flowId"
 					:app="app"
+					:view="activeView"
 					@save="onSave"
-					@run="onRun" />
+					@run="onRun">
+					<template #toolbar-start>
+						<CnFlowViewSwitch v-model="activeView" />
+					</template>
+				</CnFlowDetail>
 			</div>
 			<aside class="cn-flow-modal__side">
 				<!-- `embedded`: NcAppSidebar's app-layout positioning has no
@@ -57,8 +62,13 @@
 import { NcButton, NcDialog } from '@nextcloud/vue'
 import CnFlowDetail from '../components/CnFlowDetail/CnFlowDetail.vue'
 import CnFlowSidebar from '../components/CnFlowDetail/CnFlowSidebar.vue'
+import CnFlowViewSwitch from '../components/CnFlowDetail/CnFlowViewSwitch.vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
 
+/**
+ * @deprecated Link to the flow page in list mode (`/flows/{id}?view=list`).
+ * Kept while callers move; it renders that same list view in a dialog.
+ */
 export default {
 	name: 'CnFlowEditModal',
 
@@ -67,6 +77,7 @@ export default {
 		NcDialog,
 		CnFlowDetail,
 		CnFlowSidebar,
+		CnFlowViewSwitch,
 	},
 
 	props: {
@@ -85,6 +96,14 @@ export default {
 			type: String,
 			default: null,
 		},
+
+		/**
+		 * The view on arrival: `list` or `canvas`.
+		 */
+		view: {
+			type: String,
+			default: 'list',
+		},
 	},
 
 	emits: ['close', 'saved'],
@@ -95,6 +114,7 @@ export default {
 
 	data() {
 		return {
+			activeView: this.view,
 			confirmDiscard: false,
 		}
 	},

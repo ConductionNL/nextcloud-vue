@@ -4,3 +4,5 @@
 export { default as CnFlowDetail } from './CnFlowDetail.vue'
 export { default as CnFlowSidebar } from './CnFlowSidebar.vue'
 export { default as CnFlowIndexPage } from './CnFlowIndexPage.vue'
+export { default as CnFlowStepList } from './CnFlowStepList.vue'
+export { default as CnFlowViewSwitch } from './CnFlowViewSwitch.vue'
