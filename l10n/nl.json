@@ -3019,7 +3019,11 @@
     "The saved flow is tried with the example you enter. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het voorbeeld dat u invult. Er wordt niets gewijzigd of verstuurd.",
     "Test": "Testen",
     "Health": "Gezondheid",
-    "Subjects": "Onderwerpen"
+    "Subjects": "Onderwerpen",
+    "{count} packages · {installed} installed": "{count} pakketten · {installed} geïnstalleerd",
+    "Package": "Pakket",
+    "Version {version} · shipped with {app}": "Versie {version} · meegeleverd met {app}",
+    "The packages could not be read.": "De pakketten konden niet worden gelezen."
   },
   "plurals": {
     "{count} member": [

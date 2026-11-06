@@ -216,3 +216,29 @@ describe('the approval card\'s wording from the widget (DqZaakAssistent "Voorste
 		expect(wrapper.findComponent(CnAiChatPanel).props('approvalWording')).toEqual(expected)
 	})
 })
+
+describe('the chat note from an endpoint', () => {
+	const content = {
+		note: 'Short note',
+		noteFrom: { url: '/apps/hermiq/api/ai-features/residency', path: 'results', match: { slug: 'chat-companion' }, requires: ['provider', 'location'], text: 'Runs at {provider}, {location}' },
+	}
+	const noteOf = async (answer) => {
+		axios.get.mockImplementation((url) => (String(url).includes('residency') ? answer() : Promise.resolve({ status: 200, data: { status: 'ok' } })))
+		const wrapper = mount(CnAiChatWidget, { propsData: { content }, provide: {} })
+		await flushPromises()
+		return wrapper.vm.noteText
+	}
+
+	it('fills the text from the matching row', async () => {
+		const rows = [{ slug: 'other', provider: 'x', location: 'y' }, { slug: 'chat-companion', provider: 'Hermiq', location: 'NL' }]
+		expect(await noteOf(() => Promise.resolve({ data: { results: rows } }))).toBe('Runs at Hermiq, NL')
+	})
+
+	it('keeps the note while a required field is empty', async () => {
+		expect(await noteOf(() => Promise.resolve({ data: { results: [{ slug: 'chat-companion', provider: null, location: '' }] } }))).toBe('Short note')
+	})
+
+	it('keeps the note when the read fails', async () => {
+		expect(await noteOf(() => Promise.reject(new Error('down')))).toBe('Short note')
+	})
+})
