@@ -175,6 +175,8 @@ export default {
 			assigneeOptions: [],
 			userOptions: [],
 			searching: false,
+			assigneeSearchSeq: 0,
+			userSearchSeq: 0,
 			rowErrors: {},
 			busy: '',
 			reassigning: '',
@@ -298,11 +300,15 @@ export default {
 		},
 
 		async searchAssignees(query) {
+			const seq = ++this.assigneeSearchSeq
 			this.searching = true
 			const [users, groups] = await Promise.all([
 				searchNextcloudUsers(query || '', { limit: 10 }),
 				searchGroupSharees(query || '', { limit: 10 }),
 			])
+			if (seq !== this.assigneeSearchSeq) {
+				return
+			}
 			this.searching = false
 			this.assigneeOptions = [
 				...users.map((u) => ({ kind: 'user', id: u.id, label: u.label || u.displayName || u.id })),
@@ -311,7 +317,11 @@ export default {
 		},
 
 		async searchUsers(query) {
+			const seq = ++this.userSearchSeq
 			const users = await searchNextcloudUsers(query || '', { limit: 10 })
+			if (seq !== this.userSearchSeq) {
+				return
+			}
 			this.userOptions = users.map((u) => ({ kind: 'user', id: u.id, label: u.label || u.displayName || u.id }))
 		},
 

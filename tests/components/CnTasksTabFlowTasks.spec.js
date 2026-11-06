@@ -18,6 +18,7 @@ jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
 
 import { flushPromises, mount } from '@vue/test-utils'
 import CnTasksTab from '../../src/components/CnObjectSidebar/CnTasksTab.vue'
+import { searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 const past = '2020-01-01T00:00:00Z'
 const future = '2099-01-01T00:00:00Z'
@@ -118,6 +119,31 @@ describe('CnTasksTab flow-tasks: create', () => {
 		panel(w).vm.assignee = { kind: 'group', id: 'backoffice', label: 'Backoffice (group)' }
 		await panel(w).vm.addTask()
 		expect(mockStore.createTask.mock.calls[0][0].assignee).toEqual({ kind: 'group', id: 'backoffice' })
+	})
+
+	it('draws the answer to the newest assignee and user search when an older one comes back last', async () => {
+		const w = mountTab()
+		await flushPromises()
+		const p = panel(w)
+		let answerOlder
+		searchNextcloudUsers.mockReturnValueOnce(new Promise((resolve) => {
+			answerOlder = resolve
+		}))
+		searchNextcloudUsers.mockResolvedValueOnce([{ id: 'hanna', label: 'Hanna' }])
+		const older = p.vm.searchAssignees('ha')
+		await p.vm.searchAssignees('han')
+		answerOlder([{ id: 'samira', label: 'Samira' }])
+		await older
+		expect(p.vm.assigneeOptions.map((o) => o.id)).toEqual(['hanna', 'backoffice'])
+		searchNextcloudUsers.mockReturnValueOnce(new Promise((resolve) => {
+			answerOlder = resolve
+		}))
+		searchNextcloudUsers.mockResolvedValueOnce([{ id: 'hanna', label: 'Hanna' }])
+		const olderUsers = p.vm.searchUsers('ha')
+		await p.vm.searchUsers('han')
+		answerOlder([{ id: 'samira', label: 'Samira' }])
+		await olderUsers
+		expect(p.vm.userOptions.map((o) => o.id)).toEqual(['hanna'])
 	})
 
 	it('says the record can no longer be opened on a 404', async () => {
