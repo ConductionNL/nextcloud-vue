@@ -360,6 +360,12 @@
 			</span>
 		</template>
 
+		<!-- Built-in "flowHealth" widget: a flow's health dot, read off the row
+		     of a `flows` source (`enabled`, `lastRunStatus`). -->
+		<template v-else-if="widget === 'flowHealth'">
+			<CnFlowHealthDot :enabled="row.enabled !== false" :lastRunStatus="row.lastRunStatus || null" />
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -449,6 +455,7 @@ import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextclou
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import Lock from 'vue-material-design-icons/Lock.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import CnFlowHealthDot from '../CnFlowDetail/CnFlowHealthDot.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -494,6 +501,7 @@ export default {
 	name: 'CnCellRenderer',
 
 	components: {
+		CnFlowHealthDot,
 		CnIcon,
 		CnStatusBadge,
 		NcCheckboxRadioSwitch,

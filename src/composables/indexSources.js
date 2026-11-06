@@ -106,14 +106,19 @@ export function flowTriggerCell(flow, catalog = []) {
  * last run ended, how often it ran this week), read in one request from
  * the run summary rather than derived from a page of runs.
  *
+ * `sourceConfig.extraColumns` adds `health` (a dot before the name) and `owner`
+ * (before the status) to the default columns, as board OrFlows draws them.
+ *
  * The quick filters (All, Active, Paused, With errors) narrow the loaded
  * list in place: every flow of the app is already loaded, so the counts on
  * the tabs and the rows they show can never disagree.
  *
+ * @param config
  * @return {object} The source adapter.
  */
-function flowsSource() {
+function flowsSource(config = {}) {
 	const store = useFlowStore()
+	const extraColumns = [].concat(config.extraColumns ?? [])
 	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
 
@@ -220,6 +225,7 @@ function flowsSource() {
 		loading: () => !!store.loading,
 
 		columns: [
+			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), widget: 'flowHealth' }] : []),
 			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
 			{
 				key: 'triggerLabel',
@@ -236,6 +242,7 @@ function flowsSource() {
 				widgetProps: { colorMap: lastRunColors },
 			},
 			{ key: 'runsThisWeek', label: t('nextcloud-vue', 'Runs this week'), class: 'cn-table-col--end' },
+			...(extraColumns.includes('owner') ? [{ key: 'owner', label: t('nextcloud-vue', 'Owner') }] : []),
 			{
 				key: 'statusLabel',
 				label: t('nextcloud-vue', 'Status'),

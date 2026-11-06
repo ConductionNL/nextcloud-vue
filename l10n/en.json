@@ -2750,7 +2750,8 @@
     "Would succeed": "Would succeed",
     "This is not a JSON object.": "This is not a JSON object.",
     "The saved flow is tried with the example you enter. Nothing is changed or sent.": "The saved flow is tried with the example you enter. Nothing is changed or sent.",
-    "Test": "Test"
+    "Test": "Test",
+    "Health": "Health"
   },
   "plurals": {
     "{count} member": [
