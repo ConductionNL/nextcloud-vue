@@ -66,6 +66,7 @@
 		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
+			:headerWrap="widget.headerWrap === true"
 			:title="widgetTitle"
 			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
@@ -175,6 +176,7 @@
 		     mount prop and renders only its rows. -->
 		<CnWidgetWrapper
 			v-else-if="wrapsMountLeaf"
+			:headerWrap="widget.headerWrap === true"
 			:title="leafCardTitle"
 			:showTitle="leafCardTitle !== ''"
 			titleIconPosition="left"
@@ -228,6 +230,7 @@
 		     widget titles, instead of the provider's compact count card. -->
 		<CnWidgetWrapper
 			v-else-if="wrapsLeafTab"
+			:headerWrap="widget.headerWrap === true"
 			:title="leafCardTitle"
 			:showTitle="leafCardTitle !== ''"
 			:subtitle="widgetSubtitle"
@@ -288,6 +291,7 @@
 		     component would be a silent visual regression across the fleet. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
@@ -414,6 +418,7 @@
 		     the title of a narrow tile. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || content.title || ''"
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -452,6 +457,7 @@
 		     bare. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsChart"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="widgetSubtitle"
 			titleIconPosition="left"
@@ -479,6 +485,7 @@
 		     bare. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsConsumerWidget"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -542,6 +549,7 @@
 		     every section a card of its own, so both stay as they are. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsSections"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title"
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -598,6 +606,7 @@
 		     on a card surface, so it does not float bare in a tab stack. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsSelfTitledWidget"
+			:headerWrap="widget.headerWrap === true"
 			:showTitle="false"
 			:showActions="false"
 			:showRefresh="false"
