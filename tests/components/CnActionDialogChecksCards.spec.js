@@ -62,6 +62,8 @@ describe('a checks field', () => {
 		const w = mountDialog([SPLIT])
 		await flushPromises()
 		const set = w.find('[data-testid="cn-action-dialog-checks-docs"]')
+		expect(set.classes()).toContain('cn-action-dialog__check-field')
+		expect(set.classes()).not.toContain('cn-action-dialog__checks')
 		expect(set.element.tagName).toBe('FIELDSET')
 		expect(set.find('legend').text()).toBe('Documents that go along')
 		const checks = set.findAllComponents({ name: 'NcCheckboxRadioSwitch' })
