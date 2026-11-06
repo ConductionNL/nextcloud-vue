@@ -251,6 +251,11 @@
 							:variant="node.data.badge.variant || 'default'"
 							size="small" />
 					</template>
+					<template v-else-if="node.data.named">
+						<span class="cn-flow-detail__node-kind">{{ typeLabel(node.data.stepType) }}</span>
+						<span class="cn-flow-detail__node-type">{{ node.data.label }}</span>
+						<span v-if="node.data.summary" class="cn-flow-detail__node-label">{{ node.data.summary }}</span>
+					</template>
 					<template v-else>
 						<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
 						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
@@ -1006,6 +1011,8 @@ export default {
 				data: {
 					stepType: node.type,
 					label: this.nodeLabel(node),
+					named: Boolean(this.nodeName(node)),
+					summary: this.nodeSummary(node),
 					badge: this.nodeBadge ? this.nodeBadge(node) : null,
 					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
 
@@ -2434,19 +2441,14 @@ export default {
 		 * future, without the builder having to know any of them.
 		 *
 		 * @param {object} node The node.
-		 * @return {string} The label.
+		 * @return {string} The summary, or '' when nothing is set.
 		 */
-		nodeLabel(node) {
-			// A name the author gave the step beats a derived summary.
-			if (node.name) {
-				return node.name
-			}
-
+		nodeSummary(node) {
 			const config = (node.config || {})
 			const keys = Object.keys(config).filter((k) => config[k] !== '' && config[k] !== null)
 
 			if (!keys.length) {
-				return this.t('nextcloud-vue', 'not configured')
+				return ''
 			}
 
 			const first = keys[0]
@@ -2458,6 +2460,27 @@ export default {
 			}
 
 			return `${first}: ${shown} +${keys.length - 1}`
+		},
+
+		/**
+		 * The name the author gave a step. The editor writes `name`; a flow
+		 * authored as JSON or through the API carries `label`.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The name, or ''.
+		 */
+		nodeName(node) {
+			return node.name || node.label || ''
+		},
+
+		/**
+		 * What a step is called: its name, else what its configuration says.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The label.
+		 */
+		nodeLabel(node) {
+			return this.nodeName(node) || this.nodeSummary(node) || this.t('nextcloud-vue', 'not configured')
 		},
 	},
 }
@@ -2632,6 +2655,18 @@ export default {
 
 .cn-flow-detail__node-type {
 	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* A named step: what kind of step it is, small, over its name. */
+.cn-flow-detail__node-kind {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.7em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;

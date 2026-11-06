@@ -415,8 +415,7 @@
 							{{ t('nextcloud-vue', 'Only admins may use this action. You can read this step, but not change or save it; ask an admin.') }}
 						</NcNoteCard>
 					</slot>
-					<NcTextField v-if="canvasLayout"
-						:modelValue="nameDraft === null ? stepName : nameDraft"
+					<NcTextField :modelValue="nameDraft === null ? stepName : nameDraft"
 						:label="t('nextcloud-vue', 'Step name')"
 						:disabled="stepLocked"
 						data-testid="flow-board-step-name-field"
