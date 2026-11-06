@@ -273,6 +273,12 @@ export default {
 			return this.appModalOpen || this.offPage
 		},
 
+		/**
+		 * The step counter: in words under the board look.
+		 *
+		 * @return {string} The counter.
+		 * @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look
+		 */
 		counterText() {
 			const current = this.index + 1
 			return this.isBoard
