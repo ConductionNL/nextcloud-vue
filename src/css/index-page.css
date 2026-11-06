@@ -37,6 +37,10 @@
     margin-bottom: calc(4 * var(--default-grid-baseline));
 }
 
+.cn-index-page__counters {
+	margin-block-end: 12px;
+}
+
 /* A below-header wrapper whose slot renders nothing on this route (e.g. an
    empty breadcrumb trail at the root) must not leave its margin as a blank
    band above the actions bar. Vue leaves only comment placeholders for

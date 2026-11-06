@@ -764,6 +764,20 @@
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
+				<!-- Counters a named source supplies (`counters()`), above the rows. -->
+				<CnKpiGrid v-if="sourceCounters.length > 0"
+					columns="auto"
+					class="cn-index-page__counters"
+					data-testid="cn-index-counters">
+					<CnStatsBlock v-for="counter in sourceCounters"
+						:key="counter.id"
+						:title="counter.label"
+						:count="counter.count"
+						:countLabel="counter.note"
+						:variant="counter.variant"
+						showZeroCount />
+				</CnKpiGrid>
+
 				<!-- A sort option whose endpoint could not answer: the list fell
 				     back to the option's own order, and says so. -->
 				<p v-if="sortSourceFellBack && sortSourceFailedNote"
@@ -1444,8 +1458,10 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
 import CnRealtimeToast from '../CnRealtimeToast/CnRealtimeToast.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
+import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
@@ -1956,6 +1972,8 @@ export default {
 		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
+		CnKpiGrid,
+		CnStatsBlock,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -8659,6 +8677,17 @@ export default {
 				}
 			}
 			return refs
+		},
+
+		/**
+		 * The counters a named source draws above its rows.
+		 *
+		 * @return {Array<object>} The tiles, `{id, label, count, note, variant}`.
+		 */
+		sourceCounters() {
+			const source = this.isNamedSource ? this.namedSource : null
+
+			return source && typeof source.counters === 'function' ? source.counters() : []
 		},
 
 		/**

@@ -27,11 +27,15 @@ const dialogEl = (wrapper) => wrapper.find('.stub.NcDialog')
 const widthOf = (wrapper) => dialogEl(wrapper).element.style.getPropertyValue('--cn-dialog-width')
 
 describe('dialog widths (task 2)', () => {
-	it('knows exactly three widths', () => {
-		expect(DIALOG_WIDTHS).toEqual({ confirm: 560, form: 640, wizard: 720 })
+	it('knows exactly four widths', () => {
+		expect(DIALOG_WIDTHS).toEqual({ confirm: 560, form: 640, wizard: 720, browse: 1120 })
 	})
 
-	it('resolves a role, falls back to the component default, never to a fourth width', () => {
+	it('a search-and-pick dialog takes the browse width', () => {
+		expect(resolveDialogWidth('browse', 'form')).toEqual({ role: 'browse', px: 1120 })
+	})
+
+	it('resolves a role, falls back to the component default, never to another width', () => {
 		expect(resolveDialogWidth('wizard', 'confirm')).toEqual({ role: 'wizard', px: 720 })
 		expect(resolveDialogWidth('', 'confirm')).toEqual({ role: 'confirm', px: 560 })
 		expect(resolveDialogWidth('900', 'confirm')).toEqual({ role: 'confirm', px: 560 })

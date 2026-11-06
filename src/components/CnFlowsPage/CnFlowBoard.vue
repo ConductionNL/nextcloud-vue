@@ -12,7 +12,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView }" data-testid="flow-board">
+	<div class="cn-flow-board" :class="{ 'cn-flow-board--with-palette': showPalette, 'cn-flow-board--canvas': canvasLayout, 'cn-flow-board--run': store.inRunView, 'cn-flow-board--list': inList, 'cn-flow-board--list-panel': inList && inspectorShown }" data-testid="flow-board">
 		<header class="cn-flow-board__header">
 			<div class="cn-flow-board__heading">
 				<h1 class="cn-flow-board__title" data-testid="flow-board-title">
@@ -21,7 +21,7 @@
 			</div>
 			<div v-if="!store.inRunView || canvasLayout" class="cn-flow-board__actions">
 				<template v-if="!store.inRunView">
-					<NcButton v-if="testSubjectReady"
+					<NcButton v-if="testReady"
 						:disabled="store.dryRunning || !store.flow.id"
 						data-testid="flow-board-test"
 						@click="testOpen = true">
@@ -116,20 +116,30 @@
 			data-testid="flow-board-test-dialog"
 			@closing="testOpen = false">
 			<p class="cn-flow-board__test-intro">
-				{{ t('nextcloud-vue', 'The saved flow is tried with the record you pick. Nothing is changed or sent.') }}
+				{{ testIntro }}
 			</p>
-			<CnResourceSelect v-model="testRecord"
+			<CnResourceSelect v-if="testSubjectReady"
+				v-model="testRecord"
 				:register="testSubject.register"
 				:schema="testSubject.schema"
 				:labelField="testSubject.labelField || 'title'"
 				:inputLabel="t('nextcloud-vue', 'Record')"
 				data-testid="flow-board-test-record" />
+			<NcTextArea v-if="payloadTest"
+				:modelValue="payloadText"
+				:label="t('nextcloud-vue', 'Example payload')"
+				:error="payloadInvalid"
+				:helperText="payloadInvalid ? t('nextcloud-vue', 'This is not a JSON object.') : ''"
+				resize="vertical"
+				rows="6"
+				data-testid="flow-board-test-payload"
+				@update:modelValue="payloadText = $event" />
 			<template #actions>
 				<NcButton data-testid="flow-board-test-cancel" @click="testOpen = false">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
 				<NcButton variant="primary"
-					:disabled="!testRecord || store.dryRunning"
+					:disabled="!testCanRun || store.dryRunning"
 					data-testid="flow-board-test-run"
 					@click="runTest">
 					{{ t('nextcloud-vue', 'Run test') }}
@@ -167,9 +177,20 @@
 			<span v-if="metaText" class="cn-flow-board__meta"> · {{ metaText }}</span>
 		</p>
 
-		<NcNoteCard v-if="notice && !store.inRunView" type="info" class="cn-flow-board__notice">
-			{{ noticeText }}
-		</NcNoteCard>
+		<CnFlowViewSwitch v-if="listMode"
+			v-model="activeView"
+			class="cn-flow-board__views"
+			note />
+
+		<!-- @slot notice A notice under the path, such as a drift warning. Replaces the `notice` prop's card. -->
+		<slot name="notice">
+			<NcNoteCard v-if="notice && !store.inRunView"
+				:type="noticeLevel"
+				class="cn-flow-board__notice"
+				data-testid="flow-board-notice">
+				{{ noticeText }}
+			</NcNoteCard>
+		</slot>
 
 		<div class="cn-flow-board__body">
 			<aside v-if="showPalette"
@@ -208,7 +229,7 @@
 			</aside>
 			<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
 
-			<section class="cn-flow-board__card cn-flow-board__canvas" :aria-label="t('nextcloud-vue', 'Flow canvas')">
+			<section class="cn-flow-board__card cn-flow-board__canvas" :aria-label="inList ? t('nextcloud-vue', 'Flow steps') : t('nextcloud-vue', 'Flow canvas')">
 				<CnFlowDetail :id="id"
 					:app="app"
 					:run="run"
@@ -218,6 +239,10 @@
 					:nodeBadge="nodeLook === 'card' ? nodeBadge : null"
 					:toolbarActions="false"
 					:addStep="!showPalette"
+					:edgeConditions="edgeConditions"
+					:view="activeView"
+					:readonlySteps="readonlyStepIds"
+					stepPanel
 					quietRun
 					@save="$emit('save')"
 					@run="onRun">
@@ -306,6 +331,8 @@
 				</NcButton>
 				<CnFlowDryRunResult v-if="store.dryRunResult && !store.inRunView"
 					:result="store.dryRunResult"
+					:card="payloadTest"
+					@again="testAgain"
 					@close="store.clearDryRun()" />
 				<template v-else-if="store.inRunView">
 					<CnFlowRunSummary v-if="!canvasLayout"
@@ -382,10 +409,16 @@
 							</template>
 						</NcButton>
 					</div>
+					<!-- @slot step-notice A notice on the selected step, `{ node }`. Replaces the admin only note. -->
+					<slot name="step-notice" :node="store.selectedNode">
+						<NcNoteCard v-if="selectedAdminStep" type="warning" data-testid="flow-board-admin-step">
+							{{ t('nextcloud-vue', 'Only admins may use this action. You can read this step, but not change or save it; ask an admin.') }}
+						</NcNoteCard>
+					</slot>
 					<NcTextField v-if="canvasLayout"
 						:modelValue="nameDraft === null ? stepName : nameDraft"
 						:label="t('nextcloud-vue', 'Step name')"
-						:disabled="store.graphLocked"
+						:disabled="stepLocked"
 						data-testid="flow-board-step-name-field"
 						@update:modelValue="nameDraft = $event"
 						@blur="commitStepName"
@@ -412,13 +445,13 @@
 							<NcCheckboxRadioSwitch v-if="canvasLayout && field.widget === 'switch' && field.description"
 								type="switch"
 								:modelValue="field.value === true"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								:aria-labelledby="`${toggleLabelId}-${field.key}`"
 								@update:modelValue="setStepField(field, $event)" />
 							<NcCheckboxRadioSwitch v-else-if="field.widget === 'switch'"
 								type="switch"
 								:modelValue="field.value === true"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								@update:modelValue="setStepField(field, $event)">
 								{{ field.label }}
 							</NcCheckboxRadioSwitch>
@@ -427,20 +460,20 @@
 								:options="field.options"
 								:inputLabel="field.label"
 								:clearable="false"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								label="label"
 								@update:modelValue="setStepField(field, $event ? $event.id : '')" />
 							<NcTextArea v-else-if="field.widget === 'textarea'"
 								:modelValue="fieldDraft(field)"
 								:label="field.label"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								resize="vertical"
 								@update:modelValue="drafts[field.key] = $event"
 								@blur="commitStepField(field)" />
 							<NcTextField v-else
 								:modelValue="fieldDraft(field)"
 								:label="field.label"
-								:disabled="store.graphLocked"
+								:disabled="stepLocked"
 								@update:modelValue="drafts[field.key] = $event"
 								@blur="commitStepField(field)"
 								@keydown.enter="commitStepField(field)" />
@@ -454,7 +487,9 @@
 						</div>
 					</dl>
 					<div class="cn-flow-board__step-actions">
-						<NcButton data-testid="flow-board-edit-step" @click="store.editingNodeId = store.selectedNodeId">
+						<NcButton :disabled="selectedAdminStep"
+							data-testid="flow-board-edit-step"
+							@click="store.editingNodeId = store.selectedNodeId">
 							{{ t('nextcloud-vue', 'Edit step') }}
 						</NcButton>
 						<NcButton v-if="lastRunUuid && !canvasLayout"
@@ -490,7 +525,7 @@
 					<div class="cn-flow-board__step-footer">
 						<NcButton variant="tertiary"
 							:class="{ 'cn-flow-board__delete-step': canvasLayout }"
-							:disabled="store.graphLocked"
+							:disabled="stepLocked"
 							data-testid="flow-board-delete-step"
 							@click="store.removeNode(store.selectedNodeId)">
 							{{ t('nextcloud-vue', 'Delete step') }}
@@ -510,7 +545,7 @@
 					<CnFlowSidebar embedded />
 				</template>
 				<div v-else class="cn-flow-board__inspector-empty" data-testid="flow-board-inspector-empty">
-					<p>{{ t('nextcloud-vue', 'Select a step on the canvas to see its settings.') }}</p>
+					<p>{{ inList ? t('nextcloud-vue', 'Edit a step to see its settings.') : t('nextcloud-vue', 'Select a step on the canvas to see its settings.') }}</p>
 					<NcButton variant="secondary"
 						data-testid="flow-board-show-runs"
 						@click="showRuns = true">
@@ -523,6 +558,7 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -544,6 +580,7 @@ import CnFlowDryRunResult from '../CnFlowDetail/CnFlowDryRunResult.vue'
 import CnFlowRunSummary from '../CnFlowDetail/CnFlowRunSummary.vue'
 import CnFlowSidebar from '../CnFlowDetail/CnFlowSidebar.vue'
 import CnFlowStepLog from '../CnFlowDetail/CnFlowStepLog.vue'
+import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
@@ -562,7 +599,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 export default {
 	name: 'CnFlowBoard',
 
-	components: { ArrowLeft, Autorenew, Check, CheckCircleOutline, ChevronDown, Close, DockRight, History, InformationOutline, Play, Replay, NcActionButton, NcActions, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { ArrowLeft, Autorenew, Check, CheckCircleOutline, ChevronDown, Close, DockRight, History, InformationOutline, Play, Replay, NcActionButton, NcActions, CnBuildiqEditButton, CnDialog, CnFlowDetail, CnFlowDryRunResult, CnResourceSelect, CnFlowRunSummary, CnFlowSidebar, CnFlowStepLog, CnFlowStepPickerModal, CnFlowViewSwitch, CnStatusBadge, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	props: {
 		/** The flow uuid, or `new`. */
@@ -600,6 +637,26 @@ export default {
 		flowDirection: { type: String, default: 'right' },
 		/** An info notice under the path. */
 		notice: { type: String, default: '' },
+		/** The look of `notice`: `info`, `warning` or `error`. */
+		noticeLevel: { type: String, default: 'info' },
+		/**
+		 * Steps only an admin may change, by node id or step type. Anyone else
+		 * reads them: the list view offers no buttons on them and the step
+		 * panel says why. This is the screen's side; the server decides.
+		 */
+		adminSteps: { type: Array, default: () => [] },
+		/** Write a line's condition on the line when it has no name of its own. */
+		edgeConditions: { type: Boolean, default: false },
+		/** Offer the list view beside the canvas, with the Canvas / List switch. */
+		listMode: { type: Boolean, default: false },
+		/** The view on arrival when `listMode` is on: `canvas` or `list`. */
+		view: { type: String, default: 'canvas' },
+		/**
+		 * Test the flow on an example payload (OrFlowTestrun): `true` opens an
+		 * empty field, text opens it with that JSON. The result shows as the
+		 * test run card. Without it only `testSubject` offers a test.
+		 */
+		testPayload: { type: [Boolean, String], default: false },
 		/**
 		 * Edit a published flow in place; Save publishes the edits as the next
 		 * version, and runs already started keep theirs (DqFlow).
@@ -655,7 +712,7 @@ export default {
 	},
 
 	data() {
-		return { nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
+		return { payloadText: typeof this.testPayload === 'string' ? this.testPayload : '', activeView: this.listMode && this.view === 'list' ? 'list' : 'canvas', nameDraft: null, legendTitleId: `cn-flow-board-legend-${Math.random().toString(36).slice(2)}`, panelOpen: false, runPanelClosed: false, runTab: 'step', testOpen: false, testRecord: null, appNames: {}, showRuns: false, stepPickerOpen: false, drafts: {}, loadedOptions: {}, toggleLabelId: `cn-flow-board-toggle-${Math.random().toString(36).slice(2)}` }
 	},
 
 	computed: {
@@ -722,14 +779,77 @@ export default {
 			return Boolean(this.testSubject && this.testSubject.register && this.testSubject.schema)
 		},
 
+		/** @return {boolean} Whether the page tests on an example payload. */
+		payloadTest() {
+			return this.testPayload !== false
+		},
+
+		/** @return {boolean} Whether the test button is drawn. */
+		testReady() {
+			return this.testSubjectReady || this.payloadTest
+		},
+
+		/** @return {object|null} The example payload as data, null when the field holds no JSON object. */
+		payloadValue() {
+			try {
+				const value = JSON.parse(this.payloadText)
+				return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null
+			} catch {
+				return null
+			}
+		},
+
+		/** @return {boolean} Whether the field holds text that is no JSON object. */
+		payloadInvalid() {
+			return this.payloadText.trim() !== '' && this.payloadValue === null
+		},
+
+		/** @return {boolean} Whether the dialog has something to try the flow on. */
+		testCanRun() {
+			return Boolean(this.testRecord) || this.payloadValue !== null
+		},
+
+		/** @return {string} The line at the top of the test dialog. */
+		testIntro() {
+			return this.testSubjectReady
+				? t('nextcloud-vue', 'The saved flow is tried with the record you pick. Nothing is changed or sent.')
+				: t('nextcloud-vue', 'The saved flow is tried with the example you enter. Nothing is changed or sent.')
+		},
+
 		/** @return {string} The test button's label: the page's own, else the library's. */
 		testLabel() {
-			return (this.testSubject && this.testSubject.label) || t('nextcloud-vue', 'Test with a record')
+			const fallback = this.testSubjectReady ? t('nextcloud-vue', 'Test with a record') : t('nextcloud-vue', 'Test')
+
+			return (this.testSubject && this.testSubject.label) || fallback
 		},
 
 		/** @return {boolean} Whether the palette card is drawn. */
 		showPalette() {
-			return this.palette === 'column' && !this.store.inRunView
+			return this.palette === 'column' && !this.store.inRunView && !this.inList
+		},
+
+		/** @return {Array<string>} The ids of the steps this viewer can only read. */
+		readonlyStepIds() {
+			if (this.adminSteps.length === 0 || getCurrentUser()?.isAdmin === true) {
+				return []
+			}
+
+			return this.store.nodes.filter((node) => this.adminSteps.includes(node.id) || this.adminSteps.includes(node.type)).map((node) => node.id)
+		},
+
+		/** @return {boolean} Whether the selected step is one this viewer can only read. */
+		selectedAdminStep() {
+			return this.readonlyStepIds.includes(this.store.selectedNodeId)
+		},
+
+		/** @return {boolean} Whether the selected step cannot be changed here. */
+		stepLocked() {
+			return this.store.graphLocked || this.selectedAdminStep
+		},
+
+		/** @return {boolean} Whether the list view is on screen. */
+		inList() {
+			return this.activeView === 'list'
 		},
 
 		/** @return {string} The page title. */
@@ -1406,13 +1526,36 @@ export default {
 		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
 		 */
 		async runTest() {
-			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
-			if (!uuid) {
+			const subject = this.testRunSubject()
+			if (subject === null) {
 				return
 			}
-			await this.store.dryRun({ uuid, register: this.testSubject.register, schema: this.testSubject.schema })
+			await this.store.dryRun(subject)
 			this.testOpen = false
 			this.testRecord = null
+		},
+
+		/**
+		 * What the dialog tries the flow on: the picked record, else the payload.
+		 *
+		 * @return {object|null} The subject for `store.dryRun`, or null.
+		 */
+		testRunSubject() {
+			const uuid = Array.isArray(this.testRecord) ? this.testRecord[0] : this.testRecord
+			if (uuid) {
+				return { uuid, register: this.testSubject.register, schema: this.testSubject.schema }
+			}
+
+			return this.payloadValue === null ? null : { payload: this.payloadValue }
+		},
+
+		/**
+		 * Try the flow again on what the last test used.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async testAgain() {
+			await this.store.dryRun(this.store.dryRunResult.subject)
 		},
 
 		t,
@@ -1684,6 +1827,14 @@ export default {
 	background-color: var(--color-main-background);
 	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
 	background-size: 16px 16px;
+}
+
+.cn-flow-board--list .cn-flow-board__canvas {
+	background-image: none;
+}
+
+.cn-flow-board__views {
+	margin-block-end: 12px;
 }
 
 .cn-flow-board__palette {
@@ -2088,6 +2239,12 @@ export default {
 	box-sizing: border-box;
 	overflow-y: auto;
 	box-shadow: 0 4px 16px rgba(27, 28, 29, 0.12);
+}
+
+/* The floating inspector must not cover the rows of the list. */
+.cn-flow-board--canvas.cn-flow-board--list-panel .cn-flow-board__canvas {
+	inline-size: auto;
+	inset-inline-end: 358px;
 }
 
 .cn-flow-board__inspector-close {
