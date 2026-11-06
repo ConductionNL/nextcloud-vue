@@ -113,6 +113,7 @@
 										"detail": { "type": "string", "minLength": 1 },
 										"detailWhenOpen": { "type": "string", "minLength": 1 },
 										"doneWhen": {},
+										"readinessItem": { "type": "string", "minLength": 1, "description": "The id of an item in the setup status `readiness` list; the row is done when that item is." },
 										"link": {
 											"type": "object",
 											"additionalProperties": false,

@@ -996,7 +996,7 @@ export default {
 			}
 			return step.rows.map((row) => {
 				const recap = this.summaryItems.find((item) => item.id === row.step)
-				const done = recap ? recap.done : (row.doneWhen !== undefined && this.stepConditionHolds({ visibleWhen: row.doneWhen }))
+				const done = recap ? recap.done : this.readinessRowDone(row)
 				const detail = (!done && row.detailWhenOpen) || row.detail
 				const fallback = recap ? recap.value : ''
 				return {
@@ -1007,6 +1007,23 @@ export default {
 					link: row.link ? { label: this.cnTranslate(row.link.label), href: row.link.href } : null,
 				}
 			})
+		},
+
+		/**
+		 * Whether a row without a step is done: the setup status `readiness`
+		 * item it names, else its `doneWhen`. A row naming neither stays open.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRowDone(row) {
+			if (row.readinessItem) {
+				const items = (this.setupStatus && this.setupStatus.readiness) || []
+				const item = Array.isArray(items) ? items.find((entry) => entry.id === row.readinessItem) : null
+				return Boolean(item && item.done)
+			}
+			return row.doneWhen !== undefined && this.stepConditionHolds({ visibleWhen: row.doneWhen })
 		},
 
 		/**

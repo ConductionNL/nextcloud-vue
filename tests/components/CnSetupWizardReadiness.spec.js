@@ -10,7 +10,7 @@
 const CnSetupWizard = require('../../src/components/CnSetupWizard/CnSetupWizard.vue').default
 
 const { readinessRows } = CnSetupWizard.methods
-const { stepConditionHolds } = CnSetupWizard.methods
+const { readinessRowDone, stepConditionHolds } = CnSetupWizard.methods
 
 function host(extra = {}) {
 	return {
@@ -19,6 +19,7 @@ function host(extra = {}) {
 		summaryItems: [{ id: 'org', title: 'Organisation', value: 'Name: Zuiddrecht', done: true }],
 		setupStatus: { mail: { configured: false } },
 		stepConditionHolds,
+		readinessRowDone,
 		...extra,
 	}
 }
@@ -34,6 +35,14 @@ describe('readinessRows', () => {
 		expect(readinessRows.call(host(), step)[0]).toMatchObject({ done: false, detail: 'No mail server' })
 		const ready = host({ setupStatus: { mail: { configured: true } } })
 		expect(readinessRows.call(ready, step)[0]).toMatchObject({ done: true, detail: 'Mail works' })
+	})
+
+	it('reads a row from the readiness list of the setup status', () => {
+		const step = { rows: [{ id: 'mail', title: 'E-mail', readinessItem: 'mail-account' }] }
+		const status = (done) => host({ setupStatus: { readiness: [{ id: 'mail-account', done }] } })
+		expect(readinessRows.call(status(true), step)[0].done).toBe(true)
+		expect(readinessRows.call(status(false), step)[0].done).toBe(false)
+		expect(readinessRows.call(host(), step)[0].done).toBe(false)
 	})
 
 	it('holds a row without a condition open', () => {
