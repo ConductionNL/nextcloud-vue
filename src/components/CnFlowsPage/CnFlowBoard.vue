@@ -415,8 +415,7 @@
 							{{ t('nextcloud-vue', 'Only admins may use this action. You can read this step, but not change or save it; ask an admin.') }}
 						</NcNoteCard>
 					</slot>
-					<NcTextField v-if="canvasLayout"
-						:modelValue="nameDraft === null ? stepName : nameDraft"
+					<NcTextField :modelValue="nameDraft === null ? stepName : nameDraft"
 						:label="t('nextcloud-vue', 'Step name')"
 						:disabled="stepLocked"
 						data-testid="flow-board-step-name-field"
@@ -584,8 +583,8 @@ import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
-import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
-import { flowRunStatuses } from '../../utils/flowRunStatus.js'
+import { flowOutcomeLevels, flowRunBadge, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
 import { overlayInset } from '../../utils/overlayInset.js'
 import { normaliseSelectOptions } from '../../utils/selectOptions.js'
@@ -758,8 +757,7 @@ export default {
 
 		/** @return {{label: string, variant: string}} The run's status pill. */
 		runStatus() {
-			const status = String(this.runRecord?.status || '')
-			return flowRunStatuses()[status] || { label: status, variant: 'default' }
+			return flowRunBadge(this.runRecord)
 		},
 
 		/** @return {number} How many of the run's steps warned. */
@@ -1245,7 +1243,7 @@ export default {
 				failed: this.t('nextcloud-vue', 'failed'),
 				dead_letter: this.t('nextcloud-vue', 'failed'),
 				stopped: this.t('nextcloud-vue', 'stopped early'),
-			}[String(last.status || '')] || this.t('nextcloud-vue', 'running')
+			}[flowRunOutcome(last)] || this.t('nextcloud-vue', 'running')
 			return this.t('nextcloud-vue', 'Last run {date} {outcome}', { date: formatRelativeDate(last.created, { withTime: true }), outcome })
 		},
 

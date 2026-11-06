@@ -44,6 +44,18 @@ describe('CnFlowDryRunResult', () => {
 		expect(w.emitted('close')).toHaveLength(1)
 	})
 
+	it('says why a step would fail', () => {
+		const steps = [{ nodeId: 'w', type: 'write', status: 'failed', error: 'An object-write step needs an operation.', preview: null }]
+
+		const list = mount(CnFlowDryRunResult, { props: { result: { status: 'failed', steps } } })
+		expect(list.find('[data-testid="flow-dry-run-step-error"]').text()).toBe('An object-write step needs an operation.')
+
+		const card = mount(CnFlowDryRunResult, { props: { card: true, result: { status: 'failed', steps } } })
+		const row = card.find('[data-testid="flow-dry-run-row"]')
+		expect(row.text()).toContain('Would fail')
+		expect(row.text()).toContain('An object-write step needs an operation.')
+	})
+
 	it('shows the error a refused step left', () => {
 		const w = mount(CnFlowDryRunResult, { props: { result: { status: 'failed', error: 'Step 2 is malformed', steps: [] } } })
 		expect(w.find('[data-testid="flow-dry-run-error"]').text()).toBe('Step 2 is malformed')

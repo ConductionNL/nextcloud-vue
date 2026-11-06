@@ -12,9 +12,9 @@
  *
  * 1. DISABLED WINS OVER EVERY RUN STATE. A red dot on a flow that cannot run
  *    sends somebody to fix a thing that is not happening.
- * 2. `stopped` IS A WARNING, NOT A SUCCESS. A run that stopped reached a
- *    terminal state without finishing the work it was asked to do, and calling
- *    that green is how a half-done nightly goes unnoticed for a week.
+ * 2. `stopped` IS A WARNING, NOT A SUCCESS. The dot is handed a run's outcome,
+ *    so `stopped` means a check ended the run before its work was done, and
+ *    calling that green is how a half-done nightly goes unnoticed for a week.
  */
 
 import { mount } from '@vue/test-utils'

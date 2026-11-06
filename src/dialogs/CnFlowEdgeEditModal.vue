@@ -155,7 +155,7 @@ export default {
 		nodeLabel(id) {
 			const node = this.store.nodes.find((candidate) => candidate.id === id)
 
-			return node?.name || node?.id || id
+			return node?.name || node?.label || node?.id || id
 		},
 
 		/**

@@ -208,10 +208,33 @@
 
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
-					<NcNoteCard v-if="step.body" type="info">
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
-					<ul class="cn-setup-summary">
+					<ul v-if="readinessRows(step).length > 0"
+						class="cn-setup-readiness"
+						:aria-label="readinessLabel"
+						data-testid="cn-setup-readiness">
+						<li v-for="row in readinessRows(step)"
+							:key="row.id"
+							class="cn-setup-readiness__row"
+							data-testid="cn-setup-readiness-row">
+							<span class="cn-setup-readiness__mark"
+								:class="{ 'cn-setup-readiness__mark--done': row.done }"
+								aria-hidden="true">
+								<Check v-if="row.done" :size="14" />
+							</span>
+							<span class="cn-setup-readiness__text">
+								<strong class="cn-setup-readiness__title">{{ row.title }}</strong>
+								<span v-if="row.detail" class="cn-setup-readiness__detail">{{ row.detail }}</span>
+							</span>
+							<a v-if="row.link" class="cn-setup-readiness__link" :href="row.link.href">{{ row.link.label }}</a>
+						</li>
+					</ul>
+					<ul v-else class="cn-setup-summary">
 						<li
 							v-for="item in summaryItems"
 							:key="item.id"
@@ -222,6 +245,12 @@
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
 						</li>
 					</ul>
+					<NcNoteCard v-if="stepNote(step)"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
 				</template>
 			</div>
 		</template>
@@ -233,6 +262,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
@@ -274,6 +304,7 @@ export default {
 	name: 'CnSetupWizard',
 
 	components: {
+		Check,
 		CnWizardDialog,
 		CnChoiceCards,
 		CnLeafDependencySettings,
@@ -625,6 +656,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it */
 		wizardSteps() {
 			if (this.dependencyBlocked) {
 				return [{
@@ -638,7 +670,19 @@ export default {
 				label: this.stepTitle(s),
 				optional: s.required !== true,
 				skippable: s.skippable === true,
+				cancelLabel: s.cancelLabel ? this.cnTranslate(s.cancelLabel) : undefined,
+				submitLabel: s.submitLabel ? this.cnTranslate(s.submitLabel) : undefined,
 			}))
+		},
+
+		/**
+		 * The accessible name of the readiness list.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessLabel() {
+			return t('nextcloud-vue', 'Readiness')
 		},
 
 		/**
@@ -942,6 +986,51 @@ export default {
 				return node === when.equals
 			}
 			return Boolean(node)
+		},
+
+		/**
+		 * The readiness rows of a `summary` step under the board look: its
+		 * declared `rows` in order. A row naming a `step` takes the recap of that
+		 * step; any other row is done when `doneWhen` holds in the setup status.
+		 *
+		 * @param {object} step The summary step.
+		 * @return {Array<{ id: string, title: string, detail: string, done: boolean, link: (object|null) }>}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRows(step) {
+			if (!this.isBoard || !Array.isArray(step.rows)) {
+				return []
+			}
+			return step.rows.map((row) => {
+				const recap = this.summaryItems.find((item) => item.id === row.step)
+				const done = recap ? recap.done : this.readinessRowDone(row)
+				const detail = (!done && row.detailWhenOpen) || row.detail
+				const fallback = recap ? recap.value : ''
+				return {
+					id: row.step || row.id,
+					title: row.title ? this.cnTranslate(row.title) : (recap ? recap.title : ''),
+					detail: detail ? this.cnTranslate(detail) : fallback,
+					done,
+					link: row.link ? { label: this.cnTranslate(row.link.label), href: row.link.href } : null,
+				}
+			})
+		},
+
+		/**
+		 * Whether a row without a step is done: the setup status `readiness`
+		 * item it names, else its `doneWhen`. A row naming neither stays open.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRowDone(row) {
+			if (row.readinessItem) {
+				const items = (this.setupStatus && this.setupStatus.readiness) || []
+				const item = Array.isArray(items) ? items.find((entry) => entry.id === row.readinessItem) : null
+				return Boolean(item && item.done)
+			}
+			return row.doneWhen !== undefined && this.stepConditionHolds({ visibleWhen: row.doneWhen })
 		},
 
 		/**
@@ -1573,6 +1662,70 @@ export default {
 	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+/* The closing step under the board look: one bordered row per item, with a
+   mark, what was set and the screen to change it on. */
+.cn-setup-readiness {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-setup-readiness__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+}
+
+.cn-setup-readiness__mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 24px;
+	height: 24px;
+	border: 2px solid var(--color-warning-text);
+	border-radius: 12px;
+}
+
+.cn-setup-readiness__mark--done {
+	border: 0;
+	background: var(--color-success-light, var(--color-background-hover));
+	color: var(--color-success-text);
+}
+
+.cn-setup-readiness__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-setup-readiness__title {
+	font-size: 15px;
+}
+
+.cn-setup-readiness__detail {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-setup-readiness__link {
+	flex: none;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+	white-space: nowrap;
 }
 
 /* An on-demand step that did not run says so quietly: it is a choice the

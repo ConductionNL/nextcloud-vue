@@ -2,7 +2,36 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { flowRunCounters, flowRunSubjects } from '../../src/utils/flowRunStatus.js'
+import { flowRunCounters, flowRunOutcome, flowRunStatuses, flowRunSubjects } from '../../src/utils/flowRunStatus.js'
+
+const END = { transition: 'end', status: 'stopped', reason: 'Flow stopped', checkId: null }
+const VETO = { transition: 'write', status: 'stopped', reason: 'Over budget', checkId: 'budget' }
+
+describe('flowRunOutcome', () => {
+	it('reads a stored run that reached its End step as completed, from the log', () => {
+		expect(flowRunOutcome({ status: 'stopped', log: [{ status: 'completed' }, END] })).toBe('completed')
+		expect(flowRunStatuses()[flowRunOutcome({ status: 'stopped', log: [END] })].label).toBe('Succeeded')
+	})
+
+	it('takes the outcome the server serves, for a row without a log', () => {
+		expect(flowRunOutcome({ status: 'stopped', outcome: 'completed' })).toBe('completed')
+		expect(flowRunOutcome({ status: 'stopped', outcome: 'stopped', log: [END] })).toBe('stopped')
+	})
+
+	it('keeps a stop from an oversight check as stopped', () => {
+		expect(flowRunOutcome({ status: 'stopped', log: [VETO] })).toBe('stopped')
+	})
+
+	it('keeps a stopped run with no stop in its log as stopped', () => {
+		expect(flowRunOutcome({ status: 'stopped' })).toBe('stopped')
+		expect(flowRunOutcome({ status: 'stopped', log: [{ status: 'failed', error: 'boom' }] })).toBe('stopped')
+	})
+
+	it('leaves every other status alone', () => {
+		expect(flowRunOutcome({ status: 'failed', outcome: 'completed' })).toBe('failed')
+		expect(flowRunOutcome(null)).toBe('')
+	})
+})
 
 describe('flowRunSubjects', () => {
 	it('reads the declared subjects with their roles', () => {
@@ -41,6 +70,10 @@ describe('flowRunCounters', () => {
 		expect(result.finished).toMatchObject({ count: 3, note: '38%', variant: 'success' })
 		expect(result.failed).toMatchObject({ count: 2, variant: 'error' })
 		expect(result.waiting.count).toBe(2)
+	})
+
+	it('counts a clean End as finished', () => {
+		expect(tiles([{ status: 'stopped', log: [END] }, { status: 'stopped', log: [VETO] }]).finished.count).toBe(1)
 	})
 
 	it('counts a subject once, and names the roles', () => {

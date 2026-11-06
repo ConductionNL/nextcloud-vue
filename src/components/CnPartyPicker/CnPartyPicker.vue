@@ -5,10 +5,13 @@
 <template>
 	<div class="cn-party-picker">
 		<!-- The kind switch (`kindSwitch`): DqNieuweZaak "Soort aanvrager"
-		     Persoon / Organisatie / Contact; only the chosen source is searched. -->
+		     Persoon / Organisatie / Contact; only the chosen source is searched.
+		     A chosen party needs no switch (DqNieuweZaakDubbel draws the field alone). -->
 		<CnSegmentedControl
-			v-if="kindSwitch && kindOptions.length > 1"
+			v-if="showKinds"
 			class="cn-party-picker__kinds"
+			mode="toggle"
+			size="compact"
 			:modelValue="activeSourceId"
 			:options="kindOptions"
 			:ariaLabel="kindSwitchLabel"
@@ -172,7 +175,8 @@ export default {
 		/**
 		 * A switch above the field between the sources (`{ label }`, the
 		 * group's name): one segment per source, named by its `kind` (else its
-		 * `label`), the first chosen; only the chosen source is searched.
+		 * `label`), the first chosen; only the chosen source is searched. It
+		 * shows until a party is chosen and comes back when the field is cleared.
 		 *
 		 * @type {{label?: string}|null}
 		 */
@@ -207,6 +211,15 @@ export default {
 			return (this.sources || [])
 				.filter((source) => source && source.id)
 				.map((source) => ({ value: String(source.id), label: this.cnTranslate(source.kind || source.label || String(source.id)) }))
+		},
+
+		/**
+		 * @return {boolean} Whether the switch shows: it has sources to switch and no party is chosen.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		showKinds() {
+			const value = this.modelValue
+			return Boolean(this.kindSwitch) && this.kindOptions.length > 1 && (value === null || value === undefined || value === '')
 		},
 
 		/**

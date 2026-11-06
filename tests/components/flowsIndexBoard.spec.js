@@ -79,13 +79,22 @@ describe('the flows source reads its run figures from the summary', () => {
 		expect(calls[0][1].params).toEqual({ flowIds: 'f1,f2,f3', since: startOfWeek() })
 	})
 
+	it('reads a last run that reached its End step as succeeded and healthy', async () => {
+		const source = indexSources.flows()
+		await source.load({ app: 'pipelinq' })
+		await flushPromises()
+		source.store.runSummary = { f1: { lastRun: { status: 'stopped', outcome: 'completed' }, runsSince: 1 } }
+
+		expect(source.rows()[0]).toMatchObject({ lastRunLabel: 'Succeeded', lastRunStatus: 'completed', lastRunFailed: false })
+	})
+
 	it('shows the last run, its time, the week count and how each flow starts', async () => {
 		const source = indexSources.flows()
 		await source.load({ app: 'pipelinq' })
 		await flushPromises()
 		const rows = source.rows()
 
-		expect(rows.map((row) => row.lastRunLabel)).toEqual(['Finished', 'Failed', 'Not run yet'])
+		expect(rows.map((row) => row.lastRunLabel)).toEqual(['Succeeded', 'Failed', 'Not run yet'])
 		expect(rows[0].lastRunAt).not.toBe('')
 		expect(rows[2].lastRunAt).toBe('')
 		expect(rows.map((row) => row.runsThisWeek)).toEqual([31, 7, 0])
@@ -117,14 +126,27 @@ describe('the flows source reads its run figures from the summary', () => {
 		expect(source.footerNote).toContain('paused flow')
 	})
 
-	it('keeps its default columns unless a page asks for more', () => {
-		expect(indexSources.flows().columns.map((column) => column.key)).toEqual(['name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'statusLabel'])
+	it('🔴 draws the columns of board OrFlows without a page asking: the health dot and the owner', () => {
+		const columns = indexSources.flows().columns
+
+		expect(columns.map((column) => column.key)).toEqual(['lastRunStatus', 'name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'owner', 'statusLabel'])
+		expect(columns[0].labelHidden).toBe(true)
 	})
 
-	it('adds the health dot before the name and the owner before the status', () => {
-		const keys = indexSources.flows({ extraColumns: ['owner', 'health'] }).columns.map((column) => column.key)
+	it('leaves the dot and the owner out when a page says so', () => {
+		const keys = indexSources.flows({ extraColumns: [] }).columns.map((column) => column.key)
 
-		expect(keys).toEqual(['lastRunStatus', 'name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'owner', 'statusLabel'])
+		expect(keys).toEqual(['name', 'triggerLabel', 'lastRunLabel', 'runsThisWeek', 'statusLabel'])
+	})
+
+	it('hands a flow\'s owner and its last run to the row', async () => {
+		const source = indexSources.flows()
+		await source.load({ app: 'pipelinq' })
+		await flushPromises()
+		const [row] = source.rows()
+
+		expect(row.owner).toBe('pieter')
+		expect(row.lastRunStatus).toBe('completed')
 	})
 
 	it('draws a flow\'s health from its row', () => {
@@ -188,7 +210,7 @@ describe('the flow runs source', () => {
 		expect(history[1].params).toEqual({ flowIds: 'f1,f2,f3', since: startOfWeek(), limit: 200 })
 
 		const rows = source.rows()
-		expect(rows[0]).toMatchObject({ id: 'r1', flowName: 'Confirm receipt', statusLabel: 'Finished' })
+		expect(rows[0]).toMatchObject({ id: 'r1', flowName: 'Confirm receipt', statusLabel: 'Succeeded' })
 		expect(source.rowTarget(rows[0])).toEqual({ path: '/flows/f1', query: { run: 'r1' } })
 		expect(source.showAdd).toBe(false)
 	})
