@@ -585,7 +585,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 import { formatRelativeDate } from '../../utils/boardDate.js'
 import { flowOutcomeLevels, flowRunDurationMs, flowRunLogLines, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
-import { flowRunStatuses } from '../../utils/flowRunStatus.js'
+import { flowRunOutcome, flowRunStatuses } from '../../utils/flowRunStatus.js'
 import { appDisplayNames } from '../../utils/nextcloudApps.js'
 import { overlayInset } from '../../utils/overlayInset.js'
 import { normaliseSelectOptions } from '../../utils/selectOptions.js'
@@ -758,7 +758,7 @@ export default {
 
 		/** @return {{label: string, variant: string}} The run's status pill. */
 		runStatus() {
-			const status = String(this.runRecord?.status || '')
+			const status = flowRunOutcome(this.runRecord)
 			return flowRunStatuses()[status] || { label: status, variant: 'default' }
 		},
 
@@ -1245,7 +1245,7 @@ export default {
 				failed: this.t('nextcloud-vue', 'failed'),
 				dead_letter: this.t('nextcloud-vue', 'failed'),
 				stopped: this.t('nextcloud-vue', 'stopped early'),
-			}[String(last.status || '')] || this.t('nextcloud-vue', 'running')
+			}[flowRunOutcome(last)] || this.t('nextcloud-vue', 'running')
 			return this.t('nextcloud-vue', 'Last run {date} {outcome}', { date: formatRelativeDate(last.created, { withTime: true }), outcome })
 		},
 
