@@ -2731,6 +2731,9 @@
     "Down": "Down",
     "Steps on a branch are moved on the canvas.": "Steps on a branch are moved on the canvas.",
     "Step {n}": "Step {n}",
+    "Close tour": "Close tour",
+    "Step {current} of {total}": "Step {current} of {total}",
+    "Readiness": "Readiness",
     "View of the flow": "View of the flow",
     "Canvas": "Canvas",
     "The same flow and the same steps as on the canvas; what you change here changes there too.": "The same flow and the same steps as on the canvas; what you change here changes there too.",
@@ -2752,7 +2755,11 @@
     "The saved flow is tried with the example you enter. Nothing is changed or sent.": "The saved flow is tried with the example you enter. Nothing is changed or sent.",
     "Test": "Test",
     "Health": "Health",
-    "Subjects": "Subjects"
+    "Subjects": "Subjects",
+    "{count} packages · {installed} installed": "{count} packages · {installed} installed",
+    "Package": "Package",
+    "Version {version} · shipped with {app}": "Version {version} · shipped with {app}",
+    "The packages could not be read.": "The packages could not be read."
   },
   "plurals": {
     "{count} member": [

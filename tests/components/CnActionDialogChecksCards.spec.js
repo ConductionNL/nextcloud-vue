@@ -62,6 +62,8 @@ describe('a checks field', () => {
 		const w = mountDialog([SPLIT])
 		await flushPromises()
 		const set = w.find('[data-testid="cn-action-dialog-checks-docs"]')
+		expect(set.classes()).toContain('cn-action-dialog__check-field')
+		expect(set.classes()).not.toContain('cn-action-dialog__checks')
 		expect(set.element.tagName).toBe('FIELDSET')
 		expect(set.find('legend').text()).toBe('Documents that go along')
 		const checks = set.findAllComponents({ name: 'NcCheckboxRadioSwitch' })
@@ -161,5 +163,21 @@ describe('the answer of the request', () => {
 		await confirmButton(w).trigger('click')
 		await flushPromises()
 		expect(w.find('[data-testid="cn-action-dialog-done"]').text()).toBe('Done looking')
+	})
+})
+
+describe('the readiness rows', () => {
+	const rows = (labels, items) => CnActionDialog.computed.checklist.call({ config: { checklist: { labels } }, items, fill: (value) => value })
+
+	it('drops a met row marked hideWhenMet and keeps it while unmet', () => {
+		const labels = { ended: { label: 'Ended', hideWhenMet: true } }
+		expect(rows(labels, [{ id: 'ended', met: true }])).toEqual([])
+		expect(rows(labels, [{ id: 'ended', met: false }]).map((row) => row.id)).toEqual(['ended'])
+	})
+
+	it('uses a detail with detailWhen only while that path is filled', () => {
+		const labels = { decision: { detail: 'on {date}', detailWhen: 'date' } }
+		expect(rows(labels, [{ id: 'decision', met: true, date: '2026-10-28' }])[0].detail).toBe('on {date}')
+		expect(rows(labels, [{ id: 'decision', met: true, detail: 'partly public' }])[0].detail).toBe('partly public')
 	})
 })

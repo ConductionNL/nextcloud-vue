@@ -1,0 +1,4 @@
+- [x] Readiness rows in CnSetupWizard
+- [x] Step labels through CnWizardDialog
+- [x] Schema for `rows`, `cancelLabel`, `submitLabel`
+- [x] Tests in tests/components/CnSetupWizardReadiness.spec.js

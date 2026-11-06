@@ -225,7 +225,8 @@
 									:clearable="!field.required"
 									:disabled="!!field.readOnly"
 									:data-testid="field.testid || undefined"
-									@update:modelValue="value => updateField(field.key, value)" />
+									@update:modelValue="value => updateField(field.key, value)"
+									@select="choice => onPartySelect(field, choice)" />
 								<CnFieldHelper
 									:id="helpId(field)"
 									:text="field.description"
@@ -3142,6 +3143,20 @@ export default {
 				condition,
 			)
 			return true
+		},
+
+		/**
+		 * Keep a party field's whole choice under its `choiceKey`, for a host
+		 * that stores more than the id; the create override reads it there.
+		 *
+		 * @param {object} field The party field.
+		 * @param {object|null} choice The picker's `select` payload.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-form-keeps-the-whole-choice
+		 */
+		onPartySelect(field, choice) {
+			if (field.choiceKey) {
+				this.formData[field.choiceKey] = choice
+			}
 		},
 
 		updateField(key, value) {

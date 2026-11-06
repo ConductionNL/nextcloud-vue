@@ -52,6 +52,11 @@
 		<span class="cn-object-row__main">
 			<span class="cn-object-row__title">{{ title }}</span>
 			<span v-if="subtitle" class="cn-object-row__subtitle">{{ subtitle }}</span>
+			<span
+				v-if="note"
+				class="cn-object-row__note"
+				:class="{ 'cn-object-row__note--error': noteTone === 'error' }"
+				data-testid="cn-object-row-note">{{ note }}</span>
 		</span>
 
 		<!-- Badges (default: config-driven status badge) -->
@@ -166,7 +171,8 @@ export default {
 		 * widgetProps?, formatter? }`: `{ key: "createdAt", widget: "age" }`
 		 * reads "6 dagen", `{ key: "deadline", widget: "date", widgetProps: {
 		 * due: {} } }` the due text. A cell's `width` (CSS) lines the column
-		 * up across rows.
+		 * up across rows. `noteTemplate` fills a line under the subtitle the
+		 * same way, `noteToneField` names the dot path of its tone (`error`).
 		 *
 		 * @type {{ titleField?: string, subtitleField?: string, subtitleTemplate?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object, leading?: object, trailing?: (object|Array<object>) }}
 		 */
@@ -214,6 +220,30 @@ export default {
 				return String(this.object[field])
 			}
 			return this.object.title || this.object.name || this.object.id || '—'
+		},
+
+		/**
+		 * The line under the subtitle, from `config.noteTemplate`.
+		 *
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/object-row-note/specs/object-row/spec.md#requirement-a-list-row-can-draw-a-note
+		 */
+		note() {
+			const template = this.config.noteTemplate
+			return typeof template === 'string' && template !== ''
+				? joinTemplateParts(template, (token) => this.subtitlePart(token))
+				: ''
+		},
+
+		/**
+		 * The note's tone: the value at `config.noteToneField` (a dot path).
+		 *
+		 * @return {string} The tone, or ''.
+		 * @spec openspec/changes/object-row-note/specs/object-row/spec.md#requirement-a-list-row-can-draw-a-note
+		 */
+		noteTone() {
+			const path = this.config.noteToneField
+			return typeof path === 'string' && path !== '' ? String(readPath(this.object, path) ?? '') : ''
 		},
 
 		subtitle() {
@@ -445,6 +475,17 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-object-row__note {
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--color-primary-element);
+}
+
+.cn-object-row__note--error {
+	font-weight: 600;
+	color: var(--color-error-text);
 }
 
 .cn-object-row__subtitle {

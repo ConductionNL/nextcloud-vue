@@ -23,6 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `finishLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Finish')`     | Final-step button label.                                                                                                                                                                 |
 | `closeLabel`  | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close tour')` | Accessible label for the corner close button that ends the tour.                                                                                                                         |
 | `translate`   | `func`    |          | `null`                                      | Optional translate function applied to step title/body/task i18n keys.                                                                                                                   |
+| `look`        | `string`  |          | `undefined`                                 | `board` draws the board coachmark; unset, the look comes from `cnLook`.                                                                                                                  |
 
 ### Events
 

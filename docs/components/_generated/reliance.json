@@ -161,7 +161,7 @@
 		},
 		"CnAiCompanion": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 3,
 			"tier": "light",
 			"via": [],
 			"page": "cn-ai-companion"
