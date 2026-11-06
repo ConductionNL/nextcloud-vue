@@ -46,7 +46,15 @@ describe('CnPartyPicker kind switch', () => {
 		const group = w.find('[data-testid="cn-party-picker-kinds"]')
 		expect(group.attributes('aria-label')).toBe('Soort aanvrager')
 		expect(group.findAll('button').map((b) => b.text())).toEqual(['Persoon', 'Organisatie', 'Contact'])
-		expect(group.find('[aria-checked="true"]').text()).toBe('Persoon')
+		expect(group.find('[aria-pressed="true"]').text()).toBe('Persoon')
+		expect(group.classes()).toContain('cn-segmented-control--compact')
+	})
+
+	it('hides the switch while a party is chosen and brings it back when the field is cleared', async () => {
+		const w = mountPicker({ kindSwitch: { label: 'Kind of requester' }, modelValue: 'p1', selectedLabel: 'Henk Visser' })
+		expect(w.find('[data-testid="cn-party-picker-kinds"]').exists()).toBe(false)
+		await w.setProps({ modelValue: null })
+		expect(w.find('[data-testid="cn-party-picker-kinds"]').exists()).toBe(true)
 	})
 
 	it('searches only the chosen source, and a switch searches the new one for the last term', async () => {
