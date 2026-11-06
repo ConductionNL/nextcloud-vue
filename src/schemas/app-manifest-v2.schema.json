@@ -97,7 +97,31 @@
 							"type": { "type": "string", "enum": ["info", "config-fields", "choice", "run-action", "summary", "component"], "description": "Built-in step renderer." },
 							"title": { "type": "string" },
 							"body": { "type": "string", "description": "info: explanatory copy." },
-							"note": { "type": "string", "minLength": 1, "description": "choice: a footnote under the options, translated like body." },
+							"note": { "type": "string", "minLength": 1, "description": "choice: a footnote under the options, translated like body. summary: an info card under the rows." },
+							"cancelLabel": { "type": "string", "minLength": 1, "description": "This step's cancel button, translated like body; the wizard's cancel label otherwise." },
+							"submitLabel": { "type": "string", "minLength": 1, "description": "The last step's submit button, translated like body; the wizard's submit label otherwise." },
+							"rows": {
+								"type": "array",
+								"description": "summary, board look: the readiness rows in order. `step` takes that step's recap, otherwise `id` + `title`, done when `doneWhen` (a setup status path, or { path, equals }) holds. `detail` is the line under the title, `detailWhenOpen` replaces it while the row is not done, `link` names the screen to change it on.",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"step": { "type": "string", "minLength": 1 },
+										"id": { "type": "string", "minLength": 1 },
+										"title": { "type": "string", "minLength": 1 },
+										"detail": { "type": "string", "minLength": 1 },
+										"detailWhenOpen": { "type": "string", "minLength": 1 },
+										"doneWhen": {},
+										"link": {
+											"type": "object",
+											"additionalProperties": false,
+											"required": ["label", "href"],
+											"properties": { "label": { "type": "string", "minLength": 1 }, "href": { "type": "string", "minLength": 1 } }
+										}
+									}
+								}
+							},
 							"visibleWhen": { "description": "Offer the step only when the setup status says so: a dotted path into the setup status document whose value must be truthy, or { path, equals } for an exact value. Hidden while the status loads.", "oneOf": [ { "type": "string", "minLength": 1 }, { "type": "object", "required": ["path"], "additionalProperties": false, "properties": { "path": { "type": "string", "minLength": 1 }, "equals": {} } } ] },
 							"footnote": { "type": "string", "minLength": 1, "description": "choice: the same footnote under another name; note wins when both are set." },
 							"required": { "type": "boolean", "default": false, "description": "When true the step gates the app until done." },
