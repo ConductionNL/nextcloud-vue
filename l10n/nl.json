@@ -3015,7 +3015,8 @@
     "This is not a JSON object.": "Dit is geen JSON-object.",
     "The saved flow is tried with the example you enter. Nothing is changed or sent.": "De opgeslagen flow wordt geprobeerd met het voorbeeld dat u invult. Er wordt niets gewijzigd of verstuurd.",
     "Test": "Testen",
-    "Health": "Gezondheid"
+    "Health": "Gezondheid",
+    "Subjects": "Onderwerpen"
   },
   "plurals": {
     "{count} member": [

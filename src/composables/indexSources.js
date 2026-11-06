@@ -18,7 +18,7 @@ import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
-import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
 import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
@@ -361,9 +361,14 @@ function flowsSource(config = {}) {
  * the rows are the runs the flows tab counted. A row opens the run on its
  * flow's canvas (`/flows/:flowId?run=:uuid`), where CnFlowDetail shows it.
  *
+ * `sourceConfig.counters` draws the run counters above the list and adds the
+ * Subject column; `sourceConfig.flowId` narrows the list to one flow (board
+ * OrFlowOverzicht).
+ *
+ * @param {object} [config] The page's source config.
  * @return {object} The source adapter.
  */
-function flowRunsSource() {
+function flowRunsSource(config = {}) {
 	const store = useFlowStore()
 	const view = reactive({ runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
@@ -399,7 +404,7 @@ function flowRunsSource() {
 			view.runsRoute = config?.runsRoute || '/flow-runs'
 			view.flowsRoute = config?.flowsRoute || '/flows'
 			await store.load({ app: config?.app })
-			const ids = (store.flows || []).map((flow) => flow.id || flow.uuid)
+			const ids = config?.flowId ? [config.flowId] : (store.flows || []).map((flow) => flow.id || flow.uuid)
 			const since = startOfWeek()
 			await Promise.all([store.loadRecentRuns(ids, since), store.loadRunSummary(ids, since)])
 		},
@@ -418,8 +423,15 @@ function flowRunsSource() {
 				flowName: names[run.flowId] || run.flowId,
 				statusLabel: (statuses[run.status] && statuses[run.status].label) || String(run.status || ''),
 				startedAt: formatRelativeDate(run.created, { withTime: true }),
+				subjectLabel: flowRunSubjects(run).map((subject) => subject.uuid).join(', '),
+				subjectRoles: flowRunSubjects(run).map((subject) => subject.role).filter(Boolean).join(', '),
 			}))
 		},
+
+		/**
+		 * @return {Array<object>} The tiles above the list, when the page asks for them.
+		 */
+		counters: () => (config.counters === true ? flowRunCounters(store.recentRuns || []) : []),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
@@ -428,6 +440,7 @@ function flowRunsSource() {
 
 		columns: [
 			{ key: 'flowName', label: t('nextcloud-vue', 'Flow'), secondary: 'error' },
+			...(config.counters === true ? [{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject'), secondary: 'subjectRoles' }] : []),
 			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status'), widget: 'badge', widgetProps: { colorMap: statusColors } },
 			{ key: 'startedAt', label: t('nextcloud-vue', 'Started') },
 			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
