@@ -125,35 +125,43 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		crumbs() {
 			return Array.isArray(this.config.crumbs) ? this.config.crumbs : []
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		asideCards() {
 			return Array.isArray(this.config.aside) ? this.config.aside : []
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		countLine() {
 			const installed = this.packages.filter((item) => item.installed).length
 			return t('nextcloud-vue', '{count} packages · {installed} installed', { count: this.packages.length, installed })
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		breadcrumbLabel() {
 			return t('nextcloud-vue', 'Breadcrumb')
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		packageLabel() {
 			return t('nextcloud-vue', 'Package')
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		installedLabel() {
 			return t('nextcloud-vue', 'Installed')
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		installLabel() {
 			return t('nextcloud-vue', 'Install')
 		},
 
+		/** @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages */
 		failedText() {
 			return t('nextcloud-vue', 'The packages could not be read.')
 		},
