@@ -317,7 +317,7 @@ export default {
 		// through these so the IManager-backed service owns the write
 		// path (NO cache table).
 		sharesUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/shares`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/file-shares`
 		},
 
 		shareableFilesUrl() {
