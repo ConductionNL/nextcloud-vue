@@ -1121,7 +1121,7 @@ import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { generatedPageFilterOptions, periodText, rangePeriodText } from '../../utils/periodOptions.js'
 import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
-import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { compareVisibleWhen, evaluateVisibleWhen, evaluateWorkspaceCondition, isComposition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
@@ -4405,11 +4405,15 @@ export default {
 				let outcome
 				try {
 					// `sink` keeps the first row of a source query, for a banner that names it.
-					const sink = {}
-					const value = await readVisibleWhenValue(cond, undefined, sink)
-					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-					if (sink.row) {
-						outcome.row = sink.row
+					if (isComposition(cond)) {
+						outcome = { met: await evaluateVisibleWhen(cond), value: null }
+					} else {
+						const sink = {}
+						const value = await readVisibleWhenValue(cond, undefined, sink)
+						outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+						if (sink.row) {
+							outcome.row = sink.row
+						}
 					}
 				} catch (error) {
 					// Fail-safe: not met. But the failure is kept, and said
