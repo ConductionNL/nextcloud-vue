@@ -24,7 +24,7 @@ const stubs = {
 	CnPartyPicker: {
 		name: 'CnPartyPicker',
 		props: ['inputId', 'modelValue', 'sources', 'inputLabel', 'labelOutside', 'placeholder', 'clearable', 'disabled'],
-		emits: ['update:modelValue'],
+		emits: ['update:modelValue', 'select'],
 		template: '<div class="party-picker" />',
 	},
 	CnResourceSelect: {
@@ -91,6 +91,36 @@ describe('CnFormDialog party widget', () => {
 		wrapper.findComponent({ name: 'CnPartyPicker' }).vm.$emit('update:modelValue', 'person-7')
 
 		expect(wrapper.vm.formData.representedParty).toBe('person-7')
+	})
+})
+
+describe('CnFormDialog party field with choiceKey', () => {
+	/**
+	 * @param {object} extra What the party field adds.
+	 * @return {object} The wrapper.
+	 */
+	function mountWith(extra) {
+		const key = Object.keys(OVERRIDES).find((name) => OVERRIDES[name].widget === 'party')
+		return mount(CnFormDialog, {
+			props: { schema, item: null, fieldOverrides: { ...OVERRIDES, [key]: { ...OVERRIDES[key], ...extra } } },
+			global: { stubs, provide: { cnTranslate: (k) => k } },
+		})
+	}
+
+	it('keeps the whole choice under the key, and null when cleared', async () => {
+		const wrapper = mountWith({ choiceKey: 'requesterChoice' })
+		const picker = wrapper.findComponent({ name: 'CnPartyPicker' })
+		const choice = { source: 'contact', id: 'c1', label: 'H. Visser', secondary: '', row: { id: 'c1' } }
+		await picker.vm.$emit('select', choice)
+		expect(wrapper.vm.formData.requesterChoice).toEqual(choice)
+		await picker.vm.$emit('select', null)
+		expect(wrapper.vm.formData.requesterChoice).toBeNull()
+	})
+
+	it('holds only the id without it', async () => {
+		const wrapper = mountWith({})
+		await wrapper.findComponent({ name: 'CnPartyPicker' }).vm.$emit('select', { source: 'contact', id: 'c1' })
+		expect(Object.keys(wrapper.vm.formData)).not.toContain('requesterChoice')
 	})
 })
 
