@@ -7,3 +7,5 @@ DqArchiveren draws the "Klaar om te archiveren" rows 43px apart, the hairline of
 ## What changes
 
 - The `checks` fieldset has a class of its own, `cn-action-dialog__check-field`. The readiness list keeps `cn-action-dialog__checks`, without a gap.
+- A met row draws a 14px tick in a 22px light success circle, as DqArchiveren does.
+- `labels[id].hideWhenMet` drops a met row (it still counts for `required`), and `labels[id].detailWhen` applies `detail` only while that path of the item is filled.

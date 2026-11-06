@@ -59,7 +59,7 @@
 						class="cn-action-dialog__check"
 						:data-testid="`cn-action-dialog-check-${item.id}`"
 						:data-met="String(item.met)">
-						<CheckCircle v-if="item.met === true" :size="20" class="cn-action-dialog__check-icon cn-action-dialog__check-icon--met" />
+						<span v-if="item.met === true" class="cn-action-dialog__check-mark"><Check :size="14" /></span>
 						<HelpCircleOutline v-else-if="item.met === null" :size="20" class="cn-action-dialog__check-icon" />
 						<CircleOutline v-else :size="20" class="cn-action-dialog__check-icon" />
 						<strong class="cn-action-dialog__check-label">{{ item.label }}</strong>
@@ -269,7 +269,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
-import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
@@ -309,8 +309,11 @@ let reasonSeq = 0
  *   `{path|<formatter>}` token reads through the built-in and app formatters.
  * - `checklist`: `{ title?, source, itemsPath?, labels?, required? }`: items
  *   `{ id, met, label?, detail? }` read from `source`; `labels[id]` gives an
- *   item's `{ label, detail?, unmetDetail? }`; the ids in `required` must be
- *   met before the action can run. `met: null` reads as unknown.
+ *   item's `{ label, detail?, unmetDetail?, detailWhen?, hideWhenMet? }`
+ *   (`detail` applies only while the item's `detailWhen` path is filled;
+ *   `hideWhenMet` drops the row once met, it still counts for `required`);
+ *   the ids in `required` must be met before the action can run. `met: null`
+ *   reads as unknown.
  * - `permission`: `{ source, listPath?, match?, allowedPath, reasonPath? }`:
  *   the action runs only while `allowedPath` reads true; `reasonPath` says
  *   why not. With `listPath` the paths read the entry of that list whose
@@ -389,7 +392,7 @@ let reasonSeq = 0
 export default {
 	name: 'CnActionDialog',
 
-	components: { CheckCircle, CircleOutline, CnChoiceCards, CnDialog, CnFormField, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
+	components: { Check, CircleOutline, CnChoiceCards, CnDialog, CnFormField, CnIcon, CnSearchSelect, HelpCircleOutline, NcButton, NcCheckboxRadioSwitch, NcNoteCard, NcSelect, NcTextArea, NcTextField },
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */
@@ -625,10 +628,11 @@ export default {
 		 */
 		checklist() {
 			const labels = (this.config.checklist && this.config.checklist.labels) || {}
-			return this.items.map((item) => {
+			return this.items.filter((item) => !(item.met === true && (labels[item.id] || {}).hideWhenMet === true)).map((item) => {
 				const met = item.met === null || item.met === undefined ? null : item.met === true
 				const own = labels[item.id] || {}
-				const detail = met === false && own.unmetDetail ? own.unmetDetail : (own.detail || item.detail || '')
+				const ownDetail = own.detailWhen && !readPath(item, own.detailWhen) ? '' : own.detail
+				const detail = met === false && own.unmetDetail ? own.unmetDetail : (ownDetail || item.detail || '')
 				return {
 					id: String(item.id),
 					met,
@@ -1558,7 +1562,16 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-action-dialog__check-icon--met {
+/* A met item: a 14px tick in a 22px light success circle (DqArchiveren). */
+.cn-action-dialog__check-mark {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: var(--nldesign-component-status-badge-success-background-color, var(--nl-color-green-light, var(--color-success-light, transparent)));
 	color: var(--color-success-text, var(--color-success));
 }
 
