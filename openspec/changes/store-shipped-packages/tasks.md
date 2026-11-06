@@ -1,0 +1,3 @@
+- [x] CnStorePackages
+- [x] `shipped` on CnStorePage
+- [x] Tests in tests/components/CnStorePackages.spec.js
