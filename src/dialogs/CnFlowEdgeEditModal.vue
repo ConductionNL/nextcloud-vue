@@ -11,6 +11,12 @@
 				{{ endpoints }}
 			</p>
 
+			<p v-if="conditionLine"
+				class="cn-flow-edge-edit__condition"
+				data-testid="flow-edge-condition">
+				{{ conditionLine }}
+			</p>
+
 			<NcTextField :modelValue="draft.title"
 				:label="t('nextcloud-vue', 'Label')"
 				:helperText="t('nextcloud-vue', 'Shown on the line. A branch reads better named — “approved”, “over budget” — than as an unlabelled arrow.')"
@@ -43,11 +49,13 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import { EDGE_LINE_TYPES } from '../composables/useFlowEdgeStyles.js'
 import { useFlowStore } from '../composables/useFlowStore.js'
+import { flowEdgeCondition, flowEdgeConditionText } from '../utils/flowCondition.js'
 
 /**
  * CnFlowEdgeEditModal — edit one connection between two steps.
  *
  * A line carries two authored things: what it is CALLED, and how it is DRAWN.
+ * When a condition decides it, the dialog says that condition in words.
  * The label is the one that matters on a branching flow — an unlabelled arrow
  * out of a routing step says nothing about which branch it is — and the router
  * is the escape hatch for the one line an automatic layout puts through a node.
@@ -121,6 +129,21 @@ export default {
 				from: this.nodeLabel(pair.source),
 				to: this.nodeLabel(pair.target),
 			})
+		},
+
+		/**
+		 * @return {string} When this line is taken, in words, or '' when it is simply followed.
+		 */
+		conditionLine() {
+			const pair = this.store.editingEdge
+			const found = pair ? this.store.locateEdge(pair) : null
+			if (found === null) {
+				return ''
+			}
+			const source = this.store.nodes.find((node) => node.id === pair.source) || null
+			const text = flowEdgeConditionText(found.edge, source)
+
+			return flowEdgeCondition(found.edge, source) === null ? text : t('nextcloud-vue', 'Only if {condition}', { condition: text })
 		},
 	},
 
@@ -200,5 +223,10 @@ export default {
 .cn-flow-edge-edit__endpoints {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
+}
+
+.cn-flow-edge-edit__condition {
+	margin: 0;
+	font-weight: 600;
 }
 </style>

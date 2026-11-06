@@ -37,6 +37,7 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `metaNote` | `String` | `''` | Board look: a closing note after the path's meta, "changes apply to new cases" (`config.metaNote`, translated). |
 | `flowDirection` | `String` | `'right'` | Board look: `down` lays the steps out top to bottom and opens them at their own size (`config.flowDirection`, DqFlow); `right` left to right, fitted. |
 | `testSubject` | `Object` | `null` | Board look: `{ register, schema, labelField?, label? }` (`config.testSubject`). Draws a header button ("Testen met een zaak") that opens a picker on that register and schema and tries the saved flow with the picked record through OpenRegister's dry-run (`POST /api/flows/{id}/dry-run`): steps without side effects run, every other step says what it would do, and nothing is changed or sent. The per-step result (CnFlowDryRunResult) shows beside the canvas. `label` is translated; without it the button reads "Test with a record". |
+| `testPayload` | `Boolean\|String` | `false` | Board look: test the flow on an example payload (`config.testPayload`): `true` opens an empty JSON field in the test dialog, text opens it with that example. The result shows as the test run card with Test again. Needs OpenRegister's dry-run with `payload`. |
 | `notice` | `String` | `''` | Board look: an info notice under the path (`config.notice`, translated); `{name}` is the flow's name. |
 | `pill` | `String` | `''` | Board look: the pill at the start of the path row, such as "Case type flow" (`config.pill`, translated). Empty shows Draft or Retired for a flow in that state. |
 | `pillVariant` | `String` | `'default'` | Board look: the tone of `pill`, a CnStatusBadge variant such as `teal` (DqFlow; `config.pillVariant`). A Draft or Retired pill stays neutral. |
@@ -44,6 +45,11 @@ Controls belong in Nextcloud's app sidebar so the canvas keeps the full width â€
 | `breadcrumb` | `Array` | `[]` | Board look: the levels before the flow, each its own link (`config.breadcrumb`, `[{ label, href? }]`, labels translated): `[{ "label": "Settings", "href": "/index.php/settings/admin/dossiq" }, { "label": "Flows" }]` reads "Settings / Flows / the flow". A crumb without an href links to the flow list. Wins over `listLabel`. |
 | `layout` | `String` | `'cards'` | Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun draw it (see below); `cards` keeps the DqFlow grid (`config.layout`). |
 | `toggleLabel` | `String` | `'state'` | Board look: `state` names the Active switch Active or Paused after the flow; `fixed` always names it Active and the switch shows the state (DqFlow, `config.toggleLabel`). |
+| `edgeConditions` | `Boolean` | `false` | Write a line's condition on the line when it has no name of its own ("amount is more than 1000", "Otherwise" on the else), in both looks. The JSONLogic stays where the engine reads it, on the node's exit. Manifest key `config.edgeConditions`. |
+| `listMode` | `Boolean` | `false` | Offer the list view beside the canvas, with the Canvas / List switch, in both looks: the trigger, then the steps in run order with the conditions of a branch as text ([`CnFlowStepList`](./cn-flow-step-list.md)). Same flow in the same store, so what changes in one view is there in the other. Manifest key `config.listMode`. |
+| `noticeLevel` | `String` | `'info'` | Board look: the look of `notice`: `info`, `warning` or `error` (`config.noticeLevel`). |
+| `adminSteps` | `Array` | `[]` | Board look: steps only an admin may change, by node id or step type (`config.adminSteps`). Anyone else reads them: no buttons in the list view, a note and disabled fields in the step panel. The screen's side only, the server decides what is saved. |
+| `view` | `String` | `''` | The view on arrival when `listMode` is on: `canvas` or `list`. Defaults to the `view` query parameter (`/flows/{id}?view=list`). Manifest key `config.view`. |
 
 ## The board look
 
