@@ -117,6 +117,8 @@ menu: each row gets a button that writes `field` of the page's record with one P
 whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
 template filled from the row ("Assign to \{displayName\}").
 
+`footnoteVariant` (`info`, `warning`, `error`) draws the footnote as a toned notice box with its icon. `footnoteCompact: true` draws that box without the icon, in 13px text, as board DqZaakTaken draws the note under "Wat hierna komt".
+
 `footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
 (one request, through the endpoint cache) and fills `{value}` into `text` ("\{value\} matching colleagues at
 capacity"). It shows with no rows too, and not when the value is empty or zero.

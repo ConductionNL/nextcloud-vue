@@ -602,9 +602,10 @@
 		<div
 			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
 			class="cn-record-list__notice cn-record-list__notice--footnote"
-			:class="`cn-record-list__notice--${footnoteTone}`"
+			:class="[`cn-record-list__notice--${footnoteTone}`, { 'cn-record-list__notice--compact': content.footnoteCompact === true }]"
 			data-testid="cn-record-list-footnote">
 			<CnIcon
+				v-if="content.footnoteCompact !== true"
 				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
 				:size="16"
 				class="cn-record-list__notice-icon"
@@ -902,7 +903,9 @@ export default {
 		 * and `variant` (Concept, Vastgezet, Actief). A label may carry the
 		 * row's values as template tokens ("{value|currency}").
 		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
-		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * as a toned notice box with its icon (DqZaaktype opt-out note);
+		 * `footnoteCompact: true` draws that box without the icon, in small
+		 * text (DqZaakTaken "Wat hierna komt").
 		 * `tableLook: "data"` marks a `table` as a data table, which the board
 		 * look draws as its card table (header band, 40px rows, hairlines)
 		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
@@ -3922,6 +3925,11 @@ export default {
 
 .cn-record-list__notice--footnote {
 	margin-top: 12px;
+}
+
+.cn-record-list__notice--compact {
+	font-size: 13px;
+	line-height: 1.4;
 }
 
 .cn-record-list__notice-icon {
