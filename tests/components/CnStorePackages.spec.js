@@ -16,7 +16,7 @@ const packages = [
 	{ id: 'c', title: 'C', version: '3.0.0', summary: 'Third', installed: '', onRequest: false },
 ]
 
-const flush = async () => {
+async function flush() {
 	await new Promise((resolve) => setTimeout(resolve, 0))
 	await new Promise((resolve) => setTimeout(resolve, 0))
 }
