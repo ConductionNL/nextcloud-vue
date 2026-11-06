@@ -674,6 +674,12 @@ export default {
 			}))
 		},
 
+		/**
+		 * The accessible name of the readiness list.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
 		readinessLabel() {
 			return t('nextcloud-vue', 'Readiness')
 		},
