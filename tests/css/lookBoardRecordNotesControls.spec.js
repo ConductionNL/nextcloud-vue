@@ -6,7 +6,7 @@
  * buttons 40px, the closing pair at the two ends of their line. Read from the
  * stylesheet.
  *
- * @spec openspec/changes/board-record-notes-controls/specs/board-record-notes-controls/spec.md#requirement-board-note-rows-draw-the-boards-controls
+ * @spec openspec/changes/board-record-notes-controls/specs/board-record-notes-controls/spec.md#requirement-board-note-rows-draw-the-board-controls
  */
 const fs = require('fs')
 const path = require('path')

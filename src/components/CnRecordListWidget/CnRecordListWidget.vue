@@ -1684,7 +1684,10 @@ export default {
 			return this.rows.length === 0 && typeof value === 'string' && value !== '' ? this.translate(value) : ''
 		},
 
-		/** @return {string} The note under the list (`footnote`), translated. */
+		/**
+		 * @return {string} The note under the list (`footnote`), translated.
+		 * @spec openspec/changes/record-list-footnote-compact/specs/record-list/spec.md#requirement-a-toned-footnote-can-be-compact
+		 */
 		footnote() {
 			const note = this.content?.footnote
 			if (Array.isArray(note)) {
@@ -1705,6 +1708,7 @@ export default {
 		 * translated. An object or string footnote is not listed here.
 		 *
 		 * @return {Array<string>} The paragraphs.
+		 * @spec exclude a paragraph footnote has no spec of its own
 		 */
 		footnoteParagraphs() {
 			const note = this.content?.footnote

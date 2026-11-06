@@ -988,6 +988,7 @@ export default {
 			this.syncHash()
 		},
 
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
 		objectId() {
 			this.sourceVisibility = {}
 			this.refreshSourceVisibility()
@@ -1005,6 +1006,7 @@ export default {
 			this.refreshSourceVisibility()
 		},
 
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
 		stackConditionsKey() {
 			this.refreshStackConditions()
 		},

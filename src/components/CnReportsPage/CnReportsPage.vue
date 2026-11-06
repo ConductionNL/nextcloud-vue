@@ -592,6 +592,7 @@ export default {
 		 * the renderer has already resolved route sentinels in them.
 		 *
 		 * @return {object} The config.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
@@ -1027,6 +1028,7 @@ export default {
 		 *
 		 * @param {object} card The card.
 		 * @return {string} The href.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		hrefFor(card) {
 			if (card.href) {
@@ -1096,6 +1098,7 @@ export default {
 		 * @param {object} card The card.
 		 * @param {MouseEvent} event The click.
 		 * @return {void}
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		open(card, event) {
 			if (!card.href) {

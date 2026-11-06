@@ -213,6 +213,7 @@ export default {
 
 	emits: ['complete', 'dismiss', 'pause', 'progress', 'step-change', 'advance', 'handoff'],
 
+	/** @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look */
 	setup(props) {
 		const wt = useWalkthrough(props.appId, props.manifest, {
 			seenVersion: props.seenVersion,
@@ -378,6 +379,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look */
 		cardStyle() {
 			if (this.quiet) {
 				return {}

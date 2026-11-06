@@ -299,6 +299,7 @@ export default {
 			}
 		},
 
+		/** @spec exclude drops a stale search answer; the race guard has no spec of its own */
 		async searchAssignees(query) {
 			const seq = ++this.assigneeSearchSeq
 			this.searching = true
@@ -316,6 +317,7 @@ export default {
 			]
 		},
 
+		/** @spec exclude drops a stale search answer; the race guard has no spec of its own */
 		async searchUsers(query) {
 			const seq = ++this.userSearchSeq
 			const users = await searchNextcloudUsers(query || '', { limit: 10 })

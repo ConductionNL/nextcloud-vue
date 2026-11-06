@@ -656,6 +656,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it */
 		wizardSteps() {
 			if (this.dependencyBlocked) {
 				return [{

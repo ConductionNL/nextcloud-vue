@@ -197,6 +197,7 @@ export default {
 		 *
 		 * @param {string} query The typed term.
 		 * @return {Promise<void>}
+		 * @spec exclude drops a stale search answer; the race guard has no spec of its own
 		 */
 		async onSearch(query) {
 			const seq = ++this.searchSeq
