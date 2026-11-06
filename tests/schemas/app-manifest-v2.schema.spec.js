@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.175.0', () => {
+	it('the manifest schema version reads 2.176.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1449,7 +1449,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.173.0 lets a visibleWhen condition require the reader to be in a Nextcloud group (readerGroups; visible-when-reader-groups).
 		// 2.174.0 lets a breadcrumb crumb name the record's parent instead of a label (parent, labelField, param; detail-parent-crumb).
 		// 2.175.0 lets a setup summary step list readiness rows (rows, note, cancelLabel, submitLabel; setup-summary-readiness-rows) and a widget wrap its header (headerWrap).
-		expect(schema.version).toBe('2.175.0')
+		// 2.176.0 lets a board name the line under a full or merged column (fullNote, mergedNote; board-column-capacity).
+		expect(schema.version).toBe('2.176.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {

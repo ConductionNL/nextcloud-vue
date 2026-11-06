@@ -20,6 +20,8 @@ number above 0 as its limit. A column merged from two or more rows SHALL show no
 over every lane, and SHALL be drawn full (error colour and the word "full" for a screen reader) when the count is at
 or past the limit. A column without a limit SHALL read its count as before.
 
+`config.board.fullNote` SHALL be drawn under a full column's heading, and `config.board.mergedNote` (with `{count}`, the merged rows) under a column merged from two or more rows.
+
 #### Scenario: Hoorzitting holds one of one
 
 - **GIVEN** the bezwaar status Hoorzitting has capacity 1 and one case
