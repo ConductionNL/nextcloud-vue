@@ -10,7 +10,7 @@
 		:class="frameClass"
 		:style="frameStyle"
 		@closing="onClosing">
-		<!-- @slot header Replaces the board header (board look), or adds content above the body (Nextcloud look, under the NcDialog title). -->
+		<!-- @slot Replaces the board header (board look), or adds content above the body (Nextcloud look, under the NcDialog title). -->
 		<slot v-if="$slots.header" name="header" />
 		<CnDialogHeader v-else-if="isBoard && !headless"
 			:title="name"
@@ -18,10 +18,10 @@
 			:subtitle="subtitle"
 			:noClose="noClose || loading"
 			@close="onClosing()" />
-		<!-- @slot notice The dialog's state banners (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
 		<div v-for="place in noticeBlocks('top')" :key="place" class="cn-dialog__notices cn-dialog__notices--top">
+			<!-- @slot Replaces the drawn `notices` (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
 			<slot name="notice">
-				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
 		<NcNoteCard v-if="successMessage"
@@ -36,17 +36,17 @@
 			data-testid="cn-dialog-error">
 			<p>{{ error }}</p>
 		</NcNoteCard>
-		<!-- @slot default The dialog body, below the board header. Hidden after `success` unless `keepBodyOnSuccess` is set. -->
+		<!-- @slot The dialog body, below the board header. Hidden after `success` unless `keepBodyOnSuccess` is set. -->
 		<slot v-if="showBody" />
 		<div v-for="place in noticeBlocks('bottom')" :key="place" class="cn-dialog__notices cn-dialog__notices--bottom">
 			<slot name="notice">
-				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
 		<template v-if="hasFooter()" #actions>
-			<!-- @slot footer Replaces the whole footer: the `actions` slot and the built-in close and primary buttons. -->
+			<!-- @slot Replaces the whole footer: the `actions` slot and the built-in close and primary buttons. -->
 			<slot name="footer">
-				<!-- @slot actions The dialog footer buttons, drawn before the built-in close and primary buttons. -->
+				<!-- @slot The dialog footer buttons, drawn before the built-in close and primary buttons. -->
 				<slot name="actions" />
 				<NcButton v-if="showClose"
 					:disabled="loading"
@@ -75,9 +75,9 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnDialogHeader from '../CnDialogHeader/CnDialogHeader.vue'
-import { CnIcon } from '../CnIcon/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { resolveDialogWidth } from '../../utils/dialogWidths.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnDialog - the one place where a `Cn*` dialog turns into the
@@ -205,6 +205,7 @@ export default {
 			default: 'primary',
 			validator: (v) => ['primary', 'secondary', 'tertiary', 'error', 'warning', 'success'].includes(v),
 		},
+
 		/** A CnIcon name drawn on the primary button when it is not loading. Empty draws none. */
 		primaryIcon: { type: String, default: '' },
 		/** Disable the primary button, e.g. while the form is incomplete. */
@@ -298,9 +299,34 @@ export default {
 		 */
 		onClosing(result) {
 			/**
-			 * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set.
+			 * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` or `loading` is set.
 			 */
 			this.$emit('closing', result)
+		},
+
+		/**
+		 * Forward a notice's action button.
+		 *
+		 * @param {object} entry The clicked action.
+		 * @param {object} notice The notice it belongs to.
+		 */
+		onNoticeAction(entry, notice) {
+			/**
+			 * @event notice-action Emitted when a notice's action button is clicked, with `(entry, notice)`.
+			 */
+			this.$emit('notice-action', entry, notice)
+		},
+
+		/**
+		 * Forward a dismissed notice.
+		 *
+		 * @param {object} notice The dismissed notice.
+		 */
+		onNoticeDismiss(notice) {
+			/**
+			 * @event notice-dismiss Emitted when a dismissible notice is closed, with the notice.
+			 */
+			this.$emit('notice-dismiss', notice)
 		},
 
 		/** Forward a click on the built-in cancel/close button. */

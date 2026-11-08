@@ -7,8 +7,8 @@
  * buttons. Without these props the dialog renders as before.
  */
 
-import { h } from 'vue'
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnDialog from '../../src/components/CnDialog/CnDialog.vue'
 
 const close = (w) => w.find('[data-testid="cn-dialog-close"]')
@@ -17,10 +17,12 @@ const errorCard = (w) => w.find('[data-testid="cn-dialog-error"]')
 const successCard = (w) => w.find('[data-testid="cn-dialog-success"]')
 const dialog = (w) => w.findComponent({ name: 'NcDialog' })
 
-const mountShell = (props = {}, slots = {}) => mount(CnDialog, {
-	props: { name: 'Lock object', ...props },
-	slots: { default: () => h('p', { class: 'body' }, 'Body'), ...slots },
-})
+function mountShell(props = {}, slots = {}) {
+	return mount(CnDialog, {
+		props: { name: 'Lock object', ...props },
+		slots: { default: () => h('p', { class: 'body' }, 'Body'), ...slots },
+	})
+}
 
 describe('CnDialog shell', () => {
 	it('renders no state cards and no built-in buttons by default', () => {

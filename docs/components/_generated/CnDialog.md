@@ -10,32 +10,48 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name               | Type            | Required | Default     | Description                                                                                                                                                          |
-| ------------------ | --------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`             | `string`        | ✓        | —           | Dialog title; also the accessible name.                                                                                                                              |
-| `size`             | `string`        |          | `'small'`   | NcDialog size, used in the Nextcloud look only.                                                                                                                      |
-| `noClose`          | `boolean`       |          | `false`     | Block closing while an operation runs.                                                                                                                               |
-| `look`             | `string`        |          | `undefined` | The look; unset follows the injected `cnLook`.                                                                                                                       |
-| `width`            | `string`        |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`).                                                                                                          |
-| `defaultWidth`     | `string`        |          | `'form'`    | The component's own default width role.                                                                                                                              |
-| `eyebrow`          | `string`        |          | `''`        | Context line above the title (board look).                                                                                                                           |
-| `subtitle`         | `string`        |          | `''`        | Sentence under the title (board look).                                                                                                                               |
-| `headless`         | `boolean`       |          | `false`     | Leave out the board header: the body draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name.                                  |
-| `notices`          | `Array<object>` |          | `[]`        | The dialog's state banners (R1): each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible? }`), such as the refusal a save answered. |
-| `noticesPlacement` | `string`        |          | `'top'`     | Where the notices go: `top` (under the header) or `bottom` (above the footer buttons).                                                                               |
+| Name                | Type            | Required | Default     | Description                                                                                                                                                                            |
+| ------------------- | --------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | `string`        | ✓        | —           | Dialog title; also the accessible name.                                                                                                                                                |
+| `size`              | `string`        |          | `'small'`   | NcDialog size, used in the Nextcloud look only.                                                                                                                                        |
+| `noClose`           | `boolean`       |          | `false`     | Block closing while an operation runs.                                                                                                                                                 |
+| `look`              | `string`        |          | `undefined` | The look; unset follows the injected `cnLook`.                                                                                                                                         |
+| `width`             | `string`        |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`).                                                                                                                            |
+| `defaultWidth`      | `string`        |          | `'form'`    | The component's own default width role.                                                                                                                                                |
+| `eyebrow`           | `string`        |          | `''`        | Context line above the title (board look).                                                                                                                                             |
+| `subtitle`          | `string`        |          | `''`        | Sentence under the title (board look).                                                                                                                                                 |
+| `headless`          | `boolean`       |          | `false`     | Leave out the board header: the body draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name.                                                    |
+| `notices`           | `Array<object>` |          | `[]`        | The dialog's state banners (R1): each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible? }`), such as the refusal a save answered.                   |
+| `noticesPlacement`  | `string`        |          | `'top'`     | Where the notices go: `top` (under the header) or `bottom` (above the footer buttons).                                                                                                 |
+| `loading`           | `boolean`       |          | `false`     | An operation is in flight: disables the footer buttons, draws a loading icon on the primary button and blocks closing.                                                                 |
+| `error`             | `string`        |          | `''`        | Error message drawn in an error note card above the body. Empty draws none.                                                                                                            |
+| `success`           | `union`         |          | `false`     | The operation succeeded. `true` draws `successText`, a string draws itself. Hides the body (see `keepBodyOnSuccess`) and the primary button, and the cancel button reads `closeLabel`. |
+| `successText`       | `string`        |          | `''`        | Success message used when `success` is `true`. Empty falls back to "Done.".                                                                                                            |
+| `keepBodyOnSuccess` | `boolean`       |          | `false`     | Keep the body visible after `success`.                                                                                                                                                 |
+| `showClose`         | `boolean`       |          | `false`     | Draw the built-in cancel/close footer button, which emits `close`.                                                                                                                     |
+| `cancelLabel`       | `string`        |          | `''`        | Label of the built-in cancel button before success. Empty falls back to "Cancel".                                                                                                      |
+| `closeLabel`        | `string`        |          | `''`        | Label of the built-in close button after success. Empty falls back to "Close".                                                                                                         |
+| `primaryLabel`      | `string`        |          | `''`        | Label of the built-in primary footer button, which emits `primary`. Empty draws no primary button.                                                                                     |
+| `primaryVariant`    | `string`        |          | `'primary'` | Variant of the built-in primary button. Use `error` for a destructive action.                                                                                                          |
+| `primaryIcon`       | `string`        |          | `''`        | A CnIcon name drawn on the primary button when it is not loading. Empty draws none.                                                                                                    |
+| `primaryDisabled`   | `boolean`       |          | `false`     | Disable the primary button, e.g. while the form is incomplete.                                                                                                                         |
 
 ### Events
 
-| Name             | Payload | Description                                                                                             |
-| ---------------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `notice-action`  | —       |                                                                                                         |
-| `notice-dismiss` | —       |                                                                                                         |
-| `closing`        | —       | Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set. |
+| Name             | Payload     | Description                                                                                                          |
+| ---------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `closing`        | —           | Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` or `loading` is set. |
+| `close`          | —           | Emitted when the built-in cancel/close footer button is clicked.                                                     |
+| `primary`        | —           | Emitted when the built-in primary footer button is clicked while it is enabled.                                      |
+| `notice-action`  | `undefined` | Emitted when a notice's action button is clicked, with `(entry, notice)`.                                            |
+| `notice-dismiss` | —           | Emitted when a dismissible notice is closed, with the notice.                                                        |
 
 ### Slots
 
-| Name      | Bindings | Description                                      |
-| --------- | -------- | ------------------------------------------------ |
-| `notice`  | —        |                                                  |
-| `default` | —        | default The dialog body, below the board header. |
-| `actions` | —        | actions The dialog footer buttons.               |
+| Name      | Bindings | Description                                                                                                        |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `header`  | —        | Replaces the board header (board look), or adds content above the body (Nextcloud look, under the NcDialog title). |
+| `notice`  | —        | Replaces the drawn `notices` (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer.       |
+| `default` | —        | The dialog body, below the board header. Hidden after `success` unless `keepBodyOnSuccess` is set.                 |
+| `footer`  | —        | Replaces the whole footer: the `actions` slot and the built-in close and primary buttons.                          |
+| `actions` | —        | The dialog footer buttons, drawn before the built-in close and primary buttons.                                    |
