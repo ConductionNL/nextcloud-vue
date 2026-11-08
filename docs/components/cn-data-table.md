@@ -89,7 +89,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `cellClass` | Function | `null` | Callback `(row, col) => cssClass` to add dynamic CSS classes to individual data cells |
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
-| `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `selectRowLabel` | String \| Function | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2). A function `(row) => string` names each row by its content, such as `(row) => t('myapp', 'Select {name}', { name: row.name })` |
 | `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
 | `rowTitle` | String | `'link'` | Board look only. `link` underlines the title column's title; `plain` draws it as 15px bold text without an underline over a 13px muted secondary line (the PqTickets board); `text` draws it as an ordinary 14px cell, weight 400, no underline (a log table such as DqZaakContact's contact moments). The row stays clickable. |
 | `reorderable` | Boolean | `false` | Lets the reader drag rows into another order. A drop emits `row-move`; the host stores the order. |

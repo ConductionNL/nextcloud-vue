@@ -280,7 +280,7 @@
 								@auxclick.stop>
 								<NcCheckboxRadioSwitch
 									:modelValue="isSelected(row)"
-									:aria-label="selectRowLabel"
+									:aria-label="rowSelectLabel(row)"
 									@update:modelValue="toggleSelect(row)" />
 							</td>
 
@@ -916,10 +916,15 @@ export default {
 		/**
 		 * Accessible name for a per-row select checkbox. Used as the
 		 * checkbox's `aria-label` so screen readers announce a named control
-		 * (WCAG 4.1.2). Defaults to the lib's translation of "Select row".
+		 * (WCAG 4.1.2). A string names every row alike; a function
+		 * `(row) => string` names each row by its own content ("Select entity
+		 * Jan"), so a list of checkboxes is not a list of identical names.
+		 * Defaults to the lib's translation of "Select row".
+		 *
+		 * @type {string | ((row: object) => string)}
 		 */
 		selectRowLabel: {
-			type: String,
+			type: [String, Function],
 			default: () => t('nextcloud-vue', 'Select row'),
 		},
 
@@ -2699,6 +2704,19 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
+		},
+
+		/**
+		 * The accessible name of a row's select checkbox: `selectRowLabel`
+		 * called with the row when it is a function, else the string itself.
+		 *
+		 * @param {object} row The row
+		 * @return {string} The checkbox's `aria-label`
+		 */
+		rowSelectLabel(row) {
+			return typeof this.selectRowLabel === 'function'
+				? this.selectRowLabel(row)
+				: this.selectRowLabel
 		},
 
 		/**
