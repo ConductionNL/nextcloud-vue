@@ -6,15 +6,17 @@
 	<NcDialog
 		:name="name"
 		:size="isBoard ? 'normal' : size"
-		:noClose="noClose"
+		:noClose="noClose || loading"
 		:class="frameClass"
 		:style="frameStyle"
 		@closing="onClosing">
-		<CnDialogHeader v-if="isBoard && !headless"
+		<!-- @slot header Replaces the board header (board look), or adds content above the body (Nextcloud look, under the NcDialog title). -->
+		<slot v-if="$slots.header" name="header" />
+		<CnDialogHeader v-else-if="isBoard && !headless"
 			:title="name"
 			:eyebrow="eyebrow"
 			:subtitle="subtitle"
-			:noClose="noClose"
+			:noClose="noClose || loading"
 			@close="onClosing()" />
 		<!-- @slot notice The dialog's state banners (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
 		<div v-for="place in noticeBlocks('top')" :key="place" class="cn-dialog__notices cn-dialog__notices--top">
@@ -22,24 +24,58 @@
 				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
 			</slot>
 		</div>
-		<!-- @slot default The dialog body, below the board header. -->
-		<slot />
+		<NcNoteCard v-if="successMessage"
+			type="success"
+			class="cn-dialog__state cn-dialog__state--success"
+			data-testid="cn-dialog-success">
+			<p>{{ successMessage }}</p>
+		</NcNoteCard>
+		<NcNoteCard v-if="error"
+			type="error"
+			class="cn-dialog__state cn-dialog__state--error"
+			data-testid="cn-dialog-error">
+			<p>{{ error }}</p>
+		</NcNoteCard>
+		<!-- @slot default The dialog body, below the board header. Hidden after `success` unless `keepBodyOnSuccess` is set. -->
+		<slot v-if="showBody" />
 		<div v-for="place in noticeBlocks('bottom')" :key="place" class="cn-dialog__notices cn-dialog__notices--bottom">
 			<slot name="notice">
 				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
 			</slot>
 		</div>
-		<template v-if="$slots.actions" #actions>
-			<!-- @slot actions The dialog footer buttons. -->
-			<slot name="actions" />
+		<template v-if="hasFooter()" #actions>
+			<!-- @slot footer Replaces the whole footer: the `actions` slot and the built-in close and primary buttons. -->
+			<slot name="footer">
+				<!-- @slot actions The dialog footer buttons, drawn before the built-in close and primary buttons. -->
+				<slot name="actions" />
+				<NcButton v-if="showClose"
+					:disabled="loading"
+					data-testid="cn-dialog-close"
+					@click="onClose">
+					{{ closeButtonLabel }}
+				</NcButton>
+				<NcButton v-if="showPrimary"
+					:variant="primaryVariant"
+					:disabled="loading || primaryDisabled"
+					data-testid="cn-dialog-primary"
+					@click="onPrimary">
+					<template v-if="loading || primaryIcon" #icon>
+						<NcLoadingIcon v-if="loading" :size="20" :name="t('nextcloud-vue', 'Loading …')" />
+						<CnIcon v-else :name="primaryIcon" :size="20" />
+					</template>
+					{{ primaryLabel }}
+				</NcButton>
+			</slot>
 		</template>
 	</NcDialog>
 </template>
 
 <script>
-import { NcDialog } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnDialogHeader from '../CnDialogHeader/CnDialogHeader.vue'
+import { CnIcon } from '../CnIcon/index.js'
 import { useLook } from '../../composables/useLook.js'
 import { resolveDialogWidth } from '../../utils/dialogWidths.js'
 
@@ -58,16 +94,51 @@ import { resolveDialogWidth } from '../../utils/dialogWidths.js'
  * Other attributes (`open`, `data-testid`, listeners such as `update:open`)
  * fall through to NcDialog.
  *
+ * It is also the shell for a hand-built dialog, so the dialog does not redraw
+ * the same state cards and footer. All of this is opt-in; without these props
+ * the dialog renders as before.
+ *
+ * - `loading` disables the footer buttons, draws a loading icon on the primary
+ *   button and blocks closing.
+ * - `error` draws an error note card above the body.
+ * - `success` draws a success note card (the string, or `successText`), hides
+ *   the body (unless `keepBodyOnSuccess`), hides the primary button and turns
+ *   the cancel button into a close button.
+ * - `showClose` draws the built-in cancel/close button (`close` event);
+ *   `primaryLabel` draws the primary button (`primary` event).
+ * - The `header` slot replaces the header, the `footer` slot the whole footer.
+ *
+ * ```vue
+ * <CnDialog
+ *   :name="t('myapp', 'Lock object')"
+ *   :loading="loading"
+ *   :error="error"
+ *   :success="success"
+ *   :success-text="t('myapp', 'Object locked')"
+ *   show-close
+ *   :primary-label="t('myapp', 'Lock')"
+ *   primary-icon="LockOutline"
+ *   @primary="lock"
+ *   @close="close"
+ *   @closing="close">
+ *   <NcTextField v-model="process" :label="t('myapp', 'Process name')" />
+ * </CnDialog>
+ * ```
+ *
  * @spec openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md
  *
- * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set.
+ * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` or `loading` is set.
+ * @event close Emitted when the built-in cancel/close footer button is clicked.
+ * @event primary Emitted when the built-in primary footer button is clicked while it is enabled.
  * @slot default The dialog body, below the board header.
- * @slot actions The dialog footer buttons.
+ * @slot header Replaces the board header, or adds content above the body in the Nextcloud look.
+ * @slot actions The dialog footer buttons, before the built-in ones.
+ * @slot footer Replaces the whole footer.
  */
 export default {
 	name: 'CnDialog',
 
-	components: { NcDialog, CnCardNotices, CnDialogHeader },
+	components: { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, CnCardNotices, CnDialogHeader, CnIcon },
 
 	props: {
 		/** Dialog title; also the accessible name. */
@@ -101,9 +172,46 @@ export default {
 		notices: { type: Array, default: () => [] },
 		/** Where the notices go: `top` (under the header) or `bottom` (above the footer buttons). */
 		noticesPlacement: { type: String, default: 'top' },
+		/**
+		 * An operation is in flight: disables the footer buttons, draws a
+		 * loading icon on the primary button and blocks closing.
+		 */
+		loading: { type: Boolean, default: false },
+		/** Error message drawn in an error note card above the body. Empty draws none. */
+		error: { type: String, default: '' },
+		/**
+		 * The operation succeeded. `true` draws `successText`, a string draws
+		 * itself. Hides the body (see `keepBodyOnSuccess`) and the primary
+		 * button, and the cancel button reads `closeLabel`.
+		 *
+		 * @type {boolean|string}
+		 */
+		success: { type: [Boolean, String], default: false },
+		/** Success message used when `success` is `true`. Empty falls back to "Done.". */
+		successText: { type: String, default: '' },
+		/** Keep the body visible after `success`. */
+		keepBodyOnSuccess: { type: Boolean, default: false },
+		/** Draw the built-in cancel/close footer button, which emits `close`. */
+		showClose: { type: Boolean, default: false },
+		/** Label of the built-in cancel button before success. Empty falls back to "Cancel". */
+		cancelLabel: { type: String, default: '' },
+		/** Label of the built-in close button after success. Empty falls back to "Close". */
+		closeLabel: { type: String, default: '' },
+		/** Label of the built-in primary footer button, which emits `primary`. Empty draws no primary button. */
+		primaryLabel: { type: String, default: '' },
+		/** Variant of the built-in primary button. Use `error` for a destructive action. */
+		primaryVariant: {
+			type: String,
+			default: 'primary',
+			validator: (v) => ['primary', 'secondary', 'tertiary', 'error', 'warning', 'success'].includes(v),
+		},
+		/** A CnIcon name drawn on the primary button when it is not loading. Empty draws none. */
+		primaryIcon: { type: String, default: '' },
+		/** Disable the primary button, e.g. while the form is incomplete. */
+		primaryDisabled: { type: Boolean, default: false },
 	},
 
-	emits: ['closing', 'notice-action', 'notice-dismiss'],
+	emits: ['closing', 'close', 'primary', 'notice-action', 'notice-dismiss'],
 
 	setup(props) {
 		const { isBoard, lookClass } = useLook(props)
@@ -114,6 +222,31 @@ export default {
 		/** @return {boolean} Whether the `notices` prop holds any. */
 		hasNotices() {
 			return Array.isArray(this.notices) && this.notices.length > 0
+		},
+
+		/** @return {string} The success note card text, or '' for none. */
+		successMessage() {
+			if (typeof this.success === 'string') {
+				return this.success
+			}
+			return this.success ? (this.successText || t('nextcloud-vue', 'Done.')) : ''
+		},
+
+		/** @return {boolean} Whether the default slot is drawn. */
+		showBody() {
+			return !this.successMessage || this.keepBodyOnSuccess
+		},
+
+		/** @return {boolean} Whether the primary button is drawn. */
+		showPrimary() {
+			return this.primaryLabel !== '' && !this.successMessage
+		},
+
+		/** @return {string} The built-in cancel/close button label. */
+		closeButtonLabel() {
+			return this.successMessage
+				? (this.closeLabel || t('nextcloud-vue', 'Close'))
+				: (this.cancelLabel || t('nextcloud-vue', 'Cancel'))
 		},
 
 		resolvedWidth() {
@@ -132,6 +265,18 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Whether the NcDialog footer is drawn. A method, not a computed:
+		 * `$slots` is not reactive.
+		 *
+		 * @return {boolean}
+		 */
+		hasFooter() {
+			return Boolean(this.$slots.footer || this.$slots.actions || this.showClose || this.showPrimary)
+		},
+
 		/**
 		 * The notice block to draw at one place: one entry when the notices go
 		 * there, else none. A list rather than `v-if`, so a dialog without
@@ -156,6 +301,25 @@ export default {
 			 * @event closing Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set.
 			 */
 			this.$emit('closing', result)
+		},
+
+		/** Forward a click on the built-in cancel/close button. */
+		onClose() {
+			/**
+			 * @event close Emitted when the built-in cancel/close footer button is clicked.
+			 */
+			this.$emit('close')
+		},
+
+		/** Forward a click on the built-in primary button while it is enabled. */
+		onPrimary() {
+			if (this.loading || this.primaryDisabled) {
+				return
+			}
+			/**
+			 * @event primary Emitted when the built-in primary footer button is clicked while it is enabled.
+			 */
+			this.$emit('primary')
 		},
 	},
 }
