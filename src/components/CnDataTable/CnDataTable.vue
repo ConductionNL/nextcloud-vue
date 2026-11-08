@@ -262,6 +262,7 @@
 								reorderable ? 'cn-table-row--reorderable' : '',
 								dragOverIndex === rowIndex ? 'cn-table-row--drop-target' : '',
 							]"
+							v-bind="rowAttributes ? rowAttributes(row) : {}"
 							@dragstart="onRowDragStart(rowIndex, $event)"
 							@dragover="onRowDragOver(rowIndex, $event)"
 							@dragleave="onRowDragLeave(rowIndex)"
@@ -880,6 +881,16 @@ export default {
 
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Function returning extra HTML attributes for a row's `<tr>`: (row) => object.
+		 * They are bound after the table's own, so `{ 'data-testid': 'my-row' }`
+		 * replaces the default `cn-object-row` test id on that row.
+		 */
+		rowAttributes: {
 			type: Function,
 			default: null,
 		},
