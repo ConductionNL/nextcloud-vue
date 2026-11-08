@@ -95,6 +95,14 @@ describe('CnDialog shell', () => {
 		expect(successCard(mountShell({ success: true })).text()).toBe('Done.')
 	})
 
+	it('state cards sit in the notice block and follow noticesPlacement', () => {
+		const top = mountShell({ error: 'It failed' })
+		expect(top.find('.cn-dialog__notices--top [data-testid="cn-dialog-error"]').exists()).toBe(true)
+		const bottom = mountShell({ error: 'It failed', noticesPlacement: 'bottom' })
+		expect(bottom.find('.cn-dialog__notices--bottom [data-testid="cn-dialog-error"]').exists()).toBe(true)
+		expect(bottom.find('.cn-dialog__notices--top').exists()).toBe(false)
+	})
+
 	it('keepBodyOnSuccess keeps the body after success', () => {
 		const w = mountShell({ success: true, keepBodyOnSuccess: true })
 		expect(w.find('.body').exists()).toBe(true)

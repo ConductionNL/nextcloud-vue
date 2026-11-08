@@ -19,53 +19,61 @@
 			:noClose="noClose || loading"
 			@close="onClosing()" />
 		<div v-for="place in noticeBlocks('top')" :key="place" class="cn-dialog__notices cn-dialog__notices--top">
+			<NcNoteCard v-for="card in stateCards"
+				:key="card.type"
+				:type="card.type"
+				class="cn-dialog__state"
+				:class="[`cn-dialog__state--${card.type}`]"
+				:data-testid="`cn-dialog-${card.type}`">
+				<p>{{ card.text }}</p>
+			</NcNoteCard>
 			<!-- @slot Replaces the drawn `notices` (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
 			<slot name="notice">
 				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
-		<NcNoteCard v-if="successMessage"
-			type="success"
-			class="cn-dialog__state cn-dialog__state--success"
-			data-testid="cn-dialog-success">
-			<p>{{ successMessage }}</p>
-		</NcNoteCard>
-		<NcNoteCard v-if="error"
-			type="error"
-			class="cn-dialog__state cn-dialog__state--error"
-			data-testid="cn-dialog-error">
-			<p>{{ error }}</p>
-		</NcNoteCard>
 		<!-- @slot The dialog body, below the board header. Hidden after `success` unless `keepBodyOnSuccess` is set. -->
 		<slot v-if="showBody" />
 		<div v-for="place in noticeBlocks('bottom')" :key="place" class="cn-dialog__notices cn-dialog__notices--bottom">
+			<NcNoteCard v-for="card in stateCards"
+				:key="card.type"
+				:type="card.type"
+				class="cn-dialog__state"
+				:class="[`cn-dialog__state--${card.type}`]"
+				:data-testid="`cn-dialog-${card.type}`">
+				<p>{{ card.text }}</p>
+			</NcNoteCard>
 			<slot name="notice">
 				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
-		<template v-if="hasFooter()" #actions>
+		<template v-if="$slots.footer" #actions>
 			<!-- @slot Replaces the whole footer: the `actions` slot and the built-in close and primary buttons. -->
-			<slot name="footer">
-				<!-- @slot The dialog footer buttons, drawn before the built-in close and primary buttons. -->
-				<slot name="actions" />
-				<NcButton v-if="showClose"
-					:disabled="loading"
-					data-testid="cn-dialog-close"
-					@click="onClose">
-					{{ closeButtonLabel }}
-				</NcButton>
-				<NcButton v-if="showPrimary"
-					:variant="primaryVariant"
-					:disabled="loading || primaryDisabled"
-					data-testid="cn-dialog-primary"
-					@click="onPrimary">
-					<template v-if="loading || primaryIcon" #icon>
-						<NcLoadingIcon v-if="loading" :size="20" :name="t('nextcloud-vue', 'Loading …')" />
-						<CnIcon v-else :name="primaryIcon" :size="20" />
-					</template>
-					{{ primaryLabel }}
-				</NcButton>
-			</slot>
+			<slot name="footer" />
+		</template>
+		<template v-else-if="builtinButtons.length" #actions>
+			<slot name="actions" />
+			<NcButton v-if="showClose"
+				:disabled="loading"
+				data-testid="cn-dialog-close"
+				@click="onClose">
+				{{ closeButtonLabel }}
+			</NcButton>
+			<NcButton v-if="showPrimary"
+				:variant="primaryVariant"
+				:disabled="loading || primaryDisabled"
+				data-testid="cn-dialog-primary"
+				@click="onPrimary">
+				<template v-if="loading || primaryIcon" #icon>
+					<NcLoadingIcon v-if="loading" :size="20" :name="t('nextcloud-vue', 'Loading …')" />
+					<CnIcon v-else :name="primaryIcon" :size="20" />
+				</template>
+				{{ primaryLabel }}
+			</NcButton>
+		</template>
+		<template v-else-if="$slots.actions" #actions>
+			<!-- @slot The dialog footer buttons, drawn before the built-in close and primary buttons. -->
+			<slot name="actions" />
 		</template>
 	</NcDialog>
 </template>
@@ -100,7 +108,7 @@ import { CnIcon } from '../CnIcon/index.js'
  *
  * - `loading` disables the footer buttons, draws a loading icon on the primary
  *   button and blocks closing.
- * - `error` draws an error note card above the body.
+ * - `error` draws an error note card in the notice block (see `noticesPlacement`).
  * - `success` draws a success note card (the string, or `successText`), hides
  *   the body (unless `keepBodyOnSuccess`), hides the primary button and turns
  *   the cancel button into a close button.
@@ -177,7 +185,7 @@ export default {
 		 * loading icon on the primary button and blocks closing.
 		 */
 		loading: { type: Boolean, default: false },
-		/** Error message drawn in an error note card above the body. Empty draws none. */
+		/** Error message drawn in an error note card with the notices (see `noticesPlacement`). Empty draws none. */
 		error: { type: String, default: '' },
 		/**
 		 * The operation succeeded. `true` draws `successText`, a string draws
@@ -233,6 +241,36 @@ export default {
 			return this.success ? (this.successText || t('nextcloud-vue', 'Done.')) : ''
 		},
 
+		/**
+		 * The state note cards to draw, inside the notice block (so they follow
+		 * `noticesPlacement`). A list rather than `v-if`, so a dialog without
+		 * state renders no placeholder and keeps its markup.
+		 *
+		 * @return {Array<{type: string, text: string}>}
+		 */
+		stateCards() {
+			const cards = []
+			if (this.successMessage) {
+				cards.push({ type: 'success', text: this.successMessage })
+			}
+			if (this.error) {
+				cards.push({ type: 'error', text: this.error })
+			}
+			return cards
+		},
+
+		/** @return {string[]} The built-in footer buttons to draw: `close` and/or `primary`. */
+		builtinButtons() {
+			const buttons = []
+			if (this.showClose) {
+				buttons.push('close')
+			}
+			if (this.showPrimary) {
+				buttons.push('primary')
+			}
+			return buttons
+		},
+
 		/** @return {boolean} Whether the default slot is drawn. */
 		showBody() {
 			return !this.successMessage || this.keepBodyOnSuccess
@@ -269,16 +307,6 @@ export default {
 		t,
 
 		/**
-		 * Whether the NcDialog footer is drawn. A method, not a computed:
-		 * `$slots` is not reactive.
-		 *
-		 * @return {boolean}
-		 */
-		hasFooter() {
-			return Boolean(this.$slots.footer || this.$slots.actions || this.showClose || this.showPrimary)
-		},
-
-		/**
 		 * The notice block to draw at one place: one entry when the notices go
 		 * there, else none. A list rather than `v-if`, so a dialog without
 		 * notices renders no placeholder and keeps its markup.
@@ -289,7 +317,7 @@ export default {
 		 */
 		noticeBlocks(place) {
 			const at = this.noticesPlacement === 'bottom' ? 'bottom' : 'top'
-			return at === place && (this.$slots.notice || this.hasNotices) ? [place] : []
+			return at === place && (this.$slots.notice || this.hasNotices || this.stateCards.length > 0) ? [place] : []
 		},
 
 		/**

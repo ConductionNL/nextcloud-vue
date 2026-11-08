@@ -51,7 +51,7 @@ A dialog that would otherwise draw its own success and error note cards, a loadi
 ```
 
 - `loading` disables both footer buttons, draws a loading icon (with an accessible name) on the primary button and blocks closing.
-- `error` draws an error note card above the body; the body stays.
+- `error` draws an error note card in the notice block (under the header, or above the footer with `noticesPlacement: 'bottom'`); the body stays.
 - `success` draws a success note card (`successText`, or the string itself when `success` is a string, falling back to "Done."), hides the body unless `keepBodyOnSuccess`, hides the primary button, and the cancel button reads `closeLabel`.
 - The `actions` slot still works and draws before the built-in buttons; the `footer` slot replaces the whole footer. The `header` slot replaces the board header (and with it the round close button), or adds content above the body in the Nextcloud look.
 
@@ -65,7 +65,7 @@ Attributes it does not declare (`open`, `data-testid`, listeners such as `update
 | `size` | `string` | `'small'` | NcDialog size, used in the Nextcloud look only. |
 | `noClose` | `boolean` | `false` | Block closing while an operation runs: the close button is disabled and `closing` is not emitted. |
 | `loading` | `boolean` | `false` | An operation is in flight: disables the footer buttons, draws a loading icon on the primary button and blocks closing. |
-| `error` | `string` | `''` | Error message drawn in an error note card above the body. |
+| `error` | `string` | `''` | Error message drawn in an error note card with the notices (see `noticesPlacement`). |
 | `success` | `boolean \| string` | `false` | The operation succeeded: `true` draws `successText`, a string draws itself. Hides the body and the primary button; the cancel button reads `closeLabel`. |
 | `successText` | `string` | `''` | Success message when `success` is `true`; empty falls back to "Done.". |
 | `keepBodyOnSuccess` | `boolean` | `false` | Keep the body visible after `success`. |
