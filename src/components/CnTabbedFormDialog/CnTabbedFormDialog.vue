@@ -42,9 +42,14 @@
 
 			<!-- Tabs — hand-rolled to avoid the bootstrap-vue → bootstrap@4 → jquery
 			     missing-peer chain in consumer SBOM. UX parity with BTabs/BTab:
-			     justified tabs, icon + title, disabled state, content panel below. -->
+			     justified tabs, icon + title, disabled state, content panel below,
+			     and arrow-key navigation across the strip (roving tabindex). -->
 			<div class="cn-tabbed-form-dialog__tabs tabContainer">
-				<ul class="cn-tabbed-form-dialog__tab-nav" role="tablist">
+				<ul
+					ref="tablist"
+					class="cn-tabbed-form-dialog__tab-nav"
+					role="tablist"
+					@keydown="onTabKeydown">
 					<li
 						v-for="(tab, idx) in tabs"
 						:key="tab.id"
@@ -55,6 +60,7 @@
 							role="tab"
 							:aria-selected="activeTab === idx"
 							:aria-controls="'cn-tab-panel-' + tab.id"
+							:tabindex="activeTab === idx ? 0 : -1"
 							:disabled="tab.disabled"
 							class="cn-tabbed-form-dialog__tab-button"
 							:class="[{ 'is-active': activeTab === idx }]"
@@ -394,6 +400,55 @@ export default {
 			}
 			this.activeTab = idx
 			this.$emit('update:activeTab', idx)
+		},
+
+		/**
+		 * Arrow-key navigation across the tab strip (WAI-ARIA tabs pattern):
+		 * ArrowRight and ArrowLeft move to the next and previous tab, wrapping
+		 * around, Home and End to the first and last. A disabled tab is
+		 * skipped. The tab that becomes active takes the focus; only the
+		 * active tab is in the Tab order (roving tabindex).
+		 *
+		 * @param {KeyboardEvent} event The keydown event on the tab strip.
+		 */
+		onTabKeydown(event) {
+			const target = this.keyTarget(event.key)
+			if (target === null) {
+				return
+			}
+			event.preventDefault()
+			this.onTabClick(target)
+			this.$nextTick(() => {
+				const buttons = this.$refs.tablist?.querySelectorAll('[role="tab"]')
+				buttons?.[this.activeTab]?.focus()
+			})
+		},
+
+		/**
+		 * The tab a navigation key moves to, skipping disabled tabs.
+		 *
+		 * @param {string} key The `KeyboardEvent.key` value.
+		 * @return {number|null} The tab index, or null when the key does not navigate or no tab is enabled.
+		 */
+		keyTarget(key) {
+			const count = this.tabs.length
+			const enabled = (idx) => !this.tabs[idx].disabled
+			const scan = (start, step) => {
+				for (let i = 0; i < count; i++) {
+					const idx = (((start + step * i) % count) + count) % count
+					if (enabled(idx)) {
+						return idx
+					}
+				}
+				return null
+			}
+			const starts = {
+				ArrowRight: [this.activeTab + 1, 1],
+				ArrowLeft: [this.activeTab - 1, -1],
+				Home: [0, 1],
+				End: [count - 1, -1],
+			}
+			return Object.hasOwn(starts, key) ? scan(...starts[key]) : null
 		},
 
 		/**

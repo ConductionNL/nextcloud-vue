@@ -53,6 +53,10 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
 | `setResult` | `{ success?, error? }` | Show result phase. Success auto-closes (2s) or resets in create-another mode |
 | `resetDialog` | none | Clear result, reset loading, return to first tab |
 
+## Keyboard
+
+The tab strip is a WAI-ARIA tab list. Only the active tab is in the Tab order (roving `tabindex`); on the strip, ArrowRight and ArrowLeft move to the next and previous tab and wrap around, Home and End go to the first and last tab. A disabled tab is skipped. The tab that becomes active takes the focus and emits `update:activeTab`, as a click does.
+
 ## Usage
 
 ### Basic (Edit Mode)
