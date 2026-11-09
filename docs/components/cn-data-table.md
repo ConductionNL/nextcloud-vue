@@ -86,6 +86,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `emptyText` | String | `'No items found'` | Message shown when `rows` is empty and no `#empty` slot is provided |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable personal lens in self-fetch mode, keyed `<lens>.<reason>` or `<reason>`. When the response reports `@self.lenses.<lens>.available: false` (openregister#4514) the empty row says why instead of `emptyText`. |
 | `rowClass` | Function | `null` | Callback `(row) => cssClass` to add dynamic CSS classes to rows |
+| `rowAttrs` | Function | `null` | Callback `(row) => object` of extra attributes for each data row (e.g. a `data-testid` that replaces `cn-object-row`) |
 | `cellClass` | Function | `null` | Callback `(row, col) => cssClass` to add dynamic CSS classes to individual data cells |
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |

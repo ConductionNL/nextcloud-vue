@@ -189,6 +189,7 @@ export default {
 | `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries); takes precedence over `sortKey`/`sortOrder` when non-empty. Priority badges show only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered, and `aria-sort` goes to the first sort key whose column is rendered and sortable |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
+| `rowAttrs` | Function | `null` | `(row) => object` — extra attributes for each data `<tr>`, e.g. `{ 'data-testid': 'invoice-row' }`; a `data-testid` replaces the default `cn-object-row`, the table's own `data-testid-row-id`, `draggable`, handlers and classes stay |
 | `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |

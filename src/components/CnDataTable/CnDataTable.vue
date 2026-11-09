@@ -253,6 +253,7 @@
 							:draggable="reorderable ? 'true' : undefined"
 							class="cn-table-row"
 							data-testid="cn-object-row"
+							v-bind="rowAttrs ? rowAttrs(row) : {}"
 							:data-testid-row-id="row[rowKey]"
 							:class="[
 								isSelected(row) ? 'cn-table-row--selected' : '',
@@ -880,6 +881,19 @@ export default {
 
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Function returning extra attributes for a data row: (row) => object,
+		 * e.g. `(row) => ({ 'data-testid': 'invoice-row' })`. A `data-testid`
+		 * given here replaces the default `cn-object-row`; the attributes the
+		 * table sets after it (`data-testid-row-id`, `draggable`, `class`, the
+		 * row's event handlers) keep theirs, and a `class` is added to the
+		 * table's own. Not applied to the `#row-detail` row.
+		 */
+		rowAttrs: {
 			type: Function,
 			default: null,
 		},
