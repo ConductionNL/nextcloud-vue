@@ -7,7 +7,7 @@
 		:subtitle="subtitle"
 		:name="resolvedTitle"
 		:size="size"
-		:noClose="loading"
+		:noClose="loading || noClose"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -979,6 +979,9 @@
 				aria-live="polite"
 				data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
 			<NcButton @click="$emit('close')">
+				<template v-if="cancelIcon" #icon>
+					<CnIcon :name="cancelIcon" :size="20" data-testid="cn-form-dialog-cancel-icon" />
+				</template>
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
@@ -1628,6 +1631,23 @@ export default {
 		confirmDisabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Leave the dialog only through its buttons: no header close button,
+		 * and Escape or a backdrop click does nothing. For a host whose dialog
+		 * was an `NcDialog` with `no-close`. Off, the dialog blocks closing
+		 * only while it saves.
+		 */
+		noClose: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** MDI icon name on the Cancel / Close button (`Cancel`). Empty draws no icon, as before. */
+		cancelIcon: {
+			type: String,
+			default: '',
 		},
 	},
 
