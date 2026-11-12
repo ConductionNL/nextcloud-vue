@@ -235,7 +235,8 @@
 					<CnFlowStepOutcomes v-for="block in reportBlocks(step)"
 						:key="block.key"
 						:report="block.value"
-						:hideZero="block.key === 'messaging'" />
+						:hideZero="block.key === 'messaging'"
+						:label="blockLabel(block.key)" />
 				</li>
 			</ol>
 		</component>
@@ -458,6 +459,34 @@ export default {
 			return Object.keys(report)
 				.filter((key) => report[key] && typeof report[key] === 'object')
 				.map((key) => ({ key, value: report[key] }))
+		},
+
+		/**
+		 * What a report block is a tally of, for `CnFlowStepOutcomes`'
+		 * `label` prop — its visible caption and accessible name.
+		 *
+		 * `null` for `messaging`: that block keeps the component's own
+		 * send-specific default ("Who this step reached") and no caption,
+		 * since a step writes at most one messaging block, so it needs
+		 * neither a caption to tell it apart from a sibling nor a different
+		 * accessible name.
+		 *
+		 * @param {string} key The report block's key.
+		 * @return {string|null} The label, or `null` for `messaging`.
+		 */
+		blockLabel(key) {
+			if (key === 'messaging') {
+				return null
+			}
+
+			const labels = {
+				fetch: this.t('nextcloud-vue', 'Fetch'),
+				contract: this.t('nextcloud-vue', 'Decision'),
+				write: this.t('nextcloud-vue', 'Write'),
+				sweep: this.t('nextcloud-vue', 'Sweep'),
+			}
+
+			return labels[key] || key
 		},
 	},
 }
