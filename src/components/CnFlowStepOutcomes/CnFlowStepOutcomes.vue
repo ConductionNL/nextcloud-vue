@@ -1,15 +1,22 @@
 <!--
-  CnFlowStepOutcomes: who a send step reached, and who it did not, by name.
+  CnFlowStepOutcomes: a step's own tally, by named bucket.
 
   A messaging step (send email, send notification, post to Talk) writes its
   per-recipient outcome onto its run-log entry as `report.messaging`: one
   bucket per outcome, each `{count, sample}`. Nothing rendered it, so the run
   log could not show that a person was skipped because they opted out, or
-  because the opt-out check did not answer.
+  because the opt-out check did not answer. A sync pipeline's steps write the
+  same shape for their own counts (`report.fetch`, `report.contract`,
+  `report.write`, `report.sweep` — objects fetched, create/update/skip/invalid,
+  created/updated, swept).
 
-  Only buckets with someone in them are listed. A bucket this component does
-  not know is still shown, under its own key made readable, so a new outcome
-  on the server is never hidden by an older library.
+  Only buckets with someone in them are listed, UNLESS `hideZero` is false.
+  Messaging wants zero-suppression: "delivered: 0, optedOut: 0, failed: 0" on
+  every ordinary send is noise nobody reads. A count step does not: "swept: 0"
+  is the answer, not a blank where a row should be, and hiding it would read
+  as "this step reported nothing" when it reported zero. A bucket this
+  component does not know is still shown, under its own key made readable, so
+  a new outcome on the server is never hidden by an older library.
 
   SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
   SPDX-License-Identifier: EUPL-1.2
@@ -83,6 +90,16 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * Drop a bucket whose count is zero. True for messaging (a long,
+		 * mostly-zero outcome list is noise); false for a step whose buckets
+		 * are the whole point of reading it, where zero is itself the answer.
+		 */
+		hideZero: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	computed: {
@@ -107,7 +124,7 @@ export default {
 
 			return ordered
 				.map(({ key, tone }) => ({ key, tone, bucket: report[key] }))
-				.filter(({ bucket }) => bucket && typeof bucket === 'object' && Number(bucket.count) > 0)
+				.filter(({ bucket }) => bucket && typeof bucket === 'object' && (this.hideZero === false || Number(bucket.count) > 0))
 				.map(({ key, tone, bucket }) => ({
 					key,
 					tone,

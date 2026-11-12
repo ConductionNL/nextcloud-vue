@@ -165,4 +165,33 @@ describe('the Logs tab shows a send step’s outcome lists by name', () => {
 		expect(lists[0].text()).toContain('Opted out')
 		expect(lists[0].text()).toContain('jan@example.nl')
 	})
+
+	it('renders a sync step’s own report too, zero counts included', async () => {
+		// Unlike messaging, a count step's buckets are the whole point of
+		// reading it — `created: 0` must show as the answer, not be hidden the
+		// way a mostly-empty messaging outcome list is.
+		const wrapper = await mountSidebar({
+			inspectedRunUuid: 'run-1',
+			steps: [
+				{
+					transition: 'write',
+					type: 'openregister.object-write',
+					status: 'completed',
+					report: {
+						write: {
+							created: { count: 0 },
+							updated: { count: 3 },
+						},
+					},
+				},
+			],
+		})
+		await wrapper.find('[data-testid="flow-run-tab-logs"]').trigger('click')
+		await wrapper.vm.$nextTick()
+
+		const lists = wrapper.findAll('[data-testid="flow-step-outcomes"]')
+		expect(lists).toHaveLength(1)
+		expect(lists[0].find('[data-testid="flow-step-outcome-created"]').text()).toContain('0')
+		expect(lists[0].find('[data-testid="flow-step-outcome-updated"] dd').text()).toContain('3')
+	})
 })
