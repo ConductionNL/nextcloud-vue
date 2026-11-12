@@ -226,10 +226,16 @@
 					<strong>{{ step.transition }}</strong>
 					<span class="cn-run-sidebar__hint"> · {{ step.status }}</span>
 					<span v-if="step.error" class="cn-run-sidebar__error"> · {{ step.error }}</span>
-					<!-- A send step's outcome lists, by name: who got it, who
-					     opted out, who the opt-out check could not answer for. -->
-					<CnFlowStepOutcomes v-if="step.report && step.report.messaging"
-						:report="step.report.messaging" />
+					<!-- Every bucket a node reported on this hop: a send step's
+					     `messaging` (who got it, who opted out, ...), a sync
+					     step's own tally (`fetch`, `contract`, `write`, `sweep` —
+					     objects fetched, create/update/skip/invalid, created/
+					     updated, swept). One node writes one key in practice, but
+					     nothing here assumes that. -->
+					<CnFlowStepOutcomes v-for="block in reportBlocks(step)"
+						:key="block.key"
+						:report="block.value"
+						:hideZero="block.key === 'messaging'" />
 				</li>
 			</ol>
 		</component>
@@ -421,6 +427,29 @@ export default {
 		 */
 		taskUrl(uuid) {
 			return generateUrl(`/apps/openregister/flow-tasks/${uuid}`)
+		},
+
+		/**
+		 * A step's report, as the named blocks `CnFlowStepOutcomes` renders.
+		 *
+		 * `step.report` is a map of named summaries (`messaging`, `fetch`,
+		 * `contract`, `write`, `sweep`, ...) — whatever node(s) on this hop
+		 * wrote one, keyed per {@see FlowStepReport::put()} on the server. Each
+		 * value is itself a bucket map (`{count, sample}` per bucket), the
+		 * shape `CnFlowStepOutcomes` already knows how to draw.
+		 *
+		 * @param {object} step The log entry.
+		 * @return {Array<{key: string, value: object}>} One entry per report key.
+		 */
+		reportBlocks(step) {
+			const report = step && step.report
+			if (!report || typeof report !== 'object') {
+				return []
+			}
+
+			return Object.keys(report)
+				.filter((key) => report[key] && typeof report[key] === 'object')
+				.map((key) => ({ key, value: report[key] }))
 		},
 	},
 }

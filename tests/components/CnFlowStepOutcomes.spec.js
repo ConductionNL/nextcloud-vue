@@ -67,6 +67,20 @@ describe('CnFlowStepOutcomes', () => {
 		expect(wrapper.find('[data-testid="flow-step-outcome-rateLimited"]').exists()).toBe(false)
 	})
 
+	it('keeps a zero-count bucket when hideZero is false', () => {
+		// A sync step's own tally (e.g. `report.sweep`): zero swept is the
+		// answer, not a blank row — unlike messaging, where a long mostly-zero
+		// outcome list would be noise.
+		const report = { created: { count: 0 }, updated: { count: 3 } }
+
+		const hidden = mountOutcomes({ report })
+		expect(hidden.find('[data-testid="flow-step-outcome-created"]').exists()).toBe(false)
+
+		const shown = mountOutcomes({ report, hideZero: false })
+		expect(shown.find('[data-testid="flow-step-outcome-created"] dd').text()).toContain('0')
+		expect(shown.find('[data-testid="flow-step-outcome-updated"] dd').text()).toContain('3')
+	})
+
 	it('says why an address was refused', () => {
 		const wrapper = mountOutcomes({ report: REPORT })
 
