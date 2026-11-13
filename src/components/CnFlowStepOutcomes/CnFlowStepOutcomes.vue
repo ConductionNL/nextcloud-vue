@@ -1,22 +1,34 @@
 <!--
-  CnFlowStepOutcomes: who a send step reached, and who it did not, by name.
+  CnFlowStepOutcomes: a step's own tally, by named bucket.
 
   A messaging step (send email, send notification, post to Talk) writes its
   per-recipient outcome onto its run-log entry as `report.messaging`: one
   bucket per outcome, each `{count, sample}`. Nothing rendered it, so the run
   log could not show that a person was skipped because they opted out, or
-  because the opt-out check did not answer.
+  because the opt-out check did not answer. A sync pipeline's steps write the
+  same shape for their own counts (`report.fetch`, `report.contract`,
+  `report.write`, `report.sweep` — objects fetched, create/update/skip/invalid,
+  created/updated, swept).
 
-  Only buckets with someone in them are listed. A bucket this component does
-  not know is still shown, under its own key made readable, so a new outcome
-  on the server is never hidden by an older library.
+  Only buckets with someone in them are listed, UNLESS `hideZero` is false.
+  Messaging wants zero-suppression: "delivered: 0, optedOut: 0, failed: 0" on
+  every ordinary send is noise nobody reads. A count step does not: "swept: 0"
+  is the answer, not a blank where a row should be, and hiding it would read
+  as "this step reported nothing" when it reported zero. A bucket this
+  component does not know is still shown, under its own key made readable, so
+  a new outcome on the server is never hidden by an older library.
 
   SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
 	<div v-if="rows.length" class="cn-flow-step-outcomes" data-testid="flow-step-outcomes">
-		<dl class="cn-flow-step-outcomes__list" :aria-label="t('nextcloud-vue', 'Who this step reached')">
+		<p v-if="label"
+			class="cn-flow-step-outcomes__title"
+			data-testid="flow-step-outcomes-title">
+			{{ label }}
+		</p>
+		<dl class="cn-flow-step-outcomes__list" :aria-label="label || t('nextcloud-vue', 'Who this step reached')">
 			<div v-for="row in rows"
 				:key="row.key"
 				class="cn-flow-step-outcomes__row"
@@ -56,6 +68,14 @@ const KNOWN_BUCKETS = [
 	{ key: 'refusedRecipients', tone: 'warning' },
 	{ key: 'unknownRecipients', tone: 'warning' },
 	{ key: 'failed', tone: 'error' },
+	// A sync step's own tally (`report.fetch`/`contract`/`write`/`sweep`):
+	// create/update/skip/invalid per item, then created/updated/swept counts.
+	{ key: 'fetched', tone: 'neutral' },
+	{ key: 'created', tone: 'success' },
+	{ key: 'updated', tone: 'success' },
+	{ key: 'skipped', tone: 'neutral' },
+	{ key: 'invalid', tone: 'warning' },
+	{ key: 'swept', tone: 'neutral' },
 ]
 
 /** Report keys that are facts about the send, not outcome buckets. */
@@ -66,9 +86,10 @@ export default {
 
 	props: {
 		/**
-		 * A step's messaging report: the run-log entry's `report.messaging`.
-		 * Each outcome bucket is `{count, sample}`; a `refusedRecipients`
-		 * sample entry is `{recipient, reason}`. `null` renders nothing.
+		 * One named block of a step's run-log report, e.g. `report.messaging`
+		 * or a sync step's `report.write`. Each outcome bucket is
+		 * `{count, sample}`; a `refusedRecipients` sample entry is
+		 * `{recipient, reason}`. `null` renders nothing.
 		 */
 		report: {
 			type: Object,
@@ -82,6 +103,31 @@ export default {
 		labels: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Drop a bucket whose count is zero. True for messaging (a long,
+		 * mostly-zero outcome list is noise); false for a step whose buckets
+		 * are the whole point of reading it, where zero is itself the answer.
+		 */
+		hideZero: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * What this list is a tally of, e.g. "Write" for a `report.write`
+		 * block. Used as the visible caption above the list AND the list's
+		 * accessible name, replacing the default "Who this step reached" —
+		 * which is wrong for anything that is not a send, and leaves two
+		 * adjacent blocks on one step (`fetch` + `write`) unlabelled and
+		 * indistinguishable to a screen reader. `null` (the default, and what
+		 * a messaging block passes) keeps the original behaviour: no caption,
+		 * the send-specific accessible name.
+		 */
+		label: {
+			type: String,
+			default: null,
 		},
 	},
 
@@ -107,12 +153,12 @@ export default {
 
 			return ordered
 				.map(({ key, tone }) => ({ key, tone, bucket: report[key] }))
-				.filter(({ bucket }) => bucket && typeof bucket === 'object' && Number(bucket.count) > 0)
+				.filter(({ bucket }) => bucket && typeof bucket === 'object' && (this.hideZero === false || Number(bucket.count) > 0))
 				.map(({ key, tone, bucket }) => ({
 					key,
 					tone,
 					label: this.labelFor(key),
-					count: Number(bucket.count),
+					count: Number(bucket.count) || 0,
 					sample: (Array.isArray(bucket.sample) ? bucket.sample : []).map((entry) => this.describeEntry(entry)),
 				}))
 		},
@@ -143,6 +189,12 @@ export default {
 				refusedRecipients: t('nextcloud-vue', 'Refused by the step’s address rule'),
 				unknownRecipients: t('nextcloud-vue', 'Not a known user or group'),
 				failed: t('nextcloud-vue', 'Failed'),
+				fetched: t('nextcloud-vue', 'Fetched'),
+				created: t('nextcloud-vue', 'Created'),
+				updated: t('nextcloud-vue', 'Updated'),
+				skipped: t('nextcloud-vue', 'Skipped'),
+				invalid: t('nextcloud-vue', 'Invalid'),
+				swept: t('nextcloud-vue', 'Swept'),
 			}
 			if (builtIn[key]) {
 				return builtIn[key]
@@ -193,6 +245,14 @@ export default {
 .cn-flow-step-outcomes {
 	margin: 4px 0 0;
 	font-size: 0.9em;
+}
+
+.cn-flow-step-outcomes__title {
+	margin: 4px 0 0;
+	font-weight: bold;
+	text-transform: uppercase;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-flow-step-outcomes__list {
