@@ -2879,6 +2879,10 @@
 												"type": "string",
 												"description": "Dot-path into the endpoint payload for a SERVER-computed delta percent — wins over the client-side previousField computation."
 											},
+											"noPreviousText": {
+												"type": "string",
+												"description": "Sublabel shown instead of the trend when previousField is set but the previous value is missing, not numeric or 0 (no earlier period to compare with). Translated through the manifest translator. Omitted = no sublabel, as before."
+											},
 											"goodDirection": {
 												"type": "string",
 												"enum": ["up", "down"],
