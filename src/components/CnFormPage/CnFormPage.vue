@@ -227,6 +227,13 @@
 					:value="formData[field.key]"
 					:onInput="(v) => updateField(field.key, v)"
 					:error="fieldErrors[field.key] || null">
+					<!-- A signature and a position have no label of their own. -->
+					<span
+						v-if="resolveFieldRender(field) && ['signature', 'location'].includes(resolveFieldRender(field).kind)"
+						class="cn-form-page__device-label"
+						data-testid="cn-form-page-device-label">
+						{{ resolveFieldRender(field).labelText }}
+					</span>
 					<component
 						:is="resolveFieldRender(field).tag"
 						v-if="resolveFieldRender(field)"
@@ -409,7 +416,7 @@ import CnSmartPasteDialog from '../../dialogs/CnSmartPasteDialog.vue'
 import CnFormErrorSummary from '../CnFormErrorSummary/CnFormErrorSummary.vue'
 import CnFormField from '../CnFormField/CnFormField.vue'
 import CnStepper from '../CnStepper/CnStepper.vue'
-import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
+import { cnRenderFormField, locationWrites } from '../../composables/cnFormFieldRenderer.js'
 import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { cnSelectAria } from '../../directives/cnSelectAria.js'
@@ -1419,7 +1426,10 @@ export default {
 			const rendered = cnRenderFormField({
 				field,
 				value: this.formData[field.key],
-				onInput: (next) => this.updateField(field.key, next),
+				values: this.formData,
+				onInput: field.type === 'location'
+					? (next) => Object.entries(locationWrites(field, next)).forEach(([key, val]) => this.updateField(key, val))
+					: (next) => this.updateField(field.key, next),
 				t: this.labelTranslator,
 				error: this.fieldErrors[field.key] || null,
 			})
@@ -1530,7 +1540,11 @@ export default {
 					delete this.fieldErrors[field.key]
 					return
 				}
-				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
+				// A position with latField/lngField is held in those fields, not under its own key.
+				const value = field.type === 'location' && field.latField && field.lngField
+					? (typeof this.formData[field.latField] === 'number' && typeof this.formData[field.lngField] === 'number' ? { lat: this.formData[field.latField], lng: this.formData[field.lngField] } : null)
+					: this.formData[field.key]
+				const message = validateFieldValue(field, value, this.resolveLabel)
 				if (message) {
 					this.fieldErrors[field.key] = message
 					invalidKeys.push(field.key)
@@ -1916,6 +1930,12 @@ export default {
 </script>
 
 <style>
+.cn-form-page__device-label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
 .cn-form-page__honeypot {
 	position: absolute;
 	left: -10000px;

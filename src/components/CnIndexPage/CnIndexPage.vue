@@ -680,6 +680,7 @@
 				:draftAppId="draftAppId"
 				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
 				:draftField="draftField"
+				:templateSource="recordTemplates && !rowFormTarget && !editItem ? { register: copyRegisterSlug, schema: copySchemaSlug } : null"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -1548,6 +1549,7 @@ import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -3770,6 +3772,16 @@ export default {
 		},
 
 		/**
+		 * Offer OpenRegister's record templates of this register and schema on
+		 * the create form (`config.recordTemplates`): a "Start from a
+		 * template" picker fills the form.
+		 */
+		recordTemplates: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * The words of the single-item delete dialog: `{ title?, message?,
 		 * description? }`, each through the app's translate. `message` is the
 		 * question (`{name}` is the item), `description` a muted line under it
@@ -5017,6 +5029,8 @@ export default {
 		return {
 			/** Notices this page's actions answered, or that were raised on the page channel. */
 			runtimeNotices: [],
+			/** The verdict of each header action's `visibleWhen`, by id; an action waits hidden until it is in. */
+			headerActionVisibility: {},
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -5431,6 +5445,10 @@ export default {
 			for (const entry of this.headerActions || []) {
 				// Only what is drawn: the endpoint behind the action checks access itself.
 				if (entry && entry.adminOnly === true && !this.viewerIsAdmin()) {
+					continue
+				}
+				// A `visibleWhen` (reader groups, an endpoint such as `/api/me`) decides per reader.
+				if (entry && entry.visibleWhen && this.headerActionVisibility[entry.id] !== true) {
 					continue
 				}
 				if (entry && reserved.has(entry.id)) {
@@ -9938,6 +9956,13 @@ export default {
 	},
 
 	watch: {
+		headerActions: {
+			immediate: true,
+			handler() {
+				this.evaluateHeaderActionVisibility()
+			},
+		},
+
 		// A group filter's chip names the group: ask for each id's display
 		// name (cached, once per id per page).
 		effectiveActiveFilters: {
@@ -10397,6 +10422,27 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Ask each header action's `visibleWhen` once: a reader-groups
+		 * condition, an endpoint (`{ endpoint: "/apps/x/api/me", field:
+		 * "mayFindDuplicates", op: "eq", value: true }`) or an installed app,
+		 * with `@config.<key>` tokens from the app config. An action stays
+		 * hidden until its answer holds; a failed request hides it.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-header-action-visible-when/specs/index-header-action-visible-when/spec.md#requirement-an-index-header-action-can-show-only-for-some-readers
+		 */
+		async evaluateHeaderActionVisibility() {
+			const entries = (this.headerActions || []).filter((entry) => entry && entry.id && entry.visibleWhen)
+			const verdicts = await Promise.all(entries.map((entry) => evaluateVisibleWhen(entry.visibleWhen, { config: this.effectiveAppConfig })
+				.catch(() => false)))
+			const next = {}
+			entries.forEach((entry, index) => {
+				next[entry.id] = verdicts[index] === true
+			})
+			this.headerActionVisibility = next
+		},
+
 		/**
 		 * The eyebrow or subtitle of the built-in Add/Edit form: `value` as a
 		 * string, or its `create` / `edit` entry for the open mode. A row
