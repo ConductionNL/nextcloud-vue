@@ -12,3 +12,15 @@ page. A manifest `object-action` SHALL run the named action on the page's object
 - **GIVEN** a decision whose schema declares `publish` with a required `from` date
 - **WHEN** the reader chooses Publish in the Actions menu
 - **THEN** a dialog asks for the date, and confirming posts `{ inputs: { from } }` to `.../actions/publish`
+
+### Requirement: A selection can run an action OpenRegister offers in bulk
+
+An index page with `actionsFrom: "openregister"` SHALL add to its selection strip every action OpenRegister lists for
+the schema whose `surfaces` include `bulk`, in `actionsInclude` order when given. Choosing one SHALL post the selected
+ids and the inputs to the schema's action route in one request, say when it continues in the background, report a
+refusal with the server's message, and read the list again.
+
+#### Scenario: closing a selection
+- **GIVEN** a schema whose `close` action lists the bulk surface
+- **WHEN** the reader selects two rows and chooses Close
+- **THEN** `{ ids, inputs }` is posted to `/api/object-actions/{register}/{schema}/close` once and the list reloads
