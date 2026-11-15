@@ -2769,6 +2769,7 @@
     "Package": "Package",
     "Version {version} · shipped with {app}": "Version {version} · shipped with {app}",
     "The packages could not be read.": "The packages could not be read.",
+    "In development": "In development",
     "Install into": "Install into",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
