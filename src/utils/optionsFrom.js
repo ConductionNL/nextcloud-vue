@@ -17,6 +17,7 @@
  */
 
 import { fetchEndpointSource } from '../composables/useEndpointSource.js'
+import { isAppInstalled } from './appInstalled.js'
 import { readPath } from './readPath.js'
 
 /** How many objects a `{ register, schema }` source reads. */
@@ -37,6 +38,19 @@ export function isOptionsFrom(from) {
 	const endpoint = typeof from.url === 'string' && from.url !== ''
 	const objects = typeof from.register === 'string' && from.register !== '' && typeof from.schema === 'string' && from.schema !== ''
 	return endpoint || objects
+}
+
+/**
+ * Whether an `optionsFrom` block names, in `requiresApp`, an app that is not
+ * installed. Such a source is not read: its field falls back to a text input
+ * with the block's `missingText` under it.
+ *
+ * @param {object} from The `optionsFrom` block.
+ * @return {boolean} True when `requiresApp` is set and that app is missing.
+ * @spec openspec/changes/options-from-requires-app/specs/form-dialog/spec.md#requirement-a-source-from-a-missing-app-falls-back-to-a-text-field
+ */
+export function optionsFromAppMissing(from) {
+	return isPlainObject(from) && typeof from.requiresApp === 'string' && from.requiresApp !== '' && !isAppInstalled(from.requiresApp)
 }
 
 /**
@@ -115,7 +129,7 @@ export function optionFromRow(row, from = {}) {
  */
 export async function loadOptionsFrom(from, ctx = {}) {
 	const source = optionsFromSource(from)
-	if (!source) {
+	if (!source || optionsFromAppMissing(from)) {
 		return []
 	}
 	const data = await fetchEndpointSource(source, ctx, { force: true })
