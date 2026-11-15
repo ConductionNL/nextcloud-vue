@@ -205,7 +205,7 @@
 								v-bind="fieldAria(field)"
 								:modelValue="codedFallbackText(field)"
 								:disabled="field.readOnly"
-								:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
+								:helperText="codedFallbackHint(field)"
 								@update:modelValue="onCodedFallbackInput(field, $event)" />
 						</div>
 
@@ -1065,7 +1065,7 @@ import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
-import { fieldWithOptionsFrom, filterOptions, formTokenKeys, isOptionsFrom, loadOptionsFrom, resolveFormTokens } from '../../utils/optionsFrom.js'
+import { fieldWithOptionsFrom, filterOptions, formTokenKeys, isOptionsFrom, loadOptionsFrom, optionsFromAppMissing, resolveFormTokens } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
 import { isPrototypeKey } from '../../utils/prototypeKeys.js'
@@ -2864,6 +2864,23 @@ export default {
 					}
 				}
 			}
+		},
+
+		/**
+		 * The line under a choice drawn as a text input: the source's
+		 * `missingText` when its `requiresApp` is missing, else that the list
+		 * could not be loaded.
+		 *
+		 * @param {object} field The field.
+		 * @return {string} The hint.
+		 * @spec openspec/changes/options-from-requires-app/specs/form-dialog/spec.md#requirement-a-source-from-a-missing-app-falls-back-to-a-text-field
+		 */
+		codedFallbackHint(field) {
+			const from = field.optionsFrom
+			if (optionsFromAppMissing(from) && typeof from.missingText === 'string' && from.missingText !== '') {
+				return this.cnTranslate(from.missingText)
+			}
+			return t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')
 		},
 
 		/**

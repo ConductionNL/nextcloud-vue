@@ -532,6 +532,7 @@
 			v-if="showSaveViewDialog"
 			ref="saveViewDialog"
 			:schema="viewPresentationSchema"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
 
@@ -559,6 +560,7 @@
 			v-if="viewPendingShare"
 			ref="shareViewDialog"
 			:view="viewPendingShare"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
 
@@ -3739,6 +3741,16 @@ export default {
 		savedViewsScope: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Which groups a saved view can be shared with: `all` (every group
+		 * the sharee API offers), `mine` (the groups the current user is in)
+		 * or an array of group ids. People can be picked either way.
+		 */
+		savedViewsShareGroups: {
+			type: [String, Array],
+			default: 'all',
 		},
 
 		/**
