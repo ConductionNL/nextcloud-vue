@@ -56,6 +56,9 @@ function passesRequired(type, value) {
 	if (type === 'json') {
 		return value !== null && value !== undefined
 	}
+	if (type === 'array') {
+		return Array.isArray(value) && value.length > 0
+	}
 	// Unknown type — fall back to a generic non-empty check.
 	return value !== null && value !== undefined && value !== ''
 }

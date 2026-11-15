@@ -2800,7 +2800,8 @@
     "The camera is not allowed for this site. Type the code instead.": "The camera is not allowed for this site. Type the code instead.",
     "Hold the code in front of the camera.": "Hold the code in front of the camera.",
     "Find": "Find",
-    "No record has this code.": "No record has this code."
+    "No record has this code.": "No record has this code.",
+    "At most {max} rows.": "At most {max} rows."
   },
   "plurals": {
     "{count} member": [

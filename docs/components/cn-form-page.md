@@ -320,3 +320,12 @@ Four field types ask the device for something, and only when the person acts:
 
 A required `location` field with `latField` and `lngField` is filled once both hold a number.
 
+## A list of objects
+
+A field of `type: "array"` whose `items` is an object schema, or any field with `widget: "sub-objects"`, is a table of rows, each added or edited in a dialog over the row schema (CnSubObjectsField). The value is an array of objects under the field's key, which is what a journey's repeating write names (`forEach`). `maxItems` caps the rows: at the limit Add and Duplicate are disabled and a line says so. `addLabel` and `itemLabel` name the button and a row. `validation.required` asks for at least one row.
+
+```json
+{ "key": "products", "label": "Products", "type": "array", "widget": "sub-objects", "maxItems": 10, "addLabel": "Add product",
+  "items": { "type": "object", "properties": { "product": { "type": "string", "title": "Product", "enum": ["parking", "waste"] }, "count": { "type": "integer", "title": "Count" } } } }
+```
+

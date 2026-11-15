@@ -3064,7 +3064,8 @@
     "The camera is not allowed for this site. Type the code instead.": "De camera is niet toegestaan voor deze site. Typ de code in.",
     "Hold the code in front of the camera.": "Houd de code voor de camera.",
     "Find": "Zoeken",
-    "No record has this code.": "Geen record heeft deze code."
+    "No record has this code.": "Geen record heeft deze code.",
+    "At most {max} rows.": "Hoogstens {max} rijen."
   },
   "plurals": {
     "{count} member": [
