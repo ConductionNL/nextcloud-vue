@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.177.0",
+	"version": "2.178.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -643,6 +643,15 @@
 						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
 						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." },
+						"requiresApp": {
+							"type": "string",
+							"minLength": 1,
+							"description": "An app the source lives in. While it is not installed the source is not read and the field is a text input (options-from-requires-app, 2.178.0)."
+						},
+						"missingText": {
+							"type": "string",
+							"description": "The line under that text input while `requiresApp` is missing, translated (options-from-requires-app, 2.178.0)."
+						},
 						"keepFields": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Values of the row each option carries along as `data`, such as a programme's terms url a create form links to (create-form-widget)." }
 					}
 				},
@@ -660,6 +669,15 @@
 						"where": { "type": "object", "description": "Keep the rows whose fields equal these values; a value may be `@answer.<key>`, another field of the form (object-list-edit-in-place)." },
 						"itemsPath": { "type": "string", "minLength": 1, "description": "Read the options from the list at this path in each row (object-list-edit-in-place)." },
 						"hideWhenEmpty": { "type": "boolean", "description": "Leave the field out while the source gives no options (object-list-edit-in-place)." },
+						"requiresApp": {
+							"type": "string",
+							"minLength": 1,
+							"description": "An app the source lives in. While it is not installed the source is not read and the field is a text input (options-from-requires-app, 2.178.0)."
+						},
+						"missingText": {
+							"type": "string",
+							"description": "The line under that text input while `requiresApp` is missing, translated (options-from-requires-app, 2.178.0)."
+						},
 						"keepFields": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Values of the row each option carries along as `data`, such as a programme's terms url a create form links to (create-form-widget)." }
 					}
 				}
