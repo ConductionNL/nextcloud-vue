@@ -532,6 +532,7 @@
 			v-if="showSaveViewDialog"
 			ref="saveViewDialog"
 			:schema="viewPresentationSchema"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
 
@@ -559,6 +560,7 @@
 			v-if="viewPendingShare"
 			ref="shareViewDialog"
 			:view="viewPendingShare"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
 
@@ -606,6 +608,7 @@
 				:item="actionTargetItem"
 				:nameField="massActionNameField"
 				:nameFormatter="nameFormatter"
+				v-bind="singleDeleteDialogTexts"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -3764,6 +3767,27 @@ export default {
 		},
 
 		/**
+		 * The words of the single-item delete dialog: `{ title?, message?,
+		 * description? }`, each through the app's translate. `message` is the
+		 * question (`{name}` is the item), `description` a muted line under it
+		 * saying what else the delete removes. Unset keys keep the defaults.
+		 */
+		deleteDialog: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Which groups a saved view can be shared with: `all` (every group
+		 * the sharee API offers), `mine` (the groups the current user is in)
+		 * or an array of group ids. People can be picked either way.
+		 */
+		savedViewsShareGroups: {
+			type: [String, Array],
+			default: 'all',
+		},
+
+		/**
 		 * Views the app ships for this page (`config.defaultSavedViews`), each
 		 * `{ slug, name, filters, search?, sort?, label? }`. Listed read-only
 		 * above the user's own saved views, never stored; a user may apply one
@@ -5151,6 +5175,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The single-item delete dialog's texts from `deleteDialog`, as
+		 * CnDeleteDialog props; the keys it leaves unset are left out, so the
+		 * dialog's defaults stand.
+		 *
+		 * @return {{dialogTitle?: string, warningText?: string, description?: string}}
+		 * @spec openspec/changes/index-delete-dialog-texts/specs/index-delete-dialog-texts/spec.md#requirement-an-index-page-can-word-its-delete-dialog
+		 */
+		singleDeleteDialogTexts() {
+			const texts = this.deleteDialog && typeof this.deleteDialog === 'object' ? this.deleteDialog : {}
+			const out = {}
+			for (const [key, prop] of [['title', 'dialogTitle'], ['message', 'warningText'], ['description', 'description']]) {
+				if (typeof texts[key] === 'string' && texts[key] !== '') {
+					out[prop] = this.cnTranslate(texts[key])
+				}
+			}
+			return out
+		},
+
 		/**
 		 * @return {boolean} Whether the page follows changes now.
 		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live

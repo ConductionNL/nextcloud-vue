@@ -12,5 +12,5 @@ An index page sends what is typed in its search box to OpenRegister as `_search`
 
 - `src/composables/useListView.js`: option `searchInterpreter(term)`, asked once per term before a fetch; its `{ search?, filters?, note? }` replaces `_search`, adds the filters and exposes `searchNote`.
 - `src/components/CnIndexPage/useSelfFetchList.js`, `CnIndexPage.vue`: prop `searchHandler` (manifest `config.searchHandler`) resolved from the app's registry; the note shows above the list as a status line.
-- `src/schemas/app-manifest-v2.schema.json` 2.170.0: `searchHandler` on page config.
+- `src/schemas/app-manifest-v2.schema.json` 2.181.0: `searchHandler` on page config.
 - `src/components/CnIndexPage/CnIndexPage.md`.
