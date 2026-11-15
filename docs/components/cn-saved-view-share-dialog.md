@@ -10,6 +10,7 @@ Two-phase like the other save dialogs: `confirm` carries the audience; the paren
 |------|------|---------|-------------|
 | `view` | Object | `{}` | The view being shared (its `sharedWith` seeds the fields). |
 | `dialogTitle` | String | `'Share view'` | Dialog title. |
+| `shareGroups` | String \| Array | `'all'` | Which groups the picker offers; see [`CnSavedViewShareFields`](./cn-saved-view-share-fields.md). |
 
 ## Events
 

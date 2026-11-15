@@ -20,7 +20,7 @@
 			<p v-if="!isBoardLook" class="cn-share-view__intro">
 				{{ t('nextcloud-vue', 'Whoever gets the view sees it under Shared with me. It is yours and stays yours.') }}
 			</p>
-			<CnSavedViewShareFields v-model="sharedWith" />
+			<CnSavedViewShareFields v-model="sharedWith" :shareGroups="shareGroups" />
 		</div>
 		<template #actions>
 			<NcButton :disabled="loading" @click="onClose">
@@ -72,6 +72,15 @@ export default {
 		dialogTitle: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Which groups the share picker offers: `all`, `mine` (the groups the
+		 * current user is in) or an array of group ids. See CnSavedViewShareFields.
+		 */
+		shareGroups: {
+			type: [String, Array],
+			default: 'all',
 		},
 	},
 
