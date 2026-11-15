@@ -2768,7 +2768,8 @@
     "{count} packages · {installed} installed": "{count} packages · {installed} installed",
     "Package": "Package",
     "Version {version} · shipped with {app}": "Version {version} · shipped with {app}",
-    "The packages could not be read.": "The packages could not be read."
+    "The packages could not be read.": "The packages could not be read.",
+    "In development": "In development"
   },
   "plurals": {
     "{count} member": [

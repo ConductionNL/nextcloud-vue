@@ -3032,7 +3032,8 @@
     "{count} packages · {installed} installed": "{count} pakketten · {installed} geïnstalleerd",
     "Package": "Pakket",
     "Version {version} · shipped with {app}": "Versie {version} · meegeleverd met {app}",
-    "The packages could not be read.": "De pakketten konden niet worden gelezen."
+    "The packages could not be read.": "De pakketten konden niet worden gelezen.",
+    "In development": "In ontwikkeling"
   },
   "plurals": {
     "{count} member": [
