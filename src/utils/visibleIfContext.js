@@ -6,6 +6,8 @@
  * SPDX-FileCopyrightText: 2024 Conduction B.V. <info@conduction.nl>
  */
 
+import { featureEnabled } from './featureFlags.js'
+
 /**
  * Resolve a dot-separated path against a plain-object tree.
  *
@@ -143,7 +145,7 @@ function evaluatePredicate(value, predicate) {
  *
  * @type {Set<string>}
  */
-const RESERVED_KEYS = new Set(['appInstalled'])
+const RESERVED_KEYS = new Set(['appInstalled', 'feature'])
 
 /**
  * Evaluate all context-path predicates in a `visibleIf` block against
@@ -178,6 +180,10 @@ const RESERVED_KEYS = new Set(['appInstalled'])
 export function passesContextPredicates(visibleIf, runtime) {
 	if (!visibleIf || typeof visibleIf !== 'object') {
 		return true
+	}
+	// `feature`: the app's feature toggle must be on (featureFlags).
+	if (typeof visibleIf.feature === 'string' && visibleIf.feature !== '' && !featureEnabled(visibleIf.feature)) {
+		return false
 	}
 
 	// Gather the context-path keys (non-reserved keys).
