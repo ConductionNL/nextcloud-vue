@@ -4183,6 +4183,10 @@
 					"type": "array",
 					"uniqueItems": true,
 					"items": { "enum": ["relationRows", "incoming", "files"] }
+				},
+				"overrides": {
+					"type": "object",
+					"description": "Field values every copy starts with, over the source's, such as `{ \"publicationDate\": null }` so a copy is not published with its source. The new name still wins on the name field (index-copy-overrides)."
 				}
 			}
 		},

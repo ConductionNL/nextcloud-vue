@@ -3674,7 +3674,10 @@ export default {
 		 * OpenRegister's copy endpoint. Without it a copy carries the fields only,
 		 * as before. A server without the endpoint shows the list read-only.
 		 *
-		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>}|null}
+		 * `overrides` gives every copy field values over the source's, such as
+		 * `{ publicationDate: null }`; the new name still wins on the name field.
+		 *
+		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>, overrides?: object}|null}
 		 */
 		copy: {
 			type: Object,
@@ -10276,6 +10279,7 @@ export default {
 			effectiveObjects: () => this.effectiveObjects,
 			effectiveSchema: () => this.effectiveSchema,
 			massActionNameField: () => this.massActionNameField,
+			copyOverrides: () => (this.copy ? this.copy.overrides : null),
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
 			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
