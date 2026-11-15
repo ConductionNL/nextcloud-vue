@@ -68,7 +68,7 @@
 				<CnCapabilityTable
 					v-else-if="activeView === 'capabilities'"
 					:comparison="capabilityComparison" />
-				<CnRoadmapTab v-else :repo="repo" />
+				<CnRoadmapTab v-else :repo="repo" v-bind="roadmapTabOptions" />
 			</main>
 		</template>
 		<CnSupportDialog
@@ -178,6 +178,21 @@ export default {
 	},
 
 	props: {
+		/**
+		 * How the Roadmap tab draws its issues (`config.roadmapLayout`): `grid`
+		 * (default) or `columns` (Planned, In development, Available). See CnRoadmapTab.
+		 */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development (`config.roadmapInProgressLabels`). */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/**
 		 * `<owner>/<repo>` of the app's repository on the forge.
 		 */
@@ -445,6 +460,31 @@ export default {
 
 	computed: {
 		/**
+		 * The roadmap options for the board, only those set away from their defaults.
+		 *
+		 * @return {object}
+		 */
+		roadmapBoardOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { roadmapLayout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { roadmapInProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
+		 * The Roadmap tab's layout options, only those set away from their
+		 * defaults, so a page that sets none renders the tab as before.
+		 *
+		 * @return {object}
+		 */
+		roadmapTabOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { layout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { inProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
 		 * Whether the page is drawn in the board look.
 		 *
 		 * @return {boolean}
@@ -467,7 +507,7 @@ export default {
 					options[key] = this.board[key]
 				}
 			}
-			return options
+			return { ...options, ...this.roadmapBoardOptions }
 		},
 
 		/**

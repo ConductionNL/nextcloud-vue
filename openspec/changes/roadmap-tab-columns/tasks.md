@@ -1,0 +1,2 @@
+- [x] 1 `roadmapColumns` and the columns layout of CnRoadmapTab (tests/components/CnRoadmapTabColumns.spec.js)
+- [x] 2 `roadmapLayout` / `roadmapInProgressLabels` through the roadmap page, view and board; docs

@@ -1,0 +1,2 @@
+- [x] 1 `copy.overrides` in the self-mode single and mass copy, endpoint and fields-only (tests/components/CnIndexPageCopyOverrides.spec.js)
+- [x] 2 Manifest schema `copySettings.overrides`; docs/components/cn-index-page.md

@@ -608,6 +608,7 @@
 				:item="actionTargetItem"
 				:nameField="massActionNameField"
 				:nameFormatter="nameFormatter"
+				v-bind="singleDeleteDialogTexts"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -1273,6 +1274,14 @@
 					:targetItem="contextMenuShownRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
+
+				<p
+					v-if="searchNoteText"
+					class="cn-index-page__content-search-note"
+					role="status"
+					data-testid="cn-index-search-note">
+					{{ searchNoteText }}
+				</p>
 
 				<p
 					v-if="searchInFiles && contentSearch"
@@ -3042,6 +3051,20 @@ export default {
 		},
 
 		/**
+		 * A handler from the app's registry that reads a typed search before
+		 * it is sent: `(term) => { search?, filters?, note? } | null`, or a
+		 * promise of one. A phone number can become a filter on a normalised
+		 * field with the note "Searching by phone number"; `null` sends the
+		 * term as typed. Self-fetch pages only. Manifest: `config.searchHandler`.
+		 *
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchHandler: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Filters over a type's own declared fields, beside the search
 		 * (CnRelatedFieldFilters): `{ definitions: { register, schema, filter },
 		 * related: { schema, backref, definitionKey?, valueKey? } }`.
@@ -3674,7 +3697,10 @@ export default {
 		 * OpenRegister's copy endpoint. Without it a copy carries the fields only,
 		 * as before. A server without the endpoint shows the list read-only.
 		 *
-		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>}|null}
+		 * `overrides` gives every copy field values over the source's, such as
+		 * `{ publicationDate: null }`; the new name still wins on the name field.
+		 *
+		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>, overrides?: object}|null}
 		 */
 		copy: {
 			type: Object,
@@ -3741,6 +3767,17 @@ export default {
 		savedViewsScope: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The words of the single-item delete dialog: `{ title?, message?,
+		 * description? }`, each through the app's translate. `message` is the
+		 * question (`{name}` is the item), `description` a muted line under it
+		 * saying what else the delete removes. Unset keys keep the defaults.
+		 */
+		deleteDialog: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -5142,6 +5179,25 @@ export default {
 
 	computed: {
 		/**
+		 * The single-item delete dialog's texts from `deleteDialog`, as
+		 * CnDeleteDialog props; the keys it leaves unset are left out, so the
+		 * dialog's defaults stand.
+		 *
+		 * @return {{dialogTitle?: string, warningText?: string, description?: string}}
+		 * @spec openspec/changes/index-delete-dialog-texts/specs/index-delete-dialog-texts/spec.md#requirement-an-index-page-can-word-its-delete-dialog
+		 */
+		singleDeleteDialogTexts() {
+			const texts = this.deleteDialog && typeof this.deleteDialog === 'object' ? this.deleteDialog : {}
+			const out = {}
+			for (const [key, prop] of [['title', 'dialogTitle'], ['message', 'warningText'], ['description', 'description']]) {
+				if (typeof texts[key] === 'string' && texts[key] !== '') {
+					out[prop] = this.cnTranslate(texts[key])
+				}
+			}
+			return out
+		},
+
+		/**
 		 * @return {boolean} Whether the page follows changes now.
 		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
 		 */
@@ -5449,6 +5505,33 @@ export default {
 		/** True when self-fetch mode is active and the useListView instance exists. */
 		isSelfFetchMode() {
 			return this.isSelfFetch && !!this.list
+		},
+
+		/**
+		 * The `searchHandler` named on the page, from the app's registry, or
+		 * null when none is named or it is not registered.
+		 *
+		 * @return {((term: string) => (object|null|Promise<object|null>))|null} The handler.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchInterpreterFn() {
+			if (!this.searchHandler) {
+				return null
+			}
+			const handler = resolveRegisteredHandler(this.searchHandler, this.effectiveRegistry, this.resolvedCustomComponents)
+			return typeof handler === 'function' ? handler : null
+		},
+
+		/**
+		 * The line the search handler gives the current search, through the
+		 * app's translate; '' when it gave none.
+		 *
+		 * @return {string} The note.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchNoteText() {
+			const note = this.isSelfFetchMode && this.list.searchNote ? this.list.searchNote.value : ''
+			return note ? this.cnTranslate(note) : ''
 		},
 
 		/**
@@ -10276,6 +10359,7 @@ export default {
 			effectiveObjects: () => this.effectiveObjects,
 			effectiveSchema: () => this.effectiveSchema,
 			massActionNameField: () => this.massActionNameField,
+			copyOverrides: () => (this.copy ? this.copy.overrides : null),
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
 			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
