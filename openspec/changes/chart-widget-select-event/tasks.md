@@ -1,0 +1,1 @@
+- [x] 1 `selectable` and the `select` event on CnChartWidget (tests/components/CnChartWidgetSelect.spec.js), documented in docs/components/cn-chart-widget.md
