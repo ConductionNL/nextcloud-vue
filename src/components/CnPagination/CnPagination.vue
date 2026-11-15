@@ -14,7 +14,7 @@
 			<span class="cn-pagination__page-info cn-pagination__board-count" data-testid="cn-pagination-board-count">
 				{{ boardCountText }}
 			</span>
-			<nav class="cn-pagination__board-pages" :aria-label="t('nextcloud-vue', 'Pagination')">
+			<nav v-if="!noteOnly" class="cn-pagination__board-pages" :aria-label="t('nextcloud-vue', 'Pagination')">
 				<button
 					v-if="currentPage > 1"
 					type="button"
@@ -256,6 +256,18 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Board variant: whether a list on one page still draws its count and
+		 * the "1" with an inert Next. Off, one page shows the footer note
+		 * alone (PqWachtrij); more than one page is unchanged.
+		 *
+		 * @spec openspec/changes/index-footer-note-on-one-page/specs/index-list-board-look/spec.md#requirement-a-board-list-on-one-page-can-end-in-its-note-alone
+		 */
+		pagerOnOnePage: {
+			type: Boolean,
+			default: true,
+		},
+
 		/** Minimum items before pagination is shown */
 		minItemsToShow: {
 			type: Number,
@@ -333,12 +345,26 @@ export default {
 		},
 
 		/**
+		 * Whether the board footer shows its note alone: one page, with
+		 * `pagerOnOnePage` off.
+		 *
+		 * @spec openspec/changes/index-footer-note-on-one-page/specs/index-list-board-look/spec.md#requirement-a-board-list-on-one-page-can-end-in-its-note-alone
+		 * @return {boolean}
+		 */
+		noteOnly() {
+			return this.isBoardVariant && !this.pagerOnOnePage && this.totalPages <= 1 && this.footerNote !== ''
+		},
+
+		/**
 		 * The board variant's count text: the rows on this page of the total,
 		 * `"{shown} of {total}"`, plus the page's footer note when it has one.
 		 *
 		 * @return {string}
 		 */
 		boardCountText() {
+			if (this.noteOnly) {
+				return this.footerNote
+			}
 			const before = (this.currentPage - 1) * this.currentPageSize
 			const shown = Math.max(0, Math.min(this.currentPageSize, this.totalItems - before))
 			const base = t('nextcloud-vue', '{shown} of {total}', { shown, total: this.totalItems })

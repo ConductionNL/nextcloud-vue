@@ -52,6 +52,7 @@ import { parseDispositionFilename, triggerBlobDownload } from '../components/CnI
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
 import { resolveModalEntry } from './builtInModals.js'
+import { noticeFromOutcome } from './cardNotices.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -64,6 +65,32 @@ import { schemaRefSlug } from './schemaRefSlug.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/**
+ * Show a call's outcome in the card it was run from when the answer asks for
+ * a notice (`notice` in the body, or `noticeInline` on the action) and the
+ * surface passed `context.showNotice`; otherwise toast it as before.
+ *
+ * @param {object} action The dispatched action.
+ * @param {object} context The dispatch context.
+ * @param {{ok: boolean, data?: unknown, error?: unknown, text: string}} outcome The call outcome and its toast text.
+ * @param {object} dialogs The `@nextcloud/dialogs` module.
+ * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+ */
+function reportOutcome(action, context, outcome, dialogs) {
+	const text = outcome.text
+	if (context && typeof context.showNotice === 'function') {
+		const notice = noticeFromOutcome(action, outcome, outcome.ok ? { successText: text } : { errorText: text })
+		if (notice) {
+			context.showNotice(notice)
+			return
+		}
+	}
+	const toast = outcome.ok ? dialogs.showSuccess : dialogs.showError
+	if (typeof toast === 'function') {
+		toast(text)
+	}
+}
 
 /**
  * Whether a `navigate` target leaves the app: it is `http(s)://`,
@@ -497,20 +524,17 @@ async function executeApiCall(action, context) {
 			)
 			triggerBlobDownload(res.data, filename)
 		}
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.') }, dialogs)
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
 		if (shouldRefresh) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
 			&& (error.response.data.error || error.response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -607,13 +631,12 @@ async function executeAgentAction(action, context) {
 	const target = generateUrl(`/apps/hermiq/api/agents/${encodeURIComponent(agent)}/run-on-object`)
 	try {
 		const res = await axios.post(target, body)
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const status = response && response.status
@@ -623,12 +646,10 @@ async function executeAgentAction(action, context) {
 		// route 404s at the NC level) — surface a graceful "runtime unavailable"
 		// rather than a fail-closed authorization message.
 		const hermiqAbsent = status === 404 && !serverMessage
-		if (typeof dialogs.showError === 'function') {
-			const msg = hermiqAbsent
-				? t('nextcloud-vue', 'Agent runtime unavailable')
-				: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-			dialogs.showError(msg)
-		}
+		const msg = hermiqAbsent
+			? t('nextcloud-vue', 'Agent runtime unavailable')
+			: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
+		reportOutcome(action, context, { ok: false, error, text: msg }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -692,20 +713,17 @@ export async function postRunNode(action, context, config = {}) {
 	const target = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
 	try {
 		const res = await axios.post(target, { subject: { uuid, register, schema }, config: config || {} })
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const serverMessage = response && response.data
 			&& (response.data.error || response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -778,6 +796,9 @@ export async function postRunNode(action, context, config = {}) {
  *
  * @param {object} context Runtime context.
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".
+ * @param {Function} [context.showNotice] "api-call" / "agent" / run-node: draws a notice in the
+ *   card the action ran from. Used instead of the toast when the answer carries `notice`, or the
+ *   action sets `noticeInline: true` (card-state-notices).
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function, called with the action's spread args. A

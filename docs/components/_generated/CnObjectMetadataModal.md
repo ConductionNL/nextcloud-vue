@@ -20,8 +20,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                         | Payload | Description               |
-| -------------------------------------------- | ------- | ------------------------- |
-| `update:open`                                | —       |                           |
-| `close`                                      | —       | The dialog was dismissed. |
-| `update:open The dialog open state changed.` | —       |                           |
+| Name          | Payload | Description                    |
+| ------------- | ------- | ------------------------------ |
+| `update:open` | —       | The dialog open state changed. |
+| `close`       | —       | The dialog was dismissed.      |

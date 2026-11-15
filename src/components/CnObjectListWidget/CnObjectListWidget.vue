@@ -906,6 +906,16 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
+				// A formatter draws the cell itself, but one that prints an enum's
+				// label reads it from the cell's property: hand it the schema's.
+				if (prop && out.formatter !== undefined && out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (labels && typeof labels === 'object') {
+						out.enum = prop.enum
+						out.enumLabels = labels
+					}
+					return out
+				}
 				// The `label` widget writes the enum's label, so it still takes the enum.
 				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
@@ -2665,7 +2675,8 @@ export default {
 		 * Load the schema when, and only when, a column needs it: for its
 		 * heading (no `label`), or for its presentation (a top-level key
 		 * without its own `format`, `enum`, `widget` or `formatter`, which
-		 * takes the property's format and enum labels).
+		 * takes the property's format and enum labels; or one with a
+		 * `formatter` and no `enum`, whose formatter may print the enum label).
 		 *
 		 * A widget whose every column says its label and presentation, or
 		 * reads a dotted path the list's schema does not hold, never makes
@@ -2682,7 +2693,7 @@ export default {
 			const needsSchema = cols.some((c) => (typeof c === 'string')
 				|| !c.label
 				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
-					&& c.format === undefined && c.enum === undefined && c.widget === undefined && c.formatter === undefined))
+					&& c.enum === undefined && (c.formatter !== undefined || (c.format === undefined && c.widget === undefined))))
 			if (needsSchema === false) {
 				return
 			}

@@ -9,6 +9,7 @@
  */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { conditionHolds } from '../../utils/fieldCondition.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
@@ -281,13 +282,31 @@ export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
 }
 
 /**
+ * Whether one field of a file's row meets its `visibleIf.row` entry: a plain
+ * value is compared strictly, an object is a predicate of a form field
+ * condition (`equals`, `in`, `notEmpty` and the rest).
+ *
+ * @param {string} key The row field.
+ * @param {unknown} wanted The value, or the predicate.
+ * @param {unknown} value What the row holds.
+ * @return {boolean} True when the field meets it.
+ */
+function rowFieldMatches(key, wanted, value) {
+	if (wanted !== null && typeof wanted === 'object' && !Array.isArray(wanted)) {
+		return conditionHolds({ ...wanted, field: key }, { [key]: value }, key)
+	}
+	return value === wanted
+}
+
+/**
  * Whether a host row action is offered on a file, by its `visibleIf`.
  *
  * `visibleIf.extension` lists file extensions (no case, a leading dot is
  * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
  * `/*` names the whole family; `visibleIf.row` maps fields of the host's row
  * for the file to the value each must have (compared strictly, so `true` is
- * not `"true"`). Every condition named must hold. An action without
+ * not `"true"`), or to a predicate of a form field condition such as
+ * `{ notEmpty: true }` or `{ in: [...] }`. Every condition named must hold. An action without
  * `visibleIf` is offered on every file, as before. An action with `when` is
  * offered only while `when` is `true`.
  *
@@ -333,7 +352,7 @@ export function hostActionApplies(action, node, rowValue = null) {
 		if (typeof rowValue !== 'function') {
 			return false
 		}
-		const holds = Object.entries(condition.row).every(([key, wanted]) => rowValue(key) === wanted)
+		const holds = Object.entries(condition.row).every(([key, wanted]) => rowFieldMatches(key, wanted, rowValue(key)))
 		if (!holds) {
 			return false
 		}

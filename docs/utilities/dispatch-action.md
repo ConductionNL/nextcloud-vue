@@ -61,12 +61,15 @@ function dispatchAction(
         source?: { register, schema },  // required for 'object-op' — the widget's source
         row?: object,               // required for 'object-op' patch/delete (row-scoped)
         tokenCtx?: object,          // 'api-call' | 'agent' | 'run-node' — { objectId?, object?, register?, schema?, workspace?, config? }
+        showNotice?: (notice: object) => void,  // 'api-call' | 'agent' | 'run-node' — draws the answer as a notice in the card the action ran from
     },
 ): void | Promise<object | boolean | null>  // object-op / api-call / agent / postRunNode return a promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
 backward compatibility.
+
+`context.showNotice` is passed by a surface that can draw a notice in its card (a detail widget host, an index page). An `api-call`, `agent` or `run-node` answer that carries `notice`, or an action with `noticeInline: true` (`'error'`: only a failure), is drawn there instead of as a toast. Without it the toast is shown as before.
 
 ## Dispatch types
 

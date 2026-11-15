@@ -213,6 +213,7 @@ export function resolveActionHandler(action, ctx) {
 			const result = await dispatchSharedAction({ ...action, url, refresh: false }, {
 				translate: ctx.translate,
 				tokenCtx: { objectId, object: row },
+				showNotice: ctx.showNotice,
 			})
 			if (result && result.ok && action.refresh !== false && typeof ctx.refresh === 'function') {
 				await ctx.refresh()

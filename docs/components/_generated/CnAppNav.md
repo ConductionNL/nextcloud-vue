@@ -38,5 +38,5 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `brand`                   | `brand`        | brand                                                     |
 | `search`                  | —              | search                                                    |
 | `primary-action`          | —              | primary-action Optional primary action rendered above the |
-| `item-${item.id}-actions` | `name`, `item` | `item-\${item.id}-actions`                                |
+| `item-${item.id}-actions` | `name`, `item` | `item-\$\{item.id}-actions`                               |
 | `card`                    | `card`         | card                                                      |

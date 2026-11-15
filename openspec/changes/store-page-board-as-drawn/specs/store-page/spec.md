@@ -9,7 +9,7 @@ Under the board look every catalogue card MUST show a state pill under its kind 
 #### Scenario: an item that is not installed
 
 - GIVEN a registry item that is not installed
-- WHEN the board-look store page shows its card
+- WHEN the board-look marketplace page shows its card
 - THEN the pill under the kind line reads Available
 - AND the footer action reads Install as a soft pill button
 
@@ -19,7 +19,7 @@ Under the board look the first lens MUST read "Alle" in Dutch and the search MUS
 
 #### Scenario: the Dutch store page
 
-- GIVEN a Dutch user on the board-look store page
+- GIVEN a Dutch user on the board-look marketplace page
 - WHEN the page opens
 - THEN the first lens reads Alle with its count
 - AND the search field shows the placeholder Zoek in de store

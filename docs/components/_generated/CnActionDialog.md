@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 3 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 9 files reached through imports.
+
+Through: `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -16,7 +18,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description                                             |
-| ------- | ------- | ------------------------------------------------------- |
-| `close` | —       | The dialog was closed.                                  |
-| `done`  | —       | The action ran. Payload: the field values and `reason`. |
+| Name    | Payload | Description                                                  |
+| ------- | ------- | ------------------------------------------------------------ |
+| `close` | —       | The dialog was closed.                                       |
+| `done`  | —       | The action ran. Payload: the sent field values and `reason`. |

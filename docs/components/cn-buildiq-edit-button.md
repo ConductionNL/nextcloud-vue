@@ -64,7 +64,7 @@ const editor = useManifestEditor(manifestRef, { persist: persistDelta })
 | `add-widget` | — | Emitted when "Add widget…" is activated in edit mode (wired to `CnAddWidgetModal` by the `cn-widget-library` change). |
 | `edit-menu` | — | Emitted when the menu editor opens. |
 | `edit-sidebar` | — | Emitted when the sidebar editor opens. |
-| `edit-flows` | — | Emitted when the flow editor ("Edit flows…") opens. Opens [`CnFlowEditModal`](./cn-flow-edit-modal.md) on OpenRegister's flow store. |
+| `edit-flows` | — | Emitted when the flow editor ("Edit flows…") opens. Goes to the app's flow page in list mode when a `flow` page sets `config.listMode` (`/flows/new?view=list`), else opens the list view in [`CnFlowEditModal`](./cn-flow-edit-modal.md) on OpenRegister's flow store. |
 
 ## Related
 

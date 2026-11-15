@@ -322,6 +322,13 @@ export default {
 		handlerRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Handler') },
 		/** Role badge shown on an advisor. */
 		advisorRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Advisor') },
+		/**
+		 * The word that leads a board row's details per kind of person: keyed
+		 * by the link's `partyKind` (`person`, `organisation`, `colleague`)
+		 * or else its `kind` (`user`, `contact`). A kind without a word leads
+		 * with nothing.
+		 */
+		kindLabels: { type: Object, default: () => ({}) },
 	},
 
 	emits: ['open-reverse-lookup'],
@@ -639,14 +646,18 @@ export default {
 		 * @return {string} The window.
 		 */
 		/**
-		 * A person's details on one line for the board look: e-mail, phone,
-		 * organisation and note, separated by middots.
+		 * A person's details on one line for the board look: the word for
+		 * their kind (`kindLabels`), e-mail, phone, organisation and note,
+		 * separated by middots.
 		 *
 		 * @param {object} contact The contact link.
 		 * @return {string}
+		 * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-contact-row-can-lead-with-the-word-for-its-kind
 		 */
 		boardMetaOf(contact) {
-			return [contact?.email, contact?.phone, contact?.org, contact?.note].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+			const words = this.kindLabels || {}
+			const kind = words[contact?.partyKind] || words[contact?.kind] || ''
+			return [kind, contact?.email, contact?.phone, contact?.org, contact?.note].filter((part) => typeof part === 'string' && part !== '').join(' · ')
 		},
 
 		/**

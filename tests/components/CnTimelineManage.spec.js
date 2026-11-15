@@ -131,6 +131,24 @@ describe('CnTimelineWidget manage mode', () => {
 		expect(wrapper.find('[data-testid="cn-timeline-export"]').exists()).toBe(true)
 	})
 
+	it('offers Try again on a failed read and reads the timeline again', async () => {
+		reads({ fail: true })
+		const wrapper = await mountManage()
+		reads()
+		await wrapper.find('[data-testid="cn-timeline-retry"]').trigger('click')
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-timeline-error"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-timeline-retry"]').exists()).toBe(false)
+	})
+
+	it('words a failed read in the host\'s words when it gives them', async () => {
+		reads({ fail: true })
+		const wrapper = await mountManage({ errorTitle: 'Niet gelezen', errorText: 'OpenRegister antwoordde niet.' })
+		const note = wrapper.find('[data-testid="cn-timeline-error"]')
+		expect(note.find('strong').text()).toBe('Niet gelezen')
+		expect(note.text()).toContain('OpenRegister antwoordde niet.')
+	})
+
 	it('says a failed read failed rather than showing an empty history', async () => {
 		reads({ fail: true })
 		const wrapper = await mountManage()

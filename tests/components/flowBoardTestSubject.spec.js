@@ -94,4 +94,65 @@ describe('CnFlowBoard test with a record', () => {
 		await w.vm.$nextTick()
 		expect(w.find('[data-testid="flow-board-test"]').attributes('disabled')).toBeDefined()
 	})
+
+	describe('on an example payload', () => {
+		const open = async (props) => {
+			const w = await mountBoard(props)
+			await w.find('[data-testid="flow-board-test"]').trigger('click')
+			return w
+		}
+
+		it('draws the test button with only a payload to try', async () => {
+			const w = await mountBoard({ testPayload: true })
+			expect(w.find('[data-testid="flow-board-test"]').text()).toContain('Test')
+		})
+
+		it('opens the field with the page\'s example and no record picker', async () => {
+			const w = await open({ testPayload: '{"amount": 5000}' })
+			expect(w.vm.payloadText).toBe('{"amount": 5000}')
+			expect(w.findComponent({ name: 'CnResourceSelect' }).exists()).toBe(false)
+			expect(w.vm.testIntro).toContain('example you enter')
+		})
+
+		it('tries the flow on the payload, never runs it', async () => {
+			const w = await open({ testPayload: '{"amount": 5000}' })
+			const run = jest.spyOn(w.vm.store, 'run')
+			const dryRun = jest.spyOn(w.vm.store, 'dryRun').mockResolvedValue({})
+			await w.vm.runTest()
+			expect(dryRun).toHaveBeenCalledWith({ payload: { amount: 5000 } })
+			expect(run).not.toHaveBeenCalled()
+			expect(w.vm.testOpen).toBe(false)
+		})
+
+		it.each([['[1, 2]'], ['not json'], ['12']])('will not run on %s', async (text) => {
+			const w = await open({ testPayload: text })
+			const dryRun = jest.spyOn(w.vm.store, 'dryRun').mockResolvedValue({})
+			expect(w.vm.payloadInvalid).toBe(true)
+			expect(w.vm.testCanRun).toBe(false)
+			await w.vm.runTest()
+			expect(dryRun).not.toHaveBeenCalled()
+		})
+
+		it('does not call an empty field invalid, and still waits for input', async () => {
+			const w = await open({ testPayload: true })
+			expect(w.vm.payloadInvalid).toBe(false)
+			expect(w.vm.testCanRun).toBe(false)
+		})
+
+		it('prefers the picked record when both are offered', async () => {
+			const w = await open({ testPayload: '{"amount": 1}', testSubject: { register: 'dossiq', schema: 'case' } })
+			w.vm.testRecord = 'c-7'
+			expect(w.vm.testRunSubject()).toEqual({ uuid: 'c-7', register: 'dossiq', schema: 'case' })
+		})
+
+		it('draws the result as the card and tests again on the same subject', async () => {
+			const w = await mountBoard({ testPayload: true })
+			const dryRun = jest.spyOn(w.vm.store, 'dryRun').mockResolvedValue({})
+			w.vm.store.dryRunResult = { status: 'completed', steps: [], subject: { payload: { amount: 1 } } }
+			await w.vm.$nextTick()
+			await w.vm.testAgain()
+			expect(w.vm.payloadTest).toBe(true)
+			expect(dryRun).toHaveBeenCalledWith({ payload: { amount: 1 } })
+		})
+	})
 })

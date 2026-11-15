@@ -31,6 +31,20 @@ run itself (a refused request, a replay over another graph, skipped steps) SHALL
 - **WHEN** the editor is shown
 - **THEN** the lock notice and the editing buttons are drawn as before
 
+### Requirement: A run on the canvas shows each step's outcome
+
+An open run SHALL show on the canvas as it ended, without a replay, in either layout: each step it logged SHALL carry its
+outcome in colour and in words and the number of log lines it wrote; a step a finished run did not reach SHALL read
+"Not run"; the lines it took SHALL stand out and the others step back. A replay SHALL play over this picture and leave
+it when it ends. Over unsaved changes the picture SHALL NOT be drawn.
+
+#### Scenario: Opening a finished run
+
+- **GIVEN** a finished run where one branch of a switch ran
+- **WHEN** the run is opened
+- **THEN** every step that ran shows its outcome and its count of log lines without a click
+- **AND** the step on the other branch reads "Not run" and its line steps back
+
 ### Requirement: A flow page can be laid out as a canvas page
 
 A flow page with `layout: "canvas"` SHALL draw the header actions on a row under the title, Check and Run with their

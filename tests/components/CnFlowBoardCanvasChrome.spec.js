@@ -183,7 +183,13 @@ describe('the canvas inspector', () => {
 		await w.vm.$nextTick()
 		expect(inspector(w).find('[data-testid="flow-board-step-type"]').exists()).toBe(true)
 		expect(inspector(w).find('details').exists()).toBe(true)
-		expect(inspector(w).find('[data-testid="flow-board-step-name-field"]').exists()).toBe(false)
+	})
+
+	it('🔴 offers the step name field in the card layout too (OrFlow)', async () => {
+		const w = await mountBoard()
+		w.vm.store.selectedNodeId = 'n1'
+		await w.vm.$nextTick()
+		expect(inspector(w).find('[data-testid="flow-board-step-name-field"]').exists()).toBe(true)
 	})
 })
 

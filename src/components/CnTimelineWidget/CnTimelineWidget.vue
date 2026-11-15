@@ -50,7 +50,7 @@
 				:apiBase="apiBase"
 				@submit="addNote" />
 			<NcButton
-				variant="primary"
+				:variant="isBoard ? 'secondary' : 'primary'"
 				:disabled="savingNote || noteText.trim() === ''"
 				data-testid="cn-timeline-widget-add-note"
 				@click="addNote">
@@ -158,6 +158,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import CnTimelineManage from './CnTimelineManage.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { auditLabel } from '../../utils/auditLabels.js'
@@ -253,6 +254,8 @@ export default {
 		cnDetailObjectContext: { default: null },
 		/** Consumer translation function; labels are authored in English. */
 		cnTranslate: { default: () => (key) => key },
+		/** The page look; the board draws the add-note button outlined. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -303,6 +306,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the page draws the board look.
+		 *
+		 * @return {boolean}
+		 */
+		isBoard() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(look) === 'board'
+		},
+
 		ctx() {
 			const raw = this.cnObjectContext
 			const inj = raw && (raw.value !== undefined ? raw.value : raw)
@@ -916,6 +929,12 @@ export default {
 .cn-timeline-widget__composer-input {
 	flex: 1;
 	min-width: 0;
+}
+
+/* Board look: the add-note button is the outlined 40px control, as the
+   DqZaakHistorie composer and PqOrganisatie "Activiteit" draw it. */
+.cn-look-board .cn-timeline-widget__composer :deep(.button-vue) {
+	--button-size: var(--cn-board-control-height, 40px);
 }
 
 .cn-timeline-widget__note-error {

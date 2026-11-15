@@ -190,3 +190,17 @@ When Leaflet cannot be loaded (test envs, CSP-blocked CDNs), the `#fallback` slo
 ## Reference
 
 <GeneratedRef />
+
+## Layers to switch on and off
+
+`layerToggles` (or `content.layerToggles`) puts a fieldset under the map with a checkbox per layer, as DqZaakLocatie draws "Kaartlagen" with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)":
+
+```json
+"layerTogglesTitle": "Map layers",
+"layerToggles": [
+  { "id": "aerial", "label": "Aerial photo (PDOK)", "layer": { "type": "tile", "url": "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg" } },
+  { "id": "plan", "label": "Zoning plan (WMS)", "on": false, "layer": { "type": "wms", "url": "https://service.pdok.nl/kadaster/plu/wms/v1_0", "options": { "layers": "enkelbestemming", "transparent": true } } }
+]
+```
+
+`layer` takes the `layers` shape; `on` is the starting state (default true). The labels and title go through the host translate.

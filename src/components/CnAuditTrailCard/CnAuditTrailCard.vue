@@ -67,7 +67,7 @@
 		<p v-if="footnote" class="cn-audit-card__footnote" data-testid="cn-audit-trail-widget-footnote">
 			{{ footnote }}
 		</p>
-		<template v-if="shownEntries.length > maxDisplay" #footer>
+		<template v-if="offersShowAll && shownEntries.length > maxDisplay" #footer>
 			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ shownEntries.length }})
 			</button>
@@ -282,6 +282,16 @@ export default {
 	computed: {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Audit trail')
+		},
+
+		/**
+		 * Whether the host listens for `show-all`. The audit-trail widget binds
+		 * no listener, and a button that does nothing is not offered.
+		 *
+		 * @return {boolean}
+		 */
+		offersShowAll() {
+			return typeof this.$.vnode.props?.onShowAll === 'function'
 		},
 
 		/**

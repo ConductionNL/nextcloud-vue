@@ -305,6 +305,15 @@ export default {
 			default: () => ({}),
 		},
 
+		/**
+		 * The field the reply text is posted under when `endpoint` is set, for
+		 * an endpoint that takes it by another name (`body`).
+		 */
+		messageKey: {
+			type: String,
+			default: 'message',
+		},
+
 		/** Whether the messages are still loading; with none yet the thread says so. */
 		loading: {
 			type: Boolean,
@@ -580,7 +589,7 @@ export default {
 			}
 			this.sending = true
 			try {
-				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, ...this.replyExtras, message: text })
+				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, ...this.replyExtras, [this.messageKey || 'message']: text })
 				this.draft = ''
 				this.$emit('sent', response?.data)
 			} catch (error) {

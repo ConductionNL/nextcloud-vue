@@ -391,6 +391,13 @@ export default {
 			return this.activeEditor ? this.unref(this.activeEditor.working) : null
 		},
 
+		/** @return {string} Where flows open in list mode, '' for an app without such a page. */
+		flowListRoute() {
+			const page = (this.effectiveManifest?.pages || []).find((candidate) => ['flow', 'flow-detail'].includes(candidate?.type) && candidate?.config?.listMode === true)
+
+			return page ? String(page.route || '').replace(':id', 'new') : ''
+		},
+
 		/** The manifest to read page metadata from: working copy, else the live one. */
 		effectiveManifest() {
 			return this.workingManifest || this.unref(this.cnManifest) || null
@@ -766,7 +773,11 @@ export default {
 		 * store, and there is one editor for it.
 		 */
 		onEditFlows() {
-			this.showFlowsCanvasModal = true
+			if (this.flowListRoute !== '' && this.$router) {
+				this.$router.push({ path: this.flowListRoute, query: { view: 'list' } })
+			} else {
+				this.showFlowsCanvasModal = true
+			}
 			this.menuOpen = false
 			/**
 			 * @event edit-flows Emitted when the flows editor opens.

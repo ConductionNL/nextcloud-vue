@@ -108,6 +108,7 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
@@ -119,6 +120,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
@@ -130,6 +132,7 @@
 							<textarea
 								v-else-if="field.widget === 'textarea'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								class="cn-object-data-widget__textarea"
 								:value="editData[field.key] || ''"
 								:placeholder="field.description"
@@ -145,6 +148,7 @@
 							<NcSelect
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="relationOptions[field.key] || []"
 								:modelValue="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
@@ -179,6 +183,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getSelectOptions(field)"
 								:modelValue="getSelectedOption(field)"
 								:clearable="!field.required"
@@ -189,6 +194,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getMultiselectOptions(field)"
 								:modelValue="getSelectedMultiselectOptions(field)"
 								:multiple="true"
@@ -200,6 +206,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:modelValue="editData[field.key] || []"
 								:multiple="true"
 								:keepOpen="true"
@@ -220,6 +227,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="date"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -230,6 +238,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="datetime-local"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -240,6 +249,7 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -251,12 +261,12 @@
 						<div
 							v-if="field.widget !== 'checkbox'"
 							class="cn-object-data-widget__editor-actions">
-							<NcButton variant="tertiary-no-background" @click="commitEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Save')" @click="commitEdit">
 								<template #icon>
 									<Check :size="20" />
 								</template>
 							</NcButton>
-							<NcButton variant="tertiary-no-background" @click="cancelEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Cancel')" @click="cancelEdit">
 								<template #icon>
 									<Close :size="20" />
 								</template>
@@ -285,9 +295,43 @@
 							:value="displayValues[field.key]"
 							:raw="(objectData || {})[field.key]" />
 						<template v-else>
+							<!-- `tagPills`: a tags field as pills, each with a remove
+							     button, and "+ Label" to add one (DqZaak Zaakgegevens). -->
+							<span
+								v-if="hasTagPills(field)"
+								class="cn-object-data-widget__tags"
+								:data-testid="`cn-object-data-tags-${field.key}`">
+								<span
+									v-for="tag in tagsOf(field)"
+									:key="tag"
+									class="cn-object-data-widget__tag">
+									{{ tag }}
+									<button
+										v-if="isEditable(field)"
+										type="button"
+										class="cn-object-data-widget__tag-remove"
+										:aria-label="t('nextcloud-vue', 'Remove {label}', { label: tag })"
+										:disabled="saving"
+										:data-testid="`cn-object-data-tag-remove-${field.key}`"
+										@click.stop="removeTag(field, tag)"
+										@keydown.enter.stop>
+										<Close :size="14" />
+									</button>
+								</span>
+								<NcButton
+									v-if="isEditable(field)"
+									variant="tertiary"
+									size="small"
+									class="cn-object-data-widget__tag-add"
+									:data-testid="`cn-object-data-tag-add-${field.key}`"
+									@click.stop="startEdit(field)"
+									@keydown.enter.stop>
+									{{ tagAddLabel(field) }}
+								</NcButton>
+							</span>
 							<!-- `pill`: the shown value as a status pill, toned by the raw value. -->
 							<CnStatusBadge
-								v-if="pillOf(field) && !isValueEmpty(field.key)"
+								v-else-if="pillOf(field) && !isValueEmpty(field.key)"
 								:label="String(displayValues[field.key])"
 								:variant="pillOf(field)"
 								size="small"
@@ -330,7 +374,7 @@
 								<table class="cn-object-data-widget__mini-table">
 									<thead>
 										<tr>
-											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col" scope="col">
 												{{ col }}
 											</th>
 										</tr>
@@ -741,6 +785,9 @@ export default {
 		 * - `label` (string) — Override the display label
 		 * - `emptyValue` (string) — Words shown, translated, for an empty or false value instead of a dash
 		 * - `hint` (string) — A muted line under the value, translated ("Staat op de pdf")
+		 * - `tagPills` (boolean) — With `widget: "tags"`: the value reads as pills, each with a
+		 *   remove button that saves at once, and an add button (`addTagLabel`, default "+ Label")
+		 *   that opens the tags editor; both only while the field is editable
 		 * - `widget` (string) — Override the widget type for editing
 		 * - `formatter` (string) — Display the value through the formatter
 		 *   registered under this id on CnAppRoot (`cnFormatters`), called as
@@ -2142,6 +2189,59 @@ export default {
 		},
 
 		/**
+		 * Whether a field reads as removable tag pills (`overrides[key].tagPills`
+		 * with the tags widget).
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		hasTagPills(field) {
+			const override = this.resolvedOverrides[field.key]
+			return field.widget === 'tags' && Boolean(override && override.tagPills === true)
+		},
+
+		/**
+		 * The tags of a field as strings, in stored order.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		tagsOf(field) {
+			const value = field.key in this.dirtyFields ? this.dirtyFields[field.key] : this.fieldValues[field.key]
+			return (Array.isArray(value) ? value : []).filter((tag) => typeof tag === 'string' || typeof tag === 'number').map(String)
+		},
+
+		/**
+		 * The add button's text (`overrides[key].addTagLabel`, translated).
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		tagAddLabel(field) {
+			const override = this.resolvedOverrides[field.key]
+			return override && typeof override.addTagLabel === 'string' && override.addTagLabel !== ''
+				? this.cnTranslate(override.addTagLabel)
+				: t('nextcloud-vue', '+ Label')
+		},
+
+		/**
+		 * Remove one tag and save the field at once.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} tag The tag to remove.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		async removeTag(field, tag) {
+			const next = this.tagsOf(field).filter((entry) => entry !== tag)
+			this.dirtyFields = { ...this.dirtyFields, [field.key]: next }
+			await this.save()
+		},
+
+		/**
 		 * Cancel the current inline edit without saving.
 		 */
 		cancelEdit() {
@@ -2605,6 +2705,46 @@ export default {
 	padding-right: 20px;
 }
 
+/* `overrides[key].tagPills`: the tags as pills with a remove button. */
+.cn-object-data-widget__tags {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-object-data-widget__tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 4px 2px 10px;
+	border-radius: var(--border-radius-pill, 12px);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	font-size: 13px;
+}
+
+.cn-object-data-widget__tag-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.cn-object-data-widget__tag-remove:hover,
+.cn-object-data-widget__tag-remove:focus-visible {
+	background: var(--color-background-hover);
+}
+
 /* `overrides[key].hint`: a muted line under the value ("Staat op de pdf"). */
 .cn-object-data-widget__hint {
 	display: block;
@@ -2667,6 +2807,10 @@ export default {
 	color: var(--color-text-maxcontrast);
 	opacity: 0;
 	transition: opacity 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-object-data-widget__edit-icon { transition: none; }
 }
 
 .cn-object-data-widget__value--editable:hover .cn-object-data-widget__edit-icon,

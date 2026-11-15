@@ -1,0 +1,2 @@
+- [x] 1.1 `untilPillOf` (tests/utils/objectParties.spec.js)
+- [x] 1.2 the pill on a representative's row, both looks (tests/components/CnObjectPartiesWidget.spec.js)

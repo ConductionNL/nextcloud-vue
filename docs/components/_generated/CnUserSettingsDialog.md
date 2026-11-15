@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -19,10 +21,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                                          | Payload | Description |
-| --------------------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:open`                                                                                 | —       |             |
-| `update:open Emitted with `false` when the dialog closes (Close button, close icon, Escape).` | —       |             |
+| Name          | Payload | Description                                                                     |
+| ------------- | ------- | ------------------------------------------------------------------------------- |
+| `update:open` | —       | Emitted with `false` when the dialog closes (Close button, close icon, Escape). |
 
 ### Slots
 

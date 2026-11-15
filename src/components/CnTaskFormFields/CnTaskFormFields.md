@@ -22,6 +22,7 @@ The parent holds the answers: each input emits `answer` and the parent writes. [
 | `values` | Object | `{}` | The answers so far, keyed by field. |
 | `idPrefix` | String | `'cn-task-form-fields'` | Prefix of the input ids and test ids, so two forms on one page stay apart. |
 | `brokenOnly` | Boolean | `false` | Draw only the declared fields the form cannot show. |
+| `errors` | Object | `{}` | A message under a field, keyed by field ("Completing was refused: fill in Report."), e.g. a required field left empty. |
 
 ## Events
 

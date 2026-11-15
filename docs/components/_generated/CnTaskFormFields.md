@@ -13,6 +13,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `form`       | `object`  | ✓        | —                       | The form as the engine describes it: `{ kind, state, error, fields }`, each field `{ field, label?, required, renderable, reason, order }`. |
 | `values`     | `object`  |          | `\{\}`                  | The answers so far, keyed by field. Read only: the component emits `answer` and the parent writes.                                          |
 | `idPrefix`   | `string`  |          | `'cn-task-form-fields'` | Prefix of the input ids and test ids, so two forms on one page stay apart.                                                                  |
+| `errors`     | `object`  |          | `\{\}`                  | A message under a field, keyed by field ("Completing was refused: fill in Report."), e.g. a required field left empty.                      |
 | `brokenOnly` | `boolean` |          | `false`                 | Draw only the declared fields the form cannot show (CnTaskFormDialog's rows).                                                               |
 
 ### Events

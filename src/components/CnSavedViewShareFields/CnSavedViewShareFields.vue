@@ -141,6 +141,7 @@ export default {
 			loading: false,
 			/** False until the first search came back with at least one sharee. */
 			available: false,
+			searchSeq: 0,
 		}
 	},
 
@@ -190,9 +191,21 @@ export default {
 			return this.known[key] || (key.startsWith('user:') ? key.slice(5) : key)
 		},
 
+		/**
+		 * Search the sharees. Only the newest search draws its answer: typing
+		 * sends one per key, and they can come back out of order.
+		 *
+		 * @param {string} query The typed term.
+		 * @return {Promise<void>}
+		 * @spec exclude drops a stale search answer; the race guard has no spec of its own
+		 */
 		async onSearch(query) {
+			const seq = ++this.searchSeq
 			this.loading = true
 			const found = await searchUserAndGroupSharees(query || '')
+			if (seq !== this.searchSeq) {
+				return
+			}
 			this.loading = false
 			this.options = found.map((s) => ({ id: s.kind === 'user' ? `user:${s.id}` : s.id, label: s.label, kind: s.kind === 'user' ? 'user' : 'group' }))
 			this.options.forEach((o) => {

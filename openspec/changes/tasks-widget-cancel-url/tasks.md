@@ -1,0 +1,2 @@
+- [x] CnTasksWidget `content.cancelUrl`
+- [x] tests/components/CnTasksWidgetTable: cancels through the app route when cancelUrl is set

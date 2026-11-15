@@ -17,8 +17,13 @@ agents) as items of the card's Actions menu.
 | `pill` | `string` | `''` | A pill in the card's title row, e.g. the assistant's name ("Hermiq"). Translated. |
 | `pillVariant` | `string` | `'purple'` | The pill's CnStatusBadge variant. |
 | `note` | `string` | `''` | A line above the input, e.g. what the assistant can see. Translated. |
+| `noteFrom` | `object` | none | `{ url, path?, match?, requires, text }`: the line filled from one row of an endpoint, used only while every `requires` field of that row is filled; otherwise `note` stands. |
 | `placeholder` | `string` | `''` | The input's placeholder; empty keeps "Message input". Translated. |
 | `sendLabel` | `string` | `''` | A label on the send button instead of the send icon. Translated. |
+| `openSubjectSession` | `boolean` | `false` | Open the user's latest session about the page's record (the context's `objectUuid`) instead of an empty thread, with the proposals the assistant still waits on. No such session, a backend that cannot filter sessions by record, or a session about another record leaves the thread empty. |
+| `approvalTitlePrefix` | `string` | `''` | Put before the tool's name on each approval card, e.g. "Proposal:". Translated. |
+| `allowLabel` | `string` | `''` | The approval card's allow button; empty keeps "Allow". Translated. |
+| `denyLabel` | `string` | `''` | The approval card's deny button; empty keeps "Decline". Translated. |
 
 ## Example
 
@@ -30,4 +35,4 @@ agents) as items of the card's Actions menu.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | Object | `{}` | The widget's content above: `chatAppId`, `pill`, `pillVariant`, `note`, `placeholder`, `sendLabel` |
+| `content` | Object | `{}` | The widget's content above: `chatAppId`, `pill`, `pillVariant`, `note`, `placeholder`, `sendLabel`, `openSubjectSession`, `approvalTitlePrefix`, `allowLabel`, `denyLabel` |

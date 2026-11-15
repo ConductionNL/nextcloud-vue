@@ -169,6 +169,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `footnote` | `''` | A note the form closes on, under its fields, with an information icon. The host translates it. Empty shows none. |
 | `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
 | `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
 | `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
@@ -248,6 +249,9 @@ many lines high as its override's `rows` (default 4):
 ```json static
 { "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
 ```
+
+In the board look a textarea is three lines tall on the normal leading; a field
+with its own `rows` is that many lines tall instead.
 
 A manifest `open-form` action declares `size` and `columns` directly:
 

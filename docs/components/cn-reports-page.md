@@ -64,6 +64,7 @@ with the card's `icon` in a 44px tile, its title at 17px and its description at 
 | `catalogue` | Boolean | `null` | In the board look, draw the catalogue: category chips with counts, article cards and an aside with the category index (manifest `config.catalogue`). Without it the board look draws its sections. |
 | `cardMeta` | String | `null` | The catalogue card's footer line (`config.cardMeta`), default "Opens a page of its own"; a card's own `meta` wins. |
 | `asideNote` | Object | `null` | The catalogue aside's closing card (`config.asideNote`): `{ title, text }`. |
+| `panel` | Object | `null` | In the board look, draw the cards in one titled panel (`config.panel`): `{ title, subtitle?, link?: { label, route \| href } }`. A card then also takes `meta`, `pill`, `tone` (`external`, `highlight`), `linkLabel`, `href` in place of `route`, `query`, and `requiresApp` with `missingText`. |
 
 ## Related
 

@@ -480,6 +480,16 @@ export default {
 	padding: 12px 12px 0;
 }
 
+/* Board look (PqRoadmap): the line stands where the board's page padding puts
+   it, 28px in and 24px down, level with the title under it, at 14px on the
+   normal line, and the title 20px below it. */
+.cn-look-board .cn-features-and-roadmap-page__compare {
+	margin-bottom: -4px;
+	padding: 24px 28px 0;
+	font-size: 14px;
+	line-height: normal;
+}
+
 .cn-features-and-roadmap-page__compare-link {
 	color: var(--color-primary-element);
 	text-decoration: underline;

@@ -905,3 +905,16 @@
 .cn-data-table .cn-table-col--end {
 	text-align: end;
 }
+
+/* CnDataTable state banners (R1): above the rows, inside the table's inset. */
+.cn-data-table__notices {
+	padding: 0 var(--cn-card-notice-inset, 16px) 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-data-table th.cn-table-header--sortable,
+	.cn-table-row,
+	.viewTableRow {
+		transition: none;
+	}
+}

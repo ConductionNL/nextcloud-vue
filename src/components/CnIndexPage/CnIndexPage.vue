@@ -40,6 +40,11 @@
 								:button="button"
 								:entries="headerMenuEntries(button)"
 								@linkClick="onHeaderMenuLinkClick" />
+							<!-- An Export with `menu`: one entry per format, and the note under them. -->
+							<CnIndexHeaderMenu
+								v-else-if="button.action === 'export' && button.exportMenu"
+								:button="button"
+								:entries="exportMenuEntries(button)" />
 							<NcButton
 								v-else
 								:variant="button.variant"
@@ -318,8 +323,10 @@
 					:selectedViewId="appliedSavedViewId"
 					:save="toolbarSavesView"
 					:chips="savedViewChips"
+					:shareView="toolbarSharesView"
 					@apply="onApplySavedView"
-					@saveRequest="showSaveViewDialog = true" />
+					@saveRequest="showSaveViewDialog = true"
+					@shareRequest="onShareViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -664,7 +671,12 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialData="resolvedCreateDefaults"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
+				:draftField="draftField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -680,10 +692,29 @@
 				:includeFields="rowFormTarget ? null : includeFields"
 				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
+
+		<!-- The page's state banners (R1, `notices`): a source that is down, a
+		     bulk move that was partly done. Above the list card. -->
+		<CnCardNotices
+			v-if="pageNotices.length > 0"
+			class="cn-index-page__notices"
+			:notices="pageNotices"
+			@noticeDismiss="onPageNoticeDismiss" />
+
+		<!-- Someone else changed the list (`realtime`): DqWerkbord "Zojuist
+		     bijgewerkt door ..."; the list reads again. -->
+		<CnRealtimeToast
+			v-if="realtimeShown"
+			:source="{ url: realtime.url, interval: realtime.interval }"
+			:titleTemplate="realtime.titleTemplate || ''"
+			:refreshOnChange="false"
+			@change="onRefreshEvent()" />
 
 		<!-- Body -->
 		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
@@ -733,6 +764,20 @@
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
+				<!-- Counters a named source supplies (`counters()`), above the rows. -->
+				<CnKpiGrid v-if="sourceCounters.length > 0"
+					columns="auto"
+					class="cn-index-page__counters"
+					data-testid="cn-index-counters">
+					<CnStatsBlock v-for="counter in sourceCounters"
+						:key="counter.id"
+						:title="counter.label"
+						:count="counter.count"
+						:countLabel="counter.note"
+						:variant="counter.variant"
+						showZeroCount />
+				</CnKpiGrid>
+
 				<!-- A sort option whose endpoint could not answer: the list fell
 				     back to the option's own order, and says so. -->
 				<p v-if="sortSourceFellBack && sortSourceFailedNote"
@@ -778,19 +823,19 @@
 
 				<!-- A search the server refused for its grammar: the term with the
 				     character it stopped at, the server's reason, and what to do. -->
-				<div v-else-if="searchRefusal"
+				<div v-else-if="searchRefused && !searchRefusalAsNotice"
 					class="cn-index-page__search-refusal"
 					role="status"
 					data-testid="cn-index-page-search-refusal">
 					<NcNoteCard type="warning">
 						<p class="cn-index-page__search-refusal-headline">
-							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefusal.position }) }}
+							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefused.position }) }}
 						</p>
 						<p class="cn-index-page__search-refusal-term" data-testid="cn-index-page-search-refusal-term">
-							<span>{{ searchRefusal.before }}</span><mark v-if="searchRefusal.at">{{ searchRefusal.at }}</mark><span>{{ searchRefusal.after }}</span>
+							<span>{{ searchRefused.before }}</span><mark v-if="searchRefused.at">{{ searchRefused.at }}</mark><span>{{ searchRefused.after }}</span>
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
-							{{ searchRefusal.message }}
+							{{ searchRefused.message }}
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
 							{{ searchRefusalHintText }}
@@ -799,7 +844,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="selfFetchFailed || sourceFailed"
+				<div v-else-if="(selfFetchFailed && !searchRefusalAsNotice) || sourceFailed"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -1044,6 +1089,8 @@
 					:sumField="board.sumField || ''"
 					:sumFormat="boardSumFormat"
 					:columnLimit="board.columnLimit || 0"
+					:fullNote="board.fullNote ? cnTranslate(board.fullNote) : ''"
+					:mergedNote="board.mergedNote ? cnTranslate(board.mergedNote) : ''"
 					:rowKey="rowKey"
 					:runTransition="boardRunTransition"
 					:paged="isPaged"
@@ -1273,6 +1320,7 @@
 					v-else-if="effectivePagination && (effectivePagination.pages > 1 || (isBoardLook && effectivePagination.total > 0))"
 					:variant="isBoardLook ? 'board' : ''"
 					:footerNote="effectiveFooterNote"
+					:pagerOnOnePage="pagerOnOnePage"
 					:currentPage="effectivePagination.page || 1"
 					:totalPages="effectivePagination.pages || 1"
 					:totalItems="effectivePagination.total || 0"
@@ -1398,6 +1446,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
@@ -1416,9 +1465,13 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
+import CnRealtimeToast from '../CnRealtimeToast/CnRealtimeToast.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
+import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
@@ -1444,6 +1497,7 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL } from '../../utils/cardNotices.js'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine, footerNoteForView } from '../../utils/countLine.js'
@@ -1486,7 +1540,7 @@ import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
-import { readSearchRefusal } from '../../utils/searchRefusal.js'
+import { readSearchRefusal, searchRefusalNotice } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
@@ -1923,9 +1977,13 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnCardNotices,
+		CnRealtimeToast,
 		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
+		CnKpiGrid,
+		CnStatsBlock,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -2187,6 +2245,35 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The page's state banners above the list (R1, manifest
+		 * `config.notices`): each a `notice` content (`{ variant, role?,
+		 * layout?, title?, text, actions?, dismissible?, visibleWhen? }`). A
+		 * row action's answer that asks for a notice, and a notice raised on
+		 * the `cn:page:notice` event-bus channel, join them.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Follow changes others make (manifest `config.realtime`):
+		 * `{ url, interval?, views?, titleTemplate? }`. A change shows the
+		 * "Just updated by ..." toast and reads the list again, while the page
+		 * is in one of `views` (every view when unset).
+		 *
+		 * @type {{url: string, interval?: number, views?: string[], titleTemplate?: string}|null}
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtime: {
+			type: Object,
+			default: null,
+		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
@@ -2361,6 +2448,33 @@ export default {
 		},
 
 		/**
+		 * Header buttons per view (manifest `config.headerButtonsByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a list as
+		 * `headerButtons`: the board view reads "Downloaden" where the table
+		 * reads "Exporteren" with a menu (DqWerkbord, DqZaken). A view it does
+		 * not name keeps `headerButtons`; a scope's own buttons come first.
+		 */
+		headerButtonsByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Text added to the count line after a middle dot while a quick filter
+		 * or lens is selected (manifest `config.countSuffixByFilter`),
+		 * `{ <tab id or label>: text }`: a lens that sorts by waiting time
+		 * says "longest waiting first". A quick filter tab can also carry
+		 * its own `countSuffix`, which comes first. The text goes through the
+		 * host translate function. Null (the default) adds nothing.
+		 *
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		countSuffixByFilter: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -2407,7 +2521,7 @@ export default {
 		 * CnObjectCard `layout`.
 		 *
 		 * @type {object}
-		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
 		 */
 		cardLayout: {
 			type: Object,
@@ -2434,6 +2548,18 @@ export default {
 		footerNote: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: whether a list that fits on one page still draws its
+		 * count and the "1" with an inert Next (manifest `config.pagerOnOnePage`).
+		 * Off, it ends in its `footerNote` alone, as PqWachtrij does.
+		 *
+		 * @spec openspec/changes/index-footer-note-on-one-page/specs/index-list-board-look/spec.md#requirement-a-board-list-on-one-page-can-end-in-its-note-alone
+		 */
+		pagerOnOnePage: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -2564,15 +2690,17 @@ export default {
 		 * How the board look draws the table's title column (manifest
 		 * `config.rowTitle`): `link` (the default) underlines the title,
 		 * `plain` draws it as bold text without an underline over a 13px muted
-		 * secondary line. The row stays clickable. The Nextcloud look ignores
-		 * it. Maps to CnDataTable `rowTitle`.
+		 * secondary line, `text` as an ordinary 14px cell and `strong` as a
+		 * 14px weight 600 name in the main ink. The row stays clickable. The
+		 * Nextcloud look ignores it. Maps to CnDataTable `rowTitle`.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/index-row-title-text-strong/specs/index-list-board-look/spec.md#requirement-an-index-list-takes-every-title-look-the-table-draws
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
@@ -2740,6 +2868,19 @@ export default {
 		savedViewSave: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Whether the toolbar offers to share the open saved view (manifest
+		 * `config.savedViewShare`): "Share: {name}" beside Save view, for a
+		 * view of the reader's own, opening the side panel's share dialog
+		 * (PqTicketsSelectie).
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 */
+		savedViewShare: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -3343,12 +3484,14 @@ export default {
 		/**
 		 * Optional leading icon for every table row — a static MDI icon name or
 		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
-		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column. An
+		 * object `{ field, icons, tones?, icon? }` picks the icon and its tile
+		 * tone by a field of the row (see CnDataTable).
 		 *
-		 * @type {string | ((row: object) => string) | null}
+		 * @type {string | ((row: object) => string) | {field: string, icons: object, tones?: object, icon?: string} | null}
 		 */
 		rowIcon: {
-			type: [String, Function],
+			type: [String, Function, Object],
 			default: null,
 		},
 
@@ -3438,6 +3581,21 @@ export default {
 		searchRefusalHint: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * A refused search keeps the rows the list had and says so in an
+		 * alert above the list, under the search field (DqZaken): `{ title?,
+		 * after? }` (manifest `config.searchRefusal`), the title with
+		 * `{position}` ("Search term not understood at position {position}:")
+		 * and the line after the server's reason ("The list is not filtered;
+		 * adjust the term."). Unset, the refusal replaces the rows.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
+		searchRefusal: {
+			type: Object,
+			default: null,
 		},
 
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
@@ -3692,6 +3850,52 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The small line above the built-in Add/Edit form's title (board
+		 * look). A string for both, or `{ create, edit }` per mode; either
+		 * goes through the host `cnTranslate`. Empty draws none.
+		 */
+		formEyebrow: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The muted line under the built-in Add/Edit form's title. Same
+		 * shape as `formEyebrow`.
+		 */
+		formSubtitle: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The app a form draft belongs to, forwarded to every form this page
+		 * opens as CnFormDialog's `draftAppId`, so what a user typed and did not
+		 * save is kept and offered back under this app's key.
+		 */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Offer "Save draft" on the create form, forwarded as CnFormDialog's
+		 * `allowDraft`. On an edit form it is offered only while the record is
+		 * still a draft: saving a record that is already in use as a draft
+		 * would take it out of use.
+		 */
+		allowDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The boolean property that marks a record as a draft (CnFormDialog's `draftField`). */
+		draftField: {
+			type: String,
+			default: 'isDraft',
 		},
 
 		/**
@@ -4784,6 +4988,8 @@ export default {
 
 	data() {
 		return {
+			/** Notices this page's actions answered, or that were raised on the page channel. */
+			runtimeNotices: [],
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4945,6 +5151,33 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {boolean} Whether the page follows changes now.
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtimeShown() {
+			const config = this.realtime
+			if (!config || typeof config.url !== 'string' || config.url === '') {
+				return false
+			}
+			return !Array.isArray(config.views) || config.views.length === 0 || config.views.includes(this.currentViewMode)
+		},
+
+		/**
+		 * @return {Array<object>} The manifest's notices, then the ones this page's actions raised.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 * @spec openspec/changes/notice-text-from-endpoint/specs/card-state-notices/spec.md#requirement-an-index-page-notice-can-belong-to-saved-views
+		 */
+		pageNotices() {
+			const view = this.appliedSavedView
+			const names = [this.appliedSavedViewId, ...(view ? [view.id, view.slug, view.uuid] : [])].filter((v) => v !== undefined && v !== null && v !== '').map(String)
+			// `savedViews` keeps a notice to the saved views it names (DqTeamwachtrij).
+			const declared = (Array.isArray(this.notices) ? this.notices : [])
+				.filter((notice) => !notice || !Array.isArray(notice.savedViews) || notice.savedViews.some((id) => names.includes(String(id))))
+			const refusal = this.searchRefusalAsNotice ? [searchRefusalNotice(this.searchRefused, this.searchRefusal, (text) => this.cnTranslate(text))] : []
+			return [...refusal, ...declared, ...this.runtimeNotices]
+		},
+
 		/**
 		 * Whether the table card draws its title.
 		 *
@@ -5270,8 +5503,19 @@ export default {
 		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
 		 * @return {object|null}
 		 */
-		searchRefusal() {
+		searchRefused() {
 			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/**
+		 * Whether a refused search keeps the rows and says so in a notice under
+		 * the search field (`searchRefusal` set), rather than in place of them.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 * @return {boolean}
+		 */
+		searchRefusalAsNotice() {
+			return this.searchRefused !== null && !!this.searchRefusal && typeof this.searchRefusal === 'object'
 		},
 
 		/**
@@ -5360,7 +5604,11 @@ export default {
 			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
 		},
 
-		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		/**
+		 * Rows: store collection in self-fetch mode, else the `objects` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
@@ -5375,7 +5623,7 @@ export default {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return []
 			}
 			const rows = this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
@@ -7724,12 +7972,16 @@ export default {
 			return this.refreshing || this.internalRefreshing
 		},
 
-		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		/**
+		 * Pagination: store pagination in self-fetch mode, else the `pagination` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectivePagination() {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.pagination
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
 			// A named source that reports its own total (the search source)
@@ -8400,6 +8652,8 @@ export default {
 		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
 		 * for built-in defaults. Function-typed handlers (the existing
 		 * runtime path) pass through untouched.
+		 *
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
 		 */
 		mergedActions() {
 			const ctx = {
@@ -8413,6 +8667,8 @@ export default {
 				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 				// A row action of `type: "api-call"` reads the list again after it.
 				refresh: () => this.onRefreshEvent(),
+				// ...and an answer that asks for a notice shows above the list.
+				showNotice: (notice) => this.addPageNotice(notice),
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -8472,6 +8728,17 @@ export default {
 				}
 			}
 			return refs
+		},
+
+		/**
+		 * The counters a named source draws above its rows.
+		 *
+		 * @return {Array<object>} The tiles, `{id, label, count, note, variant}`.
+		 */
+		sourceCounters() {
+			const source = this.isNamedSource ? this.namedSource : null
+
+			return source && typeof source.counters === 'function' ? source.counters() : []
 		},
 
 		/**
@@ -8666,10 +8933,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-header-buttons-can-differ-per-view
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string, link: ({href: string, target: (string|undefined)}|null)}>}
 		 */
 		resolvedHeaderButtons() {
-			const headerButtons = this.presented('headerButtons')
+			const byView = this.headerButtonsByView
+			const ownForView = byView && typeof byView === 'object' && (this.activeScopePresentation || {}).headerButtons === undefined
+				? byView[this.currentViewMode]
+				: undefined
+			const headerButtons = Array.isArray(ownForView) ? ownForView : this.presented('headerButtons')
 			const declared = Array.isArray(headerButtons) ? headerButtons : []
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
@@ -8726,6 +8998,10 @@ export default {
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
 							: null,
+						exportMenu: button.action === 'export' && Array.isArray(button.menu)
+							? button.menu.filter((entry) => entry && (entry.format === 'csv' || entry.format === 'excel') && typeof entry.label === 'string' && entry.label !== '')
+							: null,
+						note: typeof button.note === 'string' && button.note !== '' ? this.cnTranslate(button.note) : '',
 					}
 				})
 				.filter((button) => button.label !== '')
@@ -9106,6 +9382,22 @@ export default {
 		},
 
 		/**
+		 * The open saved view the toolbar offers to share: with
+		 * `savedViewShare`, a stored view the reader owns. A default view and
+		 * a view shared with the reader are not theirs to share.
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 * @return {object|null}
+		 */
+		toolbarSharesView() {
+			const view = this.savedViewShare ? this.appliedSavedView : null
+			if (!view || view.seeded || !view.id) {
+				return null
+			}
+			return viewAccess(view, this.currentSavedViewsUserId) === 'owner' ? view : null
+		},
+
+		/**
 		 * Whether the page header carries a save-view button, so the toolbar
 		 * leaves its own Save view out.
 		 *
@@ -9247,7 +9539,8 @@ export default {
 		 * @return {string}
 		 */
 		headerDescription() {
-			const base = this.headerDescriptionBase
+			const suffix = this.quickFilterCountSuffix
+			const base = suffix && this.headerDescriptionBase ? `${this.headerDescriptionBase} · ${suffix}` : this.headerDescriptionBase
 			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
 				return base
 			}
@@ -9267,6 +9560,29 @@ export default {
 			const active = Object.values(this.effectiveActiveFilters || {})
 				.some((value) => !(value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)))
 			return active || this.quickFilterNarrows
+		},
+
+		/**
+		 * The count line text of the selected quick filters or lenses: each
+		 * tab's `countSuffix`, else its entry in `countSuffixByFilter` (by
+		 * id, then by label), translated and joined by a middle dot.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		quickFilterCountSuffix() {
+			const tabs = this.tabStripEntries || []
+			const byFilter = this.countSuffixByFilter && typeof this.countSuffixByFilter === 'object' ? this.countSuffixByFilter : {}
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices
+				.map((index) => (typeof index === 'number' ? tabs[index] : null))
+				.filter(Boolean)
+				.map((tab) => [tab.countSuffix, byFilter[tab.id], byFilter[tab.label]].find((text) => typeof text === 'string' && text !== ''))
+				.filter(Boolean)
+				.map((text) => this.cnTranslate(text))
+				.join(' · ')
 		},
 
 		/**
@@ -9951,6 +10267,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.openSortSource()
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
@@ -10018,6 +10335,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
@@ -10032,6 +10350,55 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The eyebrow or subtitle of the built-in Add/Edit form: `value` as a
+		 * string, or its `create` / `edit` entry for the open mode. A row
+		 * action's own form (`rowFormTarget`) draws none.
+		 *
+		 * @param {string|object} value `formEyebrow` or `formSubtitle`.
+		 * @return {string} The translated text, or ''.
+		 * @spec openspec/changes/index-form-eyebrow-subtitle/specs/index-page/spec.md#requirement-an-index-pages-form-can-carry-an-eyebrow-and-a-subtitle
+		 */
+		formHeaderText(value) {
+			if (!value || this.rowFormTarget) {
+				return ''
+			}
+			const text = typeof value === 'string' ? value : value[this.editItem ? 'edit' : 'create']
+			return text ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Show a notice above the list, replacing an earlier answer.
+		 *
+		 * @param {object} notice The notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		addPageNotice(notice) {
+			if (notice && typeof notice === 'object') {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * A notice raised on the page channel without a `widgetId`.
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeEvent(payload) {
+			if (payload && !payload.widgetId) {
+				this.addPageNotice(normalizeNotice(payload.notice, 'info'))
+			}
+		},
+
+		/**
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeDismiss(notice) {
+			this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+		},
+
 		/**
 		 * On mount: open on a source option the page defaults to
 		 * (`default: true`, unless the address carries an order of its own),
@@ -11176,6 +11543,28 @@ export default {
 			}
 			followItemActionLink(event, entry.link, this.$router)
 			this.$emit('header-action', { action: entry.key, id: entry.key })
+		},
+
+		/**
+		 * The entries of an Export button's menu (`menu`): one per format,
+		 * its label bold and its description muted, each running the export
+		 * in that format; the button's `note` as a muted line after them.
+		 *
+		 * @param {object} button The resolved Export button.
+		 * @return {Array<object>} The menu entries.
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-an-export-header-button-can-be-a-menu-of-formats
+		 */
+		exportMenuEntries(button) {
+			const entries = (button.exportMenu || []).map((entry) => ({
+				key: `export-${entry.format}`,
+				label: this.cnTranslate(entry.label),
+				description: typeof entry.description === 'string' && entry.description !== '' ? this.cnTranslate(entry.description) : '',
+				run: () => this.onHeaderButton({ ...button, format: entry.format }),
+			}))
+			if (button.note) {
+				entries.push({ key: 'export-note', kind: 'note', label: button.note })
+			}
+			return entries
 		},
 
 		/**

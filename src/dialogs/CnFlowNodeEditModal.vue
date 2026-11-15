@@ -255,7 +255,7 @@ export default {
 
 			// The draft the form edits. Committed on Done, discarded on Cancel.
 			draft: {
-				name: node.name || '',
+				name: node.name || node.label || '',
 				config: JSON.parse(JSON.stringify(node.config || {})),
 			},
 

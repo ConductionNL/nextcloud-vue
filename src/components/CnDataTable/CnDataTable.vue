@@ -9,6 +9,7 @@
 			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
+			'cn-table-container--framed': framed,
 			'cn-table-container--fill': fillHeight,
 		}">
 		<!-- Optional card header (folded from the retired CnTableWidget): a title
@@ -21,6 +22,13 @@
 			<span v-if="totalRowCount > 0" class="cn-data-table__count">
 				{{ totalRowCount }}
 			</span>
+		</div>
+
+		<!-- @slot notice The table's state banners (R1), above the rows. -->
+		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<slot name="notice">
+				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+			</slot>
 		</div>
 
 		<!-- Active header filters, one removable chip each. -->
@@ -121,6 +129,7 @@
 						<!-- Checkbox column -->
 						<th
 							v-if="selectable"
+							scope="col"
 							class="cn-table-col--checkbox"
 							:class="pinClass(0)"
 							:style="pinStyle(0)">
@@ -134,6 +143,7 @@
 						<!-- Leading icon column (header is intentionally blank) -->
 						<th
 							v-if="rowIcon"
+							scope="col"
 							class="cn-table-col--icon"
 							:class="pinClass(selectable ? 1 : 0)"
 							:style="pinStyle(selectable ? 1 : 0)" />
@@ -142,6 +152,7 @@
 						<th
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
+							scope="col"
 							:class="[
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
@@ -184,7 +195,7 @@
 									{{ sortBadgeFor(col.key) }}
 								</span>
 							</button>
-							<span v-else :class="col.description ? 'cn-table-header--described' : ''">
+							<span v-else :class="[col.description ? 'cn-table-header--described' : '', col.labelHidden ? 'hidden-visually' : '']">
 								{{ translateLabel(col.label) }}
 							</span>
 							<!-- Header filter: a real button, so it is reachable with Tab
@@ -210,7 +221,7 @@
 						</th>
 
 						<!-- Actions column -->
-						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+						<th v-if="$slots['row-actions']" scope="col" class="cn-table-col--actions">
 							<!-- The board look names the column for assistive tech; the menu buttons below it are the only thing drawn. -->
 							<span v-if="isBoardLook" class="hidden-visually">{{ actionsColumnLabel }}</span>
 							<!-- @slot Header cell content above the row-actions column (blank by default). -->
@@ -277,9 +288,9 @@
 							<td
 								v-if="rowIcon"
 								class="cn-table-col--icon"
-								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + iconTone]"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + rowIconToneOf(row)]"
 								:style="pinStyle(selectable ? 1 : 0)">
-								<CnIcon :name="getRowIcon(row)" :size="20" />
+								<CnIcon v-if="getRowIcon(row)" :name="getRowIcon(row)" :size="20" />
 							</td>
 
 							<!-- Data cells -->
@@ -489,6 +500,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
@@ -496,12 +508,14 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
 import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTemplate.js'
+import { listText } from '../../utils/filterRangeLabel.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { ruleHolds } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { loadSecondaryRefs, rowWithRefs } from '../../utils/secondaryRefs.js'
@@ -586,10 +600,14 @@ function isEndpointAggregate(col) {
 	return !!agg && typeof agg.endpoint === 'string' && agg.endpoint !== '' && typeof agg.key === 'string' && agg.key !== ''
 }
 
+/** The tile tones the board look draws for a row's leading icon. */
+const ROW_ICON_TONES = ['primary', 'teal', 'neutral', 'warning']
+
 export default {
 	name: 'CnDataTable',
 
 	components: {
+		CnCardNotices,
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
@@ -623,6 +641,19 @@ export default {
 
 	props: {
 		/**
+		 * The table's state banners, above the rows (R1): each a `notice`
+		 * content (`{ variant, role?, layout?, title?, text, actions?,
+		 * dismissible?, visibleWhen? }`), such as a source that is down or
+		 * a bulk move that was partly done.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
 		 * Each entry may be a full column object OR a bare string key; bare strings
@@ -635,6 +666,9 @@ export default {
 		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
 		 * description automatically, so schema-driven tables get it for free.
 		 *
+		 * `labelHidden` keeps a column's name for a screen reader and draws no
+		 * header text, for a column that reads by itself (a status dot).
+		 *
 		 * `secondary` draws a second, muted line under the cell's value: a field
 		 * key (`"number"`), a template with `{field}` placeholders
 		 * (`"{number} · {requester}"`, dotted paths allowed; `{startAt|weekday}`
@@ -642,6 +676,16 @@ export default {
 		 * resolves to nothing is not drawn. `secondaryLabels` names a field's
 		 * values on that line, `{ field: { value: label, '*': label } }`
 		 * (i18n keys; `'*'` for any other value).
+		 *
+		 * A list field on that line (`surfaces: ['site', 'portal']`) names each
+		 * value through `secondaryLabels` and reads as a list in the page's
+		 * language ("website en Mijn Zuiddrecht").
+		 *
+		 * `valueWhen` (`[{ when, value }]`, `when` a row condition or a list of
+		 * them, as `rowClass` takes) names what the cell holds by the row's
+		 * fields: the first rule that holds gives the value, which the cell then
+		 * draws as any value (a `badge` maps it through `colorMap` and its
+		 * labels). No rule holding leaves the stored value.
 		 *
 		 * `secondary` may also list templates: the first whose fields all hold
 		 * a value is drawn. `secondaryRefs` (`{ alias: { field, register,
@@ -677,10 +721,14 @@ export default {
 		 * rows, or a function `(row) => iconName` to vary it per row. The icon is
 		 * resolved through the shared CnIcon registry. Unset = no icon column.
 		 *
-		 * @type {string | ((row: object) => string) | null}
+		 * An object `{ field, icons, tones?, icon? }` picks the icon by a field
+		 * of the row (`icons[value]`, else `icon`) and its tile tone by the same
+		 * value (`tones[value]`, else `rowIconTone`), as a manifest can declare.
+		 *
+		 * @type {string | ((row: object) => string) | {field: string, icons: object, tones?: object, icon?: string} | null}
 		 */
 		rowIcon: {
-			type: [String, Function],
+			type: [String, Function, Object],
 			default: null,
 		},
 
@@ -922,6 +970,19 @@ export default {
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
 		 */
 		borderless: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Frame a table that sits straight in a card, as the Pipelinq POS boards
+		 * draw it (PqKassa "Aankoopgeschiedenis"): a 1px frame with an 8px
+		 * radius, 18px outer cell insets and a rule under the head and every row
+		 * but the last. Board look only; the Nextcloud look ignores it.
+		 *
+		 * @spec openspec/changes/data-table-framed/specs/data-table-framed/spec.md#requirement-a-data-table-in-a-card-can-be-framed
+		 */
+		framed: {
 			type: Boolean,
 			default: false,
 		},
@@ -1177,7 +1238,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter', 'notice-action', 'notice-dismiss'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -1250,11 +1311,11 @@ export default {
 		/**
 		 * The leading icon tile's tone, one the board look draws.
 		 *
-		 * @return {string} `primary`, `teal` or `neutral`.
+		 * @return {string} `primary`, `teal`, `neutral` or `warning`.
 		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
 		 */
 		iconTone() {
-			return ['primary', 'teal', 'neutral'].includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+			return ROW_ICON_TONES.includes(this.rowIconTone) ? this.rowIconTone : 'primary'
 		},
 
 		/**
@@ -2051,14 +2112,37 @@ export default {
 		},
 
 		/**
-		 * Resolve the leading-row icon name for a row. Returns the static
-		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
+		 * Resolve the leading-row icon name for a row: the static `rowIcon`
+		 * string, the result of the `rowIcon(row)` function, or the icon a
+		 * `rowIcon` object names for the row's field value ('' for none).
 		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row
 		 * @param {object} row The row object.
 		 * @return {string} The MDI icon name (PascalCase).
 		 */
 		getRowIcon(row) {
-			return typeof this.rowIcon === 'function' ? this.rowIcon(row) : this.rowIcon
+			if (typeof this.rowIcon === 'function') {
+				return this.rowIcon(row)
+			}
+			if (this.rowIcon && typeof this.rowIcon === 'object') {
+				const value = this.getCellValue(row, this.rowIcon.field)
+				return this.rowIcon.icons?.[String(value)] || this.rowIcon.icon || ''
+			}
+			return this.rowIcon
+		},
+
+		/**
+		 * The tile tone of a row's leading icon: the tone a `rowIcon` object
+		 * names for the row's value, else the table's `rowIconTone`.
+		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row
+		 * @param {object} row The row object.
+		 * @return {string} A tone the board look draws.
+		 */
+		rowIconToneOf(row) {
+			const tones = this.rowIcon && typeof this.rowIcon === 'object' ? this.rowIcon.tones : null
+			const tone = tones ? tones[String(this.getCellValue(row, this.rowIcon.field))] : undefined
+			return ROW_ICON_TONES.includes(tone) ? tone : this.iconTone
 		},
 
 		/**
@@ -2112,14 +2196,19 @@ export default {
 		 * declaring the codes they label. A column `colorMap` (raw value to
 		 * badge variant) colours the enum pill from the manifest and wins over
 		 * the schema property's own `colorMap` / `x-color-map`. A column with
-		 * `valueField` takes that field's property.
+		 * `valueField` takes that field's property. A column with a `template`
+		 * holds the filled line, which is text whatever the key's schema type.
 		 *
 		 * @param {object} col Column definition.
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
 		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
+		 * @spec openspec/changes/template-cell-is-text/specs/data-table/spec.md
 		 */
 		columnProperty(col) {
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return { type: 'string' }
+			}
 			const base = this.getSchemaProperty(this.columnValueField(col))
 			// A system date (`@self.created`, `@self.updated`, ...) has no
 			// schema property behind it; it renders as a date-time.
@@ -2195,7 +2284,9 @@ export default {
 					: row
 				return firstFilled(col.secondary, context, (key) => this.translateLabel(key))
 			}
-			return this.cellLineValue(row, col?.secondary, col)
+			// A template is read in the host's translation, as `col.template` is.
+			const spec = typeof col?.secondary === 'string' && col.secondary.includes('{') ? this.translateLabel(col.secondary) : col?.secondary
+			return this.cellLineValue(row, spec, col)
 		},
 
 		/**
@@ -2290,6 +2381,9 @@ export default {
 				return ''
 			}
 			const named = col?.secondaryLabels?.[key]
+			if (Array.isArray(value)) {
+				return this.secondaryListText(value, named)
+			}
 			if (named && typeof named === 'object' && typeof value !== 'object') {
 				const label = Object.hasOwn(named, String(value)) ? named[String(value)] : named['*']
 				if (typeof label === 'string' && label !== '') {
@@ -2302,6 +2396,24 @@ export default {
 				return this.translateLabel(labels[String(value)] || String(value))
 			}
 			return String(value)
+		},
+
+		/**
+		 * A list field on a secondary line: every value named by the column's
+		 * labels for that field (else kept as stored), translated, joined as a
+		 * list in the page's language ("website en Mijn Zuiddrecht").
+		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-secondary-line-names-each-value-of-a-list-field
+		 * @param {Array} values The field's values.
+		 * @param {object} [named] The labels for the field, `{ value: label }`.
+		 * @return {string} The text, or '' when no value holds anything.
+		 */
+		secondaryListText(values, named) {
+			const labels = named && typeof named === 'object' ? named : {}
+			const names = values
+				.filter((v) => v !== null && v !== undefined && v !== '' && typeof v !== 'object')
+				.map((v) => (typeof labels[String(v)] === 'string' && labels[String(v)] !== '' ? this.translateLabel(labels[String(v)]) : String(v)))
+			return listText(names, document.documentElement.lang || undefined)
 		},
 
 		/**
@@ -2340,6 +2452,12 @@ export default {
 			// ("Shift {floatAt|date}, {drawer}"), in the host's translation.
 			if (col && typeof col.template === 'string' && col.template !== '') {
 				return this.cellLineValue(row, this.translateLabel(col.template), col)
+			}
+			// `valueWhen`: the first rule that holds on the row names the value
+			// ("visible" for a published notice whose window runs).
+			const ruled = Array.isArray(col && col.valueWhen) ? col.valueWhen.find((rule) => rule && ruleHolds(rule.when, row)) : undefined
+			if (ruled) {
+				return ruled.value
 			}
 			const value = Array.isArray(col && col.firstOf) ? this.firstValueOf(row, col.firstOf) : this.getCellValue(row, this.columnValueField(col))
 			const empty = value === null || value === undefined || value === ''

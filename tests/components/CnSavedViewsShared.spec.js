@@ -61,6 +61,22 @@ describe('buildViewCreatePayload sharedWith', () => {
 })
 
 describe('CnSavedViewShareFields', () => {
+	it('draws the answer to the newest search when an older one comes back last', async () => {
+		const w = mount(CnSavedViewShareFields)
+		await flushPromises()
+		let answerOlder
+		mockSearch.mockReturnValueOnce(new Promise((resolve) => {
+			answerOlder = resolve
+		}))
+		mockSearch.mockResolvedValueOnce([{ id: 'hanna', kind: 'user', label: 'Hanna Bos' }])
+		const older = w.vm.onSearch('ha')
+		await w.vm.onSearch('han')
+		answerOlder([{ id: 'samira', kind: 'user', label: 'Samira Haddou' }])
+		await older
+		expect(w.vm.options.map((o) => o.label)).toEqual(['Hanna Bos'])
+		expect(w.vm.loading).toBe(false)
+	})
+
 	it('renders nothing when the sharee API answers no groups', async () => {
 		mockSearch.mockResolvedValue([])
 		const w = mount(CnSavedViewShareFields)

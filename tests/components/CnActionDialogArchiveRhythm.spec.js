@@ -74,6 +74,11 @@ describe('CnActionDialog archive rhythm', () => {
 		expect(order(await mountDialog({ ...CONFIG, fieldsAfterNote: true }))).toEqual(['cn-action-dialog-reason', 'cn-action-dialog-note', 'cn-action-dialog-field-notifyRequester'])
 	})
 
+	it('sets its parts 18px apart and the facts flush, without the server\'s 12px dl padding (DqArchiveren r44 +20.5)', () => {
+		expect(rule('\n.cn-action-dialog')).toContain('gap: 18px')
+		expect(rule('\n.cn-action-dialog__facts')).toContain('padding: 0')
+	})
+
 	it('sets facts and section titles on the normal line', () => {
 		expect(rule('\n\n.cn-action-dialog__facts dt')).toContain('line-height: normal')
 		expect(rule('\n\n.cn-action-dialog__facts dd')).toContain('line-height: normal')

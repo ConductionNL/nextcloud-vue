@@ -16,7 +16,7 @@ import { translate as t } from '@nextcloud/l10n'
  */
 export function flowRunStatuses() {
 	return {
-		completed: { label: t('nextcloud-vue', 'Finished'), variant: 'success' },
+		completed: { label: t('nextcloud-vue', 'Succeeded'), variant: 'success' },
 		failed: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
 		dead_letter: { label: t('nextcloud-vue', 'Failed'), variant: 'error' },
 		stopped: { label: t('nextcloud-vue', 'Stopped early'), variant: 'warning' },
@@ -28,6 +28,104 @@ export function flowRunStatuses() {
 }
 
 /**
+ * Whether a log entry is a stop an End step made, not an oversight check. A
+ * check names itself in `checkId`.
+ *
+ * @param {object} entry A step's log entry.
+ * @return {boolean} True for a clean End.
+ */
+export function isFlowEndStop(entry) {
+	return entry?.status === 'stopped' && !entry?.checkId
+}
+
+/**
+ * How a run ended, in the engine's status words.
+ *
+ * The engine stores `stopped` for a clean End step, which is how a well-formed
+ * flow finishes, and for an oversight check closing the gate. OpenRegister
+ * serves the difference as `outcome`; a run from a server without it is read
+ * from its log.
+ *
+ * @param {object} run A run.
+ * @return {string} The status to show: `completed` for a clean End.
+ */
+export function flowRunOutcome(run) {
+	const status = String(run?.status || '')
+	if (status !== 'stopped') {
+		return status
+	}
+	if (run.outcome) {
+		return String(run.outcome)
+	}
+	const stops = (Array.isArray(run.log) ? run.log : []).filter((entry) => entry?.status === 'stopped')
+
+	return stops.length > 0 && stops.every(isFlowEndStop) ? 'completed' : status
+}
+
+/**
  * The engine statuses a "with errors" filter counts as an error.
  */
 export const FLOW_RUN_ERROR_STATUSES = ['failed', 'dead_letter']
+
+/**
+ * The engine statuses a run waits in for a person or a time.
+ */
+const FLOW_RUN_WAITING_STATUSES = ['suspended', 'awaiting_consent']
+
+/**
+ * The objects a run works with, each under its role.
+ *
+ * `subjects` is what the run declared; a run that declared none still has the
+ * object its trigger fired on.
+ *
+ * @param {object} run A run.
+ * @return {Array<{role: string, uuid: string}>} The subjects.
+ */
+export function flowRunSubjects(run) {
+	const declared = Object.entries(run?.subjects || {}).map(([role, subject]) => ({ role, uuid: String(subject?.uuid ?? '') }))
+	if (declared.length > 0) {
+		return declared
+	}
+	const uuid = run?.subjectUuid ?? run?.subject?.uuid
+
+	return uuid ? [{ role: '', uuid: String(uuid) }] : []
+}
+
+/**
+ * The tile over the distinct subjects of some runs.
+ *
+ * @param {Array<object>} runs The runs.
+ * @return {object} The tile: how many objects, and under which roles.
+ */
+function subjectsCounter(runs) {
+	const subjects = runs.flatMap(flowRunSubjects)
+	const roles = [...new Set(subjects.map((subject) => subject.role).filter(Boolean))]
+
+	return {
+		id: 'subjects',
+		label: t('nextcloud-vue', 'Subjects'),
+		count: new Set(subjects.map((subject) => subject.uuid)).size,
+		note: roles.join(', '),
+		variant: 'default',
+	}
+}
+
+/**
+ * The counters above a run history (board OrFlowRuns).
+ *
+ * @param {Array<object>} runs The runs in the list.
+ * @return {Array<{id: string, label: string, count: number, note: string, variant: string}>} The tiles.
+ */
+export function flowRunCounters(runs) {
+	const counted = (statuses) => runs.filter((run) => statuses.includes(flowRunOutcome(run))).length
+	const finished = counted(['completed'])
+	const share = runs.length > 0 ? `${Math.round((finished / runs.length) * 100)}%` : ''
+
+	return [
+		{ id: 'runs', label: t('nextcloud-vue', 'Runs'), count: runs.length, note: '', variant: 'default' },
+		{ id: 'finished', label: t('nextcloud-vue', 'Finished'), count: finished, note: share, variant: 'success' },
+		{ id: 'failed', label: t('nextcloud-vue', 'Failed'), count: counted(FLOW_RUN_ERROR_STATUSES), note: '', variant: 'error' },
+		{ id: 'waiting', label: t('nextcloud-vue', 'Waiting'), count: counted(FLOW_RUN_WAITING_STATUSES), note: '', variant: 'warning' },
+		subjectsCounter(runs),
+	]
+}

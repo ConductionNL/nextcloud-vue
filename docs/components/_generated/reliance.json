@@ -61,9 +61,13 @@
 		},
 		"CnActionDialog": {
 			"direct": 1,
-			"transitive": 3,
+			"transitive": 9,
 			"tier": "medium",
-			"via": [],
+			"via": [
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-action-dialog"
 		},
 		"CnActionTilesWidget": {
@@ -106,9 +110,14 @@
 		},
 		"CnAddressSearch": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-address-search"
 		},
 		"CnAdminActionCard": {
@@ -140,14 +149,19 @@
 		},
 		"CnAdvancedFormDialog": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 12,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-advanced-form-dialog"
 		},
 		"CnAiCompanion": {
 			"direct": 0,
-			"transitive": 1,
+			"transitive": 3,
 			"tier": "light",
 			"via": [],
 			"page": "cn-ai-companion"
@@ -243,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 249,
+			"transitive": 253,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -253,6 +267,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -266,6 +281,7 @@
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnCommandPalette",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -313,6 +329,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -354,6 +371,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -390,10 +408,12 @@
 		},
 		"CnAssignDialog": {
 			"direct": 3,
-			"transitive": 6,
-			"tier": "medium",
+			"transitive": 9,
+			"tier": "heavy",
 			"via": [
-				"CnBulkJobProgress"
+				"CnActionDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-assign-dialog"
 		},
@@ -406,17 +426,26 @@
 		},
 		"CnAuditTrailCard": {
 			"direct": 1,
-			"transitive": 8,
-			"tier": "medium",
-			"via": [],
+			"transitive": 15,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-audit-trail-card"
 		},
 		"CnAuditTrailWidget": {
 			"direct": 0,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 16,
+			"tier": "heavy",
 			"via": [
-				"CnAuditTrailCard"
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-audit-trail-widget"
 		},
@@ -428,9 +457,9 @@
 			"page": null
 		},
 		"CnBannerWidget": {
-			"direct": 0,
+			"direct": 1,
 			"transitive": 3,
-			"tier": "light",
+			"tier": "medium",
 			"via": [],
 			"page": "cn-banner-widget"
 		},
@@ -440,6 +469,13 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnBlockListEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-block-list-editor"
 		},
 		"CnBoardView": {
 			"direct": 0,
@@ -585,6 +621,18 @@
 			],
 			"page": "cn-card-grid"
 		},
+		"CnCardNotices": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-card-notices"
+		},
 		"CnCellRenderer": {
 			"direct": 1,
 			"transitive": 15,
@@ -697,9 +745,14 @@
 		},
 		"CnChipListManager": {
 			"direct": 1,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-chip-list-manager"
 		},
 		"CnChipsFieldWidget": {
@@ -715,6 +768,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-choice-cards"
+		},
+		"CnChoiceMatrix": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-choice-matrix"
 		},
 		"CnChoicePickerWidget": {
 			"direct": 0,
@@ -751,6 +811,13 @@
 			"via": [],
 			"page": "cn-command-palette"
 		},
+		"CnConditionGroupEditor": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-condition-group-editor"
+		},
 		"CnConditionListEditor": {
 			"direct": 0,
 			"transitive": 0,
@@ -771,6 +838,13 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnConflictResolveCard": {
+			"direct": 1,
+			"transitive": 3,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-conflict-resolve-card"
 		},
 		"CnConnectionsPanel": {
 			"direct": 0,
@@ -829,9 +903,14 @@
 		},
 		"CnCopyDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-copy-dialog"
 		},
 		"CnCospendCreate": {
@@ -920,7 +999,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 226,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -929,6 +1008,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -941,6 +1021,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -982,6 +1063,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -1015,6 +1097,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -1092,9 +1175,14 @@
 		},
 		"CnDeleteDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-delete-dialog"
 		},
 		"CnDeltaWidget": {
@@ -1125,9 +1213,14 @@
 		},
 		"CnDetailCard": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-detail-card"
 		},
 		"CnDetailGrid": {
@@ -1179,7 +1272,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 12,
-			"transitive": 226,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1188,6 +1281,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -1200,6 +1294,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1241,6 +1336,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -1274,6 +1370,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -1294,7 +1391,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 142,
+			"transitive": 143,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1302,6 +1399,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -1358,7 +1456,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 144,
+			"transitive": 145,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1366,6 +1464,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -1423,10 +1522,22 @@
 		},
 		"CnDialog": {
 			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-dialog"
+		},
+		"CnDialogActions": {
+			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
-			"page": "cn-dialog"
+			"page": "cn-dialog-actions"
 		},
 		"CnDialogHeader": {
 			"direct": 0,
@@ -1434,6 +1545,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-dialog-header"
+		},
+		"CnDisplayScreen": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-display-screen"
 		},
 		"CnDividerWidget": {
 			"direct": 0,
@@ -1458,9 +1576,14 @@
 		},
 		"CnDuplicateWarning": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-duplicate-warning"
 		},
 		"CnDurationField": {
@@ -1526,9 +1649,14 @@
 		},
 		"CnExportWizard": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-export-wizard"
 		},
 		"CnExportsWidget": {
@@ -1692,6 +1820,27 @@
 			"via": [],
 			"page": "cn-federation-status"
 		},
+		"CnFieldCatalogueDialog": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-field-catalogue-dialog"
+		},
+		"CnFieldGroupsWidget": {
+			"direct": 0,
+			"transitive": 4,
+			"tier": "medium",
+			"via": [
+				"CnFieldListWidget"
+			],
+			"page": "cn-field-groups-widget"
+		},
 		"CnFieldHelper": {
 			"direct": 0,
 			"transitive": 0,
@@ -1750,9 +1899,14 @@
 		},
 		"CnFilesCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-files-card"
 		},
 		"CnFilesPage": {
@@ -1772,9 +1926,14 @@
 		},
 		"CnFilesWidget": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-files-widget"
 		},
 		"CnFilesWidgetForm": {
@@ -1855,7 +2014,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 224,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1864,6 +2023,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -1876,6 +2036,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -1917,6 +2078,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -1950,6 +2112,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -1991,7 +2154,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 143,
+			"transitive": 144,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1999,6 +2162,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -2158,6 +2322,13 @@
 			],
 			"page": "cn-gauge-widget-form"
 		},
+		"CnGeoCaptureField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-geo-capture-field"
+		},
 		"CnGraphCanvas": {
 			"direct": 1,
 			"transitive": 0,
@@ -2303,7 +2474,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 224,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2312,6 +2483,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -2324,6 +2496,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2365,6 +2538,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -2398,6 +2572,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -2418,7 +2593,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 12,
-			"transitive": 221,
+			"transitive": 225,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2427,6 +2602,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -2439,6 +2615,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -2479,6 +2656,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -2512,6 +2690,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -2546,9 +2725,14 @@
 		},
 		"CnIntegrationCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-integration-card"
 		},
 		"CnIntegrationTab": {
@@ -2741,9 +2925,13 @@
 		},
 		"CnLifecycleActions": {
 			"direct": 0,
-			"transitive": 14,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnResourceSelect",
 				"CnTemplateSelect"
 			],
@@ -2987,32 +3175,64 @@
 			"via": [],
 			"page": "cn-mass-action-bar"
 		},
+		"CnMassActionDialog": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-mass-action-dialog"
+		},
 		"CnMassCopyDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-copy-dialog"
 		},
 		"CnMassDeleteDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-delete-dialog"
 		},
 		"CnMassExportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-export-dialog"
 		},
 		"CnMassImportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-mass-import-dialog"
 		},
 		"CnMenuItemEditor": {
@@ -3052,10 +3272,14 @@
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-nav-card-grid"
 		},
@@ -3156,18 +3380,27 @@
 		},
 		"CnNotesCard": {
 			"direct": 1,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 16,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnNoteComposer"
 			],
 			"page": "cn-notes-card"
 		},
 		"CnNoticeWidget": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-notice-widget"
 		},
 		"CnNotificationMatrix": {
@@ -3282,10 +3515,14 @@
 		},
 		"CnObjectGeoWidget": {
 			"direct": 3,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 12,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnMapWidget"
 			],
 			"page": "cn-object-geo-widget"
@@ -3310,6 +3547,18 @@
 				"CnIndexPage"
 			],
 			"page": "cn-object-kanban"
+		},
+		"CnObjectLinksWidget": {
+			"direct": 1,
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-object-links-widget"
 		},
 		"CnObjectList": {
 			"direct": 0,
@@ -3482,9 +3731,13 @@
 		},
 		"CnObjectPartiesWidget": {
 			"direct": 6,
-			"transitive": 5,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnPartyPicker"
 			],
 			"page": "cn-object-parties-widget"
@@ -3618,7 +3871,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 242,
+			"transitive": 246,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3627,6 +3880,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -3639,6 +3893,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -3684,6 +3939,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -3723,6 +3979,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -3893,6 +4150,13 @@
 			"via": [],
 			"page": "cn-property-source-field"
 		},
+		"CnQrCode": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-qr-code"
+		},
 		"CnQuickFilterBar": {
 			"direct": 0,
 			"transitive": 0,
@@ -3927,6 +4191,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-readiness-checklist"
+		},
+		"CnRealtimeToast": {
+			"direct": 0,
+			"transitive": 3,
+			"tier": "light",
+			"via": [],
+			"page": "cn-realtime-toast"
 		},
 		"CnRecordListWidget": {
 			"direct": 4,
@@ -4138,7 +4409,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 227,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4147,6 +4418,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -4159,6 +4431,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -4201,6 +4474,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -4234,6 +4508,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -4262,16 +4537,33 @@
 		},
 		"CnRetentionWidget": {
 			"direct": 5,
-			"transitive": 1,
-			"tier": "medium",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-retention-widget"
 		},
-		"CnRichSubmitDialog": {
+		"CnRevealField": {
 			"direct": 0,
 			"transitive": 0,
 			"tier": "none",
 			"via": [],
+			"page": "cn-reveal-field"
+		},
+		"CnRichSubmitDialog": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-rich-submit-dialog"
 		},
 		"CnRoadmapItem": {
@@ -4304,9 +4596,14 @@
 		},
 		"CnSaveViewDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-save-view-dialog"
 		},
 		"CnSavedViewAlertWidget": {
@@ -4318,9 +4615,14 @@
 		},
 		"CnSavedViewEditDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-edit-dialog"
 		},
 		"CnSavedViewLookFields": {
@@ -4339,16 +4641,26 @@
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 11,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-presentation-dialog"
 		},
 		"CnSavedViewShareDialog": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-saved-view-share-dialog"
 		},
 		"CnSavedViewShareFields": {
@@ -4469,9 +4781,14 @@
 		},
 		"CnSearchPage": {
 			"direct": 1,
-			"transitive": 0,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-search-page"
 		},
 		"CnSearchSelect": {
@@ -4483,14 +4800,19 @@
 		},
 		"CnSecretAddressCard": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-secret-address-card"
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 144,
+			"transitive": 145,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4498,6 +4820,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -4632,9 +4955,14 @@
 		},
 		"CnSetupWizard": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 12,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-setup-wizard"
 		},
 		"CnShareCreate": {
@@ -4643,6 +4971,18 @@
 			"tier": "none",
 			"via": [],
 			"page": null
+		},
+		"CnShareList": {
+			"direct": 0,
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-share-list"
 		},
 		"CnShippedConfigurationSection": {
 			"direct": 0,
@@ -4803,10 +5143,14 @@
 		},
 		"CnStateMachineEditor": {
 			"direct": 0,
-			"transitive": 1,
-			"tier": "light",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnGraphCanvas"
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnGraphCanvas",
+				"CnIndexPage"
 			],
 			"page": "cn-state-machine-editor"
 		},
@@ -4953,9 +5297,14 @@
 		},
 		"CnSupportDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-support-dialog"
 		},
 		"CnSwitchRowsWidget": {
@@ -4967,9 +5316,14 @@
 		},
 		"CnTabbedFormDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tabbed-form-dialog"
 		},
 		"CnTableWidget": {
@@ -4996,7 +5350,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 1,
-			"transitive": 146,
+			"transitive": 147,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5004,6 +5358,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBulkJobProgress",
 				"CnCalendarEventCreate",
@@ -5068,9 +5423,14 @@
 		},
 		"CnTagsCard": {
 			"direct": 2,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tags-card"
 		},
 		"CnTalkRoomCreate": {
@@ -5145,11 +5505,28 @@
 			"via": [],
 			"page": "cn-task-form-fields"
 		},
+		"CnTaskFormWidget": {
+			"direct": 1,
+			"transitive": 10,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
+			"page": "cn-task-form-widget"
+		},
 		"CnTasksCard": {
 			"direct": 1,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-tasks-card"
 		},
 		"CnTasksWidget": {
@@ -5315,6 +5692,13 @@
 			"via": [],
 			"page": "cn-toggle-table-widget"
 		},
+		"CnTransferCard": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-transfer-card"
+		},
 		"CnTransitionInputFields": {
 			"direct": 0,
 			"transitive": 13,
@@ -5355,16 +5739,26 @@
 		},
 		"CnUserSettingsDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": null
 		},
 		"CnVersionHistory": {
 			"direct": 3,
-			"transitive": 7,
-			"tier": "medium",
-			"via": [],
+			"transitive": 14,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-version-history"
 		},
 		"CnVersionInfoCard": {
@@ -5456,16 +5850,20 @@
 		},
 		"CnWidgetFormRenderer": {
 			"direct": 0,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-widget-form-renderer"
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 224,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5474,6 +5872,7 @@
 				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
 				"CnAuditTrailCard",
+				"CnBannerWidget",
 				"CnBookmarkPicker",
 				"CnBuildiqEditButton",
 				"CnBulkJobProgress",
@@ -5486,6 +5885,7 @@
 				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
+				"CnConflictResolveCard",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -5527,6 +5927,7 @@
 				"CnObjectDataWidget",
 				"CnObjectFilesWidget",
 				"CnObjectGeoWidget",
+				"CnObjectLinksWidget",
 				"CnObjectListWidget",
 				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
@@ -5560,6 +5961,7 @@
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTaskFormDialog",
+				"CnTaskFormWidget",
 				"CnTasksCard",
 				"CnTasksWidget",
 				"CnTemplateSelect",
@@ -5580,10 +5982,14 @@
 		},
 		"CnWidgetMapViewer": {
 			"direct": 0,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 12,
+			"tier": "heavy",
 			"via": [
+				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage",
 				"CnMapWidget"
 			],
 			"page": "cn-widget-map-viewer"
@@ -5622,10 +6028,14 @@
 		},
 		"CnWidgetWrapper": {
 			"direct": 0,
-			"transitive": 4,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
-				"CnActionsMenu"
+				"CnActionDialog",
+				"CnActionsMenu",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
 			],
 			"page": "cn-widget-wrapper"
 		},
@@ -5638,9 +6048,14 @@
 		},
 		"CnWizardDialog": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnActionDialog",
+				"CnAssignDialog",
+				"CnBulkJobProgress",
+				"CnIndexPage"
+			],
 			"page": "cn-wizard-dialog"
 		},
 		"CnWorkQueue": {

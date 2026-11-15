@@ -75,7 +75,7 @@ CnStorePage SHALL run the title and the description of each built-in item throug
 
 #### Scenario: A Dutch reader without a registry
 
-- **GIVEN** no store registry and a built-in item titled "Objection procedure" that the app translates
+- **GIVEN** no marketplace registry and a built-in item titled "Objection procedure" that the app translates
 - **THEN** the card shows the app's translation
 
 ### Requirement: A page can ask for its unread rows

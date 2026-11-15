@@ -72,6 +72,7 @@ async function onSearch({ query, facets }) {
 | `facetsTitle` / `clearFacetsLabel` | String | — | Sidebar labels. |
 | `totalCountLabel` | Function | `(t, s) => …` | "Showing X of Y" formatter. |
 | `sources` | `Array<object>` | `[]` | Lists the page searches itself (see [Searching lists from the manifest](#searching-lists-from-the-manifest)). Empty keeps the page controlled. |
+| `searchRefusal` | `Object` | `null` | The words of a refused search (manifest `config.searchRefusal`): `{ title?, after? }`, the title with `{position}`. A `sources` search the server refuses for its grammar keeps the results it had and says so under the search field. |
 | `typeLabel` | String | `'Type'` | The Type filter's heading when the page searches `sources`. |
 
 ## Events

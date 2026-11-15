@@ -350,6 +350,7 @@
 					@binding {object} store The effective object store.
 					@binding {Function} openEditForm Opens this page's own record edit form. Lets an actions component put Edit inside ITS action cluster instead of leaving the page's button beside it — the page renders no button of its own once `showEditAction` is false, but this still opens the same dialog.
 					@binding {boolean} canEditRecord Whether the page would render its own Edit button (`showEditAction` plus a record and schema to edit).
+					@binding {object|null} can The record's rights (`@self.can`) on a page with `permissions`, else null.
 				-->
 				<slot
 					name="actions"
@@ -359,7 +360,8 @@
 					:objectType="resolvedObjectType"
 					:store="effectiveObjectStore"
 					:openEditForm="openEditForm"
-					:canEditRecord="canEditRecord" />
+					:canEditRecord="canEditRecord"
+					:can="recordCan" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
@@ -523,8 +525,14 @@
 					:rootText="breadcrumbCrumbs[0].icon === undefined"
 					:separator="breadcrumbSeparator || '/'"
 					data-testid="cn-detail-page-breadcrumbs" />
+				<CnDetailHeaderChips
+					v-if="headerFields.length > 0"
+					:fields="headerFields"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:register="register" />
 				<span
-					v-if="breadcrumbCrumbs.length > 0 && hasHeaderMeta"
+					v-if="(breadcrumbCrumbs.length > 0 || headerFields.length > 0) && headerMetaText"
 					class="cn-detail-page__header-dot"
 					aria-hidden="true"
 					data-testid="cn-detail-page-header-dot">&middot;</span>
@@ -532,12 +540,6 @@
 					v-if="headerMetaText"
 					class="cn-detail-page__header-meta"
 					data-testid="cn-detail-page-header-meta">{{ headerMetaText }}</span>
-				<CnDetailHeaderChips
-					v-if="headerFields.length > 0"
-					:fields="headerFields"
-					:object="resolvedObject"
-					:schema="currentSchema"
-					:register="register" />
 			</div>
 			<!-- Row 3 of the board look's header: the Follow control under the
 			     breadcrumb, clear of the title row and its actions (DqZaak
@@ -1316,6 +1318,9 @@
 				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft"
+				:draftField="draftField"
 				@confirm="onCreateFormConfirm"
 				@close="onCreateFormClose" />
 
@@ -1335,13 +1340,18 @@
 				:item="currentObject"
 				:register="register"
 				:dialogTitle="editFormTitle"
+				:eyebrow="editFormEyebrow"
 				:subtitle="editFormSubtitle"
 				:confirmLabel="editFormConfirmLabel"
+				:footnote="editFormFootnote"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
+				:draftAppId="draftAppId"
+				:allowDraft="allowDraft && currentObject?.[draftField] === true"
+				:draftField="draftField"
 				@confirm="onEditFormConfirm"
 				@close="closeEditForm" />
 		</slot>
@@ -1355,6 +1365,7 @@
 			:item="sourceVerbForm.form.item || {}"
 			:dialogTitle="sourceVerbForm.label"
 			:fieldOverrides="sourceVerbForm.form.fieldOverrides || {}"
+			:draftAppId="draftAppId"
 			@confirm="onSourceVerbFormConfirm"
 			@close="sourceVerbForm = null" />
 
@@ -1455,6 +1466,7 @@ import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { parentCrumb } from '../../utils/parentCrumb.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1548,6 +1560,17 @@ function isDefaultColumnOpts(opts) {
  * and an app's own dialog emits it after a successful write.
  */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/** Header-action roles that change the record, off while the record refuses updates. */
+const EDIT_ROLES = ['edit', 'update']
+
+/**
+ * @param {object} action A header action.
+ * @return {boolean} Whether it edits the record.
+ */
+function isEditRole(action) {
+	return Boolean(action) && EDIT_ROLES.includes(action.role)
+}
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -1775,6 +1798,8 @@ export default {
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
 		const canEditRecord = computed(() => this.canEditRecord)
+		const updateDenied = computed(() => this.recordUpdateDenied)
+		const recordCan = computed(() => this.recordCan)
 		const lastChange = computed(() => this.lastChange)
 		return {
 			// The page's own record edit form, for a widget header button whose
@@ -1784,8 +1809,16 @@ export default {
 					return canEditRecord.value
 				},
 
+				// The record refuses this reader's updates, so inline editors stay off.
+				get denied() {
+					return updateDenied.value
+				},
+
 				open: () => this.openEditForm(),
 			},
+
+			// The record's rights (`@self.can`) on a page with `permissions`, else null.
+			cnRecordCan: recordCan,
 
 			// The record's newest create or update entry, for a widget that names
 			// who changed it last (`recordLastChange`); null until read.
@@ -1900,6 +1933,33 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The app a form draft belongs to, forwarded to every form this page
+		 * opens as CnFormDialog's `draftAppId`, so what a user typed and did not
+		 * save is kept and offered back under this app's key.
+		 */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Offer "Save draft" on the create form, forwarded as CnFormDialog's
+		 * `allowDraft`. On an edit form it is offered only while the record is
+		 * still a draft: saving a record that is already in use as a draft
+		 * would take it out of use.
+		 */
+		allowDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The boolean property that marks a record as a draft (CnFormDialog's `draftField`). */
+		draftField: {
+			type: String,
+			default: 'isDraft',
 		},
 
 		/**
@@ -2379,6 +2439,35 @@ export default {
 		},
 
 		/**
+		 * Read the record's rights (manifest `config.permissions`): the object
+		 * read asks for `@self.can`, and while `can.update` is false the edit
+		 * form, the header actions with role `edit` or `update` and the inline
+		 * editors are off. A record without `can` keeps today's controls.
+		 */
+		permissions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * A condition on the record, in the `visibleWhen` grammar (manifest
+		 * `config.readOnlyWhen`): while it holds, the page treats the record
+		 * as one it may not update, as with `can.update` false. The Edit
+		 * button, the header actions with role `edit` or `update` and the
+		 * inline editors are off. `{ field: "mergedInto", op: "notEmpty" }`
+		 * keeps a record merged into another from being edited. It is decided
+		 * on the page (no `endpoint` or `source`) and may read the
+		 * `visibilityContext` records as `@context.<name>.<path>`. Null
+		 * (the default) changes nothing.
+		 *
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyWhen: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Hide valueless fields on the auto-rendered data widget, instead of
 		 * showing them with an em dash. See `CnObjectDataWidget`'s `hide-empty`.
 		 *
@@ -2502,8 +2591,30 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * One short line over the edit form's title (PqTicketBewerken "Bewerken ·
+		 * PQ-2026-0417"), run through the host translate. Like the title and
+		 * subtitle it may name the record with `{field}` tokens. Empty shows none.
+		 */
+		editEyebrow: {
+			type: String,
+			default: '',
+		},
+
 		/** The edit form's save button, run through the host translate. Empty keeps the form's own label. */
 		editConfirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A note the record edit form closes on, under its fields
+		 * (PqTicketBewerken "De status wijzig je hier niet: ..."), run through
+		 * the host translate. Empty shows none.
+		 *
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFootnote: {
 			type: String,
 			default: '',
 		},
@@ -2941,8 +3052,12 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
 		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
 		 * and then the record); `currentField` and `separator` may sit on any
-		 * of them.
+		 * of them. A crumb with `parent` (a `visibilityContext` name) instead
+		 * of `label` is the record's parent: its `labelField` value (else its
+		 * name), linked by `route` + `param` (default `id`) or `href` with
+		 * `{id}`; it drops out when the record has no parent.
 		 *
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
@@ -3756,7 +3871,7 @@ export default {
 		},
 
 		/**
-		 * Whether row 2 has a meta line or header chips to draw after the
+		 * Whether row 2 has a meta line or header chips to draw beside the
 		 * breadcrumb.
 		 *
 		 * @return {boolean} True with meta or chips.
@@ -4969,7 +5084,8 @@ export default {
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
 			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
-			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const shown = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const declared = this.recordUpdateDenied ? shown.filter((action) => !isEditRole(action)) : shown
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -4986,12 +5102,20 @@ export default {
 			]
 		},
 
+		/**
+		 * Whether the page offers its own record edit form: asked for, a record
+		 * and schema to edit, no lock held by somebody else, and updates allowed.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode
 				&& this.hasSchemaDrivenFetch
 				&& Boolean(this.currentSchema)
 				&& !this.editLockedByOther
+				&& !this.recordUpdateDenied
 		},
 
 		/**
@@ -5020,19 +5144,35 @@ export default {
 			return this.editLabel ? this.effectiveTranslate(this.editLabel) : t('nextcloud-vue', 'Edit')
 		},
 
-		/** @return {string} The edit form's title, translated; the Edit button's label when none is configured. */
+		/** @return {string} The edit form's title, translated and filled from the record; the Edit button's label when none is configured. */
 		editFormTitle() {
-			return this.editTitle ? this.effectiveTranslate(this.editTitle) : this.editActionLabel
+			return this.editTitle ? this.editFormHeaderText(this.editTitle) : this.editActionLabel
 		},
 
-		/** @return {string} The edit form's subtitle, translated; empty when none is configured. */
+		/** @return {string} The edit form's subtitle, translated and filled from the record; empty when none is configured. */
 		editFormSubtitle() {
-			return this.editSubtitle ? this.effectiveTranslate(this.editSubtitle) : ''
+			return this.editSubtitle ? this.editFormHeaderText(this.editSubtitle) : ''
+		},
+
+		/**
+		 * @return {string} The edit form's eyebrow, translated and filled from the record; empty when none is configured.
+		 * @spec openspec/changes/detail-edit-form-header-from-record/specs/detail-page/spec.md#requirement-the-edit-forms-header-can-name-the-record
+		 */
+		editFormEyebrow() {
+			return this.editEyebrow ? this.editFormHeaderText(this.editEyebrow) : ''
 		},
 
 		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
 		editFormConfirmLabel() {
 			return this.editConfirmLabel ? this.effectiveTranslate(this.editConfirmLabel) : ''
+		},
+
+		/**
+		 * @return {string} The edit form's closing note, translated; empty when none is configured.
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFormFootnote() {
+			return this.editFootnote ? this.effectiveTranslate(this.editFootnote) : ''
 		},
 
 		/**
@@ -5451,10 +5591,48 @@ export default {
 		 */
 		readExtend() {
 			const out = [...this.extend]
-			if (this.follow !== false && !out.includes('@self.can')) {
+			if ((this.follow !== false || this.permissions === true) && !out.includes('@self.can')) {
 				out.push('@self.can')
 			}
 			return out
+		},
+
+		/**
+		 * The record's rights (`@self.can`) on a page that asks for them, else null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
+		 */
+		recordCan() {
+			const can = this.resolvedSelf.can
+			return this.permissions === true && can && typeof can === 'object' && !Array.isArray(can) ? can : null
+		},
+
+		/**
+		 * Whether the record refuses this reader's updates (`can.update === false`),
+		 * or the page's `readOnlyWhen` holds for it.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
+		recordUpdateDenied() {
+			return Boolean(this.recordCan && this.recordCan.update === false) || this.readOnlyByCondition
+		},
+
+		/**
+		 * Whether the page's `readOnlyWhen` holds for the record (and its
+		 * `visibilityContext` records). False without the option, and while
+		 * the record or those records are still on their way.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyByCondition() {
+			const when = this.readOnlyWhen
+			if (!when || typeof when !== 'object' || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: when }, this.widgetVisibilityData)
 		},
 
 		/**
@@ -5519,7 +5697,7 @@ export default {
 		 */
 		declaredCrumbs() {
 			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
-			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== ''
+			return list.filter((crumb) => crumb && ((typeof crumb.label === 'string' && crumb.label !== '') || (typeof crumb.parent === 'string' && crumb.parent !== ''))
 				&& (!crumb.visibleWhen || detailWidgetVisible({ visibleWhen: crumb.visibleWhen }, this.widgetVisibilityData)))
 		},
 
@@ -5527,11 +5705,14 @@ export default {
 		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
 		 * as the current crumb. Empty without a declared crumb. A crumb
-		 * carries `icon` only when the manifest declares one.
+		 * carries `icon` only when the manifest declares one. A crumb with
+		 * `parent` is the record's parent (see `parentCrumb`) and drops out
+		 * when the record has none.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
@@ -5539,6 +5720,9 @@ export default {
 				return []
 			}
 			const crumbs = this.declaredCrumbs.map((crumb) => {
+				if (typeof crumb.parent === 'string' && crumb.parent !== '') {
+					return parentCrumb(crumb, this.visibilityRefs, this.visibilityRows, this.effectiveTranslate)
+				}
 				const entry = { label: this.effectiveTranslate(crumb.label) }
 				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
 					entry.icon = crumb.icon
@@ -5549,7 +5733,10 @@ export default {
 					entry.href = crumb.href
 				}
 				return entry
-			})
+			}).filter((crumb) => crumb !== null)
+			if (crumbs.length === 0) {
+				return []
+			}
 			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 
@@ -6236,6 +6423,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A configured edit form title, subtitle or eyebrow, translated, with its
+		 * `{field}` tokens filled from the record as the header line fills them
+		 * (an enum value reads its label). Text without tokens stays as written.
+		 *
+		 * @spec openspec/changes/detail-edit-form-header-from-record/specs/detail-page/spec.md#requirement-the-edit-forms-header-can-name-the-record
+		 * @param {string} text The configured text.
+		 * @return {string} The text to show.
+		 */
+		editFormHeaderText(text) {
+			const translated = this.effectiveTranslate(text)
+			if (!/\{[^}]+\}/.test(translated)) {
+				return translated
+			}
+			return resolveHeaderMeta(translated, this.resolvedObject, { schema: this.currentSchema, translate: this.effectiveTranslate })
+		},
+
 		/**
 		 * Read the record's newest create or update audit entry into
 		 * `lastChange`; a failed read leaves it null.

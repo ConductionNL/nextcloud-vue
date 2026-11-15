@@ -38,7 +38,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
 | `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
 | `entitySource` | String | `''` | Name a registered entity source that reads ONE record, for a record that is not a register/schema object (manifest `config.entitySource`). The same registry and name as CnIndexPage's `entitySource`: `organisations` reads the OpenRegister organisation whose uuid is `objectId` (`GET /apps/openregister/api/organisations/{uuid}`). The record feeds the header, pills, header fields, widgets and the `@objectId` / `@object.*` tokens exactly as a fetched object does; its `id` is the uuid. Wins over `register` + `schema`. A 403 or 404 shows the not-found state; an unknown name shows no record and warns. Refresh and `cn:page:refresh` re-read the record. |
-| `sourceConfig` | Object | `null` | The config of a record source that takes one (manifest `config.sourceConfig`). With `entitySource: "endpoint"` the record comes from an app's own endpoint: `url` is an app path with `{id}` for the record id (`/apps/pipelinq/api/kassakoppeling/audit/{id}`), read with the session so the endpoint does its own authorization, and `recordPath` names where the record sits in the answer (the whole answer by default). A 403 or 404, or an answer without a record, shows the not-found state. |
+| `sourceConfig` | Object | `null` | The config of a record source that takes one (manifest `config.sourceConfig`). With `entitySource: "endpoint"` the record comes from an app's own endpoint: `url` is an app path with `{id}` for the record id (`/apps/pipelinq/api/kassakoppeling/audit/{id}`), read with the session so the endpoint does its own authorization, and `recordPath` names where the record sits in the answer (the whole answer by default). `attach` puts other parts of the answer on the record, by record key and answer path (`{ "messages": "messages", "terms": "terms" }` beside `recordPath: "report"`), so a widget such as `conversation` or `facts` reads them like any field; a path the answer does not hold is left out. A 403 or 404, or an answer without a record, shows the not-found state. |
 | `hideEmpty` | Boolean | `false` | Hide valueless fields on the auto-rendered data widget (see [`CnObjectDataWidget`](./cn-object-data-widget.md)'s `hide-empty`). Set it from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants, where each object only carries the fields its variant uses. A widget declaring its own `content.hideEmpty` still wins over this page-level default. |
 | `createForm` | String | `'auto'` | **Create archetype switch (ADR-062).** Whether this page renders its OWN create form dialog when reached without an object id. Set from the manifest as `config.createForm`. `'auto'` (default) — heuristic: only when the page is schema-bound, has no object id, and supplies no body of its own (no default slot, no grid layout). `'never'` — never render it; use when the body owns data entry (e.g. a CnObjectDataWidget or registry component already provides the form), which stops two form dialogs stacking. `'always'` — render it even when the page has a body, for a page that deliberately pairs custom content with a create form. The dialog is always the generic schema-driven `CnFormDialog`, so it follows the same OpenRegister/schema form rules (required, readOnly, enum/$ref, `visibleWhen`). |
 | `includeFields` | Array | `null` | Fields the create and edit forms ask for, in this order. `null` asks for every property the schema declares. Same three keys as [`CnIndexPage`](./cn-index-page.md), so one manifest describes the record's form wherever it opens rather than the list page and the detail page each carrying their own. |
@@ -67,6 +67,10 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `bodyWidgets` | Array | `[]` | **Declarative IN-BODY sections.** Each entry `{ id?, component, title?, props?, placement?, colSpan?, card? }` renders a REGISTERED host-app component as a titled section in the page **body** (not the sidebar), with the object/page context injected. `component` is a registry name resolved from the app's v2 `registry` (any kind exposing a `.component`, e.g. `kind:"section"` / `kind:"widget"`) or the legacy `customComponents` map — **no sidebar tab is required**. `props` values are token-resolved (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`; unset optional `@…?` tokens are dropped). `placement` is `before-body` \| `after-data` \| `after-related` \| `end` (default `end`). `colSpan` (1–12) lays sections out on a grid when several share a placement. `card: true` draws the section in the same card as the grid's widgets. Instead of `component`, an entry may name a library widget `type` (`handoff`, `facts`, `field-list`, ...) with its `content`: it renders with the page's record, in the same placement and card. The loaded object + objectId are also `provide`d on `cnSectionContext` so a host component can inject them instead of taking props; its `setObject(object)` puts an object the section saved into the page, so the rest of the page shows it without a re-fetch. A section whose component can't be resolved, or that throws while rendering, degrades to an inline error and never breaks the page. See [CnBodySections](./cn-body-sections.md). |
 | `appConfig` | Object | `{}` | **Page-level app config** exposed to declarative widget / section config via the **`@config.<key>` token** and `provide`d on `cnAppConfig`. Lets a stat widget's `format: { style: 'currency', currency: '@config.currency' }` format with a configured value (e.g. the reporting currency a setup wizard captures) instead of a hard-coded `EUR`, and an endpoint KPI's URL / params + filter values interpolate `@config.<key>`. A manifest renderer typically seeds it from `loadState(appId, 'config', {})`. Backwards-compatible: a literal `"EUR"` still works, and an unset required `@config.<key>` falls back to the format default. |
 | `editConfirmLabel` | String | `''` | The edit form's save button (manifest `config.editConfirmLabel`), through the host translate. Empty keeps the form's own label. |
+| `editEyebrow` | String | `''` | One short line over the edit form's title (PqTicketBewerken "Bewerken · PQ-2026-0417"), run through the host translate. Like the title and subtitle it may name the record with `{field}` tokens. Empty shows none. |
+| `draftAppId` | String | `''` | The app a form draft belongs to, forwarded to every form this page opens as CnFormDialog's `draftAppId`, so what a user typed and did not save is kept and offered back under this app's key (manifest `config.draftAppId`). |
+| `allowDraft` | Boolean | `false` | Offer "Save draft" on the create form, forwarded as CnFormDialog's `allowDraft`. On an edit form it is offered only while the record is still a draft (manifest `config.allowDraft`). |
+| `draftField` | String | `'isDraft'` | The boolean property that marks a record as a draft, CnFormDialog's `draftField` (manifest `config.draftField`). |
 | `headerActionsBelow` | Boolean | `false` | The header buttons on a row of their own under the title (manifest `config.headerActionsBelow`), instead of beside it. |
 
 ## The action model
@@ -534,6 +538,57 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 </template>
 ```
 
+## A record from an app endpoint
+
+A record that is not a register object (a report kept behind an app's own access check, an audit row) is still a `type: "detail"` page: `entitySource: "endpoint"` reads it from the app, and the widgets, header actions and side column work as on an object.
+
+```json
+{
+  "id": "ReportDetail",
+  "route": "/reports/:id",
+  "type": "detail",
+  "config": {
+    "entitySource": "endpoint",
+    "sourceConfig": {
+      "url": "/apps/myapp/api/reports/{id}",
+      "recordPath": "report",
+      "attach": { "messages": "messages", "terms": "terms" }
+    },
+    "titleField": "summary",
+    "widgets": [
+      { "id": "facts", "type": "facts", "content": { "fields": [{ "label": "Received", "path": "receivedAt", "format": "date" }] } },
+      {
+        "id": "thread",
+        "type": "conversation",
+        "content": {
+          "field": "messages",
+          "textField": "body",
+          "timeField": "writtenAt",
+          "sideField": "author",
+          "usValue": "handler",
+          "endpoint": "/apps/myapp/api/reports/@objectId/messages",
+          "messageKey": "body",
+          "replyOption": { "label": "Visible to the reporter", "key": "visibleToReporter", "value": false }
+        }
+      }
+    ],
+    "headerActions": [
+      {
+        "id": "ask",
+        "label": "Ask to reveal the contact",
+        "type": "open-form",
+        "endpoint": { "url": "/apps/myapp/api/reports/@objectId/reveal-requests", "method": "POST" },
+        "formProperties": { "motivation": { "type": "string", "title": "Motivation", "format": "textarea" } }
+      }
+    ]
+  }
+}
+```
+
+- The endpoint answers `{ report, messages, terms }`: `recordPath` picks the record, and `attach` puts `messages` and `terms` on it, so the `conversation` widget reads `messages` as a field of the record.
+- The reply is posted to the widget's `endpoint` with the text under `messageKey` and the switch's state under its `key`; the page then reads the record again.
+- The endpoint does the access check. A 403 or 404 shows the not-found state.
+
 ## Public (unauthenticated) detail pages
 
 `pages[].config.mode: 'public'` marks a detail route as unauthenticated — token-scoped reader pages like credential verification or shared-link views. Pair with the `@route.<param>` sentinel (see [`resolveRouteSentinels`](../utilities/resolve-route-sentinels.md)) for the token binding:
@@ -632,6 +687,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 | `editTitle` | String | `''` | Title of the record edit form, run through the host translate. Empty uses the Edit button's label. |
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
+| `editFootnote` | String | `''` | A note under the edit form's fields (manifest `config.editFootnote`), run through the host translate and passed to the form as its `footnote`. Empty shows none. |
 
 ### Widget icons (ADR-062)
 
@@ -755,10 +811,23 @@ A case type with `"sideCards": ["consent", "people", "deadline"]` shows those th
 
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
 - `config.breadcrumb` may be a list of crumbs for a record that sits more than one level deep: `[{ "label": "Settings", "href": "..." }, { "label": "Case types", "route": "CaseTypes" }]` reads "Settings / Case types / Omgevingsvergunning regulier". `currentField` and `separator` may sit on any crumb of the list.
+- A crumb with `parent` instead of `label` is the record's parent, for a sub-record (a sub-case under its case). `parent` names a `config.visibilityContext` entry, which says which field holds the parent's id and where the parent lives; the page reads the parent once. The crumb shows the parent's `labelField` value (e.g. `identifier`), else its name or title, else the crumb's own `label`, and links to `route` with the parent's id as the `param` route parameter (default `id`), or to `href` with `{id}` filled in. A record without a parent drops the crumb; a trail left with no crumb before the record draws nothing.
+
+```json
+{
+  "visibilityContext": { "parentRecord": { "field": "parent", "register": "app", "schema": "case" } },
+  "breadcrumb": [
+    { "label": "Cases", "route": "Cases" },
+    { "parent": "parentRecord", "labelField": "identifier", "route": "CaseDetail" }
+  ]
+}
+```
+
+A sub-case of `Z-2026-001` reads "Cases / Z-2026-001 / Z-2026-001-1"; a case without a parent reads "Cases / Z-2026-002".
 - `config.headerMetaWhen` (`[{ when, text }]`) makes the meta line depend on the record: the first entry whose local `visibleWhen` condition holds replaces `headerMeta`, and none leaves it. PqOfferte reads "not sent yet · prices excl. VAT" on a draft (`{ "when": { "field": "status", "value": "draft" }, "text": "not sent yet · prices excl. VAT" }`).
 - `config.headerMetaCounts` (`{ <name>: { register, schema, filter? } | { entitySource } }`) lets `headerMeta` count a list as `{count:<name>}`, as on a list page: `"een van {count:organisations} organisaties op deze omgeving"` (DqTenant). While a count is missing the line is left out.
-- `config.headerMetaLastChange: true` reads the record's newest create or update entry from its audit trail and offers it to `headerMeta` as `{_lastChange.userName}`, `{_lastChange.user|user}` and `{_lastChange.created|date}`: "last changed {_lastChange.created|date} by {_lastChange.userName}" (DqZaaktype). A trail that cannot be read leaves the tokens empty.
-- `config.recordLastChange: true` reads that same entry for the widgets on the page (provided as `cnRecordLastChange`; `headerMetaLastChange` provides it too). A facts card reads it as `_lastChange.userName` and `_lastChange.created`: "Last changed on {date} by {user}" (DqContact, DqOrganisatie "Historie").
+- `config.headerMetaLastChange: true` reads the record's newest create or update entry from its audit trail and offers it to `headerMeta` as `{_lastChange.userName}`, `{_lastChange.user|user}` and `{_lastChange.created|date}`: "last changed \{_lastChange.created|date\} by \{_lastChange.userName\}" (DqZaaktype). A trail that cannot be read leaves the tokens empty.
+- `config.recordLastChange: true` reads that same entry for the widgets on the page (provided as `cnRecordLastChange`; `headerMetaLastChange` provides it too). A facts card reads it as `_lastChange.userName` and `_lastChange.created`: "Last changed on \{date\} by \{user\}" (DqContact, DqOrganisatie "Historie").
 - `showWidgetActions` (manifest `config.showWidgetActions`, default `true`): `false` drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`. A definition with `showActions: false` drops its menu either way. A catalog card that offers an Add action keeps the menu that holds it.
 - With `headerWidget` a long title now wraps beside the header actions instead of pushing them onto the next row.
 
@@ -773,6 +842,8 @@ When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegist
 | `followRow` | Object \| null | `null` | The board look's follow row (manifest `config.followRow`): `presence: true` says who else has the record open now, with their initials, before the Follow control ("Anouk Bakker is also looking at this record now", or "… and 2 others …"); `count: false` draws no follower count. |
 | `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
 | `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
+| `permissions` | Boolean | `false` | Read the record's rights (manifest `config.permissions: true`): the object read asks for `@self.can`, also with `follow: false`. While `can.update` is `false` the Edit button, the header actions with `role` `edit` or `update` and the inline editors of the data and map widgets are off. A record without `can` keeps every control. Widgets read the rights as `cnRecordCan` and `cnRecordEdit.denied`, the `actions` slot as `can`, and a `visibleWhen` as `@self.can.<name>`. |
+| `readOnlyWhen` | Object | `null` | A condition on the record in the `visibleWhen` grammar (manifest `config.readOnlyWhen`). While it holds, the page treats the record as one this reader may not update, as with `can.update` `false`: no Edit button, no header actions with `role` `edit` or `update`, no inline editors. `{ "field": "mergedInto", "op": "notEmpty" }` keeps a record that was merged into another from being edited. The condition is decided on the page (no `endpoint` or `source`) and may read the `visibilityContext` records as `@context.<name>.<path>`. While the record is loading the controls stay as they are. |
 
 ## Read state: opening a record marks it read
 

@@ -124,6 +124,12 @@ describe('CnTasksWidget table', () => {
 		expect(mockPost).toHaveBeenCalledWith('/apps/openregister/api/flow-tasks/open-1/cancel', {})
 	})
 
+	it('cancels through the app route when cancelUrl is set', async () => {
+		const w = mountTable({ ...CONTENT, cancelUrl: '/apps/dossiq/api/case-tasks/{id}/cancel' })
+		await w.find('[data-testid="cn-tasks-widget-cancel-open-1"]').trigger('click')
+		expect(mockPost).toHaveBeenCalledWith('/apps/dossiq/api/case-tasks/open-1/cancel', {})
+	})
+
 	it('adds a task on the record from the header action', async () => {
 		const w = mountTable()
 		w.emitted('header').at(-1)[0].action.run()

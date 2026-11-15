@@ -2,12 +2,14 @@
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                                                                                                           |
-| -------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `result` | `object` | ✓        | —       | OpenRegister's dry-run answer: `{ status, error?, steps: [{ nodeId, type, label, status, preview: { performed, summary?, changes?, messages? } }] }`. |
+| Name     | Type      | Required | Default | Description                                                                                                                                           |
+| -------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result` | `object`  | ✓        | —       | OpenRegister's dry-run answer: `{ status, error?, steps: [{ nodeId, type, label, status, preview: { performed, summary?, changes?, messages? } }] }`. |
+| `card`   | `boolean` |          | `false` | Draw the test run card, a table with Test again.                                                                                                      |
 
 ### Events
 
 | Name    | Payload | Description |
 | ------- | ------- | ----------- |
+| `again` | —       |             |
 | `close` | —       |             |

@@ -2,33 +2,40 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name           | Type      | Required | Default     | Description                                                                                                                         |
-| -------------- | --------- | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `name`         | `string`  | ✓        | —           | Dialog title; also the accessible name.                                                                                             |
-| `size`         | `string`  |          | `'small'`   | NcDialog size, used in the Nextcloud look only.                                                                                     |
-| `noClose`      | `boolean` |          | `false`     | Block closing while an operation runs.                                                                                              |
-| `look`         | `string`  |          | `undefined` | The look; unset follows the injected `cnLook`.                                                                                      |
-| `width`        | `string`  |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`).                                                                         |
-| `defaultWidth` | `string`  |          | `'form'`    | The component's own default width role.                                                                                             |
-| `eyebrow`      | `string`  |          | `''`        | Context line above the title (board look).                                                                                          |
-| `subtitle`     | `string`  |          | `''`        | Sentence under the title (board look).                                                                                              |
-| `headless`     | `boolean` |          | `false`     | Leave out the board header: the body draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name. |
+| Name               | Type            | Required | Default     | Description                                                                                                                                                          |
+| ------------------ | --------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`             | `string`        | ✓        | —           | Dialog title; also the accessible name.                                                                                                                              |
+| `size`             | `string`        |          | `'small'`   | NcDialog size, used in the Nextcloud look only.                                                                                                                      |
+| `noClose`          | `boolean`       |          | `false`     | Block closing while an operation runs.                                                                                                                               |
+| `look`             | `string`        |          | `undefined` | The look; unset follows the injected `cnLook`.                                                                                                                       |
+| `width`            | `string`        |          | `''`        | Width role in the board look (`confirm`, `form`, `wizard`).                                                                                                          |
+| `defaultWidth`     | `string`        |          | `'form'`    | The component's own default width role.                                                                                                                              |
+| `eyebrow`          | `string`        |          | `''`        | Context line above the title (board look).                                                                                                                           |
+| `subtitle`         | `string`        |          | `''`        | Sentence under the title (board look).                                                                                                                               |
+| `headless`         | `boolean`       |          | `false`     | Leave out the board header: the body draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name.                                  |
+| `notices`          | `Array<object>` |          | `[]`        | The dialog's state banners (R1): each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible? }`), such as the refusal a save answered. |
+| `noticesPlacement` | `string`        |          | `'top'`     | Where the notices go: `top` (under the header) or `bottom` (above the footer buttons).                                                                               |
 
 ### Events
 
-| Name      | Payload | Description                                                                                             |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `closing` | —       | Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set. |
+| Name             | Payload | Description                                                                                             |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `notice-action`  | —       |                                                                                                         |
+| `notice-dismiss` | —       |                                                                                                         |
+| `closing`        | —       | Emitted when the dialog asks to close (close button, Escape, backdrop). Blocked while `noClose` is set. |
 
 ### Slots
 
 | Name      | Bindings | Description                                      |
 | --------- | -------- | ------------------------------------------------ |
+| `notice`  | —        |                                                  |
 | `default` | —        | default The dialog body, below the board header. |
 | `actions` | —        | actions The dialog footer buttons.               |

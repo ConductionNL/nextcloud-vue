@@ -84,4 +84,20 @@ describe('CnRecordListWidget headLine rows', () => {
 		expect(tile.attributes('style') || '').not.toContain('--cn-record-list-icon-tile-size')
 		expect(tile.classes().some((name) => name.startsWith('cn-record-list__icon-tile--'))).toBe(false)
 	})
+
+	it('marks its list, and the board look draws the rows as DqDagAfsluiten "Vandaag vastgelegd"', async () => {
+		const w = mount(CnRecordListWidget, { props: { content: { ...CONTENT, headLine: true } } })
+		await flush()
+		expect(w.find('.cn-record-list__list--headline').exists()).toBe(true)
+		const css = require('fs').readFileSync(require('path').join(__dirname, '../../src/css/look-board.css'), 'utf8')
+		const scope = '.cn-look-board .cn-dashboard-page:not(.cn-look-nextcloud *)'
+		const body = (selector) => {
+			const i = css.indexOf(selector + ' {')
+			return i < 0 ? '' : css.slice(i, css.indexOf('}', i))
+		}
+		expect(body(`${scope} .cn-record-list__list--headline .cn-record-list__row`)).toMatch(/padding-block: 16px;[\s\S]*gap: 8px 12px;/)
+		expect(body(`${scope} .cn-record-list__list--headline .cn-record-list__main`)).toMatch(/gap: 4px;/)
+		expect(body(`${scope} .cn-record-list__headline .cn-record-list__title--link`)).toMatch(/text-decoration: underline !important;/)
+		expect(body(`${scope} .cn-record-list__note`)).toMatch(/line-height: normal;/)
+	})
 })

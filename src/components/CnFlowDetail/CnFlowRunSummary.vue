@@ -9,7 +9,11 @@
 <template>
 	<section class="cn-flow-run-summary" data-testid="flow-run-summary">
 		<header class="cn-flow-run-summary__head">
-			<CnStatusBadge :label="statusLabel" :variant="statusVariant" />
+			<CnStatusBadge :label="statusLabel" :variant="statusVariant">
+				<template v-if="statusIcon" #icon>
+					<component :is="statusIconComponent" :size="16" />
+				</template>
+			</CnStatusBadge>
 			<h3 class="cn-flow-run-summary__title">
 				{{ t('nextcloud-vue', 'Run {id}', { id: runLabel }) }}
 			</h3>
@@ -75,12 +79,15 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Replay from 'vue-material-design-icons/Replay.vue'
 import { formatRelativeDate } from '../../utils/boardDate.js'
-import { flowRunDurationMs, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
-import { flowRunStatuses } from '../../utils/flowRunStatus.js'
+import { flowRunBadge, flowRunDurationMs, flowRunName, flowRunSteps, formatFlowDuration } from '../../utils/flowRunLog.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -132,6 +139,14 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Draw the status pill with an icon for its tone (PqFlowRun).
+		 */
+		statusIcon: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['back', 'retry'],
@@ -141,14 +156,14 @@ export default {
 		 * @return {object|null} The status entry for the run.
 		 */
 		status() {
-			return this.run ? (flowRunStatuses()[this.run.status] || null) : null
+			return this.run ? flowRunBadge(this.run) : null
 		},
 
 		/**
 		 * @return {string} The status pill label.
 		 */
 		statusLabel() {
-			return (this.status && this.status.label) || String(this.run?.status || '')
+			return (this.status && this.status.label) || flowRunOutcome(this.run)
 		},
 
 		/**
@@ -156,6 +171,16 @@ export default {
 		 */
 		statusVariant() {
 			return (this.status && this.status.variant) || 'default'
+		},
+
+		/**
+		 * @return {object} The status pill's icon for its tone.
+		 */
+		statusIconComponent() {
+			if (this.statusVariant === 'success') {
+				return CheckCircle
+			}
+			return ['error', 'warning'].includes(this.statusVariant) ? AlertCircleOutline : InformationOutline
 		},
 
 		/**

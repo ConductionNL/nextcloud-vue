@@ -360,6 +360,12 @@
 			</span>
 		</template>
 
+		<!-- Built-in "flowHealth" widget: a flow's health dot, read off the row
+		     of a `flows` source (`enabled`, `lastRunStatus`). -->
+		<template v-else-if="widget === 'flowHealth'">
+			<CnFlowHealthDot :enabled="row.enabled !== false" :lastRunStatus="row.lastRunStatus || null" />
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -449,6 +455,7 @@ import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextclou
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import Lock from 'vue-material-design-icons/Lock.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import CnFlowHealthDot from '../CnFlowDetail/CnFlowHealthDot.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -494,6 +501,7 @@ export default {
 	name: 'CnCellRenderer',
 
 	components: {
+		CnFlowHealthDot,
 		CnIcon,
 		CnStatusBadge,
 		NcCheckboxRadioSwitch,
@@ -752,19 +760,24 @@ export default {
 		},
 
 		/**
-		 * The `badge` widget's entries when the value is a list, each as text;
-		 * null for a single value.
+		 * The `badge` widget's entries when the value is a list, each as its
+		 * label: the items' `x-enum-labels` (or the normalised `enumLabels`),
+		 * translated, else the entry as stored. Null for a single value.
 		 *
 		 * @return {string[]|null}
 		 * @spec openspec/changes/badge-cell-list/specs/badge-cell-list/spec.md#requirement-a-badge-cell-draws-one-chip-per-entry-of-a-list
+		 * @spec openspec/changes/badge-list-labels-and-tags/specs/badge-cell-list/spec.md#requirement-a-badge-list-chip-shows-its-entrys-label
 		 */
 		badgeList() {
 			if (!Array.isArray(this.value)) {
 				return null
 			}
+			const items = (this.property && this.property.items) || {}
+			const labels = items.enumLabels || items['x-enum-labels'] || (this.property && (this.property.enumLabels || this.property['x-enum-labels'])) || {}
 			return this.value
 				.filter((entry) => entry !== null && entry !== undefined && entry !== '' && typeof entry !== 'object')
 				.map((entry) => String(entry))
+				.map((entry) => (typeof labels[entry] === 'string' ? this.cnTranslate(labels[entry]) : entry))
 		},
 
 		/**
@@ -1011,8 +1024,9 @@ export default {
 		/**
 		 * `avatar` widget: the chip's tone class in the board look,
 		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
-		 * default light primary. A grey chip of 28px or less is also
-		 * `--compact` (PqLeads' owner chip, 12px initials).
+		 * default light primary. A grey chip of 32px or less is also
+		 * `--compact` (PqLeads' owner chip, PtToegangsverzoeken' requester:
+		 * 12px initials).
 		 *
 		 * @return {Array<string>}
 		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
@@ -1022,7 +1036,7 @@ export default {
 			if (tone !== 'neutral') {
 				return []
 			}
-			return this.avatarSize <= 28
+			return this.avatarSize <= 32
 				? ['cn-cell-renderer__avatar-initials--neutral', 'cn-cell-renderer__avatar-initials--compact']
 				: ['cn-cell-renderer__avatar-initials--neutral']
 		},

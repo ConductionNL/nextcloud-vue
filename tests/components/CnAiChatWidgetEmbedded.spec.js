@@ -186,3 +186,59 @@ describe('the assistant as a board side card (DqZaakAssistent r25e)', () => {
 		expect(detail).toMatch(/:has\(\.cn-ai-chat-widget\) > \.cn-widget-wrapper__header \{[^}]*padding: 16px 18px;/)
 	})
 })
+
+describe('the approval card\'s wording from the widget (DqZaakAssistent "Voorstel: taak aanmaken")', () => {
+	const approval = { id: 'a1', kind: 'toolcall', title: 'Task create', app: 'dossiq', reach: 'user', reason: 'Taak Offerte beoordelen', agentId: 'g1', resolveUrl: '/index.php/apps/hermiq/api/approvals/a1/resolve' }
+	const streamState = { messages: [], currentText: '', isStreaming: false, conversationUuid: 's1', error: null, pendingApprovals: [approval] }
+
+	it('prefixes the title and words the buttons as the widget says', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, streamState, approvalWording: { titlePrefix: 'Voorstel:', allow: 'Uitvoeren', deny: 'Niet doen' } }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('.cn-ai-approval__title').text()).toBe('Voorstel: Task create')
+		expect(wrapper.find('[data-testid="cn-ai-approval-allow-a1"]').text()).toBe('Uitvoeren')
+		expect(wrapper.find('[data-testid="cn-ai-approval-deny-a1"]').text()).toBe('Niet doen')
+	})
+
+	it('keeps the catalogue name and Allow / Decline without wording', async () => {
+		const wrapper = mount(CnAiChatPanel, { propsData: { visible: true, embedded: true, streamState }, provide: {} })
+		await flushPromises()
+		expect(wrapper.find('.cn-ai-approval__title').text()).toBe('Task create')
+		expect(wrapper.find('[data-testid="cn-ai-approval-allow-a1"]').text()).toBe('Allow')
+		expect(wrapper.find('[data-testid="cn-ai-approval-deny-a1"]').text()).toBe('Decline')
+	})
+
+	it('hands the manifest\'s wording, translated, through the companion to the panel', async () => {
+		const cnTranslate = (text) => ({ 'Voorstel:': 'Proposal:' })[text] || text
+		const wrapper = mount(CnAiChatWidget, { propsData: { content: { approvalTitlePrefix: 'Voorstel:', allowLabel: 'Uitvoeren', denyLabel: 'Niet doen' } }, provide: { cnTranslate } })
+		await flushPromises()
+		const expected = { titlePrefix: 'Proposal:', allow: 'Uitvoeren', deny: 'Niet doen' }
+		expect(wrapper.findComponent(CnAiCompanion).props('approvalWording')).toEqual(expected)
+		expect(wrapper.findComponent(CnAiChatPanel).props('approvalWording')).toEqual(expected)
+	})
+})
+
+describe('the chat note from an endpoint', () => {
+	const content = {
+		note: 'Short note',
+		noteFrom: { url: '/apps/hermiq/api/ai-features/residency', path: 'results', match: { slug: 'chat-companion' }, requires: ['provider', 'location'], text: 'Runs at {provider}, {location}' },
+	}
+	const noteOf = async (answer) => {
+		axios.get.mockImplementation((url) => (String(url).includes('residency') ? answer() : Promise.resolve({ status: 200, data: { status: 'ok' } })))
+		const wrapper = mount(CnAiChatWidget, { propsData: { content }, provide: {} })
+		await flushPromises()
+		return wrapper.vm.noteText
+	}
+
+	it('fills the text from the matching row', async () => {
+		const rows = [{ slug: 'other', provider: 'x', location: 'y' }, { slug: 'chat-companion', provider: 'Hermiq', location: 'NL' }]
+		expect(await noteOf(() => Promise.resolve({ data: { results: rows } }))).toBe('Runs at Hermiq, NL')
+	})
+
+	it('keeps the note while a required field is empty', async () => {
+		expect(await noteOf(() => Promise.resolve({ data: { results: [{ slug: 'chat-companion', provider: null, location: '' }] } }))).toBe('Short note')
+	})
+
+	it('keeps the note when the read fails', async () => {
+		expect(await noteOf(() => Promise.reject(new Error('down')))).toBe('Short note')
+	})
+})

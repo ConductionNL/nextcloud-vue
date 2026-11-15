@@ -15,7 +15,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                                                    | Payload | Description |
-| ------------------------------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                                                                     | —       |             |
-| `update:modelValue The audience, `[{ group, mode }]`and`[{ user, mode }]`; `[]` when nobody is picked.` | —       |             |
+| Name                | Payload | Description                                                                           |
+| ------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `update:modelValue` | —       | The audience, `[{ group, mode }]` and `[{ user, mode }]`; `[]` when nobody is picked. |

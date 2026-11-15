@@ -6,6 +6,7 @@
 | `app` | String | `''` | The app id, the only app-specific value in the request URL |
 | `kinds` | Array | the ADR-080 kinds | The kind quick-filters offered before the engine answers |
 | `builtIn` | Array | `[]` | The app's own items, shown when no registry is configured |
+| `shipped` | `Object` | `null` | The app's shipped packages (`config.shipped`), drawn under the board look while no registry is configured, in place of `builtIn`: `{ title, subtitle?, parts?, notice?, crumbs?, buttons?, aside? }`. Reads `/api/store/packages`. |
 | `canInstall` | Boolean | `null` | Whether the app lets this viewer install; `null` falls back to administrators |
 | `canPublish` | Boolean | `null` | Whether the app lets this viewer publish; `null` falls back to administrators |
 | `publishRoute` | String, Object | `null` | Where Publish leads; without it there is no Publish button |

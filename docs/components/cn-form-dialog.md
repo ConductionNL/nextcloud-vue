@@ -30,6 +30,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
+| `footnote` | String | `''` | A short note the form closes on, drawn under its fields with an information icon. Empty shows none. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
@@ -77,7 +78,7 @@ When `allowDraft` is on and the schema declares `draftField`, a stored draft rec
 | `date` | Date picker |
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
-| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker |
+| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker With `choiceKey`, formData also holds the whole choice (`{ source, id, label, secondary, row }`, or null) under that key, for a create override that stores more than the id; the override takes it out before saving. |
 | `resource` | An object pick ([CnResourceSelect](cn-resource-select.md)) over `field.resource: { register, schema, labelField?, scope?, failedText? }`. A `scope.value` token such as `@object.caseType` is read from the page's object (by id when it is a relation); an unreadable token offers every row. `failedText` goes through the app's translate. Nothing is created from the search term |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
 | `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
@@ -678,7 +679,7 @@ A property that declares `x-openregister-property-source` (`provider`, `mode`, `
 
 ## Duration and sub-objects widgets
 
-`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). A field override with `timer`, `autoStart`, `norm` and `normLabel` draws it as a running clock. An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
 
 ## Child records
 

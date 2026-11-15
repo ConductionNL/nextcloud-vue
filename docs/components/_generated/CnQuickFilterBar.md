@@ -24,8 +24,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                  | Payload | Description |
-| --------------------------------------------------------------------- | ------- | ----------- |
-| `update:active-index`                                                 | —       |             |
-| `update:selected-indices`                                             | —       |             |
-| `update:selected-indices Active tab indices changed (multiple mode).` | —       |             |
+| Name                      | Payload | Description                                 |
+| ------------------------- | ------- | ------------------------------------------- |
+| `update:active-index`     | —       |                                             |
+| `update:selected-indices` | —       | Active tab indices changed (multiple mode). |

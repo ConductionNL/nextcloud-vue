@@ -30,9 +30,10 @@ describe('CnCellRenderer avatar chip', () => {
 		expect(render('board', { tone: 'neutral' }).find('.cn-cell-renderer__avatar-initials').classes()).toContain('cn-cell-renderer__avatar-initials--neutral')
 	})
 
-	it('marks a grey chip of 28px or less compact (PqLeads owner: 12px initials)', () => {
+	it('marks a grey chip of 32px or less compact (PqLeads owner, PtToegangsverzoeken requester: 12px initials)', () => {
 		const classes = (props) => render('board', { tone: 'neutral', ...props }).find('.cn-cell-renderer__avatar-initials').classes()
 		expect(classes({ size: 28 })).toContain('cn-cell-renderer__avatar-initials--compact')
+		expect(classes({})).toContain('cn-cell-renderer__avatar-initials--compact')
 		expect(classes({ size: 36 })).not.toContain('cn-cell-renderer__avatar-initials--compact')
 	})
 
