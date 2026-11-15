@@ -52,6 +52,7 @@
  */
 
 import { isAppInstalled } from './appInstalled.js'
+import { featureEnabled } from './featureFlags.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { interpolateUrlTokens } from './interpolateUrlTokens.js'
 import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
@@ -378,6 +379,28 @@ function readerGroupsVerdict(cond, groups) {
 }
 
 /**
+ * The `feature` precondition: false while the named feature toggle is off.
+ *
+ * @param {object} cond The condition.
+ * @return {boolean}
+ * @spec openspec/changes/feature-toggles/specs/feature-toggles/spec.md#requirement-a-page-widget-or-action-can-follow-a-feature-toggle
+ */
+function featureVerdict(cond) {
+	return !(typeof cond.feature === 'string' && cond.feature !== '' && !featureEnabled(cond.feature))
+}
+
+/**
+ * Whether `feature` is the whole condition (no other mode or precondition).
+ *
+ * @param {object} cond The condition.
+ * @return {boolean}
+ */
+function isFeatureOnly(cond) {
+	return typeof cond.feature === 'string' && cond.feature !== ''
+		&& !cond.field && !cond.endpoint && !cond.source && !cond.appInstalled && !Array.isArray(cond.readerGroups) && !cond.workspace
+}
+
+/**
  * Evaluate a visibleWhen condition to a boolean, FAIL-SAFE: any error
  * (fetch failure, unusable condition, missing context) resolves `false`.
  * A `null` / `undefined` condition resolves `true` (no condition = always
@@ -397,6 +420,12 @@ export async function evaluateVisibleWhen(cond, ctx) {
 	// never both, and the weaker of the two is the one that ships.
 	if (isComposition(cond)) {
 		return evaluateComposition(cond, ctx)
+	}
+	if (!featureVerdict(cond)) {
+		return false
+	}
+	if (isFeatureOnly(cond)) {
+		return true
 	}
 	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? await loadCurrentUserGroups() : null)
 	if (groupsVerdict !== null) {
@@ -464,6 +493,12 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	}
 	if (cond.endpoint || cond.source) {
 		return false
+	}
+	if (!featureVerdict(cond)) {
+		return false
+	}
+	if (isFeatureOnly(cond)) {
+		return true
 	}
 	// The peek is reactive: a computed that reads it re-runs when the groups arrive.
 	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? peekCurrentUserGroups() : null)

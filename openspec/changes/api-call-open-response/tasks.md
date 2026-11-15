@@ -1,0 +1,2 @@
+- [x] 1 `openResponse` in the dispatcher's api-call and `resolveOpenResponse` (tests/utils/actionsDispatcherOpenResponse.spec.js)
+- [x] 2 Manifest schema: `openResponse` on `$defs/actionFields`; docs/utilities/dispatch-action.md

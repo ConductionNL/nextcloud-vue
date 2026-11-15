@@ -1,0 +1,1 @@
+- [x] 1 `shareGroups` on CnSavedViewShareFields, CnSaveViewDialog, CnSavedViewShareDialog; `savedViewsShareGroups` on CnIndexPage and in the manifest schema (tests/components/CnSavedViewsShared.spec.js)

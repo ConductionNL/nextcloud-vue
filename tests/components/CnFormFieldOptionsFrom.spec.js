@@ -13,7 +13,7 @@ import axios from '@nextcloud/axios'
 import { mount, shallowMount } from '@vue/test-utils'
 import CnPropertyValueCell from '../../src/components/CnAdvancedFormDialog/CnPropertyValueCell.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
-import { fieldWithOptionsFrom, filterOptions, isOptionsFrom, loadOptionsFrom, optionFromRow, optionsFromSource } from '../../src/utils/optionsFrom.js'
+import { fieldWithOptionsFrom, filterOptions, isOptionsFrom, loadOptionsFrom, optionFromRow, optionsFromAppMissing, optionsFromSource } from '../../src/utils/optionsFrom.js'
 import { fieldsFromSchema } from '../../src/utils/schema.js'
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
@@ -130,6 +130,48 @@ describe('CnFormDialog with an optionsFrom field', () => {
 	})
 })
 
+describe('a source from an app that may be missing (requiresApp)', () => {
+	const SHILLINQ = { register: 'shillinq', schema: 'BbvTaakveld', valueField: 'code', labelField: 'name', requiresApp: 'shillinq-ra', missingText: 'Install Shillinq to pick from the BBV list' }
+	beforeEach(() => {
+		window.OC = { appswebroots: { 'present-ra': '/apps/present-ra' } }
+	})
+	afterEach(() => {
+		delete window.OC
+	})
+
+	it('tells a missing app from an installed one, and a block without requiresApp from both', () => {
+		expect(optionsFromAppMissing(SHILLINQ)).toBe(true)
+		expect(optionsFromAppMissing({ ...SHILLINQ, requiresApp: 'present-ra' })).toBe(false)
+		expect(optionsFromAppMissing(FROM)).toBe(false)
+		expect(optionsFromAppMissing(null)).toBe(false)
+	})
+
+	it('does not read the source of a missing app', async () => {
+		expect(await loadOptionsFrom(SHILLINQ)).toEqual([])
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it('draws the field as a text input with the missingText under it, and stores the typed code', async () => {
+		const fields = [{ key: 'iv3TaskField', label: 'Taakveld', type: 'string', optionsFrom: SHILLINQ }]
+		const w = shallowMount(CnFormDialog, { propsData: { fields, item: null }, stubs: { NcDialog: { template: '<div><slot /></div>' } } })
+		const field = w.vm.resolvedFields.find((f) => f.key === 'iv3TaskField')
+		await w.vm.loadAsyncOptions(field, '')
+		await tick()
+		expect(w.vm.sourcedFailed.iv3TaskField).toBe(true)
+		expect(w.vm.codedFallbackHint(field)).toBe('Install Shillinq to pick from the BBV list')
+		w.vm.onCodedFallbackInput(field, '0.1')
+		expect(w.vm.formData.iv3TaskField).toBe('0.1')
+	})
+
+	it('keeps the general hint when the source of an installed app gives nothing', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		const fields = [{ key: 'iv3TaskField', label: 'Taakveld', type: 'string', optionsFrom: { ...SHILLINQ, requiresApp: 'present-ra' } }]
+		const w = shallowMount(CnFormDialog, { propsData: { fields, item: null }, stubs: { NcDialog: { template: '<div><slot /></div>' } } })
+		const field = w.vm.resolvedFields.find((f) => f.key === 'iv3TaskField')
+		expect(w.vm.codedFallbackHint(field)).toBe('The list of choices could not be loaded. Enter the value by hand.')
+	})
+})
+
 describe('a filter on the page\'s object', () => {
 	it('resolves @objectId from the detail page the form opens on', async () => {
 		const fields = [{ key: 'field', label: 'Field', type: 'string', optionsFrom: { register: 'dossiq', schema: 'propertyDefinition', filter: { caseType: '@objectId' }, valueField: 'name' } }]
@@ -178,6 +220,12 @@ describe('the manifest schema', () => {
 	it('accepts optionsFrom on a field override, from objects or an endpoint', () => {
 		expect(validateManifestV2(withOverride({ optionsFrom: FROM })).valid).toBe(true)
 		expect(validateManifestV2(withOverride({ optionsFrom: { url: '/apps/dossiq/api/iv3', responsePath: 'items', valueField: 'code', labelField: 'name' } })).valid).toBe(true)
+	})
+
+	it('accepts requiresApp and missingText on either source (2.178.0)', () => {
+		expect(validateManifestV2(withOverride({ optionsFrom: { ...FROM, requiresApp: 'shillinq', missingText: 'Install Shillinq' } })).valid).toBe(true)
+		expect(validateManifestV2(withOverride({ optionsFrom: { url: '/apps/shillinq/api/x', requiresApp: 'shillinq' } })).valid).toBe(true)
+		expect(validateManifestV2(withOverride({ optionsFrom: { ...FROM, requiresApp: '' } })).valid).toBe(false)
 	})
 
 	it('refuses an optionsFrom without a source, or with an unknown key', () => {

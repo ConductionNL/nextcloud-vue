@@ -1,0 +1,1 @@
+- [x] 1 `mountCnApp`, `routesFromManifest`, `appRouterBase` in `utils/mountCnApp.js`, exported (tests/utils/mountCnApp.spec.js); docs/utilities/mount-cn-app.md

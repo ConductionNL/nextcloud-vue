@@ -1390,7 +1390,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1431,6 +1431,7 @@ import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { actionLabelText, fetchObjectActions } from '../../composables/useObjectActions.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -2363,6 +2364,25 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * `openregister` offers, in the header's Actions, every action
+		 * OpenRegister lists for the record (`GET .../{id}/actions`) whose
+		 * `surfaces` hold `header` or `detail-menu`: a declared action runs with
+		 * a dialog over its inputs, an unavailable one is disabled with the
+		 * reason, and actions the reader may not run are absent
+		 * (object-actions-declared-and-run). Manifest `config.actionsFrom`.
+		 */
+		actionsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/** The action keys `actionsFrom` offers, in this order; empty offers all (`config.actionsInclude`). */
+		actionsInclude: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -3681,6 +3701,8 @@ export default {
 			 * on a lock that is already gone.
 			 */
 			releasingLock: false,
+			/** The actions OpenRegister lists for the record (`actionsFrom`). */
+			objectActions: [],
 			/**
 			 * The manifest `headerActions[]` flattened into menu items by the
 			 * `display: "menu"` CnActionButtons instance, which keeps owning
@@ -3752,6 +3774,47 @@ export default {
 	},
 
 	computed: {
+		/** @return {string} What the listed actions depend on; a change reads them again. */
+		objectActionsKey() {
+			if (this.actionsFrom !== 'openregister') {
+				return ''
+			}
+			const updated = this.resolvedObject && this.resolvedObject['@self'] ? (this.resolvedObject['@self'].updated || '') : ''
+			return [this.register, this.schema, this.objectId, updated].join('|')
+		},
+
+		/**
+		 * The actions `actionsFrom: "openregister"` lists for the record, as
+		 * header action entries of type `object-action`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		objectActionEntries() {
+			if (this.actionsFrom !== 'openregister') {
+				return []
+			}
+			const language = String(getLanguage() || '').replace('_', '-')
+			const include = Array.isArray(this.actionsInclude) ? this.actionsInclude : []
+			const listed = this.objectActions.filter((action) => {
+				const surfaces = Array.isArray(action.surfaces) ? action.surfaces : ['header', 'row']
+				return (surfaces.includes('header') || surfaces.includes('detail-menu')) && (include.length === 0 || include.includes(action.key))
+			})
+			const ordered = include.length > 0 ? include.map((key) => listed.find((action) => action.key === key)).filter(Boolean) : listed
+			return ordered.map((action) => ({
+				id: `or-action-${action.key}`,
+				type: 'object-action',
+				action: action.key,
+				label: actionLabelText(action.label, language) || action.key,
+				...(action.icon ? { icon: action.icon } : {}),
+				inputsSchema: action.inputs || null,
+				available: action.available !== false,
+				disabledReason: actionLabelText(action.reason, language),
+				...(action.confirm ? { confirm: true, confirmMessage: actionLabelText(action.confirm, language) } : {}),
+				...(action.mode === 'async' ? { successMessage: '' } : {}),
+			}))
+		},
+
 		// ── The board look (screens-detail-page-parity) ─────────────────
 
 		/**
@@ -5070,7 +5133,8 @@ export default {
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
-			const authored = Array.isArray(this.headerActions) ? this.headerActions : []
+			const headerDeclared = Array.isArray(this.headerActions) ? this.headerActions : []
+			const authored = this.objectActionEntries.length > 0 ? [...headerDeclared, ...this.objectActionEntries] : headerDeclared
 			// Inline pinned actions (a stage's primary action, a quick action
 			// written out in place) join the list CnActionButtons dispatches,
 			// so they get the same dialogs, toasts and `visibleWhen` gating as
@@ -6136,6 +6200,13 @@ export default {
 	},
 
 	watch: {
+		objectActionsKey: {
+			immediate: true,
+			handler() {
+				this.loadObjectActions()
+			},
+		},
+
 		headerMetaCountKey: {
 			immediate: true,
 			handler() {
@@ -6423,6 +6494,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the actions OpenRegister lists for the record (`actionsFrom`).
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		async loadObjectActions() {
+			if (this.actionsFrom !== 'openregister' || !this.register || !this.schema || !this.objectId || this.isCreateMode) {
+				this.objectActions = []
+				return
+			}
+			this.objectActions = await fetchObjectActions({ register: this.register, schema: this.schema, id: String(this.objectId) })
+		},
+
 		/**
 		 * A configured edit form title, subtitle or eyebrow, translated, with its
 		 * `{field}` tokens filled from the record as the header line fills them

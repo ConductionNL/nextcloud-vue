@@ -43,6 +43,22 @@
 				</template>
 			</NcEmptyContent>
 		</div>
+		<div v-else-if="layout === 'columns'" class="cn-roadmap-tab__columns" data-testid="cn-roadmap-columns">
+			<section v-for="column in columns"
+				:key="column.key"
+				class="cn-roadmap-tab__column"
+				:data-testid="`cn-roadmap-column-${column.key}`">
+				<h3 class="cn-roadmap-tab__column-title">
+					{{ column.label }}
+					<span class="cn-roadmap-tab__column-count">{{ column.items.length }}</span>
+				</h3>
+				<CnRoadmapItem
+					v-for="item in column.items"
+					:key="item.number"
+					:item="item"
+					class="cn-roadmap-tab__card" />
+			</section>
+		</div>
 		<div v-else class="cn-roadmap-tab__grid">
 			<CnRoadmapItem
 				v-for="item in sortedItems"
@@ -77,7 +93,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
-import { fetchRoadmapIssues, sortByReactions } from '../../utils/roadmapIssues.js'
+import { fetchRoadmapIssues, ROADMAP_IN_PROGRESS_LABELS, roadmapColumns, sortByReactions } from '../../utils/roadmapIssues.js'
 
 export default {
 	name: 'CnRoadmapTab',
@@ -111,6 +127,25 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * `grid` (default): the open issues as cards. `columns`: Planned, In
+		 * development and Available with their counts, closed-as-completed
+		 * issues included (`config.layout`).
+		 */
+		layout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/**
+		 * Labels that put an open issue under In development (case-insensitive).
+		 * Empty takes the defaults: "in progress", "in-progress", "in development".
+		 */
+		inProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	data() {
@@ -124,6 +159,21 @@ export default {
 	computed: {
 		sortedItems() {
 			return sortByReactions(this.items)
+		},
+
+		/**
+		 * The three columns of the `columns` layout, each with its heading.
+		 *
+		 * @return {Array<{key: string, label: string, items: Array<object>}>}
+		 * @spec openspec/changes/roadmap-tab-columns/specs/roadmap-tab-columns/spec.md#requirement-a-roadmap-can-be-drawn-as-three-columns
+		 */
+		columns() {
+			const grouped = roadmapColumns(this.sortedItems, this.inProgressLabels.length > 0 ? this.inProgressLabels : ROADMAP_IN_PROGRESS_LABELS)
+			return [
+				{ key: 'planned', label: t('nextcloud-vue', 'Planned'), items: grouped.planned },
+				{ key: 'in-progress', label: t('nextcloud-vue', 'In development'), items: grouped.inProgress },
+				{ key: 'available', label: t('nextcloud-vue', 'Available'), items: grouped.available },
+			]
 		},
 
 		disabledLabel() {
@@ -174,7 +224,7 @@ export default {
 			this.loading = true
 			this.degraded = null
 			this.items = []
-			const { items, degraded } = await fetchRoadmapIssues(this.repo)
+			const { items, degraded } = await fetchRoadmapIssues(this.repo, this.layout === 'columns' ? { state: 'all' } : {})
 			this.items = items
 			this.degraded = degraded
 			this.loading = false
@@ -184,6 +234,34 @@ export default {
 </script>
 
 <style scoped>
+.cn-roadmap-tab__columns {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 16px;
+	padding: 16px;
+}
+
+.cn-roadmap-tab__column {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-roadmap-tab__column-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 16px;
+}
+
+.cn-roadmap-tab__column-count {
+	padding: 0 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	font-size: 13px;
+}
+
 .cn-roadmap-tab__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

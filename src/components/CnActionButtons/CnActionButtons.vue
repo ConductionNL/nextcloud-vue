@@ -67,7 +67,8 @@
 				:key="entry.id"
 				:variant="buttonVariant(entry)"
 				:class="buttonClass(entry)"
-				:disabled="Boolean(actionPending[entry.id])"
+				:disabled="isDisabled(entry)"
+				:title="disabledReason(entry) || undefined"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
 				<template v-if="entry.icon" #icon>
@@ -105,7 +106,8 @@
 					<NcActionButton
 						v-else
 						:key="child.id"
-						:disabled="Boolean(actionPending[child.id])"
+						:disabled="isDisabled(child)"
+						:description="disabledReason(child) || undefined"
 						:data-testid="`cn-action-${child.id}`"
 						@click="onActionClick(child)">
 						<template v-if="child.icon" #icon>
@@ -143,7 +145,8 @@
 				<NcActionButton
 					v-else
 					:key="entry.id"
-					:disabled="Boolean(actionPending[entry.id])"
+					:disabled="isDisabled(entry)"
+					:description="disabledReason(entry) || undefined"
 					:data-testid="`cn-action-${entry.id}`"
 					@click="onActionClick(entry)">
 					<template v-if="entry.icon" #icon>
@@ -198,6 +201,19 @@
 			:confirmLabel="tr(formEntry.formConfirmLabel) || ''"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
+
+		<!-- An object action with inputs (object-actions-declared-and-run): a
+		     dialog over the action's input schema, then the run. -->
+		<CnFormDialog
+			v-if="objectActionEntry"
+			ref="objectActionDialog"
+			:schema="objectActionEntry.inputsSchema"
+			:item="null"
+			:dialogTitle="tr(objectActionEntry.label) || ''"
+			:confirmLabel="tr(objectActionEntry.label) || ''"
+			data-testid="cn-object-action-dialog"
+			@confirm="onObjectActionConfirm"
+			@close="objectActionEntry = null" />
 
 		<!-- run-node's config dialog (manifest-run-node-action): only mounted
 		     when the target node declared at least one field AND that
@@ -297,6 +313,17 @@ import { CnIcon } from '../CnIcon/index.js'
  * ]
  * ```
  */
+
+/**
+ * Whether an object action's input schema asks for anything.
+ *
+ * @param {unknown} inputs The JSON Schema of the inputs.
+ * @return {boolean}
+ */
+function hasInputFields(inputs) {
+	return Boolean(inputs && typeof inputs === 'object' && inputs.properties && Object.keys(inputs.properties).length > 0)
+}
+
 export default {
 	name: 'CnActionButtons',
 
@@ -450,6 +477,8 @@ export default {
 		return {
 			/** Evaluated visibleWhen outcome per action id (true when no predicate). */
 			visibility: {},
+			// Whether an action's `disabledWhen` holds, by id.
+			disabledByCondition: {},
 			/** Current boolean state per toggle action id. */
 			toggleState: {},
 			/** In-flight flag per toggle action id (disables the button). */
@@ -460,6 +489,8 @@ export default {
 			confirmEntry: null,
 			/** The open-form action currently showing its dialog (null = closed). */
 			formEntry: null,
+			/** The object action whose inputs dialog is open, or null. */
+			objectActionEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
 			/** The record an endpoint form edits (null for a create form). */
@@ -637,7 +668,8 @@ export default {
 					// having to be duplicated into every host.
 					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
 					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
-					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.isDisabled(entry)),
+					disabledReason: this.disabledReason(entry),
 					// null, not false: a non-toggle carries no pressed state at
 					// all, and `aria-pressed="false"` would announce every
 					// action as an un-pressed toggle button.
@@ -729,6 +761,25 @@ export default {
 
 	methods: {
 		/**
+		 * The inputs dialog of an object action was confirmed: run it with
+		 * the typed inputs, then close the dialog.
+		 *
+		 * @param {object} inputs The form values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		async onObjectActionConfirm(inputs) {
+			const entry = this.objectActionEntry
+			if (!entry) {
+				return
+			}
+			this.actionPending[entry.id] = true
+			await this.dispatch({ ...entry, inputs: { ...(entry.inputs || {}), ...(inputs || {}) } })
+			this.actionPending[entry.id] = false
+			this.objectActionEntry = null
+		},
+
+		/**
 		 * The NcButton variant of an entry. `error-outline` and `tonal` are
 		 * not NcButton variants: `error-outline` is a secondary button that
 		 * `buttonClass` outlines in red, `tonal` a tertiary one that
@@ -794,6 +845,14 @@ export default {
 				}
 			}
 			for (const action of flat) {
+				// An object action OpenRegister lists as not available now is
+				// drawn disabled with the server's reason.
+				if (action.type === 'object-action' && action.available === false) {
+					this.disabledByCondition[action.id] = true
+				}
+				if (action.disabledWhen) {
+					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, this.tokenCtx)
+				}
 				if (!action.visibleWhen) {
 					this.visibility[action.id] = true
 					continue
@@ -801,6 +860,32 @@ export default {
 				const ok = await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx)
 				this.visibility[action.id] = ok
 			}
+		},
+
+		/**
+		 * Whether an action is disabled now: while it runs, or while its
+		 * `disabledWhen` holds (a payment adapter that is dormant).
+		 *
+		 * @param {object} entry The action.
+		 * @return {boolean}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		isDisabled(entry) {
+			return Boolean(this.actionPending[entry.id]) || this.disabledByCondition[entry.id] === true
+		},
+
+		/**
+		 * Why an action is disabled: its `disabledReason`, translated, while
+		 * its `disabledWhen` holds; '' otherwise.
+		 *
+		 * @param {object} entry The action.
+		 * @return {string}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		disabledReason(entry) {
+			return this.disabledByCondition[entry.id] === true && typeof entry.disabledReason === 'string' && entry.disabledReason !== ''
+				? this.tr(entry.disabledReason)
+				: ''
 		},
 
 		/**
@@ -991,6 +1076,9 @@ export default {
 		 * @return {void}
 		 */
 		onActionClick(entry) {
+			if (this.disabledByCondition[entry.id] === true) {
+				return
+			}
 			if (entry.confirm === true) {
 				this.confirmEntry = entry
 				return
@@ -1043,6 +1131,10 @@ export default {
 			}
 			if (entry.type === 'run-node') {
 				await this.openRunNode(entry)
+				return undefined
+			}
+			if (entry.type === 'object-action' && hasInputFields(entry.inputsSchema)) {
+				this.objectActionEntry = entry
 				return undefined
 			}
 			this.actionPending[entry.id] = true
