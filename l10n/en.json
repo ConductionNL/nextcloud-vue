@@ -2771,7 +2771,15 @@
     "The packages could not be read.": "The packages could not be read.",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
-    "The step could not be saved.": "The step could not be saved."
+    "The step could not be saved.": "The step could not be saved.",
+    "Gallery": "Gallery",
+    "This schema has no text field to title a card": "This schema has no text field to title a card",
+    "Card title": "Card title",
+    "Cover image (optional)": "Cover image (optional)",
+    "Card size": "Card size",
+    "Small": "Small",
+    "Medium": "Medium",
+    "Large": "Large"
   },
   "plurals": {
     "{count} member": [

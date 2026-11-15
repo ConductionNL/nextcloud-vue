@@ -108,6 +108,52 @@
 				{{ errors['calendar.endDateField'] }}
 			</p>
 		</div>
+
+		<div v-if="viewType === 'gallery'" class="cn-view-presentation__fields" data-testid="cn-view-presentation-gallery">
+			<NcSelect
+				:inputLabel="t('nextcloud-vue', 'Card title')"
+				:modelValue="galleryOption('title', 'titleField')"
+				:options="candidates.title"
+				:clearable="false"
+				:disabled="disabled"
+				label="label"
+				data-testid="cn-view-presentation-gallery-title"
+				@update:modelValue="(o) => pickGallery('titleField', o ? o.key : null)" />
+			<p v-for="path in ['gallery.titleField', 'gallery.coverField', 'gallery.cardFields', 'gallery.cardSize'].filter((p) => errors[p])"
+				:key="path"
+				class="cn-view-presentation__error"
+				role="alert"
+				:data-testid="`cn-view-presentation-error-${path}`">
+				{{ errors[path] }}
+			</p>
+			<NcSelect
+				:inputLabel="t('nextcloud-vue', 'Cover image (optional)')"
+				:modelValue="galleryOption('cover', 'coverField')"
+				:options="candidates.cover"
+				:clearable="true"
+				:disabled="disabled"
+				label="label"
+				data-testid="cn-view-presentation-gallery-cover"
+				@update:modelValue="(o) => pickGallery('coverField', o ? o.key : null)" />
+			<NcSelect
+				:inputLabel="t('nextcloud-vue', 'Card fields (at most {max})', { max: maxCardFields })"
+				:modelValue="galleryCardOptions"
+				:options="galleryCardChoices"
+				:multiple="true"
+				:disabled="disabled"
+				label="label"
+				data-testid="cn-view-presentation-gallery-cards"
+				@update:modelValue="(options) => pickGallery('cardFields', (options || []).map((o) => o.key).slice(0, maxCardFields))" />
+			<NcSelect
+				:inputLabel="t('nextcloud-vue', 'Card size')"
+				:modelValue="cardSizeOptions.find((o) => o.id === (gallery.cardSize || 'medium'))"
+				:options="cardSizeOptions"
+				:clearable="false"
+				:disabled="disabled"
+				label="label"
+				data-testid="cn-view-presentation-gallery-size"
+				@update:modelValue="(o) => pickGallery('cardSize', o ? o.id : null)" />
+		</div>
 	</div>
 </template>
 
@@ -125,7 +171,8 @@ import { MAX_CARD_FIELDS, presentationCandidates } from '../../utils/presentatio
  * Takes the view's JSON `schema` and a presentation `value`, and emits `input`
  * with a presentation in OpenRegister's shape only: `{ viewType: "table" }`,
  * `{ viewType: "kanban", kanban: { groupByField, cardFields?, columnOrder? } }`
- * or `{ viewType: "calendar", calendar: { dateField, endDateField? } }`. Each
+ * , `{ viewType: "calendar", calendar: { dateField, endDateField? } }` or
+ * `{ viewType: "gallery", gallery: { titleField, coverField?, cardFields?, cardSize? } }`. Each
  * field picker offers only the schema properties that can serve its role; a
  * type whose required role has no candidate is disabled with the reason.
  * Switching type drops the other type's settings, so a board turned back into
@@ -190,7 +237,7 @@ export default {
 
 		viewType() {
 			const type = this.value && this.value.viewType
-			return type === 'kanban' || type === 'calendar' ? type : 'table'
+			return type === 'kanban' || type === 'calendar' || type === 'gallery' ? type : 'table'
 		},
 
 		types() {
@@ -198,6 +245,24 @@ export default {
 				{ id: 'table', label: t('nextcloud-vue', 'Table'), reason: '' },
 				{ id: 'kanban', label: t('nextcloud-vue', 'Board'), reason: this.candidates.reasons.kanban },
 				{ id: 'calendar', label: t('nextcloud-vue', 'Calendar'), reason: this.candidates.reasons.calendar },
+				{ id: 'gallery', label: t('nextcloud-vue', 'Gallery'), reason: this.candidates.reasons.gallery },
+			]
+		},
+		gallery() {
+			return (this.value && this.value.gallery) || {}
+		},
+		galleryCardOptions() {
+			const chosen = Array.isArray(this.gallery.cardFields) ? this.gallery.cardFields : []
+			return chosen.map((key) => this.candidates.card.find((c) => c.key === key)).filter(Boolean)
+		},
+		galleryCardChoices() {
+			return this.galleryCardOptions.length >= MAX_CARD_FIELDS ? [] : this.candidates.card.filter((c) => !this.galleryCardOptions.some((o) => o.key === c.key))
+		},
+		cardSizeOptions() {
+			return [
+				{ id: 'small', label: t('nextcloud-vue', 'Small') },
+				{ id: 'medium', label: t('nextcloud-vue', 'Medium') },
+				{ id: 'large', label: t('nextcloud-vue', 'Large') },
 			]
 		},
 
@@ -249,6 +314,10 @@ export default {
 			} else if (id === 'calendar') {
 				const first = this.candidates.date[0]
 				this.emitValue({ viewType: 'calendar', calendar: first ? { dateField: first.key } : {} })
+			} else if (id === 'gallery') {
+				const title = this.candidates.title[0]
+				const cover = this.candidates.cover[0]
+				this.emitValue({ viewType: 'gallery', gallery: { ...(title ? { titleField: title.key } : {}), ...(cover ? { coverField: cover.key } : {}) } })
 			} else {
 				this.emitValue({ viewType: 'table' })
 			}
@@ -288,6 +357,25 @@ export default {
 			this.emitValue({ viewType: 'kanban', kanban: { ...this.kanban, columnOrder: order } })
 		},
 
+		galleryOption(list, role) {
+			return this.candidates[list].find((c) => c.key === this.gallery[role]) || null
+		},
+		/**
+		 * Set or clear one setting of the gallery presentation.
+		 *
+		 * @param {string} role `titleField`, `coverField`, `cardFields` or `cardSize`.
+		 * @param {string|string[]|null} value The new value; null or an empty list clears it.
+		 * @spec openspec/changes/presentation-picker-gallery/specs/presentation-picker-gallery/spec.md#requirement-a-saved-view-can-be-chosen-to-show-as-a-gallery
+		 */
+		pickGallery(role, value) {
+			const gallery = { ...this.gallery }
+			if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+				delete gallery[role]
+			} else {
+				gallery[role] = value
+			}
+			this.emitValue({ viewType: 'gallery', gallery })
+		},
 		dateOption(role) {
 			return this.candidates.date.find((d) => d.key === this.calendar[role]) || null
 		},
