@@ -98,8 +98,13 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
+import CnAudioCapture from '../components/CnAudioCapture/CnAudioCapture.vue'
 import CnFileField from '../components/CnFileField/CnFileField.vue'
+import CnGeoCaptureField from '../components/CnGeoCaptureField/CnGeoCaptureField.vue'
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
+import CnScanField from '../components/CnScanField/CnScanField.vue'
+import CnSignatureCapture from '../components/CnSignatureCapture/CnSignatureCapture.vue'
+import CnSubObjectsField from '../components/CnSubObjectsField/CnSubObjectsField.vue'
 
 /**
  * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.
@@ -122,9 +127,59 @@ const DEFAULT_COMPONENT_MAP = Object.freeze({
 	enum: NcSelect,
 	json: CnJsonViewer,
 	file: CnFileField,
+	signature: CnSignatureCapture,
+	audio: CnAudioCapture,
+	location: CnGeoCaptureField,
+	scan: CnScanField,
+	'sub-objects': CnSubObjectsField,
 })
 
-const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file']
+const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file', 'signature', 'audio', 'location', 'scan']
+
+/**
+ * The place a `location` field holds: its own value when it has one, else
+ * the `latField` / `lngField` (and `accuracyField`) values of the form.
+ *
+ * @param {object} field The field.
+ * @param {unknown} value The field's own value.
+ * @param {object} values The form's values.
+ * @return {object|null} `{ lat, lng, accuracy? }`, or null.
+ */
+function locationValue(field, value, values) {
+	if (value && typeof value === 'object') {
+		return value
+	}
+	const lat = field.latField ? values[field.latField] : undefined
+	const lng = field.lngField ? values[field.lngField] : undefined
+	if (typeof lat !== 'number' || typeof lng !== 'number') {
+		return null
+	}
+	return { lat, lng, ...(field.accuracyField && typeof values[field.accuracyField] === 'number' ? { accuracy: values[field.accuracyField] } : {}) }
+}
+
+/**
+ * The writes a captured place makes: the latitude and longitude (and the
+ * accuracy) into the fields a `location` field names, or the place itself
+ * under the field's key when it names none.
+ *
+ * @param {object} field The location field.
+ * @param {object|null} place The captured place.
+ * @return {object} Field key to value.
+ * @spec openspec/changes/form-device-fields/specs/form-device-fields/spec.md#requirement-a-form-can-ask-for-a-signature-a-spoken-note-and-a-position
+ */
+export function locationWrites(field, place) {
+	if (!field.latField || !field.lngField) {
+		return { [field.key]: place || null }
+	}
+	const writes = {
+		[field.latField]: place && typeof place.lat === 'number' ? place.lat : null,
+		[field.lngField]: place && typeof place.lng === 'number' ? place.lng : null,
+	}
+	if (field.accuracyField) {
+		writes[field.accuracyField] = place && typeof place.accuracy === 'number' ? place.accuracy : null
+	}
+	return writes
+}
 
 const warned = new Set()
 
@@ -163,9 +218,10 @@ function resolveEnumOptions(field, translate = (k) => k) {
  * @param {(key: string) => string} [args.t] Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object} [args.componentMap] Optional override map from widget id to Vue component.
+ * @param {object} [args.values] The whole form's values, which a `location` field reads its `latField` / `lngField` from.
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
  */
-export function cnRenderFormField({ field, value, onInput, t, error, componentMap } = {}) {
+export function cnRenderFormField({ field, value, values, onInput, t, error, componentMap } = {}) {
 	if (!field || typeof field !== 'object' || typeof field.key !== 'string') {
 		return null
 	}
@@ -175,7 +231,27 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 
 	let result = null
 
-	if (field.type === 'boolean') {
+	const isSubObjects = field.widget === 'sub-objects' || (field.type === 'array' && field.items && field.items.type === 'object')
+
+	if (isSubObjects) {
+		// A list of objects: a table of rows edited one at a time in a dialog.
+		const maxItems = Number(field.maxItems)
+		result = {
+			kind: 'sub-objects',
+			tag: map['sub-objects'],
+			props: {
+				modelValue: Array.isArray(value) ? value : [],
+				items: field.items && typeof field.items === 'object' ? field.items : { properties: {} },
+				inputLabel: label,
+				...(field.addLabel ? { addLabel: translate(field.addLabel) } : {}),
+				...(field.itemLabel ? { itemLabel: translate(field.itemLabel) } : {}),
+				...(Number.isFinite(maxItems) && maxItems > 0 ? { maxItems } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+		}
+	} else if (field.type === 'boolean') {
 		result = {
 			kind: 'boolean',
 			tag: map.boolean,
@@ -267,6 +343,66 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize } : {}),
 				...(field.multiple === true ? { multiple: true } : {}),
 				...(field.capture === 'environment' || field.capture === 'user' ? { capture: field.capture } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+		}
+	} else if (field.type === 'signature') {
+		// A drawn signature is a PNG `data:` URL, the content a file property
+		// takes; a typed one (allowTyped) is the typed name.
+		result = {
+			kind: 'signature',
+			tag: map.signature,
+			props: {
+				allowTyped: field.allowTyped === true,
+				allowDrawn: field.allowDrawn !== false,
+				...(field.allowTyped === true && field.allowDrawn === false ? { initialMode: 'typed' } : {}),
+			},
+			listeners: {
+				change: (payload) => onInput(payload && payload.value ? payload.value : null),
+			},
+			labelText: label,
+		}
+	} else if (field.type === 'audio') {
+		const maxSeconds = Number(field.maxSeconds)
+		result = {
+			kind: 'audio',
+			tag: map.audio,
+			props: {
+				label,
+				modelValue: typeof value === 'string' ? value : null,
+				...(Number.isFinite(maxSeconds) && maxSeconds > 0 ? { maxSeconds } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+		}
+	} else if (field.type === 'location') {
+		// The place goes into `latField` / `lngField` (and `accuracyField`);
+		// a host passing `onInput` receives the writes as `{ key: value }`
+		// through `locationWrites`, applied by CnFormPage.
+		result = {
+			kind: 'location',
+			tag: map.location,
+			props: {
+				modelValue: locationValue(field, value, values || {}),
+				auto: field.auto === true,
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+			labelText: label,
+		}
+	} else if (field.type === 'scan') {
+		// A string filled by typing or by scanning a code with the camera.
+		result = {
+			kind: 'scan',
+			tag: map.scan,
+			props: {
+				label,
+				modelValue: value === null || value === undefined ? null : String(value),
+				formats: Array.isArray(field.formats) ? field.formats : [],
 			},
 			listeners: {
 				'update:modelValue': (next) => onInput(next),

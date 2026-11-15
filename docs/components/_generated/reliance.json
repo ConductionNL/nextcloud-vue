@@ -10,7 +10,7 @@
 		},
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -61,8 +61,8 @@
 		},
 		"CnActionDialog": {
 			"direct": 1,
-			"transitive": 9,
-			"tier": "medium",
+			"transitive": 10,
+			"tier": "heavy",
 			"via": [
 				"CnAssignDialog",
 				"CnBulkJobProgress",
@@ -72,8 +72,8 @@
 		},
 		"CnActionTilesWidget": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -84,7 +84,7 @@
 		},
 		"CnActionsBar": {
 			"direct": 0,
-			"transitive": 30,
+			"transitive": 31,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -110,8 +110,8 @@
 		},
 		"CnAddressSearch": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -129,7 +129,7 @@
 		},
 		"CnAdminSettingsShell": {
 			"direct": 0,
-			"transitive": 32,
+			"transitive": 33,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -149,7 +149,7 @@
 		},
 		"CnAdvancedFormDialog": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -205,7 +205,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -257,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 253,
+			"transitive": 255,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -408,7 +408,7 @@
 		},
 		"CnAssignDialog": {
 			"direct": 3,
-			"transitive": 9,
+			"transitive": 10,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -424,9 +424,16 @@
 			"via": [],
 			"page": "cn-attention-flag-widget"
 		},
+		"CnAudioCapture": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-audio-capture"
+		},
 		"CnAuditTrailCard": {
 			"direct": 1,
-			"transitive": 15,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -438,7 +445,7 @@
 		},
 		"CnAuditTrailWidget": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -479,7 +486,7 @@
 		},
 		"CnBoardView": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -535,7 +542,7 @@
 		},
 		"CnBuildiqEditButton": {
 			"direct": 1,
-			"transitive": 29,
+			"transitive": 30,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -609,7 +616,7 @@
 		},
 		"CnCardGrid": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -623,8 +630,8 @@
 		},
 		"CnCardNotices": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -635,7 +642,7 @@
 		},
 		"CnCellRenderer": {
 			"direct": 1,
-			"transitive": 15,
+			"transitive": 16,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -648,7 +655,7 @@
 		},
 		"CnChartWidget": {
 			"direct": 8,
-			"transitive": 13,
+			"transitive": 14,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -676,7 +683,7 @@
 		},
 		"CnChecklistRunWidget": {
 			"direct": 1,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -695,7 +702,7 @@
 		},
 		"CnChildRecordsField": {
 			"direct": 1,
-			"transitive": 122,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -745,7 +752,7 @@
 		},
 		"CnChipListManager": {
 			"direct": 1,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -782,6 +789,13 @@
 			"tier": "light",
 			"via": [],
 			"page": "cn-choice-picker-widget"
+		},
+		"CnCodeWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-code-widget"
 		},
 		"CnCollectivePageCreate": {
 			"direct": 1,
@@ -890,7 +904,7 @@
 		},
 		"CnConversationThread": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -903,7 +917,7 @@
 		},
 		"CnCopyDialog": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -936,8 +950,8 @@
 		},
 		"CnCountdownWidget": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -999,7 +1013,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 230,
+			"transitive": 232,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1126,7 +1140,7 @@
 		},
 		"CnDataTable": {
 			"direct": 4,
-			"transitive": 18,
+			"transitive": 19,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1175,8 +1189,8 @@
 		},
 		"CnDeleteDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1213,8 +1227,8 @@
 		},
 		"CnDetailCard": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1225,7 +1239,7 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 108,
+			"transitive": 109,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1271,8 +1285,8 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 12,
-			"transitive": 230,
+			"direct": 15,
+			"transitive": 232,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1391,7 +1405,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 143,
+			"transitive": 144,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1456,7 +1470,7 @@
 		},
 		"CnDeviceFramesWidget": {
 			"direct": 0,
-			"transitive": 145,
+			"transitive": 146,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1522,8 +1536,8 @@
 		},
 		"CnDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1576,8 +1590,8 @@
 		},
 		"CnDuplicateWarning": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1649,8 +1663,8 @@
 		},
 		"CnExportWizard": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1675,7 +1689,7 @@
 		},
 		"CnFactsWidget": {
 			"direct": 2,
-			"transitive": 128,
+			"transitive": 129,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1741,7 +1755,7 @@
 		},
 		"CnFeaturesAndRoadmapPage": {
 			"direct": 0,
-			"transitive": 32,
+			"transitive": 33,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1768,7 +1782,7 @@
 		},
 		"CnFeaturesAndRoadmapView": {
 			"direct": 0,
-			"transitive": 32,
+			"transitive": 33,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1788,7 +1802,7 @@
 		},
 		"CnFeaturesBoard": {
 			"direct": 0,
-			"transitive": 32,
+			"transitive": 33,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1822,8 +1836,8 @@
 		},
 		"CnFieldCatalogueDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -1885,7 +1899,7 @@
 		},
 		"CnFilesBrowser": {
 			"direct": 4,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1899,7 +1913,7 @@
 		},
 		"CnFilesCard": {
 			"direct": 1,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1911,7 +1925,7 @@
 		},
 		"CnFilesPage": {
 			"direct": 0,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1926,7 +1940,7 @@
 		},
 		"CnFilesWidget": {
 			"direct": 1,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1959,7 +1973,7 @@
 		},
 		"CnFkResolveCell": {
 			"direct": 2,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -1987,7 +2001,7 @@
 		},
 		"CnFlowRunsWidget": {
 			"direct": 3,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2014,7 +2028,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 228,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2154,7 +2168,7 @@
 		},
 		"CnFollowingWidgetHost": {
 			"direct": 0,
-			"transitive": 144,
+			"transitive": 145,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2226,8 +2240,8 @@
 			"page": "cn-form-builder"
 		},
 		"CnFormDialog": {
-			"direct": 7,
-			"transitive": 122,
+			"direct": 9,
+			"transitive": 123,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2291,9 +2305,53 @@
 		},
 		"CnFormPage": {
 			"direct": 0,
-			"transitive": 3,
-			"tier": "light",
-			"via": [],
+			"transitive": 124,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnBulkJobProgress",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
 			"page": "cn-form-page"
 		},
 		"CnFormWidgetBase": {
@@ -2338,7 +2396,7 @@
 		},
 		"CnGroupedCardsWidget": {
 			"direct": 0,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2474,7 +2532,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 228,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2592,8 +2650,8 @@
 			"page": "cn-index-list-widget"
 		},
 		"CnIndexPage": {
-			"direct": 12,
-			"transitive": 225,
+			"direct": 14,
+			"transitive": 227,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2725,7 +2783,7 @@
 		},
 		"CnIntegrationCard": {
 			"direct": 1,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2744,7 +2802,7 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 108,
+			"transitive": 109,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2791,7 +2849,7 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 107,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2853,17 +2911,104 @@
 		},
 		"CnJourney": {
 			"direct": 1,
-			"transitive": 4,
-			"tier": "medium",
-			"via": [],
+			"transitive": 124,
+			"tier": "heavy",
+			"via": [
+				"CnActionDialog",
+				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnBulkJobProgress",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
 			"page": "cn-journey"
 		},
 		"CnJourneyDialog": {
 			"direct": 1,
-			"transitive": 5,
-			"tier": "medium",
+			"transitive": 125,
+			"tier": "heavy",
 			"via": [
-				"CnJourney"
+				"CnActionDialog",
+				"CnAnalyticsReportPicker",
+				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnBulkJobProgress",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnJourney",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
 			],
 			"page": "cn-journey-dialog"
 		},
@@ -2925,7 +3070,7 @@
 		},
 		"CnLifecycleActions": {
 			"direct": 0,
-			"transitive": 22,
+			"transitive": 23,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2953,7 +3098,7 @@
 		},
 		"CnLinkCardsPage": {
 			"direct": 0,
-			"transitive": 31,
+			"transitive": 32,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -2972,7 +3117,7 @@
 		},
 		"CnLinkedWidget": {
 			"direct": 0,
-			"transitive": 107,
+			"transitive": 108,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3046,7 +3191,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 128,
+			"transitive": 135,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3058,6 +3203,7 @@
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnCellRenderer",
+				"CnChildRecordsField",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnContactPicker",
@@ -3071,6 +3217,7 @@
 				"CnFilesCard",
 				"CnFkResolveCell",
 				"CnFlowOperationPicker",
+				"CnFormDialog",
 				"CnIndexPage",
 				"CnMapPoiPicker",
 				"CnNoteComposer",
@@ -3078,8 +3225,10 @@
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
+				"CnPartyPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnResourceSelect",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTasksCard",
@@ -3177,8 +3326,8 @@
 		},
 		"CnMassActionDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -3189,7 +3338,7 @@
 		},
 		"CnMassCopyDialog": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3201,8 +3350,8 @@
 		},
 		"CnMassDeleteDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -3213,8 +3362,8 @@
 		},
 		"CnMassExportDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -3225,8 +3374,8 @@
 		},
 		"CnMassImportDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -3272,7 +3421,7 @@
 		},
 		"CnNavCardGrid": {
 			"direct": 1,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3285,7 +3434,7 @@
 		},
 		"CnNcDashboardList": {
 			"direct": 1,
-			"transitive": 21,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3301,7 +3450,7 @@
 		},
 		"CnNcDashboardQuickCreate": {
 			"direct": 2,
-			"transitive": 21,
+			"transitive": 22,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3380,7 +3529,7 @@
 		},
 		"CnNotesCard": {
 			"direct": 1,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3393,8 +3542,8 @@
 		},
 		"CnNoticeWidget": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -3433,7 +3582,7 @@
 		},
 		"CnObjectCard": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3447,7 +3596,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3515,7 +3664,7 @@
 		},
 		"CnObjectGeoWidget": {
 			"direct": 3,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3536,7 +3685,7 @@
 		},
 		"CnObjectKanban": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3550,7 +3699,7 @@
 		},
 		"CnObjectLinksWidget": {
 			"direct": 1,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3562,7 +3711,7 @@
 		},
 		"CnObjectList": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3576,7 +3725,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 10,
-			"transitive": 125,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3636,7 +3785,7 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 109,
+			"transitive": 110,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3684,7 +3833,7 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 108,
+			"transitive": 109,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3731,7 +3880,7 @@
 		},
 		"CnObjectPartiesWidget": {
 			"direct": 6,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3758,7 +3907,7 @@
 		},
 		"CnObjectRow": {
 			"direct": 0,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3772,7 +3921,7 @@
 		},
 		"CnObjectSidebar": {
 			"direct": 16,
-			"transitive": 126,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -3871,7 +4020,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 246,
+			"transitive": 248,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4016,7 +4165,7 @@
 		},
 		"CnPartyActionsWidget": {
 			"direct": 0,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4201,7 +4350,7 @@
 		},
 		"CnRecordListWidget": {
 			"direct": 4,
-			"transitive": 108,
+			"transitive": 109,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4282,7 +4431,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 126,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4348,7 +4497,7 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 8,
-			"transitive": 114,
+			"transitive": 115,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4409,7 +4558,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 231,
+			"transitive": 233,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4537,7 +4686,7 @@
 		},
 		"CnRetentionWidget": {
 			"direct": 5,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4556,8 +4705,8 @@
 		},
 		"CnRichSubmitDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -4596,7 +4745,7 @@
 		},
 		"CnSaveViewDialog": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4615,8 +4764,8 @@
 		},
 		"CnSavedViewEditDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -4641,7 +4790,7 @@
 		},
 		"CnSavedViewPresentationDialog": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4653,8 +4802,8 @@
 		},
 		"CnSavedViewShareDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -4672,7 +4821,7 @@
 		},
 		"CnSavedViewWidget": {
 			"direct": 0,
-			"transitive": 127,
+			"transitive": 128,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4750,9 +4899,16 @@
 			"via": [],
 			"page": "cn-saved-views-widget"
 		},
+		"CnScanField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-scan-field"
+		},
 		"CnSchemaFormDialog": {
 			"direct": 1,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4781,7 +4937,7 @@
 		},
 		"CnSearchPage": {
 			"direct": 1,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4800,8 +4956,8 @@
 		},
 		"CnSecretAddressCard": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -4812,7 +4968,7 @@
 		},
 		"CnSectionsWidget": {
 			"direct": 0,
-			"transitive": 145,
+			"transitive": 146,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4915,7 +5071,7 @@
 		},
 		"CnSettingsFormWidget": {
 			"direct": 1,
-			"transitive": 13,
+			"transitive": 14,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4927,7 +5083,7 @@
 		},
 		"CnSettingsPage": {
 			"direct": 0,
-			"transitive": 33,
+			"transitive": 34,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4955,7 +5111,7 @@
 		},
 		"CnSetupWizard": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -4974,8 +5130,8 @@
 		},
 		"CnShareList": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -5000,7 +5156,7 @@
 		},
 		"CnSlotGrid": {
 			"direct": 1,
-			"transitive": 125,
+			"transitive": 126,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5082,7 +5238,7 @@
 		},
 		"CnStagesWidget": {
 			"direct": 2,
-			"transitive": 22,
+			"transitive": 23,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5105,7 +5261,7 @@
 		},
 		"CnStatGridWidget": {
 			"direct": 0,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5120,7 +5276,7 @@
 		},
 		"CnStatWidget": {
 			"direct": 6,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5143,7 +5299,7 @@
 		},
 		"CnStateMachineEditor": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5163,7 +5319,7 @@
 		},
 		"CnStatsBlockWidget": {
 			"direct": 1,
-			"transitive": 16,
+			"transitive": 17,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5213,7 +5369,7 @@
 		},
 		"CnStorePage": {
 			"direct": 3,
-			"transitive": 30,
+			"transitive": 31,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5239,7 +5395,7 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5297,8 +5453,8 @@
 		},
 		"CnSupportDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -5316,8 +5472,8 @@
 		},
 		"CnTabbedFormDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -5328,7 +5484,7 @@
 		},
 		"CnTableWidget": {
 			"direct": 0,
-			"transitive": 20,
+			"transitive": 21,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5350,7 +5506,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 1,
-			"transitive": 147,
+			"transitive": 148,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5423,7 +5579,7 @@
 		},
 		"CnTagsCard": {
 			"direct": 2,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5449,7 +5605,7 @@
 		},
 		"CnTaskFormDialog": {
 			"direct": 1,
-			"transitive": 123,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5507,7 +5663,7 @@
 		},
 		"CnTaskFormWidget": {
 			"direct": 1,
-			"transitive": 10,
+			"transitive": 11,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5519,7 +5675,7 @@
 		},
 		"CnTasksCard": {
 			"direct": 1,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5531,7 +5687,7 @@
 		},
 		"CnTasksWidget": {
 			"direct": 2,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5674,7 +5830,7 @@
 		},
 		"CnTimelineWidget": {
 			"direct": 5,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5739,8 +5895,8 @@
 		},
 		"CnUserSettingsDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",
@@ -5751,7 +5907,7 @@
 		},
 		"CnVersionHistory": {
 			"direct": 3,
-			"transitive": 14,
+			"transitive": 15,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5803,6 +5959,13 @@
 			"via": [],
 			"page": "cn-walkthrough"
 		},
+		"CnWebPushToggle": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-web-push-toggle"
+		},
 		"CnWeekStripWidget": {
 			"direct": 1,
 			"transitive": 3,
@@ -5821,7 +5984,7 @@
 		},
 		"CnWidgetCardGrid": {
 			"direct": 0,
-			"transitive": 17,
+			"transitive": 18,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5850,20 +6013,59 @@
 		},
 		"CnWidgetFormRenderer": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnActionsMenu",
+				"CnAnalyticsReportPicker",
 				"CnAssignDialog",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
 				"CnBulkJobProgress",
-				"CnIndexPage"
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCellRenderer",
+				"CnChildRecordsField",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesBrowser",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNoteComposer",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPartyPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
 			],
 			"page": "cn-widget-form-renderer"
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 228,
+			"transitive": 230,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5982,7 +6184,7 @@
 		},
 		"CnWidgetMapViewer": {
 			"direct": 0,
-			"transitive": 12,
+			"transitive": 13,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -5996,7 +6198,7 @@
 		},
 		"CnWidgetObjectTable": {
 			"direct": 3,
-			"transitive": 24,
+			"transitive": 25,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -6028,7 +6230,7 @@
 		},
 		"CnWidgetWrapper": {
 			"direct": 0,
-			"transitive": 11,
+			"transitive": 12,
 			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
@@ -6048,8 +6250,8 @@
 		},
 		"CnWizardDialog": {
 			"direct": 0,
-			"transitive": 10,
-			"tier": "medium",
+			"transitive": 11,
+			"tier": "heavy",
 			"via": [
 				"CnActionDialog",
 				"CnAssignDialog",

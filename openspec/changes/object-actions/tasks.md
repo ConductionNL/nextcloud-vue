@@ -1,0 +1,6 @@
+- [x] 1 `useObjectActions`, the `object-action` dispatcher type (tests/composables/useObjectActions.spec.js)
+- [x] 2 CnDetailPage `actionsFrom` / `actionsInclude`, inputs dialog and disabled-with-reason in CnActionButtons (tests/components/CnDetailPageObjectActions.spec.js)
+- [x] 3 Manifest schema keys; docs
+- [x] 4 Bulk bar on index pages: CnIndexPage `actionsFrom` / `actionsInclude` (tests/components/CnIndexPageObjectActions.spec.js)
+- [x] 5 Row menu on index pages: `type: "object-action"` row actions (tests/components/manifestActionDispatchObjectAction.spec.js)
+- [ ] 6 CnMacrosWidget over the same list

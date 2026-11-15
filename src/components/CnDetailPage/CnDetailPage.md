@@ -180,6 +180,8 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `icon` | String | `''` | Optional MDI icon name rendered in the header via `CnIcon` |
+| `actionsFrom` | String | `''` | `openregister` offers in the header's Actions every action OpenRegister lists for the record (`GET /api/objects/{register}/{schema}/{id}/actions`) whose `surfaces` hold `header` or `detail-menu`. An action with inputs opens a dialog over its input schema, an unavailable one is disabled with the server's reason, and actions the reader may not run are absent. |
+| `actionsInclude` | Array | `[]` | The action keys `actionsFrom` offers, in this order; empty offers all. |
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). False packs widgets upward, so a size-to-content widget ends at its content (DqHandhaving). |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |

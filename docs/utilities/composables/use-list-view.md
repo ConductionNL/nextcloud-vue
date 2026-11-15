@@ -109,3 +109,8 @@ The legacy form mirrors the same state shape but exposes lower-level helpers (`t
 
 - [CnIndexPage](../../components/cn-index-page.md) — Primary consumer; its props/events match this composable's return value.
 - [useObjectStore](../../store/object-store.md) — Backing store for the object-store API.
+
+## Reading the search before it is sent
+
+`options.searchInterpreter(term)` reads a typed search before a fetch, once per term (answers in flight are shared). Its answer `{ search?, filters?, note? }` decides what is sent: `search` replaces `_search` (nothing is sent when it is empty), `filters` are added to the query, and `note` is exposed as `searchNote`. A `null` answer or a throw sends the term as typed. CnIndexPage wires it from `searchHandler` (a registry handler, manifest `config.searchHandler`).
+

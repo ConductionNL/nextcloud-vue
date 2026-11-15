@@ -1,0 +1,1 @@
+- [x] 1 `utils/barcode1d.js`, CnCodeWidget and the `code` widget type (tests/components/CnCodeWidget.spec.js); docs and the widget catalog

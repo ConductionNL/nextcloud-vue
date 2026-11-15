@@ -156,8 +156,40 @@
 						v-for="field in fieldsFor(step)"
 						:key="field.key"
 						class="cn-setup-field">
+						<!-- A repeatable group (`repeatable: true` on an array of
+						     objects): one row of sub-fields per entry, posted as one list. -->
+						<fieldset v-if="field.repeatable"
+							class="cn-setup-repeat"
+							data-testid="cn-setup-repeat">
+							<legend class="cn-setup-repeat__legend">
+								{{ fieldLabel(step, field) }}
+							</legend>
+							<div v-for="(row, rowIndex) in repeatRows(field)"
+								:key="rowIndex"
+								class="cn-setup-repeat__row"
+								data-testid="cn-setup-repeat-row">
+								<NcTextField
+									v-for="sub in field.repeatable.fields"
+									:key="sub.key"
+									:label="sub.label"
+									:type="sub.widget === 'number' ? 'number' : 'text'"
+									:modelValue="row[sub.key] != null ? String(row[sub.key]) : ''"
+									@update:modelValue="(v) => onRepeatInput(field, rowIndex, sub, v)" />
+								<NcButton variant="tertiary"
+									:aria-label="t('nextcloud-vue', 'Remove row {number}', { number: rowIndex + 1 })"
+									data-testid="cn-setup-repeat-remove"
+									@click="removeRepeatRow(field, rowIndex)">
+									{{ t('nextcloud-vue', 'Remove') }}
+								</NcButton>
+							</div>
+							<NcButton variant="secondary"
+								data-testid="cn-setup-repeat-add"
+								@click="addRepeatRow(field)">
+								{{ field.repeatable.addLabel || t('nextcloud-vue', 'Add row') }}
+							</NcButton>
+						</fieldset>
 						<NcCheckboxRadioSwitch
-							v-if="field.widget === 'checkbox'"
+							v-else-if="field.widget === 'checkbox'"
 							:modelValue="!!configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v">
 							{{ field.label }}
@@ -232,6 +264,14 @@
 								<span v-if="row.detail" class="cn-setup-readiness__detail">{{ row.detail }}</span>
 							</span>
 							<a v-if="row.link" class="cn-setup-readiness__link" :href="row.link.href">{{ row.link.label }}</a>
+							<NcButton v-else-if="step.summaryEditable === true && recapEditable(row.id)"
+								variant="tertiary"
+								class="cn-setup-readiness__link"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: row.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(row.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
 						</li>
 					</ul>
 					<ul v-else class="cn-setup-summary">
@@ -243,6 +283,15 @@
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
+							<NcButton v-if="step.summaryEditable === true && item.editable"
+								variant="tertiary"
+								class="cn-setup-summary__change"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: item.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(item.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
+							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
 					<NcNoteCard v-if="stepNote(step)"
@@ -707,6 +756,8 @@ export default {
 					id: entry.step.id,
 					title: this.stepTitle(entry.step),
 					value: t('nextcloud-vue', 'Skipped, needs {apps}', { apps: entry.missing.join(', ') }),
+					hint: '',
+					editable: false,
 					done: false,
 					notRun: true,
 				}))
@@ -725,19 +776,21 @@ export default {
 						// Only the fields the reader filled in: a row of empty
 						// "Name: , KvK: ," reads as broken, not as "not set".
 						value = this.fieldsFor(step)
-							.filter((f) => {
-								const v = this.configModel[f.key]
-								return v !== null && v !== undefined && String(v).trim() !== ''
-							})
-							.map((f) => `${f.label}: ${this.configModel[f.key]}`)
+							.map((f) => ({ f, v: f.repeatable ? this.repeatSummary(f) : this.configModel[f.key] }))
+							.filter(({ v }) => v !== null && v !== undefined && String(v).trim() !== '')
+							.map(({ f, v }) => `${f.label}: ${v}`)
 							.join(', ') || t('nextcloud-vue', 'Not set')
 					}
+					const hint = step.summaryHint ? this.cnTranslate(step.summaryHint) : ''
+					const editable = step.type !== 'info'
 					if (this.isOnDemand(step)) {
 						const ran = this.ranThisSession(step.id)
 						return {
 							id: step.id,
 							title: this.stepTitle(step),
 							value: ran ? '' : t('nextcloud-vue', 'Not run'),
+							hint,
+							editable,
 							done: ran,
 							notRun: !ran,
 						}
@@ -750,7 +803,7 @@ export default {
 					} else {
 						done = this.isStepDone(step.id)
 					}
-					return { id: step.id, title: this.stepTitle(step), value, done, notRun: false }
+					return { id: step.id, title: this.stepTitle(step), value, hint, editable, done, notRun: false }
 				})
 				.concat(skipped)
 		},
@@ -894,6 +947,97 @@ export default {
 		 * @return {string} The label.
 		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-mark-its-fields-optional
 		 */
+		/**
+		 * The rows of a repeatable group: what was entered, else one empty row.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The rows.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-a-config-fields-step-can-hold-a-repeatable-group
+		 */
+		repeatRows(field) {
+			const rows = this.configModel[field.key]
+			return Array.isArray(rows) && rows.length > 0 ? rows : [{}]
+		},
+
+		/**
+		 * Write one sub-field of one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 * @param {object} sub The sub-field.
+		 * @param {string} value The typed value.
+		 */
+		onRepeatInput(field, rowIndex, sub, value) {
+			const rows = this.repeatRows(field).map((row) => ({ ...row }))
+			rows[rowIndex] = { ...rows[rowIndex], [sub.key]: sub.widget === 'number' && value !== '' ? Number(value) : value }
+			this.configModel[field.key] = rows
+		},
+
+		/**
+		 * Add an empty row to a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 */
+		addRepeatRow(field) {
+			this.configModel[field.key] = [...this.repeatRows(field), {}]
+		},
+
+		/**
+		 * Remove one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 */
+		removeRepeatRow(field, rowIndex) {
+			this.configModel[field.key] = this.repeatRows(field).filter((row, index) => index !== rowIndex)
+		},
+
+		/**
+		 * The rows of a repeatable group that hold a value, without the empty ones.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The filled rows.
+		 */
+		filledRepeatRows(field) {
+			return (Array.isArray(this.configModel[field.key]) ? this.configModel[field.key] : [])
+				.filter((row) => row && Object.values(row).some((v) => v !== null && v !== undefined && String(v).trim() !== ''))
+		},
+
+		/**
+		 * A repeatable group in the recap: each filled row's first value.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {string|null} The recap, or null when nothing was entered.
+		 */
+		repeatSummary(field) {
+			const rows = this.filledRepeatRows(field)
+			const first = field.repeatable.fields[0]
+			return rows.length === 0 ? null : rows.map((row) => (first ? row[first.key] : '') || '').filter(Boolean).join('; ')
+		},
+
+		/**
+		 * Whether the recap row of a step can open that step again.
+		 *
+		 * @param {string} stepId The step.
+		 * @return {boolean}
+		 */
+		recapEditable(stepId) {
+			const recap = this.summaryItems.find((item) => item.id === stepId)
+			return Boolean(recap && recap.editable)
+		},
+
+		/**
+		 * Open a step from the recap (`summaryEditable`), without validating.
+		 *
+		 * @param {string} stepId The step.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-the-recap-can-say-why-and-open-a-step-again
+		 */
+		openStep(stepId) {
+			if (this.$refs.wizard && typeof this.$refs.wizard.jumpTo === 'function') {
+				this.$refs.wizard.jumpTo(stepId)
+			}
+		},
+
 		fieldLabel(step, field) {
 			const required = Array.isArray(step?.schema?.required) && step.schema.required.includes(field.key)
 			return step?.optionalLabels === true && !required
@@ -911,7 +1055,23 @@ export default {
 
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
-				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
+				const props = step.schema.properties || {}
+				return fieldsFromSchema(step.schema, { translate: this.cnTranslate }).map((field) => {
+					const prop = props[field.key]
+					const items = prop && prop.type === 'array' && prop.repeatable === true ? prop.items : null
+					if (!items || items.type !== 'object') {
+						return field
+					}
+					return {
+						...field,
+						repeatable: {
+							// In the order the items declare their properties: the first names the row in the recap.
+							fields: fieldsFromSchema(items, { translate: this.cnTranslate })
+								.sort((a, b) => Object.keys(items.properties || {}).indexOf(a.key) - Object.keys(items.properties || {}).indexOf(b.key)),
+							addLabel: prop.addLabel ? this.cnTranslate(prop.addLabel) : '',
+						},
+					}
+				})
 			}
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
@@ -1288,13 +1448,23 @@ export default {
 				const patch = {}
 				for (const field of this.fieldsFor(step)) {
 					if (Object.hasOwn(this.configModel, field.key)) {
-						patch[field.key] = this.configModel[field.key]
+						patch[field.key] = field.repeatable ? this.filledRepeatRows(field) : this.configModel[field.key]
 					}
 				}
 				if (Object.keys(patch).length === 0) {
 					return true
 				}
 				try {
+					if (step.action) {
+						// A config-fields step with an `action` posts its values to that action, not to the config.
+						const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+						const { data } = await axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`), patch)
+						if (data && data.success === false) {
+							return data.message || t('nextcloud-vue', 'The step could not be saved.')
+						}
+						this.localDone[step.id] = true
+						return true
+					}
 					await this.saveConfig(patch)
 					this.localDone[step.id] = true
 					return true
@@ -1656,6 +1826,34 @@ export default {
 
 .cn-setup-summary__label {
 	flex: 0 0 auto;
+}
+
+.cn-setup-summary__hint {
+	flex-basis: 100%;
+	margin-inline-start: 24px;
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-setup-repeat {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.cn-setup-repeat__legend {
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.cn-setup-repeat__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
 }
 
 .cn-setup-summary__value {

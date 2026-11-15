@@ -51,6 +51,7 @@ export {
 	CnAppTilesWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
+	CnAudioCapture,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
@@ -79,6 +80,7 @@ export {
 	CnChoiceCards,
 	CnChoiceMatrix,
 	CnChoicePickerWidget,
+	CnCodeWidget,
 	CnColorPicker,
 	CnCommandPalette,
 	CnConditionGroupEditor,
@@ -336,6 +338,7 @@ export {
 	CnSavedViewWidget,
 	CnSavedViewWidgetForm,
 	CnSaveViewDialog,
+	CnScanField,
 	CnSchemaFormDialog,
 	CnSchemaRulesWidget,
 	CnSearchIndexStatus,
@@ -411,6 +414,7 @@ export {
 	CnVideoWidgetForm,
 	CnViewPresentationPicker,
 	CnWalkthrough,
+	CnWebPushToggle,
 	CnWidgetCardGrid,
 	CnWidgetEditCog,
 	CnWidgetEmptyState,
@@ -513,7 +517,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectActions, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useOfflineQueue, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -705,6 +709,10 @@ export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.j
 // module-private — import them from `src/utils/modalStack.js` if you need to
 // slot something between two dialog layers.
 export { installModalStack, uninstallModalStack } from './utils/modalStack.js'
+// Boot a manifest app on CnAppRoot in one call, the router built from the manifest.
+export { appRouterBase, mountCnApp, routesFromManifest } from './utils/mountCnApp.js'
+// Web push on this device through OpenRegister's web-push channel (opt-in on a click only).
+export { currentPushSubscription, disableWebPush, enableWebPush, webPushSupported } from './utils/webPush.js'
 export { getDashboardColumnOpts, placeNewWidget } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 // NB: the NL-government icon sets are deliberately NOT re-exported here.

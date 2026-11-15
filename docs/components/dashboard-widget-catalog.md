@@ -49,6 +49,11 @@ Static, configuration-only widgets — no data source required.
 Single-line styled text label (font size, colour, weight, alignment) for dashboard grids.
 → [`CnLabelWidget`](./cn-label-widget.md) · [`CnLabelWidgetForm`](./cn-label-widget-form.md)
 
+### Code · `code`
+
+A record as a code on a detail page: QR, Code 128 or EAN-13, drawn in the browser, with Download as SVG. `content.source` is `field` (a property of the record) or `address` (the record's address, QR only).
+→ [`CnCodeWidget`](./cn-code-widget.md)
+
 ### Notepad · `notepad`
 
 A personal note typed into in place, saved to the reader's own preferences rather than the layout. User-addable: a reader can add it to their own dashboard with no configuration.

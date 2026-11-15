@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 12 files reached through imports.
 
 Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
@@ -10,10 +10,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type     | Required | Default                                            | Description                                                                                                                                                                                 |
-| ------------- | -------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Save current view')` | Dialog title shown in the NcDialog header.                                                                                                                                                  |
-| `schema`      | `object` |          | `null`                                             | The view's JSON Schema. With it the dialog shows the presentation picker (table, board, calendar) and emits `presentation` in `confirm`; without it the dialog renders and emits as before. |
+| Name          | Type                | Required | Default                                            | Description                                                                                                                                                                                 |
+| ------------- | ------------------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dialogTitle` | `string`            |          | `() =&gt; t('nextcloud-vue', 'Save current view')` | Dialog title shown in the NcDialog header.                                                                                                                                                  |
+| `schema`      | `object`            |          | `null`                                             | The view's JSON Schema. With it the dialog shows the presentation picker (table, board, calendar) and emits `presentation` in `confirm`; without it the dialog renders and emits as before. |
+| `shareGroups` | `string&#124;array` |          | `'all'`                                            | Which groups the share picker offers: `all`, `mine` (the groups the current user is in) or an array of group ids. See CnSavedViewShareFields.                                               |
 
 ### Events
 
