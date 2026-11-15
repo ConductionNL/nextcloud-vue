@@ -104,6 +104,7 @@ import CnGeoCaptureField from '../components/CnGeoCaptureField/CnGeoCaptureField
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 import CnScanField from '../components/CnScanField/CnScanField.vue'
 import CnSignatureCapture from '../components/CnSignatureCapture/CnSignatureCapture.vue'
+import CnSubObjectsField from '../components/CnSubObjectsField/CnSubObjectsField.vue'
 
 /**
  * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.
@@ -130,6 +131,7 @@ const DEFAULT_COMPONENT_MAP = Object.freeze({
 	audio: CnAudioCapture,
 	location: CnGeoCaptureField,
 	scan: CnScanField,
+	'sub-objects': CnSubObjectsField,
 })
 
 const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file', 'signature', 'audio', 'location', 'scan']
@@ -229,7 +231,27 @@ export function cnRenderFormField({ field, value, values, onInput, t, error, com
 
 	let result = null
 
-	if (field.type === 'boolean') {
+	const isSubObjects = field.widget === 'sub-objects' || (field.type === 'array' && field.items && field.items.type === 'object')
+
+	if (isSubObjects) {
+		// A list of objects: a table of rows edited one at a time in a dialog.
+		const maxItems = Number(field.maxItems)
+		result = {
+			kind: 'sub-objects',
+			tag: map['sub-objects'],
+			props: {
+				modelValue: Array.isArray(value) ? value : [],
+				items: field.items && typeof field.items === 'object' ? field.items : { properties: {} },
+				inputLabel: label,
+				...(field.addLabel ? { addLabel: translate(field.addLabel) } : {}),
+				...(field.itemLabel ? { itemLabel: translate(field.itemLabel) } : {}),
+				...(Number.isFinite(maxItems) && maxItems > 0 ? { maxItems } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+		}
+	} else if (field.type === 'boolean') {
 		result = {
 			kind: 'boolean',
 			tag: map.boolean,

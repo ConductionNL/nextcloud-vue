@@ -3065,6 +3065,7 @@
     "Hold the code in front of the camera.": "Houd de code voor de camera.",
     "Find": "Zoeken",
     "No record has this code.": "Geen record heeft deze code.",
+    "At most {max} rows.": "Hoogstens {max} rijen.",
     "Barcode {value}": "Barcode {value}",
     "Download as SVG": "Downloaden als SVG",
     "A Code 128 or EAN-13 code takes a field of the record.": "Een Code 128- of EAN-13-code neemt een veld van het record.",
