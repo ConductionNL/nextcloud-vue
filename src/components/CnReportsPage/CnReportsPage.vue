@@ -116,6 +116,16 @@
 								:href="hrefFor(card)"
 								@click="open(card, $event)">{{ card.linkLabel }}</a>
 						</template>
+						<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+							<NcButton v-for="action in actionsFor(card)"
+								:key="action.id"
+								variant="tertiary"
+								:disabled="runningAction !== ''"
+								:data-testid="`cn-report-card-action-${action.id}`"
+								@click="runCardAction(card, action)">
+								{{ action.label }}
+							</NcButton>
+						</div>
 					</li>
 				</ul>
 			</section>
@@ -179,6 +189,16 @@
 											{{ resolvedOpenLabel }}
 										</a>
 									</div>
+									<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+										<NcButton v-for="action in actionsFor(card)"
+											:key="action.id"
+											variant="tertiary"
+											:disabled="runningAction !== ''"
+											:data-testid="`cn-report-card-action-${action.id}`"
+											@click="runCardAction(card, action)">
+											{{ action.label }}
+										</NcButton>
+									</div>
 								</article>
 							</li>
 						</ul>
@@ -241,6 +261,16 @@
 								</span>
 							</span>
 						</a>
+						<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+							<NcButton v-for="action in actionsFor(card)"
+								:key="action.id"
+								variant="tertiary"
+								:disabled="runningAction !== ''"
+								:data-testid="`cn-report-card-action-${action.id}`"
+								@click="runCardAction(card, action)">
+								{{ action.label }}
+							</NcButton>
+						</div>
 					</li>
 				</ul>
 			</section>
@@ -282,6 +312,16 @@
 						{{ categoryName(card) }}
 					</span>
 				</a>
+				<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+					<NcButton v-for="action in actionsFor(card)"
+						:key="action.id"
+						variant="tertiary"
+						:disabled="runningAction !== ''"
+						:data-testid="`cn-report-card-action-${action.id}`"
+						@click="runCardAction(card, action)">
+						{{ action.label }}
+					</NcButton>
+				</div>
 			</li>
 		</ul>
 
@@ -307,9 +347,11 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { useLook } from '../../composables/useLook.js'
 import { headerActionAsLink } from '../../utils/actionLink.js'
-import { resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { readPath } from '../../utils/readPath.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 export default {
 	name: 'CnReportsPage',
@@ -565,7 +607,15 @@ export default {
 	data() {
 		return {
 			activeCategory: 'all',
+			// The per-card state `config.cardState` answers, keyed by card id.
+			cardStates: {},
+			// `<card id>:<action id>` while a card action runs, else ''.
+			runningAction: '',
 		}
+	},
+
+	mounted() {
+		this.loadCardStates()
 	},
 
 	computed: {
@@ -1023,6 +1073,85 @@ export default {
 		},
 
 		/**
+		 * The `config.cardActions` a card offers: each translated, kept only
+		 * while its local `visibleWhen` holds for the card with its `state`
+		 * (what `config.cardState` answered for it).
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {Array<object>} The actions.
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		actionsFor(card) {
+			const declared = Array.isArray(this.config.cardActions) ? this.config.cardActions : []
+			if (declared.length === 0 || card.unavailable) {
+				return []
+			}
+			const subject = { ...card, state: this.cardStates[card.id] || {} }
+			return declared
+				.filter((action) => action && action.id && action.label && (!action.visibleWhen || evaluateVisibleWhenLocal(action.visibleWhen, subject)))
+				.map((action) => ({ ...action, label: this.tr(action.label) }))
+		},
+
+		/**
+		 * Run a card action through the page dispatcher, with the card as
+		 * the object its tokens read (`@objectId` is the card id,
+		 * `@object.<path>` a card field), then read the card states again.
+		 *
+		 * @param {object} card The resolved card.
+		 * @param {object} action The action.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		async runCardAction(card, action) {
+			this.runningAction = `${card.id}:${action.id}`
+			try {
+				await dispatchAction(action, {
+					tokenCtx: { objectId: card.id, object: { ...card, state: this.cardStates[card.id] || {} } },
+					translate: this.tr,
+					registry: this.cnRegistry,
+				})
+			} finally {
+				this.runningAction = ''
+			}
+			await this.loadCardStates()
+		},
+
+		/**
+		 * Read `config.cardState` (`{ url, responsePath?, keyField? }`): rows
+		 * keyed by `keyField` (default `id`), or a map keyed by card id. A
+		 * failed read leaves every card without state.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		async loadCardStates() {
+			const source = this.config.cardState
+			if (!source || typeof source.url !== 'string' || source.url === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const response = await axios.get(/^https?:\/\//i.test(source.url) ? source.url : generateUrl(source.url))
+				const data = source.responsePath ? readPath(response.data, source.responsePath) : response.data
+				const keyField = source.keyField || 'id'
+				const states = {}
+				if (Array.isArray(data)) {
+					for (const row of data) {
+						const key = row && typeof row === 'object' ? readPath(row, keyField) : null
+						if (key !== null && key !== undefined && key !== '') {
+							states[String(key)] = row
+						}
+					}
+				} else if (data && typeof data === 'object') {
+					Object.assign(states, data)
+				}
+				this.cardStates = states
+			} catch {
+				this.cardStates = {}
+			}
+		},
+
+		/**
 		 * A real href for the card, so it is a link a reader can middle-click
 		 * or open in a new tab rather than a div that only answers to a click.
 		 *
@@ -1121,6 +1250,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-reports-page__card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
 .cn-reports-page {
 	padding: 16px;
 }
