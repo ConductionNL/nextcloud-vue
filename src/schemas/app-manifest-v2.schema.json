@@ -5108,6 +5108,16 @@
 							"type": "string",
 							"description": "type='index': which pages share this page's saved views. By default a view is shared by every page over the same register and schema and by no other, because a view is filters over one schema's fields. Set this to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope`; views saved before scoping stay visible everywhere. Maps to CnIndexPage `savedViewsScope`."
 						},
+						"deleteDialog": {
+							"type": "object",
+							"additionalProperties": false,
+							"description": "type='index': the words of the single-item delete dialog, each through the app's translate. `message` is the question (`{name}` is the item), `description` a muted line under it saying what else the delete removes. Unset keys keep the defaults. Maps to CnIndexPage `deleteDialog` (index-delete-dialog-texts).",
+							"properties": {
+								"title": { "type": "string" },
+								"message": { "type": "string" },
+								"description": { "type": "string" }
+							}
+						},
 						"savedViewsShareGroups": {
 							"description": "type='index': which groups a saved view can be shared with. `all` (default) offers every group the sharee API answers, `mine` only the groups the current user is in, an array only the groups it names by id. People can be picked either way. Maps to CnIndexPage `savedViewsShareGroups`.",
 							"oneOf": [
