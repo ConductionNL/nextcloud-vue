@@ -2807,7 +2807,8 @@
     "This record has no value for the code.": "This record has no value for the code.",
     "An EAN-13 code takes twelve or thirteen digits with a valid check digit.": "An EAN-13 code takes twelve or thirteen digits with a valid check digit.",
     "A Code 128 code takes letters, digits and plain punctuation only.": "A Code 128 code takes letters, digits and plain punctuation only.",
-    "Started. It finishes in the background.": "Started. It finishes in the background."
+    "Started. It finishes in the background.": "Started. It finishes in the background.",
+    "At most {max} rows.": "At most {max} rows."
   },
   "plurals": {
     "{count} member": [

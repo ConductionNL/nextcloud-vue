@@ -3071,7 +3071,8 @@
     "This record has no value for the code.": "Dit record heeft geen waarde voor de code.",
     "An EAN-13 code takes twelve or thirteen digits with a valid check digit.": "Een EAN-13-code neemt twaalf of dertien cijfers met een geldig controlecijfer.",
     "A Code 128 code takes letters, digits and plain punctuation only.": "Een Code 128-code neemt alleen letters, cijfers en gewone leestekens.",
-    "Started. It finishes in the background.": "Gestart. Het wordt op de achtergrond afgerond."
+    "Started. It finishes in the background.": "Gestart. Het wordt op de achtergrond afgerond.",
+    "At most {max} rows.": "Hoogstens {max} rijen."
   },
   "plurals": {
     "{count} member": [

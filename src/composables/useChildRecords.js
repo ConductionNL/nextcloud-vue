@@ -14,6 +14,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { propertyTitle } from '../utils/propertyTitle.js'
 
 /** Rows loaded at most; further children are edited on the list page. */
 export const CHILD_PAGE_SIZE = 50
@@ -79,7 +80,7 @@ export function validateChildRows(rows, schema, parentField = '') {
 		for (const key of required) {
 			const value = row?.[key]
 			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
-				problems.push({ row: index + 1, field: key, label: schema?.properties?.[key]?.title || key })
+				problems.push({ row: index + 1, field: key, label: propertyTitle(schema?.properties?.[key], key) })
 			}
 		}
 	})
