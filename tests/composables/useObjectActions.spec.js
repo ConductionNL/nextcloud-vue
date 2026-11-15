@@ -19,7 +19,7 @@ import { emit } from '@nextcloud/event-bus'
 import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import { actionLabelText, fetchObjectActions, runObjectAction } from '../../src/composables/useObjectActions.js'
+import { actionLabelText, fetchObjectActions, fetchSelectionActions, runObjectAction, runSelectionAction } from '../../src/composables/useObjectActions.js'
 import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
@@ -102,5 +102,24 @@ describe('the manifest', () => {
 	it('accepts an object-action and actionsFrom on a detail page', () => {
 		const manifest = { $schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json', version: '1.0.0', menu: [], pages: [{ id: 'Decision', route: '/decisions/:id', type: 'detail', title: 'Decision', config: { register: 'decidiq', schema: 'decision', actionsFrom: 'openregister', actionsInclude: ['publish'], headerActions: [{ id: 'claim', label: 'Claim', type: 'object-action', action: 'claim' }] } }] }
 		expect(validateManifestV2(manifest).errors).toEqual([])
+	})
+})
+
+describe('selection actions', () => {
+	it('lists the schema actions and drops entries without a key', async () => {
+		axios.get.mockResolvedValueOnce({ data: { actions: [{ key: 'close', surfaces: ['bulk'] }, { label: 'x' }] } })
+		expect(await fetchSelectionActions({ register: 'decidiq', schema: 'decision' })).toEqual([{ key: 'close', surfaces: ['bulk'] }])
+		expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/object-actions/decidiq/decision')
+		axios.get.mockRejectedValueOnce(new Error('404'))
+		expect(await fetchSelectionActions({ register: 'decidiq', schema: 'decision' })).toEqual([])
+		expect(await fetchSelectionActions({ register: 'decidiq' })).toEqual([])
+	})
+
+	it('posts the ids and inputs, and reads a 202 as queued', async () => {
+		axios.post.mockResolvedValueOnce({ status: 202, data: { job: 'j1' } })
+		expect(await runSelectionAction({ register: 'decidiq', schema: 'decision' }, 'close', ['a', 'b'], { note: 'n' })).toEqual({ ok: true, queued: true, data: { job: 'j1' } })
+		expect(axios.post).toHaveBeenCalledWith('/index.php/apps/openregister/api/object-actions/decidiq/decision/close', { ids: ['a', 'b'], inputs: { note: 'n' } })
+		axios.post.mockRejectedValueOnce({ response: { data: { message: 'Not allowed.' } } })
+		expect(await runSelectionAction({ register: 'decidiq', schema: 'decision' }, 'close', ['a'])).toEqual({ ok: false, queued: false, message: 'Not allowed.' })
 	})
 })

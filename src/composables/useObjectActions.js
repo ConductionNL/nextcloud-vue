@@ -93,6 +93,48 @@ export async function runObjectAction(address, action, inputs = {}) {
 }
 
 /**
+ * The actions OpenRegister offers on the bulk surface of a schema
+ * (`GET /api/object-actions/{register}/{schema}`).
+ *
+ * @param {{register: string, schema: string}} address The schema.
+ * @return {Promise<Array<object>>} The actions; [] when the list cannot be read.
+ * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+ */
+export async function fetchSelectionActions({ register, schema } = {}) {
+	if (!register || !schema) {
+		return []
+	}
+	try {
+		const { data } = await axios.get(generateUrl(`/apps/openregister/api/object-actions/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`))
+		const list = Array.isArray(data) ? data : (data && Array.isArray(data.actions) ? data.actions : [])
+		return list.filter((action) => action && typeof action.key === 'string' && action.key !== '')
+	} catch {
+		return []
+	}
+}
+
+/**
+ * Run one action on a selection (`POST /api/object-actions/{register}/{schema}/{action}`
+ * with `{ ids, inputs }`): up to 100 at once, a queued bulk job above that.
+ *
+ * @param {{register: string, schema: string}} address The schema.
+ * @param {string} action The action key.
+ * @param {Array<string>} ids The object ids.
+ * @param {object} [inputs] The inputs.
+ * @return {Promise<{ok: boolean, queued: boolean, data?: object, message?: string}>}
+ * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+ */
+export async function runSelectionAction({ register, schema }, action, ids, inputs = {}) {
+	try {
+		const response = await axios.post(generateUrl(`/apps/openregister/api/object-actions/${encodeURIComponent(register)}/${encodeURIComponent(schema)}/${encodeURIComponent(action)}`), { ids, inputs: inputs || {} })
+		return { ok: true, queued: response.status === 202, data: response.data }
+	} catch (error) {
+		const body = error && error.response && error.response.data
+		return { ok: false, queued: false, message: (body && (body.message || body.error || body.reason)) || '' }
+	}
+}
+
+/**
  * The actions of one object, reactive.
  *
  * @param {() => ({register: string, schema: string, id: string}|null)} address A getter for the object.
