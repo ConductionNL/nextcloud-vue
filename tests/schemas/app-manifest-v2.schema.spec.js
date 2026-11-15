@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.185.0', () => {
+	it('the manifest schema version reads 2.186.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1459,7 +1459,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.183.0 lets an index page give every copy field values of its own (copy.overrides; index-copy-overrides).
 		// 2.184.0 lets an action stay drawn but disabled with the reason why (disabledWhen, disabledReason; action-disabled-when).
 		// 2.185.0 lets an app declare feature toggles and gate pages, widgets and actions on them (features, visibleIf.feature, visibleWhen.feature; feature-toggles).
-		expect(schema.version).toBe('2.185.0')
+		// 2.186.0 adds the object-action action type with action and inputs (object-actions)
+		expect(schema.version).toBe('2.186.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
