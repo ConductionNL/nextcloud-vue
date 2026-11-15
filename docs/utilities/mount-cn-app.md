@@ -26,6 +26,8 @@ The library does not depend on vue-router, so the host hands over `createRouter`
 
 ## Options
 
+`target` is where the app mounts: a selector such as `#content`, or an element.
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `appId` | String | (required) | The app id; also the router base. |
