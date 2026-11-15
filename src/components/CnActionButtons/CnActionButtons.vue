@@ -67,7 +67,8 @@
 				:key="entry.id"
 				:variant="buttonVariant(entry)"
 				:class="buttonClass(entry)"
-				:disabled="Boolean(actionPending[entry.id])"
+				:disabled="isDisabled(entry)"
+				:title="disabledReason(entry) || undefined"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
 				<template v-if="entry.icon" #icon>
@@ -105,7 +106,8 @@
 					<NcActionButton
 						v-else
 						:key="child.id"
-						:disabled="Boolean(actionPending[child.id])"
+						:disabled="isDisabled(child)"
+						:description="disabledReason(child) || undefined"
 						:data-testid="`cn-action-${child.id}`"
 						@click="onActionClick(child)">
 						<template v-if="child.icon" #icon>
@@ -143,7 +145,8 @@
 				<NcActionButton
 					v-else
 					:key="entry.id"
-					:disabled="Boolean(actionPending[entry.id])"
+					:disabled="isDisabled(entry)"
+					:description="disabledReason(entry) || undefined"
 					:data-testid="`cn-action-${entry.id}`"
 					@click="onActionClick(entry)">
 					<template v-if="entry.icon" #icon>
@@ -450,6 +453,8 @@ export default {
 		return {
 			/** Evaluated visibleWhen outcome per action id (true when no predicate). */
 			visibility: {},
+			// Whether an action's `disabledWhen` holds, by id.
+			disabledByCondition: {},
 			/** Current boolean state per toggle action id. */
 			toggleState: {},
 			/** In-flight flag per toggle action id (disables the button). */
@@ -637,7 +642,8 @@ export default {
 					// having to be duplicated into every host.
 					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
 					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
-					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.isDisabled(entry)),
+					disabledReason: this.disabledReason(entry),
 					// null, not false: a non-toggle carries no pressed state at
 					// all, and `aria-pressed="false"` would announce every
 					// action as an un-pressed toggle button.
@@ -794,6 +800,9 @@ export default {
 				}
 			}
 			for (const action of flat) {
+				if (action.disabledWhen) {
+					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, this.tokenCtx)
+				}
 				if (!action.visibleWhen) {
 					this.visibility[action.id] = true
 					continue
@@ -801,6 +810,32 @@ export default {
 				const ok = await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx)
 				this.visibility[action.id] = ok
 			}
+		},
+
+		/**
+		 * Whether an action is disabled now: while it runs, or while its
+		 * `disabledWhen` holds (a payment adapter that is dormant).
+		 *
+		 * @param {object} entry The action.
+		 * @return {boolean}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		isDisabled(entry) {
+			return Boolean(this.actionPending[entry.id]) || this.disabledByCondition[entry.id] === true
+		},
+
+		/**
+		 * Why an action is disabled: its `disabledReason`, translated, while
+		 * its `disabledWhen` holds; '' otherwise.
+		 *
+		 * @param {object} entry The action.
+		 * @return {string}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		disabledReason(entry) {
+			return this.disabledByCondition[entry.id] === true && typeof entry.disabledReason === 'string' && entry.disabledReason !== ''
+				? this.tr(entry.disabledReason)
+				: ''
 		},
 
 		/**
@@ -991,6 +1026,9 @@ export default {
 		 * @return {void}
 		 */
 		onActionClick(entry) {
+			if (this.disabledByCondition[entry.id] === true) {
+				return
+			}
 			if (entry.confirm === true) {
 				this.confirmEntry = entry
 				return

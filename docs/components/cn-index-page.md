@@ -1168,7 +1168,7 @@ A `headerActions[]` entry with `visibleWhen` shows only for the readers its cond
   "visibleWhen": { "endpoint": "/apps/stackiq/api/me", "field": "mayFindDuplicates", "op": "eq", "value": true } }
 ```
 
-The condition is asked once when the page opens, with `@config.<key>` tokens from the app config. The action stays out of the menu until the answer holds, and a failed request keeps it out. The endpoint behind the action still checks access itself.
+The condition is asked once when the page opens, with `@config.<key>` tokens from the app config. A header action with `disabledWhen` stays in the menu but is disabled while that condition holds, with its `disabledReason` under it (see [CnActionButtons](./cn-action-buttons.md#disabled-with-the-reason-why)). The action stays out of the menu until the answer holds, and a failed request keeps it out. The endpoint behind the action still checks access itself.
 
 A `headerActions[]` entry that only goes somewhere carries `href` instead of `handler`. It renders as a real link (`<a href>`) in the actions bar's overflow menu, in the board header's Actions menu and as a `headerButtons[]` button naming it, so it can be middle-clicked, opened in a new tab, copied and bookmarked.
 
