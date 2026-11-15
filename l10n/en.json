@@ -2773,7 +2773,12 @@
     "Install into": "Install into",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
-    "The step could not be saved.": "The step could not be saved."
+    "The step could not be saved.": "The step could not be saved.",
+    "Record again": "Record again",
+    "Stop ({seconds} s left)": "Stop ({seconds} s left)",
+    "This browser cannot record sound.": "This browser cannot record sound.",
+    "The microphone is not allowed for this site.": "The microphone is not allowed for this site.",
+    "The recording could not be saved. Try again.": "The recording could not be saved. Try again."
   },
   "plurals": {
     "{count} member": [
