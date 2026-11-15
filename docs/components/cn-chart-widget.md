@@ -168,6 +168,14 @@ Server-first: OpenRegister's `/grouped` facet endpoint does the aggregation (the
 
 A `drilldown: { route, filterParam }` block on the `dataSource` makes every slice / bar click navigate with the clicked category's **raw** key (the uuid / status value, not the resolved display label) in the query: `{ [filterParam]: rawKey }`. A `route` starting with `/` is treated as a path, anything else as a route name. The folded "Other" bucket never navigates (it has no single category value). Works with both the `aggregate` and legacy `groupBy` forms.
 
+### Picking a category (`selectable`)
+
+With `selectable` a slice, bar or bar-list row click emits `select` with `{ field, value, label, index }`: `field` is the `groupBy` the chart groups by (else the drilldown's `filterParam`, else `''`), `value` the category's raw key, `label` what the reader sees. A host turns it into a filter on its other widgets, as a dashboard's cross-widget filter does. The folded "Other" bucket emits nothing. A drilldown still navigates, and `select` is emitted beside it.
+
+```vue
+<CnChartWidget type="donut" selectable :dataSource="{ register: 'crm', schema: 'request', aggregate: { groupBy: 'status' } }" @select="({ field, value }) => bus.publish({ dimension: field, operator: 'eq', value })" />
+```
+
 ## `endpointSource` — endpoint-bound series/labels (Wave 2, #91)
 
 Binds the chart to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine (token-resolved `params`, request dedup + short-TTL cache, `cn:page:refresh` wiring; the chart's own `refresh()` / `cn:widget:refresh` handler force-refetches it too). **Exactly one of `dataSource` | `endpointSource`** (validator-enforced).
@@ -353,6 +361,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'`, `'bar-list'`, `'matrix'` |
+| `selectable` | Boolean | `false` | A slice, bar or bar-list row click emits `select` `{ field, value, label, index }` with the grouped field and the category's raw key. |
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |

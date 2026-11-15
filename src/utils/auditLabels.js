@@ -62,6 +62,20 @@ export function changedValue(entry, key, valueLabels = null) {
  * @return {string|null} The label, or null.
  */
 export function changeLabelFor(entry, rules) {
+	const rule = changeRuleFor(entry, rules)
+	return rule ? rule.label : null
+}
+
+/**
+ * The whole `changeLabels` rule an entry matches (see {@link changeLabelFor}),
+ * so its `field`, `values` and `note` can fill the label and the row.
+ *
+ * @param {object} entry The entry.
+ * @param {Array<{action?: string, field: string, to?: unknown, label: string, values?: string, note?: string}>} rules The rules.
+ * @return {object|null} The rule, or null.
+ * @spec openspec/changes/audit-change-from-to/specs/audit-trail/spec.md#requirement-a-change-label-can-say-from-what-to-what
+ */
+export function changeRuleFor(entry, rules) {
 	const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
 	const action = (entry && (entry.action || entry.event)) || ''
 	for (const rule of Array.isArray(rules) ? rules : []) {
@@ -74,9 +88,57 @@ export function changeLabelFor(entry, rules) {
 		if (Object.hasOwn(rule, 'to') && String(newValueOf(changed[rule.field])) !== String(rule.to)) {
 			continue
 		}
-		return rule.label
+		return rule
 	}
 	return null
+}
+
+/**
+ * One side of the change a rule's field recorded, in words: a user or group
+ * id by its display name when the rule says `values: "user"` or `"group"`
+ * and a `names` lookup is given, else through `valueLabels`.
+ *
+ * @param {object} entry The entry.
+ * @param {{field: string, values?: string}} rule The matched rule.
+ * @param {'old'|'new'} side Which side.
+ * @param {{valueLabels?: object|null, names?: Function|null}} [context] The words and the name lookup.
+ * @return {string} The value in words, '' when the side is empty.
+ * @spec openspec/changes/audit-change-from-to/specs/audit-trail/spec.md#requirement-a-change-label-can-say-from-what-to-what
+ */
+export function changeSideValue(entry, rule, side, { valueLabels = null, names = null } = {}) {
+	if (!rule || typeof rule.field !== 'string' || rule.field === '') {
+		return ''
+	}
+	const changed = entry && typeof entry.changed === 'object' && entry.changed !== null ? entry.changed : {}
+	const recorded = changed[rule.field]
+	const isPair = recorded !== null && typeof recorded === 'object' && (Object.hasOwn(recorded, 'old') || Object.hasOwn(recorded, 'new'))
+	if (side === 'old' && !isPair) {
+		return ''
+	}
+	const raw = side === 'old' ? recorded.old : newValueOf(recorded)
+	if (raw === null || raw === undefined || raw === '' || typeof raw === 'object') {
+		return ''
+	}
+	if ((rule.values === 'user' || rule.values === 'group') && typeof names === 'function') {
+		return names(rule.values, String(raw)) || String(raw)
+	}
+	return changedValue(entry, side === 'old' ? `${rule.field}.old` : rule.field, valueLabels)
+}
+
+/**
+ * The note a matched rule shows under its entry: the new value the entry
+ * recorded under the rule's `note` key (a handover's reason), '' for none.
+ *
+ * @param {object} entry The entry.
+ * @param {{note?: string}|null} rule The matched rule.
+ * @return {string} The note.
+ * @spec openspec/changes/audit-change-from-to/specs/audit-trail/spec.md#requirement-a-change-rule-can-show-a-note-under-its-entry
+ */
+export function changeNote(entry, rule) {
+	if (!rule || typeof rule.note !== 'string' || rule.note === '') {
+		return ''
+	}
+	return changedValue(entry, rule.note)
 }
 
 /**
@@ -122,17 +184,20 @@ function labelForRecord(label, object) {
 }
 
 /**
- * Fill a label's tokens: `{actor}`, `{state}`, `{changed.<key>}` and
- * `{object.<path>}`.
+ * Fill a label's tokens: `{actor}`, `{state}`, `{changed.<key>}`,
+ * `{object.<path>}` and, with the matched change `rule`, `{from}` and `{to}`
+ * (the old and new value of the rule's field).
  *
  * @param {string} label The label.
  * @param {object} entry The entry.
- * @param {{actor?: string, object?: object|null, valueLabels?: object|null}} [context] What the tokens read.
+ * @param {{actor?: string, object?: object|null, valueLabels?: object|null, rule?: object|null, names?: Function|null}} [context] What the tokens read.
  * @return {string} The filled label.
  */
-export function fillAuditLabel(label, entry, { actor = '', object = null, valueLabels = null } = {}) {
+export function fillAuditLabel(label, entry, { actor = '', object = null, valueLabels = null, rule = null, names = null } = {}) {
 	return label
 		.replace('{actor}', actor)
+		.replace(/\{from\}/g, () => changeSideValue(entry, rule, 'old', { valueLabels, names }))
+		.replace(/\{to\}/g, () => changeSideValue(entry, rule, 'new', { valueLabels, names }))
 		.replace('{state}', (entry && entry.stateAfter) || '')
 		.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => changedValue(entry, key, valueLabels))
 		.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
@@ -152,6 +217,7 @@ export function fillAuditLabel(label, entry, { actor = '', object = null, valueL
  * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-timeline-says-what-an-audit-entry-changed-in-words
  */
 export function auditLabel(entry, rules, context = {}) {
-	const label = changeLabelFor(entry, rules && rules.changeLabels) ?? actionLabelFor(entry, rules && rules.actionLabels, context.object || null)
-	return label === null ? null : fillAuditLabel(label, entry, { ...context, valueLabels: rules && rules.valueLabels })
+	const rule = changeRuleFor(entry, rules && rules.changeLabels)
+	const label = rule ? rule.label : actionLabelFor(entry, rules && rules.actionLabels, context.object || null)
+	return label === null ? null : fillAuditLabel(label, entry, { ...context, rule, valueLabels: rules && rules.valueLabels })
 }
