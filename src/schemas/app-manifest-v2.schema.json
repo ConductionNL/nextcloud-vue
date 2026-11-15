@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.179.0",
+	"version": "2.180.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5137,7 +5137,7 @@
 						"deleteDialog": {
 							"type": "object",
 							"additionalProperties": false,
-							"description": "type='index': the words of the single-item delete dialog, each through the app's translate. `message` is the question (`{name}` is the item), `description` a muted line under it saying what else the delete removes. Unset keys keep the defaults. Maps to CnIndexPage `deleteDialog` (index-delete-dialog-texts).",
+							"description": "type='index': the words of the single-item delete dialog, each through the app's translate. `message` is the question (`{name}` is the item), `description` a muted line under it saying what else the delete removes. Unset keys keep the defaults. Maps to CnIndexPage `deleteDialog` (index-delete-dialog-texts, 2.180.0).",
 							"properties": {
 								"title": { "type": "string" },
 								"message": { "type": "string" },
