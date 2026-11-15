@@ -3058,7 +3058,13 @@
     "Card size": "Kaartgrootte",
     "Small": "Klein",
     "Medium": "Middel",
-    "Large": "Groot"
+    "Large": "Groot",
+    "Scan": "Scannen",
+    "Stop scanning": "Stoppen met scannen",
+    "The camera is not allowed for this site. Type the code instead.": "De camera is niet toegestaan voor deze site. Typ de code in.",
+    "Hold the code in front of the camera.": "Houd de code voor de camera.",
+    "Find": "Zoeken",
+    "No record has this code.": "Geen record heeft deze code."
   },
   "plurals": {
     "{count} member": [

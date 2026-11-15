@@ -765,6 +765,24 @@
 				<h2 v-if="tableTitleShown" class="cn-index-page__table-title" data-testid="cn-index-page-table-title">
 					{{ cnTranslate(tableTitle) }}
 				</h2>
+				<!-- `scan`: find a record by scanning or typing its code. -->
+				<div v-if="scanEnabled" class="cn-index-page__scan" data-testid="cn-index-page-scan">
+					<CnScanField
+						:modelValue="scanCode"
+						:label="t('nextcloud-vue', 'Scan or type a code')"
+						:formats="Array.isArray(scan.formats) ? scan.formats : []"
+						@update:modelValue="(v) => scanCode = v"
+						@scanned="applyScan" />
+					<NcButton :disabled="!scanCode" data-testid="cn-index-page-scan-find" @click="applyScan(scanCode)">
+						{{ t('nextcloud-vue', 'Find') }}
+					</NcButton>
+					<p v-if="scanNoMatch"
+						class="cn-index-page__scan-note"
+						role="status"
+						data-testid="cn-index-page-scan-none">
+						{{ t('nextcloud-vue', 'No record has this code.') }}
+					</p>
+				</div>
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
@@ -1582,6 +1600,7 @@ import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
 import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
+import { CnScanField } from '../CnScanField/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
@@ -2041,6 +2060,7 @@ export default {
 		CnSavedViewPresentationDialog,
 		CnSavedViewEditDialog,
 		CnSavedViewShareDialog,
+		CnScanField,
 		CnSaveViewDialog,
 		CnConfirmDialog,
 		CnQuickEditDialog,
@@ -3772,6 +3792,19 @@ export default {
 		},
 
 		/**
+		 * Find a record by its code (`config.scan`): `{ enabled, field,
+		 * onMatch?, formats? }`. A scan field above the list reads a code from
+		 * the camera or the keyboard and filters the list on `field`; with
+		 * `onMatch: "open"` a single match opens its record. No match says so.
+		 *
+		 * @type {{enabled: boolean, field: string, onMatch?: ('filter'|'open'), formats?: string[]}|null}
+		 */
+		scan: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Offer OpenRegister's record templates of this register and schema on
 		 * the create form (`config.recordTemplates`): a "Start from a
 		 * template" picker fills the form.
@@ -5031,6 +5064,10 @@ export default {
 			runtimeNotices: [],
 			/** The verdict of each header action's `visibleWhen`, by id; an action waits hidden until it is in. */
 			headerActionVisibility: {},
+			/** The code in the scan field, the code waiting to open its record, and whether the last scan found nothing. */
+			scanCode: null,
+			pendingScanOpen: null,
+			scanNoMatch: false,
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -5192,6 +5229,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the page offers the scan field. */
+		scanEnabled() {
+			return Boolean(this.scan && this.scan.enabled === true && typeof this.scan.field === 'string' && this.scan.field !== '')
+		},
+
 		/**
 		 * The single-item delete dialog's texts from `deleteDialog`, as
 		 * CnDeleteDialog props; the keys it leaves unset are left out, so the
@@ -9963,6 +10005,24 @@ export default {
 			},
 		},
 
+		/**
+		 * A scan waiting to open its record: once the list has loaded, one
+		 * match opens it and none says so.
+		 *
+		 * @param {boolean} loading Whether the list is loading.
+		 */
+		effectiveLoading(loading) {
+			if (loading || this.pendingScanOpen === null) {
+				return
+			}
+			const rows = this.effectiveObjects || []
+			this.scanNoMatch = rows.length === 0
+			if (rows.length === 1) {
+				this.onView(rows[0])
+			}
+			this.pendingScanOpen = null
+		},
+
 		// A group filter's chip names the group: ask for each id's display
 		// name (cached, once per id per page).
 		effectiveActiveFilters: {
@@ -10441,6 +10501,27 @@ export default {
 				next[entry.id] = verdicts[index] === true
 			})
 			this.headerActionVisibility = next
+		},
+
+		/**
+		 * Filter the list on a scanned or typed code (`scan.field` in the
+		 * address), and with `onMatch: "open"` open a single match.
+		 *
+		 * @param {string} code The code.
+		 * @spec openspec/changes/index-scan/specs/index-scan/spec.md#requirement-an-index-page-finds-a-record-by-scanning-its-code
+		 */
+		applyScan(code) {
+			const value = typeof code === 'string' ? code.trim() : ''
+			if (!this.scanEnabled || value === '') {
+				return
+			}
+			this.scanCode = value
+			this.scanNoMatch = false
+			this.pendingScanOpen = this.scan.onMatch === 'open' ? value : null
+			const query = { ...((this.$route && this.$route.query) || {}), [this.scan.field]: value }
+			if (this.$router && typeof this.$router.replace === 'function') {
+				this.$router.replace({ query }).catch(() => {})
+			}
 		},
 
 		/**
