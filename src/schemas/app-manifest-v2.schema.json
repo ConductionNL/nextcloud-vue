@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.183.0",
+	"version": "2.184.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3689,6 +3689,8 @@
 					"default": false,
 					"description": "Detail page header actions only. Shows the action to instance admins alone, in the last group of the overflow menu. Hides a control and nothing more: the endpoint behind the action still decides who may call it. Ignored on other surfaces."
 				},
+				"disabledWhen": { "$ref": "#/$defs/visibleWhen", "description": "The action stays drawn but disabled while this condition holds (the visibleWhen shape: an endpoint, a source, reader groups, an installed app or a field), with `disabledReason` as the reason (action-disabled-when)." },
+				"disabledReason": { "type": "string", "description": "Why the action is disabled while `disabledWhen` holds, through the app's translate, shown as its tooltip or under it in a menu (action-disabled-when)." },
 				"visibleWhen": {
 					"$ref": "#/$defs/visibleWhen",
 					"description": "#91 Wave 3: an optional predicate gating whether the action renders — the shared banner shape ({ endpoint | source | field, op, value }). The `field`-only LOCAL form evaluates against the page object context (a detail action shown only in the right lifecycle state); endpoint / source forms fetch. Fail-safe: a broken predicate hides the action."

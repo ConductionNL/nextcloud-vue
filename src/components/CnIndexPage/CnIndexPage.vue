@@ -5031,6 +5031,8 @@ export default {
 			runtimeNotices: [],
 			/** The verdict of each header action's `visibleWhen`, by id; an action waits hidden until it is in. */
 			headerActionVisibility: {},
+			/** Whether each header action's `disabledWhen` holds, by id. */
+			headerActionDisabled: {},
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -5456,7 +5458,10 @@ export default {
 					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
 					continue
 				}
-				merged.push(this.resolveHeaderHandler(entry))
+				const resolved = this.resolveHeaderHandler(entry)
+				merged.push(this.headerActionDisabled[entry.id] === true
+					? { ...resolved, disabled: true, disabledReason: entry.disabledReason ? this.cnTranslate(entry.disabledReason) : '' }
+					: resolved)
 			}
 			return merged
 		},
@@ -10433,14 +10438,23 @@ export default {
 		 * @spec openspec/changes/index-header-action-visible-when/specs/index-header-action-visible-when/spec.md#requirement-an-index-header-action-can-show-only-for-some-readers
 		 */
 		async evaluateHeaderActionVisibility() {
+			const ctx = { config: this.effectiveAppConfig }
+			const ask = (cond) => evaluateVisibleWhen(cond, ctx).catch(() => false)
 			const entries = (this.headerActions || []).filter((entry) => entry && entry.id && entry.visibleWhen)
-			const verdicts = await Promise.all(entries.map((entry) => evaluateVisibleWhen(entry.visibleWhen, { config: this.effectiveAppConfig })
-				.catch(() => false)))
+			const verdicts = await Promise.all(entries.map((entry) => ask(entry.visibleWhen)))
 			const next = {}
 			entries.forEach((entry, index) => {
 				next[entry.id] = verdicts[index] === true
 			})
 			this.headerActionVisibility = next
+			// `disabledWhen`: shown, but disabled with `disabledReason` while it holds.
+			const gated = (this.headerActions || []).filter((entry) => entry && entry.id && entry.disabledWhen)
+			const disabled = await Promise.all(gated.map((entry) => ask(entry.disabledWhen)))
+			const off = {}
+			gated.forEach((entry, index) => {
+				off[entry.id] = disabled[index] === true
+			})
+			this.headerActionDisabled = off
 		},
 
 		/**
