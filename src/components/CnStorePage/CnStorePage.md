@@ -2,6 +2,8 @@
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
+| `targets` | `Array\|Object\|null` | `null` | Where an install can go: `[{ id, label }]` or an `optionsFrom` source; the chosen id is sent as `target`. |
+| `targetLabel` | `String` | `''` | The target picker's label; empty reads "Install into". |
 | `page` | Object | `{}` | The manifest page, for a host rendering the component directly; the flattened props win |
 | `app` | String | `''` | The app id, the only app-specific value in the request URL |
 | `kinds` | Array | the ADR-080 kinds | The kind quick-filters offered before the engine answers |
