@@ -337,6 +337,7 @@ export {
 	CnSavedViewWidget,
 	CnSavedViewWidgetForm,
 	CnSaveViewDialog,
+	CnScanField,
 	CnSchemaFormDialog,
 	CnSchemaRulesWidget,
 	CnSearchIndexStatus,

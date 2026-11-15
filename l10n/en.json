@@ -2794,7 +2794,13 @@
     "Card size": "Card size",
     "Small": "Small",
     "Medium": "Medium",
-    "Large": "Large"
+    "Large": "Large",
+    "Scan": "Scan",
+    "Stop scanning": "Stop scanning",
+    "The camera is not allowed for this site. Type the code instead.": "The camera is not allowed for this site. Type the code instead.",
+    "Hold the code in front of the camera.": "Hold the code in front of the camera.",
+    "Find": "Find",
+    "No record has this code.": "No record has this code."
   },
   "plurals": {
     "{count} member": [
