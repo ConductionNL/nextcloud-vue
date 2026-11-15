@@ -530,12 +530,62 @@ async function executeApiCall(action, context) {
 		if (shouldRefresh) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
+		if (!isDownload && action.openResponse) {
+			openResponseUrl(action.openResponse, outcome.data)
+		}
 		return outcome
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
 			&& (error.response.data.error || error.response.data.message)
 		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
+	}
+}
+
+/**
+ * The address an api-call's `openResponse` names in the call's answer: the
+ * `field` dot-path (default `url`), when it holds an http(s) URL or a
+ * server-relative path. Anything else (a `javascript:` URL, `//host`, no
+ * value) gives null.
+ *
+ * @param {(boolean|string|{field?: string, newTab?: boolean})} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ * @return {{url: string, newTab: boolean}|null} What to open, or null.
+ * @spec openspec/changes/api-call-open-response/specs/api-call-open-response/spec.md#requirement-an-api-call-can-open-what-the-call-answered
+ */
+export function resolveOpenResponse(openResponse, data) {
+	const spec = typeof openResponse === 'string'
+		? { field: openResponse }
+		: (openResponse && typeof openResponse === 'object' ? openResponse : (openResponse === true ? {} : null))
+	if (!spec || !data || typeof data !== 'object') {
+		return null
+	}
+	const field = typeof spec.field === 'string' && spec.field !== '' ? spec.field : 'url'
+	const value = field.split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
+	if (typeof value !== 'string') {
+		return null
+	}
+	const url = value.trim()
+	const safe = /^https?:\/\//i.test(url) || (url.startsWith('/') && !url.startsWith('//'))
+	return safe ? { url, newTab: spec.newTab === true } : null
+}
+
+/**
+ * Open what an api-call answered (`openResponse`): in a new tab with
+ * `newTab`, else in this one.
+ *
+ * @param {(boolean|string|object)} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ */
+function openResponseUrl(openResponse, data) {
+	const target = resolveOpenResponse(openResponse, data)
+	if (!target || typeof window === 'undefined') {
+		return
+	}
+	if (target.newTab) {
+		window.open(target.url, '_blank', 'noopener,noreferrer')
+	} else {
+		window.location.assign(target.url)
 	}
 }
 
@@ -767,6 +817,9 @@ export async function postRunNode(action, context, config = {}) {
  * @param {object} [action.params] "api-call" only: legacy JSON body (ignored when `payload`
  *   is set). Values pass the shared filter-token grammar ONE level deep; optional (`…?`)
  *   tokens drop when unresolved, an unresolved REQUIRED token blocks the call.
+ * @param {(boolean|string|object)} [action.openResponse] "api-call" only: open the address
+ *   the answer holds at `field` (default `url`) after a successful call, in a new tab with
+ *   `newTab: true`; `true` reads `url`, a string names the field.
  * @param {boolean} [action.download] "api-call" only: request the response as a binary blob
  *   (`responseType: 'blob'`) and trigger a browser file download instead of a JSON
  *   toast+refresh cycle. Default `false`.
