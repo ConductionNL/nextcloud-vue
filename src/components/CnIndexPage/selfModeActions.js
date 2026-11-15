@@ -3,9 +3,20 @@ import { saveEdited } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
+	copyOverrideValues,
 	runSelfExportRequest,
 	runSelfImportRequest,
 } from './selfModeIO.js'
+
+/**
+ * The page's `copy.overrides` as plain field values.
+ *
+ * @param {object} ctx The page context.
+ * @return {object} The values.
+ */
+function copyOverridesOf(ctx) {
+	return copyOverrideValues(typeof ctx.copyOverrides === 'function' ? ctx.copyOverrides() : null)
+}
 
 function resolveNameField(ctx) {
 	return ctx.effectiveSchema()?.configuration?.objectNameField
@@ -203,7 +214,7 @@ export function createSelfModeActions(ctx) {
 			const address = include.length > 0 ? copyAddress(ctx, source) : null
 			if (address) {
 				try {
-					const copied = await useObjectCopy().copy(address, newName, include, { [resolveNameField(ctx)]: newName })
+					const copied = await useObjectCopy().copy(address, newName, include, { ...copyOverridesOf(ctx), [resolveNameField(ctx)]: newName })
 					ctx.setResults.singleCopy({ success: true, object: copied.object, links: copied.links })
 					ctx.emit('copy', payload)
 					refreshList(ctx)
@@ -215,7 +226,7 @@ export function createSelfModeActions(ctx) {
 					}
 				}
 			}
-			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx))
+			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx), copyOverridesOf(ctx))
 			const type = typeFor(ctx, source)
 			const saved = await ctx.selfObjectStore().saveObject(type, clone)
 			if (saved) {
@@ -252,7 +263,7 @@ export function createSelfModeActions(ctx) {
 			const address = serverCopy ? copyAddress(ctx, source) : null
 			if (address) {
 				try {
-					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { [nameField]: getName(source) })
+					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { ...copyOverridesOf(ctx), [nameField]: getName(source) })
 					links.push(...copied.links.map((l) => ({ ...l, source: id })))
 					successfulIds.push(id)
 					continue
@@ -264,7 +275,7 @@ export function createSelfModeActions(ctx) {
 					serverCopy = false
 				}
 			}
-			const clone = cloneObjectForCopy(source, getName(source), nameField)
+			const clone = cloneObjectForCopy(source, getName(source), nameField, copyOverridesOf(ctx))
 			try {
 				const saved = await ctx.selfObjectStore().saveObject(typeFor(ctx, source), clone)
 				if (saved) {
