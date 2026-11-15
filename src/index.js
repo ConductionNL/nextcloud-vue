@@ -412,6 +412,7 @@ export {
 	CnVideoWidgetForm,
 	CnViewPresentationPicker,
 	CnWalkthrough,
+	CnWebPushToggle,
 	CnWidgetCardGrid,
 	CnWidgetEditCog,
 	CnWidgetEmptyState,
@@ -706,6 +707,10 @@ export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.j
 // module-private — import them from `src/utils/modalStack.js` if you need to
 // slot something between two dialog layers.
 export { installModalStack, uninstallModalStack } from './utils/modalStack.js'
+// Boot a manifest app on CnAppRoot in one call, the router built from the manifest.
+export { appRouterBase, mountCnApp, routesFromManifest } from './utils/mountCnApp.js'
+// Web push on this device through OpenRegister's web-push channel (opt-in on a click only).
+export { currentPushSubscription, disableWebPush, enableWebPush, webPushSupported } from './utils/webPush.js'
 export { getDashboardColumnOpts, placeNewWidget } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 // NB: the NL-government icon sets are deliberately NOT re-exported here.

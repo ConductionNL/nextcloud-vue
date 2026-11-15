@@ -3042,7 +3042,23 @@
     "Stop ({seconds} s left)": "Stoppen (nog {seconds} s)",
     "This browser cannot record sound.": "Deze browser kan geen geluid opnemen.",
     "The microphone is not allowed for this site.": "De microfoon is niet toegestaan voor deze site.",
-    "The recording could not be saved. Try again.": "De opname kon niet worden opgeslagen. Probeer het opnieuw."
+    "The recording could not be saved. Try again.": "De opname kon niet worden opgeslagen. Probeer het opnieuw.",
+    "Notifications on this device": "Meldingen op dit apparaat",
+    "This browser cannot show notifications from this app.": "Deze browser kan geen meldingen van deze app tonen.",
+    "Notifications are blocked for this site. Allow them in the browser settings and try again.": "Meldingen zijn geblokkeerd voor deze site. Sta ze toe in de browserinstellingen en probeer het opnieuw.",
+    "Notifications on devices are not set up on this server yet.": "Meldingen op apparaten zijn op deze server nog niet ingesteld.",
+    "This app is not ready to show notifications yet. Reload the page and try again.": "Deze app kan nog geen meldingen tonen. Laad de pagina opnieuw en probeer het nog eens.",
+    "The notifications could not be switched. Try again.": "De meldingen konden niet worden omgezet. Probeer het opnieuw.",
+    "Start from a template": "Begin met een sjabloon",
+    "Not taken from the template, the form no longer has them: {fields}": "Niet uit het sjabloon overgenomen, het formulier heeft ze niet meer: {fields}",
+    "Gallery": "Galerij",
+    "This schema has no text field to title a card": "Dit schema heeft geen tekstveld voor de titel van een kaart",
+    "Card title": "Kaarttitel",
+    "Cover image (optional)": "Omslagafbeelding (optioneel)",
+    "Card size": "Kaartgrootte",
+    "Small": "Klein",
+    "Medium": "Middel",
+    "Large": "Groot"
   },
   "plurals": {
     "{count} member": [
