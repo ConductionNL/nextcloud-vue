@@ -1,0 +1,3 @@
+- [x] 1 `summaryHint` and `summaryEditable` in the recap and readiness rows (tests/components/CnSetupWizardRecapAndRepeatable.spec.js)
+- [x] 2 Repeatable group in a config-fields step, posted to the step's `action` (same spec)
+- [x] 3 Manifest schema keys and docs/components/cn-setup-wizard.md
