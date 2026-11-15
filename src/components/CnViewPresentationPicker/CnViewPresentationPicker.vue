@@ -248,16 +248,20 @@ export default {
 				{ id: 'gallery', label: t('nextcloud-vue', 'Gallery'), reason: this.candidates.reasons.gallery },
 			]
 		},
+
 		gallery() {
 			return (this.value && this.value.gallery) || {}
 		},
+
 		galleryCardOptions() {
 			const chosen = Array.isArray(this.gallery.cardFields) ? this.gallery.cardFields : []
 			return chosen.map((key) => this.candidates.card.find((c) => c.key === key)).filter(Boolean)
 		},
+
 		galleryCardChoices() {
 			return this.galleryCardOptions.length >= MAX_CARD_FIELDS ? [] : this.candidates.card.filter((c) => !this.galleryCardOptions.some((o) => o.key === c.key))
 		},
+
 		cardSizeOptions() {
 			return [
 				{ id: 'small', label: t('nextcloud-vue', 'Small') },
@@ -360,6 +364,7 @@ export default {
 		galleryOption(list, role) {
 			return this.candidates[list].find((c) => c.key === this.gallery[role]) || null
 		},
+
 		/**
 		 * Set or clear one setting of the gallery presentation.
 		 *
@@ -376,6 +381,7 @@ export default {
 			}
 			this.emitValue({ viewType: 'gallery', gallery })
 		},
+
 		dateOption(role) {
 			return this.candidates.date.find((d) => d.key === this.calendar[role]) || null
 		},

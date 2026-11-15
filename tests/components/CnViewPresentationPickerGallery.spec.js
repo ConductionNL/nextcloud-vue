@@ -10,8 +10,8 @@
  */
 import { mount } from '@vue/test-utils'
 import CnViewPresentationPicker from '../../src/components/CnViewPresentationPicker/CnViewPresentationPicker.vue'
-import { buildViewCreatePayload } from '../../src/utils/savedViewHelpers.js'
 import { isPresentationComplete, presentationCandidates, presentationErrorPath } from '../../src/utils/presentationCandidates.js'
+import { buildViewCreatePayload } from '../../src/utils/savedViewHelpers.js'
 
 const SCHEMA = {
 	properties: {
