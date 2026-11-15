@@ -3033,6 +3033,7 @@
     "Package": "Pakket",
     "Version {version} · shipped with {app}": "Versie {version} · meegeleverd met {app}",
     "The packages could not be read.": "De pakketten konden niet worden gelezen.",
+    "Install into": "Installeren in",
     "Change {step}": "{step} wijzigen",
     "Remove row {number}": "Rij {number} verwijderen",
     "The step could not be saved.": "De stap kon niet worden opgeslagen."
