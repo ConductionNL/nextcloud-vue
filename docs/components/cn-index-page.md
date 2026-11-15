@@ -1092,6 +1092,14 @@ A row action of `type: "api-call"` posts (or `method: "PUT"`) to its `url` for t
 ]
 ```
 
+A row action of `type: "object-action"` runs the action `action` that OpenRegister declares on the page's schema (`x-openregister-action`) for the row it was picked on, with the fixed `inputs`, and reads the list again after a success. With `actionsFrom: "openregister"` the page also adds every action whose `surfaces` include `bulk` to the selection strip; one request runs it on the whole selection.
+
+```jsonc
+"actions": [{ "id": "close", "label": "Close", "type": "object-action", "action": "close", "inputs": { "reason": "done" } }],
+"actionsFrom": "openregister",
+"actionsInclude": ["close", "archive"]
+```
+
 ### A header action that opens a modal
 
 A header action of `type: "open-modal"` opens its registry modal with the list's active filters as `activeFilters` (the pipeline a board is narrowed to), the action's own `props` winning on a colliding key.

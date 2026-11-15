@@ -5133,7 +5133,8 @@ export default {
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
-			const authored = [...(Array.isArray(this.headerActions) ? this.headerActions : []), ...this.objectActionEntries]
+			const headerDeclared = Array.isArray(this.headerActions) ? this.headerActions : []
+			const authored = this.objectActionEntries.length > 0 ? [...headerDeclared, ...this.objectActionEntries] : headerDeclared
 			// Inline pinned actions (a stage's primary action, a quick action
 			// written out in place) join the list CnActionButtons dispatches,
 			// so they get the same dialogs, toasts and `visibleWhen` gating as

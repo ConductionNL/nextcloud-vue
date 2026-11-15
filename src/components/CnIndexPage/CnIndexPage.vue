@@ -8826,6 +8826,9 @@ export default {
 				refresh: () => this.onRefreshEvent(),
 				// ...and an answer that asks for a notice shows above the list.
 				showNotice: (notice) => this.addPageNotice(notice),
+				// A row action of `type: "object-action"` runs on this schema.
+				register: this.copyRegisterSlug,
+				schema: this.copySchemaSlug,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
