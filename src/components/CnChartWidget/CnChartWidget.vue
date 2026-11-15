@@ -456,6 +456,19 @@ export default {
 
 	props: {
 		/**
+		 * Let a reader pick a category: a slice, bar or bar-list row click
+		 * emits `select` with the grouped field and the category's raw key,
+		 * so a host can turn it into a filter on other widgets. A drilldown
+		 * still navigates; `select` is emitted on every pick either way.
+		 *
+		 * @spec openspec/changes/chart-widget-select-event/specs/chart-widget-select-event/spec.md#requirement-a-chart-can-say-which-category-the-reader-picked
+		 */
+		selectable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Chart type: area, line, bar, pie, donut, radialBar, or one of the
 		 * two drawn without ApexCharts: `bar-list` (a labelled track per
 		 * category, the value at the end) and `matrix` (a series per row, a
@@ -1213,6 +1226,28 @@ export default {
 		},
 
 		/**
+		 * The field a picked category belongs to: the aggregate's or the
+		 * source's `groupBy`, else the drilldown's `filterParam`; '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/chart-widget-select-event/specs/chart-widget-select-event/spec.md#requirement-a-chart-can-say-which-category-the-reader-picked
+		 */
+		selectionField() {
+			const agg = this.aggregateDef
+			if (agg && typeof agg.groupBy === 'string') {
+				return agg.groupBy
+			}
+			const gb = this.dataSource && this.dataSource.groupBy
+			if (typeof gb === 'string') {
+				return gb
+			}
+			if (gb && typeof gb.field === 'string') {
+				return gb.field
+			}
+			return (this.drilldownDef && this.drilldownDef.filterParam) || ''
+		},
+
+		/**
 		 * The `dataSource.drilldown` block (Wave 3) when it is actionable —
 		 * both `route` and `filterParam` set — else null.
 		 *
@@ -1622,7 +1657,7 @@ export default {
 			const values = Array.isArray(series?.data) ? series.data.map((v) => Number(v) || 0) : []
 			const labels = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
 			const max = Number.isFinite(this.barMax) && this.barMax > 0 ? this.barMax : Math.max(0, ...values)
-			const drill = Boolean(this.drilldownDef && this.$router)
+			const drill = Boolean(this.drilldownDef && this.$router) || this.selectable
 			return values.map((value, index) => ({
 				index,
 				label: String(labels[index] ?? ''),
@@ -1910,7 +1945,7 @@ export default {
 			// works identically for pie slices and (distributed) bars; the
 			// cursor hint makes the affordance visible. An explicit
 			// `options.chart.events` still wins through the deep-merge.
-			if (this.drilldownDef && this.$router) {
+			if ((this.drilldownDef && this.$router) || this.selectable) {
 				defaults.chart.events = {
 					dataPointSelection: this.onDataPointSelection,
 					dataPointMouseEnter: (event) => {
@@ -2833,16 +2868,27 @@ export default {
 		 * @return {void}
 		 */
 		onDataPointSelection(_event, _chartContext, config) {
-			const drill = this.drilldownDef
-			if (!drill || !this.$router) {
-				return
-			}
 			const idx = config && config.dataPointIndex
 			if (typeof idx !== 'number' || idx < 0) {
 				return
 			}
 			const key = this.drilldownKeys[idx]
 			if (key === undefined || key === OTHER_BUCKET_KEY) {
+				return
+			}
+			if (this.selectable) {
+				const labels = ['pie', 'donut', 'radialBar'].includes(this.type) ? this.resolvedLabels : this.resolvedCategories
+				/**
+				 * A reader picked a category (`selectable`): the field the
+				 * chart groups by, the category's raw key and its label.
+				 *
+				 * @event select
+				 * @type {{field: string, value: string, label: string, index: number}}
+				 */
+				this.$emit('select', { field: this.selectionField, value: key, label: String((labels || [])[idx] ?? key), index: idx })
+			}
+			const drill = this.drilldownDef
+			if (!drill || !this.$router) {
 				return
 			}
 			const query = { [drill.filterParam]: key }
