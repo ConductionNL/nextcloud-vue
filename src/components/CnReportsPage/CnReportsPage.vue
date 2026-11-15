@@ -614,9 +614,6 @@ export default {
 		}
 	},
 
-	mounted() {
-		this.loadCardStates()
-	},
 
 	computed: {
 		/**
@@ -1001,6 +998,10 @@ export default {
 				? this.tr(this.config.emptyLabel)
 				: t('nextcloud-vue', 'No reports in this category.')
 		},
+	},
+
+	mounted() {
+		this.loadCardStates()
 	},
 
 	methods: {

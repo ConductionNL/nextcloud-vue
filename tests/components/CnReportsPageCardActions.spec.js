@@ -27,11 +27,16 @@ const CONFIG = {
 		{ id: 'cancel', label: 'Cancel subscription', type: 'api-call', method: 'DELETE', url: '/apps/hermiq/api/report-subscriptions/@objectId', visibleWhen: { field: 'state.frequency', op: 'notEmpty' } },
 	],
 }
-const mountPage = (config = CONFIG) => mount(CnReportsPage, {
-	props: { page: { id: 'Reports', title: 'Reports', config } },
-	global: { mocks: { $router: { push: () => Promise.resolve(), resolve: ({ name }) => ({ href: `/r/${name}` }) } } },
-})
-const actionIds = (w, card) => w.vm.actionsFor(w.vm.resolvedCards.find((c) => c.id === card)).map((a) => a.id)
+function mountPage(config = CONFIG) {
+	return mount(CnReportsPage, {
+		props: { page: { id: 'Reports', title: 'Reports', config } },
+		global: { mocks: { $router: { push: () => Promise.resolve(), resolve: ({ name }) => ({ href: `/r/${name}` }) } } },
+	})
+}
+
+function actionIds(w, card) {
+	return w.vm.actionsFor(w.vm.resolvedCards.find((c) => c.id === card)).map((a) => a.id)
+}
 
 describe('CnReportsPage card actions', () => {
 	beforeEach(() => {
