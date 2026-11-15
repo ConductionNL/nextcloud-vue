@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { propertyTitle } from '../../utils/propertyTitle.js'
 /**
  * CnInfoWidget — Renders label-value pairs in a responsive CSS grid.
  *
@@ -168,7 +169,7 @@ export default {
 				.filter((key) => !this.excludeFields.includes(key))
 				.filter((key) => properties[key])
 				.map((key) => ({
-					label: this.cnTranslate(properties[key].title || key),
+					label: this.cnTranslate(propertyTitle(properties[key], key)),
 					value: this.formatFieldValue(this.object[key], properties[key]),
 				}))
 		},

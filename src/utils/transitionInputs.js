@@ -15,6 +15,7 @@
  */
 
 import { formatDateForDisplay } from './dateDisplay.js'
+import { propertyTitle } from './propertyTitle.js'
 import { readPath } from './readPath.js'
 import { fieldsFromSchema } from './schema.js'
 
@@ -198,7 +199,7 @@ function objectField(input, prop) {
 	const only = subs.length === 1
 	return {
 		key: input.field,
-		label: prop.title || input.field,
+		label: propertyTitle(prop, input.field),
 		description: prop.description || '',
 		widget: 'object',
 		required: input.required,
