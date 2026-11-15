@@ -1964,6 +1964,19 @@ export default {
 		 *
 		 * @return {Array<{key: string, drivers: string[]}>} Field key => the form keys it depends on.
 		 */
+		/**
+		 * A signature of the values every dependent-values table reads.
+		 *
+		 * @return {string} A change means some dependent field may hold a value it no longer allows.
+		 */
+		dependentValuesToken() {
+			return this.resolvedFields
+				.map((field) => this.dependentValuesOf(field))
+				.filter(Boolean)
+				.map((decl) => `${decl.controlledBy}=${JSON.stringify(this.formData[decl.controlledBy] ?? null)}`)
+				.join('&')
+		},
+
 		relationFilterDecls() {
 			const properties = (this.schema && this.schema.properties) || {}
 			const decls = []
@@ -2130,6 +2143,31 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * A controlling field changed: clear what a dependent field holds
+		 * that its new table row does not allow (`x-openregister-dependent-values`).
+		 *
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentValuesToken() {
+			for (const field of this.resolvedFields) {
+				const allowed = this.dependentAllowed(field)
+				if (allowed === null) {
+					continue
+				}
+				const value = this.formData[field.key]
+				const plain = (v) => String(v && typeof v === 'object' ? (v.id ?? v.value) : v)
+				if (Array.isArray(value)) {
+					const kept = value.filter((v) => allowed.includes(plain(v)))
+					if (kept.length !== value.length) {
+						this.updateField(field.key, kept)
+					}
+				} else if (value !== null && value !== undefined && value !== '' && !allowed.includes(plain(value))) {
+					this.updateField(field.key, null)
+				}
+			}
+		},
+
 		/**
 		 * Keep the draft in step with what is typed.
 		 *
@@ -5120,7 +5158,59 @@ export default {
 				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
 				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
-			return this.getEnumOptions(field)
+			return this.narrowToDependentValues(field, this.getEnumOptions(field))
+		},
+
+		/**
+		 * The `x-openregister-dependent-values` table of a field's property
+		 * (or of its items): `{ controlledBy, allowed }`, or null.
+		 *
+		 * @param {object} field The field.
+		 * @return {{controlledBy: string, allowed: object}|null}
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentValuesOf(field) {
+			const prop = (this.schema && this.schema.properties && this.schema.properties[field.key]) || null
+			const decl = prop && (prop['x-openregister-dependent-values'] || (prop.items && prop.items['x-openregister-dependent-values']))
+			if (!decl || typeof decl.controlledBy !== 'string' || decl.controlledBy === '' || !decl.allowed || typeof decl.allowed !== 'object') {
+				return null
+			}
+			return decl
+		},
+
+		/**
+		 * The values a dependent field may take now: the table row of the
+		 * controlling field's value, or null when the field is unconstrained
+		 * (no table, or a controlling value the table does not list).
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>|null} The allowed values, or null for any.
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentAllowed(field) {
+			const decl = this.dependentValuesOf(field)
+			if (!decl) {
+				return null
+			}
+			const raw = this.formData[decl.controlledBy]
+			const controlling = raw && typeof raw === 'object' ? (raw.id ?? raw.value) : raw
+			if (controlling === null || controlling === undefined || controlling === '' || !Object.hasOwn(decl.allowed, String(controlling))) {
+				return null
+			}
+			const row = decl.allowed[String(controlling)]
+			return Array.isArray(row) ? row.map(String) : []
+		},
+
+		/**
+		 * Options narrowed to what the controlling field allows.
+		 *
+		 * @param {object} field The field.
+		 * @param {Array<object>} options The options.
+		 * @return {Array<object>} The allowed options, the same objects.
+		 */
+		narrowToDependentValues(field, options) {
+			const allowed = this.dependentAllowed(field)
+			return allowed === null ? options : options.filter((option) => allowed.includes(String(option.id ?? option.value)))
 		},
 
 		/**
@@ -5195,7 +5285,7 @@ export default {
 				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
 				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
-			return this.getArrayEnumOptions(field)
+			return this.narrowToDependentValues(field, this.getArrayEnumOptions(field))
 		},
 
 		/**
