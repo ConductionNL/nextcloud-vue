@@ -127,6 +127,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * `grid` (default): the open issues as cards. `columns`: Planned, In
 		 * development and Available with their counts, closed-as-completed
@@ -136,6 +137,7 @@ export default {
 			type: String,
 			default: 'grid',
 		},
+
 		/**
 		 * Labels that put an open issue under In development (case-insensitive).
 		 * Empty takes the defaults: "in progress", "in-progress", "in development".
@@ -158,6 +160,7 @@ export default {
 		sortedItems() {
 			return sortByReactions(this.items)
 		},
+
 		/**
 		 * The three columns of the `columns` layout, each with its heading.
 		 *
