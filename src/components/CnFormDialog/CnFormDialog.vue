@@ -63,6 +63,20 @@
 				</div>
 			</NcNoteCard>
 
+			<!-- `templateSource`: a create form can start from a saved record template. -->
+			<div v-if="isCreateMode && recordTemplates.length > 0" class="cn-form-dialog__templates" data-testid="cn-form-dialog-templates">
+				<NcSelect
+					:inputLabel="t('nextcloud-vue', 'Start from a template')"
+					:options="recordTemplates"
+					:modelValue="appliedTemplate"
+					label="name"
+					:clearable="false"
+					@update:modelValue="applyRecordTemplate" />
+				<p v-if="templateDropped.length > 0" class="cn-form-dialog__templates-note" data-testid="cn-form-dialog-template-dropped">
+					{{ t('nextcloud-vue', 'Not taken from the template, the form no longer has them: {fields}', { fields: templateDropped.join(', ') }) }}
+				</p>
+			</div>
+
 			<!-- Form-level error (e.g. server validation) — keeps the form visible so the user can fix the data -->
 			<NcNoteCard v-if="formError" type="error" data-testid="cn-form-dialog-error">
 				{{ formError }}
@@ -1302,6 +1316,36 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
  * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
+
+/**
+ * Whether a template value still fits its property: the JSON type the
+ * property declares (an integer for `integer`), any value for a property
+ * that declares none.
+ *
+ * @param {unknown} value The template value.
+ * @param {object} [prop] The schema property.
+ * @return {boolean}
+ */
+function templateValueFits(value, prop) {
+	const type = prop && prop.type
+	if (!type || value === null) {
+		return true
+	}
+	const types = Array.isArray(type) ? type : [type]
+	return types.some((one) => {
+		if (one === 'array') {
+			return Array.isArray(value)
+		}
+		if (one === 'object') {
+			return typeof value === 'object' && !Array.isArray(value)
+		}
+		if (one === 'integer') {
+			return Number.isInteger(value)
+		}
+		return typeof value === one || (one === 'file' && typeof value === 'object')
+	})
+}
+
 export default {
 	name: 'CnFormDialog',
 
@@ -1375,6 +1419,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Offer the record templates of this register and schema on a create
+		 * form (`{ register, schema }`, slugs): a "Start from a template"
+		 * picker fills the form, leaving out values that no longer fit.
+		 * Null offers none.
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		templateSource: {
+			type: Object,
+			default: null,
+		},
+
 		/** Schema for auto-generating fields. Either schema or fields must be provided. */
 		schema: {
 			type: Object,
@@ -1669,6 +1726,10 @@ export default {
 			result: null,
 			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
 			formError: null,
+			// Record templates of the form's register and schema (`templateSource`), the one applied, and the values it could not give.
+			recordTemplates: [],
+			appliedTemplate: null,
+			templateDropped: [],
 			closeTimeout: null,
 			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
 			asyncState: {},
@@ -2375,6 +2436,7 @@ export default {
 		// resolves, then re-render as a picker (resolved) or disabled+tooltip
 		// (unresolved).
 		this.resolveSemanticReferences()
+		this.loadRecordTemplates()
 	},
 
 	beforeUnmount() {
@@ -5857,6 +5919,59 @@ export default {
 		},
 
 		/**
+		 * Read the record templates of `templateSource` (OpenRegister
+		 * `/api/record-templates`, filtered by register and schema), for a
+		 * create form only. A failed read offers none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/form-start-from-template/specs/form-dialog/spec.md#requirement-a-create-form-can-start-from-a-saved-template
+		 */
+		async loadRecordTemplates() {
+			const source = this.templateSource
+			if (!this.isCreateMode || !source || !source.register || !source.schema) {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const { data } = await axios.get(generateUrl('/apps/openregister/api/record-templates'), { params: { register: source.register, schema: source.schema } })
+				const rows = Array.isArray(data) ? data : ((data && data.results) || [])
+				this.recordTemplates = rows.filter((row) => row && row.name && row.values && typeof row.values === 'object')
+			} catch {
+				this.recordTemplates = []
+			}
+		},
+
+		/**
+		 * Fill the form from a record template. A value whose field the form
+		 * no longer has, or whose type no longer matches the property, is
+		 * left out and named; a field the person already changed keeps what
+		 * they typed.
+		 *
+		 * @param {{name: string, values: object}|null} template The template.
+		 * @spec openspec/changes/form-start-from-template/specs/form-dialog/spec.md#requirement-a-create-form-can-start-from-a-saved-template
+		 */
+		applyRecordTemplate(template) {
+			if (!template || !template.values) {
+				return
+			}
+			const properties = (this.schema && this.schema.properties) || {}
+			const fields = new Map(this.resolvedFields.map((field) => [field.key, field]))
+			const dropped = []
+			for (const [key, value] of Object.entries(template.values)) {
+				const field = fields.get(key)
+				if (!field || !templateValueFits(value, properties[key])) {
+					dropped.push((field && field.label) || key)
+					continue
+				}
+				if (!this.touchedFields[key]) {
+					this.formData[key] = value
+				}
+			}
+			this.appliedTemplate = template
+			this.templateDropped = dropped
+		},
+
+		/**
 		 * Set validation errors from the server WITHOUT leaving the form phase,
 		 * so the user can correct the data. Call this from the parent (instead
 		 * of `setResult`) when the API returns a validation error.
@@ -5879,6 +5994,15 @@ export default {
 </script>
 
 <style scoped>
+.cn-form-dialog__templates {
+	margin-bottom: 12px;
+}
+
+.cn-form-dialog__templates-note {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
 /* A select option breaks between words only, never inside one. */
 .cn-form-dialog__option-swatch {
 	display: inline-block;

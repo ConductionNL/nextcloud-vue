@@ -302,3 +302,20 @@ Field sizes are tokens: `--cn-field-label-size` (14px), `--cn-field-height` (40p
 The settings page (`type: "settings"`) is admin-facing config persistence — it assumes `IAppConfig` is the destination and groups fields into sections. Forms have a different audience (end users), a different destination (consumer-defined endpoint or handler), and a flat shape (no sections). Sharing the field renderer keeps the duplication low without wedging end-user form rendering into a settings-shaped component.
 
 For form-builder authoring UIs (drag-drop question ordering, per-field validation panels, branching logic) keep using `type: "custom"` — the manifest's declarative shape doesn't fit a builder UI.
+
+## Device fields
+
+Three field types ask the device for something, and only when the person acts:
+
+| `type` | Renders | Value |
+|--------|---------|-------|
+| `signature` | `CnSignatureCapture`; `allowDrawn` (default true) and `allowTyped` (default false) | a drawn signature as a PNG `data:` URL (or the typed name), for a `file` property |
+| `audio` | [`CnAudioCapture`](./cn-audio-capture.md); `maxSeconds` (default 60) | the clip as a `data:` URL, for a `file` property |
+| `location` | `CnGeoCaptureField`; `latField`, `lngField`, optional `accuracyField`, `auto` | the latitude and longitude written into `latField` and `lngField` (and the accuracy into `accuracyField`); without them the place `{ lat, lng, accuracy, at }` under the field's own key |
+
+```json
+{ "key": "position", "label": "Where", "type": "location", "latField": "latitude", "lngField": "longitude" }
+```
+
+A required `location` field with `latField` and `lngField` is filled once both hold a number.
+
