@@ -3064,7 +3064,13 @@
     "The camera is not allowed for this site. Type the code instead.": "De camera is niet toegestaan voor deze site. Typ de code in.",
     "Hold the code in front of the camera.": "Houd de code voor de camera.",
     "Find": "Zoeken",
-    "No record has this code.": "Geen record heeft deze code."
+    "No record has this code.": "Geen record heeft deze code.",
+    "Barcode {value}": "Barcode {value}",
+    "Download as SVG": "Downloaden als SVG",
+    "A Code 128 or EAN-13 code takes a field of the record.": "Een Code 128- of EAN-13-code neemt een veld van het record.",
+    "This record has no value for the code.": "Dit record heeft geen waarde voor de code.",
+    "An EAN-13 code takes twelve or thirteen digits with a valid check digit.": "Een EAN-13-code neemt twaalf of dertien cijfers met een geldig controlecijfer.",
+    "A Code 128 code takes letters, digits and plain punctuation only.": "Een Code 128-code neemt alleen letters, cijfers en gewone leestekens."
   },
   "plurals": {
     "{count} member": [
