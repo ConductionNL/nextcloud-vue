@@ -2775,7 +2775,15 @@
     "Remove row {number}": "Remove row {number}",
     "The step could not be saved.": "The step could not be saved.",
     "Start from a template": "Start from a template",
-    "Not taken from the template, the form no longer has them: {fields}": "Not taken from the template, the form no longer has them: {fields}"
+    "Not taken from the template, the form no longer has them: {fields}": "Not taken from the template, the form no longer has them: {fields}",
+    "Gallery": "Gallery",
+    "This schema has no text field to title a card": "This schema has no text field to title a card",
+    "Card title": "Card title",
+    "Cover image (optional)": "Cover image (optional)",
+    "Card size": "Card size",
+    "Small": "Small",
+    "Medium": "Medium",
+    "Large": "Large"
   },
   "plurals": {
     "{count} member": [

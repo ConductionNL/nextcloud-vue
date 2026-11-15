@@ -3039,7 +3039,15 @@
     "Remove row {number}": "Rij {number} verwijderen",
     "The step could not be saved.": "De stap kon niet worden opgeslagen.",
     "Start from a template": "Begin met een sjabloon",
-    "Not taken from the template, the form no longer has them: {fields}": "Niet uit het sjabloon overgenomen, het formulier heeft ze niet meer: {fields}"
+    "Not taken from the template, the form no longer has them: {fields}": "Niet uit het sjabloon overgenomen, het formulier heeft ze niet meer: {fields}",
+    "Gallery": "Galerij",
+    "This schema has no text field to title a card": "Dit schema heeft geen tekstveld voor de titel van een kaart",
+    "Card title": "Kaarttitel",
+    "Cover image (optional)": "Omslagafbeelding (optioneel)",
+    "Card size": "Kaartgrootte",
+    "Small": "Klein",
+    "Medium": "Middel",
+    "Large": "Groot"
   },
   "plurals": {
     "{count} member": [
