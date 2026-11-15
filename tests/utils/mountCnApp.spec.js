@@ -13,9 +13,9 @@ jest.mock('../../src/l10n/index.js', () => ({ __esModule: true, registerTranslat
 const mockRegisterIcons = jest.fn()
 jest.mock('../../src/components/CnIcon/CnIcon.vue', () => ({ __esModule: true, default: { name: 'CnIcon', render: () => null }, registerIcons: (...a) => mockRegisterIcons(...a) }))
 
-const { appRouterBase, mountCnApp, routesFromManifest } = require('../../src/utils/mountCnApp.js')
-const { registerTranslations } = require('../../src/l10n/index.js')
 const { createMemoryHistory, createRouter } = require('vue-router')
+const { registerTranslations } = require('../../src/l10n/index.js')
+const { appRouterBase, mountCnApp, routesFromManifest } = require('../../src/utils/mountCnApp.js')
 
 const MANIFEST = { pages: [{ id: 'Dashboard', route: '/' }, { id: 'Character', route: '/characters/:id' }, { id: 'broken' }] }
 
@@ -48,7 +48,7 @@ describe('mountCnApp', () => {
 	})
 
 	it('builds the router with the host factories and mounts the root with the manifest and registry', () => {
-		const root = { name: 'Root', props: ['manifest', 'registry', 'pageTypes', 'appId', 'translate'], render() { return null } }
+		const root = { name: 'Root', props: ['manifest', 'registry', 'pageTypes', 'appId', 'translate'], render: () => null }
 		const createWebHistory = jest.fn(() => createMemoryHistory())
 		const plugin = { install: jest.fn() }
 		const { app, router } = mountCnApp('#content', {
