@@ -1159,6 +1159,15 @@ Example:
 
 ### Header actions that are links (`href`)
 
+A `headerActions[]` entry with `visibleWhen` shows only for the readers its condition holds for: the reader's groups (`readerGroups`), an installed app (`appInstalled`), or an endpoint answer, such as the current user's rights on `/api/me`:
+
+```json
+{ "id": "duplicates", "label": "Find duplicates", "handler": "findDuplicates",
+  "visibleWhen": { "endpoint": "/apps/stackiq/api/me", "field": "mayFindDuplicates", "op": "eq", "value": true } }
+```
+
+The condition is asked once when the page opens, with `@config.<key>` tokens from the app config. The action stays out of the menu until the answer holds, and a failed request keeps it out. The endpoint behind the action still checks access itself.
+
 A `headerActions[]` entry that only goes somewhere carries `href` instead of `handler`. It renders as a real link (`<a href>`) in the actions bar's overflow menu, in the board header's Actions menu and as a `headerButtons[]` button naming it, so it can be middle-clicked, opened in a new tab, copied and bookmarked.
 
 - An absolute `http(s)`, `mailto:` or `tel:` URL is used as written, and so is a protocol-relative `//host/...` URL, which leaves the instance; an instance path (a single leading `/`) goes through `generateUrl()`, so `/apps/integriq/connections` works with and without pretty URLs. A path that already names an entry point (`/index.php/`, `/remote.php/`, `/public.php/`, `/ocs/`) is only prefixed with the instance root, and one that already starts with the root and an entry point is used as written. Anything else (a relative path, another scheme) is dropped with a warning.
