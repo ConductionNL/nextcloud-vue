@@ -60,3 +60,7 @@ Manifest-driven map page. Resolved automatically by `CnPageRenderer` for `pages[
 ## Reference
 
 <GeneratedRef />
+
+## The reader's position
+
+`showUserLocation` (`config.showUserLocation`) draws the reader's position as a dot with its accuracy circle, and `centerOnUser` (`config.centerOnUser`) centres the map on it when the page opens. The browser asks for the location once the map has loaded, and only on a page that sets one of them. A refusal or a timeout leaves the map as it was. The page emits `user-location` with `{ lat, lng, accuracy, at }`.

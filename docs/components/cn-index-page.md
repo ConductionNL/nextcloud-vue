@@ -95,6 +95,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying a view writes its stored filters/search/sort into the route query (non-underscore keys are filters; `_search` and `_order` are reserved); "Save current view…" persists the current route-query state via `POST /apps/openregister/api/views` and toasts either way, naming the view (a failure also keeps the dialog open with the reason); own views can be deleted after confirmation. Emits `apply-view` when a view is applied. |
 | `viewCounts` | Boolean \| Array | `false` | Which saved views show how many records they match: `true` for all of them (the tabs named in `viewTabs` and the entries in the views control), or a list of view ids. Off by default, so no count request is made. A quick filter opts in on its own entry with `showCount: true`. Entries that filter the same single field share one grouped request. |
 | `savedViewsScope` | String | `''` | Which pages share this page's saved views. By default a view is shared by every page over the same `register` and `schema` and shown on no other page, since a view is filters over one schema's fields. Set a name to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope` on save; views saved before scoping existed carry no scope and stay visible everywhere. |
+| `recordTemplates` | Boolean | `false` | Offer OpenRegister's record templates of this register and schema on the create form (`config.recordTemplates`): a "Start from a template" picker fills the form. See [CnFormDialog](./cn-form-dialog.md#starting-from-a-template). |
 | `deleteDialog` | Object | `null` | The words of the single-item delete dialog: `{ title?, message?, description? }`, each through the app's translate. `message` is the question (`{name}` is the item), `description` a muted line under it saying what else the delete removes. Unset keys keep the defaults. Manifest: `config.deleteDialog`. |
 | `savedViewsShareGroups` | String \| Array | `'all'` | Which groups a saved view can be shared with: `all` offers every group Nextcloud's sharee API answers, `mine` only the groups the current user is in, an array only the groups it names by id. People can be picked either way. Manifest: `config.savedViewsShareGroups`. |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
@@ -1158,6 +1159,15 @@ Example:
 - Function-typed `handler` (passed via the runtime prop, NOT through the manifest) keeps working unchanged — used by the built-in `view` / `edit` / `copy` / `delete` actions.
 
 ### Header actions that are links (`href`)
+
+A `headerActions[]` entry with `visibleWhen` shows only for the readers its condition holds for: the reader's groups (`readerGroups`), an installed app (`appInstalled`), or an endpoint answer, such as the current user's rights on `/api/me`:
+
+```json
+{ "id": "duplicates", "label": "Find duplicates", "handler": "findDuplicates",
+  "visibleWhen": { "endpoint": "/apps/stackiq/api/me", "field": "mayFindDuplicates", "op": "eq", "value": true } }
+```
+
+The condition is asked once when the page opens, with `@config.<key>` tokens from the app config. The action stays out of the menu until the answer holds, and a failed request keeps it out. The endpoint behind the action still checks access itself.
 
 A `headerActions[]` entry that only goes somewhere carries `href` instead of `handler`. It renders as a real link (`<a href>`) in the actions bar's overflow menu, in the board header's Actions menu and as a `headerButtons[]` button naming it, so it can be middle-clicked, opened in a new tab, copied and bookmarked.
 
