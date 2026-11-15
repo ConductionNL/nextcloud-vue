@@ -3032,7 +3032,10 @@
     "{count} packages · {installed} installed": "{count} pakketten · {installed} geïnstalleerd",
     "Package": "Pakket",
     "Version {version} · shipped with {app}": "Versie {version} · meegeleverd met {app}",
-    "The packages could not be read.": "De pakketten konden niet worden gelezen."
+    "The packages could not be read.": "De pakketten konden niet worden gelezen.",
+    "Change {step}": "{step} wijzigen",
+    "Remove row {number}": "Rij {number} verwijderen",
+    "The step could not be saved.": "De stap kon niet worden opgeslagen."
   },
   "plurals": {
     "{count} member": [

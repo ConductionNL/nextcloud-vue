@@ -162,6 +162,7 @@ import { normalizeLook } from '../../composables/useLook.js'
 import { useRefLabels } from '../../composables/useRefLabels.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { auditLabel } from '../../utils/auditLabels.js'
+import { auditValueName } from '../../utils/auditValueName.js'
 import { readPath } from '../../utils/readPath.js'
 import { auditEvents, endpointEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -685,7 +686,7 @@ export default {
 		 * @return {string}
 		 */
 		describeAudit(action, actor, entry) {
-			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.labelledObject }) : null
+			const words = entry ? auditLabel(entry, this.auditWords, { actor, object: this.labelledObject, names: auditValueName }) : null
 			if (words !== null) {
 				return words
 			}

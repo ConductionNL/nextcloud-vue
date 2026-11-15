@@ -39,7 +39,7 @@ All five are optional and end up in one list.
 
 ## A history in words
 
-The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one) and `{object.<path>}`. `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("\{name\} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
+The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one), `{object.<path>}`, and in a change label `{from}` and `{to}` (the rule field's old and new value; with `values: "user"` or `"group"` by display name). `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("\{name\} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
 
 ```json
 { "type": "timeline", "content": {

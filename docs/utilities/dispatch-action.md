@@ -34,6 +34,7 @@ function dispatchAction(
         payload?: object,           // type='api-call' — JSON body, DEEP @-token resolution (preferred over params)
         params?: object,            // type='api-call' — legacy JSON body, shallow (1-level) @-token grammar
         download?: boolean,         // type='api-call' — request a blob response + trigger a file download (default false)
+        openResponse?: boolean | string | { field?: string, newTab?: boolean }, // type='api-call' — open the address the answer holds (default field url)
         filename?: string,          // type='api-call' download only — fallback filename (token-interpolated)
         successMessage?: string,    // type='api-call' — success toast text
         errorMessage?: string,      // type='api-call' — error toast text
@@ -271,6 +272,18 @@ treating the body as JSON. The filename comes from the response's
 else `'download.pdf'`. The success toast still shows; unlike a normal
 `api-call`, the page does **not** auto-refresh afterwards unless
 `refresh: true` is set explicitly.
+
+**`openResponse`** opens what the call answered, after a successful call: a
+row's "Conversation in Talk" opens the room the endpoint just made. `true`
+reads the answer's `url`, a string names another field (a dot-path), and
+`{ field?, newTab? }` also opens it in a new tab. Only an http(s) URL or a
+server-relative path (`/index.php/call/abc`) opens; anything else, such as a
+`javascript:` URL or `//host`, is ignored. A failed call opens nothing.
+
+```jsonc
+{ "id": "talk", "label": "Conversation in Talk", "type": "api-call",
+  "url": "/apps/portaliq/api/submissions/@objectId/talk", "openResponse": { "field": "url", "newTab": true } }
+```
 
 ```jsonc
 {

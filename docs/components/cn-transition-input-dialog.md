@@ -109,6 +109,14 @@ An input whose schema property is an object reference (`$ref`, as `fieldsFromSch
 
 An input whose property is `type: object` renders its sub-properties as fields, narrowed to the input's `fields` list when it names one. On confirm the dialog sends **one object**: the record's current value of that property with the typed sub-values merged over it, so a sub-field that was not asked for keeps its value. It never sends a dotted key (the server checks top-level keys). A sub-field is required when the input names it in `fields` and the sub-schema lists it in `required`, or when the whole input is required and it is the only one asked. A refusal naming `<input>.<sub>` marks that sub-field.
 
+An input may also name one sub-field by a dotted path. The dotted inputs of one parent become one object input on that parent, in the place of the first, asking just those sub-fields in their order; each is required when its own input says `required: true` and is labelled by its own `label`. So the MAS route can be required while the note stays optional:
+
+```json
+[{ "field": "municipalityFeedback.masRoute", "required": true }, { "field": "municipalityFeedback.note" }]
+```
+
+It is sent as the object above: the record's `municipalityFeedback` with the two typed values merged over it.
+
 Two props support this: `currentObject` (default `null`, the record the transition runs on: the `excludeSelf` id and the merge base) and `register` (default `''`, the register the pickers look in).
 
 The server-declared inputs of an `/available-actions` transition get the same hints from the manifest: see [`CnLifecycleActions`](./cn-lifecycle-actions.md#input-hints).
