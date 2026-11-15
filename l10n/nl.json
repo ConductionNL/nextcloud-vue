@@ -3043,7 +3043,9 @@
     "Card size": "Kaartgrootte",
     "Small": "Klein",
     "Medium": "Middel",
-    "Large": "Groot"
+    "Large": "Groot",
+    "In development": "In ontwikkeling",
+    "Install into": "Installeren in"
   },
   "plurals": {
     "{count} member": [

@@ -42,6 +42,8 @@ Override the prop in tests to bypass the inject.
 | `repo` | String | No | `<owner>/<repo>` slug. Manifest-config override. |
 | `features` | Array \| null | No | Build-time feature manifest override. |
 | `disabled` | Boolean \| null | No | Admin opt-out override. |
+| `roadmapLayout` | String | No | `grid` (default) or `columns`: the Roadmap tab as Planned, In development and Available. See [CnRoadmapTab](./cn-roadmap-tab.md#columns). |
+| `roadmapInProgressLabels` | Array | No | Labels that put an open issue under In development. |
 | `appId` | String | No | Override for the appId used to namespace `loadState` lookups. Tests set this; production reads it from the `cnAiContext` inject. |
 
 ## Backend contract

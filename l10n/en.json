@@ -2779,7 +2779,9 @@
     "Card size": "Card size",
     "Small": "Small",
     "Medium": "Medium",
-    "Large": "Large"
+    "Large": "Large",
+    "In development": "In development",
+    "Install into": "Install into"
   },
   "plurals": {
     "{count} member": [
