@@ -614,7 +614,6 @@ export default {
 		}
 	},
 
-
 	computed: {
 		/**
 		 * The translate function actually in force.
