@@ -3037,7 +3037,9 @@
     "Install into": "Installeren in",
     "Change {step}": "{step} wijzigen",
     "Remove row {number}": "Rij {number} verwijderen",
-    "The step could not be saved.": "De stap kon niet worden opgeslagen."
+    "The step could not be saved.": "De stap kon niet worden opgeslagen.",
+    "Start from a template": "Begin met een sjabloon",
+    "Not taken from the template, the form no longer has them: {fields}": "Niet uit het sjabloon overgenomen, het formulier heeft ze niet meer: {fields}"
   },
   "plurals": {
     "{count} member": [

@@ -2773,7 +2773,9 @@
     "Install into": "Install into",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
-    "The step could not be saved.": "The step could not be saved."
+    "The step could not be saved.": "The step could not be saved.",
+    "Start from a template": "Start from a template",
+    "Not taken from the template, the form no longer has them: {fields}": "Not taken from the template, the form no longer has them: {fields}"
   },
   "plurals": {
     "{count} member": [
