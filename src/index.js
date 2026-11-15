@@ -51,6 +51,7 @@ export {
 	CnAppTilesWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
+	CnAudioCapture,
 	CnAuditTrailCard,
 	CnAuditTrailWidget,
 	CnBannerWidget,
