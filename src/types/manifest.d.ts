@@ -378,6 +378,12 @@ export interface TManifest {
 	$schema?: string
 	version: string
 	dependencies?: string[]
+	/**
+	 * Feature toggles the app declares. A page, widget, menu item or action
+	 * naming a key in `visibleIf.feature` / `visibleWhen.feature` shows only
+	 * while the toggle is on (values from initial state `features`).
+	 */
+	features?: Array<{ key: string, label: string, description?: string, default?: boolean, failMode?: 'open' | 'closed' }>
 	nav?: TManifestNav
 	/**
 	 * App defaults for the per-user options `CnPersonalPreferences` renders,

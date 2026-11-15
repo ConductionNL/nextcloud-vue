@@ -766,6 +766,7 @@ import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
+import { setFeatureFlags } from '../../utils/featureFlags.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTranslate.js'
@@ -837,6 +838,23 @@ const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
  * stands for the app's own slot content.
  */
 const USER_SETTINGS_SECTIONS = ['app', 'views', 'notifications', 'credentials', 'walkthrough', 'integrations']
+
+/**
+ * The server's merged feature map for the app (initial state `features`), or null.
+ *
+ * @param {string} appId The app id.
+ * @return {object|null}
+ */
+function readFeatureState(appId) {
+	if (!appId) {
+		return null
+	}
+	try {
+		return loadState(appId, 'features', null)
+	} catch {
+		return null
+	}
+}
 
 export default {
 	name: 'CnAppRoot',
@@ -3408,6 +3426,8 @@ export default {
 
 	created() {
 		this.syncDiagnostics()
+		// Feature toggles: the manifest's declarations and the server's merged map (initial state `features`).
+		setFeatureFlags({ declarations: this.manifest && this.manifest.features, values: readFeatureState(this.appId) })
 	},
 
 	mounted() {
