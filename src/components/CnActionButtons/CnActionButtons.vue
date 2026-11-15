@@ -202,6 +202,19 @@
 			@confirm="onFormConfirm"
 			@close="closeForm" />
 
+		<!-- An object action with inputs (object-actions-declared-and-run): a
+		     dialog over the action's input schema, then the run. -->
+		<CnFormDialog
+			v-if="objectActionEntry"
+			ref="objectActionDialog"
+			:schema="objectActionEntry.inputsSchema"
+			:item="null"
+			:dialogTitle="tr(objectActionEntry.label) || ''"
+			:confirmLabel="tr(objectActionEntry.label) || ''"
+			data-testid="cn-object-action-dialog"
+			@confirm="onObjectActionConfirm"
+			@close="objectActionEntry = null" />
+
 		<!-- run-node's config dialog (manifest-run-node-action): only mounted
 		     when the target node declared at least one field AND that
 		     describe call succeeded — an empty/no form runs immediately with
@@ -300,6 +313,17 @@ import { CnIcon } from '../CnIcon/index.js'
  * ]
  * ```
  */
+
+/**
+ * Whether an object action's input schema asks for anything.
+ *
+ * @param {unknown} inputs The JSON Schema of the inputs.
+ * @return {boolean}
+ */
+function hasInputFields(inputs) {
+	return Boolean(inputs && typeof inputs === 'object' && inputs.properties && Object.keys(inputs.properties).length > 0)
+}
+
 export default {
 	name: 'CnActionButtons',
 
@@ -465,6 +489,8 @@ export default {
 			confirmEntry: null,
 			/** The open-form action currently showing its dialog (null = closed). */
 			formEntry: null,
+			/** The object action whose inputs dialog is open, or null. */
+			objectActionEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
 			/** The record an endpoint form edits (null for a create form). */
@@ -735,6 +761,25 @@ export default {
 
 	methods: {
 		/**
+		 * The inputs dialog of an object action was confirmed: run it with
+		 * the typed inputs, then close the dialog.
+		 *
+		 * @param {object} inputs The form values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		async onObjectActionConfirm(inputs) {
+			const entry = this.objectActionEntry
+			if (!entry) {
+				return
+			}
+			this.actionPending[entry.id] = true
+			await this.dispatch({ ...entry, inputs: { ...(entry.inputs || {}), ...(inputs || {}) } })
+			this.actionPending[entry.id] = false
+			this.objectActionEntry = null
+		},
+
+		/**
 		 * The NcButton variant of an entry. `error-outline` and `tonal` are
 		 * not NcButton variants: `error-outline` is a secondary button that
 		 * `buttonClass` outlines in red, `tonal` a tertiary one that
@@ -800,6 +845,11 @@ export default {
 				}
 			}
 			for (const action of flat) {
+				// An object action OpenRegister lists as not available now is
+				// drawn disabled with the server's reason.
+				if (action.type === 'object-action' && action.available === false) {
+					this.disabledByCondition[action.id] = true
+				}
 				if (action.disabledWhen) {
 					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, this.tokenCtx)
 				}
@@ -1081,6 +1131,10 @@ export default {
 			}
 			if (entry.type === 'run-node') {
 				await this.openRunNode(entry)
+				return undefined
+			}
+			if (entry.type === 'object-action' && hasInputFields(entry.inputsSchema)) {
+				this.objectActionEntry = entry
 				return undefined
 			}
 			this.actionPending[entry.id] = true
