@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.179.0', () => {
+	it('the manifest schema version reads 2.180.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1453,7 +1453,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.177.0 lets an index page limit the groups a saved view can be shared with (savedViewsShareGroups; saved-view-share-groups).
 		// 2.178.0 lets an optionsFrom source name the app it lives in and the line shown while that app is missing (requiresApp, missingText; options-from-requires-app).
 		// 2.179.0 lets an api-call open what the call answered (openResponse; api-call-open-response).
-		expect(schema.version).toBe('2.179.0')
+		// 2.180.0 lets an index page word its single-item delete dialog (deleteDialog; index-delete-dialog-texts).
+		expect(schema.version).toBe('2.180.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
