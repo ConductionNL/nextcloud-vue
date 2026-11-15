@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.176.0",
+	"version": "2.177.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5107,6 +5107,13 @@
 						"savedViewsScope": {
 							"type": "string",
 							"description": "type='index': which pages share this page's saved views. By default a view is shared by every page over the same register and schema and by no other, because a view is filters over one schema's fields. Set this to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope`; views saved before scoping stay visible everywhere. Maps to CnIndexPage `savedViewsScope`."
+						},
+						"savedViewsShareGroups": {
+							"description": "type='index': which groups a saved view can be shared with. `all` (default) offers every group the sharee API answers, `mine` only the groups the current user is in, an array only the groups it names by id. People can be picked either way. Maps to CnIndexPage `savedViewsShareGroups`.",
+							"oneOf": [
+								{ "type": "string", "enum": ["all", "mine"] },
+								{ "type": "array", "items": { "type": "string" } }
+							]
 						},
 						"defaultSavedViews": {
 							"type": "array",
