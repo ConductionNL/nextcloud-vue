@@ -2769,9 +2769,13 @@
     "Package": "Package",
     "Version {version} · shipped with {app}": "Version {version} · shipped with {app}",
     "The packages could not be read.": "The packages could not be read.",
+    "In development": "In development",
+    "Install into": "Install into",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
     "The step could not be saved.": "The step could not be saved.",
+    "Start from a template": "Start from a template",
+    "Not taken from the template, the form no longer has them: {fields}": "Not taken from the template, the form no longer has them: {fields}",
     "Gallery": "Gallery",
     "This schema has no text field to title a card": "This schema has no text field to title a card",
     "Card title": "Card title",
@@ -2779,9 +2783,7 @@
     "Card size": "Card size",
     "Small": "Small",
     "Medium": "Medium",
-    "Large": "Large",
-    "In development": "In development",
-    "Install into": "Install into"
+    "Large": "Large"
   },
   "plurals": {
     "{count} member": [

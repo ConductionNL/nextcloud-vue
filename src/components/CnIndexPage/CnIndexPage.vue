@@ -680,6 +680,7 @@
 				:draftAppId="draftAppId"
 				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
 				:draftField="draftField"
+				:templateSource="recordTemplates && !rowFormTarget && !editItem ? { register: copyRegisterSlug, schema: copySchemaSlug } : null"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -3767,6 +3768,16 @@ export default {
 		savedViewsScope: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Offer OpenRegister's record templates of this register and schema on
+		 * the create form (`config.recordTemplates`): a "Start from a
+		 * template" picker fills the form.
+		 */
+		recordTemplates: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
