@@ -2779,7 +2779,17 @@
     "Notifications are blocked for this site. Allow them in the browser settings and try again.": "Notifications are blocked for this site. Allow them in the browser settings and try again.",
     "Notifications on devices are not set up on this server yet.": "Notifications on devices are not set up on this server yet.",
     "This app is not ready to show notifications yet. Reload the page and try again.": "This app is not ready to show notifications yet. Reload the page and try again.",
-    "The notifications could not be switched. Try again.": "The notifications could not be switched. Try again."
+    "The notifications could not be switched. Try again.": "The notifications could not be switched. Try again.",
+    "Start from a template": "Start from a template",
+    "Not taken from the template, the form no longer has them: {fields}": "Not taken from the template, the form no longer has them: {fields}",
+    "Gallery": "Gallery",
+    "This schema has no text field to title a card": "This schema has no text field to title a card",
+    "Card title": "Card title",
+    "Cover image (optional)": "Cover image (optional)",
+    "Card size": "Card size",
+    "Small": "Small",
+    "Medium": "Medium",
+    "Large": "Large"
   },
   "plurals": {
     "{count} member": [

@@ -209,6 +209,10 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 
 ## Options from a source (`optionsFrom`)
 
+### Starting from a template
+
+With `templateSource: { register, schema }` a create form reads OpenRegister's record templates of that register and schema (`GET /apps/openregister/api/record-templates`) and offers them in a "Start from a template" picker above the fields. Picking one fills the form from its `values`. A value whose field the form no longer has, or whose type no longer matches the property, is left out, and a line under the picker names them. A field the person already changed keeps what they typed. The record is then saved like any other, so validation and rights apply once. An edit form offers no templates. On a manifest index page, `config.recordTemplates: true` switches it on.
+
 A select whose allowed values depend on another field follows the property's `x-openregister-dependent-values` table, the one OpenRegister enforces on save: `{ "controlledBy": "licentietype", "allowed": { "Open source": ["EUPL-1.2", "MIT"], "Closed source": [] } }`. The field offers only the row of the controlling field's value (nothing for an empty row), and every value while the controlling value is not in the table. When the controlling field changes, a value the new row does not allow is cleared; on an array field (the table on `items`) only those entries are dropped.
 
 A select can read its options instead of listing them, as dossiq's IV3 taakveld picker does. Declare `optionsFrom` on a field (or in `fieldOverrides`), or `x-options-from` on the register schema property:
