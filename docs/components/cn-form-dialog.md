@@ -209,6 +209,8 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 
 ## Options from a source (`optionsFrom`)
 
+A select whose allowed values depend on another field follows the property's `x-openregister-dependent-values` table, the one OpenRegister enforces on save: `{ "controlledBy": "licentietype", "allowed": { "Open source": ["EUPL-1.2", "MIT"], "Closed source": [] } }`. The field offers only the row of the controlling field's value (nothing for an empty row), and every value while the controlling value is not in the table. When the controlling field changes, a value the new row does not allow is cleared; on an array field (the table on `items`) only those entries are dropped.
+
 A select can read its options instead of listing them, as dossiq's IV3 taakveld picker does. Declare `optionsFrom` on a field (or in `fieldOverrides`), or `x-options-from` on the register schema property:
 
 ```json
