@@ -63,6 +63,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 
 /**
  * CnSubObjectsField — edits an array of objects embedded in one object as a
@@ -187,7 +188,7 @@ export default {
 
 		columns() {
 			const props = (this.items && this.items.properties) || {}
-			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: props[key].title || key }))
+			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: propertyTitle(props[key], key) }))
 		},
 
 		tableRows() {

@@ -1547,6 +1547,7 @@ import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { getDotted } from '../../utils/propertySourceFill.js'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { heldDefaultFilters, resolveFilterMap } from '../../utils/routeFilters.js'
@@ -6397,7 +6398,7 @@ export default {
 		boardNarrowLabel() {
 			const narrow = this.boardNarrow || {}
 			const prop = (this.effectiveSchema?.properties || {})[narrow.field] || {}
-			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || prop.title || narrow.field || '') })
+			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || propertyTitle(prop, narrow.field || '')) })
 		},
 
 		/** @return {string} The narrowing select's "all" option. */
@@ -6984,7 +6985,7 @@ export default {
 				return this.cnTranslate(strip.label)
 			}
 			const prop = (this.effectiveSchema?.properties || {})[strip.field] || {}
-			return this.cnTranslate(prop.title || strip.field || '')
+			return this.cnTranslate(propertyTitle(prop, strip.field || ''))
 		},
 
 		/**
@@ -8232,7 +8233,7 @@ export default {
 			}
 			return Object.entries(properties)
 				.filter(([, prop]) => prop && prop.readOnly !== true)
-				.map(([key, prop]) => ({ key, label: prop.title || key }))
+				.map(([key, prop]) => ({ key, label: propertyTitle(prop, key) }))
 		},
 
 		effectiveSchema() {

@@ -9,6 +9,7 @@
  * @spec openspec/changes/view-presentation-picker/tasks.md#task-1
  */
 import { translate as t } from '@nextcloud/l10n'
+import { propertyTitle } from './propertyTitle.js'
 
 const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean']
 
@@ -47,7 +48,7 @@ export function presentationCandidates(schema) {
 		if (!prop || typeof prop !== 'object') {
 			continue
 		}
-		const label = prop.title || key
+		const label = propertyTitle(prop, key)
 		const isEnum = prop.type === 'string' && Array.isArray(prop.enum) && prop.enum.length > 0
 		const isRelation = typeof prop.$ref === 'string' && prop.$ref !== '' && prop.type !== 'array'
 		if (isEnum || key === lifecycleField || isRelation) {

@@ -7,6 +7,7 @@
  */
 
 import { fieldWithOptionsFrom, isOptionsFrom } from './optionsFrom.js'
+import { propertyTitle } from './propertyTitle.js'
 import { schemaRefSlug } from './schemaRefSlug.js'
 import { userLocale } from './userLocale.js'
 
@@ -92,7 +93,7 @@ export function columnsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const column = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			// The schema already explains what the property MEANS; carrying that
 			// through as the header tooltip means a column like "Maturity" or a
 			// computed score explains itself in place, instead of the description
@@ -969,7 +970,7 @@ export function fieldsFromSchema(schema, options = {}) {
 			|| null
 		const field = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			description: description.short,
 			descriptionLong: help || description.long,
 			help,
@@ -1196,7 +1197,7 @@ export function filtersFromSchema(schema, options = {}) {
 		.map(([key, prop]) => {
 			const filter = {
 				key,
-				label: tr(prop.title || key),
+				label: tr(propertyTitle(prop, key)),
 				description: prop.description ? tr(prop.description) : '',
 				propertyType: prop.type || 'string',
 				options: [],
@@ -1254,7 +1255,7 @@ export function filtersFromSchema(schema, options = {}) {
 				// One on/off question with its own words beside the switch
 				// ("Ook concepten van anderen tonen"); on sends `true`.
 				filter.type = 'switch'
-				filter.switchLabel = tr(prop.switchLabel || prop.title || key)
+				filter.switchLabel = tr(prop.switchLabel || propertyTitle(prop, key))
 			}
 
 			// A line under the filter that says what it reads (DqZaken "Het
