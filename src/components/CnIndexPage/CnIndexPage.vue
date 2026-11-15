@@ -1469,7 +1469,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1499,6 +1499,7 @@ import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
+import { actionLabelText, fetchSelectionActions, runSelectionAction } from '../../composables/useObjectActions.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
@@ -3793,6 +3794,24 @@ export default {
 		},
 
 		/**
+		 * `openregister` adds to the selection strip every action OpenRegister
+		 * offers on the bulk surface of this schema (`GET
+		 * /api/object-actions/{register}/{schema}`); `actionsInclude` narrows
+		 * and orders them. A bulk action, or a manifest `bulkActions` entry of
+		 * type `object-action`, runs on the selection in one request.
+		 */
+		actionsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/** The action keys `actionsFrom` offers, in this order; empty offers all. */
+		actionsInclude: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Find a record by its code (`config.scan`): `{ enabled, field,
 		 * onMatch?, formats? }`. A scan field above the list reads a code from
 		 * the camera or the keyboard and filters the list on `field`; with
@@ -5063,6 +5082,8 @@ export default {
 		return {
 			/** Notices this page's actions answered, or that were raised on the page channel. */
 			runtimeNotices: [],
+			/** The bulk-surface actions OpenRegister offers for this schema (`actionsFrom`). */
+			objectBulkActions: [],
 			/** The verdict of each header action's `visibleWhen`, by id; an action waits hidden until it is in. */
 			headerActionVisibility: {},
 			/** Whether each header action's `disabledWhen` holds, by id. */
@@ -5232,6 +5253,30 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The bulk actions `actionsFrom: "openregister"` offers, as selection
+		 * strip entries of type `object-action`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		objectBulkEntries() {
+			if (this.actionsFrom !== 'openregister') {
+				return []
+			}
+			const language = String(getLanguage() || '').replace('_', '-')
+			const include = Array.isArray(this.actionsInclude) ? this.actionsInclude : []
+			const listed = this.objectBulkActions.filter((action) => Array.isArray(action.surfaces) && action.surfaces.includes('bulk') && (include.length === 0 || include.includes(action.key)))
+			const ordered = include.length > 0 ? include.map((key) => listed.find((action) => action.key === key)).filter(Boolean) : listed
+			return ordered.map((action) => ({
+				id: `or-action-${action.key}`,
+				type: 'object-action',
+				action: action.key,
+				label: actionLabelText(action.label, language) || action.key,
+				...(action.icon ? { icon: action.icon } : {}),
+			}))
+		},
+
 		/** @return {boolean} Whether the page offers the scan field. */
 		scanEnabled() {
 			return Boolean(this.scan && this.scan.enabled === true && typeof this.scan.field === 'string' && this.scan.field !== '')
@@ -5549,7 +5594,7 @@ export default {
 		mergedBulkActions() {
 			const reserved = new Set(['copy', 'delete'])
 			const merged = []
-			for (const entry of this.bulkActions || []) {
+			for (const entry of [...(this.bulkActions || []), ...this.objectBulkEntries]) {
 				if (!entry || typeof entry !== 'object' || !entry.id || !entry.label) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] Ignoring bulkActions entry ${JSON.stringify(entry)}: a bulk action needs an id and a label.`)
@@ -8781,6 +8826,9 @@ export default {
 				refresh: () => this.onRefreshEvent(),
 				// ...and an answer that asks for a notice shows above the list.
 				showNotice: (notice) => this.addPageNotice(notice),
+				// A row action of `type: "object-action"` runs on this schema.
+				register: this.copyRegisterSlug,
+				schema: this.copySchemaSlug,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -10004,6 +10052,13 @@ export default {
 	},
 
 	watch: {
+		actionsFrom: {
+			immediate: true,
+			handler() {
+				this.loadObjectBulkActions()
+			},
+		},
+
 		headerActions: {
 			immediate: true,
 			handler() {
@@ -10488,6 +10543,47 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the bulk-surface actions OpenRegister offers for this schema.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		async loadObjectBulkActions() {
+			if (this.actionsFrom !== 'openregister' || !this.copyRegisterSlug || !this.copySchemaSlug) {
+				this.objectBulkActions = []
+				return
+			}
+			this.objectBulkActions = await fetchSelectionActions({ register: this.copyRegisterSlug, schema: this.copySchemaSlug })
+		},
+
+		/**
+		 * Run an object action on the selection in one request, say how it
+		 * went, and read the list again.
+		 *
+		 * @param {object} entry The bulk entry (`action`, `inputs?`).
+		 * @param {Array<string>} ids The selected ids.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		async runBulkObjectAction(entry, ids) {
+			if (!entry.action || ids.length === 0) {
+				return
+			}
+			const result = await runSelectionAction({ register: entry.register || this.copyRegisterSlug, schema: entry.schema || this.copySchemaSlug }, entry.action, ids, entry.inputs || {})
+			const { showError, showSuccess } = await import('@nextcloud/dialogs')
+			if (!result.ok) {
+				showError(result.message || t('nextcloud-vue', 'Action failed.'))
+			} else if (result.queued) {
+				showSuccess(t('nextcloud-vue', 'Started. It finishes in the background.'))
+			} else {
+				showSuccess(t('nextcloud-vue', 'Action completed.'))
+			}
+			if (this.isSelfFetchMode && this.list && typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
+		},
+
 		/**
 		 * Ask each header action's `visibleWhen` once: a reader-groups
 		 * condition, an endpoint (`{ endpoint: "/apps/x/api/me", field:
@@ -11487,7 +11583,9 @@ export default {
 			const count = selectedIds.length
 			const entry = this.mergedBulkActions.find((e) => e.id === id)
 
-			if (entry) {
+			if (entry && entry.type === 'object-action') {
+				this.runBulkObjectAction(entry, selectedIds)
+			} else if (entry) {
 				const handler = entry.handler
 				const scope = { actionId: id, selectedIds, count }
 

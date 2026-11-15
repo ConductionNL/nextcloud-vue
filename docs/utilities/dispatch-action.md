@@ -273,6 +273,12 @@ else `'download.pdf'`. The success toast still shows; unlike a normal
 `api-call`, the page does **not** auto-refresh afterwards unless
 `refresh: true` is set explicitly.
 
+**`object-action`** runs an action OpenRegister declares on the object's schema (`x-openregister-action`): `action` names its key, and `inputs` holds fixed inputs (@-tokens resolve). It posts `{ inputs }` to `/apps/openregister/api/objects/{register}/{schema}/{id}/actions/{action}` for the page's object (or the action's own `register`, `schema` and `objectId`). It toasts the outcome, says when the run continues in the background (202), and refreshes the page. On a detail page, `config.actionsFrom: "openregister"` lists the declared actions by themselves, with an inputs dialog and disabled-with-reason (see [CnDetailPage](../components/cn-detail-page.md)).
+
+```jsonc
+{ "id": "claim", "label": "Claim", "type": "object-action", "action": "claim" }
+```
+
 **`openResponse`** opens what the call answered, after a successful call: a
 row's "Conversation in Talk" opens the room the endpoint just made. `true`
 reads the answer's `url`, a string names another field (a dot-path), and

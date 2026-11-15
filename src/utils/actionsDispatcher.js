@@ -590,6 +590,46 @@ function openResponseUrl(openResponse, data) {
 }
 
 /**
+ * Execute an `object-action`: run the declared action `action.action` on the
+ * page's object (`register` / `schema` / `objectId` from the action, else the
+ * token context) with `action.inputs`, toast the outcome and refresh the page.
+ * A 202 (queued or suspended) says the action runs in the background.
+ *
+ * @param {object} action The action (`action`, `inputs?`, `register?`, `schema?`, `objectId?`).
+ * @param {object} context The runtime context (`tokenCtx`).
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>}
+ * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+ */
+async function executeObjectAction(action, context) {
+	const tokenCtx = context.tokenCtx || {}
+	const address = {
+		register: resolveAgentRef(action.register, tokenCtx.register, tokenCtx),
+		schema: resolveAgentRef(action.schema, tokenCtx.schema, tokenCtx),
+		id: resolveAgentRef(action.objectId, tokenCtx.objectId, tokenCtx),
+	}
+	const dialogs = await import('@nextcloud/dialogs')
+	if (!action.action || !address.register || !address.schema || !address.id) {
+		reportOutcome(action, context, { ok: false, text: t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error('object-action without an action or an object') }
+	}
+	const inputs = action.inputs && typeof action.inputs === 'object' ? resolveDeepTokens(action.inputs, tokenCtx) : {}
+	const { runObjectAction } = await import('../composables/useObjectActions.js')
+	const result = await runObjectAction(address, action.action, inputs)
+	if (!result.ok) {
+		reportOutcome(action, context, { ok: false, text: translateMessage(action.errorMessage, context) || result.message || t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error(result.message || 'object-action failed') }
+	}
+	const text = result.queued
+		? t('nextcloud-vue', 'Started. It finishes in the background.')
+		: (translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
+	reportOutcome(action, context, { ok: true, data: result.data, text }, dialogs)
+	if (action.refresh !== false) {
+		emit(PAGE_REFRESH_CHANNEL, {})
+	}
+	return { ok: true, data: result.data }
+}
+
+/**
  * Resolve an agent-action object reference (`register` / `schema` / `objectId`):
  * an explicitly-declared action value WINS (it may itself be an @-token string,
  * interpolated against the token context), otherwise it falls back to the page
@@ -1066,6 +1106,14 @@ export function dispatchAction(action, context = {}) {
 		// BEFORE calling the dispatcher (object-op precedent) — no gating
 		// happens here.
 			return executeApiCall(action, context)
+		}
+
+		case 'object-action': {
+		// Run an action OpenRegister declares on the object's schema
+		// (object-actions-declared-and-run): POST its inputs, toast, refresh.
+		// A surface that needs an inputs dialog (CnActionButtons) opens it
+		// before dispatching here.
+			return executeObjectAction(action, context)
 		}
 
 		case 'agent': {
