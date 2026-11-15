@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.184.0",
+	"version": "2.185.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -410,6 +410,22 @@
 				"theme": {
 					"$ref": "#/$defs/runtimeTheme",
 					"description": "NL Design System scoped theme selection (scoped-theme-applier). Consumed by CnAppRoot's useScopedTheme wiring, not by the backend."
+				}
+			}
+		},
+		"features": {
+			"type": "array",
+			"description": "The app's feature toggles (feature-toggles): each `{ key, label, description?, default, failMode? }`. The server's merged map arrives as initial state `features`; `visibleIf.feature` and `visibleWhen.feature` read it. An undeclared key reads as off.",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["key", "label"],
+				"properties": {
+					"key": { "type": "string", "minLength": 1, "pattern": "^[a-z][a-z0-9_.-]*$" },
+					"label": { "type": "string", "minLength": 1 },
+					"description": { "type": "string" },
+					"default": { "type": "boolean", "default": false },
+					"failMode": { "type": "string", "enum": ["open", "closed"], "description": "What the toggle reads when the server served no map: open (on) or closed (off). Unset reads the default." }
 				}
 			}
 		},
@@ -3817,6 +3833,7 @@
 			"additionalProperties": false,
 			"description": "#91 Wave 3: the shared visibility predicate (the Wave-1 banner shape). THREE modes: `endpoint` (GET a JSON endpoint, `field` dot-paths into the body), `source` (an OpenRegister { register, schema, filter? } query — `field` into the first result, or omit / use @total for the collection total), or LOCAL (neither endpoint nor source — `field` dot-paths into the caller's object context, e.g. a detail-page record). `op` defaults to eq. Evaluation is FAIL-SAFE (any error → hidden).",
 			"properties": {
+				"feature": { "type": "string", "minLength": 1, "description": "A feature toggle the app declares in `features`: a precondition like appInstalled; on its own it is the whole condition (feature-toggles)." },
 				"appInstalled": {
 					"type": "string",
 					"minLength": 1,
@@ -6458,6 +6475,7 @@
 			"description": "A visibleIf condition block. Each key is either a reserved specialised condition (appInstalled) or a dot-separated path into manifest.runtime. Values are predicate expressions (scalar for eq shorthand, or operator object). All conditions are combined with implicit AND.",
 			"additionalProperties": true,
 			"properties": {
+				"feature": { "type": "string", "minLength": 1, "description": "A feature toggle the app declares in `features`; the entry renders only while it is on (feature-toggles)." },
 				"appInstalled": {
 					"type": "string",
 					"minLength": 1,

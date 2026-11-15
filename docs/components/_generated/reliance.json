@@ -790,6 +790,13 @@
 			"via": [],
 			"page": "cn-choice-picker-widget"
 		},
+		"CnCodeWidget": {
+			"direct": 0,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-code-widget"
+		},
 		"CnCollectivePageCreate": {
 			"direct": 1,
 			"transitive": 7,
