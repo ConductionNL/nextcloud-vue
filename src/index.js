@@ -80,6 +80,7 @@ export {
 	CnChoiceCards,
 	CnChoiceMatrix,
 	CnChoicePickerWidget,
+	CnCodeWidget,
 	CnColorPicker,
 	CnCommandPalette,
 	CnConditionGroupEditor,
