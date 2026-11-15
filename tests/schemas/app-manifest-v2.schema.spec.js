@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.180.0', () => {
+	it('the manifest schema version reads 2.181.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1454,7 +1454,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.178.0 lets an optionsFrom source name the app it lives in and the line shown while that app is missing (requiresApp, missingText; options-from-requires-app).
 		// 2.179.0 lets an api-call open what the call answered (openResponse; api-call-open-response).
 		// 2.180.0 lets an index page word its single-item delete dialog (deleteDialog; index-delete-dialog-texts).
-		expect(schema.version).toBe('2.180.0')
+		// 2.181.0 lets an index page name a registry handler that reads the search before it is sent (searchHandler; index-search-handler).
+		expect(schema.version).toBe('2.181.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
@@ -1472,6 +1473,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(recordList({ footerAction: [publish, newVersion] })).valid).toBe(true)
 		expect(validateManifestV2(recordList({ footerAction: [publish, { type: 'open-modal' }] })).valid).toBe(false)
 		expect(validateManifestV2(recordList({ footerAction: { ...newVersion, wide: 'yes' } })).valid).toBe(false)
+	})
+
+	it('accepts an index page searchHandler (2.170.0)', () => {
+		const withHandler = (searchHandler) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'index', title: 'P', config: { register: 'r', schema: 's', searchHandler } }] })
+		expect(validateManifestV2(withHandler('phoneSearch')).valid).toBe(true)
+		expect(validateManifestV2(withHandler(['phoneSearch'])).valid).toBe(false)
 	})
 
 	it('accepts an api-call with method DELETE (2.169.0)', () => {
