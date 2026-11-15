@@ -102,6 +102,7 @@ import CnAudioCapture from '../components/CnAudioCapture/CnAudioCapture.vue'
 import CnFileField from '../components/CnFileField/CnFileField.vue'
 import CnGeoCaptureField from '../components/CnGeoCaptureField/CnGeoCaptureField.vue'
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
+import CnScanField from '../components/CnScanField/CnScanField.vue'
 import CnSignatureCapture from '../components/CnSignatureCapture/CnSignatureCapture.vue'
 
 /**
@@ -128,9 +129,10 @@ const DEFAULT_COMPONENT_MAP = Object.freeze({
 	signature: CnSignatureCapture,
 	audio: CnAudioCapture,
 	location: CnGeoCaptureField,
+	scan: CnScanField,
 })
 
-const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file', 'signature', 'audio', 'location']
+const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file', 'signature', 'audio', 'location', 'scan']
 
 /**
  * The place a `location` field holds: its own value when it has one, else
@@ -369,6 +371,20 @@ export function cnRenderFormField({ field, value, values, onInput, t, error, com
 				'update:modelValue': (next) => onInput(next),
 			},
 			labelText: label,
+		}
+	} else if (field.type === 'scan') {
+		// A string filled by typing or by scanning a code with the camera.
+		result = {
+			kind: 'scan',
+			tag: map.scan,
+			props: {
+				label,
+				modelValue: value === null || value === undefined ? null : String(value),
+				formats: Array.isArray(field.formats) ? field.formats : [],
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
 		}
 	} else if (field.type === 'string') {
 		const isTextarea = field.widget === 'textarea'
