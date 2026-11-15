@@ -6,7 +6,7 @@ title: CnIntegrationCard
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 1 direct reference, 14 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 1 direct reference, 15 files reached through imports.
 
 Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
