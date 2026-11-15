@@ -1,0 +1,1 @@
+- [x] 1 `orderFrom` on a stacked tab in CnTabsWidget (tests/components/CnTabsWidgetStackOrderFrom.spec.js), documented in docs/components/cn-tabs-widget.md
