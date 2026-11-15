@@ -217,6 +217,12 @@ A select can read its options instead of listing them, as dossiq's IV3 taakveld 
 
 `optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint), the shape a dashboard page filter takes. `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).
 
+A source that lives in another app can name it in `requiresApp`. While that app is not installed the source is not read: the field is a plain text input, so the value can still be typed, with the block's `missingText` (translated) under it instead of the general "could not be loaded" line:
+
+```json
+{ "iv3TaskField": { "optionsFrom": { "register": "shillinq", "schema": "BbvTaakveld", "valueField": "code", "labelField": "name", "requiresApp": "shillinq", "missingText": "Install Shillinq to pick from the BBV list" } } }
+```
+
 The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A read that fails or gives no options turns the field into a text input with a line saying so, as a concept-scheme choice does. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
 
 ## Object references (`$ref`)
