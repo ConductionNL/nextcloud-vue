@@ -350,6 +350,10 @@ Reach for `'fit'` when the series genuinely lives far from zero — a percentage
 { "type": "chart", "props": { "chartKind": "line", "valueAxisBaseline": "fit" } }
 ```
 
+## Telling the host what it shows (`data`)
+
+The chart emits `data` with `{ series, categories, labels, total }` once its series are known and on every change; `total` is the sum of its first series. A host that derives values from the chart (a dashboard's calculated fields, an export) listens to it instead of fetching the same data again. Nothing is emitted before there is a series.
+
 ## Theming
 
 The chart follows the Nextcloud theme in both light and dark mode, with no configuration. Everything drawn inside the SVG is themed through chart options (`foreColor`, grid, legend and axis label colours all read `var(--color-*)`), and apexcharts' HTML chrome — the hover tooltip, the crosshair axis tooltips, the toolbar menu and its icons — is restyled from the same tokens in the component's stylesheet.
