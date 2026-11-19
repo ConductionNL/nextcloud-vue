@@ -313,12 +313,13 @@ export default {
 		},
 
 		/**
-		 * Marker config. `{ features?, dataSource?, latField?, lngField?, xField?, yField?,
+		 * Marker config. `{ features?, dataSource?, geoProperty?, latField?, lngField?, xField?, yField?,
 		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker? }`. On an image map
 		 * (a layer of type `image`) markers read `xField` / `yField` (default `x` / `y`,
 		 * pixels from the picture's top left) instead of `latField` / `lngField`. `features[]` is inline;
 		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
-		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * plots the objects of an OpenRegister register/schema via `geoProperty` (a property
+		 * holding a GeoJSON geometry of any type, or a point) when set, else `@self.geo`.
 		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
 		 * source markers.
 		 *
@@ -1793,11 +1794,13 @@ export default {
 
 				const latField = this.cfg.markers && this.cfg.markers.latField
 				const lngField = this.cfg.markers && this.cfg.markers.lngField
+				const geoProperty = this.cfg.markers && this.cfg.markers.geoProperty
 
 				// (0, 0) is where an unset pair of numbers lands, not a place.
 				return rows
-					.map((row) => objectToGeoFeature(row, { latField, lngField }))
-					.filter((feature) => feature && !(feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
+					.map((row) => objectToGeoFeature(row, { geoProperty, latField, lngField }))
+					.filter((feature) => feature && !(feature.geometry.type === 'Point'
+						&& feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
 			} catch (err) {
 				this.markersFailed = true
 				// eslint-disable-next-line no-console

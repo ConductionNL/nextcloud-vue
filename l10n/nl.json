@@ -3072,7 +3072,11 @@
     "An EAN-13 code takes twelve or thirteen digits with a valid check digit.": "Een EAN-13-code neemt twaalf of dertien cijfers met een geldig controlecijfer.",
     "A Code 128 code takes letters, digits and plain punctuation only.": "Een Code 128-code neemt alleen letters, cijfers en gewone leestekens.",
     "Started. It finishes in the background.": "Gestart. Het wordt op de achtergrond afgerond.",
-    "At most {max} rows.": "Hoogstens {max} rijen."
+    "At most {max} rows.": "Hoogstens {max} rijen.",
+    "Location field": "Locatieveld",
+    "Objects are plotted from the location field: a point, line or area. Without one, from their location (@self.geo). Objects without a location are skipped.": "Objecten worden getekend vanuit het locatieveld: een punt, lijn of vlak. Zonder locatieveld vanuit hun locatie (@self.geo). Objecten zonder locatie worden overgeslagen.",
+    "Custom base map": "Eigen achtergrondkaart",
+    "Base map": "Achtergrondkaart"
   },
   "plurals": {
     "{count} member": [
