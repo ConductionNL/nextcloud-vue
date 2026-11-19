@@ -79,6 +79,8 @@ Not every map is the earth: a game world, a floor plan or a terrain drawing is a
   ]" />
 ```
 
+The widget form offers presets for `basemaps`: OpenStreetMap and the Dutch government's PDOK tiles (BRT achtergrondkaart standaard, grijs and pastel, and the aerial photo), all in EPSG:3857. A chosen preset is stored as an ordinary `basemaps[]` item (`name`, `url`, `attribution`, `options`); `basemapPresets.js` exports `BASEMAP_PRESETS`, `basemapFromPreset(id)` and `presetOf(basemap)`. A consuming app that offers PDOK must allow `service.pdok.nl` in its Content-Security-Policy `img-src`.
+
 Use `basemaps` **instead of** a `tile` entry in `layers` for the background — `layers` is then free to carry only overlays (WMS / WFS / GeoJSON). `basemaps` is empty by default, so consumers that already declare their background through `layers` are unaffected.
 
 > Base map tiles are `<img>` loads from a third-party host. A hardened Content-Security-Policy (`img-src`) may block hosts other than the one already allowed — verify before shipping a new basemap.
@@ -118,7 +120,7 @@ Pick **one** of:
 
 - `markers.features` — inline GeoJSON `Feature[]` (static maps).
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
-- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. With `markers.geoProperty` set, each object is drawn from that property: a GeoJSON geometry of any type (point, line, polygon, multi-geometry), a Feature, or a lat/lng value; an object whose property is empty falls back to `@self.geo`. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
 
 ## A record's places
 
