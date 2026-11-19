@@ -3281,7 +3281,7 @@
 			"page": null
 		},
 		"CnMapWidget": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 2,
 			"tier": "medium",
 			"via": [],

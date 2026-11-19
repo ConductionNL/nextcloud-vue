@@ -122,6 +122,18 @@ Pick **one** of:
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
 - `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. With `markers.geoProperty` set, each object is drawn from that property: a GeoJSON geometry of any type (point, line, polygon, multi-geometry), a Feature, or a lat/lng value; an object whose property is empty falls back to `@self.geo`. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
 
+### An area and a detail link
+
+`markers.dataSource.spatialFilter` narrows a register source to an area, through OpenRegister's geo filters. Give one of:
+
+- `{ "bbox": [west, south, east, north] }`, sent as `?geo.bbox=`;
+- `{ "near": [lon, lat], "radius": 500 }` (meters), sent as `?geo.near=&geo.radius=`;
+- `{ "within": <GeoJSON Polygon or MultiPolygon> }`, posted to `…/geo-search`.
+
+`markers.geoProperty`, when set, goes along as `geo.property`, so the filter reads the property the map draws. A filter that does not read (three bbox numbers, a radius of 0) is not sent. A changed filter reads the markers again. OpenRegister has no "nearest N" query; use a radius with `limit`.
+
+`markers.detailLink` is the address a clicked object opens in a new tab, for example `"/apps/dossiq/#/cases/{id}"`. `{id}`, `{register}` and `{schema}` read the object's `@self`; any other `{name}` reads that property. Without a template, a `url` the object carries (the address OpenRegister's deep-link registry stamps) is opened. A token the object cannot fill, or an address with an unsafe scheme, opens nothing. `marker-click` is emitted either way.
+
 ## A record's places
 
 On a detail page the map can say why it shows no markers, and read them again when the app saves one:
