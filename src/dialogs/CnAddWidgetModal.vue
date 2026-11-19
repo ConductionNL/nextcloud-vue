@@ -31,6 +31,22 @@
 			</select>
 		</div>
 
+		<!-- Notices about the widget being edited, from the host: a finding
+		     the host made about its configuration (non-fatal), above the form. -->
+		<div
+			v-if="notices.length > 0 || $slots.notices"
+			class="cn-add-widget-modal__notices"
+			data-testid="cn-add-widget-modal-notices">
+			<!-- @slot Extra notices above the form; replaces nothing, follows the `notices` prop. -->
+			<NcNoteCard
+				v-for="(notice, index) in notices"
+				:key="notice.id || index"
+				:type="noticeType(notice)"
+				:text="notice.text"
+				data-testid="cn-add-widget-modal-notice" />
+			<slot name="notices" />
+		</div>
+
 		<!-- Active per-type sub-form. Driven by `<component :is>` from the
 		     shared registry; sub-forms expose `validate()` and either an
 		     `assembledContent` getter or `@update:content` events. -->
@@ -111,7 +127,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import { computed, provide } from 'vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
@@ -143,6 +159,7 @@ export default {
 		NcButton,
 		NcTextField,
 		NcCheckboxRadioSwitch,
+		NcNoteCard,
 		CnIconBrowser,
 		CnColorPicker,
 	},
@@ -219,6 +236,20 @@ export default {
 		calendarsFetcher: {
 			type: Function,
 			default: null,
+		},
+
+		/**
+		 * Non-fatal notices about the widget, shown above its form: what the
+		 * host found about its configuration, e.g. a filter dimension the
+		 * dashboard does not publish. Each is `{ text, type?, id? }`, `type`
+		 * one of `warning` (default), `info`, `error`, `success`.
+		 *
+		 * @type {Array<{text: string, type?: string, id?: string}>}
+		 * @spec openspec/changes/add-widget-modal-notices/specs/add-widget-modal-notices/spec.md#requirement-the-widget-dialog-can-show-the-hosts-notices
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -535,6 +566,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The note card type of a notice: its own when known, else `warning`.
+		 *
+		 * @param {{type?: string}} notice The notice.
+		 * @return {string}
+		 * @spec openspec/changes/add-widget-modal-notices/specs/add-widget-modal-notices/spec.md#requirement-the-widget-dialog-can-show-the-hosts-notices
+		 */
+		noticeType(notice) {
+			return ['warning', 'info', 'error', 'success'].includes(notice && notice.type) ? notice.type : 'warning'
+		},
+
 		t,
 
 		/**
@@ -814,5 +856,12 @@ export default {
 .cn-add-widget-modal__chrome-value {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__notices {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block-end: 12px;
 }
 </style>

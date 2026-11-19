@@ -1,0 +1,2 @@
+- [x] 1 `notices` prop and `notices` slot on CnAddWidgetModal (tests/dialogs/CnAddWidgetModalNotices.spec.js)
+- [x] 2 Documented in the component docs
