@@ -51,6 +51,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name     | Payload | Description                                                                                                     |
 | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `data`   | —       | What the widget shows, as a plain summary.                                                                      |
 | `select` | —       | A reader picked a category (`selectable`): the field the chart groups by, the category's raw key and its label. |
 
 ### Slots

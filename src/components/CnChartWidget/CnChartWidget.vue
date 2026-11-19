@@ -177,6 +177,7 @@ import { inject, markRaw, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetData, { seriesTotal } from '../../mixins/widgetData.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -432,6 +433,8 @@ export default {
 	name: 'CnChartWidget',
 
 	components: { CnEndpointNotice, NcNoteCard },
+
+	mixins: [widgetData],
 
 	inject: {
 		/**
@@ -1180,6 +1183,24 @@ export default {
 			}
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
+		},
+
+		/**
+		 * What the chart shows, for the `data` event: its series, categories,
+		 * labels and the total of its first series; null until it has a series.
+		 *
+		 * @return {{series: Array, categories: Array, labels: Array, total: number|null}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			const series = this.resolvedSeries
+			if (!Array.isArray(series) || series.length === 0) {
+				return null
+			}
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			const rest = this.aggregateData || this.bucketData || this.groupByData
+			const labels = Array.isArray(rest?.labels) ? rest.labels : (Array.isArray(this.labels) ? this.labels : categories)
+			return { series, categories, labels, total: seriesTotal(series) }
 		},
 
 		resolvedCategories() {
