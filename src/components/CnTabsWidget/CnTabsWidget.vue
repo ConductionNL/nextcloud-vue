@@ -231,6 +231,7 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
@@ -1512,6 +1513,12 @@ export default {
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
+			// A tab shown only with another app installed counts nothing without it:
+			// its list lives in that app, and asking would answer 404.
+			const needs = tab && typeof tab === 'object' && tab.visibleWhen ? tab.visibleWhen.appInstalled : null
+			if (typeof needs === 'string' && needs !== '' && !isAppInstalled(needs)) {
+				return null
+			}
 			const from = tab && typeof tab === 'object' ? tab.countFrom : null
 			let source = null
 			if (from === 'widget') {
