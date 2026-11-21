@@ -19,7 +19,6 @@ registerDashboardWidget('header', {
 		backgroundImageUrl: '',
 		backgroundImageFileId: null,
 		backgroundColor: '',
-		overlayMode: 'none',
 		overlayColor: '',
 		overlayOpacity: 0.4,
 		textColor: '',
