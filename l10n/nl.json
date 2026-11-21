@@ -3101,7 +3101,48 @@
     "Days ahead": "Dagen vooruit",
     "Color by calendar": "Kleur per agenda",
     "At least one calendar source is required": "Kies minstens één agendabron",
-    "External ICS URLs must start with https://": "Externe ICS-URL's moeten beginnen met https://"
+    "External ICS URLs must start with https://": "Externe ICS-URL's moeten beginnen met https://",
+    "Folder breadcrumb": "Mappad",
+    "Root": "Hoofdmap",
+    "Search this folder": "Zoek in deze map",
+    "Search this folder…": "Zoek in deze map…",
+    "Upload File": "Bestand uploaden",
+    "Drop files to upload": "Zet bestanden hier neer om te uploaden",
+    "Loading folder…": "Map laden…",
+    "Files is not available": "Bestanden is niet beschikbaar",
+    "You don't have access to this folder.": "Je hebt geen toegang tot deze map.",
+    "Folder no longer exists.": "Deze map bestaat niet meer.",
+    "Failed to load folder contents.": "De inhoud van de map kon niet worden geladen.",
+    "This folder is empty.": "Deze map is leeg.",
+    "Uploading {loaded} / {total}": "Uploaden {loaded} / {total}",
+    "Upload complete": "Upload voltooid",
+    "No files matching '{query}'": "Geen bestanden gevonden voor '{query}'",
+    "You no longer have permission to delete {name}.": "Je mag {name} niet meer verwijderen.",
+    "Could not delete {name}.": "{name} kon niet worden verwijderd.",
+    "Not enough storage space": "Niet genoeg opslagruimte",
+    "You may not upload to this folder": "Je mag niet uploaden naar deze map",
+    "This file type is not allowed here": "Dit bestandstype is hier niet toegestaan",
+    "Upload failed": "Uploaden mislukt",
+    "Sent": "Verzonden",
+    "Uploaded": "Geüpload",
+    "Uploading {percent}%": "Uploaden {percent}%",
+    "Delete file": "Bestand verwijderen",
+    "Are you sure you want to delete {name}?": "Weet je zeker dat je {name} wilt verwijderen?",
+    "Current object": "Huidig object",
+    "Browse…": "Bladeren…",
+    "Sort descending": "Aflopend sorteren",
+    "Show thumbnails": "Miniaturen tonen",
+    "MIME type filter (comma separated)": "MIME-typefilter (gescheiden door komma's)",
+    "e.g. image/*, application/pdf": "bijv. image/*, application/pdf",
+    "Allow upload": "Uploaden toestaan",
+    "Allow delete": "Verwijderen toestaan",
+    "This widget shows files attached to the current object, so the folder cannot be set here.": "Deze widget toont de bestanden bij het huidige object, dus de map is hier niet in te stellen.",
+    "Grid": "Raster",
+    "Tree": "Boom",
+    "Choose a folder": "Kies een map",
+    "Choose": "Kiezen",
+    "Could not open the folder picker": "De mapkiezer kon niet worden geopend",
+    "Folder path or folder id is required": "Een mappad of map-id is verplicht"
   },
   "plurals": {
     "{count} member": [
@@ -3367,6 +3408,10 @@
     "{count} calendar source unavailable": [
       "{count} agendabron niet beschikbaar",
       "{count} agendabronnen niet beschikbaar"
+    ],
+    "{count} file could not be uploaded": [
+      "{count} bestand kon niet worden geüpload",
+      "{count} bestanden konden niet worden geüpload"
     ]
   }
 }
