@@ -15,6 +15,7 @@ registerDashboardWidget('divider', {
 	},
 	displayName: 'Divider',
 	icon: 'Minus',
+	minHeight: 1,
 })
 
 export { CnDividerWidget }
