@@ -10,6 +10,14 @@
 		<div v-if="!hasSource" class="cn-video-widget__placeholder">
 			<VideoIcon :size="48" :fillColor="placeholderColor" />
 			<span class="cn-video-widget__placeholder-label">{{ t('nextcloud-vue', 'No video URL configured') }}</span>
+			<span class="cn-video-widget__placeholder-help">{{ t('nextcloud-vue', 'Edit the widget to add a video') }}</span>
+			<button
+				v-if="canEdit"
+				type="button"
+				class="cn-video-widget__configure"
+				@click="$emit('edit')">
+				{{ t('nextcloud-vue', 'Configure now') }}
+			</button>
 		</div>
 		<div v-else-if="hasError" class="cn-video-widget__placeholder">
 			<VideoIcon :size="48" :fillColor="placeholderColor" />
@@ -92,6 +100,17 @@ export default {
 			default: () => ({}),
 		},
 
+		/**
+		 * Whether the viewer may edit this placement (the host's edit mode).
+		 * The empty state then offers "Configure now", which emits `edit`.
+		 *
+		 * @type {boolean}
+		 */
+		canEdit: {
+			type: Boolean,
+			default: false,
+		},
+
 		/* eslint-disable vue/no-unused-properties -- part of the widget contract: CnContainerChild and the dashboard pages bind :placement on every widget, so declaring it keeps it out of $attrs */
 		/** The placement record (reserved — kept to match the renderer contract). */
 		placement: {
@@ -101,11 +120,24 @@ export default {
 		/* eslint-enable vue/no-unused-properties */
 	},
 
+	emits: [
+		/**
+		 * "Configure now" was chosen in the empty state, so the host can open
+		 * the widget settings.
+		 *
+		 * @event edit
+		 */
+		'edit',
+	],
+
 	data() {
 		return {
 			// Set when the HTML5 <video> fires an error so subsequent renders
 			// show the error placeholder rather than a broken element.
 			videoLoadFailed: false,
+			// The widget's own size, so a portrait ratio in a landscape cell
+			// is fitted by its height instead of overflowing it.
+			box: { width: 0, height: 0 },
 		}
 	},
 
@@ -319,12 +351,27 @@ export default {
 			}
 			if (this.loop) {
 				params.push('loop=1')
+				// YouTube loops a single video only as a one-item playlist.
+				const id = this.sourceType === 'youtube' ? this.youtubeVideoId : ''
+				if (id) {
+					params.push(`playlist=${encodeURIComponent(id)}`)
+				}
 			}
 			if (params.length === 0) {
 				return this.videoUrl
 			}
 			const separator = this.videoUrl.includes('?') ? '&' : '?'
 			return this.videoUrl + separator + params.join('&')
+		},
+
+		/**
+		 * The video id in a canonical YouTube embed URL (`/embed/<id>`).
+		 *
+		 * @return {string} the id, or `''`.
+		 */
+		youtubeVideoId() {
+			const match = this.videoUrl.match(/\/embed\/([^/?#&]+)/)
+			return match ? decodeURIComponent(match[1]) : ''
 		},
 
 		/**
@@ -360,8 +407,12 @@ export default {
 		 */
 		mediaStyle() {
 			const [w, h] = this.aspectRatio.split(':')
+			const ratio = Number(w) / Number(h)
+			// A cell wider than the ratio fits the video by its height.
+			const { width, height } = this.box
+			const fitsByHeight = height > 0 && width / height > ratio
 			return {
-				width: '100%',
+				width: fitsByHeight ? `${Math.floor(height * ratio)}px` : '100%',
 				'max-width': '100%',
 				'aspect-ratio': `${w} / ${h}`,
 				display: 'flex',
@@ -382,6 +433,25 @@ export default {
 		videoUrl() {
 			this.videoLoadFailed = false
 		},
+	},
+
+	mounted() {
+		if (typeof ResizeObserver === 'undefined') {
+			return
+		}
+		this.resizeObserver = new ResizeObserver((entries) => {
+			const rect = entries[0] && entries[0].contentRect
+			if (rect) {
+				this.box = { width: rect.width, height: rect.height }
+			}
+		})
+		this.resizeObserver.observe(this.$el)
+	},
+
+	beforeUnmount() {
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect()
+		}
 	},
 
 	methods: {
@@ -433,5 +503,18 @@ export default {
 
 .cn-video-widget__placeholder-label {
 	font-size: 13px;
+}
+
+.cn-video-widget__placeholder-help {
+	font-size: 12px;
+}
+
+.cn-video-widget__configure {
+	padding: 4px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: transparent;
+	color: var(--color-main-text);
+	cursor: pointer;
 }
 </style>
