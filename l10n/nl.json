@@ -3076,7 +3076,32 @@
     "Location field": "Locatieveld",
     "Objects are plotted from the location field: a point, line or area. Without one, from their location (@self.geo). Objects without a location are skipped.": "Objecten worden getekend vanuit het locatieveld: een punt, lijn of vlak. Zonder locatieveld vanuit hun locatie (@self.geo). Objecten zonder locatie worden overgeslagen.",
     "Custom base map": "Eigen achtergrondkaart",
-    "Base map": "Achtergrondkaart"
+    "Base map": "Achtergrondkaart",
+    "Loading calendars…": "Agenda's laden…",
+    "The calendars are taking too long to load.": "Het laden van de agenda's duurt te lang.",
+    "Failed to load events": "Afspraken laden mislukt",
+    "No calendar available": "Geen agenda beschikbaar",
+    "No calendar is selected yet. Choose one in this widget’s settings.": "Er is nog geen agenda gekozen. Kies er een in de instellingen van deze widget.",
+    "No events in the next {n} days": "Geen afspraken in de komende {n} dagen",
+    "Sun": "zo",
+    "Mon": "ma",
+    "Tue": "di",
+    "Wed": "wo",
+    "Thu": "do",
+    "Fri": "vr",
+    "Sat": "za",
+    "Month": "Maand",
+    "Week": "Week",
+    "Agenda": "Agenda",
+    "All day": "Hele dag",
+    "Calendars": "Agenda's",
+    "Select calendars…": "Kies agenda's…",
+    "One calendar principal URI per line": "Eén agenda-principal-URI per regel",
+    "External ICS URLs (one per line)": "Externe ICS-URL's (één per regel)",
+    "Days ahead": "Dagen vooruit",
+    "Color by calendar": "Kleur per agenda",
+    "At least one calendar source is required": "Kies minstens één agendabron",
+    "External ICS URLs must start with https://": "Externe ICS-URL's moeten beginnen met https://"
   },
   "plurals": {
     "{count} member": [
@@ -3338,6 +3363,10 @@
     "%n log line": [
       "%n logregel",
       "%n logregels"
+    ],
+    "{count} calendar source unavailable": [
+      "{count} agendabron niet beschikbaar",
+      "{count} agendabronnen niet beschikbaar"
     ]
   }
 }

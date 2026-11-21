@@ -2808,7 +2808,32 @@
     "An EAN-13 code takes twelve or thirteen digits with a valid check digit.": "An EAN-13 code takes twelve or thirteen digits with a valid check digit.",
     "A Code 128 code takes letters, digits and plain punctuation only.": "A Code 128 code takes letters, digits and plain punctuation only.",
     "Started. It finishes in the background.": "Started. It finishes in the background.",
-    "At most {max} rows.": "At most {max} rows."
+    "At most {max} rows.": "At most {max} rows.",
+    "Loading calendars…": "Loading calendars…",
+    "The calendars are taking too long to load.": "The calendars are taking too long to load.",
+    "Failed to load events": "Failed to load events",
+    "No calendar available": "No calendar available",
+    "No calendar is selected yet. Choose one in this widget’s settings.": "No calendar is selected yet. Choose one in this widget’s settings.",
+    "No events in the next {n} days": "No events in the next {n} days",
+    "Sun": "Sun",
+    "Mon": "Mon",
+    "Tue": "Tue",
+    "Wed": "Wed",
+    "Thu": "Thu",
+    "Fri": "Fri",
+    "Sat": "Sat",
+    "Month": "Month",
+    "Week": "Week",
+    "Agenda": "Agenda",
+    "All day": "All day",
+    "Calendars": "Calendars",
+    "Select calendars…": "Select calendars…",
+    "One calendar principal URI per line": "One calendar principal URI per line",
+    "External ICS URLs (one per line)": "External ICS URLs (one per line)",
+    "Days ahead": "Days ahead",
+    "Color by calendar": "Color by calendar",
+    "At least one calendar source is required": "At least one calendar source is required",
+    "External ICS URLs must start with https://": "External ICS URLs must start with https://"
   },
   "plurals": {
     "{count} member": [
@@ -3049,6 +3074,10 @@
     "%n log line": [
       "%n log line",
       "%n log lines"
+    ],
+    "{count} calendar source unavailable": [
+      "{count} calendar source unavailable",
+      "{count} calendar sources unavailable"
     ]
   }
 }
