@@ -1227,10 +1227,14 @@ export default {
 			if (!this.grid || typeof this.grid.enable !== 'function') {
 				return
 			}
+			// On the raw grid: enabled through Vue's proxy, GridStack binds its
+			// drag handlers to the proxy and a drop never ends, so the move is
+			// shown but no `change` follows.
+			const grid = toRaw(this.grid)
 			if (this.editable && !this.reflowed) {
-				this.grid.enable()
+				grid.enable()
 			} else {
-				this.grid.disable()
+				grid.disable()
 			}
 		},
 
@@ -1463,7 +1467,7 @@ export default {
 				return true
 			}
 
-			this.grid.update(el, next)
+			toRaw(this.grid).update(el, next)
 
 			this.announce(kind === 'resize'
 				? t('nextcloud-vue', '{label} resized to {width} columns by {height} rows', {
@@ -1695,13 +1699,14 @@ export default {
 				if (!this.grid || !this.$refs.gridContainer) {
 					return
 				}
+				const grid = toRaw(this.grid)
 				const added = []
 				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
 						continue
 					}
-					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
+					const node = grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
 						added.push(el)
 					} else if (node.el === el) {
@@ -1712,16 +1717,23 @@ export default {
 						// where the hidden widget had been. A drag reports the
 						// grid's own position back, which matches and does
 						// nothing here.
+						// A width or height the layout changed (a form, an
+						// undo) is synced the same way. A size-to-content cell
+						// keeps the height its content gave it.
 						const x = item.gridX ?? node.x
 						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
-						if (x !== node.x || y !== node.y) {
+						const w = Number.isFinite(item.gridWidth) ? item.gridWidth : node.w
+						const h = Number.isFinite(item.gridHeight) && this.sizeToContentAttr(item) === undefined
+							? item.gridHeight * this.rowSplit
+							: node.h
+						if (x !== node.x || y !== node.y || w !== node.w || h !== node.h) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not
 							// reported back (it would write the display-only
 							// compaction into the authored layout).
 							this.applyingLayout = true
 							try {
-								this.grid.update(el, { x, y })
+								grid.update(el, { x, y, w, h })
 							} finally {
 								this.applyingLayout = false
 							}
@@ -1729,8 +1741,8 @@ export default {
 					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
-						this.grid.removeWidget(node.el, false, false)
-						this.grid.makeWidget(el)
+						grid.removeWidget(node.el, false, false)
+						grid.makeWidget(el)
 					}
 				}
 				this.addWidgetsInOrder(added)
@@ -1742,7 +1754,7 @@ export default {
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {
-					this.grid.removeWidget(el, false)
+					toRaw(this.grid).removeWidget(el, false)
 				}
 			}
 
