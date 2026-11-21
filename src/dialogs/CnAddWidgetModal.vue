@@ -15,20 +15,31 @@
 			<label class="cn-add-widget-modal__type-label" :for="typeSelectId">
 				{{ t('nextcloud-vue', 'Widget type') }}
 			</label>
-			<select
-				:id="typeSelectId"
-				v-model="state.type"
-				class="cn-add-widget-modal__type-select"
-				data-testid="widget-type-select"
-				@change="onTypeSwitch">
-				<option
-					v-for="type in availableTypes"
-					:key="type"
-					:value="type"
-					:data-testid="`widget-type-option-${type}`">
-					{{ typeDisplayName(type) }}
-				</option>
-			</select>
+			<!-- A native option cannot draw an icon, so the chosen type's
+			     icon stands in front of the select. -->
+			<div class="cn-add-widget-modal__type-row">
+				<span
+					v-if="state.type"
+					class="cn-add-widget-modal__type-icon"
+					data-testid="widget-type-icon"
+					aria-hidden="true">
+					<CnWidgetIcon :name="typeIcon(state.type)" :size="20" />
+				</span>
+				<select
+					:id="typeSelectId"
+					v-model="state.type"
+					class="cn-add-widget-modal__type-select"
+					data-testid="widget-type-select"
+					@change="onTypeSwitch">
+					<option
+						v-for="type in availableTypes"
+						:key="type"
+						:value="type"
+						:data-testid="`widget-type-option-${type}`">
+						{{ typeDisplayName(type) }}
+					</option>
+				</select>
+			</div>
 		</div>
 
 		<!-- Notices about the widget being edited, from the host: a finding
@@ -131,6 +142,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcNoteCard, NcTextField } fr
 import { computed, provide } from 'vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import CnWidgetIcon from '../components/CnWidgetGrid/CnWidgetIcon.vue'
 import {
 	getWidgetTypeEntry,
 	listUserAddableWidgetTypes,
@@ -162,6 +174,7 @@ export default {
 		NcNoteCard,
 		CnIconBrowser,
 		CnColorPicker,
+		CnWidgetIcon,
 	},
 
 	props: {
@@ -787,6 +800,18 @@ export default {
 			const entry = getWidgetTypeEntry(type)
 			return entry?.displayName || type
 		},
+
+		/**
+		 * The icon a registry type declares (an MDI name, SVG path or URL), or
+		 * `null` for the default widget icon.
+		 *
+		 * @param {string} type the registry type key.
+		 * @return {string|null} the icon.
+		 */
+		typeIcon(type) {
+			const icon = getWidgetTypeEntry(type)?.icon
+			return typeof icon === 'string' && icon !== '' ? icon : null
+		},
 	},
 }
 </script>
@@ -803,7 +828,21 @@ export default {
 	font-weight: 500;
 }
 
+.cn-add-widget-modal__type-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-add-widget-modal__type-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--color-main-text);
+}
+
 .cn-add-widget-modal__type-select {
+	flex: 1;
+	min-width: 0;
 	padding: 8px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius);
