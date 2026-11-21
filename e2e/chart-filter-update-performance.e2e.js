@@ -13,6 +13,14 @@
 // often ApexCharts redraws and measures SVG text, the work a cheap update must
 // not repeat.
 //
+// The assertions are on the work, not on the clock: each change reaches each
+// chart as ONE ApexCharts update (two charts change per step), never as an
+// update + series pair or a rebuild, and the bars appear without animating.
+// The times are printed and attached; on a shared runner a millisecond bound
+// would measure the runner. Every update clears and redraws the SVG and forces
+// a style recalculation per label, and a page's `:has()` rules make each of
+// those cost more (`?heavy=` adds a page's worth of elements to show it).
+//
 // WHY PLAYWRIGHT: apexcharts draws, and measures its labels, only in a browser.
 
 import { expect, test } from '@playwright/test'
@@ -20,7 +28,6 @@ import { expect, test } from '@playwright/test'
 test.describe.configure({ timeout: 180_000 })
 
 const STEPS = 12
-const BOUND_MS = 300
 
 /**
  * Median and 95th percentile (nearest rank) of a list.
@@ -94,11 +101,12 @@ async function step(page, index) {
 		let last = null
 		let quietTimer = null
 		const start = performance.now()
+		let observer = null
 		const done = () => {
 			observer.disconnect()
 			resolve({ labels: labelsAt - start, settled: (last ?? labelsAt) - start })
 		}
-		const observer = new MutationObserver(() => {
+		observer = new MutationObserver(() => {
 			last = performance.now()
 			if (labelsAt === null) {
 				const labels = Array.from(b.querySelectorAll('.apexcharts-xaxis-label'))
@@ -118,7 +126,7 @@ async function step(page, index) {
 }
 
 for (const [name, query] of [['default options', ''], ['animations off by the host', '&quiet=1'], ['on a page of 20,000 elements', '&quiet=1&heavy=2000']]) {
-	test(`a filter change redraws the bar charts within ${BOUND_MS} ms (${name})`, async ({ page }, info) => {
+	test(`a filter change redraws each bar chart once, in place (${name})`, async ({ page }, info) => {
 		await open(page, query)
 		const before = await page.evaluate(() => ({ ...window.__chartCounts }))
 		const rows = []
@@ -134,11 +142,15 @@ for (const [name, query] of [['default options', ''], ['animations off by the ho
 			textMeasuresPerStep: { bbox: (after.bbox - before.bbox) / STEPS, textLength: (after.textLength - before.textLength) / STEPS },
 		}
 		const text = JSON.stringify(result, null, 2)
+		// eslint-disable-next-line no-console
 		console.log(`[chart-filter-update ${name}] ${text}`)
 		await info.attach(`chart-filter-update ${name}`, { body: text, contentType: 'application/json' })
 		// The instance is updated in place, never thrown away and rebuilt.
 		expect(calls.destroy).toBe(0)
 		expect(calls.render).toBe(0)
-		expect(result.labels.median).toBeLessThan(BOUND_MS)
+		expect(calls.updateSeries).toBe(0)
+		expect(calls.update).toBe(2 * STEPS)
+		// Unanimated: the redraw is done when the labels are.
+		expect(result.settled.median).toBeLessThan(result.labels.median + 50)
 	})
 }
