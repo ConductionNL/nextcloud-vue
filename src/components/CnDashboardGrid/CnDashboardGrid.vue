@@ -195,7 +195,7 @@ export default {
 	name: 'CnDashboardGrid',
 
 	props: {
-		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, ...extra } */
+		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, minHeight?, ...extra }. An item's `minHeight` (layout rows) replaces the grid's own for that item. */
 		layout: {
 			type: Array,
 			required: true,
@@ -750,8 +750,20 @@ export default {
 		},
 
 		/**
-		 * The smallest height an item may take, in grid rows: `minHeight`
-		 * layout rows, except for a size-to-content cell on split rows, which
+		 * The smallest height an item may take, in layout rows: the item's own
+		 * `minHeight` (a divider may be one row), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum height in layout rows.
+		 */
+		itemMinHeight(item) {
+			const own = item && item.minHeight
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minHeight
+		},
+
+		/**
+		 * The smallest height an item may take, in grid rows: its minimum
+		 * height in layout rows, except for a size-to-content cell on split rows, which
 		 * may shrink to its content down to one grid row. The minimum is for
 		 * resizing by hand, and that only happens on whole rows in edit mode.
 		 *
@@ -763,7 +775,7 @@ export default {
 			if (this.rowSplit !== 1 && this.sizeToContentAttr(item) !== undefined) {
 				return 1
 			}
-			return this.minHeight * this.rowSplit
+			return this.itemMinHeight(item) * this.rowSplit
 		},
 
 		/**
@@ -1419,12 +1431,13 @@ export default {
 		 * edge instead of pushing it into negative coordinates.
 		 *
 		 * @param {{x: number, y: number, w: number, h: number}} rect the candidate.
+		 * @param {object} [item] the layout item, whose own `minHeight` applies.
 		 * @return {{x: number, y: number, w: number, h: number}} the clamped rectangle.
 		 */
-		clampRect(rect) {
+		clampRect(rect, item) {
 			const cols = this.effectiveColumns
 			const w = Math.min(Math.max(rect.w, this.minWidth), cols)
-			const h = Math.max(rect.h, this.minHeight)
+			const h = Math.max(rect.h, item ? this.itemMinHeight(item) : this.minHeight)
 			return {
 				x: Math.min(Math.max(rect.x, 0), Math.max(cols - w, 0)),
 				y: Math.max(rect.y, 0),
@@ -1457,7 +1470,7 @@ export default {
 			}
 
 			const current = this.currentRect(item)
-			const next = this.clampRect({ ...current, ...patch })
+			const next = this.clampRect({ ...current, ...patch }, item)
 
 			if (next.x === current.x && next.y === current.y
 				&& next.w === current.w && next.h === current.h) {
