@@ -137,8 +137,8 @@
 				:type="type"
 				:height="computedHeight"
 				:width="computedWidth"
-				:options="mergedOptions"
-				:series="plottedSeries" />
+				:options="apexOptions"
+				:series="apexSeries" />
 		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
@@ -1077,6 +1077,13 @@ export default {
 			// once at creation (data, not computed — matches the dashboard
 			// date-chip convention).
 			viewsGroupLabel: t('nextcloud-vue', 'Chart view'),
+			// What the apexcharts wrapper is bound to: one raw object and one raw
+			// array, kept equal to `mergedOptions` / `plottedSeries` by filling
+			// them in place. The wrapper builds a chart from them (on mount and
+			// on its own type / size rebuilds) but never sees them change, so
+			// its watchers never fire; `updateChart` updates the live chart.
+			apexOptions: markRaw({}),
+			apexSeries: markRaw([]),
 		}
 	},
 
@@ -1884,6 +1891,16 @@ export default {
 			})
 		},
 
+		/**
+		 * The options and series the chart draws, as one value, so a data
+		 * change that moves both reaches the chart as one update.
+		 *
+		 * @return {Array} `[mergedOptions, plottedSeries]`.
+		 */
+		chartPayload() {
+			return [this.mergedOptions, this.plottedSeries]
+		},
+
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -2053,6 +2070,10 @@ export default {
 	},
 
 	watch: {
+		chartPayload() {
+			this.updateChart()
+		},
+
 		groupByKey() {
 			this.fetchGroupBy()
 		},
@@ -2073,6 +2094,7 @@ export default {
 	created() {
 		// markRaw: `data()` is deeply reactive and would proxy the component.
 		this.chartComponent = markRaw(VueApexCharts)
+		this.syncChartBinding()
 	},
 
 	mounted() {
@@ -2204,6 +2226,42 @@ export default {
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
 			}
+		},
+
+		/**
+		 * Fill the wrapper's bound options and series with the current ones,
+		 * in place, so a chart the wrapper (re)builds starts from them.
+		 *
+		 * @return {void}
+		 */
+		syncChartBinding() {
+			const options = this.apexOptions
+			for (const key of Object.keys(options)) {
+				delete options[key]
+			}
+			Object.assign(options, this.mergedOptions)
+			const series = this.plottedSeries
+			this.apexSeries.splice(0, this.apexSeries.length, ...(Array.isArray(series) ? series : []))
+		},
+
+		/**
+		 * Show new options and series in the live chart as one in-place,
+		 * unanimated `updateOptions`, instead of the wrapper's
+		 * `updateOptions` + `updateSeries` pair: every ApexCharts update clears
+		 * and redraws the whole SVG and measures each label again, which on a
+		 * full dashboard page costs far more than the data change itself. The
+		 * entry animation on first draw is unaffected. ApexCharts skips a
+		 * payload identical to the last one.
+		 *
+		 * @return {void}
+		 */
+		updateChart() {
+			this.syncChartBinding()
+			const apex = this.$refs.chart?.chart
+			if (typeof apex?.updateOptions !== 'function') {
+				return
+			}
+			apex.updateOptions({ ...this.mergedOptions, series: this.plottedSeries }, false, false)
 		},
 
 		/**
