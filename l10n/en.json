@@ -2833,7 +2833,48 @@
     "Days ahead": "Days ahead",
     "Color by calendar": "Color by calendar",
     "At least one calendar source is required": "At least one calendar source is required",
-    "External ICS URLs must start with https://": "External ICS URLs must start with https://"
+    "External ICS URLs must start with https://": "External ICS URLs must start with https://",
+    "Folder breadcrumb": "Folder breadcrumb",
+    "Root": "Root",
+    "Search this folder": "Search this folder",
+    "Search this folder…": "Search this folder…",
+    "Upload File": "Upload File",
+    "Drop files to upload": "Drop files to upload",
+    "Loading folder…": "Loading folder…",
+    "Files is not available": "Files is not available",
+    "You don't have access to this folder.": "You don't have access to this folder.",
+    "Folder no longer exists.": "Folder no longer exists.",
+    "Failed to load folder contents.": "Failed to load folder contents.",
+    "This folder is empty.": "This folder is empty.",
+    "Uploading {loaded} / {total}": "Uploading {loaded} / {total}",
+    "Upload complete": "Upload complete",
+    "No files matching '{query}'": "No files matching '{query}'",
+    "You no longer have permission to delete {name}.": "You no longer have permission to delete {name}.",
+    "Could not delete {name}.": "Could not delete {name}.",
+    "Not enough storage space": "Not enough storage space",
+    "You may not upload to this folder": "You may not upload to this folder",
+    "This file type is not allowed here": "This file type is not allowed here",
+    "Upload failed": "Upload failed",
+    "Sent": "Sent",
+    "Uploaded": "Uploaded",
+    "Uploading {percent}%": "Uploading {percent}%",
+    "Delete file": "Delete file",
+    "Are you sure you want to delete {name}?": "Are you sure you want to delete {name}?",
+    "Current object": "Current object",
+    "Browse…": "Browse…",
+    "Sort descending": "Sort descending",
+    "Show thumbnails": "Show thumbnails",
+    "MIME type filter (comma separated)": "MIME type filter (comma separated)",
+    "e.g. image/*, application/pdf": "e.g. image/*, application/pdf",
+    "Allow upload": "Allow upload",
+    "Allow delete": "Allow delete",
+    "This widget shows files attached to the current object, so the folder cannot be set here.": "This widget shows files attached to the current object, so the folder cannot be set here.",
+    "Grid": "Grid",
+    "Tree": "Tree",
+    "Choose a folder": "Choose a folder",
+    "Choose": "Choose",
+    "Could not open the folder picker": "Could not open the folder picker",
+    "Folder path or folder id is required": "Folder path or folder id is required"
   },
   "plurals": {
     "{count} member": [
@@ -3078,6 +3119,10 @@
     "{count} calendar source unavailable": [
       "{count} calendar source unavailable",
       "{count} calendar sources unavailable"
+    ],
+    "{count} file could not be uploaded": [
+      "{count} file could not be uploaded",
+      "{count} files could not be uploaded"
     ]
   }
 }
