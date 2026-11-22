@@ -39,12 +39,19 @@
 				v-else-if="isFileSource"
 				class="cn-video-widget__video"
 				:src="fileStreamingUrl"
-				:poster="posterUrl || null"
+				:poster="posterUrl && !posterFailed ? posterUrl : null"
 				:autoplay="effectiveAutoplay"
 				:muted="effectiveMuted"
 				:loop="loop"
 				:controls="controls"
+				@play="playing = true"
 				@error="onVideoError" />
+			<span
+				v-if="showPosterFallback"
+				class="cn-video-widget__poster-fallback"
+				aria-hidden="true">
+				<VideoIcon :size="48" :fillColor="placeholderColor" />
+			</span>
 		</div>
 	</div>
 </template>
@@ -138,6 +145,10 @@ export default {
 			// The widget's own size, so a portrait ratio in a landscape cell
 			// is fitted by its height instead of overflowing it.
 			box: { width: 0, height: 0 },
+			// Set when `posterUrl` does not load; a video icon then stands in
+			// for the poster until the video plays.
+			posterFailed: false,
+			playing: false,
 		}
 	},
 
@@ -401,6 +412,15 @@ export default {
 		},
 
 		/**
+		 * Whether a video icon stands in for a poster that did not load.
+		 *
+		 * @return {boolean} true while the poster is broken and nothing plays.
+		 */
+		showPosterFallback() {
+			return this.isFileSource && this.posterFailed && !this.playing
+		},
+
+		/**
 		 * Inline style for the media wrapper, enforcing the aspect ratio.
 		 *
 		 * @return {object} the media style.
@@ -424,6 +444,14 @@ export default {
 	},
 
 	watch: {
+		posterUrl: {
+			immediate: true,
+			handler(url) {
+				this.posterFailed = false
+				this.probePoster(url)
+			},
+		},
+
 		// Re-arm the failure flag when the source changes so a previously
 		// failed file does not permanently lock the cell.
 		fileStreamingUrl() {
@@ -464,6 +492,26 @@ export default {
 		onVideoError() {
 			this.videoLoadFailed = true
 		},
+
+		/**
+		 * Load the poster image on its own, since `<video>` reports no error
+		 * for a broken poster; a failure sets `posterFailed`.
+		 *
+		 * @param {string} url the poster URL.
+		 * @return {void}
+		 */
+		probePoster(url) {
+			if (!url || typeof Image === 'undefined') {
+				return
+			}
+			const probe = new Image()
+			probe.onerror = () => {
+				if (this.posterUrl === url) {
+					this.posterFailed = true
+				}
+			}
+			probe.src = url
+		},
 	},
 }
 </script>
@@ -477,6 +525,15 @@ export default {
 
 .cn-video-widget__media {
 	position: relative;
+}
+
+.cn-video-widget__poster-fallback {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
 }
 
 .cn-video-widget__iframe,

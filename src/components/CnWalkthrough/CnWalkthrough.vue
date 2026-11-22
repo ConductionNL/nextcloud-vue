@@ -513,7 +513,9 @@ export default {
 	methods: {
 		/**
 		 * Whether an app dialog (NcModal / NcDialog, or any other modal
-		 * dialog that is not this overlay) is open.
+		 * dialog that is not this overlay) is open. A mask that is in the DOM
+		 * but hidden (NcModal keeps a closed modal's mask with display:none)
+		 * does not count.
 		 *
 		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
 		 * @return {boolean}
@@ -528,7 +530,30 @@ export default {
 				if (own && typeof own.contains === 'function' && (own === node || own.contains(node))) {
 					continue
 				}
+				if (this.isHiddenNode(node)) {
+					continue
+				}
 				return true
+			}
+			return false
+		},
+
+		/**
+		 * Whether the node or one of its ancestors is hidden with
+		 * `display: none`, `visibility: hidden` or the `hidden` attribute.
+		 *
+		 * @param {Element} node The node.
+		 * @return {boolean}
+		 */
+		isHiddenNode(node) {
+			for (let el = node; el && el.nodeType === 1; el = el.parentElement) {
+				if (el.hasAttribute('hidden')) {
+					return true
+				}
+				const style = window.getComputedStyle(el)
+				if (style.display === 'none' || (el === node && style.visibility === 'hidden')) {
+					return true
+				}
 			}
 			return false
 		},
@@ -552,7 +577,7 @@ export default {
 			update()
 			if (typeof window !== 'undefined' && window.MutationObserver) {
 				this._modalObs = new MutationObserver(update)
-				this._modalObs.observe(document.body, { childList: true, subtree: true })
+				this._modalObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden'] })
 			}
 		},
 
