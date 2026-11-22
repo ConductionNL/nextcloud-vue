@@ -190,7 +190,7 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
-import { attachChartShadow, createChartContainer } from './chartShadow.js'
+import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -2103,6 +2103,7 @@ export default {
 		this.chartComponent = markRaw(VueApexCharts)
 		const container = createChartContainer()
 		this.chartTarget = container ? markRaw(container) : null
+		keepSvgMeasurerInShadow()
 		this.syncChartBinding()
 	},
 

@@ -223,3 +223,70 @@ function addDocumentRules() {
 	style.textContent = CHART_SHADOW_CSS
 	document.head.appendChild(style)
 }
+
+/**
+ * Where the hidden SVG that ApexCharts' svg.js measures in lives, once moved.
+ *
+ * @type {ShadowRoot|null}
+ */
+let measurerRoot = null
+
+/**
+ * Whether a node is the hidden SVG svg.js measures elements in.
+ *
+ * svg.js measures an element whose own box comes back empty by cloning it
+ * into that SVG, and it takes an element inside a shadow root for one that is
+ * not in the document, so a chart in its shadow root measures there on every
+ * redraw. It is the only body-level SVG with this exact hidden style.
+ *
+ * @param {Node} node A node added to the body.
+ * @return {boolean} True for svg.js' measuring SVG.
+ */
+function isSvgMeasurer(node) {
+	return node?.nodeName?.toLowerCase() === 'svg'
+		&& node.getAttribute('aria-hidden') === 'true'
+		&& node.getAttribute('focusable') === 'false'
+		&& node.style?.opacity === '0'
+		&& node.style?.position === 'absolute'
+}
+
+/**
+ * Move svg.js' measuring SVG out of the light DOM into a shadow root of its
+ * own, and keep it there.
+ *
+ * Each clone svg.js adds to and removes from that SVG is a change to a child
+ * of the body, which makes the browser re-check the page's `:has()` rules and
+ * restyle the whole page before the next measurement: on a dashboard a
+ * cross-widget filter step paid about half a second for it. Inside a shadow
+ * root the same clone restyles only that root. svg.js re-adds the SVG to the
+ * body only when it has no parent, so it keeps using it where it was moved.
+ * Runs once per page; later calls do nothing.
+ *
+ * @param {Document} doc The document.
+ * @return {void}
+ */
+export function keepSvgMeasurerInShadow(doc = (typeof document === 'undefined' ? null : document)) {
+	if (measurerRoot || !doc?.body || typeof MutationObserver === 'undefined') {
+		return
+	}
+	const host = doc.createElement('div')
+	if (typeof host.attachShadow !== 'function') {
+		return
+	}
+	host.setAttribute('data-cn-chart-measurer', '')
+	host.setAttribute('aria-hidden', 'true')
+	host.style.cssText = 'position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none'
+	doc.body.appendChild(host)
+	measurerRoot = host.attachShadow({ mode: 'open' })
+	const adopt = (node) => {
+		if (isSvgMeasurer(node)) {
+			measurerRoot.appendChild(node)
+		}
+	}
+	Array.from(doc.body.children).forEach(adopt)
+	new MutationObserver((records) => {
+		for (const record of records) {
+			record.addedNodes.forEach(adopt)
+		}
+	}).observe(doc.body, { childList: true })
+}
