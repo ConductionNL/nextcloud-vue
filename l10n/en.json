@@ -2910,7 +2910,18 @@
     "Slate": "Slate",
     "Number per status": "Number per status",
     "Overdue since {date}": "Overdue since {date}",
-    "Due {date}": "Due {date}"
+    "Due {date}": "Due {date}",
+    "Tile colour": "Tile colour",
+    "Eight colours from the theme; the white icon keeps enough contrast on each colour.": "Eight colours from the theme; the white icon keeps enough contrast on each colour.",
+    "Pin this tile": "Pin this tile",
+    "{app}, outage": "{app}, outage",
+    "{app}, pinned": "{app}, pinned",
+    "Heading above a group of tiles": "Heading above a group of tiles",
+    "Primary": "Primary",
+    "Primary deep": "Primary deep",
+    "Accent": "Accent",
+    "Accent deep": "Accent deep",
+    "Ink": "Ink"
   },
   "plurals": {
     "{count} member": [

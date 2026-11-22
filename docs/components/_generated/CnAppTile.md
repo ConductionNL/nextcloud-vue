@@ -8,14 +8,16 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                         |
-| -------- | -------- | -------- | ------- | ------------------------------------------------------------------- |
-| `href`   | `string` | ✓        | —       | The app's address.                                                  |
-| `label`  | `string` | ✓        | —       | The app's name: the accessible name and the tooltip.                |
-| `icon`   | `string` |          | `''`    | The app's icon URL, an SVG; empty draws a generic grid glyph.       |
-| `appId`  | `string` |          | `''`    | The app id, which picks the default colour.                         |
-| `colour` | `string` |          | `''`    | A key of the app tile palette; empty uses the app's default colour. |
-| `count`  | `number` |          | `null`  | New items in the app; 0 or null shows no bubble.                    |
+| Name     | Type      | Required | Default | Description                                                         |
+| -------- | --------- | -------- | ------- | ------------------------------------------------------------------- |
+| `href`   | `string`  | ✓        | —       | The app's address.                                                  |
+| `label`  | `string`  | ✓        | —       | The app's name: the accessible name and the tooltip.                |
+| `icon`   | `string`  |          | `''`    | The app's icon URL, an SVG; empty draws a generic grid glyph.       |
+| `appId`  | `string`  |          | `''`    | The app id, which picks the default colour.                         |
+| `colour` | `string`  |          | `''`    | A key of the app tile palette; empty uses the app's default colour. |
+| `count`  | `number`  |          | `null`  | New items in the app; 0 or null shows no pill.                      |
+| `pinned` | `boolean` |          | `false` | Whether the tile is pinned, drawn as a pin top left.                |
+| `down`   | `boolean` |          | `false` | Whether the app is down, drawn as a red dot in place of the count.  |
 
 ### Events
 

@@ -14,24 +14,40 @@
 			:loading="loading"
 			data-testid="cn-app-tile-form-app"
 			@update:modelValue="updateField('appId', $event ? $event.id : '')" />
-		<fieldset class="cn-app-tile-widget-form__colours">
-			<legend>{{ t('nextcloud-vue', 'Colour') }}</legend>
-			<label
-				v-for="option in colours"
-				:key="option.key"
-				class="cn-app-tile-widget-form__swatch"
-				:style="{ '--cn-app-tile-swatch': option.value }"
-				:title="option.label">
-				<input
-					type="radio"
-					name="cn-app-tile-colour"
-					:value="option.key"
-					:checked="effectiveColour === option.key"
-					:aria-label="option.label"
-					:data-testid="`cn-app-tile-form-colour-${option.key}`"
-					@change="updateField('colour', option.key)">
-			</label>
+		<fieldset class="cn-app-tile-widget-form__colours" :aria-describedby="`${domId}-colour-hint`">
+			<legend>{{ t('nextcloud-vue', 'Tile colour') }}</legend>
+			<div class="cn-app-tile-widget-form__swatches">
+				<label
+					v-for="option in colours"
+					:key="option.key"
+					class="cn-app-tile-widget-form__swatch"
+					:style="{ '--cn-app-tile-swatch': option.value }"
+					:title="option.label">
+					<input
+						type="radio"
+						:name="`${domId}-colour`"
+						:value="option.key"
+						:checked="effectiveColour === option.key"
+						:aria-label="option.label"
+						:data-testid="`cn-app-tile-form-colour-${option.key}`"
+						@change="updateField('colour', option.key)">
+					<span
+						v-if="selectedApp && selectedApp.icon"
+						class="cn-app-tile-widget-form__swatch-icon"
+						:style="{ '--cn-app-tile-icon': `url(&quot;${selectedApp.icon}&quot;)` }"
+						aria-hidden="true" />
+				</label>
+			</div>
+			<p :id="`${domId}-colour-hint`" class="cn-app-tile-widget-form__hint">
+				{{ t('nextcloud-vue', 'Eight colours from the theme; the white icon keeps enough contrast on each colour.') }}
+			</p>
 		</fieldset>
+		<NcCheckboxRadioSwitch
+			:modelValue="pinned"
+			type="switch"
+			@update:modelValue="updateField('pinned', $event)">
+			{{ t('nextcloud-vue', 'Pin this tile') }}
+		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:modelValue="showCount"
 			type="switch"
@@ -48,10 +64,13 @@ import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { APP_TILE_COLOURS, appTileColourValue, defaultAppTileColour } from '../../utils/appTilePalette.js'
 import { navigationApps } from '../../utils/nextcloudApps.js'
 
+let domIdCounter = 0
+
 /**
  * CnAppTileWidgetForm: the `CnAddWidgetModal` sub-form for an `app-tile`
  * placement: which app of the reader's navigation it opens, its colour from
- * the app tile palette, and whether it shows the number of new items.
+ * the eight theme colours (each swatch previews the white icon), whether it
+ * is pinned and whether it shows the number of new items.
  *
  * @spec openspec/changes/app-tile/specs/app-tile/spec.md
  */
@@ -98,7 +117,9 @@ export default {
 			appId: String(initial.appId || ''),
 			colour: String(initial.colour || ''),
 			showCount: initial.showCount !== false,
+			pinned: initial.pinned === true,
 			rest: initial,
+			domId: `cn-app-tile-form-${++domIdCounter}`,
 			apps: [],
 			loading: true,
 		}
@@ -131,6 +152,7 @@ export default {
 				appId: this.appId,
 				colour: this.colour,
 				showCount: this.showCount,
+				pinned: this.pinned,
 			}
 		},
 	},
@@ -149,7 +171,7 @@ export default {
 		/**
 		 * Set a field and notify the parent via `update:content`.
 		 *
-		 * @param {string} field One of: appId, colour, showCount.
+		 * @param {string} field One of: appId, colour, showCount, pinned.
 		 * @param {string|boolean} value The new value.
 		 * @return {void}
 		 */
@@ -178,12 +200,21 @@ export default {
 }
 
 .cn-app-tile-widget-form__colours {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
 	margin: 0;
 	padding: 0;
 	border: 0;
+}
+
+.cn-app-tile-widget-form__swatches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-app-tile-widget-form__hint {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
 }
 
 .cn-app-tile-widget-form__colours legend {
@@ -191,20 +222,34 @@ export default {
 }
 
 .cn-app-tile-widget-form__swatch {
+	position: relative;
 	display: inline-flex;
-	width: 32px;
-	height: 32px;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
 	border-radius: var(--border-radius, 8px);
 	background-color: var(--cn-app-tile-swatch);
 	cursor: pointer;
 }
 
 .cn-app-tile-widget-form__swatch input {
+	position: absolute;
+	inset: 0;
 	width: 100%;
 	height: 100%;
 	margin: 0;
 	opacity: 0;
 	cursor: pointer;
+}
+
+.cn-app-tile-widget-form__swatch-icon {
+	width: 45%;
+	height: 45%;
+	background-color: #fff;
+	mask: var(--cn-app-tile-icon) center / contain no-repeat;
+	-webkit-mask: var(--cn-app-tile-icon) center / contain no-repeat;
+	pointer-events: none;
 }
 
 .cn-app-tile-widget-form__swatch:has(input:checked) {

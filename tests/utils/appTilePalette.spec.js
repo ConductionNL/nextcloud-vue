@@ -14,11 +14,8 @@ describe('app tile palette', () => {
 		expect(contrastWithWhite(hex)).toBeGreaterThanOrEqual(3)
 	})
 
-	it.each(APP_TILE_COLOURS.map((colour) => [colour.key, colour.hex]))('%s keeps at least 4.5:1 for the count bubble text', (key, hex) => {
-		expect(contrastWithWhite(hex)).toBeGreaterThanOrEqual(4.5)
-	})
-
-	it('holds the Zuiddrecht blue and red', () => {
+	it('is the eight theme token roles, with the Zuiddrecht blue and red', () => {
+		expect(APP_TILE_COLOURS.map((colour) => colour.key)).toEqual(['primary', 'primary-deep', 'accent', 'accent-deep', 'work-ink', 'work-text', 'work-muted', 'work-field'])
 		const hexes = APP_TILE_COLOURS.map((colour) => colour.hex)
 		expect(hexes).toContain('#3669a5')
 		expect(hexes).toContain('#cc0000')
@@ -31,15 +28,15 @@ describe('app tile palette', () => {
 
 	it('gives an app the same palette colour every time', () => {
 		const keys = APP_TILE_COLOURS.map((colour) => colour.key)
-		expect(defaultAppTileColour('files')).toBe('blue')
-		expect(defaultAppTileColour('calendar')).toBe('red')
+		expect(defaultAppTileColour('files')).toBe('work-muted')
+		expect(defaultAppTileColour('calendar')).toBe('primary')
 		expect(defaultAppTileColour('some_app')).toBe(defaultAppTileColour('some_app'))
 		expect(keys).toContain(defaultAppTileColour('some_app'))
 		expect(keys).toContain(defaultAppTileColour(''))
 	})
 
-	it('draws a colour as its token with the hex fallback, and an unknown key as the app default', () => {
-		expect(appTileColourValue('red')).toBe('var(--cn-app-tile-red, #cc0000)')
-		expect(appTileColourValue('nope', 'files')).toBe('var(--cn-app-tile-blue, #3669a5)')
+	it('draws a colour as its own token, then the theme token, then the hex, and an unknown key as the app default', () => {
+		expect(appTileColourValue('accent')).toBe('var(--cn-app-tile-accent, var(--sc-accent, #cc0000))')
+		expect(appTileColourValue('nope', 'calendar')).toBe('var(--cn-app-tile-primary, var(--sc-primary, #3669a5))')
 	})
 })

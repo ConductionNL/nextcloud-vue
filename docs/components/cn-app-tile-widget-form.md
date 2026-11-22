@@ -1,6 +1,6 @@
 # CnAppTileWidgetForm
 
-The `CnAddWidgetModal` sub-form of an `app-tile` placement: the app of the reader's navigation it opens, its colour from the app tile palette, and whether it shows the number of new items. The form is invalid without an app.
+The `CnAddWidgetModal` sub-form of an `app-tile` placement: the app of the reader's navigation it opens, its colour from the eight theme colours (each swatch previews the white icon), whether it is pinned and whether it shows the number of new items. The form is invalid without an app.
 
 ## Props
 
@@ -13,4 +13,4 @@ The `CnAddWidgetModal` sub-form of an `app-tile` placement: the app of the reade
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `update:content` | `object` | The content `{ appId, colour, showCount }` after every change. |
+| `update:content` | `object` | The content `{ appId, colour, showCount, pinned }` after every change. |

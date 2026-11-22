@@ -21,8 +21,19 @@
 			v-else
 			class="cn-app-tile__fallback"
 			aria-hidden="true" />
+		<Pin
+			v-if="pinned"
+			class="cn-app-tile__pin"
+			:size="16"
+			aria-hidden="true"
+			data-testid="cn-app-tile-pin" />
 		<span
-			v-if="shownCount !== ''"
+			v-if="down"
+			class="cn-app-tile__outage"
+			aria-hidden="true"
+			data-testid="cn-app-tile-outage" />
+		<span
+			v-else-if="shownCount !== ''"
 			class="cn-app-tile__count"
 			aria-hidden="true"
 			data-testid="cn-app-tile-count">{{ shownCount }}</span>
@@ -30,15 +41,17 @@
 </template>
 
 <script>
-import { translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import Pin from 'vue-material-design-icons/Pin.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import { appTileColourValue } from '../../utils/appTilePalette.js'
 
 /**
  * CnAppTile: one app as a square, solid-coloured link with the app's icon
  * large and white in the middle, and no visible text. The app's name is the
- * link's accessible name and its tooltip. An optional count (new items in the
- * app) shows as a small bubble and is part of the accessible name.
+ * link's accessible name and its tooltip. Optional overlays: a count of new
+ * items as a white pill (top right), a pin (top left) and a red outage dot
+ * (top right, in place of the count). Each is part of the accessible name.
  *
  * The icon is the app's own SVG used as a mask over white, so any
  * navigation icon draws as a crisp white glyph at any size.
@@ -48,7 +61,7 @@ import { appTileColourValue } from '../../utils/appTilePalette.js'
 export default {
 	name: 'CnAppTile',
 
-	components: { ViewGridOutline },
+	components: { Pin, ViewGridOutline },
 
 	props: {
 		/** The app's address. */
@@ -81,10 +94,22 @@ export default {
 			default: '',
 		},
 
-		/** New items in the app; 0 or null shows no bubble. */
+		/** New items in the app; 0 or null shows no pill. */
 		count: {
 			type: Number,
 			default: null,
+		},
+
+		/** Whether the tile is pinned, drawn as a pin top left. */
+		pinned: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Whether the app is down, drawn as a red dot in place of the count. */
+		down: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -112,12 +137,15 @@ export default {
 			return this.count > 99 ? '99+' : String(this.count)
 		},
 
-		/** @return {string} The name, with the count when there is one. */
+		/** @return {string} The name, with the outage, the count and the pin when there are any. */
 		accessibleName() {
-			if (this.shownCount === '') {
-				return this.label
+			let name = this.label
+			if (this.down) {
+				name = t('nextcloud-vue', '{app}, outage', { app: name })
+			} else if (this.shownCount !== '') {
+				name = n('nextcloud-vue', '{app}, %n new item', '{app}, %n new items', this.count, { app: name })
 			}
-			return n('nextcloud-vue', '{app}, %n new item', '{app}, %n new items', this.count, { app: this.label })
+			return this.pinned ? t('nextcloud-vue', '{app}, pinned', { app: name }) : name
 		},
 	},
 }
@@ -180,11 +208,29 @@ export default {
 	padding: 0 0.4em;
 	border-radius: 999px;
 	background: #fff;
-	color: var(--cn-app-tile-background);
+	color: #1b1c1d;
 	font-size: max(12px, 9cqi);
 	font-weight: 700;
 	line-height: 1.5em;
 	text-align: center;
+}
+
+.cn-app-tile__pin {
+	position: absolute;
+	top: 6%;
+	inset-inline-start: 6%;
+	display: flex;
+}
+
+.cn-app-tile__outage {
+	position: absolute;
+	top: 7%;
+	inset-inline-end: 7%;
+	width: max(10px, 9cqi);
+	height: max(10px, 9cqi);
+	border: 2px solid #fff;
+	border-radius: 50%;
+	background: var(--color-error, #d91f11);
 }
 
 @media (prefers-reduced-motion: reduce) {

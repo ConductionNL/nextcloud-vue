@@ -6,10 +6,12 @@
 /**
  * The colours an app tile can take, and the colour an app gets by default.
  *
- * Each colour is a CSS custom property with a hex fallback, so a theme can
- * redefine `--cn-app-tile-<key>` and the tile follows. The fallbacks follow
- * the Zuiddrecht palette (blue #3669A5, red #CC0000). Every fallback keeps a
- * contrast of at least 3:1 against the white icon (WCAG 1.4.11).
+ * The colours are the eight theme token roles of the design system: primary,
+ * primary-deep, accent, accent-deep, work-ink, work-text, work-muted and
+ * work-field. A tile draws `--cn-app-tile-<key>`, then the theme's
+ * `--sc-<key>`, then the Zuiddrecht hex, so it follows the theme. Every
+ * fallback keeps a contrast of at least 3:1 against the white icon
+ * (WCAG 1.4.11).
  *
  * @module utils/appTilePalette
  */
@@ -20,14 +22,14 @@
  * @type {Array<{key: string, label: string, hex: string}>}
  */
 export const APP_TILE_COLOURS = [
-	{ key: 'blue', label: 'Blue', hex: '#3669a5' },
-	{ key: 'red', label: 'Red', hex: '#cc0000' },
-	{ key: 'green', label: 'Green', hex: '#2f6b4a' },
-	{ key: 'navy', label: 'Navy', hex: '#234a78' },
-	{ key: 'purple', label: 'Purple', hex: '#6b3fa0' },
-	{ key: 'teal', label: 'Teal', hex: '#00747a' },
-	{ key: 'orange', label: 'Orange', hex: '#b54708' },
-	{ key: 'slate', label: 'Slate', hex: '#4a5566' },
+	{ key: 'primary', label: 'Primary', hex: '#3669a5' },
+	{ key: 'primary-deep', label: 'Primary deep', hex: '#234a78' },
+	{ key: 'accent', label: 'Accent', hex: '#cc0000' },
+	{ key: 'accent-deep', label: 'Accent deep', hex: '#a30000' },
+	{ key: 'work-ink', label: 'Ink', hex: '#1b1c1d' },
+	{ key: 'work-text', label: 'Text', hex: '#3d4047' },
+	{ key: 'work-muted', label: 'Muted', hex: '#5e6168' },
+	{ key: 'work-field', label: 'Field', hex: '#828a95' },
 ]
 
 /**
@@ -37,23 +39,24 @@ export const APP_TILE_COLOURS = [
  * @type {Record<string, string>}
  */
 const KNOWN_APP_COLOURS = {
-	files: 'blue',
-	mail: 'navy',
-	calendar: 'red',
-	spreed: 'teal',
-	contacts: 'orange',
-	deck: 'purple',
-	tasks: 'green',
-	notes: 'orange',
-	photos: 'purple',
-	activity: 'slate',
-	forms: 'green',
-	collectives: 'teal',
-	tables: 'navy',
-	richdocuments: 'blue',
-	onlyoffice: 'red',
-	integration_openproject: 'teal',
-	xwiki: 'navy',
+	files: 'work-muted',
+	mail: 'primary-deep',
+	calendar: 'primary',
+	spreed: 'work-ink',
+	contacts: 'accent-deep',
+	deck: 'work-text',
+	tasks: 'primary',
+	notes: 'work-text',
+	photos: 'accent',
+	activity: 'work-field',
+	forms: 'primary-deep',
+	collectives: 'work-text',
+	tables: 'primary-deep',
+	richdocuments: 'primary-deep',
+	onlyoffice: 'accent',
+	dossiq: 'primary',
+	integration_openproject: 'work-ink',
+	xwiki: 'primary-deep',
 }
 
 /**
@@ -96,7 +99,7 @@ export function defaultAppTileColour(appId) {
  */
 export function appTileColourValue(key, appId = '') {
 	const colour = appTileColour(key) || appTileColour(defaultAppTileColour(appId))
-	return `var(--cn-app-tile-${colour.key}, ${colour.hex})`
+	return `var(--cn-app-tile-${colour.key}, var(--sc-${colour.key}, ${colour.hex}))`
 }
 
 /**
