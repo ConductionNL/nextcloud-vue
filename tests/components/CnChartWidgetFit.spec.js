@@ -117,7 +117,8 @@ describe('CnChartWidget — container fitting', () => {
 		const wrapper = mountChart({ ...barProps, height: '100%' })
 		const canvas = wrapper.find('.cn-chart-widget__canvas')
 		expect(canvas.exists()).toBe(true)
-		expect(canvas.find('.vue-apexcharts-stub').exists()).toBe(true)
+		// The chart is drawn inside the box's shadow root.
+		expect(canvas.element.shadowRoot.querySelector('.cn-chart-widget__chart .vue-apexcharts-stub')).not.toBeNull()
 	})
 })
 

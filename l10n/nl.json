@@ -1,5 +1,9 @@
 {
   "translations": {
+    "Find everyone tagged {tag}": "Vind iedereen met de tag {tag}",
+    "No matching users.": "Geen passende gebruikers.",
+    "Search by name, email or expertise…": "Zoek op naam, e-mail of expertise…",
+    "Unknown sort key \"{key}\". Display name is used instead.": "Onbekende sorteersleutel \"{key}\". Er wordt op weergavenaam gesorteerd.",
     "Search the knowledge base": "Zoek in de kennisbank",
     "Searching…": "Zoeken…",
     "Knowledge base unavailable": "Kennisbank niet beschikbaar",
