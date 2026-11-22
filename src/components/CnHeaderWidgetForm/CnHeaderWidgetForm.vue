@@ -142,10 +142,21 @@
 			:clearable="false"
 			@update:modelValue="updateField('verticalAlign', $event)" />
 
-		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
-		     no longer changes anything — resize the widget on the grid instead.
-		     (The `height` field is kept in the saved content for back-compat
-		     but is no longer surfaced as a control.) -->
+		<!-- The banner fills its grid cell, so the preset only sets the
+		     starting height of a new header; afterwards it is resized on the
+		     grid, and the control is not offered when editing. -->
+		<NcSelect
+			v-if="!editingWidget"
+			:modelValue="height"
+			:options="heightOptions"
+			:inputLabel="t('nextcloud-vue', 'Height')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			@update:modelValue="updateField('height', $event)" />
+		<p v-if="!editingWidget" class="cn-header-widget-form__hint">
+			{{ t('nextcloud-vue', 'The starting height. Resize the header on the dashboard afterwards.') }}
+		</p>
 
 		<fieldset class="cn-header-widget-form__fieldset">
 			<legend class="cn-header-widget-form__legend">
@@ -701,6 +712,12 @@ export default {
 
 .cn-header-widget-form__range {
 	width: 100%;
+}
+
+.cn-header-widget-form__hint {
+	margin: -4px 0 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-header-widget-form__fieldset {
