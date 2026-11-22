@@ -127,6 +127,10 @@ Fallback slot — shown when ApexCharts is not available:
 
 The `dataSource` OBJECT-form `aggregate` (Wave 3, #91) — `{ groupBy, metric?: 'count'|'sum', sumField?, topN?, otherBucket?, labelResolve?: { register?, schema, labelField?, colorField? } }` — groups the schema's objects via OpenRegister's `/grouped` facet (client-side collection fallback when unavailable), folds the post-`topN` remainder into a translated "Other" slice when `otherBucket: true`, and resolves reference keys to labels/colours through the shared object store (fkResolve pattern). A sibling `drilldown: { route, filterParam }` navigates on segment/bar click with the RAW category key in the query (`/`-prefixed routes are paths, others route names; the Other bucket never navigates).
 
+## Styling the chart
+
+ApexCharts is drawn inside the canvas box's shadow root (`.cn-chart-widget__canvas`). Every ApexCharts redraw measures each label it writes, and in the light DOM each of those measurements also re-checked the page's `:has()` rules, which made a filter step on a full board-look dashboard take seconds. Theme tokens, fonts and text colour still inherit into the chart. Page stylesheets do not reach ApexCharts' own markup (`.apexcharts-*`): style the chart through its props and `options`. A test that queries chart internals with `document.querySelector` reads them through `box.shadowRoot`. Playwright locators pierce the shadow root by themselves.
+
 ## Slots
 
 | Slot | Description |
