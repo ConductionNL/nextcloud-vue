@@ -3163,7 +3163,13 @@
     "Detected: PeerTube": "Herkend: PeerTube",
     "Detected: Nextcloud File": "Herkend: Nextcloud-bestand",
     "Video URL is required": "Video-URL is verplicht",
-    "Nextcloud file ID is required": "Nextcloud-bestands-id is verplicht"
+    "Nextcloud file ID is required": "Nextcloud-bestands-id is verplicht",
+    "Height": "Hoogte",
+    "Small (120px)": "Klein (120px)",
+    "Medium (200px)": "Middel (200px)",
+    "Large (320px)": "Groot (320px)",
+    "Extra large (480px)": "Extra groot (480px)",
+    "The starting height. Resize the header on the dashboard afterwards.": "De beginhoogte. Pas de grootte van de koptekst daarna aan op het dashboard."
   },
   "plurals": {
     "{count} member": [
