@@ -8,6 +8,7 @@
 		v-if="show"
 		size="normal"
 		:name="modalTitle"
+		:closeOnClickOutside="true"
 		@closing="onCancel">
 		<!-- Type selector: shown only in pure-create mode (no preselected
 		     type, no editing widget). -->

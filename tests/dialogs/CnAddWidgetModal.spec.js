@@ -358,6 +358,16 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.emitted('submit')).toBeFalsy()
 	})
 
+	it('a click on the backdrop closes the dialog: NcDialog is told to close on an outside click', () => {
+		const { CnAddWidgetModal } = loadModal({ label: {} })
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		const dialog = wrapper.findComponent({ name: 'NcDialog' })
+		expect(dialog.vm.$attrs.closeOnClickOutside).toBe(true)
+		dialog.vm.$emit('closing')
+		expect(wrapper.emitted('close')).toBeTruthy()
+		expect(wrapper.emitted('submit')).toBeFalsy()
+	})
+
 	it('Esc emits close and never submit', () => {
 		const { CnAddWidgetModal } = loadModal({ label: {} })
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
