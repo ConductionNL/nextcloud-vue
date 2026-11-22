@@ -217,3 +217,7 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 ### Without a navigation (`hideMenu`)
 
 `hideMenu` (default `false`) renders neither the default CnAppNav nor the `#menu` slot, so the content starts at the left edge.
+
+### On the page ground (`pageGround`)
+
+`pageGround` (default `false`) draws the content without its own surface: NcContent and NcAppContent paint no background, so the pages sit on the page background (Nextcloud's background, or the theme's page ground). For a dashboard app whose canvas is the page. Components inside the pages keep their own surfaces.

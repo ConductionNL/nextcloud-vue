@@ -62,7 +62,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--page-ground': pageGround }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -1352,6 +1352,20 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
 		 */
 		hideMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Draw the content area without its own surface, so the pages sit on
+		 * the page background (Nextcloud's background or the theme's page
+		 * ground) instead of the main-background panel. For a dashboard app
+		 * whose canvas is the page; widgets keep their own surfaces. Off by
+		 * default.
+		 *
+		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
+		 */
+		pageGround: {
 			type: Boolean,
 			default: false,
 		},
@@ -4656,6 +4670,16 @@ export default {
 </script>
 
 <style>
+/* pageGround: NcContent and NcAppContent paint no surface of their own, so the
+   page background shows through. The ids (NcContent's #content-vue,
+   NcAppContent's #app-content-vue) outrank the components' scoped rules. */
+#content-vue.cn-app-root--page-ground,
+.cn-app-root--page-ground #app-content-vue {
+	background-color: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
 /* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
 .cn-app-root--with-environment {
 	position: relative;
