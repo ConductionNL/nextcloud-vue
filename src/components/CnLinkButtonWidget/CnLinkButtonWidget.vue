@@ -106,12 +106,13 @@ const GAP_REM = Object.freeze({
  * CnLinkButtonWidget — renders a styled clickable tile (or a list of tiles)
  * that dispatches one of three action types per entry:
  *
- *   - `external` (list schema: `url`) → renders as an `<a target="_blank" rel="noopener
- *     noreferrer">` to the configured `url` (a button in edit mode).
- *   - `internal` (list schema: `action_id`) → emits an `internal-action`
- *     event with the action id so a
- *     host app can dispatch its own registered handler (the library ships no
- *     action registry). An empty/missing handler is a silent no-op.
+ *   - `external` (also spelled `url`) → renders as an `<a target="_blank"
+ *     rel="noopener noreferrer">` to the configured `url` (a button in edit
+ *     mode).
+ *   - `internal` (also spelled `action_id`) → emits an `internal-action`
+ *     event with the action id so a host app can dispatch its own registered
+ *     handler (the library ships no action registry). An empty/missing
+ *     handler is a silent no-op.
  *   - `createFile` → emits a `create-file` event with the extension token so
  *     a host app can run its file-creation flow.
  *
