@@ -2,8 +2,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * `pageGround` draws the content without its own surface, so the pages sit
- * on the page background. By default the content panel renders as before.
+ * `pageGround` paints the content area with the page ground instead of the
+ * main-background panel. By default the content panel renders as before.
  *
  * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
  */
@@ -44,10 +44,10 @@ describe('CnAppRoot — pageGround', () => {
 		expect(wrapper.find('[data-testid="cn-app-root"]').classes()).toContain('cn-app-root--page-ground')
 	})
 
-	it('makes NcContent and NcAppContent transparent under the class', () => {
+	it('paints NcAppContent with the page ground token under the class', () => {
 		const source = readFileSync(join(__dirname, '../../src/components/CnAppRoot/CnAppRoot.vue'), 'utf8')
-		const rule = source.match(/#content-vue\.cn-app-root--page-ground,\s*\.cn-app-root--page-ground #app-content-vue \{([^}]*)\}/)
+		const rule = source.match(/\.cn-app-root--page-ground #app-content-vue \{([^}]*)\}/)
 		expect(rule).not.toBeNull()
-		expect(rule[1]).toContain('background-color: transparent')
+		expect(rule[1]).toContain('var(--nldesign-component-content-surface-background-color, var(--color-background-hover))')
 	})
 })

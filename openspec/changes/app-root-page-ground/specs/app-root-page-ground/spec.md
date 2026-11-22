@@ -16,10 +16,10 @@ panel, without app-side CSS overrides.
 ### Requirement: An app root can draw its content on the page ground
 
 CnAppRoot SHALL take a `pageGround` prop (default `false`). When true, the
-root's NcContent carries the class `cn-app-root--page-ground`, and neither
-NcContent nor NcAppContent paints a background or a backdrop filter, so the
-page background (Nextcloud's, or the theme's page ground) shows behind the
-pages. Components inside the pages keep their own surfaces. When false, the
+root's NcContent carries the class `cn-app-root--page-ground`, and NcAppContent
+paints the page ground: `--nldesign-component-content-surface-background-color`,
+falling back to Nextcloud's `--color-background-hover`, the same ground the
+board look uses for the page (`--cn-board-sunken-ground`). No literal colour. Components inside the pages keep their own surfaces. When false, the
 content panel renders exactly as before.
 
 #### Scenario: Default
@@ -33,4 +33,4 @@ content panel renders exactly as before.
 - **GIVEN** a root with `pageGround`
 - **WHEN** the root renders its shell
 - **THEN** NcContent carries `cn-app-root--page-ground`
-- **AND** the stylesheet makes `#content-vue` and `#app-content-vue` transparent under that class
+- **AND** the stylesheet paints `#app-content-vue` with the page ground token under that class

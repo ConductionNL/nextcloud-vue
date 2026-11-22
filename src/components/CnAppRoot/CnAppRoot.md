@@ -220,4 +220,4 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 
 ### On the page ground (`pageGround`)
 
-`pageGround` (default `false`) draws the content without its own surface: NcContent and NcAppContent paint no background, so the pages sit on the page background (Nextcloud's background, or the theme's page ground). For a dashboard app whose canvas is the page. Components inside the pages keep their own surfaces.
+`pageGround` (default `false`) paints the content area with the page ground (`--nldesign-component-content-surface-background-color`, falling back to `--color-background-hover`) instead of the main-background panel. For a dashboard app whose canvas is the page. Components inside the pages keep their own surfaces.

@@ -13,8 +13,8 @@ instead, the way Nextcloud's own Dashboard does, with each widget keeping its
 own surface. An app cannot change that without overriding library CSS.
 
 CnAppRoot gets an opt-in `pageGround` prop (default `false`). When true,
-NcContent and NcAppContent paint no surface, so the page background shows
-through: Nextcloud's background, or the page ground a theme such as thematiq
-sets. No colour is introduced; the default is today's behaviour.
+NcAppContent paints the page ground: the NL Design System content-surface
+token, falling back to Nextcloud's hover background, the same pair the board
+look uses. Tokens only; the default is today's behaviour.
 
 First consumer: launchpad (Ruben's review, 22 Nov 2026).

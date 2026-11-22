@@ -1357,11 +1357,10 @@ export default {
 		},
 
 		/**
-		 * Draw the content area without its own surface, so the pages sit on
-		 * the page background (Nextcloud's background or the theme's page
-		 * ground) instead of the main-background panel. For a dashboard app
-		 * whose canvas is the page; widgets keep their own surfaces. Off by
-		 * default.
+		 * Paint the content area with the page ground (the NL Design System
+		 * content-surface token, or Nextcloud's hover background) instead of
+		 * the main-background panel. For a dashboard app whose canvas is the
+		 * page; widgets keep their own surfaces. Off by default.
 		 *
 		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
 		 */
@@ -4670,14 +4669,12 @@ export default {
 </script>
 
 <style>
-/* pageGround: NcContent and NcAppContent paint no surface of their own, so the
-   page background shows through. The ids (NcContent's #content-vue,
-   NcAppContent's #app-content-vue) outrank the components' scoped rules. */
-#content-vue.cn-app-root--page-ground,
+/* pageGround: the content area paints the page ground, the token the boards
+   draw as the page background (NL Design System content surface, or
+   Nextcloud's hover background), instead of the main-background panel.
+   NcAppContent's id outranks its scoped rule. */
 .cn-app-root--page-ground #app-content-vue {
-	background-color: transparent;
-	backdrop-filter: none;
-	-webkit-backdrop-filter: none;
+	background-color: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
 }
 
 /* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
