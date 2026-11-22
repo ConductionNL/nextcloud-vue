@@ -1,6 +1,6 @@
 # CnPeopleWidget
 
-People directory widget (grid/card/list) with filters and birthdays; data via `dataSource`/`cnPeopleSource`.
+People directory widget (grid/card/list) with filters, showFields, profile-field tags, directory-wide search and a 60-second cache; data via `dataSource`/`cnPeopleSource` (`fetchPeople`, optional `searchPeople`).
 
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
@@ -12,5 +12,5 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 | Name         | Type     | Required | Default | Description                                                                                                                                                                                                      |
 | ------------ | -------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`    | `object` |          | `\{\}`  | Persisted widget content `{layout, filters, excludeDisabled, sortBy, columns}`.                                                                                                                                  |
-| `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnPeopleSource` injection. Must expose `fetchPeople(args) =&gt; Promise&lt;{users, total, hasMore}&gt;`. When `null` the injection (then the empty state) is used. |
+| `content`    | `object` |          | `\{\}`  | Persisted widget content `{layout, filters, excludeDisabled, showBirthdays, sortBy, columns, showFields}`.                                                                                                                                  |
+| `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnPeopleSource` injection. Must expose `fetchPeople(args)` and may expose `searchPeople(args)`. When `null` the injection (then the empty state) is used. |
