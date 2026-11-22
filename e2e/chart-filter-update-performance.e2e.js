@@ -94,8 +94,13 @@ async function open(page, query) {
  */
 async function step(page, index) {
 	return page.evaluate((i) => new Promise((resolve) => {
-		const root = document.querySelector('[data-testid="chart-filter-update"]')
-		const b = document.querySelector('[data-testid="chart-filter-b"]')
+		// Each chart draws inside its canvas box's shadow root (or, without
+		// shadow DOM, in the box itself); observe and query there.
+		const chartRoot = (id) => {
+			const box = document.querySelector(`[data-testid="${id}"] .cn-chart-widget__canvas`)
+			return box.shadowRoot ?? box
+		}
+		const b = chartRoot('chart-filter-b')
 		const code = ['0300', '0307', '0314', '0321', '0328', '0335', '0342', '0349', '0356', '0363', '0370', '0377'][i % 12]
 		let labelsAt = null
 		let last = null
@@ -120,7 +125,9 @@ async function step(page, index) {
 				quietTimer = setTimeout(done, 1_000)
 			}
 		})
-		observer.observe(root, { subtree: true, childList: true, attributes: true, characterData: true })
+		for (const id of ['chart-filter-a', 'chart-filter-e', 'chart-filter-b']) {
+			observer.observe(chartRoot(id), { subtree: true, childList: true, attributes: true, characterData: true })
+		}
 		window.__chartFilter(i)
 	}), index)
 }

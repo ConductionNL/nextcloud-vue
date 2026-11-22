@@ -18,7 +18,8 @@ test('no chart canvas is a scroll region, and each drawn chart ends inside its b
 	await expect(canvases).toHaveCount(3, { timeout: 60_000 })
 	await page.locator('[data-testid="chart-box-fits"] .apexcharts-canvas svg').nth(2).waitFor({ state: 'visible', timeout: 60_000 })
 	const info = await canvases.evaluateAll((els) => els.map((el) => {
-		const svg = el.querySelector('.apexcharts-canvas svg')
+		// The chart is drawn inside the canvas box's shadow root.
+		const svg = (el.shadowRoot ?? el).querySelector('svg.apexcharts-svg')
 		const style = getComputedStyle(el)
 		return { oy: style.overflowY, ox: style.overflowX, gutter: el.offsetWidth - el.clientWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth), svgBottom: Math.round(svg.getBoundingClientRect().bottom), boxBottom: Math.round(el.getBoundingClientRect().bottom) }
 	}))
