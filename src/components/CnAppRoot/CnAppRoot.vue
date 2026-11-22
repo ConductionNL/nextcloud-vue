@@ -62,7 +62,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--page-ground': pageGround }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -1352,6 +1352,19 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
 		 */
 		hideMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Paint the content area with the page ground (the NL Design System
+		 * content-surface token, or Nextcloud's hover background) instead of
+		 * the main-background panel. For a dashboard app whose canvas is the
+		 * page; widgets keep their own surfaces. Off by default.
+		 *
+		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
+		 */
+		pageGround: {
 			type: Boolean,
 			default: false,
 		},
@@ -4656,6 +4669,14 @@ export default {
 </script>
 
 <style>
+/* pageGround: the content area paints the page ground, the token the boards
+   draw as the page background (NL Design System content surface, or
+   Nextcloud's hover background), instead of the main-background panel.
+   NcAppContent's id outranks its scoped rule. */
+.cn-app-root--page-ground #app-content-vue {
+	background-color: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
 /* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
 .cn-app-root--with-environment {
 	position: relative;
