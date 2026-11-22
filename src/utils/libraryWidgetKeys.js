@@ -96,6 +96,7 @@ export const BUILT_IN_WIDGET_KEYS = Object.freeze([
 export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'action-tiles',
 	'ai-chat',
+	'app-tile',
 	'app-tiles',
 	'attention-flag',
 	'audit-trail',

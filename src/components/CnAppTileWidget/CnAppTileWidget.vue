@@ -11,7 +11,9 @@
 			:icon="app.icon"
 			:appId="app.id"
 			:colour="content.colour || ''"
-			:count="count" />
+			:count="count"
+			:pinned="content.pinned === true"
+			:down="content.status === 'down'" />
 		<p
 			v-else-if="!loading"
 			class="cn-app-tile-widget__missing"
@@ -39,6 +41,9 @@ import { navigationApps, notificationCountsByApp } from '../../utils/nextcloudAp
  * - `colour`: a key of the app tile palette; empty uses the app's default.
  * - `showCount` (default true): show the reader's notifications for the app
  *   as a count.
+ * - `pinned`: draw a pin on the tile.
+ * - `status`: `"down"` draws the outage dot in place of the count; the host
+ *   sets it from its availability check.
  *
  * @spec openspec/changes/app-tile/specs/app-tile/spec.md
  */

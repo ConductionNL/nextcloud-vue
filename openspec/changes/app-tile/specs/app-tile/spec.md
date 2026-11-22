@@ -21,19 +21,26 @@ tooltip. A focused tile SHALL show a visible focus ring.
 #### Scenario: Files
 
 - **GIVEN** a tile for Files with no colour set
-- **THEN** the tile is a link to `/apps/files/` named "Files", in the blue of the palette, with the Files icon in white
+- **THEN** the tile is a link to `/apps/files/` named "Files", in work-muted, with the Files icon in white
 
 #### Scenario: Count
 
 - **GIVEN** a tile with a count of 3
-- **THEN** a bubble shows 3 and the link is named "Mail, 3 new items"
+- **THEN** a white pill top right shows 3 and the link is named "Mail, 3 new items"
 - **AND** a count above 99 shows as "99+"
+
+#### Scenario: Pin and outage
+
+- **GIVEN** a pinned tile for an app that is down
+- **THEN** a pin shows top left, a red dot shows top right in place of the count
+- **AND** the link is named "Raadsinformatie, outage, pinned"
 
 ### Requirement: Every palette colour keeps the white icon readable
 
-Every colour of the app tile palette SHALL have a contrast of at least 3:1 against white (WCAG 1.4.11). The
-palette SHALL hold the Zuiddrecht blue `#3669A5` and red `#CC0000`. Each colour SHALL be a `--cn-app-tile-<key>`
-token with its hex as the fallback, so a theme can change it.
+The palette SHALL be the eight theme token roles: primary, primary-deep, accent, accent-deep, work-ink, work-text,
+work-muted and work-field. Each colour SHALL draw `--cn-app-tile-<key>`, then the theme's `--sc-<key>`, then its
+Zuiddrecht hex (primary `#3669A5`, accent `#CC0000`). Every fallback SHALL have a contrast of at least 3:1 against
+white (WCAG 1.4.11).
 
 #### Scenario: Contrast
 
@@ -48,7 +55,7 @@ derived from the app id, so the same app gets the same colour on every dashboard
 #### Scenario: Default colour
 
 - **GIVEN** two dashboards with a Calendar tile and no colour set
-- **THEN** both tiles are red
+- **THEN** both tiles are primary
 
 ### Requirement: The app-tile widget shows one app of the reader's navigation
 
@@ -66,3 +73,13 @@ Notifications app the tile SHALL show no count.
 
 - **GIVEN** an `app-tile` for Mail and two Mail notifications for the reader
 - **THEN** the tile shows 2
+
+### Requirement: A label can head a group of tiles
+
+A `label` with `groupHeading: true` SHALL draw its text as a small uppercase heading (`h2`) on the page ground,
+without its style keys, so a group of app tiles ("Mijn apps") has a heading.
+
+#### Scenario: Mijn apps
+
+- **GIVEN** a label "Mijn apps" with `groupHeading: true` above six app tiles
+- **THEN** the dashboard shows the heading MIJN APPS above the tiles

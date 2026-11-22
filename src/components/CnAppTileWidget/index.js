@@ -17,6 +17,7 @@ registerDashboardWidget('app-tile', {
 		appId: '',
 		colour: '',
 		showCount: true,
+		pinned: false,
 	},
 	displayName: 'App tile',
 	icon: 'ApplicationOutline',

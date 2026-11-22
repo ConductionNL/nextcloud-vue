@@ -48,12 +48,12 @@ describe('CnAppTile', () => {
 		expect(link.attributes('title')).toBe('Bestanden')
 		expect(link.text()).toBe('')
 		expect(wrapper.get('[data-testid="cn-app-tile-icon"]').attributes('style')).toContain('/apps/files/img/app.svg')
-		expect(link.attributes('style')).toContain('var(--cn-app-tile-blue, #3669a5)')
+		expect(link.attributes('style')).toContain('var(--cn-app-tile-work-muted, var(--sc-work-muted, #5e6168))')
 	})
 
 	it('takes the chosen palette colour', () => {
-		const wrapper = mount(CnAppTile, { props: { href: '/x', label: 'X', appId: 'files', colour: 'red' } })
-		expect(wrapper.get('a').attributes('style')).toContain('var(--cn-app-tile-red, #cc0000)')
+		const wrapper = mount(CnAppTile, { props: { href: '/x', label: 'X', appId: 'files', colour: 'accent' } })
+		expect(wrapper.get('a').attributes('style')).toContain('var(--cn-app-tile-accent, var(--sc-accent, #cc0000))')
 	})
 
 	it('shows a count bubble and names the count, capped at 99+', async () => {
@@ -65,6 +65,16 @@ describe('CnAppTile', () => {
 		await wrapper.setProps({ count: 0 })
 		expect(wrapper.find('[data-testid="cn-app-tile-count"]').exists()).toBe(false)
 	})
+
+	it('draws a pin and an outage dot in place of the count, and names both', async () => {
+		const wrapper = mount(CnAppTile, { props: { href: '/x', label: 'Raadsinformatie', count: 3, pinned: true, down: true }, global: { stubs: { Pin: true } } })
+		expect(wrapper.find('[data-testid="cn-app-tile-pin"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-app-tile-outage"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-app-tile-count"]').exists()).toBe(false)
+		expect(wrapper.get('a').attributes('aria-label')).toBe('Raadsinformatie, outage, pinned')
+		await wrapper.setProps({ down: false })
+		expect(wrapper.get('a').attributes('aria-label')).toBe('Mail, 3 new items, pinned'.replace('Mail', 'Raadsinformatie'))
+	})
 })
 
 describe('CnAppTileWidget', () => {
@@ -72,16 +82,22 @@ describe('CnAppTileWidget', () => {
 		const entry = getWidgetTypeEntry('app-tile')
 		expect(entry.renderer).toBe(CnAppTileWidget)
 		expect(entry.form).toBe(CnAppTileWidgetForm)
-		expect(entry.defaultContent).toEqual({ appId: '', colour: '', showCount: true })
+		expect(entry.defaultContent).toEqual({ appId: '', colour: '', showCount: true, pinned: false })
 	})
 
 	it('draws the configured app from the navigation with its notification count', async () => {
-		const wrapper = mount(CnAppTileWidget, { props: { content: { appId: 'mail', colour: 'teal' } } })
+		const wrapper = mount(CnAppTileWidget, { props: { content: { appId: 'mail', colour: 'work-ink' } } })
 		await flushPromises()
 		const link = wrapper.get('a')
 		expect(link.attributes('href')).toBe('/apps/mail/')
 		expect(link.attributes('aria-label')).toBe('Mail, 2 new items')
-		expect(link.attributes('style')).toContain('--cn-app-tile-teal')
+		expect(link.attributes('style')).toContain('--cn-app-tile-work-ink')
+	})
+
+	it('passes the pin and an outage status to the tile', async () => {
+		const wrapper = mount(CnAppTileWidget, { props: { content: { appId: 'mail', pinned: true, status: 'down' } } })
+		await flushPromises()
+		expect(wrapper.get('a').attributes('aria-label')).toBe('Mail, outage, pinned')
 	})
 
 	it('leaves the count out when showCount is off', async () => {
@@ -114,15 +130,17 @@ describe('CnAppTileWidgetForm', () => {
 		await flushPromises()
 		expect(wrapper.vm.validate()).toEqual(['Choose the app this tile opens'])
 		wrapper.vm.updateField('appId', 'files')
-		await wrapper.get('[data-testid="cn-app-tile-form-colour-red"]').trigger('change')
+		await wrapper.get('[data-testid="cn-app-tile-form-colour-accent"]').trigger('change')
+		wrapper.vm.updateField('pinned', true)
 		const emitted = wrapper.emitted('update:content')
-		expect(emitted[emitted.length - 1][0]).toEqual({ appId: 'files', colour: 'red', showCount: true })
+		expect(emitted[emitted.length - 1][0]).toEqual({ appId: 'files', colour: 'accent', showCount: true, pinned: true })
+		expect(wrapper.findAll('input[type="radio"]')).toHaveLength(8)
 		expect(wrapper.vm.validate()).toEqual([])
 	})
 
 	it('marks the app default colour when the tile names none', async () => {
 		const wrapper = mount(CnAppTileWidgetForm, { props: { value: { appId: 'calendar' } }, global: { stubs: { NcSelect: true, NcCheckboxRadioSwitch: true } } })
 		await flushPromises()
-		expect(wrapper.get('[data-testid="cn-app-tile-form-colour-red"]').element.checked).toBe(true)
+		expect(wrapper.get('[data-testid="cn-app-tile-form-colour-primary"]').element.checked).toBe(true)
 	})
 })

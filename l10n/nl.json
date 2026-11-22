@@ -3188,7 +3188,18 @@
     "Orange": "Oranje",
     "Slate": "Leigrijs",
     "Number per status": "Aantal per status",
-    "Overdue since {date}": "Te laat sinds {date}"
+    "Overdue since {date}": "Te laat sinds {date}",
+    "Tile colour": "Kleur van de tegel",
+    "Eight colours from the theme; the white icon keeps enough contrast on each colour.": "Acht kleuren uit het thema; het witte pictogram houdt op elke kleur voldoende contrast.",
+    "Pin this tile": "Zet deze tegel vast",
+    "{app}, outage": "{app}, storing",
+    "{app}, pinned": "{app}, vastgezet",
+    "Heading above a group of tiles": "Kop boven een groep tegels",
+    "Primary": "Primair",
+    "Primary deep": "Primair donker",
+    "Accent": "Accent",
+    "Accent deep": "Accent donker",
+    "Ink": "Inkt"
   },
   "plurals": {
     "{count} member": [

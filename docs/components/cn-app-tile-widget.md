@@ -8,6 +8,8 @@ The `app-tile` dashboard widget type: one app of the reader's Nextcloud navigati
 |-----|---------|-------------|
 | `appId` | `''` | The app the tile opens. |
 | `colour` | `''` | A key of [`APP_TILE_COLOURS`](../utilities/app-tile-colours.md); empty uses the app's default. |
+| `pinned` | `false` | Draw a pin on the tile. |
+| `status` | | `"down"` draws the outage dot; the host sets it from its availability check. |
 | `showCount` | `true` | Show the reader's notifications for the app as a count ([`notificationCountsByApp`](../utilities/notification-counts-by-app.md)). |
 
 ## Props

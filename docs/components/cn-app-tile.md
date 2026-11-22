@@ -7,7 +7,7 @@ The icon is the app's own SVG used as a mask over white, so any navigation icon 
 ## Usage
 
 ```vue
-<CnAppTile href="/apps/mail/" label="Mail" icon="/apps/mail/img/mail.svg" app-id="mail" colour="navy" :count="3" />
+<CnAppTile href="/apps/mail/" label="Mail" icon="/apps/mail/img/mail.svg" app-id="mail" colour="primary-deep" :count="3" />
 ```
 
 ## Props
@@ -19,7 +19,9 @@ The icon is the app's own SVG used as a mask over white, so any navigation icon 
 | `icon` | `String` | `''` | The app's icon URL, an SVG. |
 | `appId` | `String` | `''` | The app id, which picks the default colour. |
 | `colour` | `String` | `''` | A key of [`APP_TILE_COLOURS`](../utilities/app-tile-colours.md); empty uses the app's default colour. |
-| `count` | `Number` | `null` | New items in the app. 0 or null shows no bubble; above 99 shows "99+". The count is part of the accessible name. |
+| `count` | `Number` | `null` | New items in the app, drawn as a white pill top right. 0 or null shows no pill; above 99 shows "99+". The count is part of the accessible name. |
+| `pinned` | `Boolean` | `false` | Draws a pin top left and adds "pinned" to the accessible name. |
+| `down` | `Boolean` | `false` | Draws a red outage dot top right in place of the count and adds "outage" to the accessible name. |
 
 ## Events
 
