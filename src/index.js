@@ -47,8 +47,11 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAppTile,
 	CnAppTilesWidget,
 	CnAppTilesWidgetForm,
+	CnAppTileWidget,
+	CnAppTileWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
 	CnAudioCapture,
@@ -370,6 +373,7 @@ export {
 	CnStatsPanel,
 	CnStatusBadge,
 	CnStatusExplainerWidget,
+	CnStatusList,
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStepper,
@@ -633,6 +637,8 @@ export {
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 export { encodeQr } from './utils/qr.js'
+export { APP_TILE_COLOURS, appTileColour, appTileColourValue, contrastWithWhite, defaultAppTileColour } from './utils/appTilePalette.js'
+export { navigationApps, notificationCountsByApp } from './utils/nextcloudApps.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
