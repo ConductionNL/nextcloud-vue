@@ -69,3 +69,15 @@ export function hostSelectionOptions(isPie) {
 	}
 	return options
 }
+
+/**
+ * The ApexCharts events that put the selection back after a draw, which
+ * replaces every mark.
+ *
+ * @param {() => void} mark Marks the selection.
+ * @return {{mounted: () => void, updated: () => void}} The events.
+ * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+ */
+export function redrawHooks(mark) {
+	return { mounted: mark, updated: mark }
+}

@@ -192,7 +192,7 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
-import { hostSelectionOptions, markSelectedMarks, selectedIndicesOf } from './chartSelection.js'
+import { hostSelectionOptions, markSelectedMarks, redrawHooks, selectedIndicesOf } from './chartSelection.js'
 import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
 /**
@@ -1937,6 +1937,12 @@ export default {
 			return [this.mergedOptions, this.plottedSeries]
 		},
 
+		/**
+		 * The ApexCharts options: the component's defaults deep-merged with `options`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -2028,9 +2034,7 @@ export default {
 						}
 					},
 
-					// Every draw replaces the marks, so the selection is put back after each.
-					mounted: this.markSelection,
-					updated: this.markSelection,
+					...redrawHooks(this.markSelection),
 				}
 				Object.assign(defaults, hostSelectionOptions(isPieType))
 			}
