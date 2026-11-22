@@ -32,16 +32,33 @@ function loadModal() {
 	return Modal
 }
 
+const NOTE_STUB = { props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' }
+
 describe('CnAddWidgetModal notices', () => {
 	it('shows each notice as a note card, warning by default', () => {
 		const Modal = loadModal()
 		const wrapper = mount(Modal, {
 			props: { show: true, notices: [{ text: 'This widget consumes wijkCode but no hierarchy on this dashboard publishes it' }, { text: 'Heads up', type: 'info' }, { text: 'Odd', type: 'shout' }] },
-			global: { stubs: { NcNoteCard: { props: ['type', 'text'], template: '<p class="note" :data-type="type">{{ text }}</p>' } } },
+			global: { stubs: { NcNoteCard: NOTE_STUB } },
 		})
 		const notes = wrapper.findAll('.note')
 		expect(notes.map((note) => note.attributes('data-type'))).toEqual(['warning', 'info', 'warning'])
 		expect(notes[0].text()).toContain('wijkCode')
+	})
+
+	it('gives a dismissible notice a Dismiss button that names it, and the others none', async () => {
+		const Modal = loadModal()
+		const wrapper = mount(Modal, {
+			props: { show: true, notices: [{ id: 'consumes-unknown-dimension:wijkCode', text: 'Off the bus', dismissible: true }, { text: 'Stays' }, { text: 'No id', dismissible: true }] },
+			global: { stubs: { NcNoteCard: NOTE_STUB } },
+		})
+		const buttons = wrapper.findAll('[data-testid="cn-add-widget-modal-notice-dismiss"]')
+		expect(buttons).toHaveLength(2)
+		expect(buttons[0].attributes('aria-label')).toBe('Dismiss')
+		await buttons[0].trigger('click')
+		await buttons[1].trigger('click')
+		expect(wrapper.emitted('dismiss-notice')).toEqual([['consumes-unknown-dimension:wijkCode'], [2]])
+		expect(wrapper.findAll('.note')[1].find('[data-testid="cn-add-widget-modal-notice-dismiss"]').exists()).toBe(false)
 	})
 
 	it('renders no notice area without notices', () => {
