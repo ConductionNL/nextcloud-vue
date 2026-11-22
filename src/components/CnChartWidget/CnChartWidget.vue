@@ -130,15 +130,18 @@
 				{{ hostTranslate(footnote) }}
 			</p>
 		</div>
-		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
-			<component
-				:is="chartComponent"
-				ref="chart"
-				:type="type"
-				:height="computedHeight"
-				:width="computedWidth"
-				:options="apexOptions"
-				:series="apexSeries" />
+		<div v-else-if="chartComponent" :ref="setCanvasBox" class="cn-chart-widget__canvas">
+			<!-- The chart is drawn inside the box's shadow root (see chartShadow.js). -->
+			<Teleport v-if="chartTarget" :to="chartTarget">
+				<component
+					:is="chartComponent"
+					ref="chart"
+					:type="type"
+					:height="computedHeight"
+					:width="computedWidth"
+					:options="apexOptions"
+					:series="apexSeries" />
+			</Teleport>
 		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
@@ -187,6 +190,7 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
+import { attachChartShadow, createChartContainer } from './chartShadow.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -1084,6 +1088,9 @@ export default {
 			// its watchers never fire; `updateChart` updates the live chart.
 			apexOptions: markRaw({}),
 			apexSeries: markRaw([]),
+			// The element ApexCharts is mounted in, moved into the canvas box's
+			// shadow root when the box enters the DOM.
+			chartTarget: null,
 		}
 	},
 
@@ -2094,6 +2101,8 @@ export default {
 	created() {
 		// markRaw: `data()` is deeply reactive and would proxy the component.
 		this.chartComponent = markRaw(VueApexCharts)
+		const container = createChartContainer()
+		this.chartTarget = container ? markRaw(container) : null
 		this.syncChartBinding()
 	},
 
@@ -2225,6 +2234,19 @@ export default {
 			this.refreshLocalSources()
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
+			}
+		},
+
+		/**
+		 * Move the chart's container into the canvas box's shadow root when the
+		 * box enters the DOM.
+		 *
+		 * @param {HTMLElement|null} el The canvas box, or null when it unmounts.
+		 * @return {void}
+		 */
+		setCanvasBox(el) {
+			if (el) {
+				attachChartShadow(el, this.chartTarget)
 			}
 		},
 
@@ -3120,20 +3142,6 @@ export default {
 	overflow: hidden;
 }
 
-/* apexcharts writes an inline `width` onto its own wrapper from its measured
-   minimum, which beats the container when the container is narrower. Cap the
-   painted box so the inline width cannot push past the widget's border. */
-.cn-chart-widget :deep(.apexcharts-canvas),
-.cn-chart-widget :deep(.apexcharts-canvas svg) {
-	max-width: 100%;
-}
-
-/* The SVG is a block: as an inline box it sits on a line and adds the line's
-   descender space under the chart. */
-.cn-chart-widget :deep(.apexcharts-canvas svg) {
-	display: block;
-}
-
 /* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
    would grow to its content, i.e. to the chart, and the percentage height would
    resolve against a box the chart itself defined. `overflow: hidden` keeps a
@@ -3412,113 +3420,6 @@ export default {
 	border-color: var(--color-primary-element, #0082c9);
 }
 
-/* ─── ApexCharts HTML chrome ───────────────────────────────────────────────
-   Everything apexcharts draws INSIDE the SVG takes its colour from
-   `mergedOptions` (foreColor, grid.borderColor, legend.labels.colors, axis
-   label styles), so it already follows the Nextcloud theme. Its HTML chrome —
-   the hover tooltip, the crosshair axis tooltips, the toolbar menu — does not:
-   apexcharts styles those from a stylesheet it injects itself at chart-create
-   time (`<style id="apexcharts-css">`) using hardcoded hex values. In dark mode
-   the hover tooltip stayed a white box while its text inherited the near-white
-   `--color-main-text` — white on white, unreadable.
-
-   `tooltip.theme` is not the fix: both apexcharts themes are hardcoded
-   palettes, neither of them Nextcloud's, and choosing between them would need
-   JS theme detection that a themed or nldesign install would still get wrong.
-   Restyling with tokens means ONE rule set that is correct in light, dark,
-   high-contrast and custom themes, because the tokens flip themselves. Both
-   theme classes are listed so an `options.tooltip.theme` override cannot drop
-   a consumer back onto a hardcoded palette.
-
-   The specificity is deliberate. apexcharts injects its stylesheet when the
-   first chart is created, so it lands AFTER the app's CSS and wins every tie —
-   each override below therefore carries one more class than the apexcharts rule
-   it replaces, and holds even without the scope attribute this block compiles
-   with. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-	box-shadow: 0 1px 5px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
-}
-
-/* The title row is the date/category header ("Aug 26"). Its own background is
-   what made it unreadable rather than merely off-theme. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title) {
-	background: var(--color-background-hover);
-	border-bottom: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Crosshair axis tooltips. apexcharts puts light hex values on the BASE class
-   here and only overrides them for its dark theme, so the base rule has to be
-   replaced too — not just the theme variants. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip),
-.cn-chart-widget :deep(.apexcharts-yaxistooltip) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Their pointer arrows are two stacked triangles: `::before` paints the border
-   edge, `::after` the fill. Both need the tokens the box above uses, or the
-   arrow keeps the old palette and reads as a stray light wedge. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::after,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::after {
-	border-bottom-color: var(--color-main-background);
-	border-top-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::before,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::before {
-	border-bottom-color: var(--color-border);
-	border-top-color: var(--color-border);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::after,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::after {
-	border-left-color: var(--color-main-background);
-	border-right-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::before,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::before {
-	border-left-color: var(--color-border);
-	border-right-color: var(--color-border);
-}
-
-/* Toolbar menu — only reachable with `toolbar: true`, but the same defect: a
-   hardcoded `#fff` panel under inherited near-white text. */
-.cn-chart-widget :deep(.apexcharts-menu) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-.cn-chart-widget :deep(.apexcharts-menu .apexcharts-menu-item:hover) {
-	background: var(--color-background-hover);
-}
-
-/* Toolbar icons: `#6e8192` at rest and `#333` on hover, i.e. the hover state
-   vanishes against a dark background. One selector per icon class, matching
-   apexcharts' own list, to clear its (0,3,1) hover rules. */
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon svg) {
-	fill: var(--color-text-maxcontrast);
-}
-
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon:hover svg) {
-	fill: var(--color-main-text);
-}
+/* ApexCharts' own markup is styled inside the chart's shadow root: see
+   chartShadow.js. */
 </style>
