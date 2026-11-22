@@ -2895,7 +2895,22 @@
     "Detected: PeerTube": "Detected: PeerTube",
     "Detected: Nextcloud File": "Detected: Nextcloud File",
     "Video URL is required": "Video URL is required",
-    "Nextcloud file ID is required": "Nextcloud file ID is required"
+    "Nextcloud file ID is required": "Nextcloud file ID is required",
+    "This app is not available to you": "This app is not available to you",
+    "Colour": "Colour",
+    "Show the number of new items": "Show the number of new items",
+    "Choose the app this tile opens": "Choose the app this tile opens",
+    "Blue": "Blue",
+    "Red": "Red",
+    "Green": "Green",
+    "Navy": "Navy",
+    "Purple": "Purple",
+    "Teal": "Teal",
+    "Orange": "Orange",
+    "Slate": "Slate",
+    "Number per status": "Number per status",
+    "Overdue since {date}": "Overdue since {date}",
+    "Due {date}": "Due {date}"
   },
   "plurals": {
     "{count} member": [
@@ -3144,6 +3159,10 @@
     "{count} file could not be uploaded": [
       "{count} file could not be uploaded",
       "{count} files could not be uploaded"
+    ],
+    "{app}, %n new item": [
+      "{app}, %n new item",
+      "{app}, %n new items"
     ]
   }
 }

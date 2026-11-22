@@ -3174,7 +3174,21 @@
     "Find everyone tagged {tag}": "Vind iedereen met de tag {tag}",
     "No matching users.": "Geen passende gebruikers.",
     "Search by name, email or expertise…": "Zoek op naam, e-mail of expertise…",
-    "Unknown sort key \"{key}\". Display name is used instead.": "Onbekende sorteersleutel \"{key}\". Er wordt op weergavenaam gesorteerd."
+    "Unknown sort key \"{key}\". Display name is used instead.": "Onbekende sorteersleutel \"{key}\". Er wordt op weergavenaam gesorteerd.",
+    "This app is not available to you": "Deze app is niet voor u beschikbaar",
+    "Colour": "Kleur",
+    "Show the number of new items": "Toon het aantal nieuwe items",
+    "Choose the app this tile opens": "Kies de app die deze tegel opent",
+    "Blue": "Blauw",
+    "Red": "Rood",
+    "Green": "Groen",
+    "Navy": "Donkerblauw",
+    "Purple": "Paars",
+    "Teal": "Blauwgroen",
+    "Orange": "Oranje",
+    "Slate": "Leigrijs",
+    "Number per status": "Aantal per status",
+    "Overdue since {date}": "Te laat sinds {date}"
   },
   "plurals": {
     "{count} member": [
@@ -3444,6 +3458,10 @@
     "{count} file could not be uploaded": [
       "{count} bestand kon niet worden geüpload",
       "{count} bestanden konden niet worden geüpload"
+    ],
+    "{app}, %n new item": [
+      "{app}, %n nieuw item",
+      "{app}, %n nieuwe items"
     ]
   }
 }
