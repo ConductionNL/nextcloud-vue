@@ -11,7 +11,7 @@
  * by a stylesheet apexcharts injects itself, with hardcoded hex values.
  *
  * The override lives in CSS, which jsdom does not apply, so these assertions
- * read the SFC's style block. That is the same shape as CnContextMenu's
+ * read the stylesheet the chart's shadow root carries (chartShadow.js). That is the same shape as CnContextMenu's
  * popper-scoping test, and it is what catches the two ways this regresses:
  * someone re-fixing it with a literal colour (breaks the other theme again),
  * and someone dropping the compound selector that keeps each override ahead of
@@ -20,12 +20,12 @@
 
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { CHART_SHADOW_CLASS, CHART_SHADOW_CSS } from '../../src/components/CnChartWidget/chartShadow.js'
 
 const SFC = readFileSync(join(__dirname, '../../src/components/CnChartWidget/CnChartWidget.vue'), 'utf8')
 
-/** The `<style>` block, comments stripped. */
-const styleBlock = SFC.slice(SFC.indexOf('<style'), SFC.lastIndexOf('</style>'))
-	.replace(/\/\*[\s\S]*?\*\//g, '')
+/** The shadow root's rules, comments stripped. */
+const styleBlock = CHART_SHADOW_CSS.replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** Selector → declaration-body pairs for every rule naming an apexcharts class. */
 const apexRules = styleBlock
@@ -94,12 +94,18 @@ describe('CnChartWidget — apexcharts chrome follows the Nextcloud theme', () =
 		}
 	})
 
-	it('reaches the chrome through :deep(), which is the only thing that can', () => {
-		// apexcharts builds the tooltip itself (`elWrap.appendChild`), so it
-		// carries no scope attribute — a plain scoped selector never matches it.
+	it('scopes every override to the chart container inside the shadow root', () => {
+		// Document rules do not reach into the chart's shadow root, so the
+		// overrides only apply from its own stylesheet, under its container.
 		for (const { selector } of apexRules) {
-			expect(selector).toContain(':deep(')
-			expect(selector).toContain('.cn-chart-widget')
+			for (const part of selector.split(',')) {
+				expect(part.trim().startsWith(`.${CHART_SHADOW_CLASS} `)).toBe(true)
+			}
 		}
+	})
+
+	it('keeps no apexcharts rule in the component stylesheet, where it could no longer match', () => {
+		const sfcStyle = SFC.slice(SFC.indexOf('<style'), SFC.lastIndexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '')
+		expect(sfcStyle).not.toContain('.apexcharts-')
 	})
 })
