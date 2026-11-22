@@ -71,7 +71,9 @@
 						:is="row.drill ? 'button' : 'div'"
 						:type="row.drill ? 'button' : null"
 						class="cn-chart-widget__bar-line"
-						:class="{ 'cn-chart-widget__bar-line--drill': row.drill }"
+						:class="{ 'cn-chart-widget__bar-line--drill': row.drill, 'cn-chart-widget__bar-line--selected': row.selected }"
+						:aria-pressed="row.drill ? String(row.selected) : null"
+						:data-selected="row.selected ? 'true' : null"
 						data-testid="cn-chart-widget-bar-row"
 						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
 						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
@@ -190,6 +192,7 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
+import { hostSelectionOptions, markSelectedMarks, redrawHooks, selectedIndicesOf } from './chartSelection.js'
 import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
 /**
@@ -473,6 +476,20 @@ export default {
 		selectable: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The raw keys of the categories to show as selected, such as the
+		 * filter a host made from an earlier `select`. A selected bar-list
+		 * row is ringed and pressed; a selected bar or slice is outlined.
+		 * Area and line charts show no selection.
+		 *
+		 * @type {Array<string|number>}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selected: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -1699,7 +1716,19 @@ export default {
 				share: max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0,
 				text: this.formatPlain(value),
 				drill: drill && this.drilldownKeys[index] !== undefined && this.drilldownKeys[index] !== OTHER_BUCKET_KEY,
+				selected: this.selectedIndices.includes(index),
 			}))
+		},
+
+		/**
+		 * The indices of the categories `selected` names, matched on their
+		 * raw keys.
+		 *
+		 * @return {number[]}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selectedIndices() {
+			return selectedIndicesOf(this.drilldownKeys, this.selected, OTHER_BUCKET_KEY)
 		},
 
 		/**
@@ -1908,6 +1937,12 @@ export default {
 			return [this.mergedOptions, this.plottedSeries]
 		},
 
+		/**
+		 * The ApexCharts options: the component's defaults deep-merged with `options`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -1998,7 +2033,10 @@ export default {
 							event.target.style.cursor = 'pointer'
 						}
 					},
+
+					...redrawHooks(this.markSelection),
 				}
+				Object.assign(defaults, hostSelectionOptions(isPieType))
 			}
 
 			// Add categories for cartesian charts
@@ -2077,6 +2115,8 @@ export default {
 	},
 
 	watch: {
+		selectedIndices: 'markSelection',
+
 		chartPayload() {
 			this.updateChart()
 		},
@@ -2956,6 +2996,17 @@ export default {
 		},
 
 		/**
+		 * Mark the drawn bars and slices of the `selected` categories with
+		 * `data-cn-selected`, which the chart's shadow rules outline.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		markSelection() {
+			markSelectedMarks(this.chartTarget, this.selectedIndices)
+		},
+
+		/**
 		 * ApexCharts `dataPointSelection` handler backing the declarative
 		 * `dataSource.drilldown` (Wave 3, #91): navigate to the configured
 		 * route with the clicked category's RAW key in the query
@@ -3200,6 +3251,15 @@ export default {
 .cn-chart-widget__bar-line--drill:hover .cn-chart-widget__bar-label,
 .cn-chart-widget__bar-line--drill:focus-visible .cn-chart-widget__bar-label {
 	text-decoration: underline;
+}
+
+.cn-chart-widget__bar-line--selected {
+	border-radius: var(--border-radius-small, 4px);
+	box-shadow: 0 0 0 2px var(--color-main-text);
+}
+
+.cn-chart-widget__bar-line--selected .cn-chart-widget__bar-label {
+	font-weight: 700;
 }
 
 .cn-chart-widget__bar-label {

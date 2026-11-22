@@ -99,6 +99,7 @@ Fallback slot — shown when ApexCharts is not available:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `selectable` | Boolean | `false` | A slice, bar or bar-list row click emits `select` `{ field, value, label, index }` with the grouped field and the category's raw key. |
+| `selected` | Array | `[]` | The raw keys of the categories to show as selected: a ringed, pressed bar-list row or an outlined bar or slice. |
 | `width` | Number\|String | `'100%'` | Chart width (fills container by default) |
 | `options` | Object | `{}` | Custom ApexCharts options deep-merged with the built-in defaults |
 | `colors` | Array | `[]` | Custom color palette (defaults to Nextcloud theme colors) |

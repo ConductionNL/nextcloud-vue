@@ -21,6 +21,9 @@
 /** The class of the element ApexCharts is mounted in, inside the shadow root. */
 export const CHART_SHADOW_CLASS = 'cn-chart-widget__chart'
 
+/** The ApexCharts marks a selection can outline: bars and pie or donut slices. */
+export const SELECTABLE_MARKS = '.apexcharts-bar-area, .apexcharts-pie-area'
+
 /**
  * The rules for ApexCharts' markup, scoped to {@link CHART_SHADOW_CLASS}.
  *
@@ -101,6 +104,20 @@ export const CHART_SHADOW_CSS = `
 .${CHART_SHADOW_CLASS} .apexcharts-yaxistooltip-right::before {
 	border-left-color: var(--color-border);
 	border-right-color: var(--color-border);
+}
+
+/* A bar or slice the host marks as selected (CnChartWidget \`selected\`):
+   an outline in the text colour, which keeps its contrast on every theme. */
+.${CHART_SHADOW_CLASS} [data-cn-selected] {
+	stroke: var(--color-main-text);
+	stroke-width: 3px;
+	stroke-linejoin: round;
+}
+
+@media (forced-colors: active) {
+	.${CHART_SHADOW_CLASS} [data-cn-selected] {
+		stroke: Highlight;
+	}
 }
 
 /* Toolbar menu (only with toolbar: true): a hardcoded #fff panel otherwise. */

@@ -176,6 +176,14 @@ With `selectable` a slice, bar or bar-list row click emits `select` with `{ fiel
 <CnChartWidget type="donut" selectable :dataSource="{ register: 'crm', schema: 'request', aggregate: { groupBy: 'status' } }" @select="({ field, value }) => bus.publish({ dimension: field, operator: 'eq', value })" />
 ```
 
+### Showing the selection (`selected`)
+
+`selected` takes the raw keys of the categories to show as picked, usually the filter a host made from an earlier `select`. A selected bar-list row gets a ring in the text colour, a bold label and `aria-pressed="true"`. A selected bar or slice gets an outline in the text colour, drawn by the chart's shadow-root rules, so it keeps its contrast in light, dark and high-contrast themes (`Highlight` under forced colours). The chart puts the outline back after every redraw. On a `selectable` chart the host owns the selection: ApexCharts' own click darkening and slice expansion are off, so clearing `selected` clears the mark. Area and line charts show no selection.
+
+```vue
+<CnChartWidget type="bar-list" selectable :selected="['GM0355']" :dataSource="source" @select="onSelect" />
+```
+
 ## `endpointSource` — endpoint-bound series/labels (Wave 2, #91)
 
 Binds the chart to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine (token-resolved `params`, request dedup + short-TTL cache, `cn:page:refresh` wiring; the chart's own `refresh()` / `cn:widget:refresh` handler force-refetches it too). **Exactly one of `dataSource` | `endpointSource`** (validator-enforced).
@@ -366,6 +374,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 |------|------|---------|-------------|
 | `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'`, `'bar-list'`, `'matrix'` |
 | `selectable` | Boolean | `false` | A slice, bar or bar-list row click emits `select` `{ field, value, label, index }` with the grouped field and the category's raw key. |
+| `selected` | Array | `[]` | The raw keys of the categories to show as selected: a ringed, pressed bar-list row or an outlined bar or slice. |
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |

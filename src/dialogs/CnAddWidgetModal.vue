@@ -54,8 +54,22 @@
 				v-for="(notice, index) in notices"
 				:key="notice.id || index"
 				:type="noticeType(notice)"
-				:text="notice.text"
-				data-testid="cn-add-widget-modal-notice" />
+				data-testid="cn-add-widget-modal-notice">
+				<div class="cn-add-widget-modal__notice">
+					<span class="cn-add-widget-modal__notice-text">{{ notice.text }}</span>
+					<NcButton
+						v-if="notice.dismissible"
+						variant="tertiary"
+						:aria-label="t('nextcloud-vue', 'Dismiss')"
+						:title="t('nextcloud-vue', 'Dismiss')"
+						data-testid="cn-add-widget-modal-notice-dismiss"
+						@click="$emit('dismiss-notice', notice.id ?? index)">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+					</NcButton>
+				</div>
+			</NcNoteCard>
 			<slot name="notices" />
 		</div>
 
@@ -142,6 +156,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import { computed, provide } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import CnWidgetIcon from '../components/CnWidgetGrid/CnWidgetIcon.vue'
@@ -174,6 +189,7 @@ export default {
 		NcTextField,
 		NcCheckboxRadioSwitch,
 		NcNoteCard,
+		Close,
 		CnIconBrowser,
 		CnColorPicker,
 		CnWidgetIcon,
@@ -267,10 +283,13 @@ export default {
 		/**
 		 * Non-fatal notices about the widget, shown above its form: what the
 		 * host found about its configuration, e.g. a filter dimension the
-		 * dashboard does not publish. Each is `{ text, type?, id? }`, `type`
-		 * one of `warning` (default), `info`, `error`, `success`.
+		 * dashboard does not publish. Each is `{ text, type?, id?, dismissible? }`,
+		 * `type` one of `warning` (default), `info`, `error`, `success`. A
+		 * `dismissible` notice has a Dismiss button that emits
+		 * `dismiss-notice` with its `id` (its index without one); the host
+		 * drops it from `notices`.
 		 *
-		 * @type {Array<{text: string, type?: string, id?: string}>}
+		 * @type {Array<{text: string, type?: string, id?: string, dismissible?: boolean}>}
 		 * @spec openspec/changes/add-widget-modal-notices/specs/add-widget-modal-notices/spec.md#requirement-the-widget-dialog-can-show-the-hosts-notices
 		 */
 		notices: {
@@ -336,6 +355,8 @@ export default {
 		'close',
 		/** Fired with the assembled `{type, content}` payload for the parent to persist. */
 		'submit',
+		/** Fired with a dismissible notice's id (its index without one) when the reader dismisses it. */
+		'dismiss-notice',
 	],
 
 	setup(props) {
@@ -940,5 +961,17 @@ export default {
 	flex-direction: column;
 	gap: 4px;
 	margin-block-end: 12px;
+}
+
+.cn-add-widget-modal__notice {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-add-widget-modal__notice-text {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 </style>
