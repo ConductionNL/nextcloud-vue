@@ -26,7 +26,7 @@ const ALIASES = Object.freeze({
 /**
  * Resolve a declared action type to its canonical value.
  *
- * @param {*} declared the stored `actionType`.
+ * @param {string|undefined} declared the stored `actionType`.
  * @return {string} `external`, `internal` or `createFile`; anything unknown is `external`.
  */
 export function normaliseLinkActionType(declared) {
