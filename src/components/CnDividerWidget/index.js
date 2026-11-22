@@ -16,6 +16,7 @@ registerDashboardWidget('divider', {
 	displayName: 'Divider',
 	icon: 'Minus',
 	minHeight: 1,
+	noChrome: true,
 })
 
 export { CnDividerWidget }

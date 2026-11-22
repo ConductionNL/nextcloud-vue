@@ -78,8 +78,9 @@
 
 		<!-- Widget appearance (chrome): title, background, icon. Shared with
 		     every consumer so the add/edit experience is identical across apps
-		     (the chrome rides alongside `content` in the submit payload). -->
-		<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
+		     (the chrome rides alongside `content` in the submit payload). A type
+		     registered with `noChrome` (e.g. the divider) has no Appearance. -->
+		<div v-if="activeSubFormComponent && !activeTypeNoChrome" class="cn-add-widget-modal__chrome">
 			<h3 class="cn-add-widget-modal__chrome-title">
 				{{ t('nextcloud-vue', 'Appearance') }}
 			</h3>
@@ -403,6 +404,17 @@ export default {
 		activeTypeOwnsTitle() {
 			const entry = getWidgetTypeEntry(this.state.type)
 			return !!(entry && entry.ownsTitle)
+		},
+
+		/**
+		 * Whether the active type has no widget chrome (declares `noChrome` in
+		 * its registry entry), so the modal hides the whole Appearance block.
+		 *
+		 * @return {boolean} true when the type draws no title, background or icon.
+		 */
+		activeTypeNoChrome() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return !!(entry && entry.noChrome)
 		},
 
 		/**

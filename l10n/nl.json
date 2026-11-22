@@ -1,9 +1,5 @@
 {
   "translations": {
-    "Find everyone tagged {tag}": "Vind iedereen met de tag {tag}",
-    "No matching users.": "Geen passende gebruikers.",
-    "Search by name, email or expertise…": "Zoek op naam, e-mail of expertise…",
-    "Unknown sort key \"{key}\". Display name is used instead.": "Onbekende sorteersleutel \"{key}\". Er wordt op weergavenaam gesorteerd.",
     "Search the knowledge base": "Zoek in de kennisbank",
     "Searching…": "Zoeken…",
     "Knowledge base unavailable": "Kennisbank niet beschikbaar",
@@ -3167,7 +3163,17 @@
     "Detected: PeerTube": "Herkend: PeerTube",
     "Detected: Nextcloud File": "Herkend: Nextcloud-bestand",
     "Video URL is required": "Video-URL is verplicht",
-    "Nextcloud file ID is required": "Nextcloud-bestands-id is verplicht"
+    "Nextcloud file ID is required": "Nextcloud-bestands-id is verplicht",
+    "Height": "Hoogte",
+    "Small (120px)": "Klein (120px)",
+    "Medium (200px)": "Middel (200px)",
+    "Large (320px)": "Groot (320px)",
+    "Extra large (480px)": "Extra groot (480px)",
+    "The starting height. Resize the header on the dashboard afterwards.": "De beginhoogte. Pas de grootte van de koptekst daarna aan op het dashboard.",
+    "Find everyone tagged {tag}": "Vind iedereen met de tag {tag}",
+    "No matching users.": "Geen passende gebruikers.",
+    "Search by name, email or expertise…": "Zoek op naam, e-mail of expertise…",
+    "Unknown sort key \"{key}\". Display name is used instead.": "Onbekende sorteersleutel \"{key}\". Er wordt op weergavenaam gesorteerd."
   },
   "plurals": {
     "{count} member": [
