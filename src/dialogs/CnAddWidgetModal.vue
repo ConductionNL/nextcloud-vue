@@ -197,6 +197,17 @@ export default {
 		},
 
 		/**
+		 * When set, the form opens on this type in create mode but the type
+		 * `<select>` stays visible, so the user can still change it (a host
+		 * picker that already asked which kind of widget). Ignored when
+		 * `preselectedType` or `editingWidget` is set.
+		 */
+		initialType: {
+			type: String,
+			default: null,
+		},
+
+		/**
 		 * When set, the modal opens in edit mode: the type select is hidden
 		 * (placement type is immutable) and the sub-form is pre-filled from
 		 * `editingWidget.content`. Must expose `type` and `content`.
@@ -551,6 +562,19 @@ export default {
 				this.form.resetForm(type)
 			}
 		},
+
+		/**
+		 * Re-seed the form when the initial type changes while open in create
+		 * mode, unless a preselected type pins it.
+		 *
+		 * @param {string|null} type the new initial type.
+		 * @return {void}
+		 */
+		initialType(type) {
+			if (this.show && type && !this.editingWidget && !this.preselectedType && this.availableTypes.includes(type)) {
+				this.form.resetForm(type)
+			}
+		},
 	},
 
 	created() {
@@ -605,6 +629,7 @@ export default {
 				this.seedChrome(this.editingWidget)
 			} else {
 				const initialType = this.preselectedType
+					|| (this.availableTypes.includes(this.initialType) ? this.initialType : null)
 					|| this.availableTypes[0]
 					|| ''
 				this.form.resetForm(initialType)
