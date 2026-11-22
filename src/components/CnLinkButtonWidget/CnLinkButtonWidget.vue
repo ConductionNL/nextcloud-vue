@@ -77,13 +77,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import { LINK_ACTION_TYPES as ACTION_TYPES, normaliseLinkActionType } from '../../utils/linkButtonActionType.js'
 import { safeHref } from '../../utils/safeHref.js'
-
-const ACTION_TYPES = Object.freeze({
-	EXTERNAL: 'external',
-	INTERNAL: 'internal',
-	CREATE_FILE: 'createFile',
-})
 
 const DISPLAY_MODES = Object.freeze({
 	BUTTON: 'button',
@@ -111,9 +106,10 @@ const GAP_REM = Object.freeze({
  * CnLinkButtonWidget — renders a styled clickable tile (or a list of tiles)
  * that dispatches one of three action types per entry:
  *
- *   - `external` → renders as an `<a target="_blank" rel="noopener
+ *   - `external` (list schema: `url`) → renders as an `<a target="_blank" rel="noopener
  *     noreferrer">` to the configured `url` (a button in edit mode).
- *   - `internal` → emits an `internal-action` event with the action id so a
+ *   - `internal` (list schema: `action_id`) → emits an `internal-action`
+ *     event with the action id so a
  *     host app can dispatch its own registered handler (the library ships no
  *     action registry). An empty/missing handler is a silent no-op.
  *   - `createFile` → emits a `create-file` event with the extension token so
@@ -218,11 +214,7 @@ export default {
 
 		/** The single-button action type (defaults to `external`). */
 		actionType() {
-			const declared = this.content?.actionType
-			if (declared === ACTION_TYPES.INTERNAL || declared === ACTION_TYPES.CREATE_FILE) {
-				return declared
-			}
-			return ACTION_TYPES.EXTERNAL
+			return normaliseLinkActionType(this.content?.actionType)
 		},
 
 		/** Resolved widget background colour (default theme primary). */
@@ -317,11 +309,7 @@ export default {
 			}
 			return this.content.links.map((raw) => {
 				const link = (raw !== null && typeof raw === 'object') ? raw : {}
-				const declaredAction = link.actionType
-				const actionType = (declaredAction === ACTION_TYPES.INTERNAL
-					|| declaredAction === ACTION_TYPES.CREATE_FILE)
-					? declaredAction
-					: ACTION_TYPES.EXTERNAL
+				const actionType = normaliseLinkActionType(link.actionType)
 				return {
 					label: typeof link.label === 'string' ? link.label : '',
 					url: typeof link.url === 'string' ? link.url : '',

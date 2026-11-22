@@ -84,6 +84,37 @@ describe('CnLinkButtonWidget renderer', () => {
 		expect(wrapper.emitted('internal-action')[0]).toEqual(['my-action'])
 		expect(wrapper.emitted('create-file')[0]).toEqual(['docx'])
 	})
+
+	it('dispatches a list-schema action_id entry as an internal action, never as a link', async () => {
+		const wrapper = mount(CnLinkButtonWidget, {
+			propsData: {
+				content: {
+					displayMode: 'list',
+					links: [
+						{ label: 'Files', url: 'open-files', actionType: 'action_id' },
+						{ label: 'Docs', url: 'https://docs.test', actionType: 'url' },
+					],
+				},
+			},
+		})
+		const items = wrapper.findAll('.cn-link-button-widget__list-item')
+		expect(items.at(0).element.tagName).toBe('BUTTON')
+		expect(items.at(0).attributes('href')).toBeUndefined()
+		expect(items.at(1).element.tagName).toBe('A')
+		expect(items.at(1).attributes('href')).toBe('https://docs.test')
+		await items.at(0).trigger('click')
+		expect(wrapper.emitted('internal-action')).toEqual([['open-files']])
+	})
+
+	it('dispatches a single button declared as action_id as an internal action', async () => {
+		const wrapper = mount(CnLinkButtonWidget, {
+			propsData: { content: { label: 'Files', url: 'open-files', actionType: 'action_id' } },
+		})
+		const el = wrapper.find('.cn-link-button-widget__button')
+		expect(el.element.tagName).toBe('BUTTON')
+		await el.trigger('click')
+		expect(wrapper.emitted('internal-action')).toEqual([['open-files']])
+	})
 })
 
 describe('CnLinkButtonWidgetForm', () => {
@@ -116,6 +147,21 @@ describe('CnLinkButtonWidgetForm', () => {
 		wrapper.vm.updateDisplayMode('list')
 		expect(wrapper.vm.links.length).toBe(1)
 		expect(wrapper.vm.links[0].label).toBe('Seed')
+	})
+
+	it('opens list-schema url and action_id entries as external and internal', () => {
+		const wrapper = mount(CnLinkButtonWidgetForm, {
+			propsData: {
+				value: {
+					displayMode: 'list',
+					links: [
+						{ label: 'Files', url: 'open-files', actionType: 'action_id' },
+						{ label: 'Docs', url: 'https://docs.test', actionType: 'url' },
+					],
+				},
+			},
+		})
+		expect(wrapper.vm.links.map((link) => link.actionType)).toEqual(['internal', 'external'])
 	})
 })
 
