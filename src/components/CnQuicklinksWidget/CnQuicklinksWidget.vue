@@ -345,8 +345,7 @@ export default {
 				? link.openInNewTab
 				: isExternal
 
-			// An empty icon falls back to a default link icon via CnWidgetIcon.
-			const iconName = icon === '' ? 'Link' : icon
+			const iconName = icon === '' ? 'LinkVariant' : icon
 
 			const showSolid = this.tileBackgroundStyle === 'solid'
 			const tileColor = showSolid && color !== '' ? color : ''
