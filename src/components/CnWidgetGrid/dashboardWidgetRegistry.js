@@ -37,6 +37,7 @@
  * @property {object} defaultContent Initial `content` payload seeded into new placements.
  * @property {string} displayName Human-readable type name shown in the type picker.
  * @property {string} icon Material Design icon name used in the type picker.
+ * @property {boolean} [noChrome] The type draws no widget chrome (title, background, icon), so `CnAddWidgetModal` hides its Appearance block for it (a divider).
  * @property {number} [minHeight] The fewest grid rows a placement of this type may take, below the grid's own minimum (a divider: 1). A host copies it onto the layout item as `minHeight`.
  * @property {string[]} [surfaces] Surfaces this type may be added on (e.g. `['app-dashboard']`, `['detail-page']`). Omitted means the default dashboard surfaces. A detail-only widget (like `data`) sets `['detail-page']` so it never appears in the dashboard Add-widget picker.
  * @property {boolean} [public] Whether a PUBLIC host (an anonymous visitor at a public origin, such as the portal) may mount this widget. Default `false`, and `registerDashboardWidget()` records it: a widget author opts in deliberately. A non-boolean value is refused.
