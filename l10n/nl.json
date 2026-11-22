@@ -1,5 +1,6 @@
 {
   "translations": {
+    "Columns run from 1 to 6, so {typed} became {clamped}.": "Kolommen lopen van 1 tot 6, dus {typed} werd {clamped}.",
     "Search the knowledge base": "Zoek in de kennisbank",
     "Searching…": "Zoeken…",
     "Knowledge base unavailable": "Kennisbank niet beschikbaar",
