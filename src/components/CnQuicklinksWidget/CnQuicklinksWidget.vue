@@ -365,7 +365,7 @@ export default {
 				opensNewTab,
 				isExternal,
 				iconWrapperStyle: this.computeIconWrapperStyle(tileColor),
-				tileStyle: {},
+				tileStyle: color !== '' ? { '--cn-quicklinks-link-color': color } : {},
 			}
 		},
 
@@ -635,7 +635,7 @@ export default {
 }
 
 .cn-quicklinks-widget--hover-border .cn-quicklinks-widget__link:hover {
-	outline: 2px solid var(--color-primary);
+	outline: 2px solid var(--cn-quicklinks-link-color, var(--color-primary));
 	outline-offset: 1px;
 }
 
