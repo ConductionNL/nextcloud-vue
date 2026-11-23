@@ -273,6 +273,12 @@ function dueText(due, overdue) {
 	text-decoration: none !important;
 }
 
+/* The theme's link colour rule carries an id; two `:not(#…)` outrank it, so a
+   linked title keeps the main text colour (LpWerkplek work packages, cases). */
+.cn-status-list__title:not(#cn-status-list-a):not(#cn-status-list-b) {
+	color: var(--color-main-text) !important;
+}
+
 a.cn-status-list__title:hover,
 a.cn-status-list__title:focus-visible {
 	text-decoration: underline;
