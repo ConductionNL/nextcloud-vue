@@ -1893,6 +1893,8 @@
     "Email template": "Email template",
     "Open draft from template": "Open draft from template",
     "Empty draft": "Empty draft",
+    "Blank draft": "Blank draft",
+    "Write mail": "Write mail",
     "Could not open draft": "Could not open draft",
     "Some template fields could not be filled. Fill these in the draft yourself:": "Some template fields could not be filled. Fill these in the draft yourself:",
     "No templates yet": "No templates yet",
