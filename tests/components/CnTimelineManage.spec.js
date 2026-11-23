@@ -281,4 +281,16 @@ describe('CnTimelineWidget manage mode: kinds and messages in the reader\'s lang
 		expect(messages).toContain('Gebeld')
 		expect(wrapper.find('[data-testid="cn-timeline-export"]').text()).toBe('Download')
 	})
+
+	it('reads a stored sentence through messageKeys when the entry carries no key', async () => {
+		reads({ entries: [{ id: 'e1', message: 'Gebeld', kind: 'telefoon', author: 'ann', created: '2026-10-01T09:00:00Z', visibility: 'internal' }] })
+		const cnTranslate = (text) => `EN:${text}`
+		const wrapper = mount(CnTimelineWidget, {
+			props: { register: 'reg', schema: 'case', objectId: 'c-1', content: { manage: true, messageKeys: { Gebeld: 'Called' } } },
+			global: { stubs, provide: { cnRegistry: {}, cnTranslate } },
+		})
+		await flushPromises()
+
+		expect(wrapper.find('.cn-timeline-manage__message').text()).toBe('EN:Called')
+	})
 })
