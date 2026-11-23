@@ -24,6 +24,8 @@ registerDashboardWidget('app-tile', {
 	displayName: 'App tile',
 	icon: 'ApplicationOutline',
 	surfaces: ['app-dashboard'],
+	// One cell: the boards draw each app tile as a widget of its own.
+	minWidth: 1,
 })
 
 export { default as CnAppTileWidget } from './CnAppTileWidget.vue'

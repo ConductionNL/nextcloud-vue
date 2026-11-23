@@ -162,7 +162,7 @@ export default {
 	width: 100%;
 	max-width: 100%;
 	max-height: 100%;
-	border-radius: var(--border-radius-large, 12px);
+	border-radius: var(--cn-app-tile-radius, 8px);
 	background-color: var(--cn-app-tile-background);
 	color: #fff;
 	text-decoration: none;

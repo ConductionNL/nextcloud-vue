@@ -44,7 +44,7 @@
 				:gs-y="scaledRow(item.gridY)"
 				:gs-w="item.gridWidth"
 				:gs-h="scaledRow(item.gridHeight)"
-				:gs-min-w="minWidth"
+				:gs-min-w="itemMinWidth(item)"
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
 				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
@@ -762,6 +762,18 @@ export default {
 		},
 
 		/**
+		 * The fewest columns an item may take: its own `minWidth` when it
+		 * sets one (an app tile of one cell), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum width in columns.
+		 */
+		itemMinWidth(item) {
+			const own = item && item.minWidth
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minWidth
+		},
+
+		/**
 		 * The smallest height an item may take, in grid rows: its minimum
 		 * height in layout rows, except for a size-to-content cell on split rows, which
 		 * may shrink to its content down to one grid row. The minimum is for
@@ -826,7 +838,7 @@ export default {
 				if (!el) {
 					continue
 				}
-				for (const [name, value] of [['gs-x', item.gridX], ['gs-w', item.gridWidth], ['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
+				for (const [name, value] of [['gs-x', item.gridX], ['gs-w', item.gridWidth], ['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-w', this.itemMinWidth(item)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
 					if (value === undefined || value === null) {
 						el.removeAttribute(name)
 					} else {
@@ -1436,7 +1448,7 @@ export default {
 		 */
 		clampRect(rect, item) {
 			const cols = this.effectiveColumns
-			const w = Math.min(Math.max(rect.w, this.minWidth), cols)
+			const w = Math.min(Math.max(rect.w, item ? this.itemMinWidth(item) : this.minWidth), cols)
 			const h = Math.max(rect.h, item ? this.itemMinHeight(item) : this.minHeight)
 			return {
 				x: Math.min(Math.max(rect.x, 0), Math.max(cols - w, 0)),
