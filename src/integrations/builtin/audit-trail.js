@@ -11,8 +11,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnAuditTrailCard from '../../components/CnAuditTrailCard/CnAuditTrailCard.vue'
-import CnAuditTrailTab from '../../components/CnObjectSidebar/CnAuditTrailTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnAuditTrailCard = lazyComponent(() => import('../../components/CnAuditTrailCard/CnAuditTrailCard.vue'), 'CnAuditTrailCard')
+const CnAuditTrailTab = lazyComponent(() => import('../../components/CnObjectSidebar/CnAuditTrailTab.vue'), 'CnAuditTrailTab')
 
 /**
  * `audit-trail` integration descriptor.

@@ -10,7 +10,7 @@
  *
  * @spec openspec/changes/detail-chart-titled-card/specs/widget-hosts/spec.md#requirement-a-detail-chart-sits-in-a-titled-card
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
@@ -45,8 +45,9 @@ function mountChart(chrome) {
 }
 
 describe('CnDetailWidgetHost chart card', () => {
-	it('draws a chart on a card surface in a titled card with its subtitle', () => {
+	it('draws a chart on a card surface in a titled card with its subtitle', async () => {
 		const w = mountChart('card')
+		await flushPromises()
 		const card = w.find('.wrapper-stub')
 		expect(card.exists()).toBe(true)
 		expect(card.attributes('data-title')).toBe('Advice')

@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnTextWidgetForm from '../CnTextWidgetForm/CnTextWidgetForm.vue'
-import CnTextWidget from './CnTextWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnTextWidgetForm = lazyComponent(() => import('../CnTextWidgetForm/CnTextWidgetForm.vue'), 'CnTextWidgetForm')
+const LazyCnTextWidget = lazyComponent(() => import('./CnTextWidget.vue'), 'CnTextWidget')
+
 registerDashboardWidget('text', {
-	renderer: CnTextWidget,
-	form: CnTextWidgetForm,
+	renderer: LazyCnTextWidget,
+	form: LazyCnTextWidgetForm,
 	// New text widgets default to markdown mode; existing placements without
 	// a contentMode key fall through to the renderer's legacy 'html' branch.
 	defaultContent: {
@@ -29,5 +31,5 @@ registerDashboardWidget('text', {
 	icon: 'FormatText',
 })
 
-export { CnTextWidget }
-export default CnTextWidget
+export { default as CnTextWidget } from './CnTextWidget.vue'
+export { default } from './CnTextWidget.vue'

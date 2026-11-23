@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnHeaderWidgetForm from '../CnHeaderWidgetForm/CnHeaderWidgetForm.vue'
-import CnHeaderWidget from './CnHeaderWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnHeaderWidgetForm = lazyComponent(() => import('../CnHeaderWidgetForm/CnHeaderWidgetForm.vue'), 'CnHeaderWidgetForm')
+const LazyCnHeaderWidget = lazyComponent(() => import('./CnHeaderWidget.vue'), 'CnHeaderWidget')
+
 registerDashboardWidget('header', {
-	renderer: CnHeaderWidget,
-	form: CnHeaderWidgetForm,
+	renderer: LazyCnHeaderWidget,
+	form: LazyCnHeaderWidgetForm,
 	defaultContent: {
 		title: '',
 		subtitle: '',
@@ -31,5 +33,5 @@ registerDashboardWidget('header', {
 	icon: 'ViewHeadline',
 })
 
-export { CnHeaderWidget }
-export default CnHeaderWidget
+export { default as CnHeaderWidget } from './CnHeaderWidget.vue'
+export { default } from './CnHeaderWidget.vue'

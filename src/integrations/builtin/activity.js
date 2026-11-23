@@ -33,8 +33,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnActivityCard from './activity/CnActivityCard.vue'
-import CnActivityTab from './activity/CnActivityTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnActivityCard = lazyComponent(() => import('./activity/CnActivityCard.vue'), 'CnActivityCard')
+const CnActivityTab = lazyComponent(() => import('./activity/CnActivityTab.vue'), 'CnActivityTab')
 
 /**
  * `activity` integration descriptor.

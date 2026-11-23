@@ -13,6 +13,7 @@ import axios from '@nextcloud/axios'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnRetentionWidget from '../../src/components/CnRetentionWidget/CnRetentionWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -64,7 +65,7 @@ describe('CnRetentionWidget', () => {
 	})
 
 	it('is the retention detail widget and shows the stored facts read fresh from OpenRegister', async () => {
-		expect(getWidgetTypeEntry('retention').renderer).toBe(CnRetentionWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('retention').renderer)).toBe(CnRetentionWidget)
 		const w = await mountWidget()
 		expect(axios.get).toHaveBeenCalledWith('/nc/apps/openregister/api/objects/dossiq/case/z-82')
 		expect(w.find('[data-testid="cn-retention-disposal-date"]').text()).toBe('2033-03-01')

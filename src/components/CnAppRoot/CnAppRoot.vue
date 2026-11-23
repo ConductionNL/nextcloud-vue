@@ -714,30 +714,20 @@ import { loadState } from '@nextcloud/initial-state'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
-import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
-import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
-import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
-import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
-import CnSavedViewMenuSettings from '../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue'
-import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import CnUserSettingsDialog from '../CnUserSettingsDialog/CnUserSettingsDialog.vue'
-import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -779,6 +769,17 @@ import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
+
+const CnAiCompanion = defineAsyncComponent(() => import('../CnAiCompanion/CnAiCompanion.vue').then((m) => m.default))
+const CnCommandPalette = defineAsyncComponent(() => import('../CnCommandPalette/CnCommandPalette.vue').then((m) => m.default))
+const CnCredentials = defineAsyncComponent(() => import('../CnCredentials/CnCredentials.vue').then((m) => m.default))
+const CnNotificationPreferences = defineAsyncComponent(() => import('../CnNotificationPreferences/CnNotificationPreferences.vue').then((m) => m.default))
+const CnObjectSidebar = defineAsyncComponent(() => import('../CnObjectSidebar/CnObjectSidebar.vue').then((m) => m.default))
+const CnSavedViewMenuSettings = defineAsyncComponent(() => import('../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue').then((m) => m.default))
+const CnSetupWizard = defineAsyncComponent(() => import('../CnSetupWizard/CnSetupWizard.vue').then((m) => m.default))
+const CnSupportDialog = defineAsyncComponent(() => import('../CnSupportDialog/CnSupportDialog.vue').then((m) => m.default))
+const CnUserSettingsDialog = defineAsyncComponent(() => import('../CnUserSettingsDialog/CnUserSettingsDialog.vue').then((m) => m.default))
+const CnWalkthrough = defineAsyncComponent(() => import('../CnWalkthrough/CnWalkthrough.vue').then((m) => m.default))
 
 /**
  * Recognised registry kinds and their required metadata fields.

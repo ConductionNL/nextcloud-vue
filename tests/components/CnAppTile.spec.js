@@ -13,6 +13,7 @@ import CnAppTile from '../../src/components/CnAppTile/CnAppTile.vue'
 import CnAppTileWidget from '../../src/components/CnAppTileWidget/CnAppTileWidget.vue'
 import CnAppTileWidgetForm from '../../src/components/CnAppTileWidgetForm/CnAppTileWidgetForm.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { clearAppDisplayNames } from '../../src/utils/nextcloudApps.js'
 
 import '../../src/components/CnAppTileWidget/index.js'
@@ -78,10 +79,10 @@ describe('CnAppTile', () => {
 })
 
 describe('CnAppTileWidget', () => {
-	it('registers the app-tile type with its form', () => {
+	it('registers the app-tile type with its form', async () => {
 		const entry = getWidgetTypeEntry('app-tile')
-		expect(entry.renderer).toBe(CnAppTileWidget)
-		expect(entry.form).toBe(CnAppTileWidgetForm)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnAppTileWidget)
+		expect(await loadLazyComponent(entry.form)).toBe(CnAppTileWidgetForm)
 		expect(entry.defaultContent).toEqual({ appId: '', colour: '', showCount: true, pinned: false })
 	})
 

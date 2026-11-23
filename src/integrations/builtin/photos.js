@@ -24,8 +24,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnPhotosCard from './photos/CnPhotosCard.vue'
-import CnPhotosTab from './photos/CnPhotosTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnPhotosCard = lazyComponent(() => import('./photos/CnPhotosCard.vue'), 'CnPhotosCard')
+const CnPhotosTab = lazyComponent(() => import('./photos/CnPhotosTab.vue'), 'CnPhotosTab')
 
 /**
  * `photos` integration descriptor.

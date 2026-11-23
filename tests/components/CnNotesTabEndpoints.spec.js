@@ -23,7 +23,7 @@ jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	searchNextcloudGroups: jest.fn().mockResolvedValue([]),
 }))
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnNotesTab from '../../src/components/CnObjectSidebar/CnNotesTab.vue'
 import { notesIntegration } from '../../src/integrations/builtin/notes.js'
 
@@ -105,9 +105,10 @@ describe('CnNotesTab endpoints', () => {
 })
 
 describe('the notes integration widget', () => {
-	it('renders the full notes tab when a manifest wires mentions or actions', () => {
+	it('renders the full notes tab when a manifest wires mentions or actions', async () => {
 		global.fetch = jest.fn(() => answer({ results: [] }))
 		const wrapper = mount(notesIntegration.widget, { props: { ...PROPS, mentionUrl: '/apps/x/api/notes/mention' } })
+		await flushPromises()
 		expect(wrapper.findComponent(CnNotesTab).exists()).toBe(true)
 		wrapper.unmount()
 	})

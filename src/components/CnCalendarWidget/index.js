@@ -11,11 +11,13 @@
  * picker via `listWidgetTypes()`). When the form lands, wire it in here.
  */
 
-import CnCalendarWidget from './CnCalendarWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnCalendarWidget = lazyComponent(() => import('./CnCalendarWidget.vue'), 'CnCalendarWidget')
+
 registerDashboardWidget('calendar', {
-	renderer: CnCalendarWidget,
+	renderer: LazyCnCalendarWidget,
 	form: null,
 	defaultContent: {
 		viewMode: 'agenda',
@@ -28,5 +30,5 @@ registerDashboardWidget('calendar', {
 	icon: 'Calendar',
 })
 
-export { CnCalendarWidget }
-export default CnCalendarWidget
+export { default as CnCalendarWidget } from './CnCalendarWidget.vue'
+export { default } from './CnCalendarWidget.vue'

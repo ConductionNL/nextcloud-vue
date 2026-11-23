@@ -23,11 +23,12 @@
  * `<ncbutton>` element. That is the load-bearing negative assertion, and it is
  * what the unfixed host renders.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { LIB_INTEGRATION_COMPONENTS } from '../../src/integrations/libComponents.js'
 import { integrations } from '../../src/integrations/registry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 /**
  * A leaf as it renders when it belongs to another bundle's Vue.
@@ -96,10 +97,10 @@ function mountHost(integrationId, extra = {}) {
 describe('CnDetailWidgetHost — lib-owned leaves resolve to this bundle', () => {
 	afterEach(() => integrations.__resetForTests())
 
-	it('sanity: the lib ships its own notes, contacts and files components', () => {
+	it('sanity: the lib ships its own notes, contacts and files components', async () => {
 		expect(LIB_INTEGRATION_COMPONENTS.notes.widget.name).toBe('CnNotesCardAdapter')
-		expect(LIB_INTEGRATION_COMPONENTS.contacts.tab.name).toBe('CnContactsTab')
-		expect(LIB_INTEGRATION_COMPONENTS.files.tab.name).toBe('CnFilesTab')
+		expect((await loadLazyComponent(LIB_INTEGRATION_COMPONENTS.contacts.tab)).name).toBe('CnContactsTab')
+		expect((await loadLazyComponent(LIB_INTEGRATION_COMPONENTS.files.tab)).name).toBe('CnFilesTab')
 	})
 
 	it('bareWidget provider (notes): renders the lib widget, not the foreign one', () => {
@@ -111,18 +112,20 @@ describe('CnDetailWidgetHost — lib-owned leaves resolve to this bundle', () =>
 		w.unmount()
 	})
 
-	it('bare tab provider (contacts): renders the lib tab, not the foreign one', () => {
+	it('bare tab provider (contacts): renders the lib tab, not the foreign one', async () => {
 		registerForeign('contacts')
 		const w = mountHost('contacts')
+		await flushPromises()
 		expect(w.findComponent({ name: 'CnContactsTab' }).exists()).toBe(true)
 		expect(w.find('.foreign-leaf').exists()).toBe(false)
 		expect(w.html()).not.toMatch(/<ncbutton/i)
 		w.unmount()
 	})
 
-	it('bare tab provider (files): the tab body is the lib component, not an empty foreign card', () => {
+	it('bare tab provider (files): the tab body is the lib component, not an empty foreign card', async () => {
 		registerForeign('files')
 		const w = mountHost('files')
+		await flushPromises()
 		expect(w.findComponent({ name: 'CnFilesTab' }).exists()).toBe(true)
 		expect(w.html()).not.toMatch(/<ncbutton|<cndetailcard/i)
 		w.unmount()

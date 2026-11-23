@@ -16,8 +16,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnContactmomentCard from './contactmoment/CnContactmomentCard.vue'
-import CnContactmomentTab from './contactmoment/CnContactmomentTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnContactmomentCard = lazyComponent(() => import('./contactmoment/CnContactmomentCard.vue'), 'CnContactmomentCard')
+const CnContactmomentTab = lazyComponent(() => import('./contactmoment/CnContactmomentTab.vue'), 'CnContactmomentTab')
 
 /**
  * `contactmoment` integration descriptor.

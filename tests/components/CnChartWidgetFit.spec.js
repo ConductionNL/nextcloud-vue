@@ -34,6 +34,7 @@ jest.mock('../../src/composables/useDataSource.js', () => ({
 import { mount } from '@vue/test-utils'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 
 const barProps = {
 	type: 'bar',
@@ -84,6 +85,9 @@ function mountDashboard(widgets) {
 		stubs: dashboardStubs,
 	})
 }
+
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
 
 describe('CnChartWidget — container fitting', () => {
 	it('keeps the pinned-height rendering by default (regression)', () => {

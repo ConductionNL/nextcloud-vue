@@ -9,11 +9,13 @@
  * not offer it.
  */
 
-import CnRecordNotesWidget from './CnRecordNotesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnRecordNotesWidget = lazyComponent(() => import('./CnRecordNotesWidget.vue'), 'CnRecordNotesWidget')
+
 registerDashboardWidget('record-notes', {
-	renderer: CnRecordNotesWidget,
+	renderer: LazyCnRecordNotesWidget,
 	form: null,
 	defaultContent: {
 		field: 'notes',
@@ -23,5 +25,5 @@ registerDashboardWidget('record-notes', {
 	surfaces: ['detail-page'],
 })
 
-export { CnRecordNotesWidget }
-export default CnRecordNotesWidget
+export { default as CnRecordNotesWidget } from './CnRecordNotesWidget.vue'
+export { default } from './CnRecordNotesWidget.vue'

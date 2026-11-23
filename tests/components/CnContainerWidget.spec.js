@@ -8,7 +8,7 @@
  * entry is present after importing the renderer index.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnContainerWidget from '@/components/CnContainerWidget/CnContainerWidget.vue'
 import CnContainerWidgetForm from '@/components/CnContainerWidgetForm/CnContainerWidgetForm.vue'
@@ -40,6 +40,7 @@ describe('CnContainerWidget renderer', () => {
 				},
 			},
 		})
+		await flushPromises()
 		await nextTick()
 		expect(wrapper.findAll('.cn-container-widget__child').length).toBe(1)
 		expect(wrapper.findComponent({ name: 'CnVideoWidget' }).exists()).toBe(true)

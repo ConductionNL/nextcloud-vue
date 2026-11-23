@@ -6,7 +6,7 @@
  * (`content.showActions: false`), for a board that draws none. The single-item
  * switches could not: Report a bug and the open panel's items kept the menu.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
@@ -41,6 +41,7 @@ describe('CnTabsWidget showActions', () => {
 		const w = mount(CnDetailWidgetHost, {
 			props: { widget: tabsWidget, chrome: 'bare', availableWidgets: [tabsWidget] },
 		})
+		await flushPromises()
 		await nextTick()
 		const tabs = w.findComponent(CnTabsWidget)
 		expect(tabs.exists()).toBe(true)

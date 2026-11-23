@@ -8,11 +8,13 @@
  * load. Renderer only: the calendar object is named in the manifest.
  */
 
-import CnWorkingCalendarWidget from './CnWorkingCalendarWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnWorkingCalendarWidget = lazyComponent(() => import('./CnWorkingCalendarWidget.vue'), 'CnWorkingCalendarWidget')
+
 registerDashboardWidget('working-calendar', {
-	renderer: CnWorkingCalendarWidget,
+	renderer: LazyCnWorkingCalendarWidget,
 	form: null,
 	defaultContent: {
 		calendar: { register: 'flow-timers', schema: 'working-calendar', filter: {} },
@@ -22,5 +24,5 @@ registerDashboardWidget('working-calendar', {
 	surfaces: ['app-dashboard', 'detail-page'],
 })
 
-export { CnWorkingCalendarWidget }
-export default CnWorkingCalendarWidget
+export { default as CnWorkingCalendarWidget } from './CnWorkingCalendarWidget.vue'
+export { default } from './CnWorkingCalendarWidget.vue'

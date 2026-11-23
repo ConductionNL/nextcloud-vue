@@ -645,6 +645,8 @@ export { readTransitionInputs } from './utils/transitionInputs.js'
 export { conditionSentence, formatConditionValue, operatorLabel, operatorsForType, operatorTakesValue } from './components/CnConditionListEditor/conditionOperators.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
+// A component that loads its definition on first render, for registries.
+export { lazyComponent, loadLazyComponent, resolveLazyComponent } from './utils/lazyComponent.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
 // they do NOT replace server-side validation, which stays authoritative at the

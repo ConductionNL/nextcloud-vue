@@ -12,6 +12,7 @@ import { TextEncoder } from 'node:util'
 import CnCodeWidget from '../../src/components/CnCodeWidget/CnCodeWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CODE128_WIDTHS, code128Values, eanCheckDigit, encodeCode128, encodeEan13 } from '../../src/utils/barcode1d.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnCodeWidget/index.js'
 
@@ -56,8 +57,8 @@ describe('barcode1d', () => {
 })
 
 describe('CnCodeWidget', () => {
-	it('is the code widget type', () => {
-		expect(getWidgetTypeEntry('code').renderer).toBe(CnCodeWidget)
+	it('is the code widget type', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('code').renderer)).toBe(CnCodeWidget)
 	})
 
 	it('draws a Code 128 of a field with its value under it', () => {
