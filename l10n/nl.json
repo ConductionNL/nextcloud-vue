@@ -3107,6 +3107,7 @@
     "At least one calendar source is required": "Kies minstens één agendabron",
     "External ICS URLs must start with https://": "Externe ICS-URL's moeten beginnen met https://",
     "Folder breadcrumb": "Mappad",
+    "Folder {name}": "Map {name}",
     "Root": "Hoofdmap",
     "Search this folder": "Zoek in deze map",
     "Search this folder…": "Zoek in deze map…",

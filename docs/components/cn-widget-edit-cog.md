@@ -18,6 +18,7 @@ The single per-widget edit affordance for editable dashboards — a white, round
 | `editLabel` | `String` | `'Edit widget'` | Label for the Edit action item. |
 | `deleteLabel` | `String` | `'Delete widget'` | Label for the Delete action item. |
 | `canDelete` | `Boolean` | `true` | Whether the Delete action is offered. Pass `false` for a widget the user may not remove. |
+| `icon` | `String` | `'cog'` | The trigger's glyph: `cog` (default) or `kebab` (three vertical dots). |
 
 ## Events
 
