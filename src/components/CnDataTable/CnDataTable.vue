@@ -24,10 +24,10 @@
 			</span>
 		</div>
 
-		<!-- @slot notice The table's state banners (R1), above the rows. -->
 		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<!-- @slot notice The table's state banners (R1), above the rows. Replaces the banners drawn from `notices`. -->
 			<slot name="notice">
-				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
 
@@ -280,7 +280,7 @@
 								@auxclick.stop>
 								<NcCheckboxRadioSwitch
 									:modelValue="isSelected(row)"
-									:aria-label="selectRowLabel"
+									:aria-label="rowSelectLabel(row)"
 									@update:modelValue="toggleSelect(row)" />
 							</td>
 
@@ -917,10 +917,15 @@ export default {
 		/**
 		 * Accessible name for a per-row select checkbox. Used as the
 		 * checkbox's `aria-label` so screen readers announce a named control
-		 * (WCAG 4.1.2). Defaults to the lib's translation of "Select row".
+		 * (WCAG 4.1.2). A string names every row alike; a function
+		 * `(row) => string` names each row by its own content ("Select entity
+		 * Jan"), so a list of checkboxes is not a list of identical names.
+		 * Defaults to the lib's translation of "Select row".
+		 *
+		 * @type {string | ((row: object) => string)}
 		 */
 		selectRowLabel: {
-			type: String,
+			type: [String, Function],
 			default: () => t('nextcloud-vue', 'Select row'),
 		},
 
@@ -2714,6 +2719,46 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
+		},
+
+		/**
+		 * Relays a notice's action button.
+		 *
+		 * @param {object} entry The notice action that was pressed
+		 * @param {object} notice The notice the action belongs to
+		 */
+		onNoticeAction(entry, notice) {
+			/**
+			 * @event notice-action Emitted when an action button on one of the table's `notices` is pressed.
+			 * @type {object}
+			 */
+			this.$emit('notice-action', entry, notice)
+		},
+
+		/**
+		 * Relays a dismissed notice.
+		 *
+		 * @param {object} notice The notice that was closed
+		 */
+		onNoticeDismiss(notice) {
+			/**
+			 * @event notice-dismiss Emitted when the reader closes a dismissible notice; the payload is that notice.
+			 * @type {object}
+			 */
+			this.$emit('notice-dismiss', notice)
+		},
+
+		/**
+		 * The accessible name of a row's select checkbox: `selectRowLabel`
+		 * called with the row when it is a function, else the string itself.
+		 *
+		 * @param {object} row The row
+		 * @return {string} The checkbox's `aria-label`
+		 */
+		rowSelectLabel(row) {
+			return typeof this.selectRowLabel === 'function'
+				? this.selectRowLabel(row)
+				: this.selectRowLabel
 		},
 
 		/**
