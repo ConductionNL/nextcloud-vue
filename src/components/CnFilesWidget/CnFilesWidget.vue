@@ -57,30 +57,32 @@
 				@click="triggerUpload">
 				{{ t('nextcloud-vue', 'Upload File') }}
 			</button>
-			<!--
-				`:ref`, not `ref`. Note `:aria-hidden="true"` does NOT save this:
-				a binding to a LITERAL CONSTANT is constant-folded, so the vnode
-				stays fully static and the compiler hoists it to module scope.
-				A hoisted vnode's ref has no owner instance, and `setRef()`'s
-				null-owner guard — along with its early `return` — is compiled
-				out of production builds, so it dereferences null and throws
-				`Cannot read properties of null (reading 'refs')`, aborting the
-				render of the page that mounted this widget.
-
-				Confirmed by instrumenting Vue's own warning to print the ref
-				name: `[DEBUG ref="fileInput" vnodeType=input]`. This widget is
-				the `files` integration leaf, which is how it reaches a detail
-				page. See CnFilesTab for the full account of the mechanism.
-			-->
-			<input
-				:ref="fileInputRef"
-				type="file"
-				multiple
-				class="cn-files-widget__file-input"
-				:aria-hidden="true"
-				tabindex="-1"
-				@change="onFileInputChange">
 		</div>
+
+		<!-- Outside the toolbar, so the compact layout can upload too. -->
+		<!--
+			`:ref`, not `ref`. Note `:aria-hidden="true"` does NOT save this:
+			a binding to a LITERAL CONSTANT is constant-folded, so the vnode
+			stays fully static and the compiler hoists it to module scope.
+			A hoisted vnode's ref has no owner instance, and `setRef()`'s
+			null-owner guard — along with its early `return` — is compiled
+			out of production builds, so it dereferences null and throws
+			`Cannot read properties of null (reading 'refs')`, aborting the
+			render of the page that mounted this widget.
+
+			Confirmed by instrumenting Vue's own warning to print the ref
+			name: `[DEBUG ref="fileInput" vnodeType=input]`. This widget is
+			the `files` integration leaf, which is how it reaches a detail
+			page. See CnFilesTab for the full account of the mechanism.
+		-->
+		<input
+			:ref="fileInputRef"
+			type="file"
+			multiple
+			class="cn-files-widget__file-input"
+			:aria-hidden="true"
+			tabindex="-1"
+			@change="onFileInputChange">
 
 		<div
 			v-if="isDragging && canShowUpload"
@@ -688,6 +690,27 @@ export default {
 				this.fetchContents()
 			},
 		},
+	},
+
+	/**
+	 * Listen for the host's Upload button: a dashboard card draws it in its
+	 * title row (LpWerkplek "Bestanden"), outside this widget, and asks with
+	 * a `cn-files-widget:upload` event that names the placement.
+	 *
+	 * @return {void}
+	 */
+	mounted() {
+		this.onHostUpload = (event) => {
+			const id = event?.detail?.placementId
+			if (id !== undefined && String(id) === String(this.placement?.id) && this.canShowUpload) {
+				this.triggerUpload()
+			}
+		}
+		window.addEventListener('cn-files-widget:upload', this.onHostUpload)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('cn-files-widget:upload', this.onHostUpload)
 	},
 
 	methods: {

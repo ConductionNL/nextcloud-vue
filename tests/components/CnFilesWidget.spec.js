@@ -303,3 +303,20 @@ describe('CnFilesWidget — compact layout (LpWerkplek)', () => {
 		expect(fileWhenText('not a date', now, 'en-GB')).toBe('not a date')
 	})
 })
+
+describe('CnFilesWidget — upload asked by the host', () => {
+	it('opens the file picker when the host asks for its placement, also in the compact layout', async () => {
+		axios.get.mockResolvedValue({ data: { items: [], canWrite: true } })
+		const wrapper = mount(CnFilesWidget, { attachTo: document.body, propsData: { placement: { id: 5 }, content: { layout: 'compact', allowUpload: true } } })
+		await flush(wrapper)
+		const input = wrapper.find('input[type="file"]')
+		expect(input.exists()).toBe(true)
+		const click = jest.spyOn(input.element, 'click').mockImplementation(() => {})
+
+		window.dispatchEvent(new CustomEvent('cn-files-widget:upload', { detail: { placementId: 6 } }))
+		expect(click).not.toHaveBeenCalled()
+		window.dispatchEvent(new CustomEvent('cn-files-widget:upload', { detail: { placementId: 5 } }))
+		expect(click).toHaveBeenCalledTimes(1)
+		wrapper.unmount()
+	})
+})
