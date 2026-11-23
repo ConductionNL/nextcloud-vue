@@ -140,7 +140,11 @@
 				     event's time beside its title and place, ruled apart, with a
 				     day heading only when the list spans more than one day
 				     (LpVandaag "Agenda vandaag", LpWerkplek "Agenda"). -->
-				<ul v-else-if="listLayout" class="cn-calendar-widget__list" data-testid="cn-calendar-widget-list">
+				<ul
+					v-else-if="listLayout"
+					class="cn-calendar-widget__list"
+					:class="{ 'cn-calendar-widget__list--stacked': stackedLayout }"
+					data-testid="cn-calendar-widget-list">
 					<template v-for="group in agendaGroups" :key="group.iso">
 						<li v-if="agendaGroups.length > 1" class="cn-calendar-widget__agenda-header">
 							{{ group.label }}
@@ -289,7 +293,18 @@ export default {
 		 * @return {boolean} true for the list layout.
 		 */
 		listLayout() {
-			return Boolean(this.content && this.content.agendaLayout === 'list')
+			return Boolean(this.content && ['list', 'stacked'].includes(this.content.agendaLayout))
+		},
+
+		/**
+		 * Whether the list puts each event's time above its title
+		 * (`content.agendaLayout: 'stacked'`), for a narrow card (LpWerkplek
+		 * "Agenda").
+		 *
+		 * @return {boolean} true for the stacked list.
+		 */
+		stackedLayout() {
+			return Boolean(this.content && this.content.agendaLayout === 'stacked')
 		},
 
 		/**
@@ -1050,6 +1065,24 @@ export default {
 .cn-calendar-widget__list-row:first-child,
 .cn-calendar-widget__agenda-header + .cn-calendar-widget__list-row {
 	border-top: none;
+}
+
+.cn-calendar-widget__list--stacked .cn-calendar-widget__list-row {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 4px;
+	padding: 10px 0;
+}
+
+.cn-calendar-widget__list--stacked .cn-calendar-widget__list-time {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__list--stacked .cn-calendar-widget__list-title {
+	font-weight: 600;
+}
+
+.cn-calendar-widget__list--stacked .cn-calendar-widget__list-place {
+	font-size: 13px;
 }
 
 .cn-calendar-widget__list-time {
