@@ -254,3 +254,31 @@ describe('CnTimelineWidget manage mode: the composer in the board\'s words (DqZa
 		expect(nl['Add it to the timeline']).toBe('Aan de tijdlijn toevoegen')
 	})
 })
+
+describe('CnTimelineWidget manage mode: kinds and messages in the reader\'s language', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+	})
+
+	it('names a kind by the host\'s translated label and reads a keyed message translated', async () => {
+		reads({
+			entries: [
+				{ id: 'e1', message: 'Termijn gestart', kind: 'telefoon', author: 'ann', created: '2026-10-01T09:00:00Z', visibility: 'internal', fields: { messageKey: 'Deadline started by {date}', messageVars: { date: '4 Jan' } } },
+				{ id: 'e2', message: 'Gebeld', kind: 'telefoon', author: 'ann', created: '2026-10-02T09:00:00Z', visibility: 'internal' },
+			],
+		})
+		const cnTranslate = (text, vars = {}) => `EN:${text.replace(/\{(\w+)\}/g, (match, name) => vars[name] ?? match)}`
+		const wrapper = mount(CnTimelineWidget, {
+			props: { register: 'reg', schema: 'case', objectId: 'c-1', content: { manage: true, kindLabels: { telefoon: 'Call' } } },
+			global: { stubs, provide: { cnRegistry: {}, cnTranslate } },
+		})
+		await flushPromises()
+
+		const chips = wrapper.findAll('.cn-timeline-manage__chip').map((chip) => chip.text())
+		expect(chips.some((text) => text.startsWith('EN:Call'))).toBe(true)
+		const messages = wrapper.findAll('.cn-timeline-manage__message').map((message) => message.text())
+		expect(messages).toContain('EN:Deadline started by 4 Jan')
+		expect(messages).toContain('Gebeld')
+		expect(wrapper.find('[data-testid="cn-timeline-export"]').text()).toBe('Download')
+	})
+})

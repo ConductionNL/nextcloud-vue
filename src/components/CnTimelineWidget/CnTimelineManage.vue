@@ -42,7 +42,7 @@
 						<template #icon>
 							<Download :size="20" />
 						</template>
-						{{ t('nextcloud-vue', 'Export') }}
+						{{ t('nextcloud-vue', 'Download') }}
 					</NcButton>
 				</div>
 			</div>
@@ -112,7 +112,7 @@
 						<CnIcon :name="kindIcon(entry)" :size="16" />
 					</span>
 					<p class="cn-timeline-manage__message">
-						{{ entry.message }}<span v-if="entryDetail(entry)" class="cn-timeline-manage__detail">: {{ entryDetail(entry) }}</span>
+						{{ entryMessage(entry) }}<span v-if="entryDetail(entry)" class="cn-timeline-manage__detail">: {{ entryDetail(entry) }}</span>
 					</p>
 
 					<div class="cn-timeline-manage__head">
@@ -335,6 +335,11 @@ export default {
 		 * beoordeeld: Mail aannemer over planning"), its author by display
 		 * name, and its kind's icon in the rail circle: `kindIcons`
 		 * (`{ kind: iconName }`), else the `icon` the kind declares.
+		 * `kindLabels` (`{ kind: label }`) names a kind in the host's words,
+		 * translated for the reader, before the title the kind declares. An
+		 * entry whose `fields.messageKey` is set reads that key translated by
+		 * the host, filled with `fields.messageVars`; its stored `message`
+		 * stays as written for every other reader.
 		 * `errorTitle` and `errorText` word a failed read in the host's own
 		 * words; a failed read always offers Try again.
 		 */
@@ -499,7 +504,7 @@ export default {
 		 * @return {Array<object>} The options.
 		 */
 		kindOptions() {
-			const options = [{ id: '', label: t('nextcloud-vue', 'Note') }].concat(this.kinds.map((kind) => ({ id: kind.slug, label: kind.title || kind.slug })))
+			const options = [{ id: '', label: t('nextcloud-vue', 'Note') }].concat(this.kinds.map((kind) => ({ id: kind.slug, label: this.kindName(kind.slug, kind.title) })))
 			return this.includeReads ? options.concat([{ id: READ_KIND, label: t('nextcloud-vue', 'Viewed') }]) : options
 		},
 
@@ -782,7 +787,7 @@ export default {
 			const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
 			const rows = [[t('nextcloud-vue', 'When'), t('nextcloud-vue', 'Kind'), t('nextcloud-vue', 'Who'), t('nextcloud-vue', 'Visibility'), t('nextcloud-vue', 'Message')]]
 			for (const entry of this.entries) {
-				rows.push([entry.created, this.kindLabel(entry), entry.author, entry.visibility, entry.message])
+				rows.push([entry.created, this.kindLabel(entry), entry.author, entry.visibility, this.entryMessage(entry)])
 			}
 			return rows.map((row) => row.map(cell).join(',')).join('\r\n')
 		},
@@ -879,7 +884,37 @@ export default {
 				return t('nextcloud-vue', 'Note')
 			}
 			const declared = this.kinds.find((kind) => kind.slug === entry.kind)
-			return declared?.title || entry.kind
+			return this.kindName(entry.kind, declared?.title)
+		},
+
+		/**
+		 * A kind's name for the reader: the host's `kindLabels` word, translated, else the declared title, else the slug.
+		 *
+		 * @param {string} slug The kind.
+		 * @param {string} [title] The title the kind declares.
+		 * @return {string} The name.
+		 */
+		kindName(slug, title) {
+			const label = this.content?.kindLabels?.[slug]
+			if (typeof label === 'string' && label !== '') {
+				return this.translate(label)
+			}
+			return title || slug
+		},
+
+		/**
+		 * The text an entry reads: its `fields.messageKey` in the reader's language, else the stored message.
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The text.
+		 */
+		entryMessage(entry) {
+			const key = entry.fields?.messageKey
+			if (typeof key === 'string' && key !== '' && typeof this.cnTranslate === 'function') {
+				const vars = entry.fields.messageVars && typeof entry.fields.messageVars === 'object' ? entry.fields.messageVars : {}
+				return this.cnTranslate(key, vars)
+			}
+			return entry.message
 		},
 
 		/**
