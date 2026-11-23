@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.190.0",
+	"version": "2.191.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3461,6 +3461,11 @@
 					"type": "boolean",
 					"default": false,
 					"description": "open-form: open the properties-and-JSON table (CnAdvancedFormDialog) instead of the plain form. The plain form is the default because a header button is aimed at someone filing a record, not at inspecting its schema."
+				},
+				"menu": {
+					"type": "boolean",
+					"default": false,
+					"description": "Bulk actions only: list the action under More in the selection strip and the bulk band instead of as a button of its own, so a band keeps the buttons its board draws on one row. Ignored on other surfaces."
 				},
 				"formTitle": {
 					"type": "string",

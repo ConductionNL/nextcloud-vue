@@ -4161,6 +4161,14 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
+/* A narrow side card's table wraps its words, as DqTeamwachtrij draws
+   "Melding openbare / ruimte": a host column can hand it a no-wrap rule, and
+   one long case type then pushed the last column out of the card. */
+.cn-record-list__table th,
+.cn-record-list__table td {
+	white-space: normal;
+}
+
 .cn-record-list__cell-sub {
 	display: block;
 	color: var(--color-text-maxcontrast);
