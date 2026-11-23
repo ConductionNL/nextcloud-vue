@@ -24,6 +24,7 @@ const fields = fieldsFromSchema(schema, {
 | `options.overrides` | `object` | `{}` | Per-key overrides merged onto the descriptor. A `{ readOnly: false }` override on a schema-`readOnly` key also **un-skips** it (surfacing a single read-only field as editable — e.g. a denormalised name editable only on create — without flipping the whole form to `includeReadOnly`). |
 | `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped (except a key whose override sets `readOnly: false`). |
 | `options.hideTenant` | `boolean` | `false` | When `true`, properties that hold the record's tenant are dropped: ones named `tenant`, `tenant_id` / `tenantId` or `tenant_uuid`, or marked `x-openregister-tenant: true`, `x-platform-managed: true`, `x-managed-by: 'platform'`, `format: 'tenant'` or `referenceType: 'tenant'`. `x-openregister-tenant: false` opts a property out, and an `overrides[key].hidden === false` keeps one. `CnFormDialog` turns this on, because nobody should be asked for the tenant. It is off by default, so a detail page still shows it. |
+| `options.isAdmin` | `boolean` | the signed-in user's `isAdmin` | Whether the viewer is an instance administrator. A property marked `x-admin-only: true` is dropped for anyone else. It hides a control and nothing more: the server still decides who may change the value. |
 | `options.translate` | `(text: string) => string` | — | Display-layer translation applied to each field's `label` and `description`. Schema titles/descriptions are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the rendered label follows the user's language. Omitted leaves the English source strings unchanged. |
 | `options.language` | `string` | `''` | The user's language (`nl`, `en_GB`), used to pick from a language map in a property's `x-help`: exact code, base language, `en`, then the first entry. |
 
@@ -103,6 +104,7 @@ Properties are dropped when:
 - `prop.visible === false`
 - `prop.readOnly === true` and `includeReadOnly !== true`
 - the property holds the record's tenant and `hideTenant === true`
+- the property is marked `x-admin-only: true` and the viewer is not an instance administrator (`options.isAdmin`)
 - key in `exclude`, or not in `include` (when provided)
 - `prop.type === 'object'` **unless** `prop.widget` is set (auto-forms don't render nested objects by default; set `widget: 'json'` or `widget: 'code'` to opt an object property back in and let `CnFormDialog` render a `CnJsonViewer` for it).
 
