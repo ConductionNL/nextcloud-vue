@@ -1,10 +1,22 @@
 import { useObjectCopy } from '../../composables/useObjectCopy.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
+	copyOverrideValues,
 	runSelfExportRequest,
 	runSelfImportRequest,
 } from './selfModeIO.js'
+
+/**
+ * The page's `copy.overrides` as plain field values.
+ *
+ * @param {object} ctx The page context.
+ * @return {object} The values.
+ */
+function copyOverridesOf(ctx) {
+	return copyOverrideValues(typeof ctx.copyOverrides === 'function' ? ctx.copyOverrides() : null)
+}
 
 function resolveNameField(ctx) {
 	return ctx.effectiveSchema()?.configuration?.objectNameField
@@ -202,7 +214,7 @@ export function createSelfModeActions(ctx) {
 			const address = include.length > 0 ? copyAddress(ctx, source) : null
 			if (address) {
 				try {
-					const copied = await useObjectCopy().copy(address, newName, include, { [resolveNameField(ctx)]: newName })
+					const copied = await useObjectCopy().copy(address, newName, include, { ...copyOverridesOf(ctx), [resolveNameField(ctx)]: newName })
 					ctx.setResults.singleCopy({ success: true, object: copied.object, links: copied.links })
 					ctx.emit('copy', payload)
 					refreshList(ctx)
@@ -214,7 +226,7 @@ export function createSelfModeActions(ctx) {
 					}
 				}
 			}
-			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx))
+			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx), copyOverridesOf(ctx))
 			const type = typeFor(ctx, source)
 			const saved = await ctx.selfObjectStore().saveObject(type, clone)
 			if (saved) {
@@ -251,7 +263,7 @@ export function createSelfModeActions(ctx) {
 			const address = serverCopy ? copyAddress(ctx, source) : null
 			if (address) {
 				try {
-					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { [nameField]: getName(source) })
+					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { ...copyOverridesOf(ctx), [nameField]: getName(source) })
 					links.push(...copied.links.map((l) => ({ ...l, source: id })))
 					successfulIds.push(id)
 					continue
@@ -263,7 +275,7 @@ export function createSelfModeActions(ctx) {
 					serverCopy = false
 				}
 			}
-			const clone = cloneObjectForCopy(source, getName(source), nameField)
+			const clone = cloneObjectForCopy(source, getName(source), nameField, copyOverridesOf(ctx))
 			try {
 				const saved = await ctx.selfObjectStore().saveObject(typeFor(ctx, source), clone)
 				if (saved) {
@@ -317,13 +329,18 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			await runSelfImportRequest({
+			const dryRun = !!(payload && payload.options && payload.options.dryRun)
+			const report = await runSelfImportRequest({
 				register: ctx.register(),
 				schema: ctx.schema(),
 				file: payload && payload.file,
+				dryRun,
 			})
-			ctx.setResults.massImport({ success: true })
-			refreshList(ctx)
+			const summary = report && typeof report === 'object' ? (report.summary || null) : null
+			ctx.setResults.massImport({ success: true, dryRun, ...(summary ? { summary } : {}) })
+			if (!dryRun) {
+				refreshList(ctx)
+			}
 		} catch (err) {
 			ctx.setResults.massImport({ error: (err && err.message) || 'Import failed' })
 		}
@@ -337,7 +354,9 @@ export function createSelfModeActions(ctx) {
 		try {
 			const item = ctx.editItem()
 			const type = item ? typeFor(ctx, item) : ctx.selfObjectType()
-			const saved = await ctx.selfObjectStore().saveObject(type, formData)
+			// An edit writes only the keys the form changed (a PATCH), so keys
+			// the form does not show keep their stored value.
+			const saved = await saveEdited(ctx.selfObjectStore(), type, item || null, formData)
 			if (saved) {
 				ctx.setResults.form({ success: true })
 				const isCreate = !ctx.editItem()
@@ -367,7 +386,27 @@ export function createSelfModeActions(ctx) {
 		return true
 	}
 
+	/**
+	 * Save a row with new values (a PATCH of what changed) and reload the
+	 * list. Undefined when the page is not in self-fetch mode.
+	 *
+	 * @param {object} row The row as loaded.
+	 * @param {object} values The row with its new values.
+	 * @return {Promise<{saved: object|null}|undefined>} The saved row, or undefined.
+	 */
+	async function handleRowSave(row, values) {
+		if (!selfModeReady(ctx)) {
+			return undefined
+		}
+		const saved = await saveEdited(ctx.selfObjectStore(), typeFor(ctx, row), row, values)
+		if (saved) {
+			refreshList(ctx)
+		}
+		return { saved }
+	}
+
 	return {
+		handleRowSave,
 		handleSingleDelete,
 		handleMassDelete,
 		handleSingleCopy,

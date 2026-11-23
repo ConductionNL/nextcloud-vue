@@ -2,17 +2,20 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 2 direct references, 2 files reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name      | Type      | Required | Default | Description                                                                                                |
-| --------- | --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------- |
-| `content` | `object`  |          | `\{\}`  | Persisted widget content `{items, style, orientation, showIcons, expandedByDefault, activeItemHighlight}`. |
-| `isAdmin` | `boolean` |          | `false` | Whether the current user is an admin (pairs with `canEdit`).                                               |
-| `canEdit` | `boolean` |          | `false` | Whether the surrounding shell is in edit mode.                                                             |
+| Name         | Type                 | Required | Default | Description                                                                                                |
+| ------------ | -------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `content`    | `object`             |          | `\{\}`  | Persisted widget content `{items, style, orientation, showIcons, expandedByDefault, activeItemHighlight}`. |
+| `isAdmin`    | `boolean`            |          | `false` | Whether the current user is an admin (pairs with `canEdit`).                                               |
+| `canEdit`    | `boolean`            |          | `false` | Whether the surrounding shell is in edit mode.                                                             |
+| `title`      | `string`             |          | `''`    | Card title, from the detail page host on the board look.                                                   |
+| `objectId`   | `string&#124;number` |          | `null`  | The detail page's record id, for `@objectId` in a `countFrom` filter.                                      |
+| `objectData` | `object`             |          | `null`  | The detail page's record, for an item's `visibleIf` on `object.&lt;field&gt;`.                             |
 
 ### Events
 

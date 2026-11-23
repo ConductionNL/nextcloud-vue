@@ -48,6 +48,7 @@ In manifests:
 | `activeIndex` | Number | `null` | Zero-based index of the currently active tab, or `null` for none active. Pair it with `@update:active-index` (or `v-model:active-index`); the removed Vue-2 `model` option means a *bare* `v-model` binds nothing. |
 | `inline` | Boolean | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
 | `maxVisible` | Number | `0` | Chips mode only: how many pills render inline before the rest move behind an overflow chip. `0` renders every tab. |
+| `fit` | Boolean | `false` | Chips mode only: show as many chips as the bar's width holds and move the rest behind the overflow chip, measured again when the width, the tabs or the counts change. The bar takes the room it is given. With `maxVisible` too, the smaller of the two wins. |
 | `counts` | Object \| Array | `null` | How many records each tab matches, keyed by tab index. A tab with a number shows it after its label. A tab can also carry its own `count`. `null` shows no counts. |
 
 ## Events

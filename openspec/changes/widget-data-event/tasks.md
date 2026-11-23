@@ -1,0 +1,3 @@
+- [x] 1 The `widgetData` mixin and `seriesTotal()` (src/mixins/widgetData.js)
+- [x] 2 CnChartWidget and CnStatsBlockWidget emit `data` (tests/components/WidgetDataEvent.spec.js)
+- [x] 3 Documented in docs/components/cn-chart-widget.md and cn-stats-block-widget.md

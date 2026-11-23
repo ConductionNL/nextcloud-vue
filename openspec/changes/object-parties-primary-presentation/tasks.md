@@ -1,0 +1,3 @@
+- [x] 1 jest: the primary presentation (lead, e-mail, foot link with total and tab, no primary, failed read), red first
+- [x] 2 CnObjectPartiesWidget `presentation: "primary"` and `link`
+- [x] 3 docs/components/cn-object-parties-widget.md

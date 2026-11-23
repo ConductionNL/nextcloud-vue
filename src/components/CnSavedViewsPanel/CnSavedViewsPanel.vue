@@ -1,0 +1,627 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+<template>
+	<section class="cn-saved-views-panel" data-testid="cn-saved-views-panel" :aria-label="t('nextcloud-vue', 'Saved views')">
+		<div class="cn-saved-views-panel__head">
+			<NcButton
+				:variant="isBoardLook ? 'primary' : 'secondary'"
+				:wide="true"
+				data-testid="cn-saved-views-save"
+				@click="onSaveRequest">
+				<template #icon>
+					<ContentSaveOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Save view') }}
+			</NcButton>
+			<p class="cn-saved-views-panel__note">
+				{{ t('nextcloud-vue', 'Keeps the current search term, filters and sort under a name.') }}
+			</p>
+		</div>
+
+		<p v-if="loading" class="cn-saved-views-panel__note" data-testid="cn-saved-views-loading">
+			{{ t('nextcloud-vue', 'Loading…') }}
+		</p>
+		<p v-else-if="views.length === 0" class="cn-saved-views-panel__note" data-testid="cn-saved-views-empty">
+			{{ t('nextcloud-vue', 'No saved views yet') }}
+		</p>
+
+		<template v-else>
+			<div
+				v-if="offeredLabels.length > 0"
+				class="cn-saved-views-panel__labels"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Labels')">
+				<button
+					v-for="label in offeredLabels"
+					:key="`label-${label}`"
+					type="button"
+					class="cn-saved-views-panel__label"
+					data-testid="cn-saved-views-label"
+					:data-label="label"
+					:aria-pressed="labelFilter === label"
+					:aria-label="labelFilterLabel(label)"
+					@click="onLabelFilter(label)">
+					{{ label }}
+				</button>
+			</div>
+
+			<p
+				v-if="rows.length === 0"
+				class="cn-saved-views-panel__note"
+				data-testid="cn-saved-views-none-for-label">
+				{{ t('nextcloud-vue', 'No views with this label') }}
+			</p>
+
+			<template v-for="section in panelSections" :key="section.key">
+				<h4
+					v-if="section.label"
+					class="cn-saved-views-panel__section"
+					:data-testid="`cn-saved-views-section-${section.key}`">
+					{{ section.label }}
+					<span
+						v-if="section.key === 'seeded'"
+						class="cn-saved-views-panel__read-only"
+						data-testid="cn-saved-views-read-only">
+						<LockOutline :size="14" />
+						{{ t('nextcloud-vue', 'Read only') }}
+					</span>
+				</h4>
+				<p v-if="sectionHint(section.key)" class="cn-saved-views-panel__note">
+					{{ sectionHint(section.key) }}
+				</p>
+				<ul class="cn-saved-views-panel__list">
+					<li
+						v-for="row in shownRows(section)"
+						:key="`view-${idOf(row.view)}`"
+						class="cn-saved-views-panel__row"
+						:class="{ 'cn-saved-views-panel__row--selected': isSelected(row.view) }">
+						<button
+							type="button"
+							class="cn-saved-views-panel__name"
+							data-testid="cn-saved-views-item"
+							:data-view-id="idOf(row.view)"
+							:data-depth="row.depth"
+							:data-group="row.group"
+							:data-access="accessOf(row)"
+							:aria-pressed="isSelected(row.view)"
+							:aria-label="isInMenu(row.view) ? t('nextcloud-vue', '{name}, in the menu', { name: rowLabel(row) }) : rowLabel(row)"
+							@click="emitFor('apply', row.view)">
+							<span class="cn-saved-views-panel__name-text">
+								<Pin
+									v-if="isBoardLook && isInMenu(row.view)"
+									class="cn-saved-views-panel__in-menu"
+									data-testid="cn-saved-views-in-menu"
+									:size="14"
+									aria-hidden="true" />{{ rowText(row) }}
+							</span>
+							<span v-if="subline(row, section.key)" class="cn-saved-views-panel__subline">{{ subline(row, section.key) }}</span>
+						</button>
+						<span
+							v-if="isBoardLook && countOf(row.view) !== null"
+							class="cn-saved-views-panel__count"
+							data-testid="cn-saved-views-count">{{ countOf(row.view) }}</span>
+						<NcActions
+							:aria-label="manageLabel(row.view)"
+							:forceMenu="true"
+							placement="bottom-end"
+							data-testid="cn-saved-views-manage"
+							:data-view-id="idOf(row.view)">
+							<NcActionButton
+								v-if="can(row, 'edit')"
+								data-testid="cn-saved-views-edit"
+								:data-view-id="idOf(row.view)"
+								:description="t('nextcloud-vue', 'Name, search term, filters and sort')"
+								:closeAfterClick="true"
+								@click="emitFor('edit-request', row.view)">
+								<template #icon>
+									<PencilOutline :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Edit') }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="can(row, 'update')"
+								data-testid="cn-saved-views-update"
+								:data-view-id="idOf(row.view)"
+								:closeAfterClick="true"
+								@click="emitFor('update-request', row.view)">
+								<template #icon>
+									<Refresh :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Update with current filters') }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="can(row, 'share')"
+								data-testid="cn-saved-views-share"
+								:data-view-id="idOf(row.view)"
+								:description="t('nextcloud-vue', 'With people and groups')"
+								:closeAfterClick="true"
+								@click="emitFor('share-request', row.view)">
+								<template #icon>
+									<ShareVariantOutline :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Share') }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="can(row, 'copy')"
+								data-testid="cn-saved-views-copy"
+								:data-view-id="idOf(row.view)"
+								:closeAfterClick="true"
+								@click="emitFor('copy-request', row.view)">
+								<template #icon>
+									<ContentCopy :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Save a copy') }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="canPin"
+								data-testid="cn-saved-views-menu"
+								:data-view-id="idOf(row.view)"
+								:description="isInMenu(row.view) ? t('nextcloud-vue', 'Leaves the menu on the left; the view stays') : t('nextcloud-vue', 'Appears under My views in the menu on the left')"
+								:closeAfterClick="true"
+								@click="emitFor('menu-toggle', row.view)">
+								<template #icon>
+									<PinOffOutline v-if="isInMenu(row.view)" :size="20" />
+									<PinOutline v-else :size="20" />
+								</template>
+								{{ isInMenu(row.view) ? t('nextcloud-vue', 'Remove from menu') : t('nextcloud-vue', 'Add to menu') }}
+							</NcActionButton>
+							<NcActionSeparator v-if="can(row, 'delete')" />
+							<NcActionButton
+								v-if="can(row, 'delete')"
+								data-testid="cn-saved-views-delete"
+								:data-view-id="idOf(row.view)"
+								:description="t('nextcloud-vue', 'Also for whoever it is shared with')"
+								:closeAfterClick="true"
+								@click="emitFor('delete-request', row.view)">
+								<template #icon>
+									<TrashCanOutline :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Delete') }}
+							</NcActionButton>
+						</NcActions>
+					</li>
+				</ul>
+				<button
+					v-if="secondaryRows(section).length > 0"
+					type="button"
+					class="cn-saved-views-panel__more"
+					data-testid="cn-saved-views-more-defaults"
+					:aria-expanded="moreDefaultsOpen ? 'true' : 'false'"
+					@click="moreDefaultsOpen = !moreDefaultsOpen">
+					<ChevronUp v-if="moreDefaultsOpen" :size="18" />
+					<ChevronDown v-else :size="18" />
+					{{ moreDefaultsOpen ? t('nextcloud-vue', 'Fewer default views') : t('nextcloud-vue', 'More default views') }}
+				</button>
+			</template>
+		</template>
+	</section>
+</template>
+
+<script>
+import { NcActionButton, NcActions, NcActionSeparator, NcButton } from '@nextcloud/vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
+import Pin from 'vue-material-design-icons/Pin.vue'
+import PinOffOutline from 'vue-material-design-icons/PinOffOutline.vue'
+import PinOutline from 'vue-material-design-icons/PinOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { savedViewsList } from '../../mixins/savedViewsList.js'
+import { VIEW_GROUPS } from '../../utils/buildViewTree.js'
+
+/**
+ * CnSavedViewsPanel — the saved views of an index page, in the Filters tab
+ * of its sidebar: Save view, then My views, Shared with me and the
+ * read-only Default views, and per view one "Manage {name}" menu with
+ * Edit, Update with current filters, Share, Save a copy, Add to menu or Remove
+ * from menu, and Delete. Entries show by the caller's access: the owner gets
+ * Edit, Update, Share, Save a copy and Delete; a view shared with write access gets
+ * Update and Save a copy; one shared to use, and a default, get Save a copy.
+ * Add to menu is there for every view when the app has a menu. The server
+ * stays the authority.
+ *
+ * Presentational: `CnIndexPage` owns fetching and every write.
+ *
+ * @event {object} apply — Apply the view. Payload: the View API object.
+ * @event {void} save-request — Save the current filters as a new one.
+ * @event {object} edit-request — Edit an own view.
+ * @event {object} share-request — Share an own view.
+ * @event {object} update-request — Save the current filters into it (owner, write).
+ * @event {object} copy-request — Save a copy of a view.
+ * @event {object} menu-toggle — Add the view to the app menu, or remove it.
+ * @event {object} delete-request — Delete an own view (after confirmation).
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+ */
+export default {
+	name: 'CnSavedViewsPanel',
+
+	components: {
+		NcActionButton,
+		NcActions,
+		NcActionSeparator,
+		NcButton,
+		ChevronDown,
+		ChevronUp,
+		ContentCopy,
+		ContentSaveOutline,
+		LockOutline,
+		PencilOutline,
+		Pin,
+		PinOffOutline,
+		PinOutline,
+		Refresh,
+		ShareVariantOutline,
+		TrashCanOutline,
+	},
+
+	mixins: [savedViewsList],
+
+	inject: {
+		/** The look CnAppRoot (or the page) draws in. */
+		cnLook: { default: 'nextcloud' },
+	},
+
+	props: {
+		/**
+		 * The ids of the views this user put in the app menu, or `null` when
+		 * the page cannot pin (no app shell to hold the menu).
+		 *
+		 * @type {Array<string>|null}
+		 */
+		menuIds: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * What each view filters on, by view id, in words: the line under a
+		 * view that has no description of its own.
+		 *
+		 * @type {object|null}
+		 */
+		summaries: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	emits: [
+		/** Apply the view. Payload: the View API object. */
+		'apply',
+		/** Save a copy of a view. Payload: the view. */
+		'copy-request',
+		/** Delete an own view, after confirmation. Payload: the view. */
+		'delete-request',
+		/** Edit an own view. Payload: the view. */
+		'edit-request',
+		/** Add the view to the app menu, or remove it. Payload: the view. */
+		'menu-toggle',
+		/** Save the current filters as a new view. */
+		'save-request',
+		/** Share an own view. Payload: the view. */
+		'share-request',
+		/** Save the current filters into the view (owner, write). Payload: the view. */
+		'update-request',
+	],
+
+	data() {
+		return {
+			/** Whether the default views marked `secondary` are shown. */
+			moreDefaultsOpen: false,
+		}
+	},
+
+	computed: {
+		/** @return {boolean} Whether the panel is drawn as the boards draw it. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The sections in the order the panel draws them: in the board look
+		 * the reader's own views first and the read-only defaults last, as
+		 * DqFilterBeheren draws it; the Nextcloud look keeps the defaults first.
+		 *
+		 * @return {Array<{key: string, label: string, rows: Array<object>}>}
+		 */
+		panelSections() {
+			if (!this.isBoardLook) {
+				return this.sections
+			}
+			const rank = { mine: 0, shared: 1, seeded: 2 }
+			return [...this.sections].sort((a, b) => (rank[a.key] ?? 0) - (rank[b.key] ?? 0))
+		},
+
+		/** @return {boolean} Whether Add to menu is offered. */
+		canPin() {
+			return Array.isArray(this.menuIds)
+		},
+	},
+
+	methods: {
+		/**
+		 * The default views marked `secondary` in a section: they wait behind
+		 * "More default views" (DqFilterBeheren draws three defaults and keeps
+		 * the rest a click away).
+		 *
+		 * @param {{key: string, rows: Array<object>}} section The section.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/default-views-secondary/specs/default-views-secondary/spec.md#requirement-a-default-view-can-wait-behind-more-default-views
+		 */
+		secondaryRows(section) {
+			return section.key === 'seeded' ? section.rows.filter((row) => row.view.secondary === true) : []
+		},
+
+		/**
+		 * The rows a section shows: every row, less the secondary defaults
+		 * while they are folded away, unless the applied view is one of them.
+		 *
+		 * @param {{key: string, rows: Array<object>}} section The section.
+		 * @return {Array<object>}
+		 * @spec openspec/changes/default-views-secondary/specs/default-views-secondary/spec.md#requirement-a-default-view-can-wait-behind-more-default-views
+		 */
+		shownRows(section) {
+			const secondary = this.secondaryRows(section)
+			if (secondary.length === 0 || this.moreDefaultsOpen || secondary.some((row) => this.isSelected(row.view))) {
+				return section.rows
+			}
+			return section.rows.filter((row) => row.view.secondary !== true)
+		},
+
+		/**
+		 * The stable id of a view: its id, else its slug.
+		 *
+		 * @param {object} view The view.
+		 * @return {string}
+		 */
+		idOf(view) {
+			return String(view.id || view.slug)
+		},
+
+		/**
+		 * Whether a row offers an entry, by the caller's access. A default
+		 * view offers a copy only.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @param {'edit'|'share'|'update'|'copy'|'delete'} entry The entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-2
+		 */
+		can(row, entry) {
+			if (row.group === VIEW_GROUPS.SEEDED) {
+				return entry === 'copy'
+			}
+			const allowed = {
+				owner: ['edit', 'update', 'share', 'copy', 'delete'],
+				write: ['update', 'copy'],
+				read: ['copy'],
+			}
+			return (allowed[this.accessOf(row)] || []).includes(entry)
+		},
+
+		/**
+		 * Whether a view is in the app menu, by its id or its uuid.
+		 *
+		 * @param {object} view The view.
+		 * @return {boolean}
+		 */
+		isInMenu(view) {
+			return this.canPin && (this.menuIds.includes(this.idOf(view)) || (Boolean(view.uuid) && this.menuIds.includes(String(view.uuid))))
+		},
+
+		/**
+		 * The name a row shows: in the board look without its count, which
+		 * stands in its own pill at the end of the row.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {string}
+		 */
+		rowText(row) {
+			return this.isBoardLook ? `${' '.repeat(row.depth * 2)}${row.view.name}` : this.rowName(row)
+		},
+
+		/**
+		 * The line under a section caption.
+		 *
+		 * @param {string} key The section key.
+		 * @return {string}
+		 */
+		sectionHint(key) {
+			if (key === 'shared') {
+				return this.t('nextcloud-vue', 'From colleagues. You can use them and save a copy.')
+			}
+			if (key === 'seeded') {
+				return this.t('nextcloud-vue', 'Shipped with the app; a new version updates them.')
+			}
+			return ''
+		},
+
+		/**
+		 * The second line of a row: the view's description, else who shared it,
+		 * else what it filters on (`summaries`).
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @param {string} sectionKey The section the row is in.
+		 * @return {string}
+		 */
+		subline(row, sectionKey) {
+			const description = typeof row.view.description === 'string' ? row.view.description.trim() : ''
+			if (description !== '') {
+				return description
+			}
+			if (sectionKey === 'shared' && row.view.owner) {
+				return this.t('nextcloud-vue', 'By {owner}', { owner: row.view.ownerDisplayName || row.view.owner })
+			}
+			const summary = this.summaries && this.summaries[this.idOf(row.view)]
+			return typeof summary === 'string' ? summary : ''
+		},
+
+		manageLabel(view) {
+			return this.t('nextcloud-vue', 'Manage "{name}"', { name: view.name })
+		},
+
+		onSaveRequest() {
+			/** @event save-request Save the current filters as a new one. */
+			this.$emit('save-request')
+		},
+
+		/**
+		 * Emit one of the per-view intents with its view.
+		 *
+		 * @param {string} event The event name, one of `emits`.
+		 * @param {object} view The view.
+		 */
+		emitFor(event, view) {
+			this.$emit(event, view)
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-saved-views-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.cn-saved-views-panel__head {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-saved-views-panel__section {
+	margin: 8px 0 0;
+	font-size: var(--font-size-small, 13px);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-views-panel__read-only {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-inline-start: 8px;
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+	vertical-align: middle;
+}
+
+.cn-saved-views-panel__more {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	align-self: flex-start;
+	min-height: var(--default-clickable-area);
+	padding: 0 8px;
+	border: 0;
+	border-radius: var(--border-radius-element, var(--border-radius-large));
+	background: transparent;
+	color: var(--color-primary-element-light-text);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-saved-views-panel__more:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-saved-views-panel__note {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-views-panel__labels {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.cn-saved-views-panel__label {
+	min-height: var(--default-clickable-area);
+	padding: 0 12px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-saved-views-panel__label[aria-pressed='true'] {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-saved-views-panel__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-saved-views-panel__row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	border-radius: var(--border-radius-element, var(--border-radius-large));
+}
+
+.cn-saved-views-panel__row--selected {
+	background: var(--color-primary-element-light);
+}
+
+.cn-saved-views-panel__name {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: var(--default-clickable-area);
+	padding: 0 8px;
+	border: 0;
+	background: transparent;
+	color: var(--color-main-text);
+	text-align: start;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-saved-views-panel__name {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.cn-saved-views-panel__name-text,
+.cn-saved-views-panel__subline {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-saved-views-panel__in-menu {
+	display: inline-flex;
+	margin-inline-end: 6px;
+	vertical-align: -2px;
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-saved-views-panel__subline {
+	font-size: var(--font-size-small, 13px);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-saved-views-panel__name:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+</style>

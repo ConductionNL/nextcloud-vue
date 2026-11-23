@@ -1,0 +1,2 @@
+- [x] 1.1 dayAfterIso / daysUntilIso / dateValue (tests/utils/transitionInputsDateFor.spec.js)
+- [x] 1.2 CnTransitionInputFields draws and writes the date (tests/components/CnTransitionInputFieldsDateFor.spec.js)

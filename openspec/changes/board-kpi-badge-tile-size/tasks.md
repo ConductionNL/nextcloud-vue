@@ -1,0 +1,2 @@
+- [x] kpi-card.css rule for badge-end board tiles
+- [x] Spec tests/css/kpiCardBadgeTileSize.spec.js

@@ -72,7 +72,10 @@ calls the suggestion `nested-interactive` when you try it.
 | `rows` | `Array` | `[]` | The rows the list holds. |
 | `statusFieldSchema` | `Object` | `null` | The status field's schema: its `enum` or its lifecycle `states`. |
 | `statusField` | `String` | `'status'` | The property a row's status lives on. |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). With `cardRoles.resolve: { colorField?, iconField? }` the card's pill takes its record's tone and icon from here. |
 | `cardFields` | `Array` | `[]` | The fields a card shows. Keep it short: a card is scanned, not read. |
+| `cardActions` | `Array` | `[]` | The actions each card offers in its own menu, as the index page's row actions (`{ id, label, icon?, handler(card), visibleWhen? }`). The index page passes the row actions named in `config.board.cardActions`. A pick emits `card-action`. |
+| `cardCells` | `Object` | `null` | How a card field is drawn: `{ [field]: { widget?, widgetProps?, formatter? } }`, the cell config a table column takes, through CnCellRenderer with the card as its row (a priority badge, a value with its currency, a close date with its due text). A field without one is text. In the board look the cell fields are drawn as a line of cells under the pill. Manifest `config.board.cardCells`. |
 | `swimlaneField` | `String` | `''` | A second field to group the board into rows by. |
 | `rowKey` | `String` | `'id'` | The row key. |
 | `runTransition` | `Function` | `null` | `({ card, toKey }) => Promise`. The only way the status changes. |
@@ -84,11 +87,20 @@ calls the suggestion `nested-interactive` when you try it.
 | `sumField` | `String` | `''` | Board look: a numeric field summed under each column heading. |
 | `sumFormat` | `Object` | `null` | Board look: metric format of the sum. |
 | `columnLimit` | `Number` | `0` | Cards drawn per column before "Show N more"; 0 draws all. |
+| `fullNote` | `String` | `''` | The line under a full column's heading (`config.board.fullNote`). |
+| `mergedNote` | `String` | `''` | The line under a column merged from several rows, with `{count}` (`config.board.mergedNote`). |
 | `columnKeyOf` | `Function` | `null` | `(row) => string`: the column a row sits in, for a status whose raw value is not the column key (a reference whose rows are merged by name). Absent, the row's `statusField` value is the key. |
 | `wrapColumns` | `Boolean` | `false` | Wrap the columns onto more rows, as many to a row as fit at 240px, instead of one row that scrolls sideways (`config.board.wrap`). |
 | `selectable` | `Boolean` | `false` | A checkbox on every card, for the list's bulk actions. |
 | `selectedIds` | `Array` | `[]` | The selected cards, by row key. |
 | `allowedMoves` | `Function` | `null` | `(card) => Promise<Array<string>\|null>`: the column keys a card can reach, `null` for all. See below. |
+
+## Closed columns
+
+A state with `closed: true` (from a reference column's `closedField`, a won or
+lost stage) draws its column collapsed: the header and count, no cards, and the
+"Show N more" button that opens it. It still takes a drop, so a card can be
+moved into a closed stage without opening it first.
 
 ## Late cards
 

@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 3 direct references, 3 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 3 direct references, 13 files reached through imports.
 
-Through: `CnActionsMenu`, `CnMapWidget`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`, `CnMapWidget`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -33,8 +33,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                       | Payload | Description                                                                                     |
-| ---------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `saved`                                                    | —       | Emitted after `@self.geo` is persisted. Payload is the saved geo value (GeoJSON Point or null). |
-| `update:geo`                                               | —       |                                                                                                 |
-| `update:geo Sibling of `saved`for`.sync`-style consumers.` | —       |                                                                                                 |
+| Name         | Payload | Description                                                                                     |
+| ------------ | ------- | ----------------------------------------------------------------------------------------------- |
+| `saved`      | —       | Emitted after `@self.geo` is persisted. Payload is the saved geo value (GeoJSON Point or null). |
+| `update:geo` | —       | Sibling of `saved` for `.sync`-style consumers.                                                 |

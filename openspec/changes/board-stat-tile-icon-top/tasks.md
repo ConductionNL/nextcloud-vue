@@ -1,0 +1,4 @@
+- [x] CnStatWidget `hasTopBadge` and the top circle
+- [x] kpi-card.css `cn-kpi-card__badge--top`
+- [x] Specs tests/components/CnStatWidgetIconTop.spec.js, tests/css/kpiCardIconTop.spec.js
+- [x] docs/components/cn-stat-widget.md

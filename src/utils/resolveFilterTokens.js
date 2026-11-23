@@ -17,6 +17,12 @@
  *                           in no group, so the caller waits instead of sending
  *                           an empty IN list (which OpenRegister reads as "no
  *                           constraint"). Spread in place inside an IN-list array.
+ *  - `@myTeam`            → the current user's primary team, a Nextcloud group id,
+ *                           as the app answers it (`registerMyTeamSource`;
+ *                           `ctx.myTeam` wins). Stays UNRESOLVED while it is read;
+ *                           a user in no team gets `@myTeam?`, an optional token
+ *                           the caller drops, so the filter goes away rather than
+ *                           widening to all of the user's groups.
  *  - `@now`               → the current instant, ISO-8601
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
@@ -37,6 +43,10 @@
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
+ *  - `@context.<name>.<path>` → a value off a record the detail page reads beside
+ *                           the loaded one (needs `ctx.context`); left as written
+ *                           while that record is not read
+ *  - `@resolved.<path>`  → a field off the record an action's `resolve` block looked up (needs `ctx.resolved`)
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -66,13 +76,35 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
-import { TODAY_DELTA_RE } from './sentinelTokens.js'
 // userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
 // this resolver runs on public pages and in node (see userGroupsPeek.js).
+import { peekMyTeam } from './myTeam.js'
+import { readPath } from './readPath.js'
+import { TODAY_DELTA_RE } from './sentinelTokens.js'
 import { peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** The filter token for the current user's group ids. */
 export const MY_GROUPS_TOKEN = '@myGroups'
+
+/** The filter token for the current user's primary team. */
+export const MY_TEAM_TOKEN = '@myTeam'
+
+/**
+ * Resolve `@myTeam`: the team's group id, or the ids of several teams when the
+ * app answers a list (an IN filter); `@myTeam` while it is being read (the
+ * caller waits); `@myTeam?` for a user in no team (the caller drops the key).
+ *
+ * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
+ * @param {{myTeam?: (string|string[])}} [ctx] Optional context; `ctx.myTeam` wins.
+ * @return {string|string[]} The group id(s) or the token.
+ */
+function resolveMyTeam(ctx) {
+	const team = ctx && (typeof ctx.myTeam === 'string' || Array.isArray(ctx.myTeam)) ? ctx.myTeam : peekMyTeam()
+	if (team === null) {
+		return MY_TEAM_TOKEN
+	}
+	return team === '' ? `${MY_TEAM_TOKEN}?` : team
+}
 
 /**
  * Resolve `@myGroups`: the current user's group ids, or the token itself while
@@ -111,6 +143,30 @@ function ymd(d) {
 }
 
 /**
+ * Fill each `{@config.<key>}` inside a token from `ctx.config`, so a token can
+ * take an admin setting (`@today-{@config.lead_stale_threshold_days}d`). The
+ * token comes back unchanged when any key is missing from the config.
+ *
+ * @param {string} token The token.
+ * @param {object} [ctx] The token context.
+ * @return {string} The token with the config values in.
+ * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+ */
+function fillConfigInToken(token, ctx) {
+	const config = (ctx && ctx.config) || {}
+	let missing = false
+	const filled = token.replace(/\{@config\.([A-Za-z0-9_.-]+)\}/g, (whole, key) => {
+		const value = config[key]
+		if (value === undefined || value === null || value === '') {
+			missing = true
+			return whole
+		}
+		return String(value)
+	})
+	return missing ? token : filled
+}
+
+/**
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {unknown} v The candidate value.
@@ -124,9 +180,16 @@ export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') {
 		return v
 	}
+	if (v.includes('{@config.')) {
+		const filled = fillConfigInToken(v, ctx)
+		return filled === v ? v : resolveFilterValue(filled, ctx)
+	}
 	const now = new Date()
 	if (v === MY_GROUPS_TOKEN) {
 		return resolveMyGroups(ctx)
+	}
+	if (v === MY_TEAM_TOKEN) {
+		return resolveMyTeam(ctx)
 	}
 	if (v === '@objectId') {
 		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
@@ -137,6 +200,15 @@ export function resolveFilterValue(v, ctx) {
 			return ctx.object[field]
 		}
 		return v
+	}
+	if (v.startsWith('@context.')) {
+		// @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-widget-props-can-read-the-detail-pages-context-records
+		const found = ctx && ctx.context ? readPath(ctx.context, v.slice('@context.'.length)) : undefined
+		return found === undefined ? v : found
+	}
+	if (v.startsWith('@resolved.')) {
+		const value = ctx && ctx.resolved ? readPath(ctx.resolved, v.slice('@resolved.'.length)) : undefined
+		return value !== undefined && value !== null ? value : v
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the
@@ -257,7 +329,7 @@ export function resolveFilterValue(v, ctx) {
  */
 export function isOptionalUnresolved(v) {
 	return typeof v === 'string'
-		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.'))
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.') || v === `${MY_TEAM_TOKEN}?`)
 		&& v.endsWith('?')
 }
 

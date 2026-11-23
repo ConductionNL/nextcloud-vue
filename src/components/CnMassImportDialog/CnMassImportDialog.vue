@@ -10,10 +10,13 @@
 		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Success/error messages -->
-		<NcNoteCard v-if="result && result.success && !hasErrors" type="success">
+		<NcNoteCard v-if="result && result.dryRun && !result.error" type="info" data-testid="cn-mass-import-checked">
+			{{ checkedText }}
+		</NcNoteCard>
+		<NcNoteCard v-if="result && result.success && !result.dryRun && !hasErrors" type="success">
 			{{ successText }}
 		</NcNoteCard>
-		<NcNoteCard v-if="result && result.success && hasErrors" type="warning">
+		<NcNoteCard v-if="result && result.success && !result.dryRun && hasErrors" type="warning">
 			{{ partialSuccessText }}
 		</NcNoteCard>
 		<NcNoteCard v-if="result && result.error" type="error">
@@ -118,8 +121,53 @@
 				</NcButton>
 				<div v-if="selectedFile" class="cn-mass-import__file-info">
 					<span class="cn-mass-import__file-name">{{ selectedFile.name }}</span>
-					<span class="cn-mass-import__file-size">({{ formatFileSize(selectedFile.size) }})</span>
+					<span v-if="fileColumns" class="cn-mass-import__file-size" data-testid="cn-mass-import-file-summary">{{ fileSummary }}</span>
+					<span v-else class="cn-mass-import__file-size">({{ formatFileSize(selectedFile.size) }})</span>
 				</div>
+				<NcButton
+					v-if="templateUrl"
+					variant="tertiary"
+					:href="templateUrl"
+					data-testid="cn-mass-import-template">
+					<template #icon>
+						<Download :size="20" />
+					</template>
+					{{ templateLabel }}
+				</NcButton>
+			</div>
+
+			<!-- Column mapping: each column of the file to a field, or not used -->
+			<div v-if="showMapping" class="cn-mass-import__mapping" data-testid="cn-mass-import-mapping">
+				<h3 class="cn-mass-import__mapping-title">
+					{{ mappingTitle }}
+				</h3>
+				<table class="cn-mass-import__mapping-table">
+					<thead>
+						<tr>
+							<th>{{ columnLabel }}</th>
+							<th>{{ fieldLabel }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="column in fileColumns" :key="column">
+							<td>{{ column }}</td>
+							<td>
+								<select
+									:value="mapping[column]"
+									:aria-label="mappingAriaLabel(column)"
+									class="cn-mass-import__mapping-select"
+									@change="setMapping(column, $event.target.value)">
+									<option value="">
+										{{ notUsedLabel }}
+									</option>
+									<option v-for="field in fields" :key="field.key" :value="field.key">
+										{{ field.label || field.key }}
+									</option>
+								</select>
+							</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 
 			<!-- Additional fields slot (e.g., register/schema selectors) -->
@@ -136,7 +184,18 @@
 			</div>
 
 			<!-- Import options -->
-			<div v-if="options.length > 0" class="cn-mass-import__options">
+			<div v-if="options.length > 0 || checkFirst" class="cn-mass-import__options">
+				<NcCheckboxRadioSwitch
+					v-if="checkFirst"
+					:modelValue="dryRun"
+					type="switch"
+					data-testid="cn-mass-import-check-first"
+					@update:modelValue="dryRun = $event">
+					{{ checkFirstLabel }}
+					<template #helper>
+						{{ checkFirstDescription }}
+					</template>
+				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
 					v-for="opt in options"
 					:key="opt.key"
@@ -161,6 +220,18 @@
 				{{ result ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
+				v-if="result && result.dryRun && !result.error"
+				variant="primary"
+				:disabled="loading"
+				data-testid="cn-mass-import-run"
+				@click="importAfterCheck">
+				<template #icon>
+					<NcLoadingIcon v-if="loading" :size="20" />
+					<ImportIcon v-else :size="20" />
+				</template>
+				{{ confirmLabel }}
+			</NcButton>
+			<NcButton
 				v-if="!result"
 				variant="primary"
 				:disabled="loading || !selectedFile || !canSubmit"
@@ -179,10 +250,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import Download from 'vue-material-design-icons/Download.vue'
 import ImportIcon from 'vue-material-design-icons/Import.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnDialog from '../CnDialog/CnDialog.vue'
 import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { applyColumnMapping, autoMapColumns, mappingChangesFile, readImportColumns } from '../../utils/importFile.js'
 
 /**
  * CnMassImportDialog — File import dialog with options and results summary.
@@ -242,6 +315,7 @@ export default {
 		Upload,
 		ImportIcon,
 		ChevronDown,
+		Download,
 	},
 
 	mixins: [dialogBoardMixin],
@@ -323,6 +397,33 @@ export default {
 		unchangedLabel: { type: String, default: () => t('nextcloud-vue', 'Unchanged') },
 		/** Column header / collapsible toggle for the per-sheet errors list. */
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
+
+		/** Address of an empty file with the right columns; shows a download button when set. */
+		templateUrl: { type: String, default: '' },
+		/** Label of the template download button. */
+		templateLabel: { type: String, default: () => t('nextcloud-vue', 'Download template') },
+		/**
+		 * The fields a row can fill, `[{ key, label }]`. With fields, a CSV or JSON
+		 * file shows a table that maps each of its columns to a field or leaves it
+		 * out; the file is uploaded with its columns renamed to the chosen fields.
+		 */
+		fields: { type: Array, default: () => [] },
+		/** Heading of the column mapping table. */
+		mappingTitle: { type: String, default: () => t('nextcloud-vue', 'How the columns are read') },
+		/** Header of the file column. */
+		columnLabel: { type: String, default: () => t('nextcloud-vue', 'Column in the file') },
+		/** Header of the field column. */
+		fieldLabel: { type: String, default: () => t('nextcloud-vue', 'Field') },
+		/** The choice that leaves a column out. */
+		notUsedLabel: { type: String, default: () => t('nextcloud-vue', 'Not used') },
+		/** Offer a switch that checks the file first and imports nothing (`dryRun` in the confirm options). */
+		checkFirst: { type: Boolean, default: false },
+		/** Label of the check-first switch. */
+		checkFirstLabel: { type: String, default: () => t('nextcloud-vue', 'Check first, import nothing yet') },
+		/** Helper line of the check-first switch. */
+		checkFirstDescription: { type: String, default: () => t('nextcloud-vue', 'Shows which rows would fail and why.') },
+		/** Note shown after a check. */
+		checkedText: { type: String, default: () => t('nextcloud-vue', 'Checked. Nothing is imported yet.') },
 	},
 
 	emits: ['close', 'confirm'],
@@ -338,10 +439,28 @@ export default {
 			result: null,
 			optionValues,
 			expandedErrors: {},
+			fileText: '',
+			fileExt: '',
+			fileColumns: null,
+			fileRows: 0,
+			mapping: {},
+			dryRun: false,
 		}
 	},
 
 	computed: {
+		showMapping() {
+			return Array.isArray(this.fileColumns) && this.fileColumns.length > 0 && this.fields.length > 0
+		},
+
+		fileSummary() {
+			return t('nextcloud-vue', '{rows} rows · {columns} columns · {size}', {
+				rows: this.fileRows,
+				columns: this.fileColumns.length,
+				size: this.formatFileSize(this.selectedFile.size),
+			})
+		},
+
 		hasErrors() {
 			if (!this.result || !this.result.summary) {
 				return false
@@ -351,9 +470,53 @@ export default {
 	},
 
 	methods: {
-		handleFileSelect(event) {
+		async handleFileSelect(event) {
 			const file = event.target.files[0]
 			this.selectedFile = file || null
+			this.fileText = ''
+			this.fileColumns = null
+			this.fileRows = 0
+			this.mapping = {}
+			if (!file) {
+				return
+			}
+			const ext = (file.name.split('.').pop() || '').toLowerCase()
+			if (ext !== 'csv' && ext !== 'json') {
+				return
+			}
+			const text = typeof file.text === 'function' ? await file.text() : ''
+			const read = readImportColumns(text, ext)
+			if (!read) {
+				return
+			}
+			this.fileText = text
+			this.fileExt = ext
+			this.fileColumns = read.columns
+			this.fileRows = read.rows
+			this.mapping = autoMapColumns(read.columns, this.fields)
+		},
+
+		setMapping(column, key) {
+			this.mapping = { ...this.mapping, [column]: key }
+		},
+
+		mappingAriaLabel(column) {
+			return t('nextcloud-vue', 'Field for column {column}', { column })
+		},
+
+		/**
+		 * The file to upload: renamed to the chosen fields when the mapping
+		 * changes a column, else the picked file itself.
+		 *
+		 * @return {File|Blob} The upload.
+		 */
+		uploadFile() {
+			if (!this.showMapping || !mappingChangesFile(this.mapping)) {
+				return this.selectedFile
+			}
+			const text = applyColumnMapping(this.fileText, this.fileExt, this.mapping)
+			const type = this.fileExt === 'json' ? 'application/json' : 'text/csv'
+			return new File([text], this.selectedFile.name, { type })
 		},
 
 		setOption(key, value) {
@@ -386,10 +549,22 @@ export default {
 
 		executeImport() {
 			this.loading = true
+			const options = { ...this.optionValues }
+			if (this.checkFirst && this.dryRun) {
+				options.dryRun = true
+			}
 			this.$emit('confirm', {
-				file: this.selectedFile,
-				options: { ...this.optionValues },
+				file: this.uploadFile(),
+				options,
+				mapping: this.showMapping ? { ...this.mapping } : null,
 			})
+		},
+
+		/** After a check: import the same file for real. */
+		importAfterCheck() {
+			this.dryRun = false
+			this.result = null
+			this.executeImport()
 		},
 
 		/**
@@ -447,6 +622,27 @@ export default {
 .cn-mass-import__help ul {
 	margin: 0;
 	padding-left: 20px;
+}
+
+.cn-mass-import__mapping-title {
+	margin: 0 0 8px;
+	font-size: 1em;
+}
+
+.cn-mass-import__mapping-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.cn-mass-import__mapping-table th,
+.cn-mass-import__mapping-table td {
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--color-border);
+	text-align: start;
+}
+
+.cn-mass-import__mapping-select {
+	width: 100%;
 }
 
 .cn-mass-import__options {

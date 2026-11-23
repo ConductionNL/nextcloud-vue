@@ -148,3 +148,47 @@ describe('headerFields in the manifest schema', () => {
 		expect(validateManifestV2(manifest([{ format: 'text' }])).valid).toBe(false)
 	})
 })
+
+describe('headerFields strong format (DqTenant "waterland")', () => {
+	it('keeps a strong entry and draws its value as bold text without a chip frame', () => {
+		expect(normalizeHeaderFields([{ key: 'identifier', format: 'strong' }])[0].format).toBe('strong')
+		const w = mountChips([{ key: 'identifier', format: 'strong' }], { identifier: 'waterland' })
+		const chip = w.find('[data-testid="cn-detail-header-chip-identifier"]')
+		expect(chip.classes()).toContain('cn-detail-header-chips__chip--strong')
+		expect(chip.find('.cn-detail-header-chips__value').text()).toBe('waterland')
+		const css = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnDetailPage/CnDetailHeaderChips.vue'), 'utf8')
+		const rule = css.match(/\.cn-detail-header-chips__chip--strong \{([^}]*)\}/)
+		expect(rule).not.toBeNull()
+		expect(rule[1]).toMatch(/border: none/)
+		expect(rule[1]).toMatch(/background: transparent/)
+		expect(rule[1]).toMatch(/font-weight: 700/)
+	})
+
+	it('accepts the strong format in a v2 manifest', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(JSON.stringify(schema)).toContain('"enum":["text","mono","badge","user","date","strong","pill"]')
+	})
+})
+
+describe('headerFields pill format (DqTenant slug "waterland")', () => {
+	it('keeps a pill entry and draws its value in a soft pill without an edge', () => {
+		expect(normalizeHeaderFields([{ key: 'slug', format: 'pill' }])[0].format).toBe('pill')
+		const w = mountChips([{ key: 'slug', format: 'pill' }], { slug: 'waterland' })
+		const chip = w.find('[data-testid="cn-detail-header-chip-slug"]')
+		expect(chip.classes()).toContain('cn-detail-header-chips__chip--pill')
+		expect(chip.find('.cn-detail-header-chips__value').text()).toBe('waterland')
+		const css = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnDetailPage/CnDetailHeaderChips.vue'), 'utf8')
+		const rule = css.match(/\.cn-detail-header-chips__chip--pill \{([^}]*)\}/)
+		expect(rule).not.toBeNull()
+		expect(rule[1]).toMatch(/border: none/)
+		expect(rule[1]).toMatch(/height: 21px/)
+		expect(rule[1]).toMatch(/font-weight: 600/)
+	})
+
+	it('accepts the pill format in a v2 manifest', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(JSON.stringify(schema)).toContain('"enum":["text","mono","badge","user","date","strong","pill"]')
+		const page = { id: 'organisation', route: '/organisations/:id', type: 'detail', title: 'Organisation', config: { register: 'dossiq', schema: 'tenant', headerFields: [{ key: 'slug', format: 'pill' }] } }
+		expect(validateManifestV2({ $schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json', version: '2.0.0', menu: [], pages: [page] }).valid).toBe(true)
+	})
+})

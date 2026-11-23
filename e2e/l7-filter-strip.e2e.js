@@ -4,7 +4,9 @@
 // A second filter strip on an index page (?l7=filter-strip, harness
 // l7/FilterStrip.vue), as board PqWachtrij draws the channel strip under the
 // kind tabs: "Alle" and one pill per channel with its count, the active one
-// in ink. The counts follow the active quick filter.
+// in ink. The counts follow the active quick filter, and they are the list's
+// own totals (index-counts-read-the-list-endpoint): each pill counts through
+// the list endpoint, so it equals what the list shows for that channel.
 //
 // WHY PLAYWRIGHT: the page fetches its own rows and counts over the wire
 // (stubbed), and the pills' size and colours are computed style.
@@ -47,7 +49,7 @@ test('the channel strip counts within the kind tab and filters the list', async 
 	const strip = page.locator('[data-testid="cn-index-filter-strip"]')
 	await strip.waitFor({ state: 'visible', timeout: 60_000 })
 	const pills = strip.locator('.cn-index-page__filter-strip-pill')
-	await expect(pills).toHaveText(['Alle 9', 'Mijn Zuiddrecht 5', 'E-mail 2', 'Balie 2'])
+	await expect(pills).toHaveText(['Alle 4', 'Mijn Zuiddrecht 2', 'E-mail 1', 'Balie 1'])
 	await expect(strip).toHaveAttribute('aria-label', 'Kanaal')
 
 	const box = await pills.nth(0).evaluate((el) => {
@@ -66,5 +68,5 @@ test('the channel strip counts within the kind tab and filters the list', async 
 
 	// The counts follow the kind tab.
 	await page.locator('[data-testid="filter-strip"]').getByRole('button', { name: /Klachten/ }).first().click()
-	await expect(pills).toHaveText(['Alle 2', 'Mijn Zuiddrecht 1', 'E-mail 1', 'Balie 0'])
+	await expect(pills).toHaveText(['Alle 1', 'Mijn Zuiddrecht 1', 'E-mail 0', 'Balie 0'])
 })

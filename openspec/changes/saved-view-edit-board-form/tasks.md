@@ -1,0 +1,5 @@
+- [x] viewCriteriaSummary in savedViewSummary.js
+- [x] Board form in CnSavedViewEditDialog (outside label, CnChoiceCards with summaries)
+- [x] CnIndexPage passes savedSummary and currentSummary
+- [x] nl/en key "Sorted by {field}, {direction}."
+- [x] Spec tests/components/CnSavedViewEditBoardForm.spec.js

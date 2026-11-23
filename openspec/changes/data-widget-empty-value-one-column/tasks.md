@@ -1,0 +1,1 @@
+- [x] 1.1 emptyValue + board one column (tests/components/CnObjectDataWidgetEmptyValue.spec.js)

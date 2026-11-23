@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnFilesWidgetForm from '../CnFilesWidgetForm/CnFilesWidgetForm.vue'
-import CnFilesWidget from './CnFilesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnFilesWidgetForm = lazyComponent(() => import('../CnFilesWidgetForm/CnFilesWidgetForm.vue'), 'CnFilesWidgetForm')
+const LazyCnFilesWidget = lazyComponent(() => import('./CnFilesWidget.vue'), 'CnFilesWidget')
+
 registerDashboardWidget('files', {
-	renderer: CnFilesWidget,
-	form: CnFilesWidgetForm,
+	renderer: LazyCnFilesWidget,
+	form: LazyCnFilesWidgetForm,
 	defaultContent: {
 		// Default to root so a new Files widget shows content + passes validation
 		// out of the box (an empty path renders "Folder no longer exists").
@@ -30,5 +32,5 @@ registerDashboardWidget('files', {
 	icon: 'Folder',
 })
 
-export { CnFilesWidget }
-export default CnFilesWidget
+export { default as CnFilesWidget } from './CnFilesWidget.vue'
+export { default } from './CnFilesWidget.vue'

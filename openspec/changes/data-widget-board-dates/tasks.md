@@ -1,0 +1,2 @@
+- [x] 1.1 date / date-long in CnObjectDataWidget displayValues
+- [x] 1.2 tests (CnObjectDataWidgetDuration.spec.js) and docs

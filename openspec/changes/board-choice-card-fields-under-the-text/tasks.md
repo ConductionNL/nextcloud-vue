@@ -1,0 +1,1 @@
+- [x] 1.1 dialog.css (tests/css/dialogBoardChoiceCardFields.spec.js)

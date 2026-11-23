@@ -18,3 +18,5 @@ Two-phase: `confirm` carries the presentation; the parent saves, then closes the
 |-------|---------|-------------|
 | `confirm` | `object` | Save clicked. The presentation in OpenRegister's shape. |
 | `close` | — | Dialog dismissed. |
+
+The dialog renders through `CnDialog`: under the board look it is the board dialog (board header, round close button) and takes the shared dialog props `look`, `width`, `eyebrow` and `subtitle`.

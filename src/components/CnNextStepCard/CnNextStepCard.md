@@ -38,3 +38,12 @@ As a page section, with the button waiting for its request. `title-tag` sets the
     { label: 'Create the publication' },
   ]" />
 ```
+
+A stage with a statement instead of a button: `after-title` is a bold sentence above `after`:
+
+```vue
+<CnNextStepCard
+  title="What now?"
+  after-title="A contact moment has no customer to answer."
+  after="Then: close the contact moment" />
+```

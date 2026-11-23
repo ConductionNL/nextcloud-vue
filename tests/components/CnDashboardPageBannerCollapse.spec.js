@@ -24,12 +24,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 import { registerDashboardWidget } from '@/components/CnWidgetGrid/dashboardWidgetRegistry.js'
-import { readVisibleWhenValue } from '@/utils/visibleWhen.js'
+import { evaluateVisibleWhen, readVisibleWhenValue } from '@/utils/visibleWhen.js'
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 jest.mock('@/utils/visibleWhen.js', () => ({
 	...jest.requireActual('@/utils/visibleWhen.js'),
 	readVisibleWhenValue: jest.fn(),
+	evaluateVisibleWhen: jest.fn(),
 }))
 
 const renderer = { template: '<div class="rend" />' }
@@ -166,6 +167,20 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		expect(readVisibleWhenValue).toHaveBeenCalledTimes(1)
 		expect(wrapper.find('[data-testid="cn-banner-widget-text"]').text())
 			.toBe('3 application(s) awaiting approval')
+	})
+
+	it('decides a composed condition as a whole, so a widget behind two endpoints can show', async () => {
+		const composed = { all: [CONDITION, { endpoint: '/api/other', field: 'available', op: 'eq', value: true }] }
+		evaluateVisibleWhen.mockResolvedValue(true)
+		const shown = mountWith({ banner: { content: { text: 'T' }, visibleWhen: composed } })
+		await flushPromises()
+		expect(evaluateVisibleWhen).toHaveBeenCalledWith(composed)
+		expect(readVisibleWhenValue).not.toHaveBeenCalled()
+		expect(cells(shown)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
+		evaluateVisibleWhen.mockResolvedValue(false)
+		const hidden = mountWith({ banner: { content: { text: 'T' }, visibleWhen: composed } })
+		await flushPromises()
+		expect(cells(hidden)).toEqual([{ wid: 'w', y: '0' }])
 	})
 
 	it('collapses ANY widget with an unmet def-level visibleWhen — not just banners', async () => {

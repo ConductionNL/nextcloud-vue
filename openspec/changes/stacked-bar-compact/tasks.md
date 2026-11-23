@@ -1,0 +1,2 @@
+- [x] CnStackedBarWidget content.compact + styles
+- [x] Spec tests/components/CnStackedBarWidgetCompact.spec.js

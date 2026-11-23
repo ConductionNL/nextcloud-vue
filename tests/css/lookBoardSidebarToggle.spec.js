@@ -25,3 +25,13 @@ describe('the board look and the sidebar toggle', () => {
 		expect(css).not.toMatch(/\.cn-look-board\s*>?\s*\.app-sidebar__toggle\s*\{/)
 	})
 })
+
+describe('the board look and the sidebar toggle on an index page', () => {
+	const indexCss = fs.readFileSync(path.join(__dirname, '../../src/css/look-board-index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+	it('hides .app-sidebar__toggle on a board page that holds an index page', () => {
+		const match = indexCss.match(/\.cn-look-board:has\(\.cn-index-page\)\s*>\s*\.app-sidebar__toggle\s*\{([^}]*)\}/)
+		expect(match).not.toBeNull()
+		expect(match[1]).toMatch(/display:\s*none/)
+	})
+})

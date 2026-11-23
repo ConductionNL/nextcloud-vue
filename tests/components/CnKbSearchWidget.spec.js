@@ -122,3 +122,31 @@ describe('CnKbSearchWidget', () => {
 		})
 	})
 })
+
+describe('CnKbSearchWidget in the board look (PqKlant Kennisbank)', () => {
+	const boardMount = (content = {}) => shallowMount(CnKbSearchWidget, {
+		propsData: { content },
+		provide: { cnLook: { value: 'board' } },
+	})
+
+	it('is a search field with a placeholder and a hidden label, without the hint line', () => {
+		const w = boardMount()
+		const field = w.findComponent({ name: 'NcTextField' })
+		expect(field.attributes('label')).toBe('Search the knowledge base')
+		expect(field.attributes('labelvisible')).toBe('false')
+		expect(field.attributes('placeholder')).toBe('Search the knowledge base')
+		expect(w.find('.cn-kb-search-widget__hint').exists()).toBe(false)
+		expect(w.classes()).toContain('cn-kb-search-widget--board')
+	})
+
+	it('takes its placeholder from the content', () => {
+		const field = boardMount({ placeholder: 'Find an article' }).findComponent({ name: 'NcTextField' })
+		expect(field.attributes('placeholder')).toBe('Find an article')
+	})
+
+	it('keeps the visible label and the hint outside the board look', () => {
+		const w = shallowMount(CnKbSearchWidget, { propsData: { content: {} } })
+		expect(w.findComponent({ name: 'NcTextField' }).attributes('labelvisible')).toBe('true')
+		expect(w.find('.cn-kb-search-widget__hint').exists()).toBe(true)
+	})
+})

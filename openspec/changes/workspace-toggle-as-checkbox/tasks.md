@@ -1,0 +1,3 @@
+- [x] CnWorkspaceFilterWidget: `control: "checkbox"` draws NcCheckboxRadioSwitch as a checkbox
+- [x] Schema: `control` on a workspace-filter content
+- [x] jest CnWorkspaceFilterToggleCheckbox (red first)

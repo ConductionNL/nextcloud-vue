@@ -57,6 +57,27 @@ describe('CnDataTable — declared state indicators', () => {
 		expect(wrapper.find('[data-testid="cn-row-indicator-extended"]').attributes('title')).toBe('Term extended')
 	})
 
+	// @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-row-indicator-can-compare-a-date
+	it('reads the text and tooltip through the app translate', () => {
+		const dutch = { Suspended: 'Opgeschort', 'This case is suspended': 'Deze zaak is opgeschort' }
+		const wrapper = mount(CnDataTable, {
+			propsData: { columns: COLUMNS, rows: [{ id: '1', title: 'Alpha', suspended: true }], rowKey: 'id', rowIndicators: INDICATORS },
+			global: { provide: { cnTranslate: (key) => dutch[key] || key } },
+			stubs: { CnIcon: { name: 'CnIcon', template: '<span class="cn-icon-stub" />', props: ['name', 'size'] } },
+		})
+		const indicator = wrapper.find('[data-testid="cn-row-indicator-suspended"]')
+		expect(indicator.find('.hidden-visually').text()).toBe('Opgeschort')
+		expect(indicator.attributes('title')).toBe('Deze zaak is opgeschort')
+	})
+
+	it('shows a held row while its date is still to come', () => {
+		const held = [{ id: 'held', field: 'heldUntil', after: 'now', icon: 'PauseCircleOutline', text: 'On hold' }]
+		const later = new Date(Date.now() + 7 * 86400000).toISOString()
+		const earlier = new Date(Date.now() - 7 * 86400000).toISOString()
+		const wrapper = mountTable([{ id: '1', title: 'Alpha', heldUntil: later }, { id: '2', title: 'Beta', heldUntil: earlier }], { rowIndicators: held })
+		expect(wrapper.findAll('[data-testid="cn-row-indicator-held"]')).toHaveLength(1)
+	})
+
 	it('stops at the cap and offers the rest for the row menu', () => {
 		const row = { id: '1', title: 'Alpha', suspended: true, extended: true, parentCase: 'c9', decision: 'granted' }
 		const wrapper = mountTable([row], { rowIndicators: INDICATORS })

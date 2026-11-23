@@ -282,6 +282,33 @@ describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
 		expect(a.text()).toBe('X')
 	})
 
+	it('opens in the same tab with widgetProps.target "_self", for a row that opens a card on the same page (DqInstellingen)', () => {
+		const wrapper = mountLink({
+			value: 'Kadaster (BRK) and WOZ',
+			property: { type: 'string' },
+			widget: 'link',
+			widgetProps: { href: '{settingsUrl}', target: '_self' },
+			row: { id: 'kadaster', settingsUrl: '/settings/admin/dossiq?tab=integrations#section-kadaster' },
+		})
+		const a = wrapper.find('a.cn-cell-renderer__link')
+		expect(a.attributes('href')).toBe('/settings/admin/dossiq?tab=integrations#section-kadaster')
+		expect(a.attributes('target')).toBeUndefined()
+		expect(a.attributes('rel')).toBeUndefined()
+	})
+
+	it('opens an in-page anchor in the same tab', () => {
+		const wrapper = mountLink({
+			value: 'Kadaster',
+			property: { type: 'string' },
+			widget: 'link',
+			widgetProps: { href: '#section-{id}' },
+			row: { id: 'kadaster' },
+		})
+		const a = wrapper.find('a.cn-cell-renderer__link')
+		expect(a.attributes('href')).toBe('#section-kadaster')
+		expect(a.attributes('target')).toBeUndefined()
+	})
+
 	it('falls back to plain text + warns once when no target resolves', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		try {

@@ -3,12 +3,12 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-stacked-bar" :class="{ 'cn-stacked-bar--inset': inset }" data-testid="cn-stacked-bar">
-		<div v-if="loading" class="cn-stacked-bar__state" role="status">
+	<div class="cn-stacked-bar" :class="{ 'cn-stacked-bar--inset': inset, 'cn-stacked-bar--compact': compact }" data-testid="cn-stacked-bar">
+		<div v-if="isLoading" class="cn-stacked-bar__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span>{{ loadingLabel }}</span>
 		</div>
-		<p v-else-if="error" class="cn-stacked-bar__state" role="status">
+		<p v-else-if="loadError" class="cn-stacked-bar__state" role="status">
 			{{ errorLabel }}
 		</p>
 		<!-- The designed empty state the list widgets use, compact: a bare
@@ -20,6 +20,10 @@
 			class="cn-stacked-bar__empty"
 			data-testid="cn-stacked-bar-empty" />
 		<template v-else>
+			<div v-if="heading" class="cn-stacked-bar__heading">
+				<strong data-testid="cn-stacked-bar-heading">{{ heading }}</strong>
+				<span v-if="headingMeta" class="cn-stacked-bar__heading-meta" data-testid="cn-stacked-bar-heading-meta">{{ headingMeta }}</span>
+			</div>
 			<!-- The bar is a picture of the legend below it. The legend holds
 			     every label and number, so the bar itself is hidden from
 			     assistive technology rather than described twice. -->
@@ -55,8 +59,33 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { inject, isRef } from 'vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
+
+/** The colour of a group's tone (`content.colors`); any other value is used as a CSS colour. */
+const TONE_COLORS = {
+	success: 'var(--color-success)',
+	warning: 'var(--color-warning)',
+	error: 'var(--color-error)',
+	info: 'var(--color-info, var(--color-primary-element))',
+	neutral: 'var(--color-background-darker)',
+}
+
+/**
+ * The value at a dot path of an object.
+ *
+ * @param {object} data The object.
+ * @param {string} dotPath The path, '' for the object itself.
+ * @return {unknown} The value, or undefined.
+ */
+function pluck(data, dotPath) {
+	if (!dotPath) {
+		return data
+	}
+	return String(dotPath).split('.').reduce((node, key) => (node && typeof node === 'object' ? node[key] : undefined), data)
+}
 
 /** The lightest step keeps this share of the primary colour, so it still stands out from the page. */
 const LIGHTEST_PRIMARY_SHARE = 70
@@ -142,8 +171,19 @@ export default {
 		 * `emptyText` is shown when there is nothing to count. `inset: true`
 		 * draws the bar and legend inside the board's inset (16px above, 24px
 		 * at the sides, 22px below) instead of from card edge to card edge.
+		 * `endpointSource` (`{ url, responsePath? }`, `@objectId` filled from
+		 * the page) reads the groups from an app endpoint instead: the counts
+		 * at `groupsPath` (a `{ key: count }` map or `[{ key, count }]`) and the
+		 * whole at `totalPath`. `colors` maps a group key to a tone (`success`,
+		 * `warning`, `error`, `info`, `neutral`) or a CSS colour. `remainder`
+		 * (`{ key?, label }`) adds what the groups leave of the whole as a last,
+		 * neutral segment. `heading` and `headingMeta` are templates over
+		 * `{counted}`, `{total}`, `{remaining}` and the endpoint's own fields,
+		 * drawn above the bar. `headerCount: true` reports the sum of the
+		 * segments to the card (`header` event, `count`), for a chip after the
+		 * title or a `{count}` in it.
 		 *
-		 * @type {{inset?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
+		 * @type {{inset?: boolean, compact?: boolean, headerCount?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
 		 */
 		content: {
 			type: Object,
@@ -160,6 +200,25 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/** The record on the page, for the `@objectId` token of `endpointSource`. */
+		objectId: {
+			type: String,
+			default: null,
+		},
+	},
+
+	emits: ['header'],
+
+	setup(props) {
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const { data, loading, error } = useEndpointSource(() => props.content?.endpointSource || null, {
+			ctx: () => {
+				const ctx = (isRef(objectCtxRaw) ? objectCtxRaw.value : objectCtxRaw) || {}
+				return { ...ctx, objectId: props.objectId ?? ctx.objectId ?? null, object: ctx.object || null }
+			},
+		})
+		return { epData: data, epLoading: loading, epError: error }
 	},
 
 	data() {
@@ -183,6 +242,17 @@ export default {
 		},
 
 		/**
+		 * Whether the widget is the compact summary box (`content.compact`):
+		 * a 15px heading, one thin bar and the legend on one line.
+		 *
+		 * @spec openspec/changes/stacked-bar-compact/specs/stacked-bar-compact/spec.md#requirement-a-stacked-bar-can-be-drawn-as-the-compact-summary-box
+		 * @return {boolean}
+		 */
+		compact() {
+			return Boolean(this.content && this.content.compact === true)
+		},
+
+		/**
 		 * The translate function in use.
 		 *
 		 * @return {(key: string) => string}
@@ -198,6 +268,78 @@ export default {
 		 * @return {boolean}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
+		hasEndpoint() {
+			return Boolean(this.content.endpointSource && this.content.endpointSource.url)
+		},
+
+		/** @return {boolean} Whether the counts are still loading. */
+		isLoading() {
+			return this.hasEndpoint ? Boolean(this.epLoading) && this.epData === null : this.loading
+		},
+
+		/** @return {string} The load error, or ''. */
+		loadError() {
+			return this.hasEndpoint ? (this.epError || '') : this.error
+		},
+
+		/**
+		 * The endpoint's groups as `{ key, count }`, from a `{ key: count }`
+		 * map or a `[{ key, count }]` list at `groupsPath`.
+		 *
+		 * @return {Array<{key: string, count: number}>}
+		 */
+		endpointGroups() {
+			const raw = pluck(this.epData, this.content.groupsPath || 'groups')
+			const entries = Array.isArray(raw)
+				? raw.filter((entry) => entry && typeof entry === 'object').map((entry) => [entry.key, entry.count])
+				: Object.entries(raw && typeof raw === 'object' ? raw : {})
+			return entries.map(([key, count]) => ({ key: String(key), count: Number(count) > 0 ? Number(count) : 0 }))
+		},
+
+		/**
+		 * The whole the groups are part of (`totalPath` of the endpoint), or
+		 * null when none is given.
+		 *
+		 * @return {number|null}
+		 */
+		whole() {
+			if (!this.hasEndpoint || !this.content.totalPath) {
+				return null
+			}
+			const value = Number(pluck(this.epData, this.content.totalPath))
+			return Number.isFinite(value) && value >= 0 ? value : null
+		},
+
+		/** @return {number} The sum of the groups, without the remainder. */
+		counted() {
+			return this.rawGroups.reduce((sum, group) => sum + group.count, 0)
+		},
+
+		/** @return {number} What the groups leave of the whole. */
+		remaining() {
+			return this.whole === null ? 0 : Math.max(0, this.whole - this.counted)
+		},
+
+		/**
+		 * The values the heading templates read.
+		 *
+		 * @return {object}
+		 */
+		templateValues() {
+			const own = this.epData && typeof this.epData === 'object' && !Array.isArray(this.epData) ? this.epData : {}
+			return { ...own, counted: this.counted, total: this.whole === null ? this.counted : this.whole, remaining: this.remaining }
+		},
+
+		/** @return {string} The line above the bar, or ''. */
+		heading() {
+			return this.fillTemplate(this.content.heading)
+		},
+
+		/** @return {string} The muted line beside the heading, or ''. */
+		headingMeta() {
+			return this.fillTemplate(this.content.headingMeta)
+		},
+
 		hasSource() {
 			const s = this.content.source || {}
 			return Boolean(s.register && s.schema && s.groupBy)
@@ -210,6 +352,9 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		rawGroups() {
+			if (this.hasEndpoint) {
+				return this.endpointGroups.map((group) => ({ key: group.key, label: group.key, count: group.count }))
+			}
 			if (this.hasSource) {
 				return this.groups.map((group) => ({ key: group.key, label: group.key, count: group.count }))
 			}
@@ -248,12 +393,23 @@ export default {
 					ordered.push(group)
 				}
 			}
-			return ordered.map((group, index) => ({
+			const colors = (this.content.colors && typeof this.content.colors === 'object') ? this.content.colors : {}
+			const segments = ordered.map((group, index) => ({
 				key: group.key,
 				label: this.effectiveTranslate(typeof labels[group.key] === 'string' ? labels[group.key] : group.label),
 				count: group.count,
-				color: rampColor(index, ordered.length),
+				color: this.colorOf(colors[group.key]) || rampColor(index, ordered.length),
 			}))
+			const remainder = this.content.remainder
+			if (remainder && typeof remainder === 'object' && this.remaining > 0) {
+				segments.push({
+					key: String(remainder.key || 'remainder'),
+					label: this.effectiveTranslate(String(remainder.label || '')),
+					count: this.remaining,
+					color: this.colorOf(remainder.color) || TONE_COLORS.neutral,
+				})
+			}
+			return segments
 		},
 
 		/**
@@ -264,6 +420,20 @@ export default {
 		 */
 		barSegments() {
 			return this.segments.filter((segment) => segment.count > 0)
+		},
+
+		/**
+		 * The total reported to the card under `headerCount: true`, or null
+		 * while loading, after an error or without `headerCount`.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		headerTotal() {
+			if (this.content.headerCount !== true || this.isLoading || this.loadError) {
+				return null
+			}
+			return this.total
 		},
 
 		/**
@@ -323,6 +493,19 @@ export default {
 		sourceKey() {
 			this.fetchGroups()
 		},
+
+		/** @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports */
+		headerTotal: {
+			immediate: true,
+			handler(total) {
+				if (total !== null) {
+					/**
+					 * @event header With `headerCount: true`, once the counts have loaded: `{ link: null, note: '', count }`, the sum of the segments.
+					 */
+					this.$emit('header', { link: null, note: '', count: total })
+				}
+			},
+		},
 	},
 
 	mounted() {
@@ -330,6 +513,35 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The CSS colour of a tone or colour value.
+		 *
+		 * @param {string} value A tone name or a CSS colour.
+		 * @return {string} The colour, or '' for none.
+		 */
+		colorOf(value) {
+			if (typeof value !== 'string' || value === '') {
+				return ''
+			}
+			return TONE_COLORS[value] || value
+		},
+
+		/**
+		 * Translate a heading template and fill its `{name}` placeholders.
+		 *
+		 * @param {string} template The template.
+		 * @return {string} The line, or '' without a template.
+		 */
+		fillTemplate(template) {
+			if (typeof template !== 'string' || template === '') {
+				return ''
+			}
+			const values = this.templateValues
+			return this.effectiveTranslate(template).replace(/\{(\w+)\}/g, (match, name) => (
+				values[name] === undefined || values[name] === null ? '' : String(values[name])
+			))
+		},
+
 		/**
 		 * Load the count per group in one request.
 		 *
@@ -378,6 +590,18 @@ export default {
 .cn-stacked-bar--inset {
 	box-sizing: border-box;
 	padding: var(--cn-widget-board-inset, 16px 24px 22px);
+}
+
+.cn-stacked-bar__heading {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.cn-stacked-bar__heading-meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-stacked-bar__state {
@@ -437,5 +661,60 @@ export default {
 	font-weight: 700;
 	line-height: 1.2;
 	color: var(--color-main-text);
+}
+
+/* `content.compact: true`: the summary box (DqZaakDocumenten "4 van 7
+   beoordeeld"): the sunken ground, a 15px heading, one 8px bar of joined
+   segments and the legend on one line, each count beside its label. */
+.cn-stacked-bar--compact {
+	box-sizing: border-box;
+	gap: 10px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--cn-board-sunken-ground, var(--color-background-hover));
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__heading {
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 15px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__bar {
+	gap: 0;
+	height: 8px;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__segment {
+	border-radius: 0;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 18px;
+	font-size: 14px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__legend-item {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__label {
+	color: var(--color-main-text);
+	font-size: 1em;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__dot {
+	border-radius: 50%;
+}
+
+.cn-stacked-bar--compact .cn-stacked-bar__count {
+	font-size: 1em;
+	line-height: inherit;
 }
 </style>

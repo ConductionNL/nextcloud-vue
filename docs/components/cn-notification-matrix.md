@@ -110,6 +110,21 @@ and reports what came back. A refusal is a result, not a failure to answer:
 nothing would be worse than no button, because it would read as proof the
 channel works.
 
+## In the board look
+
+Under `cnLook: 'board'` the matrix draws the grid the boards draw
+(DqPersoonlijkeInstellingen, "Meldingen"):
+
+- **The grid:** the channel headers carry only the channel names, and every
+  cell is a centred 20px checkbox. The group rows are plain headings.
+- **Bundling and test send:** each channel's bundling, its time, the test send
+  and an unusable channel's reason move into a "Bundling and test message"
+  disclosure under the grid.
+- **Why a cell is set:** the line saying why stays as the checkbox's
+  description, visually hidden, and visible on a locked cell.
+
+The Nextcloud look is unchanged.
+
 ## The store
 
 `useNotificationPreferencesStore` reads the catalogue, the values, the forced

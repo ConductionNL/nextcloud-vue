@@ -58,6 +58,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 | `fetchCollectionForOptions` | `(type, params?)` | Fetch a collection WITHOUT writing `collections[type]`/`pagination[type]`/`loading[type]`/`errors[type]`. Use for reference-picker/search-option lookups on a type that may also be driving a mounted `CnIndexPage` (e.g. a self-referencing schema) — `fetchCollection` would otherwise overwrite that list's rows and count. |
 | `fetchObject` | `(type, id, options?)` | Fetch single object by type and ID; cached in state. `options.extend` is an array of `_extend[]` values (for example `["@self.can"]`) for markers OpenRegister returns only on request |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |
+| `patchObject` | `(type, id, changes)` | Write only `changes` (a PATCH); every other key keeps its stored value |
 | `deleteObject` | `(type, id)` | Delete object by type and ID |
 | `deleteObjects` | `(type, ids)` | Delete multiple objects in parallel; returns `{ successfulIds, failedIds }` for partial success/failure |
 
@@ -154,3 +155,7 @@ const pagination = emptyPaginated()
 ```
 
 Useful for initializing component state before data loads. Accepts an optional `limit` argument (default 20).
+
+## Edits write only what changed
+
+A form shows some of an object's keys. Writing the whole form back with PUT drops every key the form does not show, such as a status's `capacity` saved from a form that has no such field. So the library's edit saves (an index page's edit dialog, the detail page's edit form, `CnObjectDataWidget` inline and dialog edits) go through `saveEdited(store, type, original, formData)` from `utils/saveEdited.js`. It PATCHes the keys whose value differs from the object as it was loaded, by content, and sends nothing when nothing changed. A key the form leaves out is not a change. A create, or a store without `patchObject`, still uses `saveObject`.

@@ -1,0 +1,184 @@
+# CnChecklistRunWidget
+
+A checklist answered a page of questions at a time: the question, its choices or a text field, an optional note, photos,
+and Previous and Next. Registered under the `checklist-run` widget type, for detail pages and dashboards, and it works
+inside a [device frame](./cn-device-frames-widget.md).
+
+The board DqInspectie draws it in the middle phone frame: "Vraag 7 van 24 · Brandveiligheid versie 3", the question with
+Ja / Nee / Niet van toepassing, a photo for the question and Vorige / Volgende. The questions, where the answers go and
+the wording are all configuration; nothing in the widget knows what is being inspected.
+
+## Content shape
+
+```json
+{
+  "id": "checklist-run",
+  "type": "checklist-run",
+  "content": {
+    "questions": { "register": "app", "schema": "question", "filter": { "checklist": "@object.checklist" }, "orderField": "position" },
+    "fields": { "text": "text", "type": "type", "options": "options", "required": "required", "help": "help" },
+    "answers": {
+      "register": "app",
+      "schema": "answer",
+      "filter": { "run": "@objectId" },
+      "questionField": "question",
+      "valueField": "answer",
+      "noteField": "note",
+      "photosField": "photos",
+      "create": { "run": "@objectId" }
+    },
+    "pageSize": 1,
+    "caption": "{title} version {version}"
+  }
+}
+```
+
+| Key | Description |
+|---|---|
+| `questions` | `{ register, schema, filter?, orderField?, limit? }`: the question records. `filter` takes tokens (`@objectId`, `@object.<field>`, `@workspace.<key>`); nothing is read while one is unresolved. `orderField` sorts them, lowest first. |
+| `fields` | Paths on a question record: `id` (default the record id), `text`, `type`, `options`, `required`, `help`. |
+| `answers` | `{ register, schema, filter?, questionField, valueField, noteField?, photosField?, create? }`: one answer record per question. Answers already given fill the form. On Next or Previous the changed answers of the page are saved through the object API, so under the reader's own rights: an existing answer is updated, a new one is created with the `create` fields (tokens resolved). |
+| `saveAction` | A manifest action that saves an answer instead, for an app that stores answers its own way. It is dispatched per changed answer with `{ questionId, value, note }` as its last argument. Photos are not offered then. |
+| `finishAction` | A manifest action dispatched after the last page is saved. The widget also emits `finished`. |
+| `deadlineField` | A path on the open record to the moment the run ends. Shows the time left, and at zero saves the page and finishes. See [A run with a deadline](#a-run-with-a-deadline). |
+| `serverNowField` | A path on the open record to the server's time when it was read, so a wrong device clock does not change the time left. |
+| `timeLeftText` | The time left line, with `{time}` (default "Time left: {time}"). |
+| `timeWarningSeconds` | From how many seconds left the line turns red and a screen reader hears it (default 300). |
+| `savedText` | Says the answers are saved, while nothing is unsaved and something is answered. |
+| `saveEachAnswer` | `true` saves each answer 800 ms after it is given, a number waits that many milliseconds. Without it (the default) the page saves when the user moves on or finishes. See [Saving each answer](#saving-each-answer). |
+| `submitLabel` | Adds a button that finishes from any page, such as "Toets inleveren". The last page then has no Finish. |
+| `pageSize` | Questions per page (default 1). |
+| `startAt` | `"firstOpen"` opens a run started earlier at the page of its first unanswered question (the last page when all are answered), once per record. `"lastAnswered"` opens it at the page of its last answered question (the first page when none is). Without it the run opens at the first page. |
+| `allowNote` | Show a note field per question (default `true`). `noteLabel` names it. |
+| `allowPhotos` | Offer photos for the first question of the page (default `true`, needs `answers.photosField`). A photo is uploaded through the answer object's own file upload and added to `photosField`; photos already there are kept. |
+| `caption` | Text after the position ("Question 7 of 24 · …"), with `{field}` filled from the record. |
+| `emptyText` | The text when the checklist has no questions. |
+
+Question kinds: `yes_no` (Yes, No), `yes_no_na` (Yes, No, Not applicable), `choice` (the question's `options`, a list of
+strings or `{ value, label }`), `number`, `photo` (answered with a photo) and `text`. `typeMap` maps the app's own type
+values onto these kinds (an unknown type is a text field), and `choiceValues` (`{ yes, no, na }`) the values stored for
+Yes, No and Not applicable. A required question keeps the page until it is answered. Question texts, labels and options
+go through the app's translate.
+
+## Where an answer was given
+
+`captureLocation` records where each answer was given, as board DqInspectie draws under "Locatie bij elk antwoord":
+
+```json
+{ "captureLocation": { "field": "location", "goodAccuracy": 50 } }
+```
+
+The first time an answer changes, the widget asks the device for its position, and a line under the question shows it ("51.9012, 4.4831 · ±12 m · 10:52"). Moving on waits for the device, for at most ten seconds. A fix rougher than `goodAccuracy` metres, or no fix at all, says so. The inspector can then try again or type an address, and can always carry on.
+
+The place is stored in `field` of the answer as `{ lat, lng, accuracy, at, low, address? }`, in a separate answer record and in an answer on the open record alike. A `saveAction` gets it as `location`. `low` is true for a rough fix or none, which is the board's "gps: matig" marker. See [`CnGeoCaptureField`](./cn-geo-capture-field.md).
+
+## Questions and answers inside the open record
+
+When a run keeps its questions and answers in its own record, read the questions with `questionsPath` and write the
+answers with `answersPath` instead of `questions` and `answers`:
+
+```json
+{
+  "type": "checklist-run",
+  "content": {
+    "questionsPath": "templateSnapshot.sections",
+    "itemsKey": "items",
+    "groupLabelField": "name",
+    "orderField": "order",
+    "fields": { "id": "id", "text": "label", "type": "responseType", "options": "choices", "required": "required", "help": "helpText" },
+    "typeMap": { "yes_no_na": "yes_no_na", "text": "text", "getal": "number", "meerkeuze": "choice", "photo": "photo", "meting": "number" },
+    "choiceValues": { "yes": "ja", "no": "nee", "na": "nvt" },
+    "answersPath": "responses",
+    "answerKey": "itemId",
+    "answerFields": { "value": "value", "number": "numericValue", "choice": "choice", "note": "comment", "photos": "photos", "at": "respondedAt" },
+    "recordPhotosField": "photos",
+    "caption": "{templateSnapshot.name} versie {templateVersion}"
+  }
+}
+```
+
+| Key | Description |
+|---|---|
+| `questionsPath` | Path on the open record of the questions, or of groups of them. |
+| `itemsKey` | With groups: the key of each group's questions. The group's `groupLabelField` (default `name`) is shown above its questions. |
+| `orderField` | Sorts the groups and the questions, lowest first (default `order`). |
+| `answersPath` | A property of the open record holding one answer entry per question, keyed by `answerKey` (default `questionId`). The changed answers of a page are written into it with one update of the record through the object API, under the reader's own rights. |
+| `answerFields` | Where an entry keeps its parts: `value` (yes/no and text), `number`, `choice`, `note`, `photos`, and `at` (set to the time of the answer when given). |
+| `recordPhotosField` | The record's own photo list. A photo is uploaded to the record's files and added there, and its reference (`photoRefField`, default `id`) goes into the answer's `photos`. |
+| `record` | `{ register, schema }` of the open record, when the page does not hand them in; with `filter` (and `sort`) it picks the record, see below. |
+
+## A photo a question asks for
+
+`fields.photoRequired` names a question's photo rule, and `photoRequiredValues` maps its stored values onto `never`,
+`always` or `{ "whenAnswer": <value> }` (a photo is needed when the answer is that value). `true` / `false` and
+`always` / `never` map by themselves. With a rule, every question of the page that is not `never` gets its own photo
+control, except a `whenAnswer` question answered with another value that holds no photo, and Next holds the page, saying "This answer needs a photo", until the photo is attached:
+
+```json
+{
+  "fields": { "photoRequired": "photoRequired" },
+  "photoRequiredValues": { "nooit": "never", "altijd": "always", "if_no": { "whenAnswer": "nee" } }
+}
+```
+
+## Picking the record on a page without one
+
+A dashboard (a device frame, say) hands the widget no record. `record` then picks it by filter, under the reader's own
+rights: `{ register, schema, filter, sort }` reads the first match (`sort: { field, dir }`, newest first by default),
+and the widget works on that record as on a bound one. With no match it shows `emptyText`; while a filter token is
+unresolved it reads nothing.
+
+```json
+{ "record": { "register": "app", "schema": "run", "filter": { "inspector": "@me", "status": "in_execution" }, "sort": { "field": "startedAt", "dir": "desc" } } }
+```
+
+## A run with a deadline
+
+Board LqLlToetsMaken draws a test: "Resterende tijd: 18:42", "Je antwoorden zijn opgeslagen", and Toets inleveren next to Vorige and Volgende.
+
+```json
+{
+  "deadlineField": "deadlineAt",
+  "serverNowField": "serverTime",
+  "timeLeftText": "Resterende tijd: {time}",
+  "savedText": "Je antwoorden zijn opgeslagen",
+  "submitLabel": "Toets inleveren"
+}
+```
+
+The time left follows the record's deadline, not the page, so a reload keeps it. Give the server more time on the record and the line follows. At zero the widget saves the open page and finishes, even with required questions open, and `finished` says `reason: "deadline"`. If that save fails the run stays open with the error, and the next Next or submit finishes it. A timed run finishes once.
+
+The submit button finishes from any page. A required question without an answer holds it back and opens that question's page.
+
+Answers save when the user moves on or finishes, so `savedText` goes away as soon as an answer changes, and comes back after the save. A start screen, "not open yet" and "no attempts left" stay with the app, which mounts this widget once the run is open.
+
+## Saving each answer
+
+With `saveEachAnswer` an answer saves a moment after it is given, so a closed tab or a lost connection loses at most the last answer. Changes within the wait save together, so typing a note saves once. A save never runs twice at the same time: Next during a save waits for it and does not create the answer again. A pending answer also saves when the widget goes away. `savedText` comes back after each save, and a failed save shows its error until the next answer or Next saves it.
+
+```json
+{ "type": "checklist-run", "content": { "saveEachAnswer": true, "savedText": "Your answers are saved" } }
+```
+
+## Keyboard and screen readers
+
+Each question is a fieldset whose legend is the question; the choices are native radio buttons, so the arrow keys move
+between them. A required question says so to a screen reader. The photo control is a native file input that opens the
+camera on a phone. On a new page focus moves to the position line ("Question 8 of 24") and a polite live region reads
+it. Progress is a progress bar of the questions answered. The time left has the `timer` role and does not read itself out every second. A screen reader hears it once at `timeWarningSeconds` and once at the last minute.
+
+## Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `content` | `Object` | `{}` | The configuration above. |
+| `objectId` | `String\|Number` | `''` | The bound record's id, for `@objectId` (handed in by the page host). |
+| `objectData` | `Object` | `null` | The bound record, for `@object.<field>`, the caption, `questionsPath` and `answersPath`. |
+| `register` | `String\|Object` | `''` | The bound record's register, for writing `answersPath` (handed in by the page host; `content.record` wins). |
+| `schema` | `String\|Object` | `''` | The bound record's schema, for writing `answersPath`. |
+
+## Events
+
+| Event | Payload | Description |
+|---|---|---|
+| `finished` | `{ answered, total, reason }` | The last page was saved. `reason` is `user`, or `deadline` when the time ran out. |

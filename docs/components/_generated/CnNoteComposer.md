@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 6 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 7 files reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -12,6 +12,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------------- | -------- | -------- | ---------------------------------------------- | ------------------------------------------------------------------ |
 | `modelValue`  | `string` |          | `''`                                           | The note text (v-model).                                           |
 | `placeholder` | `string` |          | `() =&gt; t('nextcloud-vue', 'Write a note…')` | Placeholder shown while the box is empty.                          |
+| `label`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Note')`          | Accessible name of the note box; not shown.                        |
 | `register`    | `string` |          | `''`                                           | Register slug of the record the note belongs to, for image upload. |
 | `schema`      | `string` |          | `''`                                           | Schema slug of the record.                                         |
 | `objectId`    | `string` |          | `''`                                           | Id of the record.                                                  |

@@ -8,6 +8,10 @@
  * imports `@conduction/nextcloud-vue`; `CnWidgetGrid` then resolves widgets by
  * type key and `CnAddWidgetModal` lists the addable types.
  *
+ * Renderers and forms are registered as `lazyComponent()` loaders, so a
+ * widget's code is fetched with the first placement of its type, not with the
+ * bundle that imports the library.
+ *
  * The individual widget components are intentionally NOT public exports — they
  * are resolved by their registry type key (the whole point of the registry),
  * so consumers reference them via the manifest `widgetKey`, not by import.
@@ -15,39 +19,13 @@
  * @module components/CnWidgetGrid/registerDashboardWidgets
  */
 
-import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
-import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
-import CnConversationWidget from '../CnConversationThread/CnConversationWidget.vue'
-import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
-import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
-import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
-import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
-import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
-import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
-import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'
-import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
-import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
-import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
-import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
-import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
-import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
-import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
-import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
-import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
-import CnStagesWidgetForm from '../CnStagesWidgetForm/CnStagesWidgetForm.vue'
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
-import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
-import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
-import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
-import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
 // branches and `related` through CnDetailPage's isRelatedWidget() branch — the
 // registry entry exists so the cog editor + Add-widget picker get a form (and,
 // for `related`, the detail-page surface). `table` aliases the object-list
 // renderer/form for legacy manifests using type:'table'.
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
 
 import '../CnLabelWidget/index.js'
@@ -74,29 +52,92 @@ import '../CnFlowRunsWidget/index.js'
 import '../CnTasksWidget/index.js'
 import '../CnSectionsWidget/index.js'
 import '../CnFactsWidget/index.js'
+import '../CnHandoffAction/index.js'
+import '../CnLinkedWidget/index.js'
+import '../CnDeviceFramesWidget/index.js'
+import '../CnGroupedCardsWidget/index.js'
+import '../CnChecklistRunWidget/index.js'
+import '../CnChecklistWidget/index.js'
+import '../CnRecordNotesWidget/index.js'
+import '../CnMailTab/dashboardRegistration.js'
+import '../CnWorkingCalendarWidget/index.js'
+import '../CnPartyActionsWidget/index.js'
 import '../CnFieldListWidget/index.js'
+import '../CnFieldGroupsWidget/index.js'
+import '../CnObjectLinksWidget/index.js'
 import '../CnSettingsFormWidget/index.js'
 import '../CnSwitchRowsWidget/index.js'
 import '../CnRadioCardsWidget/index.js'
 import '../CnChipsFieldWidget/index.js'
 import '../CnToggleTableWidget/index.js'
+import '../CnRowMarkList/index.js'
+import '../CnSlotGrid/index.js'
 import '../CnChoicePickerWidget/index.js'
+import '../CnConflictResolveCard/index.js'
+import '../CnShareList/index.js'
+import '../CnTaskFormWidget/index.js'
 import '../CnRecordListWidget/index.js'
+import '../CnIndexListWidget/index.js'
+import '../CnStatGridWidget/index.js'
 import '../CnSavedViewsWidget/index.js'
 import '../CnNotepadWidget/index.js'
+import '../CnCodeWidget/index.js'
+import '../CnAppTilesWidget/index.js'
+import '../CnAppTileWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectGeoWidget/dashboardRegistration.js'
 import '../CnWidgetObjectTable/dashboardRegistration.js'
 import '../CnAuditTrailWidget/dashboardRegistration.js'
 import '../CnTimelineWidget/dashboardRegistration.js'
+import '../CnActionTilesWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
+import '../CnCreateFormWidget/index.js'
 import '../CnBannerWidget/index.js'
+import '../CnAttentionFlagWidget/index.js'
+import '../CnStatusExplainerWidget/index.js'
+import '../CnObjectPartiesWidget/index.js'
 import '../CnWorkspaceFilterWidget/index.js'
 
+const LazyCnAiChatWidget = lazyComponent(() => import('../CnAiCompanion/CnAiChatWidget.vue'), 'CnAiChatWidget')
+const LazyCnChartWidget = lazyComponent(() => import('../CnChartWidget/CnChartWidget.vue'), 'CnChartWidget')
+const LazyCnChartWidgetForm = lazyComponent(() => import('../CnChartWidgetForm/CnChartWidgetForm.vue'), 'CnChartWidgetForm')
+const LazyCnConversationWidget = lazyComponent(() => import('../CnConversationThread/CnConversationWidget.vue'), 'CnConversationWidget')
+const LazyCnCountdownWidget = lazyComponent(() => import('../CnCountdownWidget/CnCountdownWidget.vue'), 'CnCountdownWidget')
+const LazyCnCountdownWidgetForm = lazyComponent(() => import('../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'), 'CnCountdownWidgetForm')
+const LazyCnDocumentReviewWidget = lazyComponent(() => import('../CnDocumentReviewList/CnDocumentReviewWidget.vue'), 'CnDocumentReviewWidget')
+const LazyCnEventsCard = lazyComponent(() => import('../CnEventsCard/CnEventsCard.vue'), 'CnEventsCard')
+const LazyCnMacrosWidget = lazyComponent(() => import('../CnMacrosWidget/CnMacrosWidget.vue'), 'CnMacrosWidget')
+const LazyCnMapWidget = lazyComponent(() => import('../CnMapWidget/CnMapWidget.vue'), 'CnMapWidget')
+const LazyCnMapWidgetForm = lazyComponent(() => import('../CnMapWidgetForm/CnMapWidgetForm.vue'), 'CnMapWidgetForm')
+const LazyCnMarkdownWidget2 = lazyComponent(() => import('../CnMarkdownWidget/CnMarkdownWidget.vue'), 'CnMarkdownWidget')
+const LazyCnMarkdownWidgetForm2 = lazyComponent(() => import('../CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'), 'CnMarkdownWidgetForm')
+const LazyCnNextStepWidget = lazyComponent(() => import('../CnNextStepCard/CnNextStepWidget.vue'), 'CnNextStepWidget')
+const LazyCnObjectListWidget2 = lazyComponent(() => import('../CnObjectListWidget/CnObjectListWidget.vue'), 'CnObjectListWidget')
+const LazyCnObjectListWidgetForm2 = lazyComponent(() => import('../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'), 'CnObjectListWidgetForm')
+const LazyCnPlanWidget = lazyComponent(() => import('../CnPlanWidget/CnPlanWidget.vue'), 'CnPlanWidget')
+const LazyCnRelatedObjectsWidget = lazyComponent(() => import('../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'), 'CnRelatedObjectsWidget')
+const LazyCnRelatedObjectsWidgetForm = lazyComponent(() => import('../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'), 'CnRelatedObjectsWidgetForm')
+const LazyCnRetentionWidget = lazyComponent(() => import('../CnRetentionWidget/CnRetentionWidget.vue'), 'CnRetentionWidget')
+const LazyCnSavedViewWidget2 = lazyComponent(() => import('../CnSavedViewWidget/CnSavedViewWidget.vue'), 'CnSavedViewWidget')
+const LazyCnSavedViewWidgetForm2 = lazyComponent(() => import('../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'), 'CnSavedViewWidgetForm')
+const LazyCnSchemaRulesWidget = lazyComponent(() => import('../CnSchemaRulesWidget/CnSchemaRulesWidget.vue'), 'CnSchemaRulesWidget')
+const LazyCnStackedBarWidget = lazyComponent(() => import('../CnStackedBarWidget/CnStackedBarWidget.vue'), 'CnStackedBarWidget')
+const LazyCnStackedBarWidgetForm = lazyComponent(() => import('../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'), 'CnStackedBarWidgetForm')
+const LazyCnStagesWidget = lazyComponent(() => import('../CnStagesWidget/CnStagesWidget.vue'), 'CnStagesWidget')
+const LazyCnStagesWidgetForm = lazyComponent(() => import('../CnStagesWidgetForm/CnStagesWidgetForm.vue'), 'CnStagesWidgetForm')
+const LazyCnStatsBlockWidget = lazyComponent(() => import('../CnStatsBlockWidget/CnStatsBlockWidget.vue'), 'CnStatsBlockWidget')
+const LazyCnStatsBlockWidgetForm = lazyComponent(() => import('../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'), 'CnStatsBlockWidgetForm')
+const LazyCnTabsWidget = lazyComponent(() => import('../CnTabsWidget/CnTabsWidget.vue'), 'CnTabsWidget')
+const LazyCnTabsWidgetForm = lazyComponent(() => import('../CnTabsWidgetForm/CnTabsWidgetForm.vue'), 'CnTabsWidgetForm')
+const LazyCnTeamWorkloadWidget = lazyComponent(() => import('../CnTeamWorkloadWidget/CnTeamWorkloadWidget.vue'), 'CnTeamWorkloadWidget')
+const LazyCnWeekStripWidget = lazyComponent(() => import('../CnWeekStripWidget/CnWeekStripWidget.vue'), 'CnWeekStripWidget')
+const LazyCnWeekStripWidgetForm = lazyComponent(() => import('../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'), 'CnWeekStripWidgetForm')
+const LazyCnWorkQueue = lazyComponent(() => import('../CnWorkQueue/CnWorkQueue.vue'), 'CnWorkQueue')
+
 registerDashboardWidget('chart', {
-	renderer: CnChartWidget,
-	form: CnChartWidgetForm,
+	renderer: LazyCnChartWidget,
+	form: LazyCnChartWidgetForm,
 	defaultContent: {
 		chartKind: 'area',
 		dataSource: { register: '', schema: '', filter: {}, bucket: { field: '', interval: 'month', metric: 'count', metricField: '' } },
@@ -106,8 +147,8 @@ registerDashboardWidget('chart', {
 })
 
 registerDashboardWidget('stats-block', {
-	renderer: CnStatsBlockWidget,
-	form: CnStatsBlockWidgetForm,
+	renderer: LazyCnStatsBlockWidget,
+	form: LazyCnStatsBlockWidgetForm,
 	defaultContent: {
 		title: '',
 		props: { countLabel: '', variant: 'default', iconClass: '' },
@@ -128,8 +169,8 @@ registerDashboardWidget('stats-block', {
 // `object-table` is the one to add now. Rendering resolves through
 // getWidgetTypeEntry, which ignores `surfaces`, so hidden ≠ broken.
 registerDashboardWidget('table', {
-	renderer: CnObjectListWidget2,
-	form: CnObjectListWidgetForm2,
+	renderer: LazyCnObjectListWidget2,
+	form: LazyCnObjectListWidgetForm2,
 	defaultContent: {
 		register: '',
 		schema: '',
@@ -157,8 +198,8 @@ registerDashboardWidget('table', {
 // decided whether this legacy alias stayed hidden from the Add-widget picker.
 // The self-registration is gone; this entry is the one that already won.
 registerDashboardWidget('object-list', {
-	renderer: CnObjectListWidget2,
-	form: CnObjectListWidgetForm2,
+	renderer: LazyCnObjectListWidget2,
+	form: LazyCnObjectListWidgetForm2,
 	defaultContent: {
 		register: '',
 		schema: '',
@@ -178,8 +219,8 @@ registerDashboardWidget('object-list', {
 // tree-shaking reason as `object-list` above.
 // @spec openspec/changes/a-saved-view-drives-a-widget/tasks.md#task-1.1
 registerDashboardWidget('saved-view', {
-	renderer: CnSavedViewWidget2,
-	form: CnSavedViewWidgetForm2,
+	renderer: LazyCnSavedViewWidget2,
+	form: LazyCnSavedViewWidgetForm2,
 	defaultContent: { viewId: '', limit: 10 },
 	displayName: 'Saved view',
 	icon: 'ClipboardList',
@@ -191,8 +232,8 @@ registerDashboardWidget('saved-view', {
 // `public: false` until its author opts in deliberately.
 // @spec openspec/changes/widget-registry-public-flag/tasks.md#task-4
 registerDashboardWidget('markdown', {
-	renderer: CnMarkdownWidget2,
-	form: CnMarkdownWidgetForm2,
+	renderer: LazyCnMarkdownWidget2,
+	form: LazyCnMarkdownWidgetForm2,
 	defaultContent: { markdown: '' },
 	displayName: 'Markdown',
 	icon: 'FormatTitle',
@@ -200,8 +241,8 @@ registerDashboardWidget('markdown', {
 })
 
 registerDashboardWidget('related', {
-	renderer: CnRelatedObjectsWidget,
-	form: CnRelatedObjectsWidgetForm,
+	renderer: LazyCnRelatedObjectsWidget,
+	form: LazyCnRelatedObjectsWidgetForm,
 	defaultContent: { title: '', groups: [], hideSingleTabTitle: true, showTotalCount: true },
 	displayName: 'Object relations',
 	icon: 'FileTreeOutline',
@@ -216,8 +257,8 @@ registerDashboardWidget('related', {
 // byte-identical copy of this entry, which only produced a duplicate-registration
 // warning on every consumer's boot; it no longer registers.
 registerDashboardWidget('map', {
-	renderer: CnMapWidget,
-	form: CnMapWidgetForm,
+	renderer: LazyCnMapWidget,
+	form: LazyCnMapWidgetForm,
 	defaultContent: {
 		register: '',
 		schema: '',
@@ -251,8 +292,8 @@ registerDashboardWidget('map', {
 })
 
 registerDashboardWidget('countdown', {
-	renderer: CnCountdownWidget,
-	form: CnCountdownWidgetForm,
+	renderer: LazyCnCountdownWidget,
+	form: LazyCnCountdownWidgetForm,
 	defaultContent: {
 		label: '',
 		field: '',
@@ -274,7 +315,7 @@ registerDashboardWidget('countdown', {
 // from the manifest. Registered inline for the same tree-shaking reason as
 // `map` above.
 registerDashboardWidget('next-step', {
-	renderer: CnNextStepWidget,
+	renderer: LazyCnNextStepWidget,
 	form: null,
 	defaultContent: { field: 'status', stages: {} },
 	displayName: 'Next step',
@@ -283,8 +324,45 @@ registerDashboardWidget('next-step', {
 	ownsTitle: true,
 })
 
+registerDashboardWidget('retention', {
+	renderer: LazyCnRetentionWidget,
+	form: null,
+	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
+	displayName: 'Retention',
+	icon: 'ArchiveOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+	chrome: 'card',
+})
+
+registerDashboardWidget('schema-rules', {
+	renderer: LazyCnSchemaRulesWidget,
+	form: null,
+	defaultContent: { register: '', schema: '', objectId: '' },
+	displayName: 'Schema rules',
+	icon: 'ScaleBalance',
+	surfaces: ['detail-page'],
+})
+
+registerDashboardWidget('plan', {
+	renderer: LazyCnPlanWidget,
+	form: null,
+	defaultContent: { emptyText: '' },
+	displayName: 'Plan',
+	icon: 'FormatListChecks',
+	surfaces: ['detail-page'],
+})
+
+registerDashboardWidget('work-queue', {
+	renderer: LazyCnWorkQueue,
+	form: null,
+	defaultContent: { source: null },
+	displayName: 'Work queue',
+	icon: 'TrayFull',
+})
+
 registerDashboardWidget('document-review', {
-	renderer: CnDocumentReviewWidget,
+	renderer: LazyCnDocumentReviewWidget,
 	form: null,
 	defaultContent: { field: 'documents', statusField: 'reviewStatus', statuses: [] },
 	displayName: 'Document review',
@@ -293,8 +371,42 @@ registerDashboardWidget('document-review', {
 	ownsTitle: true,
 })
 
+// The AI Chat Companion embedded in the page: the assistant as a tab or card
+// rather than the launcher's floating window (DqZaakAssistent).
+registerDashboardWidget('ai-chat', {
+	renderer: LazyCnAiChatWidget,
+	form: null,
+	defaultContent: { chatAppId: '' },
+	displayName: 'Assistant',
+	icon: 'Creation',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+// The macros the record's schema declares, each run by a button
+// (DqZaakAssistent "Macro's").
+registerDashboardWidget('macros', {
+	renderer: LazyCnMacrosWidget,
+	form: null,
+	defaultContent: { description: '', emptyText: '' },
+	displayName: 'Macros',
+	icon: 'PlayBoxMultipleOutline',
+	surfaces: ['detail-page'],
+})
+
+// The appointments booked on a record that is not an object (a flow task),
+// read from a source or an endpoint.
+registerDashboardWidget('events', {
+	renderer: LazyCnEventsCard,
+	form: null,
+	defaultContent: { source: null, endpoint: '', emptyText: '' },
+	displayName: 'Appointments',
+	icon: 'CalendarClock',
+	surfaces: ['detail-page'],
+})
+
 registerDashboardWidget('conversation', {
-	renderer: CnConversationWidget,
+	renderer: LazyCnConversationWidget,
 	form: null,
 	defaultContent: { field: 'messages', endpoint: '' },
 	displayName: 'Conversation',
@@ -306,8 +418,8 @@ registerDashboardWidget('conversation', {
 // The record's stages, where clicking a stage moves the record there.
 // Registered inline for the same tree-shaking reason as `map` above.
 registerDashboardWidget('stages', {
-	renderer: CnStagesWidget,
-	form: CnStagesWidgetForm,
+	renderer: LazyCnStagesWidget,
+	form: LazyCnStagesWidgetForm,
 	defaultContent: {
 		currentField: 'status',
 		orientation: 'horizontal',
@@ -327,8 +439,8 @@ registerDashboardWidget('stages', {
 })
 
 registerDashboardWidget('tabs', {
-	renderer: CnTabsWidget,
-	form: CnTabsWidgetForm,
+	renderer: LazyCnTabsWidget,
+	form: LazyCnTabsWidgetForm,
 	defaultContent: {
 		tabs: [],
 		ariaLabel: '',
@@ -347,8 +459,8 @@ registerDashboardWidget('tabs', {
 // The current week as day columns, with the dated items under each day.
 // Registered inline for the same tree-shaking reason as `map` above.
 registerDashboardWidget('week-strip', {
-	renderer: CnWeekStripWidget,
-	form: CnWeekStripWidgetForm,
+	renderer: LazyCnWeekStripWidget,
+	form: LazyCnWeekStripWidgetForm,
 	defaultContent: {
 		source: { register: '', schema: '', filter: {} },
 		dateField: '',
@@ -364,8 +476,8 @@ registerDashboardWidget('week-strip', {
 
 // One segmented bar with a legend that carries the numbers.
 registerDashboardWidget('stacked-bar', {
-	renderer: CnStackedBarWidget,
-	form: CnStackedBarWidgetForm,
+	renderer: LazyCnStackedBarWidget,
+	form: LazyCnStackedBarWidgetForm,
 	defaultContent: {
 		source: { register: '', schema: '', groupBy: '', filter: {} },
 		order: [],
@@ -374,6 +486,17 @@ registerDashboardWidget('stacked-bar', {
 	},
 	displayName: 'Stacked bar',
 	icon: 'ChartBar',
+})
+
+// The team today: availability from the Nextcloud user status and each
+// person's open count from the app (DqTeamwachtrij "Team vandaag"). Placed
+// from the manifest: there is no config form yet.
+registerDashboardWidget('team-workload', {
+	renderer: LazyCnTeamWorkloadWidget,
+	form: null,
+	defaultContent: { source: { url: '', responsePath: '', userField: 'userId', nameField: 'displayName', countField: 'count' } },
+	displayName: 'Team workload',
+	icon: 'AccountGroup',
 })
 
 /**

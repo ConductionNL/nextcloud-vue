@@ -19,7 +19,7 @@ function rulesFor(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			out.push(m[2])
 		}
 	}
@@ -37,7 +37,7 @@ describe('look-board.css: admin settings', () => {
 		const rule = rulesFor('.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *)')
 		expect(rule).toMatch(/width: auto/)
 		expect(rule).toMatch(/max-width: none/)
-		expect(rulesFor('.cn-look-board .settings-section.cn-settings-section--wide:not(.cn-look-nextcloud *) .settings-section__name')).toMatch(/max-width: none/)
+		expect(rulesFor('.cn-look-board .settings-section:not(.cn-look-nextcloud *) .settings-section__name')).toMatch(/max-width: none/)
 	})
 
 	it('starts the card title at the left edge at 17px, not centred as NcSettingsSection draws it', () => {
@@ -50,12 +50,16 @@ describe('look-board.css: admin settings', () => {
 	/**
 	 * @spec openspec/changes/board-settings-card-spacing/specs/settings-board-look/spec.md#requirement-a-board-admin-settings-card-spaces-its-title-and-description-as-the-board-does
 	 */
-	it('gives a shell card the board padding, its description 4px under the title, and a note card no margin', () => {
+	/**
+	 * @spec openspec/changes/board-settings-desc-spacing/specs/settings-board-look/spec.md
+	 */
+	it('gives a shell card the board padding, its description 4px under the title and 14px above the content unless the shell sets a gap, and a note card no margin', () => {
 		const card = '.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > .settings-section'
 		const wrapped = '.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section'
 		for (const section of [card, wrapped]) {
 			expect(rulesFor(section)).toMatch(/padding: 20px 22px/)
-			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-top: -10px/)
+			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-top: calc\(var\(--cn-board-settings-desc-gap, 4px\) - 14px\)/)
+			expect(rulesFor(`${section} > .settings-section__desc`)).toMatch(/margin-bottom: calc\(var\(--cn-board-settings-desc-gap, 4px\) - 4px\)/)
 			expect(rulesFor(`${section} > .notecard`)).toMatch(/margin-block: 0/)
 		}
 	})
@@ -76,15 +80,16 @@ describe('look-board.css: admin settings', () => {
 
 	it('makes sections inside a wrapping element grid items and cards', () => {
 		const wrapper = '.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section)'
-		expect(rulesFor(wrapper)).toMatch(/display: contents/)
-		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section)')).toMatch(/display: contents/)
+		expect(rulesFor('.cn-look-board.cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section)')).toMatch(/display: contents/)
+		expect(rulesFor(wrapper)).not.toMatch(/display: contents/)
+		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):not(.cn-settings-cards):has(> .settings-section)')).toMatch(/display: contents/)
 		expect(rulesFor(`${wrapper} > .settings-section`)).toMatch(/padding: 22px 24px/)
 		expect(rulesFor('.cn-look-board .cn-admin-settings-shell:not(.cn-look-nextcloud *) > :not(.settings-section):has(> .settings-section) > .settings-section')).toMatch(/background: var\(--color-main-background\)/)
 	})
 
-	it('draws the path line muted at 15px', () => {
+	it('draws the path line muted at 14px (DqInstellingen)', () => {
 		const rule = rulesFor('.cn-look-board .cn-admin-settings-shell__crumbs:not(.cn-look-nextcloud *)')
-		expect(rule).toMatch(/font-size: 15px/)
+		expect(rule).toMatch(/font-size: 14px/)
 		expect(rule).toMatch(/color: var\(--color-text-maxcontrast\)/)
 	})
 })

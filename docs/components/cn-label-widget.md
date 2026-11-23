@@ -13,3 +13,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | Name      | Type                                                                                                              | Required | Default | Description                                                                                                                                                            |
 | --------- | ----------------------------------------------------------------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content` | `{text: string, fontSize: string, color: string, backgroundColor: string, fontWeight: string, textAlign: string}` |          | `\{\}`  | Persisted widget content blob: `{text, fontSize, color, backgroundColor, fontWeight, textAlign}`. All keys are optional; missing keys collapse to documented defaults. |
+
+## Tile group heading
+
+With `groupHeading: true` the label is the heading of a group of app tiles ("Mijn apps"): a small uppercase `h2` on the page ground, start-aligned at the bottom of its cell. The style keys are ignored. The form offers it as the switch "Heading above a group of tiles".

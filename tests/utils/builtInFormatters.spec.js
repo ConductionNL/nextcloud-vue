@@ -9,7 +9,7 @@
  */
 
 const { registerTranslations } = require('../../src/l10n/index.js')
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, formatIsoDuration, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -253,6 +253,43 @@ describe('builtInFormatters', () => {
 		})
 	})
 
+	describe('formatIsoDuration (isoDuration)', () => {
+		it('reads a one-unit ISO period in words, as a retention or term is meant to be read (DqZaaktypeStatussen "10 jaar")', () => {
+			expect(formatIsoDuration('P10Y')).toBe('10 years')
+			expect(formatIsoDuration('P1Y')).toBe('1 year')
+			expect(formatIsoDuration('P6W')).toBe('6 weeks')
+			expect(formatIsoDuration('P3M')).toBe('3 months')
+			expect(formatIsoDuration('P30D')).toBe('30 days')
+			expect(BUILT_IN_FORMATTERS.isoDuration).toBe(formatIsoDuration)
+		})
+
+		it('leaves anything else as written and is null-safe', () => {
+			expect(formatIsoDuration('P1Y6M')).toBe('P1Y6M')
+			expect(formatIsoDuration('permanent')).toBe('permanent')
+			expect(formatIsoDuration(null)).toBe('')
+			expect(formatIsoDuration('')).toBe('')
+		})
+
+		describe('for a Dutch reader', () => {
+			beforeAll(() => {
+				globalThis._nc_l10n_language = 'nl'
+				registerTranslations()
+			})
+
+			afterAll(() => {
+				globalThis._nc_l10n_language = 'en'
+				registerTranslations()
+			})
+
+			it('says jaar, weken and dagen', () => {
+				expect(formatIsoDuration('P10Y')).toBe('10 jaar')
+				expect(formatIsoDuration('P6W')).toBe('6 weken')
+				expect(formatIsoDuration('P1W')).toBe('1 week')
+				expect(formatIsoDuration('P30D')).toBe('30 dagen')
+			})
+		})
+	})
+
 	describe('formatCount', () => {
 		const frames = { singular: '{n} frame', plural: '{n} frames', zero: '—' }
 
@@ -412,5 +449,22 @@ describe('builtInFormatters', () => {
 			// non-overridden built-ins still present
 			expect(typeof merged.datetime).toBe('function')
 		})
+	})
+})
+
+describe('masked formatter (masked-formatter-max-aggregate)', () => {
+	const { formatMasked, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+
+	it('keeps the last four characters and draws at most five stars', () => {
+		expect(formatMasked('NL91ABNA0417164300')).toBe('*****4300')
+		expect(formatMasked('123456')).toBe('**3456')
+		expect(BUILT_IN_FORMATTERS.masked).toBe(formatMasked)
+	})
+
+	it('takes formatterOptions.visible, and leaves a short or empty value', () => {
+		expect(formatMasked('123456789', null, null, { visible: 2 })).toBe('*****89')
+		expect(formatMasked('123', null, null, {})).toBe('123')
+		expect(formatMasked(null)).toBe('')
+		expect(formatMasked('')).toBe('')
 	})
 })

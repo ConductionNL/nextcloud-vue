@@ -41,7 +41,8 @@
 			<NcButton
 				v-else-if="entry.href"
 				:key="entry.id"
-				:variant="entry.variant || 'secondary'"
+				:variant="buttonVariant(entry)"
+				:class="buttonClass(entry)"
 				:href="entry.href"
 				:target="linkTargetOf(entry)"
 				:data-testid="`cn-action-${entry.id}`"
@@ -64,8 +65,10 @@
 			<NcButton
 				v-else
 				:key="entry.id"
-				:variant="entry.variant || 'secondary'"
-				:disabled="Boolean(actionPending[entry.id])"
+				:variant="buttonVariant(entry)"
+				:class="buttonClass(entry)"
+				:disabled="isDisabled(entry)"
+				:title="disabledReason(entry) || undefined"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
 				<template v-if="entry.icon" #icon>
@@ -103,7 +106,8 @@
 					<NcActionButton
 						v-else
 						:key="child.id"
-						:disabled="Boolean(actionPending[child.id])"
+						:disabled="isDisabled(child)"
+						:description="disabledReason(child) || undefined"
 						:data-testid="`cn-action-${child.id}`"
 						@click="onActionClick(child)">
 						<template v-if="child.icon" #icon>
@@ -120,7 +124,8 @@
 		     that never asked for a limit keeps every action as a button. -->
 		<NcActions
 			v-if="overflowActions.length > 0"
-			:menuName="overflowMenuName"
+			:menuName="overflowOnly ? undefined : overflowMenuName"
+			:aria-label="overflowOnly ? overflowTriggerLabel : undefined"
 			:forceMenu="true"
 			data-testid="cn-action-buttons-overflow">
 			<template v-for="entry in overflowActions">
@@ -140,7 +145,8 @@
 				<NcActionButton
 					v-else
 					:key="entry.id"
-					:disabled="Boolean(actionPending[entry.id])"
+					:disabled="isDisabled(entry)"
+					:description="disabledReason(entry) || undefined"
 					:data-testid="`cn-action-${entry.id}`"
 					@click="onActionClick(entry)">
 					<template v-if="entry.icon" #icon>
@@ -159,6 +165,7 @@
 			:dialogTitle="tr(confirmEntry.confirmTitle || confirmEntry.label)"
 			:message="tr(confirmEntry.confirmMessage) || defaultConfirmMessage"
 			:variant="confirmEntry.variant === 'error' ? 'error' : 'primary'"
+			v-bind="confirmButtonProps"
 			@confirm="onConfirmProceed"
 			@close="confirmEntry = null" />
 
@@ -171,12 +178,13 @@
 			v-if="formEntry && formSchema && !formEntry.advanced"
 			ref="formDialog"
 			:schema="formSchema"
-			:item="null"
+			:item="formItem"
 			:register="formRegister"
 			:initialData="formInitialValues || {}"
 			:dialogTitle="tr(formEntry.formTitle) || ''"
 			:eyebrow="tr(formEntry.formEyebrow) || ''"
 			:subtitle="tr(formEntry.formSubtitle) || ''"
+			:confirmLabel="tr(formEntry.formConfirmLabel) || ''"
 			:includeFields="formEntry.includeFields || null"
 			:excludeFields="formEntry.excludeFields || []"
 			:fieldOverrides="formEntry.fieldOverrides || {}"
@@ -190,8 +198,22 @@
 			:schema="formSchema"
 			:item="null"
 			:initialValues="formInitialValues"
+			:confirmLabel="tr(formEntry.formConfirmLabel) || ''"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
+
+		<!-- An object action with inputs (object-actions-declared-and-run): a
+		     dialog over the action's input schema, then the run. -->
+		<CnFormDialog
+			v-if="objectActionEntry"
+			ref="objectActionDialog"
+			:schema="objectActionEntry.inputsSchema"
+			:item="null"
+			:dialogTitle="tr(objectActionEntry.label) || ''"
+			:confirmLabel="tr(objectActionEntry.label) || ''"
+			data-testid="cn-object-action-dialog"
+			@confirm="onObjectActionConfirm"
+			@close="objectActionEntry = null" />
 
 		<!-- run-node's config dialog (manifest-run-node-action): only mounted
 		     when the target node declared at least one field AND that
@@ -213,20 +235,22 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
-import { inject } from 'vue'
-import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
+import { defineAsyncComponent, inject } from 'vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { actionNeedsResolve, resolveActionRecord } from '../../utils/actionResolve.js'
 import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { answersByArrayKey, mergeValueArray, usesArrayValues, valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+
+const CnConfirmDialog = defineAsyncComponent(() => import('../../dialogs/CnConfirmDialog.vue').then((m) => m.default))
+const CnRunNodeDialog = defineAsyncComponent(() => import('../../dialogs/CnRunNodeDialog.vue').then((m) => m.default))
+const CnAdvancedFormDialog = defineAsyncComponent(() => import('../CnAdvancedFormDialog/CnAdvancedFormDialog.vue').then((m) => m.default))
+const CnFormDialog = defineAsyncComponent(() => import('../CnFormDialog/CnFormDialog.vue').then((m) => m.default))
 
 /**
  * CnActionButtons — declarative header-actions surface (#91 Wave 3).
@@ -247,6 +271,11 @@ import { CnIcon } from '../CnIcon/index.js'
  *    `excludeFields` / `fieldOverrides` narrow what the button asks for, which
  *    is how one schema serves both a full editor and a quick-create button.
  *    `advanced: true` swaps in the properties/JSON table for a power user.
+ *    With `endpoint: { url, method?, loadUrl?, responsePath? }` and
+ *    `formProperties` (JSON-schema properties) it edits a record that is not a
+ *    register object instead: it reads the record from the endpoint, shows the
+ *    declared fields filled in, and sends them back with PATCH (or PUT). With
+ *    `method: "POST"` it creates one: an empty form, posted to the endpoint.
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
@@ -286,6 +315,17 @@ import { CnIcon } from '../CnIcon/index.js'
  * ]
  * ```
  */
+
+/**
+ * Whether an object action's input schema asks for anything.
+ *
+ * @param {unknown} inputs The JSON Schema of the inputs.
+ * @return {boolean}
+ */
+function hasInputFields(inputs) {
+	return Boolean(inputs && typeof inputs === 'object' && inputs.properties && Object.keys(inputs.properties).length > 0)
+}
+
 export default {
 	name: 'CnActionButtons',
 
@@ -329,12 +369,10 @@ export default {
 		 * browser keeps middle-click, "open in new tab" and the link semantics
 		 * assistive tech announces.
 		 *
-		 * `href` is JS-composition-only, like `onSelect` — manifest JSON cannot
-		 * carry it (the schema's `target` field already names the `navigate`
-		 * destination URL, and `additionalProperties: false` rejects an
-		 * unlisted `href`). A manifest author reaching for a link should use
-		 * `type: "navigate"` with an external `target`, which auto-derives the
-		 * anchor/`window.open` behaviour instead.
+		 * `href` is used as given, so it must be a finished URL. A manifest
+		 * `headerActions[]` entry may carry `href` too: the page (CnDetailPage,
+		 * CnDashboardPage) resolves an instance path through `generateUrl()`
+		 * and sets `target` before the entry reaches this component.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -371,6 +409,29 @@ export default {
 		 * @type {string}
 		 */
 		overflowLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Every collapsible action in the `···` menu, none as a button: the
+		 * trigger is icon only and named by `overflowAriaLabel` (a card's
+		 * "Actions for Volledigheid toetsen").
+		 *
+		 * @type {boolean}
+		 */
+		overflowOnly: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The accessible name of the icon-only trigger under `overflowOnly`.
+		 * Empty falls back to the overflow label.
+		 *
+		 * @type {string}
+		 */
+		overflowAriaLabel: {
 			type: String,
 			default: '',
 		},
@@ -418,6 +479,12 @@ export default {
 		return {
 			/** Evaluated visibleWhen outcome per action id (true when no predicate). */
 			visibility: {},
+			// Whether an action's `disabledWhen` holds, by id.
+			disabledByCondition: {},
+			// Action id to the reason it cannot run: its `resolve` block found no record.
+			unresolved: {},
+			// Action id to the record its `resolve` block found, for its link.
+			resolvedRecords: {},
 			/** Current boolean state per toggle action id. */
 			toggleState: {},
 			/** In-flight flag per toggle action id (disables the button). */
@@ -428,8 +495,12 @@ export default {
 			confirmEntry: null,
 			/** The open-form action currently showing its dialog (null = closed). */
 			formEntry: null,
+			/** The object action whose inputs dialog is open, or null. */
+			objectActionEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
+			/** The record an endpoint form edits (null for a create form). */
+			formItem: null,
 			/** The run-node action currently in flight / showing its dialog (null = closed). */
 			runNodeEntry: null,
 			/** The target node's declared config-form fields, from the describe GET. */
@@ -440,6 +511,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The confirm button's words and icon from the action
+		 * (`confirmLabel`, `confirmIcon`); none set leaves the dialog's own.
+		 *
+		 * @return {object}
+		 */
+		confirmButtonProps() {
+			const entry = this.confirmEntry || {}
+			return {
+				...(typeof entry.confirmLabel === 'string' && entry.confirmLabel !== '' ? { confirmLabel: this.tr(entry.confirmLabel) } : {}),
+				...(typeof entry.confirmIcon === 'string' && entry.confirmIcon !== '' ? { confirmIcon: entry.confirmIcon } : {}),
+			}
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
@@ -517,6 +602,9 @@ export default {
 			if (this.display === 'menu') {
 				return []
 			}
+			if (this.overflowOnly) {
+				return this.visibleActions.filter((a) => !this.isCollapsible(a))
+			}
 			if (!(this.inline > 0)) {
 				return this.visibleActions
 			}
@@ -534,7 +622,7 @@ export default {
 		 * @return {Array<object>} Actions to render as menu items.
 		 */
 		overflowActions() {
-			if (this.display === 'menu' || !(this.inline > 0)) {
+			if (this.display === 'menu' || !(this.inline > 0 || this.overflowOnly)) {
 				return []
 			}
 			const shown = new Set(this.barActions.map((a) => a.id))
@@ -548,6 +636,15 @@ export default {
 		 */
 		overflowMenuName() {
 			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Name of the icon-only trigger under `overflowOnly`.
+		 *
+		 * @return {string} The label.
+		 */
+		overflowTriggerLabel() {
+			return this.overflowAriaLabel || this.overflowMenuName
 		},
 
 		/**
@@ -577,7 +674,8 @@ export default {
 					// having to be duplicated into every host.
 					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
 					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
-					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.isDisabled(entry)),
+					disabledReason: this.disabledReason(entry),
 					// null, not false: a non-toggle carries no pressed state at
 					// all, and `aria-pressed="false"` would announce every
 					// action as an un-pressed toggle button.
@@ -643,6 +741,13 @@ export default {
 			handler() { this.evaluateVisibility() },
 		},
 
+		// A workspace condition (`{ workspace: "callActive" }`) follows the
+		// page's workspace, which a page control or a call may change after mount.
+		workspaceCtx: {
+			deep: true,
+			handler() { this.evaluateVisibility() },
+		},
+
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
 		// immediately so the host has the list on first paint, and again on
 		// every change of visibility, toggle state or pending flag — the three
@@ -661,6 +766,60 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The inputs dialog of an object action was confirmed: run it with
+		 * the typed inputs, then close the dialog.
+		 *
+		 * @param {object} inputs The form values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		async onObjectActionConfirm(inputs) {
+			const entry = this.objectActionEntry
+			if (!entry) {
+				return
+			}
+			this.actionPending[entry.id] = true
+			await this.dispatch({ ...entry, inputs: { ...(entry.inputs || {}), ...(inputs || {}) } })
+			this.actionPending[entry.id] = false
+			this.objectActionEntry = null
+		},
+
+		/**
+		 * The NcButton variant of an entry. `error-outline` and `tonal` are
+		 * not NcButton variants: `error-outline` is a secondary button that
+		 * `buttonClass` outlines in red, `tonal` a tertiary one that
+		 * `buttonClass` draws as the tonal pill.
+		 *
+		 * @param {object} entry The action entry.
+		 * @return {string} The variant.
+		 * @spec openspec/changes/action-error-outline/specs/action-buttons/spec.md#requirement-an-action-can-be-an-outlined-red-button
+		 */
+		buttonVariant(entry) {
+			if (!entry.variant || entry.variant === 'error-outline') {
+				return 'secondary'
+			}
+			if (entry.variant === 'tonal') {
+				return 'tertiary'
+			}
+			return entry.variant
+		},
+
+		/**
+		 * The extra class of an entry's button: the red outline for
+		 * `variant: "error-outline"`, the tonal pill for `variant: "tonal"`.
+		 *
+		 * @param {object} entry The action entry.
+		 * @return {object} The class map.
+		 * @spec openspec/changes/action-error-outline/specs/action-buttons/spec.md#requirement-an-action-can-be-an-outlined-red-button
+		 */
+		buttonClass(entry) {
+			return {
+				'cn-action-buttons__button--error-outline': entry.variant === 'error-outline',
+				'cn-button--tonal': entry.variant === 'tonal',
+			}
+		},
+
 		/**
 		 * Heuristic MDI-name check (an `icon-`-prefixed string is a CSS class).
 		 *
@@ -692,13 +851,46 @@ export default {
 				}
 			}
 			for (const action of flat) {
-				if (!action.visibleWhen) {
-					this.visibility[action.id] = true
-					continue
+				// An object action OpenRegister lists as not available now is
+				// drawn disabled with the server's reason.
+				if (action.type === 'object-action' && action.available === false) {
+					this.disabledByCondition[action.id] = true
 				}
-				const ok = await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx)
-				this.visibility[action.id] = ok
+				if (action.disabledWhen) {
+					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, this.tokenCtx)
+				}
+				const ok = action.visibleWhen ? await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx) : true
+				this.visibility[action.id] = ok && await this.resolveFor(action)
 			}
+		},
+
+		/**
+		 * Whether an action is disabled now: while it runs, or while its
+		 * `disabledWhen` holds (a payment adapter that is dormant).
+		 *
+		 * @param {object} entry The action.
+		 * @return {boolean}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		isDisabled(entry) {
+			return Boolean(this.actionPending[entry.id]) || this.disabledByCondition[entry.id] === true
+				|| Boolean(this.unresolved[entry.id])
+		},
+
+		/**
+		 * Why an action is disabled: its `disabledReason`, translated, while
+		 * its `disabledWhen` holds; else why its `resolve` block found no
+		 * record; '' otherwise.
+		 *
+		 * @param {object} entry The action.
+		 * @return {string}
+		 * @spec openspec/changes/action-disabled-when/specs/action-disabled-when/spec.md#requirement-an-action-can-be-disabled-with-the-reason-why
+		 */
+		disabledReason(entry) {
+			if (this.disabledByCondition[entry.id] === true && typeof entry.disabledReason === 'string' && entry.disabledReason !== '') {
+				return this.tr(entry.disabledReason)
+			}
+			return this.unresolved[entry.id] || ''
 		},
 
 		/**
@@ -779,11 +971,17 @@ export default {
 			if (a.href || (a.type !== 'navigate' && a.type !== 'open-page')) {
 				return a
 			}
+			// A link to a looked-up record waits for the record; until then (or
+			// without one) it stays a button, which the dispatcher resolves.
+			if (actionNeedsResolve(a) && !this.resolvedRecords[a.id]) {
+				return a
+			}
 			let entry = a
 			if (a.type === 'navigate') {
 				// Interpolated BEFORE the external test and before it becomes an
 				// href, so the anchor carries the record's id rather than the token.
-				const target = interpolateActionTarget(a.target, this.tokenCtx)
+				const ctx = actionNeedsResolve(a) ? { ...this.tokenCtx, resolved: this.resolvedRecords[a.id] } : this.tokenCtx
+				const target = interpolateActionTarget(a.target, ctx)
 				if (isExternalActionTarget(target)) {
 					return { ...a, href: target, target: '_blank' }
 				}
@@ -889,6 +1087,9 @@ export default {
 		 * @return {void}
 		 */
 		onActionClick(entry) {
+			if (this.disabledByCondition[entry.id] === true) {
+				return
+			}
 			if (entry.confirm === true) {
 				this.confirmEntry = entry
 				return
@@ -943,6 +1144,10 @@ export default {
 				await this.openRunNode(entry)
 				return undefined
 			}
+			if (entry.type === 'object-action' && hasInputFields(entry.inputsSchema)) {
+				this.objectActionEntry = entry
+				return undefined
+			}
 			this.actionPending[entry.id] = true
 			const result = await this.dispatch(entry)
 			this.actionPending[entry.id] = false
@@ -959,6 +1164,33 @@ export default {
 		 */
 		tr(value) {
 			return value ? this.effectiveTranslate(value) : value
+		},
+
+		/**
+		 * Look up the record of an action with a `resolve` block. Without one
+		 * the action is hidden (`resolve.unresolved: "hide"`) or disabled with
+		 * `resolve.reason` as its title.
+		 *
+		 * @param {object} action The action.
+		 * @return {Promise<boolean>} False when the action should be hidden.
+		 * @spec openspec/changes/screens-action-resolve/specs/manifest-actions/spec.md#requirement-an-action-can-name-a-looked-up-record
+		 */
+		async resolveFor(action) {
+			if (!actionNeedsResolve(action)) {
+				return true
+			}
+			const record = await resolveActionRecord(action.resolve, this.tokenCtx)
+			if (record) {
+				delete this.unresolved[action.id]
+				this.resolvedRecords[action.id] = record
+				return true
+			}
+			delete this.resolvedRecords[action.id]
+			if (action.resolve.unresolved === 'hide') {
+				return false
+			}
+			this.unresolved[action.id] = this.tr(action.resolve.reason) || t('nextcloud-vue', 'Nothing to act on.')
+			return true
 		},
 
 		/**
@@ -995,6 +1227,11 @@ export default {
 		async openForm(entry) {
 			this.formEntry = entry
 			this.formSchema = null
+			this.formItem = null
+			if (entry.endpoint && typeof entry.endpoint.url === 'string' && entry.endpoint.url !== '') {
+				await this.openEndpointForm(entry)
+				return
+			}
 			const register = entry.register || this.objectCtx.register || ''
 			const schema = entry.schema || ''
 			if (!schema) {
@@ -1014,6 +1251,81 @@ export default {
 					showError(t('nextcloud-vue', 'Could not open the form.'))
 				}
 				this.formEntry = null
+			}
+		},
+
+		/**
+		 * Open an `open-form` action with an `endpoint` as an edit form over a
+		 * record that is not a register object (an OpenRegister organisation):
+		 * the fields are the action's `formProperties`, the values are read from
+		 * `endpoint.loadUrl` (else `endpoint.url`) at `endpoint.responsePath`,
+		 * and the save sends the changed fields to `endpoint.url`. A failed
+		 * read toasts and opens nothing.
+		 *
+		 * @param {object} entry The open-form action with `endpoint` and `formProperties`.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/open-form-endpoint/specs/open-form-endpoint/spec.md#requirement-an-open-form-action-can-edit-a-record-through-an-endpoint
+		 */
+		async openEndpointForm(entry) {
+			const properties = entry.formProperties && typeof entry.formProperties === 'object' && !Array.isArray(entry.formProperties) ? entry.formProperties : {}
+			if (String(entry.endpoint.method || '').toUpperCase() === 'POST') {
+				this.formSchema = { type: 'object', properties }
+				return
+			}
+			const loadUrl = entry.endpoint.loadUrl || entry.endpoint.url
+			const record = await fetchEndpointSource({ url: loadUrl, responsePath: entry.endpoint.responsePath || '' }, this.tokenCtx, { force: true })
+				.catch(() => null)
+			if (!record || typeof record !== 'object') {
+				const { showError } = await import('@nextcloud/dialogs')
+				if (typeof showError === 'function') {
+					showError(t('nextcloud-vue', 'Could not open the form.'))
+				}
+				this.formEntry = null
+				return
+			}
+			this.formItem = record
+			this.formSchema = { type: 'object', properties }
+		},
+
+		/**
+		 * Save an endpoint form: send the declared fields to `endpoint.url`
+		 * with `endpoint.method` (`PATCH` by default, or `PUT`), then toast and
+		 * refresh the page as an object save does.
+		 *
+		 * @param {object} entry The open-form action.
+		 * @param {object} formData The form's values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/open-form-endpoint/specs/open-form-endpoint/spec.md#requirement-an-open-form-action-can-edit-a-record-through-an-endpoint
+		 */
+		async saveEndpointForm(entry, formData) {
+			const dialog = this.$refs.formDialog
+			const keys = Object.keys(this.formSchema?.properties || {})
+			const body = Object.fromEntries(keys.filter((key) => key in formData).map((key) => [key, formData[key]]))
+			const verb = String(entry.endpoint.method || 'PATCH').toUpperCase()
+			const method = verb === 'PUT' ? 'put' : (verb === 'POST' ? 'post' : 'patch')
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = interpolateActionTarget(entry.endpoint.url, this.tokenCtx)
+				const response = await axios[method](/^https?:\/\//i.test(url) ? url : generateUrl(url), body)
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ success: true })
+				}
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				if (typeof showSuccess === 'function') {
+					showSuccess(this.tr(entry.successMessage) || t('nextcloud-vue', 'Saved.'))
+				}
+				const { emit } = await import('@nextcloud/event-bus')
+				emit('cn:page:refresh', {})
+				this.$emit('created', response && response.data)
+			} catch (error) {
+				const serverMessage = error && error.response && error.response.data
+					&& (error.response.data.error || error.response.data.message)
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ error: serverMessage || this.tr(entry.errorMessage) || t('nextcloud-vue', 'Save failed.') })
+				}
 			}
 		},
 
@@ -1127,6 +1439,10 @@ export default {
 		 */
 		async onFormConfirm(formData, dynamic = null) {
 			const entry = this.formEntry
+			if (entry && entry.endpoint) {
+				await this.saveEndpointForm(entry, formData)
+				return
+			}
 			const dialog = this.$refs.formDialog
 			const register = this.formRegister
 			const schema = (entry && entry.schema) || ''
@@ -1254,9 +1570,13 @@ export default {
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
-				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
-				if (entries.length) {
-					payload[config.values.arrayKey] = entries
+				// Each answer goes to the array its definition is routed to
+				// (`values.arrayKeyBy`), merged over what that array holds.
+				for (const [arrayKey, subset] of Object.entries(answersByArrayKey(mine, config, dynamic.definitions || []))) {
+					const entries = mergeValueArray(payload[arrayKey], subset, config, dynamic.definitions || [])
+					if (entries.length || Array.isArray(payload[arrayKey])) {
+						payload[arrayKey] = entries
+					}
 				}
 			}
 		},
@@ -1269,12 +1589,24 @@ export default {
 		closeForm() {
 			this.formEntry = null
 			this.formSchema = null
+			this.formItem = null
 		},
 	},
 }
 </script>
 
 <style scoped>
+/* A red action that does not shout: white, a red border and red text. */
+.cn-action-buttons__button--error-outline {
+	border-color: var(--color-error-text, #a30000) !important;
+	color: var(--color-error-text, #a30000) !important;
+	background-color: var(--color-main-background) !important;
+}
+
+.cn-action-buttons__button--error-outline:hover:not(:disabled) {
+	background-color: var(--color-error-hover, #fcedec) !important;
+}
+
 .cn-action-buttons {
 	display: inline-flex;
 	align-items: center;

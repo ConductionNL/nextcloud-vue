@@ -158,6 +158,7 @@
 import { generateUrl } from '@nextcloud/router'
 import { NcRichText } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 export default {
 	name: 'CnAiMessageList',
@@ -168,7 +169,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {

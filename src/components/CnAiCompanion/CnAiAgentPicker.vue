@@ -44,6 +44,7 @@
 
 <script>
 import { NcSelect } from '@nextcloud/vue'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 export default {
 	name: 'CnAiAgentPicker',
@@ -53,7 +54,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {

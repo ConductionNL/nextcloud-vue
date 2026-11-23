@@ -68,6 +68,9 @@ Recognised roles: `title`, `description`, `definition`, `type`, `format`, `maxLe
 | `objectRef` | Field on the value row pointing at the parent object. Default `object`. |
 | `definitionRef` | Field pointing at the definition. Default `definition`. |
 | `valueKey` | Field holding the answer. Default `value`. |
+| `mode` | `"array"` stores the answers on the object itself instead of as value rows. |
+| `arrayKey` | With `mode: "array"`: the object's array property holding one entry per answer. |
+| `nameKey` | With `mode: "array"`: field holding the definition's name beside the answer. Default `name`. |
 
 ## Declared types
 
@@ -96,6 +99,7 @@ Add your own with a `typeMap` on the declaration. A type nothing maps falls back
 3. Each field is keyed `x-prop:<definition id>`, never the admin-authored name. A definition called `title` or `status` is not merely possible, it is likely, and an unprefixed key would silently overwrite the real field. Keying by id also means a definition can be renamed without orphaning the answers stored against it.
 4. Changing the driving value clears the previous answers, so no value carries across case types.
 5. A definition's default seeds its field, without overwriting an answer already given.
+6. Editing a record whose declaration has `mode: "array"`, each field opens with the answer the record stores in `arrayKey`, read back for its type (a number, a switch, a list or object from its JSON). A stored answer wins over the default.
 
 ## Persisting the answers
 
@@ -112,6 +116,12 @@ async onConfirm(formData, dynamic) {
 ```
 
 `formData` holds only the object's own fields. A host that ignores the second argument still posts a clean payload rather than sending dynamic keys to a schema that does not declare them, which OpenRegister would drop with a 200 and no error.
+
+With `mode: "array"` the dialog also puts the answers in `formData[arrayKey]`, merged over the array the record holds ([`mergeValueArray`](#merging-stored-answers)), so any host that saves `formData` saves the answers too: CnDetailPage and CnIndexPage edit forms need nothing extra.
+
+### Merging stored answers
+
+`mergeValueArray(existing, answers, config, definitions)` returns the array to store: a changed answer replaces its entry in place, an unchanged one keeps its stored entry as it was, a cleared one loses its entry, a new one is added at the end, and an entry for a definition the form did not ask stays. An edit that changes no answer therefore stores the array it read. `storedAnswersFor(record, config, properties)` is the read side: the stored answers keyed `x-prop:<definition id>`.
 
 A manifest `open-form` action gets all of this for free: [`CnActionButtons`](../components/cn-action-buttons.md) saves the object and then the value rows.
 

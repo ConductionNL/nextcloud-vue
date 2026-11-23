@@ -31,8 +31,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCospendCard from './cospend/CnCospendCard.vue'
-import CnCospendTab from './cospend/CnCospendTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnCospendCard = lazyComponent(() => import('./cospend/CnCospendCard.vue'), 'CnCospendCard')
+const CnCospendTab = lazyComponent(() => import('./cospend/CnCospendTab.vue'), 'CnCospendTab')
 
 /**
  * `cospend` integration descriptor.

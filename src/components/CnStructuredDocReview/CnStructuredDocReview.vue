@@ -17,9 +17,9 @@
 
 		<!-- Validation issues banner. -->
 		<div v-if="issues.length > 0" class="cn-structured-doc-review__issues" data-testid="issues">
-			<h4 class="cn-structured-doc-review__issues-title">
+			<component :is="innerHeadingTag" class="cn-structured-doc-review__issues-title cn-inner-heading">
 				{{ issuesTitle }}
-			</h4>
+			</component>
 			<ul>
 				<li v-for="(issue, idx) in issues"
 					:key="idx"
@@ -72,6 +72,7 @@
 
 <script>
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import innerHeading from '../../mixins/innerHeading.js'
 
 /**
  * CnStructuredDocReview — Structured-document review surface with
@@ -106,6 +107,8 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 export default {
 	name: 'CnStructuredDocReview',
 	components: { CnJsonViewer },
+
+	mixins: [innerHeading],
 	props: {
 		/** Document title (rendered in the header). */
 		title: { type: String, default: '' },

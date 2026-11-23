@@ -302,3 +302,30 @@ Field sizes are tokens: `--cn-field-label-size` (14px), `--cn-field-height` (40p
 The settings page (`type: "settings"`) is admin-facing config persistence — it assumes `IAppConfig` is the destination and groups fields into sections. Forms have a different audience (end users), a different destination (consumer-defined endpoint or handler), and a flat shape (no sections). Sharing the field renderer keeps the duplication low without wedging end-user form rendering into a settings-shaped component.
 
 For form-builder authoring UIs (drag-drop question ordering, per-field validation panels, branching logic) keep using `type: "custom"` — the manifest's declarative shape doesn't fit a builder UI.
+
+## Device fields
+
+Four field types ask the device for something, and only when the person acts:
+
+| `type` | Renders | Value |
+|--------|---------|-------|
+| `signature` | `CnSignatureCapture`; `allowDrawn` (default true) and `allowTyped` (default false) | a drawn signature as a PNG `data:` URL (or the typed name), for a `file` property |
+| `audio` | [`CnAudioCapture`](./cn-audio-capture.md); `maxSeconds` (default 60) | the clip as a `data:` URL, for a `file` property |
+| `scan` | [`CnScanField`](./cn-scan-field.md); `formats` (`qr`, `code128`, `ean13`) | the code, typed or scanned |
+| `location` | `CnGeoCaptureField`; `latField`, `lngField`, optional `accuracyField`, `auto` | the latitude and longitude written into `latField` and `lngField` (and the accuracy into `accuracyField`); without them the place `{ lat, lng, accuracy, at }` under the field's own key |
+
+```json
+{ "key": "position", "label": "Where", "type": "location", "latField": "latitude", "lngField": "longitude" }
+```
+
+A required `location` field with `latField` and `lngField` is filled once both hold a number.
+
+## A list of objects
+
+A field of `type: "array"` whose `items` is an object schema, or any field with `widget: "sub-objects"`, is a table of rows, each added or edited in a dialog over the row schema (CnSubObjectsField). The value is an array of objects under the field's key, which is what a journey's repeating write names (`forEach`). `maxItems` caps the rows: at the limit Add and Duplicate are disabled and a line says so. `addLabel` and `itemLabel` name the button and a row. `validation.required` asks for at least one row.
+
+```json
+{ "key": "products", "label": "Products", "type": "array", "widget": "sub-objects", "maxItems": 10, "addLabel": "Add product",
+  "items": { "type": "object", "properties": { "product": { "type": "string", "title": "Product", "enum": ["parking", "waste"] }, "count": { "type": "integer", "title": "Count" } } } }
+```
+

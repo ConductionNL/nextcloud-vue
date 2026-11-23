@@ -29,7 +29,7 @@
  * Each icon is imported individually (no wildcard / barrel) so the bundle
  * stays tree-shake-friendly.
  *
- * @spec openspec/architecture/adr-077-semantic-icon-vocabulary.md
+ * @spec exclude the vocabulary decision (ADR-077) has no spec in this repository
  */
 
 import AccountArrowRightOutlineIcon from 'vue-material-design-icons/AccountArrowRightOutline.vue'
@@ -60,6 +60,7 @@ import CalculatorVariantOutlineIcon from 'vue-material-design-icons/CalculatorVa
 import CalendarAccountOutlineIcon from 'vue-material-design-icons/CalendarAccountOutline.vue'
 import CalendarClockOutlineIcon from 'vue-material-design-icons/CalendarClockOutline.vue'
 import CalendarOutlineIcon from 'vue-material-design-icons/CalendarOutline.vue'
+import CalendarPlusOutlineIcon from 'vue-material-design-icons/CalendarPlusOutline.vue'
 import CalendarRemoveOutlineIcon from 'vue-material-design-icons/CalendarRemoveOutline.vue'
 import CalendarTextOutlineIcon from 'vue-material-design-icons/CalendarTextOutline.vue'
 import CalendarWeekendOutlineIcon from 'vue-material-design-icons/CalendarWeekendOutline.vue'
@@ -127,6 +128,7 @@ import HandHeartOutlineIcon from 'vue-material-design-icons/HandHeartOutline.vue
 import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import ImageOutlineIcon from 'vue-material-design-icons/ImageOutline.vue'
+import InboxOutlineIcon from 'vue-material-design-icons/InboxOutline.vue'
 import InformationOutlineIcon from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutlineIcon from 'vue-material-design-icons/KeyOutline.vue'
 import LayersOutlineIcon from 'vue-material-design-icons/LayersOutline.vue'
@@ -204,7 +206,7 @@ export const SEMANTIC_ICONS_TIER_A = Object.freeze({
 	notifications: 'BellOutline',
 	activity: 'Pulse',
 	'audit-trail': 'History',
-	'my-work': 'ClipboardAccountOutline',
+	'my-work': 'InboxOutline',
 })
 
 /**
@@ -425,6 +427,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	CalendarAccountOutline: CalendarAccountOutlineIcon,
 	CalendarClockOutline: CalendarClockOutlineIcon,
 	CalendarOutline: CalendarOutlineIcon,
+	CalendarPlusOutline: CalendarPlusOutlineIcon,
 	CalendarRemoveOutline: CalendarRemoveOutlineIcon,
 	CalendarTextOutline: CalendarTextOutlineIcon,
 	CalendarWeekendOutline: CalendarWeekendOutlineIcon,
@@ -492,6 +495,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	HandshakeOutline: HandshakeOutlineIcon,
 	History: HistoryIcon,
 	ImageOutline: ImageOutlineIcon,
+	InboxOutline: InboxOutlineIcon,
 	InformationOutline: InformationOutlineIcon,
 	KeyOutline: KeyOutlineIcon,
 	LayersOutline: LayersOutlineIcon,

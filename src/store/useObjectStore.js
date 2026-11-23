@@ -714,10 +714,20 @@ const baseActions = {
 	 * @param {{error?: object|null}} [options.outcome] Opt-in sink for THIS call's own result: `error` is set to the error it records on `errors[type]`, or `null` on success. Unlike `errors[type]`, which every call for the type shares, a later call cannot overwrite it.
 	 * @param {boolean} [options.append] Add the fetched page after the rows already stored instead of replacing them. Dropped when the stored rows are no longer the page before it, or when `options.isCurrent()` returns false (the query changed meanwhile).
 	 * @param {() => boolean} [options.isCurrent] With `append`: asked once the page arrives; false drops it.
-	 * @return {Promise<Array>} The fetched collection (also stored in state)
+	 * @return {Promise<Array>} The fetched collection (also stored in state, unless a newer non-append fetch for the type started meanwhile)
+	 * @spec openspec/changes/list-keeps-its-newest-query/specs/list-keeps-its-newest-query/spec.md#requirement-the-newest-list-query-decides-what-the-list-shows
 	 */
 	async fetchCollection(type, params = {}, options = {}) {
 		const outcome = (options && typeof options.outcome === 'object' && options.outcome) || null
+		const append = options?.append === true
+		// Responses can arrive out of order; only the newest query for the
+		// type may write the list. An append page belongs to the query before it.
+		const currentQuery = this.__currentCollectionQuery || (this.__currentCollectionQuery = {})
+		if (!append) {
+			currentQuery[type] = JSON.stringify(params)
+		}
+		const query = currentQuery[type]
+		const superseded = () => currentQuery[type] !== query
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
@@ -746,10 +756,13 @@ const baseActions = {
 
 			if (!response.ok) {
 				const failure = await parseResponseError(response, type)
-				this.errors = { ...this.errors, [type]: failure }
 				if (outcome) {
 					outcome.error = failure
 				}
+				if (superseded()) {
+					return []
+				}
+				this.errors = { ...this.errors, [type]: failure }
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error fetching ${type} collection:`, failure)
 				return []
@@ -757,8 +770,13 @@ const baseActions = {
 
 			const data = await response.json()
 			const results = data.results || data
-			const append = options?.append === true
 
+			if (superseded()) {
+				if (outcome) {
+					outcome.error = null
+				}
+				return append ? [] : results
+			}
 			const stale = append && (
 				Number(this.pagination[type]?.page || 1) !== Number(params._page || 1) - 1
 				|| (typeof options.isCurrent === 'function' && !options.isCurrent())
@@ -797,15 +815,20 @@ const baseActions = {
 			const failure = error.name === 'TypeError'
 				? networkError(error)
 				: genericError(error)
-			this.errors = { ...this.errors, [type]: failure }
 			if (outcome) {
 				outcome.error = failure
 			}
+			if (superseded()) {
+				return []
+			}
+			this.errors = { ...this.errors, [type]: failure }
 			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
-			this.loading = { ...this.loading, [type]: false }
+			if (!superseded()) {
+				this.loading = { ...this.loading, [type]: false }
+			}
 		}
 	},
 
@@ -956,6 +979,61 @@ const baseActions = {
 			}
 			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type}/${id}:`, error)
+			return null
+		} finally {
+			this.loading = { ...this.loading, [type]: false }
+		}
+	},
+
+	/**
+	 * Update only some keys of an object: a PATCH carrying `changes`, so every
+	 * key the caller did not send keeps its stored value. The saved object
+	 * replaces the cached one.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {object} changes The keys to write, with their new values
+	 * @return {Promise<object|null>} The saved object or null on error
+	 * @spec openspec/changes/forms-save-edited-keys/specs/object-store/spec.md#requirement-an-edit-writes-only-the-keys-it-changed
+	 */
+	async patchObject(type, id, changes) {
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
+
+		try {
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrl(type, id, schema),
+				{
+					method: 'PATCH',
+					headers: this._buildHeaders(),
+					body: JSON.stringify(changes || {}),
+				},
+			)
+
+			if (!response.ok) {
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+				console.error(`Error saving ${type}:`, this.errors[type])
+				return null
+			}
+
+			const data = await response.json()
+			const savedId = data.id || id
+			this.objects = {
+				...this.objects,
+				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+			return data
+		} catch (error) {
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+			console.error(`Error saving ${type}:`, error)
 			return null
 		} finally {
 			this.loading = { ...this.loading, [type]: false }

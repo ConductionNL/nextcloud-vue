@@ -1,0 +1,2 @@
+- [x] Board-look thread chip size in look-board-index.css
+- [x] CSS spec tests/css/lookBoardThreadFilterChips.spec.js

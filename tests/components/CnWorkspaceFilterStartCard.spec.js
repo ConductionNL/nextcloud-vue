@@ -133,4 +133,34 @@ describe('CnWorkspaceFilterWidget start card', () => {
 		expect(w.findComponent(ResourceSelectStub).exists()).toBe(false)
 		expect(w.find('[data-testid="cn-workspace-filter-link"]').exists()).toBe(false)
 	})
+
+	it('a link with a value picks it into the workspace, as an example client', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		const workspace = ref({})
+		const w = mountWidget({ ...START, link: { label: 'See an example', value: 'client-bakkerij' } }, workspace)
+		await flush()
+		const link = w.find('[data-testid="cn-workspace-filter-link"]')
+		expect(link.element.tagName).toBe('BUTTON')
+		expect(link.text()).toBe('T(See an example)')
+		await link.trigger('click')
+		expect(workspace.value.selectedClient).toBe('client-bakkerij')
+		expect(w.emitted('change')).toEqual([[{ key: 'selectedClient', value: 'client-bakkerij' }]])
+	})
+
+	it('draws no link when the value is unset (an app setting nobody filled)', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		for (const value of ['', '@config.example_client?']) {
+			const w = mountWidget({ ...START, link: { label: 'See an example', value } })
+			await flush()
+			expect(w.find('[data-testid="cn-workspace-filter-link"]').exists()).toBe(false)
+		}
+	})
+
+	it('draws the start card picker as a search: an icon and the search class', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		const w = mountWidget(START)
+		await flush()
+		expect(w.find('.cn-workspace-filter-widget__search-icon').exists()).toBe(true)
+		expect(w.findComponent(ResourceSelectStub).classes()).toContain('cn-workspace-filter-widget__control--search')
+	})
 })

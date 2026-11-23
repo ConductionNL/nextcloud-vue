@@ -109,6 +109,7 @@ The full control — First/Last, numbered pages, a page-size select — is an in
 |---|---|---|---|
 | `compact` | `Boolean` | `false` | Widget-sized variant: one Prev/Next pair plus the item range; no First/Last, no page numbers, no page-size select |
 | `compactInfoFormat` | `String` | `'{from}–{to} of {total}'` | Format string used in compact mode. Placeholders: `{from}`, `{to}`, `{total}` |
+| `pagerOnOnePage` | `Boolean` | `true` | Board variant: whether a list on one page still draws its count and the "1" with an inert Next. Off, one page shows the footer note alone (PqWachtrij); more than one page is unchanged. |
 
 Compact mode names the **items**, not the pages: in a widget the row range is what the reader is looking at, and it is the only honest statement of how much is off-screen.
 

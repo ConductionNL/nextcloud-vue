@@ -21,7 +21,7 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
-			{ 'cn-kpi-card--board': isBoardLook },
+			{ 'cn-kpi-card--board': isBoardLook, 'cn-kpi-card--icon-top': hasTopBadge },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
@@ -33,6 +33,17 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
+			<!-- Board look, `content.iconPlacement: "top"`: the icon sits in a
+			     42px circle above the label, tinted by the tile's state
+			     (LqTlVandaag). -->
+			<span
+				v-if="hasTopBadge"
+				class="cn-kpi-card__badge cn-kpi-card__badge--top cn-stat-widget__badge-icon"
+				:class="'cn-kpi-card__badge--' + stateTone"
+				data-testid="cn-stat-widget-icon-top"
+				aria-hidden="true">
+				<CnWidgetIcon :name="resolvedIcon" :size="22" />
+			</span>
 			<div
 				v-if="content.label || rangePresets.length"
 				class="cn-kpi-card__title cn-stat-widget__label"
@@ -40,7 +51,7 @@
 				<!-- Board look: the icon is an 18px glyph before the label, and
 				     only when the tile links to a filtered list. -->
 				<span
-					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge"
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge && !hasTopBadge"
 					class="cn-kpi-card__glyph cn-stat-widget__glyph"
 					data-testid="cn-stat-widget-glyph"
 					aria-hidden="true">
@@ -83,7 +94,14 @@
 			</div>
 
 			<div ref="valueRow" class="cn-kpi-card__value-row cn-stat-widget__value-row">
-				<NcLoadingIcon v-if="displayLoading" :size="22" />
+				<CnEndpointNotice
+					v-if="endpointMode && epAwaitingRequest"
+					:awaitingRequest="true"
+					:requestLabel="content.endpointSource.requestLabel ? effectiveTranslate(content.endpointSource.requestLabel) : ''"
+					:requestHint="content.endpointSource.requestHint ? effectiveTranslate(content.endpointSource.requestHint) : ''"
+					:requestDisabled="epBlocked"
+					@request="epRequest" />
+				<NcLoadingIcon v-else-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
 					<!-- Badge mode: the value is a state name, so it reads as the
@@ -102,10 +120,10 @@
 						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
 						:title="shownValueIsText ? shownValue : (isTextValue ? String(displayValue) : null)"
 						:style="valueStyle">
-						{{ shownValue }}
+						{{ limitOfText || shownValue }}
 					</span>
 					<span
-						v-if="formattedLimit !== ''"
+						v-if="formattedLimit !== '' && !limitOfText"
 						class="cn-stat-widget__limit"
 						data-testid="cn-stat-widget-limit">
 						/ {{ formattedLimit }}
@@ -117,6 +135,12 @@
 						:style="{ color: trendColor }">
 						<component :is="trendIcon" :size="14" />
 						{{ formattedTrend }}
+					</span>
+					<span
+						v-else-if="noPreviousText"
+						class="cn-stat-widget__trend cn-stat-widget__trend--none"
+						data-testid="cn-stat-widget-no-previous">
+						{{ noPreviousText }}
 					</span>
 				</template>
 				<span
@@ -151,6 +175,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -163,13 +188,16 @@ import { normalizeLook } from '../../composables/useLook.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { daysUntil } from '../../utils/dateVariant.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
 // this component and CnStatsBlock, so the two cannot drift apart again.
@@ -314,6 +342,7 @@ function calendarDay(value) {
  *   previousField: 'previousPeriod.revenue',   // → trend sublabel (arrow + % vs previous)
  *   // deltaField: 'revenueDeltaPct',          // OR a server-computed delta percent
  *   goodDirection: 'up',                       // tints the trend good/bad (default 'up')
+ *   noPreviousText: 'No earlier period to compare with', // when the previous value is missing or 0
  *   variantWhen: [                             // first-match threshold styling
  *     { op: 'gte', value: 100000, variant: 'success' },
  *     { op: 'lt', value: 10000, variant: 'warning', icon: 'AlertOutline' },
@@ -382,6 +411,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnEndpointNotice,
 		CnWidgetIcon,
 		CnStatusBadge,
 		TrendingUp,
@@ -474,6 +504,8 @@ export default {
 		 * payload; `previousField` (previous-period value) or `deltaField`
 		 * (server-computed percent) renders the trend sublabel (arrow +
 		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
+		 * `noPreviousText` replaces that sublabel when `previousField` is set
+		 * but the previous value is missing, not numeric or 0;
 		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
 		 * re-tints the value/icon by threshold.
 		 *
@@ -521,7 +553,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), noPreviousText?: string, variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -578,7 +610,7 @@ export default {
 		}
 		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || defaultRange())
 
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
 			{
 				ctx: () => ({
@@ -591,7 +623,7 @@ export default {
 				}),
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, tileRange, activeRange }
+		return { epData: data, epLoading: loading, epError: error, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch, tileRange, activeRange }
 	},
 
 	data() {
@@ -616,6 +648,8 @@ export default {
 			value: null,
 			// The caption's own count (`content.captionSource`), null until read.
 			captionValue: null,
+			// The limit `content.limitSource` counted, or null.
+			limitCount: null,
 			// The parts of a ratio caption (`captionSource.kind: "ratio"`): the
 			// numerator read (null: the tile's own value) and the denominator.
 			captionRatioParts: null,
@@ -657,6 +691,28 @@ export default {
 		},
 
 		/**
+		 * The caption before translation: the matching override's `caption`,
+		 * else `content.caption`. A `{ singular, plural }` caption takes the
+		 * singular for a count of one and the plural otherwise, counted by the
+		 * caption's own count, or by the tile's number when it has none.
+		 *
+		 * @return {string} The source string, '' for none.
+		 * @spec openspec/changes/stat-caption-plural/specs/stat-widget/spec.md#requirement-a-stat-caption-can-take-a-singular-and-a-plural-form
+		 */
+		captionSourceText() {
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
+			if (!caption || typeof caption !== 'object') {
+				return typeof caption === 'string' ? caption : ''
+			}
+			const count = this.hasCaptionSource ? this.captionCount : this.displayValue
+			const form = Number(count) === 1 ? caption.singular : caption.plural
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
 		 *
@@ -665,6 +721,9 @@ export default {
 		 * caption can say what the number MEANS rather than repeating it:
 		 *
 		 *   caption: '{levelName} · {currentStreakDays}-day streak'
+		 *
+		 * A token may carry a template format (`{annualValue|currency}`,
+		 * `{noticeDate|longdate}`), filled as a template token is.
 		 *
 		 * WHY THIS EXISTS. Without it a tile needing a secondary line had to be
 		 * a bespoke component: it could not be expressed as config, so apps
@@ -676,17 +735,20 @@ export default {
 		 * placeholder in the source string and can move it within the sentence —
 		 * the same contract as Nextcloud's own `t()` parameters.
 		 *
+		 * `@object.<field>`, `@objectId`, `@workspace.<key>` and `@config.<key>`
+		 * read the page's contexts as a source's tokens do, so a register-counted
+		 * tile can name its record's own figure ("of @object.capacity places").
+		 *
 		 * A token with no matching field resolves to the empty string rather
 		 * than being left as `{levelName}` on screen: a caption is decoration,
 		 * and showing a reader a raw token is worse than showing them less.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/stat-caption-formats/specs/stat-widget/spec.md#requirement-a-stat-caption-token-can-carry-a-format
+		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
-			const override = this.activeOverride
-			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
-				? override.caption
-				: this.content.caption
+			const caption = this.captionSourceText
 			if (!caption) {
 				return ''
 			}
@@ -699,16 +761,31 @@ export default {
 				const zero = count !== null && this.content.captionSource.zeroText
 				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
 			}
-			const translated = this.effectiveTranslate(caption)
+			// `@object.<field>` names a field of the page's record (PqEvenement
+			// "van @object.capacity plaatsen" on a register-counted tile).
+			const translated = caption.indexOf('@') === -1
+				? this.effectiveTranslate(caption)
+				: this.interpolateTokens(this.effectiveTranslate(caption)).replace(/\s{2,}/g, ' ').trim()
 			if (translated.indexOf('{') === -1) {
 				return translated
 			}
 			const payload = this.endpointMode ? this.epData : null
-			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+			return translated.replace(/\{([A-Za-z0-9_.]+)(\|[A-Za-z]+(?::[^{}\s]+)?)?\}/g, (whole, path, format) => {
+				// `{path|tile}`: the value written as the tile writes its own
+				// number (`content.format`), e.g. a previous period's rate.
+				if (format === '|tile') {
+					const v = payload === null ? undefined : getByPath(payload, path)
+					return (v === undefined || v === null || v === '') ? '' : String(formatMetricValue(v, this.content.format, this.configCtx, this.objectCtx?.object || null, this.effectiveTranslate))
+				}
+				// `{path|format}`: the token formatted as a template token is
+				// (`{annualValue|currency}`, `{noticeDate|longdate}`).
+				if (format) {
+					return payload === null ? '' : fillTemplate(`{${path}${format}}`, payload, new Date(), { config: this.configCtx })
+				}
 				// `{count}` is the caption's own count; `{ratio}` the same
 				// for a ratio caption, as a percentage.
 				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
-					return this.isCaptionRatio ? this.formatCaptionRatio(count) : String(count)
+					return this.isCaptionRatio ? this.formatCaptionRatio(count) : new Intl.NumberFormat(metricLocale()).format(Number(count))
 				}
 				// `{value}` is the tile's own number, so a caption can read
 				// "{value} due today" on a register-counted tile that has no
@@ -758,6 +835,33 @@ export default {
 		},
 
 		/**
+		 * Whether the limit is a count of its own (`content.limitSource` with
+		 * a register and schema, its own or the tile's).
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {boolean}
+		 */
+		hasLimitSource() {
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			return !!own && typeof own === 'object' && !!(own.register || base.register) && !!(own.schema || base.schema)
+		},
+
+		/**
+		 * `content.limitStyle: "of"`: the value and the limit as one
+		 * headline, "9 of 12". Empty without a limit or that style.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {string}
+		 */
+		limitOfText() {
+			if (this.content.limitStyle !== 'of' || this.formattedLimit === '' || this.displayValue === null || this.displayValue === undefined) {
+				return ''
+			}
+			return t('nextcloud-vue', '{shown} of {total}', { shown: this.shownValue, total: this.formattedLimit })
+		},
+
+		/**
 		 * Whether the caption has a count of its own (`content.captionSource`
 		 * with a register and schema, its own or the tile's).
 		 *
@@ -776,7 +880,7 @@ export default {
 		 * null. Colours the caption on the value without recolouring the
 		 * tile: "1 due today" turns red while the number stays ink.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {object|null}
 		 */
 		activeCaptionRule() {
@@ -825,7 +929,7 @@ export default {
 		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
 		 * variant, so an uncoloured caption is what it always was.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {string}
 		 */
 		captionVariantClass() {
@@ -1294,6 +1398,24 @@ export default {
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
 
+		/**
+		 * The translated `content.noPreviousText` when `previousField` is set
+		 * and the previous value is missing, not numeric or 0, else ''.
+		 *
+		 * @return {string}
+		 */
+		noPreviousText() {
+			const text = this.content.noPreviousText
+			if (typeof text !== 'string' || text === '' || !this.endpointMode || !this.content.previousField || this.content.deltaField) {
+				return ''
+			}
+			if (this.displayLoading || this.displayError || !this.epData) {
+				return ''
+			}
+			const prev = this.previousValue
+			return prev === null || prev === 0 ? this.effectiveTranslate(text) : ''
+		},
+
 		/** The signed trend percent, e.g. "+12.3%". */
 		formattedTrend() {
 			if (this.trendPct === null) {
@@ -1445,6 +1567,20 @@ export default {
 		},
 
 		/**
+		 * Whether the board look draws the icon in a tinted 42px circle above
+		 * the label (`content.iconPlacement: "top"`), as the learniq Today
+		 * tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label
+		 * @return {boolean}
+		 */
+		hasTopBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'top'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
 		 * The tile's state as a tone name for the end badge: the variant the
 		 * value colour comes from (`success`, `warning`, `error`), else
 		 * `primary`. A custom `valueColor` has no tone and reads as primary.
@@ -1531,8 +1667,13 @@ export default {
 		 */
 		limitValue() {
 			let raw = this.content.limit
-			if (this.endpointMode && this.content.limitField) {
+			if (this.hasLimitSource) {
+				raw = this.limitCount
+			} else if (this.endpointMode && this.content.limitField) {
 				raw = getByPath(this.epData, this.content.limitField)
+			}
+			if (raw === null || raw === undefined) {
+				return null
 			}
 			const n = Number(raw)
 			return Number.isFinite(n) ? n : null
@@ -1561,7 +1702,7 @@ export default {
 		 * @return {boolean}
 		 */
 		atLimit() {
-			if (this.limitValue === null) {
+			if (this.limitValue === null || this.content.limitStyle === 'of') {
 				return false
 			}
 			const current = Number(this.displayValue)
@@ -1972,11 +2113,86 @@ export default {
 					this.captionRatioParts = { num: num === undefined ? null : num, den }
 					return
 				}
-				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				const found = own.metric === 'daysSinceEarliest'
+					? await this.fetchDaysSinceEarliest(axios, generateUrl, source, own.field, own.filter || {})
+					: await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
 				this.captionValue = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
 			} catch {
 				this.captionValue = null
 				this.captionRatioParts = null
+			}
+		},
+
+		/**
+		 * The whole days from the earliest `field` date among the matching
+		 * records to today (`captionSource.metric: "daysSinceEarliest"`):
+		 * "longest: 9 days" over the days since each case entered its status.
+		 * One list read, ordered by the field, of the first record that has
+		 * it. 0 when no record matches, null when the date cannot be read.
+		 *
+		 * @spec openspec/changes/stat-caption-days-since-earliest/specs/stat-caption-days-since-earliest/spec.md#requirement-a-stat-caption-can-count-the-days-since-the-earliest-date
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} s The source (register/schema).
+		 * @param {string} field The date field.
+		 * @param {object} filter The filter map.
+		 * @return {Promise<number|null>} The days, or null.
+		 */
+		async fetchDaysSinceEarliest(axios, generateUrl, s, field, filter) {
+			if (typeof field !== 'string' || field === '') {
+				return null
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(this.resolveSourceFilter(filter))) {
+				if (value === null) {
+					params[`${key}[isnull]`] = 'true'
+				} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+					for (const [op, operand] of Object.entries(value)) {
+						params[`${key}[${op}]`] = operand
+					}
+				} else if (value !== '' && value !== undefined) {
+					params[key] = value
+				}
+			}
+			params[`${field}[isnull]`] = 'false'
+			params[`_order[${field}]`] = 'asc'
+			params._limit = 1
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: s.register, schema: s.schema })
+			const res = await axios.get(url, { params })
+			const first = Array.isArray(res?.data?.results) ? res.data.results[0] : undefined
+			if (!first) {
+				return 0
+			}
+			const raw = first[field] !== undefined ? first[field] : first['@self']?.[field]
+			const days = daysUntil(raw, new Date())
+			return days === null ? null : Math.max(0, -days)
+		},
+
+		/**
+		 * Read the limit's own count (`content.limitSource`: `{ register?,
+		 * schema?, metric?, field?, filter?, via? }`, register and schema
+		 * default to the tile's source). A failed read leaves the limit out.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {Promise<void>}
+		 */
+		async fetchLimitCount() {
+			if (!this.hasLimitSource) {
+				this.limitCount = null
+				return
+			}
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			const source = { register: own.register || base.register, schema: own.schema || base.schema }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				this.limitCount = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
+			} catch {
+				this.limitCount = null
 			}
 		},
 
@@ -2006,9 +2222,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValue(refresh) {
-			// The caption's own count is read beside the value, whatever the
-			// value's source is.
+			// The caption's own count and the limit's are read beside the
+			// value, whatever the value's source is.
 			this.fetchCaptionValue()
+			this.fetchLimitCount()
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -2317,6 +2534,11 @@ export default {
 	gap: 2px;
 	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: var(--cn-kpi-title-weight, 600);
+}
+
+.cn-stat-widget__trend--none {
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
 }
 
 /* The dash shown when the number could not be fetched. It stands where the

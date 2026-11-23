@@ -52,6 +52,7 @@ const editor = useManifestEditor(manifestRef, { persist: persistDelta })
 | `available` | `Boolean` | `false` | Whether Buildiq is available to this user. When falsey the component renders nothing. Wire from `useBuildiqEditAvailability()`. |
 | `editor` | `Object` | `null` | The shared `useManifestEditor` instance (`{ editing, working, dirty, enter, cancel, save }`). Falls back to the injected `cnManifestEditor`. |
 | `pageId` | `String` | `''` | The active page's id, forwarded to `CnEditSidebarModal` so it edits the right page's sidebar config. |
+| `href` | `String` | `''` | Where the square leads when there is no manifest editor on the page (an admin settings page): the app with `cn_edit=1`, which CnAppRoot opens in edit mode. Ignored where an editor is available. |
 
 ## Events
 
@@ -63,7 +64,7 @@ const editor = useManifestEditor(manifestRef, { persist: persistDelta })
 | `add-widget` | — | Emitted when "Add widget…" is activated in edit mode (wired to `CnAddWidgetModal` by the `cn-widget-library` change). |
 | `edit-menu` | — | Emitted when the menu editor opens. |
 | `edit-sidebar` | — | Emitted when the sidebar editor opens. |
-| `edit-flows` | — | Emitted when the flow editor ("Edit flows…") opens. Opens [`CnFlowEditModal`](./cn-flow-edit-modal.md) on OpenRegister's flow store. |
+| `edit-flows` | — | Emitted when the flow editor ("Edit flows…") opens. Goes to the app's flow page in list mode when a `flow` page sets `config.listMode` (`/flows/new?view=list`), else opens the list view in [`CnFlowEditModal`](./cn-flow-edit-modal.md) on OpenRegister's flow store. |
 
 ## Related
 

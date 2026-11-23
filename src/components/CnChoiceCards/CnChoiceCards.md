@@ -61,3 +61,71 @@ four lines `description-lines` shows by default:
     ]" />
 </div>
 ```
+
+One option per row with `layout="rows"`, an option that cannot be picked yet
+(`disabled` with a `disabledReason`), and fields for the chosen option right
+under it through the `option-actions` slot (scope `{ option, selected }`):
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Next step"
+    layout="rows"
+    :model-value="'decide'"
+    :options="[
+      { value: 'decide', label: 'Take a decision',
+        description: 'Record the decision and inform the applicant.' },
+      { value: 'advice', label: 'Ask for advice',
+        description: 'Send the case to the advisory committee.' },
+      { value: 'close', label: 'Close the case', disabled: true,
+        disabledReason: 'A decision has to be taken first.' },
+    ]">
+    <template #option-actions="{ option, selected }">
+      <p v-if="selected && option.value === 'decide'" style="margin: 0 0 0 32px;">Decision fields go here.</p>
+    </template>
+  </CnChoiceCards>
+</div>
+```
+
+The chosen option's own fields can also sit inside its frame, under its text,
+through the `option-details` slot (scope `{ option }`): rendered only for the
+selected option, and outside the radio's label.
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Next step"
+    layout="rows"
+    :model-value="'suspend'"
+    :options="[
+      { value: 'suspend', label: 'Suspend', description: 'The term stops until the answer is in.' },
+      { value: 'abort', label: 'Abort' },
+    ]">
+    <template #option-details="{ option }">
+      <p v-if="option.value === 'suspend'" style="margin: 0;">Reason and return date go here.</p>
+    </template>
+  </CnChoiceCards>
+</div>
+```
+
+A recorded choice shown back with `readonly`: every option at full contrast, the
+chosen one marked, nothing pickable. `disabled` greys the options out instead.
+
+```vue
+<div style="max-width: 560px;">
+  <CnChoiceCards
+    label="Outcome"
+    layout="rows"
+    :readonly="true"
+    :model-value="'partial'"
+    :options="[
+      { value: 'public', label: 'Made public' },
+      { value: 'partial', label: 'Partly made public' },
+      { value: 'none', label: 'Not made public' },
+    ]" />
+</div>
+```
+
+`columns` fixes the card grid's column count; `:columns="1"` stacks the cards in one column.
+
+`hide-label` keeps the legend for assistive technology only, where the dialog's title already says what is chosen (DqZaakSamenwerken).

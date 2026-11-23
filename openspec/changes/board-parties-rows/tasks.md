@@ -1,0 +1,3 @@
+- [x] 1.1 board rows (tests/components/CnObjectPartiesWidget.spec.js)
+- [x] 1.2 board CSS (tests/css/lookBoardPartiesRows.spec.js)
+- [x] 1.3 rows 8px under the accepted strip (r29: 12)

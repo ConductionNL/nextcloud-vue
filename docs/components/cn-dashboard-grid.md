@@ -45,14 +45,16 @@ function onLayoutChange(updated) {
 
 | Prop | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `layout` | Array | ✓ | — | Array of layout items: `{ id, gridX, gridY, gridWidth, gridHeight, sizeToContent?, ...extra }` |
+| `layout` | Array | ✓ | — | Array of layout items: `{ id, gridX, gridY, gridWidth, gridHeight, sizeToContent?, minHeight?, ...extra }`. An item's `minHeight` (layout rows) replaces the grid's own for that item. |
 | ↳ `item.sizeToContent` | Boolean \| Number | | `undefined` | **Per-item**: hand this row's height to its content instead of its authored `gridHeight` (`true`, or a number as a row maximum: GridStack sizes to content but never taller than N rows, so shorter content stays short and taller content is clipped at N; it is not a minimum). Use it for a widget that may decide at runtime it has nothing to show — a banner whose condition is false, a list that came back empty. Without it that widget still costs its whole row: the row is reserved from the layout before the component renders, and the engine positions items absolutely, so no CSS can reclaim the space. Leave it off for anything with a deliberate size (a map, a chart), where `gridHeight` should stay authoritative. |
 | `editable` | Boolean | | `false` | Enables drag and resize interactions |
 | `columns` | Number | | `12` | Number of grid columns |
 | `cellHeight` | Number | | `80` | Cell height in pixels |
+| `columnWeights` | Array | | `null` | Optional weights for the twelve-column grid's column groups, as `[{ span, weight }]` (e.g. three groups of 4 weighted 352/435/352). Applies only on the full twelve-column grid and not while editing; items on a side-column track are left alone. `null` keeps twelve equal shares. |
 | `margin` | Number | | `12` | Gap between grid items in pixels |
+| `marginBottom` | Number | | `null` | Margin under each item in pixels, in place of `margin` on that side only (CnDetailPage passes 8 in the board look, so stacked cards stand 20px apart) |
 | `minWidth` | Number | | `2` | Minimum widget width in grid units |
-| `minHeight` | Number | | `2` | Minimum widget height in grid units |
+| `minHeight` | Number | | `2` | Minimum widget height in grid units. A layout item's own `minHeight` replaces it for that item; the divider type registers `minHeight: 1`. |
 | `columnOpts` | Object | | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build it with [getDashboardColumnOpts](../utilities/get-dashboard-column-opts.md). Default `null` = fixed `columns`. |
 | `cellHeightCssVar` | String | | `null` | When set, `cellHeight` is mirrored into this CSS custom property on the document root at init (e.g. `--app-cell-height`). Default `null` = none. |
 | `itemKey` | Function | | `null` | Optional `(item) => string\|number` to derive each item's render key; forces a re-render when an item changes in a way its `id` doesn't capture (e.g. style edits). Default `null` = key on `item.id`. |
@@ -131,3 +133,12 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## `float`
 
 `float` (default `true`) is GridStack's own setting: every item stays on the row it was placed on. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap instead of leaving a band (CnDashboardPage `gridFloat`, manifest `config.gridFloat`). A `sizeToContent` cell lets its content take its own height, so it can shrink to it.
+
+
+## `fillHeight`
+
+`fillHeight` (Boolean, default `false`) and `fillMinWidth` (Number, default `960`): in view mode, on a grid at least `fillMinWidth` px wide, the layout rows divide the height the host gives the grid instead of growing with the content, so the page around it does not scroll (LpVandaag). A row whose items all set `fitRows: true` takes its content's height; the other rows share what is left, and a cell scrolls what does not fit. Edit mode and a narrower grid keep GridStack's `cellHeight` rows.
+
+## `sideColumn`
+
+`sideColumn` (`{ width, from? }`, default `null`) draws a side column at a fixed width: layout items with `track: "side"` are `width` px wide from column `from` (8 by default), the card without its item margins, and items with `track: "main"` share what is left. An item without a track keeps the twelve shares, so a row of four tiles across the split stays four equal tiles. GridStack keeps its twelve columns underneath; only each item's left edge and width are drawn on the two scales. It applies on the full twelve-column grid and not while editing (CnDashboardPage `gridSideColumn`, manifest `config.gridSideColumn` or a view's `gridSideColumn`).

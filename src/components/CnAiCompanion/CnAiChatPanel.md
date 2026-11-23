@@ -7,6 +7,7 @@ Slide-out chat panel for the AI Chat Companion. Anchored to the right viewport e
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `visible` | `boolean` | `false` | Controls panel visibility. The panel transitions in from the right when set to `true`. |
+| `embedded` | `boolean` | `false` | Draws the window in the page's flow (a tab, a card): no position, no pointer, no close button, and Escape does not close it. |
 | `streamState` | `object` | required | Reactive state object from `useAiChatStream().state`. Contains `isStreaming`, `currentText`, `toolCalls`, `error`, `messages`. |
 | `fabRef` | `object` | `null` | Ref to the FAB element. Focus is returned here on close (WCAG 2.4.3). |
 | `chatAppId` | `string` | `'hermiq'` | Backend app id, forwarded to the agent picker, recent sessions, history list, and `CnAiInput`'s attach control. See `composables/aiChatConfig.js`. |

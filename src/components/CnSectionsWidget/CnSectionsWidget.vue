@@ -9,13 +9,17 @@
 		:class="{
 			'cn-sections-widget--cards': cards,
 			'cn-sections-widget--two-column': twoColumn,
+			'cn-sections-widget--grid': gridColumns > 1,
+			'cn-sections-widget--plain': plain,
 		}"
+		:style="gapStyle"
 		data-testid="cn-sections-widget">
 		<div
 			v-for="column in columns"
 			:key="column.id"
 			class="cn-sections-widget__column"
-			:class="`cn-sections-widget__column--${column.id}`">
+			:class="`cn-sections-widget__column--${column.id}`"
+			:style="gridColumns > 1 ? { '--cn-sections-columns': gridColumns } : null">
 			<section
 				v-for="section in column.sections"
 				:key="section.key"
@@ -26,12 +30,12 @@
 				<!-- The heading waits for content: a widget type that does not
 				     resolve renders nothing, and a heading over nothing is a
 				     label on a void. -->
-				<h3
+				<component :is="sectionHeadingTag"
 					v-if="section.title && isShown(section.key)"
 					:id="headingId(section.key)"
 					class="cn-sections-widget__heading">
 					{{ section.title }}
-				</h3>
+				</component>
 				<p
 					v-if="section.description && isShown(section.key)"
 					class="cn-sections-widget__description">
@@ -58,11 +62,18 @@
 				</div>
 			</section>
 		</div>
+		<p v-if="footnote" class="cn-sections-widget__footnote" data-testid="cn-sections-widget-footnote">
+			{{ footnote }}
+		</p>
 	</div>
 </template>
 
 <script>
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
+import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
+import { isLocallyDecidableVisibleWhen, isWorkspaceCondition } from '../../utils/visibleWhen.js'
 
 /** Counter for unique heading ids across instances. */
 let instanceCounter = 0
@@ -107,8 +118,19 @@ export default {
 
 	components: { CnDetailWidgetHost },
 
+	provide() {
+		return {
+			// Widgets in a section sit under its heading.
+			[HEADING_LEVEL]: () => resolveHeadingLevel(this.cnHeadingLevel) + 1,
+		}
+	},
+
 	inject: {
 		cnTranslate: { default: () => (key) => key },
+		/** The section headings' level, from the card or page around this widget. */
+		cnHeadingLevel: { from: HEADING_LEVEL, default: DEFAULT_HEADING_LEVEL },
+		/** The app's look; the outline level applies in the board look only, the Nextcloud look keeps h3. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -119,8 +141,15 @@ export default {
 		 *   `label` is accepted as an alias of `title`; `column` is `main` (default) or `side`.
 		 * - `cards` — draw each section as its own card (default false: headings and a rule between sections).
 		 * - `hideEmpty` — hide the heading and the space of a section whose widget drew nothing (default true).
+		 * - `dividers` — draw a rule between sections (default true). `false` stacks them 8px apart with no rule,
+		 *   for a row of strips that each say one thing (a record's banners).
 		 *
-		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean}}
+		 * - `columns` — lay the sections out side by side in this many columns (2 to 4), one column on a narrow
+		 *   screen. Ignored when a section asks for the side column.
+		 * - `gap` — the space between plain sections in pixels (`dividers: false`), 8 by default.
+ * - `footnote` — a line of muted text under the sections.
+		 *
+		 * @type {{sections?: Array<object>, cards?: boolean, hideEmpty?: boolean, dividers?: boolean, columns?: number, gap?: number, footnote?: string}}
 		 */
 		content: {
 			type: Object,
@@ -209,12 +238,44 @@ export default {
 
 	computed: {
 		/**
+		 * The section headings' tag (utils/headingLevel.js).
+		 *
+		 * @return {string}
+		 */
+		sectionHeadingTag() {
+			return normalizeLook(this.cnLook) === 'board' ? headingTag(this.cnHeadingLevel) : 'h3'
+		},
+
+		/**
 		 * Whether each section is its own card.
 		 *
 		 * @return {boolean}
 		 */
 		cards() {
 			return this.content?.cards === true
+		},
+
+		/**
+		 * Whether the sections stack with no rule between them.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-sections-can-stack-without-dividers
+		 */
+		plain() {
+			return !this.cards && this.content?.dividers === false
+		},
+
+		/**
+		 * The space between plain sections (`content.gap`, in pixels), as the
+		 * custom property the column reads; null without a size. Board
+		 * PqJourney: the steps 14px under the facts.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/sections-gap/specs/sections-widget/spec.md#requirement-plain-sections-can-set-the-space-between-them
+		 */
+		gapStyle() {
+			const gap = Number(this.content?.gap)
+			return typeof this.content?.gap === 'number' && Number.isFinite(gap) && gap >= 0 ? { '--cn-sections-gap': `${gap}px` } : null
 		},
 
 		/**
@@ -252,6 +313,9 @@ export default {
 				if (!widget || !widget.type) {
 					return
 				}
+				if (this.hiddenByRecord(widget)) {
+					return
+				}
 				out.push({
 					key: String(entry.key || widget.id || entry.widgetId || `${widget.type}-${index}`),
 					title: this.tr(entry.title || entry.label || ''),
@@ -270,6 +334,32 @@ export default {
 		 */
 		twoColumn() {
 			return this.sections.some((section) => section.column === 'side')
+		},
+
+		/**
+		 * How many columns the sections are laid out in side by side: the
+		 * configured `columns`, capped at four; 1 (stacked) without it or
+		 * when a section asks for the side column.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-sections-widget-can-lay-its-cards-out-in-columns
+		 */
+		gridColumns() {
+			const n = Math.floor(Number(this.content?.columns))
+			if (!Number.isFinite(n) || n < 2 || this.twoColumn) {
+				return 1
+			}
+			return Math.min(n, 4)
+		},
+
+		/**
+		 * The translated footnote under the sections, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/sections-card-grid/specs/sections-card-grid/spec.md#requirement-a-sections-widget-can-close-with-a-footnote
+		 */
+		footnote() {
+			return this.tr(this.content?.footnote || '')
 		},
 
 		/**
@@ -330,6 +420,23 @@ export default {
 				return widget
 			}
 			return { ...widget, content: { ...content, fit: false } }
+		},
+
+		/**
+		 * Whether the record hides a section: its widget's own `visibleWhen`
+		 * reads a field of the record and does not hold. Without a record, and
+		 * for a workspace condition or one that needs a request, nothing hides.
+		 *
+		 * @param {object} widget The section's widget definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/sections-child-visible-when/specs/sections-child-visible-when/spec.md#requirement-a-section-on-a-detail-page-follows-its-widgets-condition
+		 */
+		hiddenByRecord(widget) {
+			const cond = widget.visibleWhen
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+				return false
+			}
+			return !detailWidgetVisible(widget, this.objectData)
 		},
 
 		/**
@@ -438,6 +545,22 @@ export default {
 	}
 }
 
+/* Sections side by side (`columns`): at most that many to a row, each at
+   least 240px wide, so a narrow cell wraps them onto more rows. */
+.cn-sections-widget.cn-sections-widget--grid .cn-sections-widget__column {
+	--cn-sections-gap: 14px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, max(240px, calc((100% - (var(--cn-sections-columns, 2) - 1) * var(--cn-sections-gap)) / var(--cn-sections-columns, 2)))), 1fr));
+	gap: var(--cn-sections-gap);
+	align-items: start;
+}
+
+.cn-sections-widget__footnote {
+	margin: calc(var(--default-grid-baseline, 4px) * 3) 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 /* A host page may space every <section>; these sections are spaced by the column gap only. */
 .cn-sections-widget__section {
 	margin: 0;
@@ -448,6 +571,16 @@ export default {
 .cn-sections-widget:not(.cn-sections-widget--cards) .cn-sections-widget__section:not(.cn-sections-widget__section--empty) ~ .cn-sections-widget__section {
 	padding-top: calc(var(--default-grid-baseline, 4px) * 4);
 	border-top: 1px solid var(--color-border);
+}
+
+/* No rule: strips that each say one thing, 8px apart. */
+.cn-sections-widget--plain .cn-sections-widget__column {
+	gap: var(--cn-sections-gap, calc(var(--default-grid-baseline, 4px) * 2));
+}
+
+.cn-sections-widget.cn-sections-widget--plain .cn-sections-widget__section:not(.cn-sections-widget__section--empty) ~ .cn-sections-widget__section {
+	padding-top: 0;
+	border-top: 0;
 }
 
 /*

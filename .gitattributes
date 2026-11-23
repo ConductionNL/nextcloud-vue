@@ -68,3 +68,12 @@ src/icons/rvo.js linguist-generated=true -diff
 src/icons/openGemeenten.js linguist-generated=true -diff
 src/icons/denHaag.js linguist-generated=true -diff
 src/icons/index.js linguist-generated=true
+
+# The l10n catalogues are key sets, not line sequences: every branch that adds
+# a string appends to the same last lines, so a line merge conflicts on every
+# merge of development. scripts/merge-l10n.js merges them key by key; only a
+# key both sides translated differently is a conflict. The command behind
+# `merge=l10n` is local config (`npm install` registers it through `prepare`);
+# without it git falls back to its ordinary merge. Not `merge=union`: on JSON
+# it drops commas and breaks the catalogue.
+l10n/*.json merge=l10n

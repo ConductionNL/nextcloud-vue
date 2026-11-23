@@ -1,0 +1,4 @@
+- [x] CnIndexPage: `filterMenuFields` prop, `filterMenuValuesOf`, entries appended to `filterableFields`
+- [x] CnIndexPage: Filter menu values named by `activeFilterValueLabel`; user fields by display name
+- [x] indexSources `flows`: `searchFields.owner`, owner narrowing in `rows`, `facets()`
+- [x] tests/components/CnIndexPageFilterMenuFields.spec.js

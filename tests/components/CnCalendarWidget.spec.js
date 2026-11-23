@@ -89,6 +89,16 @@ describe('CnCalendarWidget renderer', () => {
 	})
 })
 
+describe('CnCalendarWidget mode toggle', () => {
+	it('pairs the light primary background of the active mode with its own text colour', () => {
+		const source = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnCalendarWidget/CnCalendarWidget.vue'), 'utf8')
+		const start = source.indexOf('.cn-calendar-widget__mode-btn.is-active {')
+		const rule = source.slice(start, source.indexOf('}', start))
+		expect(rule).toContain('background: var(--color-primary-element-light,')
+		expect(rule).toContain('color: var(--color-primary-element-light-text,')
+	})
+})
+
 describe('calendar registry registration', () => {
 	it('registers the calendar type after importing the renderer index', () => {
 		let mod
@@ -100,5 +110,104 @@ describe('calendar registry registration', () => {
 		expect(entry).not.toBeNull()
 		expect(entry.renderer).toBeTruthy()
 		expect(entry.defaultContent).toMatchObject({ viewMode: 'agenda' })
+	})
+})
+
+describe('CnCalendarWidget agenda times, failed sources and slow loads', () => {
+	/**
+	 * Mount with a source answering `payload` and let the fetch settle.
+	 *
+	 * @param {object} payload The source's answer.
+	 * @param {object} content The widget content.
+	 * @return {Promise<object>} The wrapper.
+	 */
+	async function mountWith(payload, content = {}) {
+		const dataSource = { fetchEvents: jest.fn().mockResolvedValue(payload) }
+		const wrapper = mount(CnCalendarWidget, { propsData: { content, dataSource } })
+		await Promise.resolve()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		return wrapper
+	}
+
+	it('shows an agenda row\'s start and end time', async () => {
+		const start = new Date()
+		start.setHours(9, 0, 0, 0)
+		const end = new Date(start)
+		end.setHours(10, 30)
+		const wrapper = await mountWith({ events: [{ uid: 'a', title: 'Sync', start: start.toISOString(), end: end.toISOString() }], failures: [] })
+		expect(wrapper.find('.cn-calendar-widget__agenda-time').text()).toBe('09:00 – 10:30')
+	})
+
+	it('shows the start alone for an event without a later end, and All day for an all-day event', async () => {
+		const start = new Date()
+		start.setHours(9, 0, 0, 0)
+		const wrapper = await mountWith({
+			events: [
+				{ uid: 'a', title: 'No end', start: start.toISOString() },
+				{ uid: 'b', title: 'Holiday', start: start.toISOString(), end: start.toISOString(), allDay: true },
+			],
+			failures: [],
+		})
+		const times = wrapper.findAll('.cn-calendar-widget__agenda-time').map((w) => w.text())
+		expect(times).toEqual(['09:00', 'All day'])
+	})
+
+	it('names a failed source in a small notice above the events, with details on click', async () => {
+		const wrapper = await mountWith({
+			events: [{ uid: 'a', title: 'Kept', start: new Date().toISOString() }],
+			failures: ['https://example.com/broken.ics'],
+		})
+		const notice = wrapper.find('.cn-calendar-widget__notice')
+		expect(notice.attributes('role')).toBe('status')
+		expect(notice.classes()).not.toContain('cn-calendar-widget__notice--prominent')
+		expect(notice.text()).toContain('1 calendar source unavailable')
+		expect(notice.text()).not.toContain('broken.ics')
+		await notice.find('button').trigger('click')
+		expect(wrapper.find('.cn-calendar-widget__notice-list').text()).toContain('https://example.com/broken.ics')
+		expect(wrapper.find('.cn-calendar-widget__agenda-row').text()).toContain('Kept')
+	})
+
+	it('makes the notice prominent next to the empty state when every source failed', async () => {
+		const wrapper = await mountWith(
+			{ events: [], failures: [{ source: 'https://a.example/x.ics', error: 'timeout' }, 'https://b.example/y.ics'] },
+			{ internalCalendars: [], externalIcsUrls: ['https://a.example/x.ics', 'https://b.example/y.ics'] },
+		)
+		const notice = wrapper.find('.cn-calendar-widget__notice')
+		expect(notice.attributes('role')).toBe('alert')
+		expect(notice.classes()).toContain('cn-calendar-widget__notice--prominent')
+		expect(notice.text()).toContain('2 calendar sources unavailable')
+		expect(wrapper.find('.cn-calendar-widget__state').text()).toContain('No events in the next 14 days')
+		await notice.find('button').trigger('click')
+		expect(wrapper.find('.cn-calendar-widget__notice-list').text()).toContain('https://a.example/x.ics: timeout')
+	})
+
+	it('replaces the loading text with a notice and Retry after 30 seconds', async () => {
+		jest.useFakeTimers()
+		try {
+			const dataSource = { fetchEvents: jest.fn(() => new Promise(() => {})) }
+			const wrapper = mount(CnCalendarWidget, { propsData: { content: {}, dataSource } })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.text()).toContain('Loading calendars…')
+
+			jest.advanceTimersByTime(29000)
+			await wrapper.vm.$nextTick()
+			expect(wrapper.text()).toContain('Loading calendars…')
+
+			jest.advanceTimersByTime(1000)
+			await wrapper.vm.$nextTick()
+			expect(wrapper.text()).not.toContain('Loading calendars…')
+			expect(wrapper.text()).toContain('The calendars are taking too long to load.')
+
+			dataSource.fetchEvents.mockResolvedValueOnce({ events: [], failures: [] })
+			await wrapper.find('.cn-calendar-widget__retry').trigger('click')
+			await Promise.resolve()
+			await wrapper.vm.$nextTick()
+			expect(dataSource.fetchEvents).toHaveBeenCalledTimes(2)
+			expect(wrapper.text()).toContain('No events in the next 14 days')
+			wrapper.unmount()
+		} finally {
+			jest.useRealTimers()
+		}
 	})
 })

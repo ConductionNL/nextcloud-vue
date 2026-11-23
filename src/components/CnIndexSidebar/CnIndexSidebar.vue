@@ -1,6 +1,8 @@
 <template>
 	<NcAppSidebar
+		ref="appSidebar"
 		v-model:open="internalOpen"
+		class="cn-index-sidebar-panel"
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
@@ -30,14 +32,78 @@
 				</div>
 
 				<div class="cn-index-sidebar__section">
+					<!-- The board look names the field by its hint, as the list's
+					     own search field, with the magnifier (DqZakenSorteren). -->
 					<NcTextField
 						:modelValue="searchValue || ''"
 						:placeholder="searchPlaceholder"
-						:label="searchLabel"
-						@update:modelValue="$emit('search', $event)" />
+						:label="isBoardLook ? searchPlaceholder : searchLabel"
+						@update:modelValue="$emit('search', $event)">
+						<template v-if="isBoardLook" #icon>
+							<Magnify :size="18" />
+						</template>
+					</NcTextField>
 				</div>
 
-				<div v-if="hasActiveFilters" class="cn-index-sidebar__section">
+				<!-- Sort (list, card and map views; the table sorts by its headers):
+				     the field, the direction and the order the list has now. -->
+				<div v-if="sortOptions.length > 0" class="cn-index-sidebar__section cn-index-sidebar__sort" data-testid="cn-index-sidebar-sort">
+					<h3>{{ t('nextcloud-vue', 'Sort') }}</h3>
+					<NcSelect
+						:modelValue="sortSelected"
+						:options="sortOptions"
+						label="label"
+						:clearable="false"
+						:inputLabel="t('nextcloud-vue', 'Sort by')"
+						@update:modelValue="onSortField" />
+					<template v-if="isBoardLook">
+						<h4 :id="sortDirectionLabelId" class="cn-index-sidebar__sort-direction-label">
+							{{ t('nextcloud-vue', 'Direction') }}
+						</h4>
+						<CnSegmentedControl
+							class="cn-index-sidebar__sort-direction-segments"
+							data-testid="cn-index-sidebar-sort-direction-segments"
+							stretch
+							:options="sortDirectionOptions"
+							:modelValue="sortDirection"
+							:ariaLabelledby="sortDirectionLabelId"
+							@update:modelValue="onSortDirection">
+							<template #option="{ option }">
+								<ArrowUp v-if="option.value === 'asc'" :size="16" />
+								<ArrowDown v-else :size="16" />
+								<span class="cn-segmented-control__label">{{ option.label }}</span>
+							</template>
+						</CnSegmentedControl>
+					</template>
+					<div v-else
+						class="cn-index-sidebar__sort-direction"
+						role="radiogroup"
+						:aria-label="t('nextcloud-vue', 'Direction')">
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="asc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected || sortSelected.fixed === true"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Ascending') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="cn-index-sidebar-sort-direction"
+							value="desc"
+							:modelValue="sortDirection"
+							:disabled="!sortSelected || sortSelected.fixed === true"
+							@update:modelValue="onSortDirection">
+							{{ t('nextcloud-vue', 'Descending') }}
+						</NcCheckboxRadioSwitch>
+					</div>
+					<p class="cn-index-sidebar__sort-current" data-testid="cn-index-sidebar-sort-current">
+						{{ currentSortText }}
+					</p>
+				</div>
+
+				<div v-if="hasActiveFilters && !isBoardLook" class="cn-index-sidebar__section">
 					<NcButton variant="tertiary" @click="onClearAll">
 						<template #icon>
 							<FilterRemoveOutline :size="20" />
@@ -47,7 +113,20 @@
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
-					<h3>{{ filtersLabel }}</h3>
+					<!-- The board look: "Alles wissen" beside the heading (DqZakenSorteren). -->
+					<div v-if="isBoardLook" class="cn-index-sidebar__filters-head" data-testid="cn-index-sidebar-filters-head">
+						<h3>{{ filtersLabel }}</h3>
+						<button
+							v-if="hasActiveFilters"
+							type="button"
+							class="cn-index-sidebar__filters-clear"
+							@click="onClearAll">
+							{{ clearAllLabel }}
+						</button>
+					</div>
+					<h3 v-else>
+						{{ filtersLabel }}
+					</h3>
 					<div
 						v-for="filter in schemaFilters"
 						:key="filter.key"
@@ -82,6 +161,17 @@
 							:toLabel="filter.toLabel || toLabel"
 							:presetLabel="filter.label"
 							@update:modelValue="onRangeChange(filter.key, $event)" />
+						<!-- One on/off question (`inputControl: "switch"`): DqZaken
+						     "Ook concepten van anderen tonen". -->
+						<NcCheckboxRadioSwitch
+							v-else-if="filter.type === 'switch'"
+							type="switch"
+							class="cn-index-sidebar__filter-switch"
+							:modelValue="isChecked(filter, true)"
+							:data-testid="`cn-index-sidebar-switch-${filter.key}`"
+							@update:modelValue="onTextChange(filter.key, $event === true ? 'true' : '')">
+							{{ filter.switchLabel }}
+						</NcCheckboxRadioSwitch>
 						<NcTextField
 							v-else-if="filter.type === 'text'"
 							class="cn-index-sidebar__filter-text"
@@ -89,6 +179,27 @@
 							:label="filter.label"
 							:placeholder="filter.label"
 							@update:modelValue="onTextChange(filter.key, $event)" />
+						<!-- The board look: a short field as checkbox rows with counts. -->
+						<fieldset
+							v-else-if="checklistOptions(filter)"
+							class="cn-index-sidebar__checklist"
+							:data-testid="`cn-index-sidebar-checklist-${filter.key}`">
+							<legend class="hidden-visually">
+								{{ filter.label }}
+							</legend>
+							<label
+								v-for="option in checklistOptions(filter)"
+								:key="`${filter.key}-${option.id}`"
+								class="cn-index-sidebar__checklist-row"
+								data-testid="cn-index-sidebar-checklist-row">
+								<input
+									type="checkbox"
+									:checked="isChecked(filter, option.id)"
+									@change="onChecklistToggle(filter, option.id, $event.target.checked)">
+								<span class="cn-index-sidebar__checklist-label">{{ option.label }}</span>
+								<span v-if="option.count !== null" class="cn-index-sidebar__checklist-count">{{ option.count }}</span>
+							</label>
+						</fieldset>
 						<NcSelect
 							v-else
 							class="cn-index-sidebar__select"
@@ -101,6 +212,12 @@
 							:keepOpen="filter.multiple !== false"
 							:clearable="true"
 							@update:modelValue="onFilterChange(filter.key, $event)" />
+						<!-- `facetNote`: what the filter reads, under it. -->
+						<p v-if="filter.note"
+							class="cn-index-sidebar__filter-note"
+							:data-testid="`cn-index-sidebar-note-${filter.key}`">
+							{{ filter.note }}
+						</p>
 					</div>
 				</div>
 
@@ -251,6 +368,32 @@
 			</div>
 		</NcAppSidebarTab>
 
+		<!-- Views tab (id filters-tab): the page's saved views (save, list, manage, add to menu). -->
+		<NcAppSidebarTab
+			v-if="savedViews"
+			id="filters-tab"
+			:name="t('nextcloud-vue', 'Views')"
+			:order="3">
+			<template #icon>
+				<BookmarkOutline :size="20" />
+			</template>
+
+			<div class="cn-index-sidebar__tab-content">
+				<div class="cn-index-sidebar__section">
+					<CnSavedViewsPanel
+						v-bind="savedViewsPanelProps"
+						@apply="onSavedView('apply', $event)"
+						@saveRequest="onSavedView('save', null)"
+						@editRequest="onSavedView('edit', $event)"
+						@shareRequest="onSavedView('share', $event)"
+						@updateRequest="onSavedView('update', $event)"
+						@copyRequest="onSavedView('copy', $event)"
+						@menuToggle="onSavedView('menu', $event)"
+						@deleteRequest="onSavedView('delete', $event)" />
+				</div>
+			</div>
+		</NcAppSidebarTab>
+
 		<!-- Extra tabs injected by the consumer -->
 		<slot name="tabs" />
 	</NcAppSidebar>
@@ -259,6 +402,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
+import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -266,16 +412,17 @@ import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import FilterRemoveOutline from 'vue-material-design-icons/FilterRemoveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnSavedViewsPanel from '../CnSavedViewsPanel/CnSavedViewsPanel.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
-import { facetOptions } from '../../utils/facets.js'
+import { facetOptions, MISSING_VALUE } from '../../utils/facets.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
-import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-
 /**
  * CnIndexSidebar — Reusable NcAppSidebar wrapper with Search + Columns tabs.
  *
@@ -289,12 +436,24 @@ import { CnIcon } from '../CnIcon/index.js'
  * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
  * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).
  */
+import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
+import { reverseSortKeys, sameSortKeys } from '../../utils/sortOrder.js'
+import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
+import { CnIcon } from '../CnIcon/index.js'
+/** The most values a filter shows as checkbox rows in the board look; a longer field keeps its picker. */
+const CHECKLIST_MAX = 12
+
 export default {
 	name: 'CnIndexSidebar',
 
 	components: {
 		NcAppSidebar,
 		NcAppSidebarTab,
+		CnSavedViewsPanel,
+		CnSegmentedControl,
+		ArrowDown,
+		ArrowUp,
+		BookmarkOutline,
 		NcTextField,
 		NcSelect,
 		CnDateRangePicker,
@@ -312,6 +471,7 @@ export default {
 		Pin,
 		PinOutline,
 		InformationOutline,
+		Magnify,
 	},
 
 	inject: {
@@ -324,9 +484,20 @@ export default {
 		 * used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The look CnAppRoot provides; the board look draws the direction as a segmented control. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
+		/**
+		 * The line under the title, in place of the schema's description: the
+		 * page's count ("48 zaken, 8 op deze pagina", DqFilterBeheren).
+		 */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+
 		/** Sidebar title. Defaults to schema.title when not set. */
 		title: {
 			type: String,
@@ -364,6 +535,35 @@ export default {
 		pinnedCount: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * The orders the Sort section offers, `[{ value, label, keys, fixed? }]`,
+		 * each `keys` a `[{ key, order }]` list read as its ascending form. An
+		 * option with `fixed: true` is an order of its own (the rows an endpoint
+		 * ranks): it is chosen by its value, has no direction, and its keys are
+		 * not matched against the current order. Empty draws no Sort section
+		 * (the table view sorts by its headers).
+		 */
+		sortOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The list's current order, `[{ key, order }]`. */
+		currentSort: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The Sort option chosen by its value, for an order that is not a list
+		 * of sort keys (an option with `fixed: true`, such as one whose rows an
+		 * endpoint ranks). Wins over matching `currentSort`.
+		 */
+		currentSortValue: {
+			type: String,
+			default: '',
 		},
 
 		/** Current search term */
@@ -499,6 +699,26 @@ export default {
 		},
 
 		/**
+		 * Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`
+		 * after a view was saved from the toolbar. Empty leaves the tab alone.
+		 */
+		activeTab: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The page's saved views, shown in the Filters tab:
+		 * `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`
+		 * as `CnSavedViewsPanel` takes them. `null` shows no saved views.
+		 * Every intent comes back as one `saved-view` event.
+		 */
+		savedViews: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
 		 */
@@ -508,7 +728,7 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'saved-view', 'search', 'sort-change', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -535,6 +755,129 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The Sort option the current order matches, as declared or reversed.
+		 *
+		 * @return {{option: object, direction: string}|null} The match, or null.
+		 */
+		sortMatch() {
+			if (this.currentSortValue) {
+				const chosen = this.sortOptions.find((o) => o.value === this.currentSortValue)
+				if (chosen) {
+					return { option: chosen, direction: 'asc' }
+				}
+			}
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			for (const option of this.sortOptions) {
+				if (option.fixed === true) {
+					continue
+				}
+				const keys = Array.isArray(option.keys) ? option.keys : []
+				if (sameSortKeys(keys, current)) {
+					return { option, direction: 'asc' }
+				}
+				if (sameSortKeys(reverseSortKeys(keys), current)) {
+					return { option, direction: 'desc' }
+				}
+			}
+			return null
+		},
+
+		/** @return {object|null} The Sort option shown as chosen. */
+		sortSelected() {
+			return this.sortMatch ? this.sortMatch.option : null
+		},
+
+		/** @return {string} The chosen direction, `asc` or `desc`. */
+		sortDirection() {
+			return this.sortMatch ? this.sortMatch.direction : 'asc'
+		},
+
+		/**
+		 * Whether the board look applies.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			const look = this.cnLook && typeof this.cnLook === 'object' && 'value' in this.cnLook ? this.cnLook.value : this.cnLook
+			return normalizeLook(look) === 'board'
+		},
+
+		/**
+		 * The two directions as segments, as board DqZakenSorteren draws them:
+		 * "Oplopend" and "Aflopend" with an arrow each.
+		 *
+		 * @spec openspec/changes/sidebar-sort-direction-segmented/specs/index-sidebar/spec.md#requirement-the-board-look-draws-the-sort-direction-as-two-segments
+		 * @return {Array<{value: string, label: string, disabled: boolean}>}
+		 */
+		sortDirectionOptions() {
+			const disabled = !this.sortSelected || this.sortSelected.fixed === true
+			return [
+				{ value: 'asc', label: t('nextcloud-vue', 'Ascending'), disabled },
+				{ value: 'desc', label: t('nextcloud-vue', 'Descending'), disabled },
+			]
+		},
+
+		/**
+		 * The id of the Direction heading that names the segments.
+		 *
+		 * @return {string}
+		 */
+		sortDirectionLabelId() {
+			return `cn-index-sidebar-direction-${this.$.uid}`
+		},
+
+		/**
+		 * The order the list has now, in words: "Current order: Created,
+		 * descending" ("Now: by created, descending." and that a view keeps
+		 * it, in the board look), or that it is not sorted.
+		 *
+		 * @return {string} The sentence.
+		 */
+		currentSortText() {
+			// The board look writes the order in running text, the field in
+			// lower case: "Now: by deadline, ascending." (DqZakenSorteren).
+			const name = (label) => (this.isBoardLook ? String(label).charAt(0).toLocaleLowerCase() + String(label).slice(1) : label)
+			const sentence = (order) => (this.isBoardLook
+				? `${t('nextcloud-vue', 'Now: by {order}.', { order })} ${t('nextcloud-vue', 'You save the order along with a view.')}`
+				: t('nextcloud-vue', 'Current order: {order}', { order }))
+			if (this.sortMatch && this.sortMatch.option.fixed === true) {
+				return sentence(name(this.sortMatch.option.label))
+			}
+			const current = Array.isArray(this.currentSort) ? this.currentSort : []
+			if (current.length === 0) {
+				return t('nextcloud-vue', 'Not sorted')
+			}
+			const labelOf = (key) => {
+				const single = this.sortOptions.find((o) => Array.isArray(o.keys) && o.keys.length === 1 && o.keys[0].key === key)
+				return name(single ? single.label : key)
+			}
+			const order = this.sortMatch && this.sortMatch.option.keys.length > 1
+				? `${name(this.sortMatch.option.label)}, ${this.sortDirection === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`
+				: current.map((entry) => `${labelOf(entry.key)}, ${entry.order === 'desc' ? t('nextcloud-vue', 'descending') : t('nextcloud-vue', 'ascending')}`).join('; ')
+			return sentence(order)
+		},
+
+		/**
+		 * The panel's props, from `savedViews`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		savedViewsPanelProps() {
+			const f = this.savedViews || {}
+			return {
+				views: Array.isArray(f.views) ? f.views : [],
+				loading: f.loading === true,
+				currentUserId: f.currentUserId || '',
+				counts: f.counts || null,
+				selectedViewId: f.selectedViewId || '',
+				maxDepth: typeof f.maxDepth === 'number' ? f.maxDepth : 3,
+				menuIds: Array.isArray(f.menuIds) ? f.menuIds : null,
+				summaries: f.summaries && typeof f.summaries === 'object' ? f.summaries : null,
+			}
+		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			return this.icon || this.schema?.icon || ''
@@ -548,8 +891,11 @@ export default {
 			return this.schema?.title || 'Search'
 		},
 
-		/** Sidebar subname — schema description, shown below the name */
+		/** Sidebar subname: the subtitle the page hands it, else the schema description */
 		resolvedSubname() {
+			if (typeof this.subtitle === 'string' && this.subtitle !== '') {
+				return this.subtitle
+			}
 			return this.schema?.description || ''
 		},
 
@@ -657,6 +1003,12 @@ export default {
 	},
 
 	watch: {
+		activeTab(tab) {
+			if (tab) {
+				this.internalActiveTab = tab
+			}
+		},
+
 		open(val) {
 			this.internalOpen = val
 		},
@@ -691,7 +1043,71 @@ export default {
 		},
 	},
 
+	mounted() {
+		labelSidePanelClose(this.$refs.appSidebar)
+	},
+
 	methods: {
+		t,
+
+		/**
+		 * A field chosen in the Sort section: its order, in the direction
+		 * already chosen.
+		 *
+		 * @param {object|null} option The chosen option.
+		 * @return {void}
+		 */
+		onSortField(option) {
+			const chosen = option && this.sortOptions.find((o) => o.value === option.value)
+			if (!chosen) {
+				return
+			}
+			this.emitSort(chosen, this.sortDirection)
+		},
+
+		/**
+		 * A direction chosen in the Sort section, for the chosen field.
+		 *
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		onSortDirection(direction) {
+			if (!this.sortSelected) {
+				return
+			}
+			this.emitSort(this.sortSelected, direction === 'desc' ? 'desc' : 'asc')
+		},
+
+		/**
+		 * Emit the order an option stands for in a direction.
+		 *
+		 * @param {object} option The Sort option.
+		 * @param {string} direction `asc` or `desc`.
+		 * @return {void}
+		 */
+		emitSort(option, direction) {
+			const keys = Array.isArray(option.keys) ? option.keys : []
+			/**
+			 * @event sort-change The Sort section chose an order. Payload: `[{ key, order }]`,
+			 *   and the chosen option's value, which names an order that is not keys (`fixed`).
+			 */
+			this.$emit('sort-change', direction === 'desc' ? reverseSortKeys(keys) : keys.map((k) => ({ key: k.key, order: k.order || 'asc' })), option.value)
+		},
+
+		/**
+		 * Hand a saved-view intent to the page.
+		 *
+		 * @param {'apply'|'save'|'edit'|'share'|'presentation'|'update'|'copy'|'menu'|'delete'} action The intent.
+		 * @param {object|null} view The view, or null for save.
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-6
+		 */
+		onSavedView(action, view) {
+			/**
+			 * @event saved-view A saved-view intent from the Filters tab. Payload: `{ action, view }`.
+			 * @type {{action: string, view: (object|null)}}
+			 */
+			this.$emit('saved-view', { action, view })
+		},
 
 		/**
 		 * A manifest label through the injected lookup, or as written.
@@ -1047,6 +1463,76 @@ export default {
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })
+		},
+
+		/**
+		 * A field's values as checkbox rows, in the board look and for a short
+		 * list only: label and count apart, from the facet when there is one,
+		 * else the field's own options. A single choice is a list too (a row
+		 * replaces the other); a reference only from its facet, whose buckets
+		 * carry the labels. Null where the picker stays (the Nextcloud look, a
+		 * reference without a facet, more than CHECKLIST_MAX values).
+		 *
+		 * @spec openspec/changes/board-sidebar-filters-as-checkbox-lists/specs/index-sidebar/spec.md#requirement-the-board-look-draws-a-short-filter-as-a-checkbox-list-with-counts
+		 * @param {object} filter The filter definition.
+		 * @return {Array<{id: (string|number|boolean), label: string, count: (number|null)}>|null} The rows, or null.
+		 */
+		checklistOptions(filter) {
+			if (!this.isBoardLook) {
+				return null
+			}
+			const facet = this.facetData[filter.key]
+			const hasBuckets = Boolean(facet && Array.isArray(facet.values) && facet.values.length > 0)
+			if (filter.type === 'reference' && !hasBuckets) {
+				return null
+			}
+			let rows
+			if (facet && Array.isArray(facet.values) && facet.values.length > 0) {
+				rows = facet.values.map((bucket) => ({
+					id: bucket.value,
+					label: String(bucket.label !== undefined && bucket.label !== null ? bucket.label : bucket.value),
+					count: typeof bucket.count === 'number' ? bucket.count : null,
+				}))
+				if (typeof facet.missing === 'number' && facet.missing > 0) {
+					rows.push({ id: MISSING_VALUE, label: t('nextcloud-vue', 'No value'), count: facet.missing })
+				}
+			} else {
+				rows = (filter.options || []).map((option) => ({ id: option.id, label: String(option.label), count: null }))
+			}
+			return rows.length > 0 && rows.length <= CHECKLIST_MAX ? rows : null
+		},
+
+		/**
+		 * Whether a value of a field is among its active filter values.
+		 *
+		 * @param {object} filter The filter definition.
+		 * @param {string|number|boolean} id The value.
+		 * @return {boolean}
+		 */
+		isChecked(filter, id) {
+			const value = this.activeFilters[filter.key]
+			const values = Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])
+			return values.map(String).includes(String(id))
+		},
+
+		/**
+		 * A checkbox row was toggled: the field's values with it added or taken out.
+		 *
+		 * @spec openspec/changes/board-sidebar-filters-as-checkbox-lists/specs/index-sidebar/spec.md#requirement-the-board-look-draws-a-short-filter-as-a-checkbox-list-with-counts
+		 * @param {object} filter The filter definition.
+		 * @param {string|number|boolean} id The value.
+		 * @param {boolean} checked Whether it is now ticked.
+		 * @return {void}
+		 */
+		onChecklistToggle(filter, id, checked) {
+			const value = this.activeFilters[filter.key]
+			const current = Array.isArray(value) ? [...value] : (value === undefined || value === null || value === '' ? [] : [value])
+			const rest = current.filter((v) => String(v) !== String(id))
+			if (filter.multiple === false) {
+				this.$emit('filter-change', { key: filter.key, values: checked ? [id] : [] })
+				return
+			}
+			this.$emit('filter-change', { key: filter.key, values: checked ? [...rest, id] : rest })
 		},
 
 		/**

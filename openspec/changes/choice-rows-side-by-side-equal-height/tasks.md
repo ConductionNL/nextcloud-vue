@@ -1,0 +1,2 @@
+- [x] CnChoiceCards: a row without details fills its cell
+- [x] tests/components/CnChoiceCardsRowsEqualHeight.spec.js

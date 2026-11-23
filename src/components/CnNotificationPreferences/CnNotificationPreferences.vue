@@ -1,5 +1,8 @@
 <template>
 	<NcAppSettingsSection id="notifications" :name="t('nextcloud-vue', 'Notifications')">
+		<template v-if="cnLook === 'board'" #icon>
+			<BellOutline :size="18" />
+		</template>
 		<NcLoadingIcon v-if="loading" :size="24" />
 
 		<NcEmptyContent v-else-if="error"
@@ -18,14 +21,22 @@
 			</template>
 		</NcEmptyContent>
 
+		<!-- The board look draws the events as a matrix of channels, as the
+		     boards do (PqPersoonlijk, DqPersoonlijkeInstellingen). -->
+		<div v-else-if="cnLook === 'board'" class="cn-notif-prefs cn-notif-prefs--matrix">
+			<p class="cn-notif-prefs__intro">
+				{{ t('nextcloud-vue', 'Choose which notifications you want to receive. Items you leave unchanged use the app default.') }}
+			</p>
+			<CnNotificationMatrix v-bind="matrixProps" @change="onMatrixChange" />
+		</div>
 		<div v-else class="cn-notif-prefs">
 			<p class="cn-notif-prefs__intro">
 				{{ t('nextcloud-vue', 'Choose which notifications you want to receive. Items you leave unchanged use the app default.') }}
 			</p>
 			<div v-for="group in groupedEntries" :key="group.schema" class="cn-notif-prefs__group">
-				<h4 v-if="groupedEntries.length > 1" class="cn-notif-prefs__group-title">
+				<component :is="innerHeadingTag" v-if="groupedEntries.length > 1" class="cn-notif-prefs__group-title cn-inner-heading">
 					{{ group.schemaTitle }}
-				</h4>
+				</component>
 				<div class="cn-notif-prefs__grid">
 					<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__card">
 						<NcCheckboxRadioSwitch type="switch"
@@ -82,6 +93,9 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
 import BellOutline from 'vue-material-design-icons/BellOutline.vue'
+import CnNotificationMatrix from '../CnNotificationMatrix/CnNotificationMatrix.vue'
+import innerHeading from '../../mixins/innerHeading.js'
+import { channelsOnFor, keyFor, propsFor, writeFor } from '../../utils/notificationPreferenceProps.js'
 import { notificationRuleLabel } from '../../utils/notificationRuleLabel.js'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
@@ -96,7 +110,10 @@ export default {
 		NcLoadingIcon,
 		BellOutline,
 		BellOffOutline,
+		CnNotificationMatrix,
 	},
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**
@@ -107,12 +124,15 @@ export default {
 		 * than an always-empty pane.
 		 */
 		cnAppId: { default: () => '' },
+		/** The app's look; `board` gives the section its navigation icon. */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * App-supplied labels for its notification rules, provided by the
 		 * CnAppRoot ancestor from its `notificationLabels` prop. Keyed
 		 * `<schema>.<key>` or `<key>`.
 		 */
 		cnNotificationLabels: { default: () => ({}) },
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -173,6 +193,31 @@ export default {
 			}
 			return Array.from(groups.values())
 		},
+
+		/**
+		 * The matrix's props in the board look: one row per notification,
+		 * grouped by schema, a column per channel the platform declares.
+		 *
+		 * @return {object} The props.
+		 * @spec openspec/changes/notification-preferences-board-matrix/specs/notification-preferences-board-matrix/spec.md#requirement-the-board-look-draws-notification-preferences-as-a-matrix
+		 */
+		matrixProps() {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			// OpenRegister's channel ids, named as dossiq's screen names them.
+			const channelNames = {
+				'nc-notification': t('nextcloud-vue', 'In Nextcloud'),
+				email: t('nextcloud-vue', 'By email'),
+				activity: t('nextcloud-vue', 'In the activity stream'),
+				'web-push': t('nextcloud-vue', 'As a push message'),
+			}
+			return propsFor({
+				entries: this.scopedEntries,
+				label: (entry) => this.notificationLabel(entry),
+				groupLabel: (title) => translate(title),
+				singleChannelLabel: t('nextcloud-vue', 'Notifications'),
+				channelLabel: (id) => channelNames[id] || id,
+			})
+		},
 	},
 
 	mounted() {
@@ -204,6 +249,30 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * Write one matrix cell and read the answer again.
+		 *
+		 * @param {object} change The matrix's change.
+		 * @param {string} change.eventId The row, as `keyFor` made it.
+		 * @param {string} change.channelId The column.
+		 * @param {boolean} change.value The cell's new value.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/notification-preferences-board-matrix/specs/notification-preferences-board-matrix/spec.md#requirement-the-board-look-draws-notification-preferences-as-a-matrix
+		 */
+		async onMatrixChange({ eventId, channelId, value }) {
+			const entry = this.scopedEntries.find((candidate) => keyFor(candidate) === eventId)
+			const write = writeFor({ eventId, value, channelId, current: entry ? channelsOnFor(entry) : null })
+			if (write === null) {
+				return
+			}
+			try {
+				await axios.put(generateUrl(PREFS_PATH), write)
+			} catch {
+				this.showError(t('nextcloud-vue', 'Could not save notification preference'))
+			}
+			await this.load()
 		},
 
 		/**

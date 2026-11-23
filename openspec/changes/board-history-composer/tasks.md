@@ -1,0 +1,3 @@
+- [x] 1.1 public badge class (CnTimelineManage)
+- [x] 1.2 board look rules (look-board-detail.css)
+- [x] 1.3 tests (lookBoardHistoryComposer.spec.js)

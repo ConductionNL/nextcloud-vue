@@ -1,0 +1,2 @@
+- [x] 1.1 board CSS (tests/css/lookBoardTimelineText.spec.js)
+- [x] 1.2 template label above the picker (tests/components/CnTimelineManageComposerCard.spec.js, CnTimelineManage.spec.js)

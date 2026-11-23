@@ -33,16 +33,24 @@ The object is the current detail-page object, or one other object named by `sour
 |-----|---------|
 | `path` | Dot-path into the object (`domains`, `@self.updated`). |
 | `label` | Row label, translated. An entry with a label and no `as` is a row. |
-| `as` | `row`, `title`, `line` or `pill`. Without `as` and without `label` an entry is a `line`. |
-| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year) or `list` (an array joined by ", "). |
+| `as` | `row`, `title`, `line`, `pill` or `meter`. Without `as` and without `label` an entry is a `line`. |
+| `format` | `text` (default), `date` (board short date: "5 okt", the year only outside this year), `date-long` (always with the year), `year` ("2026"), `postcode` (a Dutch postcode with its space: "2999AA" as "2999 AA"), `list` (an array joined by ", "), `bytes` (a size, "1.5 MB"), `number` (in the reader's language), `currency` (money, see the currency entry) or `user` (a Nextcloud user id shown as the user's display name, read once per id and shared with the header meta tokens; the entry stays empty until the name is known). |
+| `minorUnits` | With `currency`: the stored value is in cents (`1250` reads "€ 12,50"). |
 | `itemPath` | With `list`: the path read off each array item (`hostname` of `domains[]`). |
 | `resolve` | `{ register, schema, labelField? }`. The value is a reference (an id, or a list of ids): the row shows the label of the referenced object (`labelField`, else `title`, then `name`) instead of the id. Works on a row, a `title`, and on a part of a `line`. The ids are read through the object store, one batched request per register and schema, and the labels are shared by every facts widget on the page. The entry stays empty until its label is known, and when none can be read; it never shows the id. With an array of objects, `itemPath` names the id (default `id`, then `uuid`). |
 | `map` | Raw value to label, translated (`{ "published": "Published" }`). Booleans read `"true"` / `"false"`, else Yes / No. |
 | `parts` | On a `line`: paths (or `{ path, label?, format? }`) joined by `separator` (default " · "). Empty parts are dropped; a labelled part reads "label value". |
-| `route` | On a `title`: `{ name, params?, query? }` so the title links. Takes `@source.<field>` tokens. |
-| `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`). An unknown variant falls back to `default`. |
+| `route` | On a `title` or a `row`: `{ name, params?, query? }` so the title or the row's value links ("Erft van" to the parent case type, DqZaaktypeVelden). Takes `@source.<field>` tokens; a param that does not fill leaves it plain. `{ nameField, nameMap, params }` picks the route by a value on the record (`initiatorType` `person` to `ContactDetail`, `company` to `OrganisationDetail`); a value missing from the map links nowhere. |
+| (pills in a row) | Two or more consecutive `pill` entries are drawn on one line, 8px apart. |
+| `variant` / `variantMap` / `colorMap` | On a `pill`: the CnStatusBadge variant, or value to variant (`colorMap` is the same as `variantMap`); a boolean is looked up as `"true"` / `"false"`. An unknown variant falls back to `default`. |
 | `resolve` on a `pill` | The pill shows the label of the referenced object; `map` is applied to that label. The tone is looked up in `variantMap` / `colorMap` by the value of `resolve.toneField` on the referenced object when that is set (a status shown by its `name` and coloured by its `state`), then by the resolved label, then by the stored value. |
 | `key` | Optional stable key for the entry's `data-testid` (`cn-fact-<key>`). |
+| `template` | Text with `{path}` placeholders filled from the object (`"{available} {unit}"` reads "12 pcs"), used instead of `path`. A placeholder may name a format, `{path:format}` (`"Periode {from:year} tot en met {to:year}"`). The entry is empty when every placeholder is. |
+| `suffix` | Text added after a value that is not empty (`" kg"`). |
+| `emptyValue` | Text shown (translated) when the entry has no value; the entry is then drawn whatever `hideEmpty` says (`"No"` for an override that was never set). |
+| `decimals` | With `number` or `currency`: the fraction digits. `number` shows the value in the reader's language. |
+| `limitPath` / `limit` | On a `meter`: the path of the limit, or a constant limit. |
+| `countFrom` | `{ register, schema, filter? }`: the row shows how many records that list holds, counted with the list endpoint's total; `@objectId` and `@object.<field>` in the filter name this record (DqZaaktype "Lopende zaken 43"). The row is left out while the count cannot be read; a zero shows. |
 
 Consecutive rows form one two-column list (`max-content 1fr`, gap 8px 16px, label muted), as the boards draw it.
 
@@ -57,11 +65,14 @@ The person and organisation boards (screens-relation-pages) draw their side card
 | `reveal` | a masked row | `true` adds a Show button. Showing emits `reveal` with `{ path }` and announces `{ path, objectId, register, schema }` on the event bus channel `cn:facts:reveal` (`FACTS_REVEAL_CHANNEL`), so the app can log who saw it. |
 | `copy` | a row | `true` adds a copy button that writes the raw value to the clipboard. |
 | `icon` | a row | An icon in place of the label (the label stays for a screen reader). A row with only an `icon` is a row too. |
-| `as: "lead"` | an entry | An icon tile (`icon`) or the initials of the value at `initialsPath`, beside a bold `title` and a muted `subtitle`. `title` and `subtitle` take a path, a part, or an array of parts joined as a line. `tone` (`success`, `info`) tints the tile. A lead with an empty title is left out. |
+| `as: "lead"` | an entry | An icon tile (`icon`) or the initials of the value at `initialsPath`, beside a bold `title` and a muted `subtitle`. `title` and `subtitle` take a path, a part, or an array of parts joined as a line, or `{ "firstOf": [spec, ...] }` for the first spec that gives text ("Logged in with DigiD", else "Person"). `tone` (`success`, `info`) tints the tile. A lead with an empty title is left out. |
 | `as: "text"` | an entry | A line in the normal ink (address lines), with `parts` as a `line` takes them. |
 | `{ "text": "..." }` | a part | A constant part ("Handelsregister"). A `line` or `text` entry without `path` or `parts` shows its own `text` ("Het tonen van het BSN wordt gelogd."). |
+| `_lastChange.*` | a path | On a detail page with `recordLastChange`, the record's newest create or update audit entry: `_lastChange.userName`, `_lastChange.created` ("door Pieter Jansen" as `{ "path": "_lastChange.userName", "label": "by" }`, left out when unread). |
 | `action` | `content` | An action object (the header action shape) drawn as a tinted button under the facts. `@objectId` / `@object.<field>` resolve before it is dispatched. |
 | `headerAction` | `content` | The same, drawn as a small button in the card header ("+ Toevoegen"). The widget reports it through the `header` event; the detail page puts it in the card header, also on a side card. |
+| `headerPill` | `content` | A status pill in the card header, `{ path?, text?, map?, variant?, variantMap?, colorMap? }`, read from the record like a `pill` entry (DqBezwaar "Advies ontvangen"). Reported through the `header` event; the detail page draws it beside the title. Nothing shows while the value is empty. |
+| `notice` | `content` | `{ text, variant? }`, a note band inside the card under the facts: `info` by default, or `success`, `warning`, `error`. The text is translated. |
 
 ```json
 {
@@ -78,14 +89,96 @@ The person and organisation boards (screens-relation-pages) draw their side card
 }
 ```
 
+### A meter: an amount against a limit
+
+`as: "meter"` draws the amount at `path` against a limit, as a quota card does:
+the label, "12 of 50" and a bar as wide as the share. The limit is read at
+`limitPath`, or given as a constant `limit`, and both are formatted with the
+entry's `format` (`bytes` for storage).
+
+- Past the limit the bar is full and red, and the text reads "12 of 10, over
+  the limit", so the state never rests on colour alone.
+- Without a positive limit (absent, null or 0) the meter shows the amount and
+  no bar: a bar against no limit draws a share that does not exist.
+- An amount that is absent or null leaves the meter out, like any empty entry.
+- The bar is a `role="meter"` with the amount, the limit and the text as its
+  values.
+
+```json
+{ "as": "meter", "key": "storage", "label": "Storage", "path": "usage.storage", "limitPath": "quota.storage", "format": "bytes" }
+```
+
+### Progress, conditions and an empty card that acts
+
+`as: "progress"` draws the percentage at `path` (0 to 100) as a bar with `role="progressbar"`, and under it the sentence
+that says what the figure means. `lines` lists candidate sentences, each with an optional local `when` condition over the
+record; the first that applies and fills is shown. `barWhen` hides the bar while its condition does not hold, so an
+uncomputable figure is never drawn as zero.
+
+```json
+{
+  "as": "progress",
+  "label": "Progress of the programme",
+  "path": "progress.progress",
+  "barWhen": { "field": "progress.computable", "op": "eq", "value": true },
+  "lines": [
+    { "when": { "field": "progress.computable", "op": "neq", "value": true }, "text": "Progress cannot be computed." },
+    { "when": { "field": "progress.mode", "op": "eq", "value": "manual" }, "text": "{progress.progress} percent done, entered by hand." },
+    { "text": "{progress.progress} percent done." }
+  ]
+}
+```
+
+Every entry takes `when`, a local condition over the record; an entry whose condition does not hold is left out.
+
+`source.path` reads the facts from a part of the source's answer (`{ "url": "/apps/x/api/y/@objectId/programme", "path": "programme" }`).
+When that part is empty the card shows `emptyText` and the actions in `emptyActions` (`[{ label, icon?, type, ... }]`,
+dispatched like `action`, with `@objectId` and `@object.<field>` resolved), for example a dialog that links the record.
+
+A failed read says `errorText` (default "Could not load this information") as an alert, with a Try again button.
+
+### A link into another app
+
+`link.href` may be a template over the record (`{knowledgeBasePage}`). A value that is not a URL is a page path under
+`link.hrefBase` (`/apps/collectives/`). Only http, https and paths on this server open; anything else draws no link.
+`link.target: "_blank"` opens a new tab, and `link.icon` draws an icon before the label. A card without `fields` and
+without `emptyText` says nothing when its link does not resolve.
+
 ### Other keys
 
 | Key | Meaning |
 |-----|---------|
 | `source` | `{ register, schema, id }` or `{ url }`. Omitted: the current object. `id` takes the shared tokens (`@object.<field>`, `@objectId`, `@workspace.<key>`, `@me`); `url` takes them inside the string (`/apps/x/api/summary/@objectId`). While a token does not resolve the widget sends no request and shows the empty text. |
-| `link` | `{ label, route }` or `{ label, href }` at the foot. Routes and hrefs take `@source.<field>` (`@source.id` reads `id`, else `@self.id`). A link whose token does not resolve is left out. |
+| `link` | `{ label, route }` or `{ label, href }` at the foot. Routes and hrefs take `@source.<field>` (`@source.id` reads `id`, else `@self.id`). A link whose token does not resolve is left out. Its `route` takes `nameField` / `nameMap` as a row's does. |
+| `link.note` | A muted line under the link. The link's `label` and its `note` fill `{path}` / `{path:format}` placeholders from the record; `first-segment` / `last-segment` read one part of a path (`"{page:last-segment}"`). |
+| `source` by query | `{ register, schema, filter, sort? }` without `id`: the first object that matches `filter` (shared tokens) in `sort` order (`{ field, dir }`), such as the latest count of a cash shift. No match shows the empty text. |
+| `endpointSource` | `{ url, method?, params?, responsePath? }`, the block a stat or chart tile takes: the facts read an app endpoint (tokens inside the url and the params), shared and cached like the tiles. |
+| `emptyWhen` | A path. When the value there is truthy the card shows `emptyText`, for an endpoint that answers `{ "empty": true }`. |
+| `fieldsFrom` | `@context.<name>.<path>`: a list of entries on a record the detail page reads beside this one (a case type's `requestFields`). When it holds entries they are drawn instead of `fields`; otherwise `fields` stand. |
+| `rowsPath` | A path to a list of `{ label, value, format? }` the object holds, drawn as rows after `fields`: a preview the server builds, with labels the server chose. |
+| `actions` | Buttons under the facts in the `headerActions` shape (see below). |
 | `hideEmpty` | Drop an entry whose value is empty (default `true`). |
 | `emptyText` | Shown when no entry has a value. Default "Nothing to show yet". |
+
+### Actions
+
+`actions[]` takes the entries a detail page's `headerActions` takes (`api-call`, `open-form`, `navigate`, `open-modal`, with `confirm`, `variant` and `icon`) and draws them as buttons under the facts.
+
+```json
+"actions": [
+  { "id": "retry", "label": "Try again", "type": "api-call", "method": "POST",
+    "url": "/apps/pipelinq/api/payments/@source.id/retry",
+    "visibleWhen": { "field": "status", "op": "in", "value": ["failed", "expired"] } },
+  { "id": "reverse", "label": "Reverse", "type": "open-form", "adminOnly": true,
+    "endpoint": { "url": "/apps/pipelinq/api/payments/@source.id/reverse", "method": "POST" },
+    "formProperties": { "reason": { "type": "string", "title": "Reason" } } }
+]
+```
+
+- `@source.<field>` names a field of the object the facts show (`@source.id` reads `id`, else `@self.id`). An action whose token names an empty field is not drawn. `@objectId` and `@object.<field>` still name the page's object.
+- `visibleWhen` is judged against the object the facts show, not the page's object. An `endpoint` or `source` condition is read once per object.
+- `adminOnly: true` draws the action for an instance admin only. That is visibility, never authorisation: the endpoint decides who may call it.
+- An `api-call` or a saved `open-form` sends the page refresh, and the facts read their source again, so the card shows the result (a retried payment that is now paid loses its Try again).
 
 ## Props
 
@@ -100,7 +193,7 @@ The person and organisation boards (screens-relation-pages) draw their side card
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `reveal` | `{ path }` | A masked value was shown. |
-| `header` | `{ link, note, action }` | The card header's parts; `action` is the `headerAction` (`{ label, icon, run }`) or null. |
+| `header` | `{ link, note, action, pill }` | The card header's parts; `action` is the `headerAction` (`{ label, icon, run }`) or null, `pill` the `headerPill` (`{ label, variant }`) or null. |
 
 ## Notes
 
@@ -108,3 +201,108 @@ The person and organisation boards (screens-relation-pages) draw their side card
 - **Three states.** A failed source read shows one quiet line ("Could not load this information", the error goes to the console); an object with no values shows `emptyText`; loading shows a small spinner.
 - **Translation.** Labels, `map` values, the link label and the empty text go through the host app's `cnTranslate`. Values read off the object are shown as they are.
 - Renderer only: there is no config form, so the Add-widget picker does not offer it. Declare it in the manifest.
+
+## An entry from the page's own object (`from: "object"`)
+
+A card with a `source` shows another object, such as the client of a ticket. An entry with `from: "object"` reads the
+page's own object instead, so one card can show the client's name and the ticket's channel (board PqTicket "Klant"):
+
+```json
+{
+  "type": "facts",
+  "title": "Client",
+  "content": {
+    "source": { "register": "pipelinq", "schema": "client", "id": "@object.client" },
+    "fields": [
+      { "as": "lead", "title": "name", "subtitle": ["kind", "address"], "initialsPath": "name" },
+      { "path": "channel", "label": "Channel", "from": "object" },
+      { "path": "account", "label": "Contact" }
+    ],
+    "link": { "label": "Contact details and earlier tickets", "route": { "name": "ClientDetail", "params": { "id": "@source.id" } } }
+  }
+}
+```
+
+When the `source` finds nothing, the `from: "object"` entries still show and the others are left out, so a card does not lose the page object's own facts (DqTenant's Status card for an organisation without a subscription record).
+
+## Tiles (`layout: "tiles"`)
+
+`layout: "tiles"` draws each fact as a tile of its own: a bordered box with the label in small caps above the value, the
+tiles side by side and wrapping. The board PqJourney draws a journey's steps this way:
+
+```json
+{
+  "type": "facts",
+  "content": {
+    "layout": "tiles",
+    "fields": [
+      { "path": "trigger.label", "label": "Trigger" },
+      { "path": "waitFor", "label": "Wait", "format": "duration" },
+      { "path": "condition.field", "label": "Condition" },
+      { "path": "action.label", "label": "Action" }
+    ]
+  }
+}
+```
+
+## Two columns, label above value (`columns: 2`)
+
+`columns: 2` lays the rows out in two columns with the label above the value and a hairline under each fact (one
+column on a phone), as the board DqContact "Contact" card draws a person. Paths read nested fields, a row with `parts`
+joins them like a line, and a part can be a group of parts with its own separator, so an address reads on one row:
+
+```json
+{
+  "type": "facts",
+  "title": "Contact",
+  "content": {
+    "columns": 2,
+    "fields": [
+      { "path": "displayName", "label": "Name" },
+      { "path": "name.givenNames", "label": "Given names" },
+      { "path": "name.surname", "label": "Surname" },
+      { "path": "birth.date", "label": "Date of birth", "format": "date-long" },
+      { "key": "address", "label": "Residential address", "separator": ", ", "parts": [
+        { "parts": ["residence.street", "residence.houseNumber"], "separator": " " },
+        { "parts": ["residence.postcode", "residence.city"], "separator": " " }
+      ] },
+      { "path": "description", "label": "Description" }
+    ]
+  }
+}
+```
+
+## Figures, a conditional notice and one input
+
+Board PqKassadienst draws the cash difference as three figures with a note under the last one, a red band only when the
+difference is outside the margin, and a reason field that the reject button sends.
+
+```json
+{
+  "type": "facts",
+  "title": "Kasverschil",
+  "content": {
+    "layout": "tiles",
+    "tileStyle": "figures",
+    "fields": [
+      { "path": "expectedAmount", "label": "Expected amount", "format": "currency" },
+      { "path": "actualAmount", "label": "Counted amount", "format": "currency" },
+      {
+        "path": "diffAmount", "label": "Difference", "format": "currency",
+        "tone": [{ "when": { "field": "diffAmount", "op": "lt", "value": 0 }, "variant": "error" }],
+        "note": { "separator": ", ", "parts": [
+          { "separator": "", "parts": [{ "path": "diffPercentage", "format": "number", "decimals": 1 }, { "text": "%" }] },
+          { "path": "withinTolerance", "map": { "true": "within the margin", "false": "outside the margin" } }
+        ] }
+      }
+    ],
+    "notice": { "text": "Outside the margin.", "variant": "error", "visibleWhen": { "field": "withinTolerance", "value": false } },
+    "input": { "key": "reason", "label": "Reason for rejection", "placeholder": "Needed to reject" },
+    "actions": [
+      { "id": "reject", "label": "Reject", "type": "api-call", "url": "/apps/x/reject", "payload": { "reason": "@input.reason" } }
+    ]
+  }
+}
+```
+
+A source's `sort.field` names a field, so `"@self.created"` sorts on the creation moment and is not read as a token.

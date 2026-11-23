@@ -245,6 +245,17 @@ describe('CnWidgetObjectTable — compact-list pass-through props', () => {
 		expect(table.props('rowIcon')).toBe('FileDocumentOutline')
 	})
 
+	it('translates the manifest-authored viewAllLabel and emptyText through the app', () => {
+		const words = { 'View all clients': 'Alle klanten bekijken', 'No clients yet': 'Nog geen klanten' }
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients', emptyText: 'No clients yet' },
+			provide: { cnTranslate: (key) => words[key] || key },
+		})
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('viewAllLabel')).toBe('Alle klanten bekijken')
+		expect(table.props('emptyText')).toBe('Nog geen klanten')
+	})
+
 	it('leaves CnDataTable defaults intact when emptyText / viewAllLabel are unset', () => {
 		const wrapper = shallowMount(CnWidgetObjectTable, {})
 		const table = wrapper.findComponent({ name: 'CnDataTable' })
@@ -314,6 +325,23 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		expect(mapped.map((a) => a.label)).toEqual(['Accept', 'Remove'])
 		expect(mapped[0].destructive).toBe(false)
 		expect(mapped[1].destructive).toBe(true)
+	})
+
+	it('forwards a row action visibleWhen so the menu hides it on rows it does not fit', () => {
+		const gate = { field: 'status', op: 'eq', value: 'open' }
+		const wrapper = mountWidget({
+			rows,
+			columns: ['title'],
+			source,
+			actions: [
+				{ id: 'pay', label: 'Pay', type: 'handler', handler: 'pay', visibleWhen: gate },
+				{ id: 'plain', label: 'Plain', type: 'handler', handler: 'plain' },
+			],
+		})
+		const mapped = wrapper.findComponent({ name: 'CnRowActions' }).props('actions')
+		expect(mapped[0].visibleWhen).toEqual(gate)
+		expect('visibleWhen' in mapped[1]).toBe(false)
+		expect('visible' in mapped[1]).toBe(false)
 	})
 
 	it('renders an object-op create action as a widget-scoped footer affordance', () => {

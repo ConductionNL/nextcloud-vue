@@ -694,12 +694,13 @@ export default {
 		formatSVG() {
 			try {
 				const input = String(this.customSvg || '').trim()
-				const match = input.match(/<svg[\s\S]*?<\/svg>/i)
-				if (!match) {
+				const start = input.search(/<svg/i)
+				const length = start === -1 ? -1 : input.slice(start).search(/<\/svg>/i)
+				if (length === -1) {
 					return
 				}
 				const parser = new DOMParser()
-				const doc = parser.parseFromString(match[0], 'image/svg+xml')
+				const doc = parser.parseFromString(input.slice(start, start + length + 6), 'image/svg+xml')
 				if (doc.getElementsByTagName('parsererror').length > 0) {
 					return
 				}

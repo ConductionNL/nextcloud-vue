@@ -102,6 +102,15 @@ export default defineComponent({
 		},
 
 		/**
+		 * What a screen reader hears for the count ("3 new"), in place of the
+		 * bare number. Empty (the default) reads the number.
+		 */
+		countLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * List this tab under the strip's "More" menu instead of in the strip.
 		 * Picking it there selects it, and while it is the selected tab it
 		 * shows in the strip. Give an overflow tab a `title`: the menu needs
@@ -150,6 +159,10 @@ export default defineComponent({
 
 			get count() {
 				return props.count
+			},
+
+			get countLabel() {
+				return props.countLabel
 			},
 
 			get overflow() {

@@ -12,7 +12,12 @@
  *     for the language, then for its base (`en_GB` falls back to `en`);
  *  2. otherwise the host's `translate(text, vars)`, whose answer is the text
  *     itself when it has no translation;
- *  3. the text as written.
+ *  3. the library's own catalog (`library`), for the strings a library
+ *     component asks through `cnTranslate` and the app never translates. A
+ *     host answer that reads the same as the text is a translation when
+ *     `hasTranslation(text)` says the host's catalog holds the text (pipelinq
+ *     nl "Open" -> "Open"), and then the library is not asked;
+ *  4. the text as written.
  *
  * The fallback is per label, never per page. The manifest is read through a
  * getter on every call, so an edit to the working copy shows at once.
@@ -52,9 +57,12 @@ function fill(text, vars) {
  * @param {() => (object|null|undefined)} options.getManifest The live manifest (the editor's working copy while editing).
  * @param {() => string} options.getLanguage The language to show.
  * @param {(text: string, vars?: object) => string} [options.translate] The host's translate.
+ * @param {(text: string, vars?: object) => string} [options.library] The library's translate, asked when the host has no translation.
+ * @param {(text: string) => boolean} [options.hasTranslation] Whether the host's catalog holds the text, so an answer equal to it is a translation.
  * @return {Function} `(text, vars) => string`, with `lookup`, `fellBack` and `sourceLanguage` attached.
+ * @spec openspec/changes/translate-identical-label/specs/manifest-i18n/spec.md
  */
-export function createManifestTranslate({ getManifest, getLanguage, translate }) {
+export function createManifestTranslate({ getManifest, getLanguage, translate, library, hasTranslation }) {
 	const host = typeof translate === 'function' ? translate : (text) => text
 
 	const i18n = () => {
@@ -79,7 +87,17 @@ export function createManifestTranslate({ getManifest, getLanguage, translate })
 			}
 		}
 		const answer = host(text, vars)
-		const shown = typeof answer === 'string' && answer !== '' ? answer : fill(text, vars)
+		let shown = typeof answer === 'string' && answer !== '' ? answer : fill(text, vars)
+		const hostKnows = typeof hasTranslation === 'function' && hasTranslation(text) === true
+		if (hostKnows) {
+			return { text: shown, fellBack: false }
+		}
+		if (shown === fill(text, vars) && typeof library === 'function') {
+			const own = library(text, vars)
+			if (typeof own === 'string' && own !== '') {
+				shown = own
+			}
+		}
 		return { text: shown, fellBack: !!block && !inSource && shown === fill(text, vars) }
 	}
 
@@ -103,4 +121,21 @@ export function labelLang(translate, text) {
 		return translate.sourceLanguage || null
 	}
 	return null
+}
+
+/**
+ * Whether an app's loaded Nextcloud catalog holds a text, so the app's
+ * answer for it is a translation even when it reads the same as the text.
+ * Nextcloud keeps every loaded app catalog on
+ * `window._oc_l10n_registry_translations` (`@nextcloud/l10n`).
+ *
+ * @param {string} appId The app id.
+ * @param {string} text The text as written.
+ * @return {boolean} True when the app's catalog has the text.
+ * @spec openspec/changes/translate-identical-label/specs/manifest-i18n/spec.md
+ */
+export function appCatalogHas(appId, text) {
+	const registry = typeof window !== 'undefined' ? window._oc_l10n_registry_translations : null
+	const bundle = registry && appId ? registry[appId] : null
+	return Boolean(bundle) && typeof text === 'string' && Object.hasOwn(bundle, text)
 }

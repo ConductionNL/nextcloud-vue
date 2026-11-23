@@ -213,7 +213,7 @@ describe('CnSharesTab', () => {
 		wrapper.unmount()
 	})
 
-	it('POSTs to the dedicated /shares endpoint on createShare and refetches', async () => {
+	it('POSTs to the dedicated /file-shares endpoint on createShare and refetches', async () => {
 		global.fetch = jest.fn()
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
 			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({ shareId: 's1' }) }) // create
@@ -226,7 +226,7 @@ describe('CnSharesTab', () => {
 		await wrapper.vm.$nextTick()
 
 		const createCall = global.fetch.mock.calls[1]
-		expect(createCall[0]).toContain('/objects/reg/schema/obj-1/shares')
+		expect(createCall[0]).toMatch(/\/objects\/reg\/schema\/obj-1\/file-shares$/)
 		expect(createCall[1].method).toBe('POST')
 		expect(JSON.parse(createCall[1].body)).toEqual(payload)
 		expect(wrapper.vm.showCreate).toBe(false)

@@ -23,6 +23,8 @@ The flow editor (`CnFlowDetail`) flags a user-task step whose declared form name
 
 ## Props
 
-`taskUuid`, `task`, `outcome` (default `done`), `submit` (default `true`), `dialogTitle` (`dialog-title`, defaults to the task title) and `apiBase` (`api-base`, default `/apps/openregister/api`).
+`taskUuid`, `task`, `outcome` (default `done`), `submit` (default `true`), `dialogTitle` (`dialog-title`, defaults to the task title), `completeUrl` (`complete-url`, an app route Confirm posts to instead of `/flow-tasks/{uuid}/complete`; `{id}` is the task uuid) and `apiBase` (`api-base`, default `/apps/openregister/api`).
+
+The unavailable rows are drawn by [CnTaskFormFields](./cn-task-form-fields.md), which also renders a task form inline.
 
 <GeneratedRef />

@@ -1,0 +1,2 @@
+- [x] look-board.css: row action outlined, title link main ink
+- [x] tests/css/lookBoardRowActionOutlined.spec.js

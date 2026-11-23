@@ -12,7 +12,7 @@ import { resolveFilterValue } from './resolveFilterTokens.js'
  *
  * @type {Array<string>}
  */
-export const METRIC_FORMAT_STYLES = ['number', 'currency', 'percent', 'duration-hours', 'decimal']
+export const METRIC_FORMAT_STYLES = ['number', 'currency', 'percent', 'duration-hours', 'decimal', 'date']
 
 /**
  * Unwrap a possibly-ref-wrapped `cnAppConfig` inject into a plain object.
@@ -271,6 +271,9 @@ export function translateMetricAffixes(format, translate) {
  *    contract); `decimals` overrides the fraction digits.
  *  - `decimal` is a plain number with ONE fraction digit by default (the
  *    fleet KPIs' `toFixed(1)` convention), where `number` defaults to 0.
+ *  - `date` writes a moment as its day and short month in the reader's
+ *    locale ("4 okt", pipelinq PqKlant "Laatste activiteit"); a value that
+ *    is no date stays as it is.
  *
  * The currency follows `resolveFormatCurrency`: the object's own currency
  * (`currencyField`), then `currency`, then the app's reporting currency, then
@@ -290,9 +293,27 @@ export function translateMetricAffixes(format, translate) {
  * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-money-value-is-shown-in-the-currency-the-entry-names
  * @spec openspec/changes/screens-metric-affix-translate/specs/dashboard-page/spec.md#requirement-a-metric-prefix-and-suffix-are-translated
  */
+/**
+ * A moment as a day and short month in the reader's locale ("4 okt"); the
+ * raw value when it is no date.
+ *
+ * @param {unknown} value An ISO 8601 stamp or a date.
+ * @return {string} The date.
+ */
+function shortDate(value) {
+	const at = value instanceof Date ? value : new Date(String(value))
+	if (Number.isNaN(at.getTime())) {
+		return String(value)
+	}
+	return at.toLocaleDateString(metricLocale(), { day: 'numeric', month: 'short' }).replace(/\.$/, '')
+}
+
 export function formatMetricValue(value, format, configCtx, object = null, translate = null) {
 	if (value === null || value === undefined) {
 		return '—'
+	}
+	if (format && format.style === 'date') {
+		return shortDate(value)
 	}
 	const num = Number(value)
 	if (!Number.isFinite(num)) {

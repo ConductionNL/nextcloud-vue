@@ -2,6 +2,24 @@
 
 Hierarchical menu widget (dropdown / sidebar / tree) with active-item highlighting.
 
+The item labels (`content.items[].label`, children included) are manifest strings and go through the app's translate (`cnTranslate`), so an app's own Dutch reaches the menu (DqCatalogus: "Case types" reads "Zaaktypen").
+
+An item can take its children from the values of a facetable field with `childrenFrom: { register, schema, field, url }`: one child per value the field holds, labelled as OpenRegister labels it, linking to `url` with `{value}` filled in. They follow the declared children. A failed request leaves the item as declared. DqCatalogus lists the case type folders this way:
+
+```json
+{ "label": "Case types", "url": "/index.php/apps/dossiq/settings/case-types",
+  "childrenFrom": { "register": "dossiq", "schema": "caseType", "field": "category", "url": "/index.php/apps/dossiq/settings/case-types?category={value}" } }
+```
+
+An item can show a count at the end of its row with `countFrom`: `{ register, schema, filter? }` counts a register schema (one row asked, its `total`; an operator such as `{ "supersededBy": { "isnull": true } }` is sent as the list sends it), `{ url, responsePath? }` counts the rows of an endpoint (its `total` when it answers one). A failed read draws no count. DqCatalogus: "Zaaktypen 14", "Objecttypen 7".
+
+```json
+{ "label": "Object types", "url": "/index.php/apps/dossiq/settings/catalogue",
+  "countFrom": { "url": "/apps/dossiq/api/catalogue/object-types", "responsePath": "results" } }
+```
+
+In the board look a tree with `expandedByDefault` draws no carets, and its second level as sub-folders: 28px in, 14px, in the muted ink.
+
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference
@@ -15,6 +33,9 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | `content` | `object`  |          | `\{\}`  | Persisted widget content `{items, style, orientation, showIcons, expandedByDefault, activeItemHighlight}`. |
 | `isAdmin` | `boolean` |          | `false` | Whether the current user is an admin (pairs with `canEdit`).                                               |
 | `canEdit` | `boolean` |          | `false` | Whether the surrounding shell is in edit mode.                                                             |
+| `title` | `string` | | `''` | Card title, from the detail page host on the board look. |
+| `objectId` | `string\|number` | | `null` | The detail page's record id, for `@objectId` in a `countFrom` filter. |
+| `objectData` | `object` | | `null` | The detail page's record, for an item's `visibleIf` on `object.<field>`. |
 
 ### Events
 

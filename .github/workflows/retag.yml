@@ -70,14 +70,25 @@ name: Retag (npm dist-tag)
 # `--tag <channel || latest>`. That is how 2.54.0 took `latest` back from the
 # retired line, with no token involved.
 #
-# `beta` works the same way in principle — the beta channel publishes with
-# `--tag beta` — but it needs a commit that warrants a release. Measured
-# 2026-09-19: fast-forwarding `beta` to `main` ran the Release workflow GREEN
-# and published nothing, because the only commit since v2.54.0 was a `chore:`.
-# A green release run is not evidence of a publish; read the log for "no new
-# version is released". So `beta` will come off the retired line on the next
-# real fix or feat through that channel, or immediately once the token is
-# rotated and retag.yml can be dispatched.
+# `beta` CANNOT be fixed that way, and it took two tries to see why. The beta
+# channel does publish with `--tag beta`, so fast-forwarding `beta` to `main`
+# looks like a free way to move the tag. It is not, structurally:
+#
+#   try 1 (v2.54.0): "no relevant changes" — the only commit in the range was
+#          a `chore:`. Reasonable to read as bad luck.
+#   try 2 (v2.55.0): the range held THREE fix/feat commits and it still said
+#          "no relevant changes". The log says why:
+#              Found git tag v2.55.0 associated with version 2.55.0 on branch beta
+#              Found 0 commits since last release
+#
+# main had already released those commits, and the tag travels with them. A
+# prerelease channel only fires on work that reaches `beta` BEFORE main, so
+# syncing beta from main can never cut one — there is nothing unreleased to
+# cut. Note also that both runs were GREEN: a green release run is not
+# evidence of a publish, so read the log for that line.
+#
+# So the `beta` tag moves when either a rotated token lets retag.yml run, or
+# real work lands on `beta` ahead of `main` in the ordinary way.
 
 on:
   workflow_dispatch:

@@ -1,0 +1,55 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * In the board look the buildiq square is the brand orange darkened to AA
+ * (#c64e0b, the white icon on it 4.67:1); the Nextcloud look keeps the brand
+ * orange.
+ * Read from the stylesheet text.
+ *
+ * @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange
+ */
+const fs = require('fs')
+const path = require('path')
+
+const read = (rel) => fs.readFileSync(path.join(__dirname, '../../src', rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+/**
+ * The bodies of the rules whose selector list holds exactly this selector.
+ *
+ * @param {string} css The stylesheet.
+ * @param {string} selector The selector.
+ * @return {string} The rule bodies, joined.
+ */
+function rulesFor(css, selector) {
+	const out = []
+	const re = /([^{}]+)\{([^{}]*)\}/g
+	let m
+	while ((m = re.exec(css))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
+			out.push(m[2])
+		}
+	}
+	return out.join('\n')
+}
+
+describe('the board buildiq square', () => {
+	it('fills the board square with the brand orange darkened to AA', () => {
+		const rule = rulesFor(read('css/patches.css'), '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue.button-vue')
+		expect(rule).toMatch(/--cn-buildiq-color:\s*#c64e0b;/)
+	})
+
+	it('outranks the same rule from an older copy of the library on the page', () => {
+		// Another app's bundle can inject an older patches.css after this one; the
+		// doubled class keeps this rule ahead whatever the order.
+		const older = '.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue'
+		expect(rulesFor(read('css/patches.css'), older)).not.toMatch(/--cn-buildiq-color:/)
+	})
+
+	it('keeps the brand orange outside the board look', () => {
+		const rule = rulesFor(read('css/patches.css'), '.cn-buildiq-edit__actions .button-vue')
+		expect(rule).toContain('var(--cn-buildiq-color, var(--c-orange-knvb, #f36c21))')
+		const unscoped = rulesFor(read('css/patches.css'), '.cn-buildiq-edit__actions .button-vue')
+		expect(unscoped).not.toMatch(/--cn-buildiq-color:/)
+	})
+})

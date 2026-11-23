@@ -179,6 +179,7 @@ export default {
 	margin: 0;
 	font-size: 17px;
 	font-weight: 700;
+	line-height: normal;
 }
 
 .cn-module-card__state {
@@ -193,6 +194,7 @@ export default {
 
 .cn-module-card__pages-line {
 	font-size: 13px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -204,6 +206,7 @@ export default {
 	padding: 0;
 	list-style: none;
 	font-size: 14px;
+	line-height: normal;
 }
 
 .cn-module-card__page {
@@ -232,11 +235,23 @@ export default {
 	text-decoration: none;
 }
 
+/* The theme paints every link in its link colour (`!important`, through its
+   link tokens); the button hands it the main ink. */
 .cn-module-card__open {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
 	border: 1px solid var(--color-border-dark);
 	border-radius: var(--border-radius-element, 8px);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
+}
+
+/* A theme that underlines every link (nldesign) must not reach the button. */
+.cn-module-card__open,
+.cn-module-card__open:hover,
+.cn-module-card__open:focus,
+.cn-module-card__open:active {
+	text-decoration: none !important;
 }
 
 .cn-module-card__icon--off {

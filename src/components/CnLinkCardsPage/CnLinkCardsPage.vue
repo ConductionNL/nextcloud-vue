@@ -4,11 +4,23 @@
 -->
 
 <template>
-	<div class="cn-link-cards-page" data-testid="cn-link-cards-page">
+	<div class="cn-link-cards-page" :class="{ 'cn-link-cards-page--board': isBoardLook }" data-testid="cn-link-cards-page">
+		<!-- The board look draws the page's own header: the title as the page's
+		     h1 with the buildiq square on its row, the line under it (PqModules,
+		     PqReports). The plain look draws the same h1 without the row, above
+		     the categories' h2. -->
 		<div class="cn-link-cards-page__header">
-			<h2 v-if="resolvedTitle" class="cn-link-cards-page__title">
+			<div v-if="isBoardLook" class="cn-link-cards-page__title-row">
+				<h1 v-if="resolvedTitle" class="cn-link-cards-page__title">
+					{{ resolvedTitle }}
+				</h1>
+				<div class="cn-link-cards-page__header-actions">
+					<CnBuildiqEditButton />
+				</div>
+			</div>
+			<h1 v-else-if="resolvedTitle" class="cn-link-cards-page__title">
 				{{ resolvedTitle }}
-			</h2>
+			</h1>
 			<p v-if="resolvedDescription" class="cn-link-cards-page__description">
 				{{ resolvedDescription }}
 			</p>
@@ -56,12 +68,12 @@
 			:aria-label="group.label ? null : resolvedTitle || null"
 			data-testid="cn-link-cards-group"
 			:data-group="group.key">
-			<h3
+			<h2
 				v-if="group.label"
 				:id="group.headingId"
 				class="cn-link-cards-page__caption">
 				{{ group.label }}
-			</h3>
+			</h2>
 			<!-- groupStyle "list": the group is one card of rows, each an icon
 			     chip, the label over its description, and a trailing chevron
 			     (an external-link icon for a URL). -->
@@ -74,8 +86,10 @@
 						:href="card.url"
 						:target="card.external ? '_blank' : null"
 						:rel="card.external ? 'noopener noreferrer' : null"
+						:role="card.action ? 'button' : null"
 						:aria-describedby="card.description ? card.descriptionId : null"
-						@click="open(card, $event)">
+						@click="open(card, $event)"
+						@keydown.space="open(card, $event)">
 						<span v-if="card.icon" class="cn-link-cards-page__row-icon" aria-hidden="true">
 							<CnIcon :name="card.icon" :size="20" />
 						</span>
@@ -105,8 +119,10 @@
 						:href="card.url"
 						:target="card.external ? '_blank' : null"
 						:rel="card.external ? 'noopener noreferrer' : null"
+						:role="card.action ? 'button' : null"
 						:aria-describedby="card.description ? card.descriptionId : null"
-						@click="open(card, $event)">
+						@click="open(card, $event)"
+						@keydown.space="open(card, $event)">
 						<CnIcon
 							v-if="card.icon"
 							:name="card.icon"
@@ -121,10 +137,75 @@
 								class="cn-link-cards-page__card-description">
 								{{ card.description }}
 							</span>
+							<span
+								v-if="statusOf(card)"
+								class="cn-link-cards-page__status"
+								:class="`cn-link-cards-page__status--${statusVariant(card).tone}`"
+								data-testid="cn-link-card-status">
+								{{ statusOf(card) }}
+							</span>
 						</span>
+						<OpenInNew
+							v-if="trailingOf(card) === 'external'"
+							:size="18"
+							class="cn-link-cards-page__trailing" />
+						<ChevronRight v-else :size="20" class="cn-link-cards-page__trailing" />
 					</a>
 				</li>
 			</ul>
+		</section>
+		<!-- `panel`: a closing card beside the groups, such as the menu
+		     structure an administrator set: a badge, a paragraph with a link,
+		     and a titled list of facts. -->
+		<section
+			v-if="resolvedPanel"
+			class="cn-link-cards-page__panel"
+			:aria-label="resolvedPanel.label || null"
+			data-testid="cn-link-cards-panel">
+			<div class="cn-link-cards-page__panel-lead">
+				<span
+					v-if="resolvedPanel.badge"
+					class="cn-link-cards-page__panel-badge"
+					:class="`cn-link-cards-page__panel-badge--${resolvedPanel.badgeTone}`"
+					data-testid="cn-link-cards-panel-badge">
+					<CnIcon
+						v-if="resolvedPanel.badgeIcon"
+						:name="resolvedPanel.badgeIcon"
+						:size="14"
+						aria-hidden="true" />
+					{{ resolvedPanel.badge }}
+				</span>
+				<p v-if="resolvedPanel.text" class="cn-link-cards-page__panel-text">
+					{{ resolvedPanel.text }}
+				</p>
+				<a
+					v-if="resolvedPanel.link"
+					class="cn-link-cards-page__panel-link"
+					data-testid="cn-link-cards-panel-link"
+					:href="resolvedPanel.link.url"
+					:target="resolvedPanel.link.external ? '_blank' : null"
+					:rel="resolvedPanel.link.external ? 'noopener noreferrer' : null"
+					@click="open(resolvedPanel.link, $event)">
+					{{ resolvedPanel.link.label }}
+				</a>
+			</div>
+			<div v-if="resolvedPanel.title || resolvedPanel.facts.length > 0" class="cn-link-cards-page__panel-facts">
+				<h2 v-if="resolvedPanel.title" class="cn-link-cards-page__panel-title">
+					{{ resolvedPanel.title }}
+				</h2>
+				<span v-if="resolvedPanel.subtitle" class="cn-link-cards-page__panel-subtitle">
+					{{ resolvedPanel.subtitle }}
+				</span>
+				<dl v-if="resolvedPanel.facts.length > 0" class="cn-link-cards-page__panel-list">
+					<template v-for="fact in resolvedPanel.facts" :key="fact.key">
+						<dt>{{ fact.label }}</dt>
+						<dd data-testid="cn-link-cards-panel-fact">
+							{{ fact.value }}
+							<span v-if="fact.note" class="cn-link-cards-page__panel-note">{{ fact.note }}</span>
+						</dd>
+					</template>
+				</dl>
+			</div>
 		</section>
 	</div>
 </template>
@@ -134,13 +215,96 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnModuleCard from '../CnModuleCard/CnModuleCard.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 let linkCardsPageUid = 0
+
+const STATUS_TONES = ['neutral', 'error', 'warning', 'success']
+
+const BADGE_TONES = ['primary', 'purple']
+
+/**
+ * The tone of a card's status pill: `status.tone` when it is one of the known
+ * tones, else neutral.
+ *
+ * @param {unknown} status The declared status.
+ * @return {string} The tone.
+ */
+function statusToneOf(status) {
+	const tone = status && typeof status === 'object' ? status.tone : null
+	return STATUS_TONES.includes(tone) ? tone : 'neutral'
+}
+
+/**
+ * Read a dotted path from an object.
+ *
+ * @param {unknown} root The object.
+ * @param {string} path The path.
+ * @return {unknown} The value, or undefined.
+ */
+function readPath(root, path) {
+	return String(path).split('.').reduce((node, key) => (node && typeof node === 'object' && Object.hasOwn(node, key) ? node[key] : undefined), root)
+}
+
+/**
+ * Fill `{runtime.<path>}` tokens from the manifest's runtime. A token with
+ * no value becomes ''.
+ *
+ * @param {string} text The text.
+ * @param {object|null} runtime The runtime.
+ * @return {string} The filled text.
+ */
+function fillRuntime(text, runtime) {
+	if (typeof text !== 'string' || !text.includes('{runtime.')) {
+		return text
+	}
+	return text.replace(/\{runtime\.([A-Za-z0-9_.]+)\}/g, (match, path) => {
+		const value = readPath(runtime, path)
+		return value === undefined || value === null ? '' : String(value)
+	})
+}
+
+/**
+ * One number for a card's status line.
+ *
+ * @param {object} source An aggregate descriptor or `{ url, path?, params?, where?, sumOf? }`; `where` keeps only the list items whose fields equal its values, `sumOf` adds up a field of each (an array field by its length) instead of counting them.
+ * @return {Promise<number|null>} The number, or null.
+ */
+async function fetchStatusValue(source) {
+	if (!source || typeof source !== 'object') {
+		return null
+	}
+	if (typeof source.url === 'string' && source.url !== '') {
+		const [{ default: axios }, { generateUrl }] = await Promise.all([
+			import('@nextcloud/axios'),
+			import('@nextcloud/router'),
+		])
+		const url = source.url.startsWith('/apps/') ? generateUrl(source.url) : source.url
+		const { data } = await axios.get(url, { params: source.params || {} })
+		const picked = readPath(data, source.path || 'total')
+		const list = Array.isArray(picked) ? picked : (picked === undefined && Array.isArray(data) ? data : null)
+		if (list !== null) {
+			const where = source.where && typeof source.where === 'object' ? Object.entries(source.where) : []
+			const matching = list.filter((item) => where.every(([key, wanted]) => readPath(item, key) === wanted))
+			if (typeof source.sumOf === 'string' && source.sumOf !== '') {
+				return matching.reduce((sum, item) => {
+					const value = readPath(item, source.sumOf)
+					return sum + (Array.isArray(value) ? value.length : (typeof value === 'number' ? value : 0))
+				}, 0)
+			}
+			return matching.length
+		}
+		return typeof picked === 'number' ? picked : null
+	}
+	return fetchAggregateValue(source)
+}
 
 /**
  * CnLinkCardsPage: the `type: "links"` page. Link cards, grouped under captions.
@@ -169,7 +333,7 @@ let linkCardsPageUid = 0
 export default {
 	name: 'CnLinkCardsPage',
 
-	components: { ChevronRight, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
+	components: { ChevronRight, CnBuildiqEditButton, CnIcon, CnModuleCard, InformationOutline, OpenInNew },
 
 	inject: {
 		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
@@ -178,6 +342,10 @@ export default {
 		cnManifest: { default: null },
 		/** The permissions the user holds. Empty means the app did not say, and allows. */
 		cnPermissions: { default: () => [] },
+		/** The look the app takes: `board` draws the page's own header. */
+		cnLook: { default: 'nextcloud' },
+		/** Opens the user settings dialog, provided by CnAppRoot. Null outside one. */
+		cnOpenUserSettings: { default: null },
 	},
 
 	props: {
@@ -251,6 +419,19 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * A closing card: `{ label?, badge?: { label, icon? }, text?, link?: { label,
+		 * route?, href? }, title?, subtitle?, facts?: [{ label, value, note?, visibleIf? }],
+		 * permission?, visibleIf? }`. Every string is translated, then
+		 * `{runtime.<path>}` is filled from the manifest's `runtime`.
+		 *
+		 * @type {object|null}
+		 */
+		panel: {
+			type: Object,
+			default: null,
+		},
+
 		/** Text shown when no card is visible. */
 		emptyLabel: {
 			type: String,
@@ -272,10 +453,21 @@ export default {
 		linkCardsPageUid += 1
 		return {
 			uid: linkCardsPageUid,
+			statusData: {},
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @spec openspec/changes/links-page-board-header/specs/links-page-board-header/spec.md#requirement-a-board-links-page-draws-the-page-header
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * The config, from the flattened props or from `page.config`. Props win.
 		 *
@@ -285,7 +477,7 @@ export default {
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
 			const fromProps = {}
-			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle']) {
+			for (const key of ['cards', 'categories', 'description', 'title', 'emptyLabel', 'modules', 'modulesTitle', 'footnote', 'groupStyle', 'panel']) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
 				}
@@ -346,9 +538,12 @@ export default {
 						descriptionId: `cn-link-card-desc-${this.uid}-${String(card.id).replace(/[^A-Za-z0-9_-]/g, '-')}`,
 						icon: card.icon || '',
 						category: card.category || '',
+						status: card.status ?? null,
+						statusValues: card.statusValues && typeof card.statusValues === 'object' ? card.statusValues : null,
 						external: target.external,
 						location: target.location,
 						url: target.url,
+						action: target.action || '',
 					}
 				})
 				.filter((card) => card.url !== '')
@@ -439,6 +634,42 @@ export default {
 		},
 
 		/**
+		 * The closing panel, translated and filled, or null when none is
+		 * declared or it is gated away. A fact gated by its own `visibleIf`
+		 * is left out.
+		 *
+		 * @return {object|null} The panel.
+		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-links-page-can-close-with-a-panel
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-the-panel-badge-takes-a-tone
+		 */
+		resolvedPanel() {
+			const panel = this.config.panel
+			if (!panel || typeof panel !== 'object') {
+				return null
+			}
+			const runtime = this.cnManifest?.runtime ?? null
+			if (!this.passesPermission(panel) || !this.passesVisibleIf(panel, runtime)) {
+				return null
+			}
+			const fill = (value) => fillRuntime(this.tr(value || ''), runtime)
+			const linkTarget = panel.link && typeof panel.link === 'object' ? this.targetOf(panel.link) : null
+			const facts = (Array.isArray(panel.facts) ? panel.facts : [])
+				.filter((fact) => fact && fact.label && this.passesVisibleIf(fact, runtime))
+				.map((fact, index) => ({ key: String(index), label: fill(fact.label), value: fill(fact.value), note: fill(fact.note) }))
+			return {
+				label: fill(panel.label),
+				badge: panel.badge ? fill(panel.badge.label) : '',
+				badgeIcon: panel.badge?.icon || '',
+				badgeTone: BADGE_TONES.includes(panel.badge?.tone) ? panel.badge.tone : 'primary',
+				text: fill(panel.text),
+				link: linkTarget && linkTarget.url !== '' ? { ...linkTarget, label: fill(panel.link.label) } : null,
+				title: fill(panel.title),
+				subtitle: fill(panel.subtitle),
+				facts,
+			}
+		},
+
+		/**
 		 * The groups to draw: ungrouped cards first under no caption, then
 		 * one group per category in declaration order. A group without a
 		 * visible card is left out.
@@ -466,7 +697,102 @@ export default {
 		},
 	},
 
+	watch: {
+		visibleCards: {
+			handler() {
+				this.loadStatusValues()
+			},
+
+			immediate: true,
+		},
+	},
+
 	methods: {
+		/**
+		 * A card's status line, translated, with `{name}` filled from its
+		 * `statusValues` and `{runtime.<path>}` from the manifest's `runtime`.
+		 * A status that still waits on a value it names is not shown.
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {string} The status, or ''.
+		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-link-card-can-carry-a-status
+		 */
+		statusOf(card) {
+			const { text } = this.statusVariant(card)
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const values = this.statusData[card.id] || {}
+			let waiting = false
+			const filled = this.tr(text).replace(/\{([A-Za-z0-9_]+)\}/g, (match, name) => {
+				if (!card.statusValues || !Object.hasOwn(card.statusValues, name)) {
+					return match
+				}
+				if (values[name] === undefined || values[name] === null) {
+					waiting = true
+					return match
+				}
+				return String(values[name])
+			})
+			return waiting ? '' : fillRuntime(filled, this.cnManifest?.runtime ?? null)
+		},
+
+		/**
+		 * Which form of a card's status applies: `zero` when the counted value
+		 * (`status.countOf`, else the first of `statusValues`) is 0, `plural`
+		 * when it is not 1, else the status itself.
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {{text: string, tone: string}} The text and its tone.
+		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-link-card-can-carry-a-status
+		 */
+		statusVariant(card) {
+			const declared = card.status
+			if (typeof declared === 'string') {
+				return { text: declared, tone: 'neutral' }
+			}
+			if (!declared || typeof declared !== 'object') {
+				return { text: '', tone: 'neutral' }
+			}
+			const names = card.statusValues ? Object.keys(card.statusValues) : []
+			const counted = (this.statusData[card.id] || {})[declared.countOf || names[0]]
+			const zero = declared.zero
+			if (counted === 0 && zero) {
+				return typeof zero === 'string' ? { text: zero, tone: 'neutral' } : { text: zero.text, tone: statusToneOf(zero) }
+			}
+			const text = typeof counted === 'number' && counted !== 1 && declared.plural ? declared.plural : declared.text
+			return { text, tone: statusToneOf(declared) }
+		},
+
+		/**
+		 * Fetch the numbers the cards' status lines name. A source is an
+		 * aggregate descriptor (`{ register, schema, metric?, field?, filter? }`)
+		 * or `{ url, path? }`, a GET whose JSON holds the number at `path`
+		 * (default `total`; a list counts its items, those matching `where`
+		 * when given). A failed
+		 * fetch leaves that status out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/link-cards-status-and-panel/specs/link-cards-page/spec.md#requirement-a-link-card-can-carry-a-status
+		 */
+		async loadStatusValues() {
+			for (const card of this.visibleCards) {
+				if (!card.statusValues || this.statusData[card.id]) {
+					continue
+				}
+				this.statusData = { ...this.statusData, [card.id]: {} }
+				for (const [name, source] of Object.entries(card.statusValues)) {
+					let value
+					try {
+						value = await fetchStatusValue(source)
+					} catch {
+						value = null
+					}
+					this.statusData = { ...this.statusData, [card.id]: { ...this.statusData[card.id], [name]: value } }
+				}
+			}
+		},
+
 		/**
 		 * Whether a module is in the menu: its `enabled` boolean, else its
 		 * `enabledIf` condition evaluated as a `visibleIf`, else false.
@@ -556,13 +882,20 @@ export default {
 		 * Where a card goes. An `href` is an external URL. A `route` is a
 		 * route name, or a path when it starts with `/`, resolved by the
 		 * router so the link carries the app's base with or without
-		 * `/index.php`.
+		 * `/index.php`. `action: "user-settings"` opens the user settings
+		 * dialog, and resolves only inside a host that offers it.
 		 *
 		 * @param {object} card The card.
-		 * @return {{external: boolean, location: object|null, url: string}} The target; `url` is '' when it cannot be resolved.
+		 * @return {{external: boolean, location: object|null, url: string, action?: string}} The target; `url` is '' when it cannot be resolved.
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-a-link-card-can-open-the-user-settings
 		 */
 		targetOf(card) {
+			if (card.action === 'user-settings') {
+				return typeof this.cnOpenUserSettings === 'function'
+					? { external: false, location: null, url: '#', action: card.action }
+					: { external: false, location: null, url: '' }
+			}
 			if (typeof card.route === 'string' && card.route !== '') {
 				const location = card.route.startsWith('/') ? { path: card.route } : { name: card.route }
 				if (card.params && typeof card.params === 'object') {
@@ -581,14 +914,25 @@ export default {
 
 		/**
 		 * Route a plain click on an in-app card. A modified or middle click,
-		 * and every click on an external card, is left to the browser.
+		 * and every click on an external card, is left to the browser. A
+		 * settings card opens the user settings dialog, on a click or on the
+		 * space key, as a button does.
 		 *
 		 * @param {object} card The resolved card.
-		 * @param {MouseEvent} event The click.
+		 * @param {MouseEvent|KeyboardEvent} event The click or key press.
 		 * @return {void}
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-card-is-a-real-link
+		 * @spec openspec/changes/link-cards-settings-action/specs/link-cards-page/spec.md#requirement-a-link-card-can-open-the-user-settings
 		 */
 		open(card, event) {
+			if (card.action === 'user-settings') {
+				event.preventDefault()
+				this.cnOpenUserSettings()
+				return
+			}
+			if (event.type === 'keydown') {
+				return
+			}
 			if (card.external || !card.location) {
 				return
 			}
@@ -615,6 +959,50 @@ export default {
 
 .cn-link-cards-page__title {
 	margin: 0 0 var(--default-grid-baseline);
+}
+
+/* Board look: the boards' page header (PqModules): the title as a 28px h1
+   with the buildiq square at the end of its row, the 15px line 6px under it,
+   4px above and 8px under the header; the sections 20px apart.
+   @spec openspec/changes/links-page-board-header/specs/links-page-board-header/spec.md#requirement-a-board-links-page-draws-the-page-header */
+.cn-link-cards-page--board {
+	gap: 20px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 4px 0 8px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__title-row {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px 24px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__title {
+	flex: 1 1 320px;
+	min-width: 0;
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__header-actions {
+	flex: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.cn-link-cards-page--board .cn-link-cards-page__description {
+	max-width: none;
+	font-size: 15px;
 }
 
 .cn-link-cards-page__description,
@@ -704,9 +1092,15 @@ export default {
 
 .cn-link-cards-page__body {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
 	gap: var(--default-grid-baseline);
 	min-width: 0;
+}
+
+.cn-link-cards-page__trailing {
+	flex: none;
+	color: var(--color-text-maxcontrast);
 }
 
 /* The label is the card's title. Its colour is set here, on the span, because
@@ -739,6 +1133,7 @@ export default {
 	color: var(--color-main-text);
 	font-size: 17px;
 	font-weight: 700;
+	line-height: normal;
 	letter-spacing: normal;
 	text-transform: none;
 }
@@ -749,7 +1144,11 @@ export default {
 	list-style: none;
 }
 
+/* A list row is a link the boards draw in the main ink; the row hands the
+   theme's link rule (`!important`) that ink. */
 .cn-link-cards-page__row {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -846,5 +1245,120 @@ export default {
 
 .cn-link-cards-page__modules-note-icon {
 	flex: none;
+}
+/* A card's status pill under its description (board PqGeavanceerdHub). */
+.cn-link-cards-page__status {
+	align-self: flex-start;
+	background: var(--color-background-dark, #f0f1f3);
+	border-radius: 12px;
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 3px 10px;
+}
+
+.cn-link-cards-page__status--error {
+	background: var(--color-error-light, #fcedec);
+	color: var(--color-error-text, #a30000);
+}
+
+.cn-link-cards-page__status--warning {
+	background: var(--color-warning-light, #fff4de);
+	color: var(--color-warning-text, #7a4f00);
+}
+
+.cn-link-cards-page__status--success {
+	background: var(--color-success-light, #e7f3ea);
+	color: var(--color-success-text, #1e6b2a);
+}
+
+/* The closing panel: a lead column (badge, paragraph, link) beside a titled
+   list of facts, wrapping under each other on a narrow screen. */
+.cn-link-cards-page__panel {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-large);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 24px;
+	padding: 22px;
+}
+
+.cn-link-cards-page__panel-lead {
+	display: flex;
+	flex: 1 1 280px;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-link-cards-page__panel-badge {
+	align-items: center;
+	align-self: flex-start;
+	background: var(--color-primary-element-light);
+	border-radius: 12px;
+	color: var(--color-primary-element-light-text);
+	display: inline-flex;
+	font-size: 13px;
+	font-weight: 600;
+	gap: 6px;
+	line-height: normal;
+	padding: 3px 10px;
+}
+
+.cn-link-cards-page__panel-badge--purple {
+	background: var(--cn-status-purple-bg);
+	color: var(--cn-status-purple-text);
+}
+
+.cn-link-cards-page__panel-text {
+	line-height: 1.5;
+	margin: 0;
+}
+
+.cn-link-cards-page__panel-link {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-link-cards-page__panel-facts {
+	display: flex;
+	flex: 1 1 380px;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-link-cards-page__panel-title {
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0;
+}
+
+.cn-link-cards-page__panel-subtitle,
+.cn-link-cards-page__panel-list dt,
+.cn-link-cards-page__panel-note {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-link-cards-page__panel-subtitle {
+	font-size: 14px;
+}
+
+.cn-link-cards-page__panel-list {
+	display: grid;
+	gap: 8px 16px;
+	grid-template-columns: max-content 1fr;
+	margin: 0;
+}
+
+.cn-link-cards-page__panel-list dd {
+	font-weight: 600;
+	margin: 0;
+}
+
+.cn-link-cards-page__panel-note {
+	display: block;
+	font-size: 13px;
+	font-weight: 400;
 }
 </style>

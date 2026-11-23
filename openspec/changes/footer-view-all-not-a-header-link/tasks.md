@@ -1,0 +1,1 @@
+- [x] 1.1 widgetHeaderLink: no header link for a footer view-all (tests/utils/contentHeaderLink.spec.js)

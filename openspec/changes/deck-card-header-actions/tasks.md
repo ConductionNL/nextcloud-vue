@@ -1,0 +1,2 @@
+- [x] 1.1 headerActions (src/integrations/builtin/deck/__tests__/CnDeckCardHeaderActions.spec.js)
+- [x] 1.2 nl strings

@@ -153,3 +153,16 @@ describe('formatMetricValue with an object', () => {
 		expect(formatMetricValue(1000, { style: 'currency' }, { currency: 'GBP' })).toContain('£')
 	})
 })
+
+describe('formatMetricValue date style', () => {
+	it('writes a moment as its day and short month', () => {
+		const text = formatMetricValue('2026-10-04T10:52:00+02:00', { style: 'date' }, {})
+		expect(text).toMatch(/4/)
+		expect(text).not.toMatch(/2026|10:52/)
+	})
+
+	it('keeps a value that is no date', () => {
+		expect(formatMetricValue('soon', { style: 'date' }, {})).toBe('soon')
+		expect(formatMetricValue(null, { style: 'date' }, {})).toBe('—')
+	})
+})
