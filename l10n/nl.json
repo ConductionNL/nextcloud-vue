@@ -3225,7 +3225,8 @@
     "Save layout": "Indeling opslaan",
     "Use the arrow keys to move this part up or down.": "Gebruik de pijltjestoetsen om dit onderdeel omhoog of omlaag te zetten.",
     "{name} moved to position {position} of {total}": "{name} staat nu op plaats {position} van {total}",
-    "Import configuration again": "Configuratie opnieuw importeren"
+    "Import configuration again": "Configuratie opnieuw importeren",
+    "The sorting is saved with a view.": "De sortering bewaart u mee in een weergave."
   },
   "plurals": {
     "{count} member": [

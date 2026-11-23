@@ -2947,7 +2947,8 @@
     "Save layout": "Save layout",
     "Use the arrow keys to move this part up or down.": "Use the arrow keys to move this part up or down.",
     "{name} moved to position {position} of {total}": "{name} moved to position {position} of {total}",
-    "Import configuration again": "Import configuration again"
+    "Import configuration again": "Import configuration again",
+    "The sorting is saved with a view.": "The sorting is saved with a view."
   },
   "plurals": {
     "{count} member": [
