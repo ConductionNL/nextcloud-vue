@@ -783,14 +783,19 @@ export default {
 
 		/**
 		 * Whether the empty line shows: when the card declares facts or actions
-		 * for the empty case. A card that is only a link says nothing without one.
+		 * for the empty case. A card that is only a link says nothing without
+		 * one, and says its `emptyText` only while the link has nowhere to go
+		 * (DqZaak Werkinstructie on a case type without a page).
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-facts-card-can-act-when-it-is-empty
 		 */
 		showsEmpty() {
 			const fields = this.content?.fields
-			return (Array.isArray(fields) && fields.length > 0) || this.emptyActions.length > 0 || (typeof this.content?.emptyText === 'string' && this.content.emptyText !== '')
+			if ((Array.isArray(fields) && fields.length > 0) || this.emptyActions.length > 0) {
+				return true
+			}
+			return typeof this.content?.emptyText === 'string' && this.content.emptyText !== '' && !this.link
 		},
 
 		/**
