@@ -17,19 +17,27 @@ jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),
 }))
 
-const manifest = (postvak) => ({
-	version: '1.0.0',
-	pages: [
-		{ id: 'Cases', route: '/cases' },
-		{ id: 'Postvak', route: '/postvak', ...postvak },
-		{ id: 'Board', route: '/board' },
-	],
-	menu: [
-		{ id: 'Queue', label: 'Team queue', route: 'Cases', query: { savedView: 'default:team-queue' }, order: 1 },
-		{ id: 'Cases', label: 'All cases', route: 'Cases', order: 2 },
-		{ id: 'Board', label: 'Board', route: 'Board', order: 3 },
-	],
-})
+/**
+ * A manifest whose Postvak page carries the given keys.
+ *
+ * @param {object} postvak Extra keys on the Postvak page.
+ * @return {object} The manifest.
+ */
+function manifest(postvak) {
+	return {
+		version: '1.0.0',
+		pages: [
+			{ id: 'Cases', route: '/cases' },
+			{ id: 'Postvak', route: '/postvak', ...postvak },
+			{ id: 'Board', route: '/board' },
+		],
+		menu: [
+			{ id: 'Queue', label: 'Team queue', route: 'Cases', query: { savedView: 'default:team-queue' }, order: 1 },
+			{ id: 'Cases', label: 'All cases', route: 'Cases', order: 2 },
+			{ id: 'Board', label: 'Board', route: 'Board', order: 3 },
+		],
+	}
+}
 
 /**
  * The ids of the entries marked current on a route.
