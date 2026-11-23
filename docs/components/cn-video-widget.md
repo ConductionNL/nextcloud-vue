@@ -4,6 +4,8 @@ Video widget supporting YouTube/Vimeo/PeerTube embeds and Nextcloud-file/HTML5 p
 
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
+A looping YouTube embed also carries `playlist=<id>`, which YouTube needs to loop a single video. A portrait ratio in a cell wider than that ratio is fitted by the cell's height. The empty state explains how to add a video, and with `canEdit` it offers "Configure now" (event `edit`).
+
 The iframe used for `youtube`/`vimeo`/`peertube` sources sets `referrerpolicy="strict-origin-when-cross-origin"`. Without it, the iframe inherits Nextcloud's own default `Referrer-Policy: no-referrer` security header, and YouTube's player rejects the embed with "Error 153: Video player configuration error" since it requires a referrer to validate the request.
 
 ## Reference
@@ -16,3 +18,4 @@ The iframe used for `youtube`/`vimeo`/`peertube` sources sets `referrerpolicy="s
 | ----------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `content`   | `object` |          | `\{\}`  | Persisted content blob `{sourceType, videoUrl, fileId, fileStreamingUrl, autoplay, muted, loop, controls, aspectRatio, posterUrl, error}`. `videoUrl` is the canonical embed URL; `error` (when set) triggers the error placeholder. |
 | `placement` | `object` |          | `null`  | The placement record (reserved — kept to match the renderer contract).                                                                                                                                                               |
+| `canEdit`   | `boolean` |         | `false` | Whether the viewer may edit this placement (the host's edit mode). The empty state then offers "Configure now", which emits `edit`. |

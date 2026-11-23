@@ -1526,7 +1526,7 @@ import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine, footerNoteForView } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
-import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchFilterCounts, fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -10993,10 +10993,11 @@ export default {
 		},
 
 		/**
-		 * Read the totals of the lists `headerMetaCounts` names, one list
-		 * request each. A failed count is null and leaves the note out.
+		 * Read the totals of the lists `headerMetaCounts` names, all in one
+		 * batch count request. A failed count is null and leaves the note out.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadHeaderMetaCounts() {
 			const key = this.headerMetaCountKey
@@ -11005,21 +11006,24 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const entries = JSON.parse(key)
+			const totals = await fetchListTotals(entries.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const values = {}
-			await Promise.all(JSON.parse(key).map(async ([name, from]) => {
-				values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-			}))
+			entries.forEach(([name], index) => {
+				values[name] = totals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the manifest page tabs (`countFrom`), one list
-		 * request each. A failed count shows no number.
+		 * Count the lists behind the manifest page tabs (`countFrom`), all in
+		 * one batch count request. A failed count shows no number.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadPageTabCounts() {
 			const key = this.pageTabCountKey
@@ -11028,13 +11032,14 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counted = this.pageTabs
+				.map((tab, index) => ({ index, from: tab && tab.countFrom }))
+				.filter(({ from }) => from && from.register && from.schema)
+			const totals = await fetchListTotals(counted.map(({ from }) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const counts = {}
-			await Promise.all(this.pageTabs.map(async (tab, index) => {
-				const from = tab && tab.countFrom
-				if (from && from.register && from.schema) {
-					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-				}
-			}))
+			counted.forEach(({ index }, position) => {
+				counts[index] = totals[position]
+			})
 			if (key === this.pageTabCountKey) {
 				this.pageTabCounts = counts
 			}

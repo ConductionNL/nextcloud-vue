@@ -23,8 +23,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnDeckCard from './deck/CnDeckCard.vue'
-import CnDeckTab from './deck/CnDeckTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnDeckCard = lazyComponent(() => import('./deck/CnDeckCard.vue'), 'CnDeckCard')
+const CnDeckTab = lazyComponent(() => import('./deck/CnDeckTab.vue'), 'CnDeckTab')
 
 /**
  * `deck` integration descriptor.

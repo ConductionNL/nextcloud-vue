@@ -4,7 +4,7 @@
  *
  * @spec openspec/changes/widget-registry-public-flag/tasks.md#task-4
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnMarkdownWidget from '../../src/components/CnMarkdownWidget/CnMarkdownWidget.vue'
 import CnMarkdownWidgetForm from '../../src/components/CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'
 import CnWidgetGrid from '../../src/components/CnWidgetGrid/CnWidgetGrid.vue'
@@ -30,12 +30,13 @@ describe('CnMarkdownWidget', () => {
 		expect(CnWikiPage).toBeTruthy()
 	})
 
-	it('does not execute a script tag or a javascript: URL under the public host', () => {
+	it('does not execute a script tag or a javascript: URL under the public host', async () => {
 		const hostile = 'Hello <script>window.__pwned = 1</script>\n\n[click](javascript:window.__pwned=2)\n\n<img src=x onerror="window.__pwned=3">'
 		const grid = mount(CnWidgetGrid, {
 			propsData: { slotName: 'body', host: 'public', widgets: [{ widgetKey: 'markdown', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2, props: { content: { markdown: hostile } } }] },
 			attachTo: document.body,
 		})
+		await flushPromises()
 		const root = grid.element
 		expect(root.querySelector('script')).toBeNull()
 		expect(root.querySelector('[onerror]')).toBeNull()

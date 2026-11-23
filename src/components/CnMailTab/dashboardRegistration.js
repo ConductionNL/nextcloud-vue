@@ -11,11 +11,13 @@
  * @spec openspec/changes/mail-widget-kept-in-dist/specs/widget-registration/spec.md
  */
 
-import CnMailTab from './CnMailTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnMailTab = lazyComponent(() => import('./CnMailTab.vue'), 'CnMailTab')
+
 registerDashboardWidget('mail', {
-	renderer: CnMailTab,
+	renderer: LazyCnMailTab,
 	form: null,
 	defaultContent: {
 		templates: null,

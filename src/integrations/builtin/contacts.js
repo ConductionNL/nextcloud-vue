@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnContactsCard from './contacts/CnContactsCard.vue'
-import CnContactsTab from './contacts/CnContactsTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnContactsCard = lazyComponent(() => import('./contacts/CnContactsCard.vue'), 'CnContactsCard')
+const CnContactsTab = lazyComponent(() => import('./contacts/CnContactsTab.vue'), 'CnContactsTab')
 
 /**
  * `contacts` integration descriptor.
