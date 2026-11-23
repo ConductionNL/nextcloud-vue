@@ -179,7 +179,6 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
-import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetData, { seriesTotal } from '../../mixins/widgetData.js'
@@ -192,6 +191,7 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
+import { loadApexCharts, loadedApexCharts } from './apexChartsLoader.js'
 import { hostSelectionOptions, markSelectedMarks, redrawHooks, selectedIndicesOf } from './chartSelection.js'
 import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
@@ -2139,8 +2139,19 @@ export default {
 	},
 
 	created() {
-		// markRaw: `data()` is deeply reactive and would proxy the component.
-		this.chartComponent = markRaw(VueApexCharts)
+		// ApexCharts is loaded with the first chart, not with the bundle that
+		// imports the widget. markRaw: `data()` is deeply reactive and would
+		// proxy the component.
+		const apexCharts = loadedApexCharts()
+		if (apexCharts) {
+			this.chartComponent = markRaw(apexCharts)
+		} else {
+			loadApexCharts().then((component) => {
+				if (component) {
+					this.chartComponent = markRaw(component)
+				}
+			})
+		}
 		const container = createChartContainer()
 		this.chartTarget = container ? markRaw(container) : null
 		keepSvgMeasurerInShadow()

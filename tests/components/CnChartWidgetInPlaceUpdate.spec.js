@@ -13,6 +13,7 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 
 /**
  * Mount a bar chart and give its wrapper a live ApexCharts double.
@@ -33,6 +34,9 @@ function mountDrawn(props = {}) {
 	wrapper.vm.$refs.chart.chart = apex
 	return { wrapper, apex, stub: wrapper.findComponent({ name: 'vue-apexcharts-stub' }) }
 }
+
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
 
 describe('CnChartWidget in-place update', () => {
 	it('binds the wrapper to the current options and series before the first draw', () => {

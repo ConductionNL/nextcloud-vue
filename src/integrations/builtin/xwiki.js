@@ -27,8 +27,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnXwikiCard from './xwiki/CnXwikiCard.vue'
-import CnXwikiTab from './xwiki/CnXwikiTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnXwikiCard = lazyComponent(() => import('./xwiki/CnXwikiCard.vue'), 'CnXwikiCard')
+const CnXwikiTab = lazyComponent(() => import('./xwiki/CnXwikiTab.vue'), 'CnXwikiTab')
 
 /**
  * `xwiki` integration descriptor.

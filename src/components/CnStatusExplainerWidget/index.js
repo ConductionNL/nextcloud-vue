@@ -8,11 +8,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnStatusExplainerWidget from './CnStatusExplainerWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnStatusExplainerWidget = lazyComponent(() => import('./CnStatusExplainerWidget.vue'), 'CnStatusExplainerWidget')
+
 registerDashboardWidget('status-explainer', {
-	renderer: CnStatusExplainerWidget,
+	renderer: LazyCnStatusExplainerWidget,
 	form: null,
 	defaultContent: {
 		endpointSource: { url: '' },
@@ -23,5 +25,5 @@ registerDashboardWidget('status-explainer', {
 	surfaces: ['detail-page'],
 })
 
-export { CnStatusExplainerWidget }
-export default CnStatusExplainerWidget
+export { default as CnStatusExplainerWidget } from './CnStatusExplainerWidget.vue'
+export { default } from './CnStatusExplainerWidget.vue'

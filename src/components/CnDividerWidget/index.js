@@ -1,10 +1,12 @@
-import CnDividerWidgetForm from '../CnDividerWidgetForm/CnDividerWidgetForm.vue'
-import CnDividerWidget from './CnDividerWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnDividerWidgetForm = lazyComponent(() => import('../CnDividerWidgetForm/CnDividerWidgetForm.vue'), 'CnDividerWidgetForm')
+const LazyCnDividerWidget = lazyComponent(() => import('./CnDividerWidget.vue'), 'CnDividerWidget')
+
 registerDashboardWidget('divider', {
-	renderer: CnDividerWidget,
-	form: CnDividerWidgetForm,
+	renderer: LazyCnDividerWidget,
+	form: LazyCnDividerWidgetForm,
 	defaultContent: {
 		style: 'line',
 		lineColor: '',
@@ -19,5 +21,5 @@ registerDashboardWidget('divider', {
 	noChrome: true,
 })
 
-export { CnDividerWidget }
-export default CnDividerWidget
+export { default as CnDividerWidget } from './CnDividerWidget.vue'
+export { default } from './CnDividerWidget.vue'

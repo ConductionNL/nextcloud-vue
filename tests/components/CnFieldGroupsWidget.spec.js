@@ -27,6 +27,7 @@ const { isContentOnlyWidgetDef } = require('../../src/utils/widgetDispatch.js')
 require('../../src/components/CnFieldGroupsWidget/index.js')
 
 const CnFieldGroupsWidget = require('../../src/components/CnFieldGroupsWidget/CnFieldGroupsWidget.vue').default
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 const CHANNELS = {
 	add: { label: 'Add', ariaLabel: 'Add channel', placement: 'title' },
@@ -94,9 +95,9 @@ function lastHeader(w) {
 }
 
 describe('CnFieldGroupsWidget', () => {
-	it('registers as a renderer-only, content-only detail type in the library vocabulary', () => {
+	it('registers as a renderer-only, content-only detail type in the library vocabulary', async () => {
 		const entry = getWidgetTypeEntry('field-groups')
-		expect(entry.renderer).toBe(CnFieldGroupsWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnFieldGroupsWidget)
 		expect(entry.form).toBeNull()
 		expect(isContentOnlyWidgetDef({ type: 'field-groups' })).toBe(true)
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('field-groups')

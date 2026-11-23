@@ -7,11 +7,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnGroupedCardsWidget from './CnGroupedCardsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnGroupedCardsWidget = lazyComponent(() => import('./CnGroupedCardsWidget.vue'), 'CnGroupedCardsWidget')
+
 registerDashboardWidget('grouped-cards', {
-	renderer: CnGroupedCardsWidget,
+	renderer: LazyCnGroupedCardsWidget,
 	form: null,
 	defaultContent: {
 		endpointSource: { url: '' },
@@ -24,5 +26,5 @@ registerDashboardWidget('grouped-cards', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnGroupedCardsWidget }
-export default CnGroupedCardsWidget
+export { default as CnGroupedCardsWidget } from './CnGroupedCardsWidget.vue'
+export { default } from './CnGroupedCardsWidget.vue'

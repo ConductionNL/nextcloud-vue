@@ -11,7 +11,11 @@
 
 import { mount } from '@vue/test-utils'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 import { attachChartShadow, CHART_SHADOW_CLASS, CHART_SHADOW_CSS, createChartContainer } from '../../src/components/CnChartWidget/chartShadow.js'
+
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
 
 describe('attachChartShadow', () => {
 	it('puts the container and the chart rules in a shadow root of the host', () => {

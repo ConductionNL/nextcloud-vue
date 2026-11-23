@@ -24,6 +24,7 @@ jest.mock('@nextcloud/router', () => ({
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnFactsWidget/index.js'
@@ -68,10 +69,10 @@ describe('CnFactsWidget', () => {
 		mockGet.mockReset()
 	})
 
-	it('registers as a renderer-only, content-only catalog type', () => {
+	it('registers as a renderer-only, content-only catalog type', async () => {
 		const entry = getWidgetTypeEntry('facts')
 		expect(entry).toBeTruthy()
-		expect(entry.renderer).toBe(CnFactsWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnFactsWidget)
 		expect(entry.form).toBeNull()
 		expect(isContentOnlyWidgetDef({ type: 'facts' })).toBe(true)
 	})

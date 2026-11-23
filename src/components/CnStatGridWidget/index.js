@@ -7,11 +7,13 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnStatGridWidget from './CnStatGridWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnStatGridWidget = lazyComponent(() => import('./CnStatGridWidget.vue'), 'CnStatGridWidget')
+
 registerDashboardWidget('stat-grid', {
-	renderer: CnStatGridWidget,
+	renderer: LazyCnStatGridWidget,
 	form: null,
 	defaultContent: {
 		columns: 2,
@@ -22,5 +24,5 @@ registerDashboardWidget('stat-grid', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnStatGridWidget }
-export default CnStatGridWidget
+export { default as CnStatGridWidget } from './CnStatGridWidget.vue'
+export { default } from './CnStatGridWidget.vue'

@@ -6,13 +6,15 @@
  * square, coloured tile) into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnAppTileWidgetForm from '../CnAppTileWidgetForm/CnAppTileWidgetForm.vue'
-import CnAppTileWidget from './CnAppTileWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnAppTileWidgetForm = lazyComponent(() => import('../CnAppTileWidgetForm/CnAppTileWidgetForm.vue'), 'CnAppTileWidgetForm')
+const LazyCnAppTileWidget = lazyComponent(() => import('./CnAppTileWidget.vue'), 'CnAppTileWidget')
+
 registerDashboardWidget('app-tile', {
-	renderer: CnAppTileWidget,
-	form: CnAppTileWidgetForm,
+	renderer: LazyCnAppTileWidget,
+	form: LazyCnAppTileWidgetForm,
 	defaultContent: {
 		appId: '',
 		colour: '',
@@ -24,5 +26,5 @@ registerDashboardWidget('app-tile', {
 	surfaces: ['app-dashboard'],
 })
 
-export { CnAppTileWidget }
-export default CnAppTileWidget
+export { default as CnAppTileWidget } from './CnAppTileWidget.vue'
+export { default } from './CnAppTileWidget.vue'

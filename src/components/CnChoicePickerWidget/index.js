@@ -7,11 +7,13 @@
  * into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnChoicePickerWidget from './CnChoicePickerWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnChoicePickerWidget = lazyComponent(() => import('./CnChoicePickerWidget.vue'), 'CnChoicePickerWidget')
+
 registerDashboardWidget('choice-picker', {
-	renderer: CnChoicePickerWidget,
+	renderer: LazyCnChoicePickerWidget,
 	form: null,
 	defaultContent: {
 		field: '',
@@ -22,5 +24,5 @@ registerDashboardWidget('choice-picker', {
 	surfaces: ['detail-page'],
 })
 
-export { CnChoicePickerWidget }
-export default CnChoicePickerWidget
+export { default as CnChoicePickerWidget } from './CnChoicePickerWidget.vue'
+export { default } from './CnChoicePickerWidget.vue'

@@ -13,7 +13,7 @@
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
@@ -215,6 +215,7 @@ describe('CnHeaderWidget: options that select page views', () => {
 
 	it('selects the view from the header and the page draws no second switch', async () => {
 		const { wrapper, mocks } = mountWithHeader([{ label: 'My work', view: 'mine' }, { label: 'My team', view: 'team' }])
+		await flushPromises()
 		expect(wrapper.find(SWITCH).exists()).toBe(false)
 		const header = wrapper.findComponent(CnHeaderWidget)
 		expect(header.exists()).toBe(true)
