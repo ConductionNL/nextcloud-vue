@@ -360,8 +360,9 @@ export default {
 		 * - `'default'` — the library's own card chrome (opaque background,
 		 *   1px border, compact header).
 		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
-		 *   exactly using the same design tokens: translucent blurred
-		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   using the same design tokens: translucent background
+		 *   (`--color-main-background-blur`; no backdrop blur of its own,
+		 *   `--cn-widget-backdrop-filter` adds one),
 		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
 		 *   header with a 20px/700 title and 32px leading icon, and content
 		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
@@ -1427,10 +1428,14 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* No backdrop blur of its own: the content area behind the panels is already
+   blurred, and a blurred panel on a blurred area is re-blurred on every
+   repaint (a pointer move over a dashboard of six panels cost 100 ms or more
+   a frame). `--cn-widget-backdrop-filter` brings it back. */
 .cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
 	background: var(--color-main-background-blur, var(--color-main-background));
-	-webkit-backdrop-filter: var(--filter-background-blur, none);
-	backdrop-filter: var(--filter-background-blur, none);
+	-webkit-backdrop-filter: var(--cn-widget-backdrop-filter, none);
+	backdrop-filter: var(--cn-widget-backdrop-filter, none);
 	border: none;
 	border-radius: var(--border-radius-container-large, 16px);
 }
