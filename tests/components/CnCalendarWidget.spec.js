@@ -139,6 +139,17 @@ describe('CnCalendarWidget agenda times, failed sources and slow loads', () => {
 		expect(wrapper.find('.cn-calendar-widget__agenda-time').text()).toBe('09:00 – 10:30')
 	})
 
+	it('stacks time over title and place in the stacked layout', async () => {
+		const start = new Date()
+		start.setHours(11, 0, 0, 0)
+		const wrapper = await mountWith(
+			{ events: [{ uid: 'a', title: 'Havenpark meeting', location: 'Talk', start: start.toISOString() }], failures: [] },
+			{ agendaLayout: 'stacked' },
+		)
+		expect(wrapper.find('[data-testid="cn-calendar-widget-list"]').classes()).toContain('cn-calendar-widget__list--stacked')
+		expect(wrapper.find('.cn-calendar-widget__list-title').text()).toBe('Havenpark meeting')
+	})
+
 	it('reads daysAhead 0 as today alone', async () => {
 		const wrapper = await mountWith({ events: [], failures: [] }, { daysAhead: 0 })
 		expect(wrapper.vm.daysAhead).toBe(0)
