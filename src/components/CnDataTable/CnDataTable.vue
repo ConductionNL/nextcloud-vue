@@ -24,10 +24,10 @@
 			</span>
 		</div>
 
-		<!-- @slot notice The table's state banners (R1), above the rows. -->
 		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<!-- @slot notice The table's state banners (R1), above the rows. Replaces the banners drawn from `notices`. -->
 			<slot name="notice">
-				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
 
@@ -2719,6 +2719,33 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
+		},
+
+		/**
+		 * Relays a notice's action button.
+		 *
+		 * @param {object} entry The notice action that was pressed
+		 * @param {object} notice The notice the action belongs to
+		 */
+		onNoticeAction(entry, notice) {
+			/**
+			 * @event notice-action Emitted when an action button on one of the table's `notices` is pressed.
+			 * @type {object}
+			 */
+			this.$emit('notice-action', entry, notice)
+		},
+
+		/**
+		 * Relays a dismissed notice.
+		 *
+		 * @param {object} notice The notice that was closed
+		 */
+		onNoticeDismiss(notice) {
+			/**
+			 * @event notice-dismiss Emitted when the reader closes a dismissible notice; the payload is that notice.
+			 * @type {object}
+			 */
+			this.$emit('notice-dismiss', notice)
 		},
 
 		/**
