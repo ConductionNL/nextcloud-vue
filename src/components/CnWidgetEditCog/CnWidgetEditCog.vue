@@ -13,7 +13,8 @@
 		data-testid="cn-widget-edit-cog"
 		@click.stop>
 		<template #icon>
-			<Cog :size="20" />
+			<DotsVertical v-if="icon === 'kebab'" :size="20" />
+			<Cog v-else :size="20" />
 		</template>
 		<NcActionButton
 			:closeAfterClick="true"
@@ -41,6 +42,7 @@
 import { NcActionButton, NcActions } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import DotsVertical from 'vue-material-design-icons/DotsVertical.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 
 /**
@@ -70,6 +72,7 @@ export default {
 		NcActions,
 		NcActionButton,
 		Cog,
+		DotsVertical,
 		Pencil,
 		Delete,
 	},
@@ -115,6 +118,18 @@ export default {
 		canDelete: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * The trigger's glyph: `cog` (default) or `kebab`, the three dots the
+		 * Launchpad boards draw on a widget in edit mode (LpBewerken).
+		 *
+		 * @type {string}
+		 */
+		icon: {
+			type: String,
+			default: 'cog',
+			validator: (value) => ['cog', 'kebab'].includes(value),
 		},
 	},
 
