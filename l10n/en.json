@@ -2921,7 +2921,8 @@
     "Primary deep": "Primary deep",
     "Accent": "Accent",
     "Accent deep": "Accent deep",
-    "Ink": "Ink"
+    "Ink": "Ink",
+    "Nothing to act on.": "Nothing to act on."
   },
   "plurals": {
     "{count} member": [
