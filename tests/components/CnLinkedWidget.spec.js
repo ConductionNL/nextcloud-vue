@@ -112,6 +112,24 @@ describe('CnLinkedWidget', () => {
 		expect(wrapper.findAll('[data-testid="cn-linked-action"]')).toHaveLength(0)
 	})
 
+	it('says its emptyText when no listed app is here, and once every leaf answered with nothing', async () => {
+		const absent = mount(CnLinkedWidget, {
+			props: { content: { leaves: ['absent'], emptyText: 'Nothing linked yet' }, objectId: 'case-1', register: 'dossiq', schema: 'case' },
+			global: { stubs: { CnIcon: true } },
+		})
+		expect(absent.find('[data-testid="cn-linked-empty"]').text()).toBe('Nothing linked yet')
+
+		const projects = registerLeaf('projects')
+		const waiting = mount(CnLinkedWidget, {
+			props: { content: { leaves: ['projects'], emptyText: 'Nothing linked yet' }, objectId: 'case-1', register: 'dossiq', schema: 'case' },
+			global: { stubs: { CnIcon: true } },
+		})
+		expect(waiting.find('[data-testid="cn-linked-empty"]').exists()).toBe(false)
+		projects[0].onSummary({ count: 0, noun: '' })
+		await waiting.vm.$nextTick()
+		expect(waiting.find('[data-testid="cn-linked-empty"]').text()).toBe('Nothing linked yet')
+	})
+
 	it('draws nothing for a leaf that has not reported yet', () => {
 		registerLeaf('projects')
 		const wrapper = mountCard(['projects'])
