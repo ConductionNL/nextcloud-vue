@@ -1300,9 +1300,30 @@ export default {
 			if (!this.grid || typeof this.grid.getColumn !== 'function') {
 				return false
 			}
-			const authored = Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
 			const live = this.grid.getColumn()
-			return Number.isFinite(live) && live > 0 && live !== authored
+			return Number.isFinite(live) && live > 0 && live !== this.authoredColumns()
+		},
+
+		/**
+		 * The authored column count: `columnOpts.columnMax` when there is one,
+		 * else the `columns` prop.
+		 *
+		 * @return {number} The column count the layout is written in.
+		 */
+		authoredColumns() {
+			return Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
+		},
+
+		/**
+		 * The layout GridStack uses when it narrows to a column count: that
+		 * breakpoint's own `layout`, else `columnOpts.layout`, else move and scale.
+		 *
+		 * @param {number} column The column count.
+		 * @return {string|Function} The GridStack column layout.
+		 */
+		layoutForColumn(column) {
+			const point = (this.columnOpts?.breakpoints || []).find((b) => b.c === column)
+			return point?.layout || this.columnOpts?.layout || 'moveScale'
 		},
 
 		handleGridChange(items) {
@@ -1724,12 +1745,23 @@ export default {
 			const grid = toRaw(this.grid)
 			const queued = []
 			this.pendingSizes = queued
+			// On a reflowed grid the cards are added at the authored column
+			// count and the grid then narrows again, so GridStack runs the
+			// breakpoint's layout over them instead of clamping each card into
+			// the narrow columns as it arrives.
+			const narrow = this.isReflowed() ? grid.getColumn() : null
+			if (narrow !== null) {
+				grid.column(this.authoredColumns(), 'none')
+			}
 			try {
 				for (const el of els) {
 					grid.makeWidget(el)
 				}
 			} finally {
 				this.pendingSizes = null
+			}
+			if (narrow !== null) {
+				grid.column(narrow, this.layoutForColumn(narrow))
 			}
 			for (const el of queued) {
 				grid.resizeToContent(el)
@@ -1759,6 +1791,11 @@ export default {
 					if (!node) {
 						added.push(el)
 					} else if (node.el === el) {
+						// On a reflowed grid the cards stand where the narrow
+						// layout put them, not at their authored place.
+						if (this.isReflowed()) {
+							continue
+						}
 						// The layout MOVED an item the grid already tracks: the
 						// page re-compacts its display layout when a widget's
 						// condition hides it, and the item below was given a new
