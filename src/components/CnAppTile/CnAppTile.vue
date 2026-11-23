@@ -180,11 +180,14 @@ export default {
 	box-shadow: 0 0 0 2px var(--color-main-background, #fff);
 }
 
+/* The glyph is painted white, not currentColor: a theme's link colour
+   (an `a { color: ... !important }` rule) would otherwise paint it in the
+   tile's own colour and the tile reads as an empty square. */
 .cn-app-tile__icon {
 	display: block;
 	width: 45%;
 	height: 45%;
-	background-color: currentColor;
+	background-color: #fff;
 	mask: var(--cn-app-tile-icon) center / contain no-repeat;
 	-webkit-mask: var(--cn-app-tile-icon) center / contain no-repeat;
 }
@@ -193,6 +196,7 @@ export default {
 	display: flex;
 	width: 45%;
 	height: 45%;
+	color: #fff;
 }
 
 .cn-app-tile__fallback :deep(svg) {
