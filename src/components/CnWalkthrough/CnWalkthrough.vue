@@ -423,8 +423,10 @@ export default {
 
 		active(now) {
 			if (now) {
+				this.watchAppModals()
 				this.$nextTick(() => this.locateTarget())
 			} else {
+				this.unwatchAppModals()
 				this.teardownStep()
 			}
 		},
@@ -487,7 +489,9 @@ export default {
 				object: d.object && typeof d.object === 'object' ? d.object : d,
 			})
 		}
-		this.watchAppModals()
+		if (this.active) {
+			this.watchAppModals()
+		}
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
 		if (this.active) {
@@ -500,10 +504,7 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
-		if (this._modalObs) {
-			this._modalObs.disconnect()
-			this._modalObs = null
-		}
+		this.unwatchAppModals()
 		if (typeof this._routeUnhook === 'function') {
 			this._routeUnhook()
 		}
@@ -565,6 +566,9 @@ export default {
 		 * @return {void}
 		 */
 		watchAppModals() {
+			if (this._modalObs) {
+				return
+			}
 			const update = () => {
 				const open = this.isAppModalOpen()
 				if (open !== this.appModalOpen) {
@@ -579,6 +583,21 @@ export default {
 				this._modalObs = new MutationObserver(update)
 				this._modalObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden'] })
 			}
+		},
+
+		/**
+		 * Stop following app dialogs. Every style change on the page ran the
+		 * dialog check, which reads computed styles; with no tour on screen
+		 * there is nothing to step back for.
+		 *
+		 * @return {void}
+		 */
+		unwatchAppModals() {
+			if (this._modalObs) {
+				this._modalObs.disconnect()
+				this._modalObs = null
+			}
+			this.appModalOpen = false
 		},
 
 		/**
