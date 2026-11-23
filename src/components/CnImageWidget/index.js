@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnImageWidgetForm from '../CnImageWidgetForm/CnImageWidgetForm.vue'
-import CnImageWidget from './CnImageWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnImageWidgetForm = lazyComponent(() => import('../CnImageWidgetForm/CnImageWidgetForm.vue'), 'CnImageWidgetForm')
+const LazyCnImageWidget = lazyComponent(() => import('./CnImageWidget.vue'), 'CnImageWidget')
+
 registerDashboardWidget('image', {
-	renderer: CnImageWidget,
-	form: CnImageWidgetForm,
+	renderer: LazyCnImageWidget,
+	form: LazyCnImageWidgetForm,
 	defaultContent: {
 		url: '',
 		alt: '',
@@ -23,5 +25,5 @@ registerDashboardWidget('image', {
 	icon: 'Camera',
 })
 
-export { CnImageWidget }
-export default CnImageWidget
+export { default as CnImageWidget } from './CnImageWidget.vue'
+export { default } from './CnImageWidget.vue'

@@ -10,7 +10,7 @@
  *
  * @spec openspec/changes/leaf-card-widget-title/specs/leaf-card-widget-title/spec.md#requirement-a-leaf-card-carries-the-widgets-title
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { contactsIntegration } from '../../src/integrations/builtin/contacts.js'
 import { integrations } from '../../src/integrations/registry.js'
@@ -44,8 +44,9 @@ describe('CnDetailWidgetHost: a leaf carries the widget title', () => {
 	beforeEach(() => integrations.register({ ...contactsIntegration, requiredApp: null }))
 	afterEach(() => integrations.__resetForTests())
 
-	it('hands the translated widget title to a leaf that names it titleLabel', () => {
+	it('hands the translated widget title to a leaf that names it titleLabel', async () => {
 		const w = mountHost({ title: 'Parties' })
+		await flushPromises()
 		const card = w.findComponent({ name: 'CnContactsCard' })
 		expect(card.exists()).toBe(true)
 		expect(card.props('titleLabel')).toBe('Partijen')

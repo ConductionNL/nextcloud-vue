@@ -392,6 +392,27 @@
 			],
 			"page": "cn-app-root"
 		},
+		"CnAppTile": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-app-tile"
+		},
+		"CnAppTileWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-app-tile-widget"
+		},
+		"CnAppTileWidgetForm": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-app-tile-widget-form"
+		},
 		"CnAppTilesWidget": {
 			"direct": 0,
 			"transitive": 0,
@@ -3281,7 +3302,7 @@
 			"page": null
 		},
 		"CnMapWidget": {
-			"direct": 3,
+			"direct": 4,
 			"transitive": 2,
 			"tier": "medium",
 			"via": [],
@@ -5359,6 +5380,13 @@
 			"tier": "light",
 			"via": [],
 			"page": "cn-status-explainer-widget"
+		},
+		"CnStatusList": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-status-list"
 		},
 		"CnStepper": {
 			"direct": 0,

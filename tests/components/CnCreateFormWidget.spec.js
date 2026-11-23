@@ -29,6 +29,7 @@ jest.mock('../../src/utils/optionsFrom.js', () => ({
 
 import CnCreateFormWidget from '../../src/components/CnCreateFormWidget/CnCreateFormWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnCreateFormWidget/index.js'
 
@@ -68,8 +69,8 @@ describe('CnCreateFormWidget', () => {
 		])
 	})
 
-	it('registers as the create-form dashboard widget', () => {
-		expect(getWidgetTypeEntry('create-form').renderer).toBe(CnCreateFormWidget)
+	it('registers as the create-form dashboard widget', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('create-form').renderer)).toBe(CnCreateFormWidget)
 	})
 
 	it('seeds the fields from their defaults and the page filters, translated', async () => {

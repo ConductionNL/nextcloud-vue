@@ -31,8 +31,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnMapsCard from './maps/CnMapsCard.vue'
-import CnMapsTab from './maps/CnMapsTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnMapsCard = lazyComponent(() => import('./maps/CnMapsCard.vue'), 'CnMapsCard')
+const CnMapsTab = lazyComponent(() => import('./maps/CnMapsTab.vue'), 'CnMapsTab')
 
 /**
  * `maps` integration descriptor.

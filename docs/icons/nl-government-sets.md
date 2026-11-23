@@ -34,7 +34,7 @@ Only that module enters your bundle. Check your build output: an app importing `
 
 ## Offer all three, and defer the big one
 
-For a picker with a tab per set, use `nlDesignIconGroups()`. It loads the two small sets with the page and defers RVO behind a dynamic import, so RVO is fetched the first time a user opens its tab and never otherwise:
+For a picker with a tab per set, use `nlDesignIconGroups()`. Each set sits behind a dynamic import, so a set is fetched the first time a user opens its tab and never otherwise:
 
 ```js
 import { nlDesignIconGroups } from '@conduction/nextcloud-vue/src/icons/nlDesignGroups.js'

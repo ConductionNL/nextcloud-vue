@@ -37,8 +37,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnTimeTrackerCard from './time-tracker/CnTimeTrackerCard.vue'
-import CnTimeTrackerTab from './time-tracker/CnTimeTrackerTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnTimeTrackerCard = lazyComponent(() => import('./time-tracker/CnTimeTrackerCard.vue'), 'CnTimeTrackerCard')
+const CnTimeTrackerTab = lazyComponent(() => import('./time-tracker/CnTimeTrackerTab.vue'), 'CnTimeTrackerTab')
 
 /**
  * `time-tracker` integration descriptor.

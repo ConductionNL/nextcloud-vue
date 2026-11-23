@@ -154,6 +154,10 @@ This is the tile's only refresh affordance. `CnDashboardPage` renders it *withou
 
 A ref-callable `refresh()` is also exposed, for parity with `CnChartWidget`.
 
+## Telling the host what it shows (`data`)
+
+The widget emits `data` with `{ count }` for one source, or `{ counts }` (one per entry) in multi-entry mode, once the count is known and on every change. Nothing is emitted before then.
+
 ## Notes
 
 - Designed only for the manifest path. If you already have a count number in JS, mount [`CnStatsBlock`](./cn-stats-block.md) directly.

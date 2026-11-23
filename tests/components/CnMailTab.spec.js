@@ -17,6 +17,7 @@ const { flushPromises, mount } = require('@vue/test-utils')
 const { invalidateEndpointSourceCache } = require('../../src/composables/useEndpointSource.js')
 const CnMailTab = require('../../src/components/CnMailTab/CnMailTab.vue').default
 const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 require('../../src/components/CnMailTab/index.js')
 
 const CONTENT = {
@@ -56,8 +57,8 @@ afterEach(() => {
 })
 
 describe('CnMailTab', () => {
-	it('is registered as the `mail` widget type', () => {
-		expect(getWidgetTypeEntry('mail').renderer).toBe(CnMailTab)
+	it('is registered as the `mail` widget type', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('mail').renderer)).toBe(CnMailTab)
 	})
 
 	it('reads the templates from the record-scoped URL and draws the row', async () => {

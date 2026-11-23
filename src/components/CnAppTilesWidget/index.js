@@ -7,13 +7,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnAppTilesWidgetForm from '../CnAppTilesWidgetForm/CnAppTilesWidgetForm.vue'
-import CnAppTilesWidget from './CnAppTilesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnAppTilesWidgetForm = lazyComponent(() => import('../CnAppTilesWidgetForm/CnAppTilesWidgetForm.vue'), 'CnAppTilesWidgetForm')
+const LazyCnAppTilesWidget = lazyComponent(() => import('./CnAppTilesWidget.vue'), 'CnAppTilesWidget')
+
 registerDashboardWidget('app-tiles', {
-	renderer: CnAppTilesWidget,
-	form: CnAppTilesWidgetForm,
+	renderer: LazyCnAppTilesWidget,
+	form: LazyCnAppTilesWidgetForm,
 	defaultContent: {
 		title: 'Apps',
 		pinned: [],
@@ -27,5 +29,5 @@ registerDashboardWidget('app-tiles', {
 	surfaces: ['app-dashboard'],
 })
 
-export { CnAppTilesWidget }
-export default CnAppTilesWidget
+export { default as CnAppTilesWidget } from './CnAppTilesWidget.vue'
+export { default } from './CnAppTilesWidget.vue'
