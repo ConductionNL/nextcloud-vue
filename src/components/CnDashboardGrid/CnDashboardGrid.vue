@@ -1006,8 +1006,14 @@ export default {
 				disableDrag: !this.editable,
 				disableResize: !this.editable,
 				removable: false,
-				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
+			// The breakpoints go in once the items are on the grid: GridStack
+			// applies a breakpoint's layout only to items it already holds, so a
+			// grid that mounts narrow would otherwise clamp each item into the
+			// narrow columns, overlapping, instead of reflowing them.
+			if (this.columnOpts) {
+				this.grid.updateOptions({ columnOpts: this.columnOpts })
+			}
 			this.keepOrderOnGrowth()
 			this.matchRowHeights()
 			this.placeClearRows()

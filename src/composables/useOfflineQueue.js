@@ -70,6 +70,18 @@ function newKey() {
 	return `w-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+let lastSeq = 0
+
+/**
+ * A rising sequence number that keeps the order of writes made in the same millisecond.
+ *
+ * @return {number}
+ */
+function nextSeq() {
+	lastSeq = Math.max(Date.now(), lastSeq + 0.001)
+	return lastSeq
+}
+
 /**
  * An offline write queue.
  *
@@ -147,7 +159,7 @@ export function useOfflineQueue(name, { idb = (typeof window !== 'undefined' ? w
 	 */
 	const enqueue = async ({ method = 'POST', url, body = null, key } = {}) => {
 		const id = key || newKey()
-		await inStore(await db(), 'readwrite', (store) => store.put({ id, queue: name, method: String(method).toUpperCase(), url, body, seq: Date.now() + Math.random() }))
+		await inStore(await db(), 'readwrite', (store) => store.put({ id, queue: name, method: String(method).toUpperCase(), url, body, seq: nextSeq() }))
 		await recount()
 		if (typeof navigator === 'undefined' || navigator.onLine !== false) {
 			await flush()
