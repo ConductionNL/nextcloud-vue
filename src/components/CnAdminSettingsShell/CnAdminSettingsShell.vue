@@ -1046,7 +1046,7 @@ export default {
 
 		/** @return {string} Re-import button label. */
 		reimportLabel() {
-			return t('nextcloud-vue', 'Re-import configuration')
+			return t('nextcloud-vue', 'Import configuration again')
 		},
 
 		/** @return {string} Re-import in-progress label. */

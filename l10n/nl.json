@@ -3224,7 +3224,8 @@
     "Back to default": "Terug naar standaard",
     "Save layout": "Indeling opslaan",
     "Use the arrow keys to move this part up or down.": "Gebruik de pijltjestoetsen om dit onderdeel omhoog of omlaag te zetten.",
-    "{name} moved to position {position} of {total}": "{name} staat nu op plaats {position} van {total}"
+    "{name} moved to position {position} of {total}": "{name} staat nu op plaats {position} van {total}",
+    "Import configuration again": "Configuratie opnieuw importeren"
   },
   "plurals": {
     "{count} member": [
