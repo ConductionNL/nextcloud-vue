@@ -12,6 +12,7 @@ import axios from '@nextcloud/axios'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnAppTilesWidget, { arrangeApps, mostUsedApps } from '../../src/components/CnAppTilesWidget/CnAppTilesWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { clearAppDisplayNames } from '../../src/utils/nextcloudApps.js'
 
 import '../../src/components/CnAppTilesWidget/index.js'
@@ -78,8 +79,8 @@ describe('mostUsedApps', () => {
 })
 
 describe('CnAppTilesWidget', () => {
-	it('registers as the app-tiles widget type', () => {
-		expect(getWidgetTypeEntry('app-tiles').renderer).toBe(CnAppTilesWidget)
+	it('registers as the app-tiles widget type', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('app-tiles').renderer)).toBe(CnAppTilesWidget)
 	})
 
 	it('is registered by the library entry point, not only by its own index', () => {

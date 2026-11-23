@@ -231,6 +231,7 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
@@ -240,7 +241,7 @@ import { isActivityWidget } from '../../utils/headerMeta.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { setSubResourceRead } from '../../utils/recordInteractions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenPath, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -704,7 +705,7 @@ export default {
 				}
 				// A stack (`widgetIds`) resolves every id; one that names no
 				// widget is skipped. The first that resolves is the panel's.
-				const ids = this.tabWidgetIds(tab)
+				const ids = this.orderedTabWidgetIds(tab)
 				const named = ids.length > 1
 					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
 					: []
@@ -1290,6 +1291,39 @@ export default {
 		},
 
 		/**
+		 * The widget ids of a stack in the order its `orderFrom` list gives.
+		 * `orderFrom` is a dot-path into the record (a case's
+		 * `@context.caseType.overviewCards`); the widgets that list names take
+		 * the places of the listed widgets in the list's order, and every
+		 * other widget keeps its own place. Without a list the authored order
+		 * stands.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @return {string[]} The ids.
+		 * @spec openspec/changes/tab-stack-order-from/specs/tab-stack-order-from/spec.md#requirement-a-stack-can-follow-the-order-of-a-list-on-the-record
+		 */
+		orderedTabWidgetIds(tab) {
+			const ids = this.tabWidgetIds(tab)
+			const path = tab && typeof tab === 'object' && typeof tab.orderFrom === 'string' ? tab.orderFrom : ''
+			if (ids.length < 2 || path === '' || !this.conditionData) {
+				return ids
+			}
+			const list = readVisibleWhenPath(this.conditionData, path)
+			if (!Array.isArray(list) || list.length === 0) {
+				return ids
+			}
+			const rank = new Map()
+			list.forEach((id, position) => {
+				if (!rank.has(String(id))) {
+					rank.set(String(id), position)
+				}
+			})
+			const listed = ids.filter((id) => rank.has(id)).sort((a, b) => rank.get(a) - rank.get(b))
+			let next = 0
+			return ids.map((id) => (rank.has(id) ? listed[next++] : id))
+		},
+
+		/**
 		 * A single widget's manifest `headerActions`, for its panel's heading
 		 * row: gated on the record, dispatched through the page's dispatcher.
 		 *
@@ -1479,6 +1513,12 @@ export default {
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
+			// A tab shown only with another app installed counts nothing without it:
+			// its list lives in that app, and asking would answer 404.
+			const needs = tab && typeof tab === 'object' && tab.visibleWhen ? tab.visibleWhen.appInstalled : null
+			if (typeof needs === 'string' && needs !== '' && !isAppInstalled(needs)) {
+				return null
+			}
 			const from = tab && typeof tab === 'object' ? tab.countFrom : null
 			let source = null
 			if (from === 'widget') {

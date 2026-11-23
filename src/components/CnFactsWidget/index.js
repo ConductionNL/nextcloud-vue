@@ -9,11 +9,13 @@
  * not offer it.
  */
 
-import CnFactsWidget from './CnFactsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnFactsWidget = lazyComponent(() => import('./CnFactsWidget.vue'), 'CnFactsWidget')
+
 registerDashboardWidget('facts', {
-	renderer: CnFactsWidget,
+	renderer: LazyCnFactsWidget,
 	form: null,
 	defaultContent: {
 		fields: [],
@@ -25,5 +27,5 @@ registerDashboardWidget('facts', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnFactsWidget }
-export default CnFactsWidget
+export { default as CnFactsWidget } from './CnFactsWidget.vue'
+export { default } from './CnFactsWidget.vue'

@@ -9,13 +9,15 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnGaugeWidgetForm from '../CnGaugeWidgetForm/CnGaugeWidgetForm.vue'
-import CnGaugeWidget from './CnGaugeWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnGaugeWidgetForm = lazyComponent(() => import('../CnGaugeWidgetForm/CnGaugeWidgetForm.vue'), 'CnGaugeWidgetForm')
+const LazyCnGaugeWidget = lazyComponent(() => import('./CnGaugeWidget.vue'), 'CnGaugeWidget')
+
 registerDashboardWidget('gauge', {
-	renderer: CnGaugeWidget,
-	form: CnGaugeWidgetForm,
+	renderer: LazyCnGaugeWidget,
+	form: LazyCnGaugeWidgetForm,
 	defaultContent: {
 		label: '',
 		format: { style: 'number', currency: 'EUR', decimals: 0 },
@@ -30,5 +32,5 @@ registerDashboardWidget('gauge', {
 	card: true,
 })
 
-export { CnGaugeWidget }
-export default CnGaugeWidget
+export { default as CnGaugeWidget } from './CnGaugeWidget.vue'
+export { default } from './CnGaugeWidget.vue'

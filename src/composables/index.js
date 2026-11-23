@@ -93,3 +93,5 @@ export {
 	readNodePoint,
 } from './flowGraphLayout.js'
 export { NOTIFICATION_PREFERENCES_URL, NOTIFICATION_TEST_SEND_URL, useNotificationPreferencesStore } from './useNotificationPreferencesStore.js'
+export { useOfflineQueue } from './useOfflineQueue.js'
+export { useObjectActions } from './useObjectActions.js'

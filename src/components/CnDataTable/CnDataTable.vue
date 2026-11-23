@@ -107,7 +107,7 @@
 			:aria-label="isScrollable ? scrollRegionLabel : undefined">
 			<table
 				class="cn-data-table"
-				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth }"
+				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth, 'cn-data-table--stack': stackOnPhone }"
 				data-testid="cn-object-list-table">
 				<!-- Without a drawn header row the columns are still named for a
 				     screen reader: plain header cells, collapsed and visually
@@ -299,6 +299,7 @@
 								:key="col.key"
 								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '', alignClass(col)]"
 								:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
+								:data-label="stackOnPhone ? translateLabel(col.label) : undefined"
 								@mouseenter="titleWhenClipped">
 								<!-- A row with a `rowClickRoute` is a real link: this anchor
 								     is stretched over the whole row by CSS, so hovering shows
@@ -1063,6 +1064,20 @@ export default {
 		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
 		 */
 		fitWidth: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * On a phone-width screen (up to 600px), draw every row as a stacked
+		 * block: one line per cell with its column name before the value, the
+		 * header row hidden, the row actions full width. Wider screens keep
+		 * the table. Off by default.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/data-table-stack-on-phone/specs/data-table-stack-on-phone/spec.md#requirement-a-table-can-stack-its-rows-on-a-phone
+		 */
+		stackOnPhone: {
 			type: Boolean,
 			default: false,
 		},

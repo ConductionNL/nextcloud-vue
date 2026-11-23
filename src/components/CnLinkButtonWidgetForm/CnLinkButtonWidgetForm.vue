@@ -181,12 +181,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-
-const ACTION_TYPES = Object.freeze({
-	EXTERNAL: 'external',
-	INTERNAL: 'internal',
-	CREATE_FILE: 'createFile',
-})
+import { LINK_ACTION_TYPES as ACTION_TYPES, normaliseLinkActionType } from '../../utils/linkButtonActionType.js'
 
 const DISPLAY_MODES = Object.freeze({
 	BUTTON: 'button',
@@ -229,19 +224,15 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * Normalise a raw link entry into the canonical shape expected by the
- * renderer. Missing keys default to empty strings; the action type falls back
- * to `'external'` if not one of the three supported values.
+ * renderer. Missing keys default to empty strings; the action type is
+ * resolved by normaliseLinkActionType (`url` / `action_id` aliases included).
  *
  * @param {object} raw the raw link entry (may be undefined or null).
  * @return {object} a normalised link entry.
  */
 function normaliseLink(raw) {
 	const link = (raw !== null && typeof raw === 'object') ? raw : {}
-	const declaredAction = link.actionType
-	const actionType = (declaredAction === ACTION_TYPES.INTERNAL
-		|| declaredAction === ACTION_TYPES.CREATE_FILE)
-		? declaredAction
-		: ACTION_TYPES.EXTERNAL
+	const actionType = normaliseLinkActionType(link.actionType)
 	return {
 		label: typeof link.label === 'string' ? link.label : '',
 		url: typeof link.url === 'string' ? link.url : '',
@@ -327,7 +318,7 @@ export default {
 			label: initial.label ?? DEFAULT_CONTENT.label,
 			url: initial.url ?? DEFAULT_CONTENT.url,
 			icon: initial.icon ?? DEFAULT_CONTENT.icon,
-			actionType: initial.actionType ?? DEFAULT_CONTENT.actionType,
+			actionType: normaliseLinkActionType(initial.actionType),
 			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
 			textColor: initial.textColor ?? DEFAULT_CONTENT.textColor,
 			displayMode: declaredMode,

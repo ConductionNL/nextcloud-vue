@@ -315,6 +315,14 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 		// getter so a reactive change re-scopes the next fetch, matching how
 		// `fixedFilters` is read.
 		extend: () => (Array.isArray(props.extend) ? props.extend : []),
+		// `pages[].config.searchHandler`, resolved by the page from the app's
+		// registry when the search runs, so a late registry still counts.
+		searchInterpreter: props.searchHandler
+			? (term) => {
+					const read = instance && instance.proxy && instance.proxy.searchInterpreterFn
+					return typeof read === 'function' ? read(term) : null
+				}
+			: undefined,
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}

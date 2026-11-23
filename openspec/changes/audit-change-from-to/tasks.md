@@ -1,0 +1,2 @@
+- [x] 1 `changeRuleFor`, `changeSideValue`, `changeNote` and `{from}` / `{to}` in `fillAuditLabel` (tests/utils/auditChangeFromTo.spec.js)
+- [x] 2 History card draws the rule's note; card and timeline name user and group ids (`utils/auditValueName.js`)

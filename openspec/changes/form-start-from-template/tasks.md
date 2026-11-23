@@ -1,0 +1,1 @@
+- [x] 1 `templateSource` on CnFormDialog and `recordTemplates` on CnIndexPage (tests/components/CnFormDialogRecordTemplates.spec.js); docs

@@ -23,7 +23,7 @@
 				role="radio"
 				:aria-checked="value === widget.id ? 'true' : 'false'"
 				:aria-label="widget.title"
-				:tabindex="cardTabIndex(widget.id, idx)"
+				:tabindex="cardTabIndex(idx)"
 				class="cn-nc-widget-grid-picker__card"
 				:class="{ 'cn-nc-widget-grid-picker__card--selected': value === widget.id }"
 				@click="select(widget.id)"
@@ -118,7 +118,7 @@ export default {
 
 	data() {
 		return {
-			focusedIndex: 0,
+			focusedIndex: null,
 		}
 	},
 
@@ -159,14 +159,18 @@ export default {
 		t,
 
 		/**
-		 * Compute the roving tabindex for a card: the selected card (or the
-		 * first card when none is selected) is the keyboard entry point.
+		 * Compute the roving tabindex for a card: the card focus last moved to
+		 * holds it; before any move, the selected card (or the first card when
+		 * none is selected) is the keyboard entry point.
 		 *
-		 * @param {string} id the widget id.
 		 * @param {number} idx the card index.
 		 * @return {number} `0` for the entry-point card, `-1` otherwise.
 		 */
-		cardTabIndex(id, idx) {
+		cardTabIndex(idx) {
+			const total = this.normalisedWidgets.length
+			if (this.focusedIndex !== null && this.focusedIndex < total) {
+				return this.focusedIndex === idx ? 0 : -1
+			}
 			if (this.selectedIndex >= 0) {
 				return this.selectedIndex === idx ? 0 : -1
 			}

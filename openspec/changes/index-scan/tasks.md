@@ -1,0 +1,1 @@
+- [x] 1 `scan` on CnIndexPage (tests/components/CnIndexPageScan.spec.js); docs/components/cn-index-page.md

@@ -27,6 +27,7 @@ For rows that are their own records, use an object-list widget instead.
 | `newItem` | Object | `null` | The values a new row starts with; the row schema's defaults fill the rest. |
 | `itemLabel` | String | `''` | What one row is called: "Checklist item" names the rows "Checklist item 1", "Checklist item 2" for the row actions and the edit dialog. Defaults to "Row". |
 | `emptyText` | String | `''` | Shown while there are no rows. Defaults to "No rows yet.". |
+| `maxItems` | Number | `0` | The most rows the field takes; 0 for no limit. At the limit Add and Duplicate are disabled and a line says so. |
 
 ## Events
 

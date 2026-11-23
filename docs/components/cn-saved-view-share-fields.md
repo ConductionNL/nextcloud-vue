@@ -14,9 +14,20 @@ Used by [`CnSaveViewDialog`](./cn-save-view-dialog.md) and [`CnSavedViewShareDia
 |------|------|---------|-------------|
 | `modelValue` | Array | `[]` | The chosen audience, `[{ group, mode }]` with `mode` `read` or `write`. |
 | `disabled` | Boolean | `false` | Disable the fields. |
+| `shareGroups` | String \| Array | `'all'` | Which groups the picker offers. `all` offers every group the sharee API answers; `mine` only the groups the current user is in; an array of group ids only those groups. People are offered either way, and groups already on the view stay listed. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:modelValue` | `Array<{ group, mode }>` | The audience; `[]` when no group is picked. |
+
+## Limiting the groups
+
+A page whose views belong to teams can keep the picker to the reader's own groups:
+
+```vue
+<CnSavedViewShareFields v-model="sharedWith" shareGroups="mine" />
+```
+
+On a manifest index page set `config.savedViewsShareGroups: "mine"`; `CnIndexPage` hands it to both the save dialog and the share dialog.
