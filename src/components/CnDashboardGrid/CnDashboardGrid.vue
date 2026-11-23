@@ -135,7 +135,11 @@ function hasFitCell(layout) {
 /**
  * The row tracks of a grid that fills its height (`fillHeight`): `auto` for
  * a row whose items all set `fitRows`, or that no item covers, and an equal
- * share of the free height (`minmax(0, 1fr)`) for every other row.
+ * share of the free height (`minmax(0, 1fr)`) for every other row. A row
+ * that a `fitRows` item covers is also `auto` when each other item on it
+ * reaches into a row that no `fitRows` item covers: that item takes its
+ * share of the height there (LpVandaag: three rows of app tiles at their own
+ * size beside the agenda, which runs on to the bottom of the screen).
  *
  * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
  * @param {Array<object>} layout The layout items.
@@ -146,10 +150,24 @@ export function fillRowTracks(layout) {
 	const top = (item) => (Number.isFinite(item.gridY) ? item.gridY : 0)
 	const height = (item) => (Number.isFinite(item.gridHeight) ? item.gridHeight : 1)
 	const rows = items.reduce((max, item) => Math.max(max, top(item) + height(item)), 0)
+	const covers = (item, row) => row >= top(item) && row < top(item) + height(item)
+	const fitRow = []
+	for (let row = 0; row < rows; row++) {
+		fitRow.push(items.some((item) => item.fitRows === true && covers(item, row)))
+	}
+	const stretchesElsewhere = (item) => {
+		for (let row = top(item); row < top(item) + height(item); row++) {
+			if (!fitRow[row]) {
+				return true
+			}
+		}
+		return false
+	}
 	const tracks = []
 	for (let row = 0; row < rows; row++) {
-		const covering = items.filter((item) => row >= top(item) && row < top(item) + height(item))
-		const fits = covering.every((item) => item.fitRows === true)
+		const covering = items.filter((item) => covers(item, row))
+		const others = covering.filter((item) => item.fitRows !== true)
+		const fits = others.length === 0 || (fitRow[row] && others.every(stretchesElsewhere))
 		tracks.push(fits ? 'auto' : 'minmax(0, 1fr)')
 	}
 	return tracks

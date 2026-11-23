@@ -40,6 +40,15 @@ describe('fillRowTracks', () => {
 		expect(fillRowTracks(layout)).toEqual(['minmax(0, 1fr)'])
 	})
 
+	it('fits the rows of tiles beside a card that runs on into a shared row', () => {
+		const layout = [
+			{ id: 'tile', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 2, fitRows: true },
+			{ id: 'tile2', gridX: 0, gridY: 2, gridWidth: 1, gridHeight: 2, fitRows: true },
+			{ id: 'agenda', gridX: 1, gridY: 0, gridWidth: 5, gridHeight: 6 },
+		]
+		expect(fillRowTracks(layout)).toEqual(['auto', 'auto', 'auto', 'auto', 'minmax(0, 1fr)', 'minmax(0, 1fr)'])
+	})
+
 	it('leaves an empty row at its content, which is none', () => {
 		const layout = [{ id: 'a', gridX: 0, gridY: 1, gridWidth: 12, gridHeight: 1 }]
 		expect(fillRowTracks(layout)).toEqual(['auto', 'minmax(0, 1fr)'])
