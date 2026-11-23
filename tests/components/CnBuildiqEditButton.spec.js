@@ -230,4 +230,42 @@ describe('CnBuildiqEditButton', () => {
 		expect(wrapper.vm.showDataModal).toBe(true)
 		expect(wrapper.emitted('edit-data')).toBeTruthy()
 	})
+
+	describe('Edit flows', () => {
+		const router = { push: jest.fn() }
+		const open = (pages) => mount(CnBuildiqEditButton, {
+			propsData: { available: true, editor: makeEditor() },
+			global: { mocks: { $router: router }, provide: { cnManifest: { pages } } },
+			stubs: { NcActions: NcActionsStub, NcActionButton: NcActionButtonStub, CnEditMenuModal: true, CnEditSidebarModal: true, CnEditDataModal: true, CnFlowEditModal: true },
+		})
+
+		beforeEach(() => router.push.mockClear())
+
+		it('goes to the flow page in list mode when the app has one', () => {
+			const wrapper = open([{ id: 'Flow', route: '/flows/:id', type: 'flow', config: { listMode: true } }])
+
+			wrapper.vm.onEditFlows()
+
+			expect(router.push).toHaveBeenCalledWith({ path: '/flows/new', query: { view: 'list' } })
+			expect(wrapper.vm.showFlowsCanvasModal).toBe(false)
+			expect(wrapper.emitted('edit-flows')).toHaveLength(1)
+		})
+
+		it('keeps the dialog for an app whose flow page has no list mode', () => {
+			const wrapper = open([{ id: 'Flow', route: '/flows/:id', type: 'flow', config: {} }])
+
+			wrapper.vm.onEditFlows()
+
+			expect(router.push).not.toHaveBeenCalled()
+			expect(wrapper.vm.showFlowsCanvasModal).toBe(true)
+		})
+
+		it('keeps the dialog for an app without a flow page', () => {
+			const wrapper = open([{ id: 'Home', route: '/', type: 'index' }])
+
+			wrapper.vm.onEditFlows()
+
+			expect(wrapper.vm.showFlowsCanvasModal).toBe(true)
+		})
+	})
 })

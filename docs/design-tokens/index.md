@@ -173,7 +173,7 @@ These apply under `look: "board"` and have the staff values as defaults; a theme
 | `--cn-field-hint-size` | `13px` | Form field hint. |
 | `--cn-field-error-border` | `2px` | Border of an invalid control and of the error summary. |
 
-Dialog widths are three fixed roles (`confirm` 560, `form` 640, `wizard` 720), not tokens.
+Dialog widths are four fixed roles (`confirm` 560, `form` 640, `wizard` 720, `browse` 1120), not tokens. `browse` is for a search-and-pick dialog with a filter column beside its results.
 
 ## See also
 

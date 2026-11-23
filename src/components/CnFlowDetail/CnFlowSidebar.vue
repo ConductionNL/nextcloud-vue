@@ -172,7 +172,7 @@
 							data-testid="flow-run-link"
 							@click="onRunLinkClick($event, run.uuid)">
 							<span class="cn-flow-sidebar__run-top">
-								<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${run.status}`">{{ run.status }}</span>
+								<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${outcomeOf(run)}`">{{ outcomeOf(run) }}</span>
 								<time class="cn-flow-sidebar__run-when" :datetime="run.created">{{ run.created }}</time>
 							</span>
 							<span v-if="run.error" class="cn-flow-sidebar__run-error">{{ run.error }}</span>
@@ -211,6 +211,7 @@ import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
 import CnRunDetailSidebar from './CnRunDetailSidebar.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 
 export default {
 	name: 'CnFlowSidebar',
@@ -443,6 +444,7 @@ export default {
 	},
 
 	methods: {
+		outcomeOf: flowRunOutcome,
 
 		/**
 		 * Hide the sidebar. The canvas toolbar offers the way back.

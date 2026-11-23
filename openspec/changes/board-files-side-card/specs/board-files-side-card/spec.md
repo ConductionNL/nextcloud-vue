@@ -27,3 +27,9 @@ In the board look a CnFilesBrowser side card SHALL have radius `--cn-board-card-
 
 - **GIVEN** the "Documentgegevens" card of a ticked file in the board look
 - **THEN** its first fact stands 10px under the title, with none of the core `dl` padding above or below the facts
+
+#### Scenario: DqDocumentenBeheer "Wie mag dit zien" line (r41)
+
+- **GIVEN** the side cards of a ticked file in the board look
+- **THEN** their facts are set on the font's normal line (16.8px at 14px), not the body's 1.5, so a two-line value is
+  33.6px high as drawn

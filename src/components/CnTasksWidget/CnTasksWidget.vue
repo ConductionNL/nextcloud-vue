@@ -168,8 +168,16 @@
 								@click="complete(task, outcomeId(outcomesOf(task)[0]))">
 								{{ tr('Complete') }}
 							</NcButton>
+							<!-- `cancelInline`: Cancel as a button beside Complete (DqZaakTaken). -->
+							<NcButton
+								v-if="content.cancelInline === true && canCancelRow(task)"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+								@click="cancel(task)">
+								{{ tr('Cancel') }}
+							</NcButton>
 							<NcActions
-								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || canCancelRow(task)"
+								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || (canCancelRow(task) && content.cancelInline !== true)"
 								:forceMenu="true"
 								:aria-label="tr('Task actions')">
 								<template v-if="canCompleteRow(task) && outcomesOf(task).length > 1">
@@ -182,7 +190,7 @@
 									</NcActionButton>
 								</template>
 								<NcActionButton
-									v-if="canCancelRow(task)"
+									v-if="canCancelRow(task) && content.cancelInline !== true"
 									:closeAfterClick="true"
 									:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
 									@click="cancel(task)">
@@ -541,6 +549,10 @@ export default {
 		 *   task is posted as an open task on `objectUuid`.
 		 * - `completeAny` — offer Complete on every open row, not only the
 		 *   viewer's own (the server still decides); `cancel` — offer Cancel.
+		 * - `cancelInline` — in the table, Cancel is a secondary button beside
+		 *   Complete instead of an entry in the row's menu.
+		 * - `summaryNote` — a text appended to the table's summary after " · "
+		 *   ("the tasks of the whole case, colleagues' too").
 		 * - `variant: 'focus'` — the first open task to work on in place: its
 		 *   number, handler, deadline, lock, who it is offered to, its form
 		 *   inline and its verbs, with the other open tasks listed under it.
@@ -550,6 +562,8 @@ export default {
 		 * - `completeUrl` — the route Complete posts to instead of the engine's
 		 *   own (`{id}` is the task uuid), for an app that checks something of
 		 *   its own before the engine completes the task.
+		 * - `cancelUrl` — the same for Cancel, for an app that cancels through
+		 *   its own route; a refusal shows the server's message.
 		 * - `stateVariants` — the status pill's tone by engine state
 		 *   (`{ active: 'purple', enabled: 'warning' }`); a state it does not
 		 *   name keeps info while open and default once finished.
@@ -566,8 +580,8 @@ export default {
 		 * A task that carries a form is completed through CnTaskFormDialog, or
 		 * with its form inline in the focus and opened-row cards.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -844,9 +858,11 @@ export default {
 		summaryLabel() {
 			const open = this.rows.filter((task) => task.isTerminal !== true).length
 			const done = this.rows.length - open
-			return this.tr('{open} open, {done} done · sorted by deadline')
+			const line = this.tr('{open} open, {done} done · sorted by deadline')
 				.replace('{open}', String(open))
 				.replace('{done}', String(done))
+			const note = typeof this.content.summaryNote === 'string' && this.content.summaryNote !== '' ? this.tr(this.content.summaryNote) : ''
+			return note === '' ? line : `${line} · ${note}`
 		},
 
 		/**
@@ -1486,15 +1502,16 @@ export default {
 		 * @param {string} verb The lifecycle verb.
 		 * @param {object} body The verb body.
 		 * @return {Promise<void>} Resolves when the verb settled.
+		 * @spec openspec/changes/tasks-widget-cancel-url/specs/tasks-widget-cancel-url/spec.md#requirement-cancel-posts-to-the-app-route-when-one-is-set
 		 */
 		async postVerb(task, verb, body) {
 			const uuid = String(task.uuid || '')
 			if (uuid === '') {
 				return
 			}
-			const completeUrl = this.content.completeUrl
-			const route = verb === 'complete' && typeof completeUrl === 'string' && completeUrl !== ''
-				? completeUrl.replace('{id}', encodeURIComponent(uuid))
+			const appUrl = { complete: this.content.completeUrl, cancel: this.content.cancelUrl }[verb]
+			const route = typeof appUrl === 'string' && appUrl !== ''
+				? appUrl.replace('{id}', encodeURIComponent(uuid))
 				: `${FLOW_TASKS_URL}/${uuid}/${verb}`
 			try {
 				await axios.post(generateUrl(route), body)

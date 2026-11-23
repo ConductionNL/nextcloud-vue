@@ -23,10 +23,14 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 | `run` | `String` | `''` | A run to open on the canvas, painting each step's outcome. |
 | `layoutDirection` | `String` | `'right'` | How the automatic layout runs: `right` left to right, `down` top to bottom with branches side by side. |
 | `fitMaxZoom` | `Number` | `0` | The most the first frame may zoom in. `0` allows `maxZoom`; `1` keeps a graph that fits at its own size. |
+| `fitInset` | `Object\|Function` | `null` | Pixels per side that the host's chrome covers over the canvas, or a function returning them; passed to CnGraphCanvas `fitInset`. |
 | `toolbarActions` | `Boolean` | `true` | Show Save, Run and Check in the toolbar. Off when the host draws them, as the board-look editor does in its header. |
 | `addStep` | `Boolean` | `true` | Show "Add a step" in the toolbar. Off when the host draws a palette beside the canvas. |
 | `nodeBadge` | `Function` | `null` | Draw each step as a card: its name, then the pill this function returns for the step (`{ label, variant }`, or null for none), in place of the type line. The board's card look passes it (DqFlow). |
 | `quietRun` | `Boolean` | `false` | Show an open run without editing chrome: no Add a step, Arrange or Undo, and none of the lock, version, unsaved or setup notices. Notices about the run itself stay. The board-look editor passes it (PqFlowRun). |
+| `edgeConditions` | `Boolean` | `false` | Write a line's condition on the line when the line has no name of its own ("amount is more than 1000"). Manifest key `config.edgeConditions`. |
+| `stepPanel` | `Boolean` | `false` | The host shows the selected step in a panel of its own, so Edit in the list view selects the step instead of opening the step dialog. |
+| `readonlySteps` | `Array` | `[]` | The ids of the steps the viewer can only read, in the list view. |
 
 ## Slots
 

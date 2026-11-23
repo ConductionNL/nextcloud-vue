@@ -225,6 +225,9 @@ export function buildReferenceStages({
 		if (capacityField && rows.length > 1) {
 			state.capacity = null
 		}
+		if (rows.length > 1) {
+			state.merged = rows.length
+		}
 		if (neutralColor && rows.length > 1) {
 			state.color = mergedColumnColor(rows.map((ref) => colorOfRef(ref, colorField)), neutralColor, state.color)
 		}

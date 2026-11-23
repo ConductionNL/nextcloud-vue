@@ -252,6 +252,7 @@ import { resolveDateVariant } from '../../utils/dateVariant.js'
 import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 import { readPath } from '../../utils/readPath.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -1012,7 +1013,7 @@ export default {
 			const column = (this.cardFieldColumns && this.cardFieldColumns[key]) || null
 			return {
 				key,
-				label: this.cnTranslate((column && column.label) || prop.title || key),
+				label: this.cnTranslate((column && column.label) || propertyTitle(prop, key)),
 				value: this.object[key],
 				property: prop,
 				column,

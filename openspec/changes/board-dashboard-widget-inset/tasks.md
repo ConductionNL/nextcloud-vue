@@ -11,3 +11,9 @@
 - **files**: `src/css/look-board-detail.css`
 - [x] Implement: side card-fit content padded as a side card, the tile unpadded
 - [x] Test: `tests/css/lookBoardDashboardWidgetInset.spec.js`
+
+### Task 3: An object list, a facts list, a form and a search keep the card's inset
+- **spec_ref**: `openspec/changes/board-dashboard-widget-inset/specs/board-dashboard-widget-inset/spec.md#requirement-a-board-dashboard-widget-keeps-the-cards-side-inset`
+- **files**: `src/css/look-board.css`
+- [x] Implement: object list table, groups and prompt, facts list, form and search on the card inset; none inside a sections widget
+- [x] Test: `tests/css/lookBoardDashboardWidgetCardInset.spec.js`

@@ -246,3 +246,16 @@ This is what `CnDetailPage` does with a page's manifest `headerActions`.
   declare on any page.
 - `toggle` is intentionally **not** dispatchable through `dispatchAction`
   (it needs mounted state); dispatching one warns and no-ops.
+
+## Disabled, with the reason why
+
+An action with `disabledWhen` stays drawn but is disabled while that condition holds, in the `visibleWhen` shape (an endpoint, a source, reader groups, an installed app or a field of the record). `disabledReason`, translated, says why: as the button's tooltip, or as the line under the entry in a menu. A disabled action does not run.
+
+```json
+{ "id": "send-link", "label": "Send payment link", "type": "api-call", "url": "/apps/shillinq/api/payment-links",
+  "disabledWhen": { "endpoint": "/apps/shillinq/api/payment-adapter", "field": "active", "op": "eq", "value": false },
+  "disabledReason": "The payment provider is not connected." }
+```
+
+Index page header actions take the same two keys.
+

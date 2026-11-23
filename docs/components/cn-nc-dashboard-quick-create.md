@@ -39,7 +39,7 @@ registerNcDashboardWidgets([
 | `fields` | `[{ key, label, type?, required?, placeholder?, options?, optionsFrom?, default?, labelField? }]`. `type` is `text` (default), `number`, `select` or `object`. A `select` takes `options: [{ value, label }]` (labels through the app's translate) or `optionsFrom: { register, schema, filter?, valueField?, labelField? }`; `default: "first"` picks the first option. An `object` field searches `register`/`schema` objects on the server as the user types, stores the id and shows `labelField` (default `name`). Any other `default` is the field's starting value |
 | `defaults` | Values written with every create. Filter tokens resolve (`@now`, `@me`) and string templates fill from `context` (`"{id}"`) |
 | `derive` | `{ target: { from, path, sortBy?, field } }`: a value read from the option chosen for field `from`; `{ stage: { from: "pipeline", path: "stages", sortBy: "order", field: "name" } }` writes the first stage of the chosen pipeline |
-| `heading` | A line above the form, filled from `context` ("New request for {name}") |
+| `heading` | A line above the form, filled from `context` ("New request for \{name\}") |
 | `submitLabel`, `successText`, `successLinkText`, `againLabel` | Texts, through the app's translate |
 | `successHref` | A template for the created object's page; an app path goes through `generateUrl` |
 | `openAfterCreate` | Go to `successHref` at once instead of showing the success note |

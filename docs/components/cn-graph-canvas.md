@@ -117,6 +117,7 @@ The canvas never mutates `nodes`. Moves arrive on `@nodes-change` as Vue Flow's 
 | `readOnly` | `Boolean` | `false` | Refuses dragging, connecting **and** selection. Pan and zoom stay live so the graph is still explorable. |
 | `fitView` | `Boolean` | `true` | Frame the whole graph on first render, instead of computing a viewBox by hand. |
 | `fitMaxZoom` | `Number` | `0` | Caps the first frame's zoom. `0` allows `maxZoom`; `1` opens a graph that fits at its own size. The frame is taken once, when the nodes have a size. |
+| `fitInset` | `Object\|Function` | `null` | Pixels per side (`{ top, right, bottom, left }`) that chrome floating over the canvas covers, or a function returning them when the canvas fits. The first frame and the fit control keep the graph clear of them. |
 | `snapToGrid` | `Boolean` | `true` | Snap dragged nodes to `snapGrid`. |
 | `snapGrid` | `Array` | `[16, 16]` | Grid spacing as Vue Flow's `[x, y]`. |
 | `minZoom` | `Number` | `0.2` | Lower clamp. |
@@ -199,3 +200,13 @@ A canvas **must not be your only authoring surface**. Keep a list/form path for 
 - Vue Flow wraps every `#node-default` in `.vue-flow__node-default`, and its `theme-default.css` gives that wrapper a border, a background and padding — a box around your box. The stylesheet here strips it, in the selected, hover and focus states too. `.cn-flow-node` is the only border a node draws.
 - Every Vue Flow plugin ships its own stylesheet and only core's used to be imported. `@vue-flow/node-resizer`'s is what gives a resize control its size and position — without it a resizable node looked exactly like one that is not.
 - Colours come from Nextcloud variables throughout, including the arrowhead, which Vue Flow writes as an inline style and which therefore needs `!important` to stay themed rather than a hard-coded hex passed through the marker definition.
+
+## What a check found
+
+`issues` draws a strip above the canvas, as DqFlow draws "Controle: 1 fout, 1 waarschuwing.": a count, then one line per finding, errors first. A finding with `nodeId` is a button that fits that step into view and emits `issue-select` with its id.
+
+```vue
+<CnGraphCanvas :nodes="nodes" :edges="edges"
+	:issues="[{ level: 'error', text: 'Step Receipt has no outgoing transition.', nodeId: 'n3' }]"
+	issues-title="Check: {errors}, {warnings}." />
+```

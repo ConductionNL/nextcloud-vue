@@ -5,3 +5,9 @@
 - **files**: `src/css/look-board-detail.css`
 - [x] Implement: normal leading on the side cards' texts
 - [x] Test: `tests/css/lookBoardSideCardTextLeading.spec.js`
+
+### Task 2: Gekoppeld starts 10px under its title, actions flush
+- **spec_ref**: `openspec/changes/side-card-text-normal-leading/specs/side-card-text-normal-leading/spec.md#requirement-a-side-cards-texts-read-at-normal-leading`
+- **files**: `src/css/look-board-detail.css`, `src/components/CnLinkedWidget/CnLinkedWidget.vue`
+- [x] Implement: 10px content top for a side card opening on the linked widget; button margin 0 at a specificity above the server's button rule
+- [x] Test: `tests/css/lookBoardLinkedCardRhythm.spec.js`

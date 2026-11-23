@@ -14,6 +14,8 @@
   (`content.pill`, e.g. the assistant's name) and the session controls for the
   card's menu through the `header` event. `content.note` is a line above the
   input, `content.placeholder` and `content.sendLabel` word the input.
+  `content.approvalTitlePrefix`, `content.allowLabel` and `content.denyLabel`
+  word the cards of the approvals the assistant waits on.
 
   The page context (record, register, schema) is the one CnAppRoot provides and
   the detail page fills in, so the agents offered are the ones relevant here.
@@ -24,17 +26,24 @@
 		<CnAiCompanion
 			:embedded="true"
 			:titled="true"
-			:note="tr(content.note)"
+			:note="noteText"
 			:inputPlaceholder="tr(content.placeholder)"
 			:sendLabel="tr(content.sendLabel)"
+			:approvalWording="approvalWording"
 			:chatAppId="content.chatAppId || defaultChatAppId"
+			:openSubjectSession="content.openSubjectSession === true"
 			@menu="onMenu" />
 	</div>
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import CnAiCompanion from './CnAiCompanion.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import { matchingRows } from '../../utils/actionDialogForm.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
 
 export default {
 	name: 'CnAiChatWidget',
@@ -52,8 +61,14 @@ export default {
 		 * The widget's content: `chatAppId`, the backend app that answers the
 		 * chat (defaults to the companion's own); `pill` and `pillVariant`, a
 		 * pill in the card's title row; `note`, a line above the input;
-		 * `placeholder` and `sendLabel`, the input's wording. Texts go through
-		 * the host's translate.
+		 * `noteFrom`, `{ url, path?, match?, requires, text }`, that line filled
+		 * from an endpoint's row, used only while every `requires` field of the
+		 * row is filled, else `note` stands;
+		 * `placeholder` and `sendLabel`, the input's wording; `openSubjectSession`,
+		 * open the user's latest session about the page's record instead of an
+		 * empty thread; `approvalTitlePrefix`, `allowLabel` and `denyLabel`, the
+		 * approval cards' title prefix and buttons. Texts go through the host's
+		 * translate.
 		 */
 		content: {
 			type: Object,
@@ -66,14 +81,72 @@ export default {
 	data() {
 		return {
 			defaultChatAppId: DEFAULT_CHAT_APP_ID,
+			/** The row `noteFrom` read, or null. */
+			noteRow: null,
 		}
+	},
+
+	computed: {
+		/**
+		 * The line above the input: `noteFrom`'s text once its row has every
+		 * required field, else `note`.
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/ai-chat-note-from/specs/ai-chat-note-from/spec.md#requirement-the-chat-note-can-read-its-facts-from-an-endpoint
+		 */
+		noteText() {
+			const from = this.content.noteFrom
+			const requires = from && Array.isArray(from.requires) ? from.requires : []
+			if (this.noteRow && requires.every((field) => Boolean(this.noteRow[field]))) {
+				return fillTemplate(this.tr(from.text), this.noteRow)
+			}
+			return this.tr(this.content.note)
+		},
+
+		/**
+		 * The approval cards' wording from the content, translated.
+		 *
+		 * @return {{titlePrefix: string, allow: string, deny: string}} The wording.
+		 * @spec openspec/changes/ai-chat-approval-wording/specs/ai-chat-approval-wording/spec.md#requirement-an-app-can-word-the-approval-card
+		 */
+		approvalWording() {
+			return {
+				titlePrefix: this.tr(this.content.approvalTitlePrefix),
+				allow: this.tr(this.content.allowLabel),
+				deny: this.tr(this.content.denyLabel),
+			}
+		},
 	},
 
 	mounted() {
 		this.onMenu([])
 	},
 
+	mounted() {
+		this.loadNoteRow()
+	},
+
 	methods: {
+		/**
+		 * Read the row `noteFrom` names; a failed read leaves `note` in place.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/ai-chat-note-from/specs/ai-chat-note-from/spec.md#requirement-the-chat-note-can-read-its-facts-from-an-endpoint
+		 */
+		async loadNoteRow() {
+			const from = this.content.noteFrom
+			if (!from || !from.url) {
+				return
+			}
+			try {
+				const { data } = await axios.get(generateUrl(from.url))
+				const list = from.path ? readPath(data, from.path) : data
+				this.noteRow = matchingRows(Array.isArray(list) ? list : [], from.match)[0] || null
+			} catch {
+				this.noteRow = null
+			}
+		},
+
 		/**
 		 * A manifest text through the host's translate; '' for anything else.
 		 *

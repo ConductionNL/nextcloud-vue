@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * @spec openspec/changes/ai-panel-approved-mark/tasks.md#task-1
+ * @spec openspec/specs/ai-chat-companion-widget/spec.md#requirement-the-assistant-panel-draws-the-approved-mark-from-thematiq
  */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'

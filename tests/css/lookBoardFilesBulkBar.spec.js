@@ -29,6 +29,10 @@ describe('look-board-detail.css: the files bulk bar', () => {
 		expect(rule(bar + ' .cn-files-browser__bulk-count')).toMatch(/color:\s*var\(--color-primary-element-light-text\)/)
 	})
 
+	it('stands 10px under the bar and 14px over the list, as drawn', () => {
+		expect(rule(bar)).toMatch(/margin-block:\s*-6px 6px/)
+	})
+
 	it('sets the count in bold, as the band draws it', () => {
 		expect(rule(bar + ' .cn-files-browser__bulk-count')).toMatch(/font-weight:\s*700/)
 	})

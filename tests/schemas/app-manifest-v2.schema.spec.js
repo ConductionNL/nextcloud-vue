@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.168.0', () => {
+	it('the manifest schema version reads 2.187.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1442,7 +1442,34 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.166.0 lets an expandable row's table carry an entry action (entryAction; expandable-row-entry-action), a link card open the user settings and a links panel badge take a tone (action user-settings, tone; link-cards-settings-action) and placements on one row share a height (sameHeight; dashboard-row-same-height).
 		// 2.167.0 lets a detail header field be drawn as a soft pill (format pill; header-field-pill) and a headerMeta count read a named entity source, on an index or a detail page (headerMetaCounts entitySource; header-meta-count-entity-source).
 		// 2.168.0 lets a week strip name the language its titles hyphenate by (lang; week-strip-titles-hyphenate), inline relations on its source and read a meta entry from the first of several fields (source.extend, metaFields lists; week-strip-meta-through-relation).
-		expect(schema.version).toBe('2.168.0')
+		// 2.169.0 lets an api-call send DELETE, its payload as request data (api-call-delete).
+		// 2.170.0 lets an index or detail page keep form drafts (draftAppId), offer Save draft (allowDraft) and name the draft flag (draftField; pages-forward-form-drafts).
+		// 2.171.0 lets an index page draw its title column as text or strong (rowTitle; index-row-title-text-strong).
+		// 2.172.0 lets a detail page read the record's rights (permissions) and a manifest name a dotted path into @self such as @self.can.update (detail-page-record-rights).
+		// 2.173.0 lets a visibleWhen condition require the reader to be in a Nextcloud group (readerGroups; visible-when-reader-groups).
+		// 2.174.0 lets a breadcrumb crumb name the record's parent instead of a label (parent, labelField, param; detail-parent-crumb).
+		// 2.175.0 lets a setup summary step list readiness rows (rows, note, cancelLabel, submitLabel; setup-summary-readiness-rows) and a widget wrap its header (headerWrap).
+		// 2.176.0 lets a board name the line under a full or merged column (fullNote, mergedNote; board-column-capacity).
+		// 2.177.0 lets an index page limit the groups a saved view can be shared with (savedViewsShareGroups; saved-view-share-groups).
+		// 2.178.0 lets an optionsFrom source name the app it lives in and the line shown while that app is missing (requiresApp, missingText; options-from-requires-app).
+		// 2.179.0 lets an api-call open what the call answered (openResponse; api-call-open-response).
+		// 2.180.0 lets an index page word its single-item delete dialog (deleteDialog; index-delete-dialog-texts).
+		// 2.181.0 lets an index page name a registry handler that reads the search before it is sent (searchHandler; index-search-handler).
+		// 2.182.0 lets a setup step carry a recap hint and a summary reopen its steps (summaryHint, summaryEditable; setup-wizard-recap-and-repeatable).
+		// 2.183.0 lets an index page give every copy field values of its own (copy.overrides; index-copy-overrides).
+		// 2.184.0 lets an action stay drawn but disabled with the reason why (disabledWhen, disabledReason; action-disabled-when).
+		// 2.185.0 lets an app declare feature toggles and gate pages, widgets and actions on them (features, visibleIf.feature, visibleWhen.feature; feature-toggles).
+		// 2.186.0 adds the object-action action type with action and inputs (object-actions)
+		// 2.187.0 lets a stat tile say there is no earlier period to compare with (noPreviousText; stat-widget-no-previous-text).
+		expect(schema.version).toBe('2.187.0')
+	})
+
+	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
+		const visibleWhen = { all: [{ readerGroups: ['bezwaarcommissie', 'admin'] }, { field: 'status', op: 'eq', value: 'in-deliberation' }] }
+		const manifest = { ...MINIMAL_V2, pages: [{ id: 'advice', route: '/advice/:id', type: 'detail', title: 'Advice', config: { register: 'r', schema: 's', headerActions: [{ id: 'issue', label: 'Issue advice', type: 'api-call', url: '/apps/x/api/@objectId', visibleWhen }, { id: 'alone', label: 'Alone', type: 'api-call', url: '/apps/x/api', visibleWhen: { readerGroups: ['bezwaarcommissie'] } }] } }] }
+		expect(validateManifestV2(manifest)).toEqual({ valid: true, errors: [], warnings: [] })
+		const wrong = { ...MINIMAL_V2, pages: [{ ...manifest.pages[0], config: { ...manifest.pages[0].config, headerActions: [{ id: 'issue', label: 'Issue', type: 'api-call', url: '/apps/x/api', visibleWhen: { readerGroups: 'bezwaarcommissie' } }] } }] }
+		expect(validateManifestV2(wrong).valid).toBe(false)
 	})
 
 	it('accepts a record-list footerAction list with note and wide (2.154.0)', () => {
@@ -1452,6 +1479,18 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2(recordList({ footerAction: [publish, newVersion] })).valid).toBe(true)
 		expect(validateManifestV2(recordList({ footerAction: [publish, { type: 'open-modal' }] })).valid).toBe(false)
 		expect(validateManifestV2(recordList({ footerAction: { ...newVersion, wide: 'yes' } })).valid).toBe(false)
+	})
+
+	it('accepts an index page searchHandler (2.170.0)', () => {
+		const withHandler = (searchHandler) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'index', title: 'P', config: { register: 'r', schema: 's', searchHandler } }] })
+		expect(validateManifestV2(withHandler('phoneSearch')).valid).toBe(true)
+		expect(validateManifestV2(withHandler(['phoneSearch'])).valid).toBe(false)
+	})
+
+	it('accepts an api-call with method DELETE (2.169.0)', () => {
+		const withAction = (method) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p/:id', type: 'detail', title: 'P', config: { register: 'r', schema: 's', headerActions: [{ id: 'unlock', label: 'Unlock', type: 'api-call', url: '/apps/openregister/api/objects/r/s/@objectId/freeze', method }] } }] })
+		expect(validateManifestV2(withAction('DELETE')).valid).toBe(true)
+		expect(validateManifestV2(withAction('PURGE')).valid).toBe(false)
 	})
 
 	it('accepts an action\'s confirm wording (2.153.0)', () => {

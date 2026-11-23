@@ -46,7 +46,7 @@ No messages yet:
 <CnConversationThread title="Contact" :messages="[]" />
 ```
 
-Posting to an endpoint. The reply goes out as `{ message, ...payload }`. `title-tag`, `placeholder`, `send-label`, `us-label` and `empty-text` adjust the wording, and the `reply-actions` slot adds buttons before Send:
+Posting to an endpoint. The reply goes out as `{ message, ...payload }`; `message-key` names another field for the text (`body`). `title-tag`, `placeholder`, `send-label`, `us-label` and `empty-text` adjust the wording, and the `reply-actions` slot adds buttons before Send:
 
 ```vue
 <CnConversationThread

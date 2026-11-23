@@ -64,6 +64,25 @@ with the card's `icon` in a 44px tile, its title at 17px and its description at 
 | `catalogue` | Boolean | `null` | In the board look, draw the catalogue: category chips with counts, article cards and an aside with the category index (manifest `config.catalogue`). Without it the board look draws its sections. |
 | `cardMeta` | String | `null` | The catalogue card's footer line (`config.cardMeta`), default "Opens a page of its own"; a card's own `meta` wins. |
 | `asideNote` | Object | `null` | The catalogue aside's closing card (`config.asideNote`): `{ title, text }`. |
+| `panel` | Object | `null` | In the board look, draw the cards in one titled panel (`config.panel`): `{ title, subtitle?, link?: { label, route \| href } }`. A card then also takes `meta`, `pill`, `tone` (`external`, `highlight`), `linkLabel`, `href` in place of `route`, `query`, and `requiresApp` with `missingText`. |
+
+## Actions on a card
+
+`config.cardActions` gives every card actions of its own, drawn as small buttons on the card in each layout and run through the page's action dispatcher with the card as the object: `@objectId` is the card's `id`, `@object.<path>` a card field. `config.cardState` (`{ url, responsePath?, keyField? }`) reads what each card's actions depend on: a list of rows keyed by `keyField` (default `id`) or a map keyed by card id. An action's `visibleWhen` is a local condition on the card with that row as `state`, and the states are read again after an action ran. hermiq offers a subscription per report:
+
+```json
+{
+  "cardState": { "url": "/apps/hermiq/api/report-subscriptions", "keyField": "report" },
+  "cardActions": [
+    { "id": "subscribe", "label": "Send weekly", "type": "api-call", "url": "/apps/hermiq/api/report-subscriptions",
+      "payload": { "report": "@objectId", "frequency": "weekly" }, "visibleWhen": { "field": "state.frequency", "op": "empty" } },
+    { "id": "cancel", "label": "Cancel subscription", "type": "api-call", "method": "DELETE",
+      "url": "/apps/hermiq/api/report-subscriptions/@objectId", "visibleWhen": { "field": "state.frequency", "op": "notEmpty" } }
+  ]
+}
+```
+
+A card whose `requiresApp` is missing offers no actions.
 
 ## Related
 

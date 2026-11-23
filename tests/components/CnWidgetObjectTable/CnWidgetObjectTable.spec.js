@@ -327,6 +327,23 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		expect(mapped[1].destructive).toBe(true)
 	})
 
+	it('forwards a row action visibleWhen so the menu hides it on rows it does not fit', () => {
+		const gate = { field: 'status', op: 'eq', value: 'open' }
+		const wrapper = mountWidget({
+			rows,
+			columns: ['title'],
+			source,
+			actions: [
+				{ id: 'pay', label: 'Pay', type: 'handler', handler: 'pay', visibleWhen: gate },
+				{ id: 'plain', label: 'Plain', type: 'handler', handler: 'plain' },
+			],
+		})
+		const mapped = wrapper.findComponent({ name: 'CnRowActions' }).props('actions')
+		expect(mapped[0].visibleWhen).toEqual(gate)
+		expect('visibleWhen' in mapped[1]).toBe(false)
+		expect('visible' in mapped[1]).toBe(false)
+	})
+
 	it('renders an object-op create action as a widget-scoped footer affordance', () => {
 		const wrapper = mountWidget({
 			rows,

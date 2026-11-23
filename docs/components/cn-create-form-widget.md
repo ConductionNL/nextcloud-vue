@@ -25,13 +25,25 @@ The `create-form` widget: a dashboard card that creates one OpenRegister object 
 }
 ```
 
-A field is `text` (the default), `select` (options from `optionsFrom`, the shape a page filter takes), `reference` (a search over `schema`) or `checkbox`. While a required field is empty, or a required checkbox is not ticked, the submit button stays disabled. A `default` may be a `@workspace.<key>` token: the field follows that page filter until the reader changes it. `values` are written with every create, after `@now` and `@workspace.<key>` are resolved. After a create the fields return to their defaults and the widget emits `saved`.
+A field is `text` (the default), `select` (options from `optionsFrom`, the shape a page filter takes), `reference` (a search over `schema`), `checkbox`, `date` or `number` (with an optional `step`, `min` and `max`; it is written as a number). While a required field is empty, or a required checkbox is not ticked, the submit button stays disabled. A `default` may be a `@workspace.<key>` token: the field follows that page filter until the reader changes it. `values` are written with every create, after `@now`, `@workspace.<key>`, and on a detail page `@objectId` and `@object.<field>` are resolved. After a create the fields return to their defaults and the widget emits `saved`.
+
+## A timer
+
+`timer` draws a button beside the submit button, as board DqZaak draws "Timer starten" under "Uren registreren":
+
+```json
+{ "timer": { "field": "hours", "unit": "hours", "startLabel": "Timer starten", "stopLabel": "Timer stoppen" } }
+```
+
+Start shows the running time. Stop writes the time into `field`: hours with two decimals, or whole minutes with `unit: "minutes"`. The reader can still change it before saving. The time lives on the page until it is stopped, so reloading the page drops a running timer.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | `{ register, schema, fields, values?, submitLabel?, submitIcon?, wideSubmit?, errorMessage? }`. |
+| `content` | `object` | `{}` | `{ register, schema, fields, values?, timer?, submitLabel?, submitIcon?, wideSubmit?, errorMessage? }`. |
+| `objectId` | `string`, `number` | `null` | The record of a detail page, for `@objectId` in `values`. |
+| `objectData` | `object` | `null` | The record of a detail page, for `@object.<field>` in `values`. |
 
 ## Events
 

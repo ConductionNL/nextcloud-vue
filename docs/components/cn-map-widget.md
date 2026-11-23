@@ -79,6 +79,8 @@ Not every map is the earth: a game world, a floor plan or a terrain drawing is a
   ]" />
 ```
 
+The widget form offers presets for `basemaps`: OpenStreetMap and the Dutch government's PDOK tiles (BRT achtergrondkaart standaard, grijs and pastel, and the aerial photo), all in EPSG:3857. A chosen preset is stored as an ordinary `basemaps[]` item (`name`, `url`, `attribution`, `options`); `basemapPresets.js` exports `BASEMAP_PRESETS`, `basemapFromPreset(id)` and `presetOf(basemap)`. A consuming app that offers PDOK must allow `service.pdok.nl` in its Content-Security-Policy `img-src`.
+
 Use `basemaps` **instead of** a `tile` entry in `layers` for the background — `layers` is then free to carry only overlays (WMS / WFS / GeoJSON). `basemaps` is empty by default, so consumers that already declare their background through `layers` are unaffected.
 
 > Base map tiles are `<img>` loads from a third-party host. A hardened Content-Security-Policy (`img-src`) may block hosts other than the one already allowed — verify before shipping a new basemap.
@@ -118,7 +120,19 @@ Pick **one** of:
 
 - `markers.features` — inline GeoJSON `Feature[]` (static maps).
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
-- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. With `markers.geoProperty` set, each object is drawn from that property: a GeoJSON geometry of any type (point, line, polygon, multi-geometry), a Feature, or a lat/lng value; an object whose property is empty falls back to `@self.geo`. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+
+### An area and a detail link
+
+`markers.dataSource.spatialFilter` narrows a register source to an area, through OpenRegister's geo filters. Give one of:
+
+- `{ "bbox": [west, south, east, north] }`, sent as `?geo.bbox=`;
+- `{ "near": [lon, lat], "radius": 500 }` (meters), sent as `?geo.near=&geo.radius=`;
+- `{ "within": <GeoJSON Polygon or MultiPolygon> }`, posted to `…/geo-search`.
+
+`markers.geoProperty`, when set, goes along as `geo.property`, so the filter reads the property the map draws. A filter that does not read (three bbox numbers, a radius of 0) is not sent. A changed filter reads the markers again. OpenRegister has no "nearest N" query; use a radius with `limit`.
+
+`markers.detailLink` is the address a clicked object opens in a new tab, for example `"/apps/dossiq/#/cases/{id}"`. `{id}`, `{register}` and `{schema}` read the object's `@self`; any other `{name}` reads that property. Without a template, a `url` the object carries (the address OpenRegister's deep-link registry stamps) is opened. A token the object cannot fill, or an address with an unsafe scheme, opens nothing. `marker-click` is emitted either way.
 
 ## A record's places
 
@@ -190,3 +204,17 @@ When Leaflet cannot be loaded (test envs, CSP-blocked CDNs), the `#fallback` slo
 ## Reference
 
 <GeneratedRef />
+
+## Layers to switch on and off
+
+`layerToggles` (or `content.layerToggles`) puts a fieldset under the map with a checkbox per layer, as DqZaakLocatie draws "Kaartlagen" with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)":
+
+```json
+"layerTogglesTitle": "Map layers",
+"layerToggles": [
+  { "id": "aerial", "label": "Aerial photo (PDOK)", "layer": { "type": "tile", "url": "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg" } },
+  { "id": "plan", "label": "Zoning plan (WMS)", "on": false, "layer": { "type": "wms", "url": "https://service.pdok.nl/kadaster/plu/wms/v1_0", "options": { "layers": "enkelbestemming", "transparent": true } } }
+]
+```
+
+`layer` takes the `layers` shape; `on` is the starting state (default true). The labels and title go through the host translate.

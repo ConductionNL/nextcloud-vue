@@ -8,11 +8,13 @@
  * widgets of the surface, so the host hands it their definitions.
  */
 
-import CnDeviceFramesWidget from './CnDeviceFramesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnDeviceFramesWidget = lazyComponent(() => import('./CnDeviceFramesWidget.vue'), 'CnDeviceFramesWidget')
+
 registerDashboardWidget('device-frames', {
-	renderer: CnDeviceFramesWidget,
+	renderer: LazyCnDeviceFramesWidget,
 	form: null,
 	defaultContent: {
 		frames: [],
@@ -25,5 +27,5 @@ registerDashboardWidget('device-frames', {
 	surfaces: ['app-dashboard', 'detail-page'],
 })
 
-export { CnDeviceFramesWidget }
-export default CnDeviceFramesWidget
+export { default as CnDeviceFramesWidget } from './CnDeviceFramesWidget.vue'
+export { default } from './CnDeviceFramesWidget.vue'

@@ -64,6 +64,18 @@ Every text is a template. `{path}` reads a dot path off the row; `{path|date}` w
 
 `pill` is `{ field, labels?, colorMap?, variant? }`: the label comes from `labels` (translated) or the raw value, the colour from `colorMap` (keyed on the raw value, ignoring case) or `variant`.
 
+### One card, several sources (`sections`)
+
+`sections` draws several lists in one card, one after the other, as board DqZaakBetrokkenen draws the Toegang card: the case's access links, then the users and groups that can open the case. Each entry is a record list config of its own (`endpointSource`, `avatar`, `title`, `meta`, `pill`, `rowAction`, `emptyText`, `errorText` ...) and reads its own source, so a section that fails shows its own error text and the other sections stay. A section takes the card's other keys (`presentation`, `ruleAbove`, `density` ...) unless it sets them itself, and the card's `footnote`, `footnoteVariant`, `footerLink` and `footerAction` go under the last section only. The card's `header` event comes from the first section. Without `sections` the list reads its one source as before.
+
+Three row options make such a section read like the board:
+
+- `meta` as `{ "cases": [{ "when": <condition>, "text": "via the case type" }], "text": "..." }` writes the text of the first case whose `when` holds on the row (the condition vocabulary `pill.cases` uses, with `contains` for a list field and `empty` for a missing one), else its own `text`.
+- `avatar.icon` as `{ "field": "principal.type", "map": { "group": "AccountGroup" } }` shows the icon in the avatar circle for a row whose field maps to one, and the initials otherwise.
+- `hideWhen` (a condition over the row) leaves out the rows it holds for, such as a service account among a case's grants. It applies to rows read from an `endpointSource` or from `objectRows`.
+
+`refusalText` replaces the server's own words for a refused read (401 or 403) of an `endpointSource`: "Only the people this case is assigned to can see who has access". Any other failure still shows `errorText`.
+
 ### A colour dot and flags
 
 `dot` draws a 14px colour dot before a row's title, as board DqZaaktypeOverzicht draws a case type's statuses: a field name (`"dot": "color"`) whose value is the colour, or `{ "field": "tone", "colorMap": { "error": "var(--color-error)" } }`. Only a hex, `rgb()`/`hsl()` or `var(--…)` colour is drawn. `flags` draws short labels at the row's end for the flags a row has: `[{ "field": "isStart", "label": "Start" }, { "field": "isEnd", "label": "End" }]` shows "Start" on a row whose `isStart` is true, and with `value` a flag holds when the field equals it. Labels go through the app's translate and join with " · ".
@@ -103,11 +115,15 @@ A `set-field` entry (`{ type: "set-field", field, value, label, ariaLabel?, done
 menu: each row gets a button that writes `field` of the page's record with one PATCH, `value` read from the row
 (`"{userId}"`). The saved record goes back to the page (`cnObjectContext.setObject`) and the list reads again. The row
 whose value the record already holds shows `doneLabel` with a check instead of the button ("Assigned"). `ariaLabel` is a
-template filled from the row ("Assign to {displayName}").
+template filled from the row ("Assign to \{displayName\}").
+
+`footnoteVariant` (`info`, `warning`, `error`) draws the footnote as a toned notice box with its icon. `footnoteCompact: true` draws that box without the icon, in 13px text, as board DqZaakTaken draws the note under "Wat hierna komt".
 
 `footnote` may be `{ path, text }` instead of a text: it reads `path` of the same endpoint answer the rows come from
-(one request, through the endpoint cache) and fills `{value}` into `text` ("{value} matching colleagues at
+(one request, through the endpoint cache) and fills `{value}` into `text` ("\{value\} matching colleagues at
 capacity"). It shows with no rows too, and not when the value is empty or zero.
+
+`footnote` may also be a list of texts: each is a paragraph of its own under the rows, 12px apart (DqZaaktypeOverzicht Statussen).
 `{ source, text }` reads the value from a request of its own instead (`source` in the `endpointSource` shape, page
 tokens filled in), for a fact that does not live in the rows' answer (DqTenant "Historie": "Kenmerk TEN-0014").
 
@@ -121,6 +137,22 @@ shows nothing at 0.
 `requiresApp` names the app the rows come from. When it is not installed the list says `absentText` and reads nothing,
 so "not installed" is never shown as "nothing yet". `intro` is a line above the list. A template may be a list of
 candidates (`"title": ["{summary}", "{subject}"]`): the first that fills.
+
+`rowActionsInline: true` draws the entries of `rowActions` as buttons on the row, not in a menu, for a row with one or two acts that matter, as board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen" on the step that waits. Rows that have none (`visibleWhen`) draw nothing there. An entry can take a `variant` (`primary`, default `secondary`) and an `ariaLabel` template that names the row. With `dot`, `title` and `meta` this draws a route of steps:
+
+```json
+{
+  "objectRows": { "path": "route" },
+  "dot": { "field": "state", "colorMap": { "done": "var(--color-success)", "waiting": "var(--color-error)" } },
+  "title": "{name}",
+  "meta": "{who}, {due|date}",
+  "rowActionsInline": true,
+  "rowActions": [
+    { "label": "Goedkeuren", "variant": "primary", "ariaLabel": "Goedkeuren: {name}", "endpoint": "/apps/app/api/route/{id}/approve", "visibleWhen": { "field": "state", "value": "waiting" } },
+    { "label": "Afwijzen", "ariaLabel": "Afwijzen: {name}", "endpoint": "/apps/app/api/route/{id}/reject", "visibleWhen": { "field": "state", "value": "waiting" } }
+  ]
+}
+```
 
 ### An action under the list
 
@@ -301,3 +333,5 @@ An endpoint may answer a list of strings (`["…", "…"]`). Each is read as `{ 
   }
 }
 ```
+
+`due` labels take `{date}`, the short due date: `"overdueLabel": { "one": "due {date}, {count} day over", "other": "due {date}, {count} days over" }`. With `doneField` (a date path) a row whose done date is set reads `doneLabel` (default `{date}`) in the muted tone instead of the term; `{value}` is the row's `doneValueField` named through `doneValueLabels` (DqZaak Adviezen "ontvangen 6 mrt, negatief"). The advice list of DqZaak and DqZaakBesluiten is this widget with `rowActionsInline` and card notices.

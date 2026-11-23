@@ -15,6 +15,7 @@ const {
 	chatHealthUrl,
 	conversationsUrl,
 	conversationMessagesUrl,
+	sessionsUrl,
 } = require('../../src/composables/aiChatConfig.js')
 
 // The chat URLs are asserted in their `/index.php` form, so describe an
@@ -53,6 +54,11 @@ describe('aiChatConfig', () => {
 		expect(conversationsUrl('openregister')).toBe('/index.php/apps/openregister/api/conversations')
 		expect(conversationMessagesUrl('openregister', 'c-2'))
 			.toBe('/index.php/apps/openregister/api/conversations/c-2/messages')
+	})
+
+	it('builds the session list URL (ai-chat-opens-the-subject-session)', () => {
+		expect(sessionsUrl()).toBe('/index.php/apps/hermiq/api/sessions')
+		expect(sessionsUrl('openregister')).toBe('/index.php/apps/openregister/api/sessions')
 	})
 
 	it('falls back to the default when passed an empty/nullish app id (never /apps//api)', () => {

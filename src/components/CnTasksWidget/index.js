@@ -10,13 +10,15 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnTasksWidgetForm from '../CnTasksWidgetForm/CnTasksWidgetForm.vue'
-import CnTasksWidget from './CnTasksWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnTasksWidgetForm = lazyComponent(() => import('../CnTasksWidgetForm/CnTasksWidgetForm.vue'), 'CnTasksWidgetForm')
+const LazyCnTasksWidget = lazyComponent(() => import('./CnTasksWidget.vue'), 'CnTasksWidget')
+
 registerDashboardWidget('tasks', {
-	renderer: CnTasksWidget,
-	form: CnTasksWidgetForm,
+	renderer: LazyCnTasksWidget,
+	form: LazyCnTasksWidgetForm,
 	defaultContent: {
 		scope: 'assigned',
 		limit: 6,
@@ -32,5 +34,5 @@ registerDashboardWidget('tasks', {
 	requires: { graphql: ['openregister:flow-tasks'] },
 })
 
-export { CnTasksWidget }
-export default CnTasksWidget
+export { default as CnTasksWidget } from './CnTasksWidget.vue'
+export { default } from './CnTasksWidget.vue'

@@ -157,7 +157,7 @@ describe('CnChecklistRunWidget', () => {
 		await w.find('form').trigger('submit')
 		await flush()
 		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ handler: 'closeRun' }))
-		expect(w.emitted('finished')[0][0]).toEqual({ answered: 1, total: 3 })
+		expect(w.emitted('finished')[0][0]).toEqual({ answered: 1, total: 3, reason: 'user' })
 		w.unmount()
 	})
 

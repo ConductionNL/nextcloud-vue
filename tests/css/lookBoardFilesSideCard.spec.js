@@ -59,4 +59,11 @@ describe('look-board-detail.css: a file side card', () => {
 		// stood 24px under the title where the board draws 10 (DqDocumentenBeheer r38).
 		expect(bodyOf(`${CARD} .cn-files-browser__side-facts`)).toContain('padding: 0;')
 	})
+
+	it('sets the facts on the board\'s line, not the body\'s 1.5', () => {
+		// At the body's 21px each line of a fact stood 4px taller than the
+		// board's 16.8, so "Wie mag dit zien" ran 20px and "Controlegetal" 32px
+		// past the board (DqDocumentenBeheer r41).
+		expect(bodyOf(`${CARD} .cn-files-browser__side-facts`)).toContain('line-height: normal;')
+	})
 })

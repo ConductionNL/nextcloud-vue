@@ -84,3 +84,5 @@ The summary's facts stack each label over its value, whatever Nextcloud's `apps.
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:modelValue` | the values | One input changed. Two changes in one tick both survive. |
+
+A `checkbox` input draws its `note` under the switch too (DqVolgendeStap "Herinner de verzoeker als het antwoord uitblijft").

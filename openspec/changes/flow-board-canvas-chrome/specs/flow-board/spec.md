@@ -56,6 +56,11 @@ step's recent log lines without a disclosure, and a footer with Delete step and 
 SHALL show the step's kind and type, name, outcome and timing, a note when the step failed and the flow went on, and
 "Edit this step" and "Play on the canvas"; the run card's buttons SHALL carry their icons.
 
+The step name field SHALL be drawn in the card layout too.
+
+A step SHALL be drawn with what the author called it, `name` or else `label`, under a small line with its kind, and the
+summary of its settings under that. A step without a name SHALL keep its type over the summary.
+
 #### Scenario: A selected step
 
 - **GIVEN** a canvas page with step "Mail the resident" selected

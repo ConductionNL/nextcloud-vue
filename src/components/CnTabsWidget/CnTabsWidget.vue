@@ -74,6 +74,7 @@
 						<NcActionButton
 							v-for="action in activePanelActions"
 							:key="action.key"
+							:disabled="Boolean(action.disabled)"
 							:closeAfterClick="true"
 							@click="action.run()">
 							<template #icon>
@@ -230,6 +231,7 @@ import CnTabs from '../CnTabs/CnTabs.vue'
 import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
@@ -239,7 +241,7 @@ import { isActivityWidget } from '../../utils/headerMeta.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { setSubResourceRead } from '../../utils/recordInteractions.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal, evaluateWorkspaceCondition, isLocallyDecidableVisibleWhen, isWorkspaceCondition, readVisibleWhenPath, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -580,6 +582,9 @@ export default {
 			sourceVisibility: {},
 			// Bumped per evaluation round, so a slow answer from an earlier round is dropped.
 			visibilitySeq: 0,
+			// Answers of the endpoint and source conditions of stacked widgets, by widget id.
+			stackConditionAnswers: {},
+			stackConditionSeq: 0,
 			// Totals counted for tabs with `countFrom`, by position in `content.tabs`.
 			widgetCounts: {},
 			// Read-state parts this page has marked read since it opened
@@ -700,7 +705,7 @@ export default {
 				}
 				// A stack (`widgetIds`) resolves every id; one that names no
 				// widget is skipped. The first that resolves is the panel's.
-				const ids = this.tabWidgetIds(tab)
+				const ids = this.orderedTabWidgetIds(tab)
 				const named = ids.length > 1
 					? ids.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null).filter(Boolean)
 					: []
@@ -812,6 +817,27 @@ export default {
 		sourceConditionsKey() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
 			return JSON.stringify(tabs.map((tab) => (tab && typeof tab === 'object' && tab.visibleWhen && !isLocallyDecidableVisibleWhen(tab.visibleWhen)) ? tab.visibleWhen : null))
+		},
+
+		/**
+		 * The stacked widgets whose `visibleWhen` needs a request, with what
+		 * they ask, as one key: a change asks them again.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		stackConditionsKey() {
+			if (!this.objectData) {
+				return '[]'
+			}
+			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const ids = new Set(tabs.flatMap((tab) => {
+				const stack = this.tabWidgetIds(tab)
+				return stack.length > 1 ? stack : []
+			}))
+			const remote = this.availableWidgets.filter((w) => w && ids.has(w.id) && w.visibleWhen && typeof w.visibleWhen === 'object'
+				&& !isWorkspaceCondition(w.visibleWhen) && !isLocallyDecidableVisibleWhen(w.visibleWhen))
+			return JSON.stringify(remote.map((w) => [w.id, w.visibleWhen]))
 		},
 
 		/**
@@ -963,9 +989,12 @@ export default {
 			this.syncHash()
 		},
 
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
 		objectId() {
 			this.sourceVisibility = {}
 			this.refreshSourceVisibility()
+			this.stackConditionAnswers = {}
+			this.refreshStackConditions()
 			this.widgetCounts = {}
 			this.refreshWidgetCounts()
 		},
@@ -976,6 +1005,11 @@ export default {
 
 		sourceConditionsKey() {
 			this.refreshSourceVisibility()
+		},
+
+		/** @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition */
+		stackConditionsKey() {
+			this.refreshStackConditions()
 		},
 	},
 
@@ -1007,6 +1041,7 @@ export default {
 		}
 		this.activeKey = this.resolvedTabs[this.activeIndex]?.key || ''
 		this.refreshSourceVisibility()
+		this.refreshStackConditions()
 		this.refreshWidgetCounts()
 	},
 
@@ -1138,8 +1173,9 @@ export default {
 		 * own `visibleWhen` reads a field of the record or of a record the
 		 * page's `visibilityContext` names (`@context.<name>`), and does not
 		 * hold, as a grid widget's would not. Hidden while those records
-		 * load. Off a detail page (no record), and for a condition that needs
-		 * a request, nothing is hidden here.
+		 * load. A condition that needs a request hides the widget until its
+		 * answer says it holds. Off a detail page (no record) nothing is
+		 * hidden here.
 		 *
 		 * @param {object} widget The widget definition.
 		 * @return {boolean} True when the widget must not draw.
@@ -1147,10 +1183,30 @@ export default {
 		 */
 		hiddenByRecord(widget) {
 			const cond = widget.visibleWhen
-			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond) || !isLocallyDecidableVisibleWhen(cond)) {
+			if (!this.objectData || !cond || typeof cond !== 'object' || isWorkspaceCondition(cond)) {
 				return false
 			}
-			return !detailWidgetVisible(widget, this.conditionData)
+			return !detailWidgetVisible(widget, this.conditionData, { answers: this.stackConditionAnswers })
+		},
+
+		/**
+		 * Ask the endpoint and source conditions of the stacked widgets, once
+		 * per record. Each is fail-safe: an error hides the widget.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/tab-stack-child-visible-when/specs/tab-stack-child-visible-when/spec.md#requirement-a-widget-in-a-tab-stack-on-a-detail-page-follows-its-own-condition
+		 */
+		async refreshStackConditions() {
+			const seq = ++this.stackConditionSeq
+			const entries = JSON.parse(this.stackConditionsKey)
+			const ctx = { objectId: this.objectId, object: this.conditionData || this.objectData || undefined }
+			const answers = {}
+			await Promise.all(entries.map(async ([id, cond]) => {
+				answers[id] = await evaluateVisibleWhen(cond, ctx)
+			}))
+			if (seq === this.stackConditionSeq) {
+				this.stackConditionAnswers = answers
+			}
 		},
 
 		/**
@@ -1232,6 +1288,39 @@ export default {
 				}
 			}
 			return [tab?.widgetId]
+		},
+
+		/**
+		 * The widget ids of a stack in the order its `orderFrom` list gives.
+		 * `orderFrom` is a dot-path into the record (a case's
+		 * `@context.caseType.overviewCards`); the widgets that list names take
+		 * the places of the listed widgets in the list's order, and every
+		 * other widget keeps its own place. Without a list the authored order
+		 * stands.
+		 *
+		 * @param {object|string} tab The `content.tabs[]` entry.
+		 * @return {string[]} The ids.
+		 * @spec openspec/changes/tab-stack-order-from/specs/tab-stack-order-from/spec.md#requirement-a-stack-can-follow-the-order-of-a-list-on-the-record
+		 */
+		orderedTabWidgetIds(tab) {
+			const ids = this.tabWidgetIds(tab)
+			const path = tab && typeof tab === 'object' && typeof tab.orderFrom === 'string' ? tab.orderFrom : ''
+			if (ids.length < 2 || path === '' || !this.conditionData) {
+				return ids
+			}
+			const list = readVisibleWhenPath(this.conditionData, path)
+			if (!Array.isArray(list) || list.length === 0) {
+				return ids
+			}
+			const rank = new Map()
+			list.forEach((id, position) => {
+				if (!rank.has(String(id))) {
+					rank.set(String(id), position)
+				}
+			})
+			const listed = ids.filter((id) => rank.has(id)).sort((a, b) => rank.get(a) - rank.get(b))
+			let next = 0
+			return ids.map((id) => (rank.has(id) ? listed[next++] : id))
 		},
 
 		/**
@@ -1424,6 +1513,12 @@ export default {
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
 		countSourceOf(tab) {
+			// A tab shown only with another app installed counts nothing without it:
+			// its list lives in that app, and asking would answer 404.
+			const needs = tab && typeof tab === 'object' && tab.visibleWhen ? tab.visibleWhen.appInstalled : null
+			if (typeof needs === 'string' && needs !== '' && !isAppInstalled(needs)) {
+				return null
+			}
 			const from = tab && typeof tab === 'object' ? tab.countFrom : null
 			let source = null
 			if (from === 'widget') {

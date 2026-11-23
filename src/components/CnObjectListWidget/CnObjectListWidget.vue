@@ -396,7 +396,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -906,6 +906,16 @@ export default {
 			// unless it says its own or draws a widget or formatter.
 			const withSchemaPresentation = (out) => {
 				const prop = props[out.key]
+				// A formatter draws the cell itself, but one that prints an enum's
+				// label reads it from the cell's property: hand it the schema's.
+				if (prop && out.formatter !== undefined && out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (labels && typeof labels === 'object') {
+						out.enum = prop.enum
+						out.enumLabels = labels
+					}
+					return out
+				}
 				// The `label` widget writes the enum's label, so it still takes the enum.
 				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
 					return out
@@ -2016,7 +2026,7 @@ export default {
 				return
 			}
 			const register = children.register || (this.content || {}).register
-			const params = { [link.key]: values }
+			const params = { [link.key]: values, _lang: getLanguage() }
 			for (const [k, v] of Object.entries(resolveFilterTokens(children.filter || {}, this.tokenCtx))) {
 				if (k !== link.key && rowTokenField(v) === '' && v !== '' && v !== null && v !== undefined && typeof v !== 'object') {
 					params[k] = v
@@ -2305,7 +2315,9 @@ export default {
 				// It doubles as the PAGE SIZE: one fetch is exactly one page, so
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
-				const params = { _limit: this.pageSize, _page: this.page }
+				// `_lang` asks OpenRegister for translatable fields in the
+				// user's language (REQ-OR-003).
+				const params = { _limit: this.pageSize, _page: this.page, _lang: getLanguage() }
 				if (this.reorderField !== '') {
 					// A reorderable list is always shown in its stored order.
 					params[`_order[${this.reorderField}]`] = 'asc'
@@ -2665,7 +2677,8 @@ export default {
 		 * Load the schema when, and only when, a column needs it: for its
 		 * heading (no `label`), or for its presentation (a top-level key
 		 * without its own `format`, `enum`, `widget` or `formatter`, which
-		 * takes the property's format and enum labels).
+		 * takes the property's format and enum labels; or one with a
+		 * `formatter` and no `enum`, whose formatter may print the enum label).
 		 *
 		 * A widget whose every column says its label and presentation, or
 		 * reads a dotted path the list's schema does not hold, never makes
@@ -2682,7 +2695,7 @@ export default {
 			const needsSchema = cols.some((c) => (typeof c === 'string')
 				|| !c.label
 				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
-					&& c.format === undefined && c.enum === undefined && c.widget === undefined && c.formatter === undefined))
+					&& c.enum === undefined && (c.formatter !== undefined || (c.format === undefined && c.widget === undefined))))
 			if (needsSchema === false) {
 				return
 			}

@@ -18,7 +18,7 @@ import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
 import { fillTemplate } from '../utils/fillTemplate.js'
-import { FLOW_RUN_ERROR_STATUSES, flowRunStatuses } from '../utils/flowRunStatus.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunOutcome, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
 import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
 import { readPath } from '../utils/readPath.js'
 import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
@@ -106,14 +106,20 @@ export function flowTriggerCell(flow, catalog = []) {
  * last run ended, how often it ran this week), read in one request from
  * the run summary rather than derived from a page of runs.
  *
+ * The columns are those of board OrFlows, with `health` (a dot before the name)
+ * and `owner` (before the status). `sourceConfig.extraColumns` narrows those
+ * two: `[]` leaves both out.
+ *
  * The quick filters (All, Active, Paused, With errors) narrow the loaded
  * list in place: every flow of the app is already loaded, so the counts on
  * the tabs and the rows they show can never disagree.
  *
+ * @param config
  * @return {object} The source adapter.
  */
-function flowsSource() {
+function flowsSource(config = {}) {
 	const store = useFlowStore()
+	const extraColumns = [].concat(config.extraColumns ?? ['health', 'owner'])
 	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
 
@@ -126,19 +132,20 @@ function flowsSource() {
 		const id = flow.id || flow.uuid
 		const summary = (store.runSummary || {})[id] || {}
 		const lastRun = summary.lastRun || null
-		const lastStatus = lastRun ? statuses[lastRun.status] : null
+		const lastOutcome = flowRunOutcome(lastRun)
+		const lastStatus = lastRun ? statuses[lastOutcome] : null
 		const trigger = flowTriggerCell(flow, store.eventCatalog)
 		return {
 			...flow,
 			triggerLabel: trigger.label,
 			triggerDetail: trigger.detail,
 			triggerIcon: trigger.icon,
-			lastRunStatus: lastRun ? lastRun.status : '',
+			lastRunStatus: lastOutcome,
 			lastRunLabel: lastRun
-				? ((lastStatus && lastStatus.label) || String(lastRun.status || ''))
+				? ((lastStatus && lastStatus.label) || lastOutcome)
 				: t('nextcloud-vue', 'Not run yet'),
 			lastRunAt: lastRun ? formatRelativeDate(lastRun.created, { withTime: true }) : '',
-			lastRunFailed: !!lastRun && FLOW_RUN_ERROR_STATUSES.includes(lastRun.status),
+			lastRunFailed: FLOW_RUN_ERROR_STATUSES.includes(lastOutcome),
 			runsThisWeek: Number(summary.runsSince) || 0,
 			// The switch reads `enabled`; the label is what a screen reader and
 			// an export see. A flow with no owner is enabled but cannot start,
@@ -220,6 +227,7 @@ function flowsSource() {
 		loading: () => !!store.loading,
 
 		columns: [
+			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), labelHidden: true, width: '32px', widget: 'flowHealth' }] : []),
 			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
 			{
 				key: 'triggerLabel',
@@ -236,6 +244,7 @@ function flowsSource() {
 				widgetProps: { colorMap: lastRunColors },
 			},
 			{ key: 'runsThisWeek', label: t('nextcloud-vue', 'Runs this week'), class: 'cn-table-col--end' },
+			...(extraColumns.includes('owner') ? [{ key: 'owner', label: t('nextcloud-vue', 'Owner') }] : []),
 			{
 				key: 'statusLabel',
 				label: t('nextcloud-vue', 'Status'),
@@ -354,9 +363,14 @@ function flowsSource() {
  * the rows are the runs the flows tab counted. A row opens the run on its
  * flow's canvas (`/flows/:flowId?run=:uuid`), where CnFlowDetail shows it.
  *
+ * `sourceConfig.counters` draws the run counters above the list and adds the
+ * Subject column; `sourceConfig.flowId` narrows the list to one flow (board
+ * OrFlowOverzicht).
+ *
+ * @param {object} [config] The page's source config.
  * @return {object} The source adapter.
  */
-function flowRunsSource() {
+function flowRunsSource(config = {}) {
 	const store = useFlowStore()
 	const view = reactive({ runsRoute: '/flow-runs', flowsRoute: '/flows' })
 	const statuses = flowRunStatuses()
@@ -392,7 +406,7 @@ function flowRunsSource() {
 			view.runsRoute = config?.runsRoute || '/flow-runs'
 			view.flowsRoute = config?.flowsRoute || '/flows'
 			await store.load({ app: config?.app })
-			const ids = (store.flows || []).map((flow) => flow.id || flow.uuid)
+			const ids = config?.flowId ? [config.flowId] : (store.flows || []).map((flow) => flow.id || flow.uuid)
 			const since = startOfWeek()
 			await Promise.all([store.loadRecentRuns(ids, since), store.loadRunSummary(ids, since)])
 		},
@@ -409,10 +423,17 @@ function flowRunsSource() {
 				...run,
 				id: run.uuid,
 				flowName: names[run.flowId] || run.flowId,
-				statusLabel: (statuses[run.status] && statuses[run.status].label) || String(run.status || ''),
+				statusLabel: (statuses[flowRunOutcome(run)] && statuses[flowRunOutcome(run)].label) || flowRunOutcome(run),
 				startedAt: formatRelativeDate(run.created, { withTime: true }),
+				subjectLabel: flowRunSubjects(run).map((subject) => subject.uuid).join(', '),
+				subjectRoles: flowRunSubjects(run).map((subject) => subject.role).filter(Boolean).join(', '),
 			}))
 		},
+
+		/**
+		 * @return {Array<object>} The tiles above the list, when the page asks for them.
+		 */
+		counters: () => (config.counters === true ? flowRunCounters(store.recentRuns || []) : []),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
@@ -421,6 +442,7 @@ function flowRunsSource() {
 
 		columns: [
 			{ key: 'flowName', label: t('nextcloud-vue', 'Flow'), secondary: 'error' },
+			...(config.counters === true ? [{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject'), secondary: 'subjectRoles' }] : []),
 			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status'), widget: 'badge', widgetProps: { colorMap: statusColors } },
 			{ key: 'startedAt', label: t('nextcloud-vue', 'Started') },
 			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
@@ -830,6 +852,33 @@ function readRowsPath(body, path) {
 }
 
 /**
+ * The parts of an answer a detail page's `sourceConfig.attach` puts on its
+ * record: record key to dot-path in the answer. A path the answer does not
+ * hold is left out, so it never overwrites a field of the record with nothing.
+ *
+ * @param {object|Array|null} body The endpoint's answer.
+ * @param {object|null} attach The declared map, `{ <record key>: <answer path> }`.
+ * @return {object} The parts found, by record key.
+ * @spec openspec/changes/detail-endpoint-answer-parts/specs/detail-page/spec.md#requirement-a-detail-page-over-an-app-endpoint-keeps-the-other-parts-of-the-answer
+ */
+function attachedParts(body, attach) {
+	if (!attach || typeof attach !== 'object' || Array.isArray(attach)) {
+		return {}
+	}
+	const out = {}
+	for (const [name, path] of Object.entries(attach)) {
+		if (typeof path !== 'string' || path === '') {
+			continue
+		}
+		const value = readRowsPath(body, path)
+		if (value !== undefined) {
+			out[name] = value
+		}
+	}
+	return out
+}
+
+/**
  * The `sourceConfig` keys the endpoint source reads itself; every other key
  * goes along as a query parameter.
  *
@@ -1103,9 +1152,10 @@ function endpointSource(declared = {}, context = {}) {
 
 		/**
 		 * Take the detail page's source config: `url` names one record, with
-		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`), and
+		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`),
 		 * `recordPath` where the record sits in the answer (the whole answer
-		 * by default).
+		 * by default), and `attach`, other parts of the answer put on the
+		 * record (`{ messages: 'messages' }`).
 		 *
 		 * @param {object|null} config The detail page's `sourceConfig`.
 		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
@@ -1135,11 +1185,12 @@ function endpointSource(declared = {}, context = {}) {
 				const { default: axios } = await import('@nextcloud/axios')
 				const res = await axios.get(generateUrl(template.replace(/\{id\}/g, encodeURIComponent(key))))
 				const body = res ? res.data : null
-				const record = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
-				if (!record || typeof record !== 'object' || Array.isArray(record)) {
+				const found = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
+				if (!found || typeof found !== 'object' || Array.isArray(found)) {
 					state.recordErrors = { ...state.recordErrors, [key]: 404 }
 					return null
 				}
+				const record = { ...found, ...attachedParts(body, recordConfig.attach) }
 				state.records = { ...state.records, [key]: record }
 				const { [key]: dropped, ...rest } = state.recordErrors
 				state.recordErrors = rest

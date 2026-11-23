@@ -1,0 +1,1 @@
+- [x] 1 `cardActions` and `cardState` on CnReportsPage (tests/components/CnReportsPageCardActions.spec.js); docs/components/cn-reports-page.md

@@ -95,6 +95,7 @@ export default {
 
 | Prop | Default | Description |
 |---|---|---|
+| `templateSource` | `null` | `{ register, schema }`: a create form offers the record templates of that register and schema in a "Start from a template" picker. |
 | `dialogTitle` | `''` | Dialog title. Defaults to `'Create {schema.title}'` or `'Edit {schema.title}'` when empty. |
 | `initialData` | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
@@ -169,6 +170,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `footnote` | `''` | A note the form closes on, under its fields, with an information icon. The host translates it. Empty shows none. |
 | `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
 | `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
 | `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
@@ -248,6 +250,9 @@ many lines high as its override's `rows` (default 4):
 ```json static
 { "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
 ```
+
+In the board look a textarea is three lines tall on the normal leading; a field
+with its own `rows` is that many lines tall instead.
 
 A manifest `open-form` action declares `size` and `columns` directly:
 

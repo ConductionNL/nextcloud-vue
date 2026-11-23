@@ -42,7 +42,7 @@ describe('presentationCandidates', () => {
 		const empty = presentationCandidates({ properties: { title: { type: 'string' } } })
 		expect(empty.reasons.calendar).toBe('This schema has no date field')
 		expect(empty.reasons.kanban).not.toBe('')
-		expect(c.reasons).toEqual({ kanban: '', calendar: '' })
+		expect(c.reasons).toEqual({ kanban: '', calendar: '', gallery: '' })
 		expect(presentationCandidates(null).group).toEqual([])
 	})
 })

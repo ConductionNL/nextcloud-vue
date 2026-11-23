@@ -4,11 +4,30 @@
 -->
 
 <template>
+	<div v-if="sections.length > 0" class="cn-record-list-sections" data-testid="cn-record-list-sections">
+		<!-- `sections`: one card, several sources, each drawn as a record list of its own in order. -->
+		<CnRecordListWidget
+			v-for="(section, index) in sections"
+			:key="`section-${index}`"
+			:content="section"
+			:objectId="objectId"
+			:objectData="objectData"
+			:data-testid="`cn-record-list-section-${index}`"
+			@header="index === 0 ? $emit('header', $event) : null" />
+	</div>
 	<div
+		v-else
 		class="cn-record-list"
 		:class="[`cn-record-list--${presentation}`, { 'cn-record-list--compact': content.density === 'compact', 'cn-record-list--pill-aside': presentation === 'cards' && content.cardPillAside === true, 'cn-record-list--stacked': content.density === 'stacked', 'cn-record-list--tiles': presentation === 'rows' && content.tiles === true, 'cn-record-list--rule-above': content.ruleAbove === true, 'cn-record-list--strong-title': content.strongTitle === true, 'cn-record-list--meta-beside': presentation === 'rows' && content.metaBeside === true, 'cn-record-list--data-table': presentation === 'table' && content.tableLook === 'data', 'cn-record-list--group-cards': isGrouped && content.groupLook === 'cards', 'cn-record-list--chevron': content.chevron === true }]"
 		data-testid="cn-record-list">
-		<p v-if="intro && !absent" class="cn-record-list__intro" data-testid="cn-record-list-intro">
+		<!-- `introAsHeading`: the intro is the group heading of a section
+		     ("Te laat", "Risico"), dropped with an empty section that says nothing. -->
+		<h3 v-if="intro && !absent && introAsHeading && !introHidden"
+			class="cn-record-list__group-heading cn-record-list__intro-heading"
+			data-testid="cn-record-list-intro">
+			{{ intro }}
+		</h3>
+		<p v-else-if="intro && !absent && !introAsHeading" class="cn-record-list__intro" data-testid="cn-record-list-intro">
 			{{ intro }}
 		</p>
 		<p v-if="absent" class="cn-record-list__empty" data-testid="cn-record-list-absent">
@@ -163,13 +182,42 @@
 					v-for="item in items"
 					:key="item.key"
 					class="cn-record-list__check"
-					:class="{ 'cn-record-list__check--done': isChecked(item.row) }"
+					:class="{
+						'cn-record-list__check--done': isChecked(item.row),
+						'cn-record-list__check--next': checkNextOf(item.row) !== null,
+						'cn-record-list__check--meta-end': checklistMetaAtEnd,
+					}"
 					data-testid="cn-record-list-check">
 					<span class="cn-record-list__check-mark" aria-hidden="true">
 						<Check v-if="isChecked(item.row)" :size="14" />
 					</span>
-					<span class="cn-record-list__check-title">{{ item.title }}</span>
+					<span class="cn-record-list__check-body">
+						<span class="cn-record-list__check-title">
+							{{ item.title }}
+							<CnStatusBadge
+								v-if="checkNextOf(item.row)"
+								class="cn-record-list__check-next-pill"
+								:label="checkNextOf(item.row).label"
+								variant="primary"
+								size="small"
+								data-testid="cn-record-list-check-next-pill" />
+						</span>
+						<span
+							v-if="checkMetaOf(item)"
+							class="cn-record-list__check-meta"
+							:class="{ 'cn-record-list__check-meta--missing': !isChecked(item.row) && checklistMissingText !== '' }"
+							data-testid="cn-record-list-check-meta">{{ checkMetaOf(item) }}</span>
+					</span>
 					<span class="hidden-visually">{{ isChecked(item.row) ? doneLabel : openLabel }}</span>
+					<NcButton
+						v-if="checkNextOf(item.row) && checkNextOf(item.row).action"
+						class="cn-record-list__check-next-action"
+						variant="primary"
+						:href="checkNextOf(item.row).action.href || undefined"
+						data-testid="cn-record-list-check-next-action"
+						@click="checkNextOf(item.row).action.href ? null : runCheckNextAction(item.row)">
+						{{ checkNextOf(item.row).action.label }}
+					</NcButton>
 				</li>
 			</ul>
 		</div>
@@ -218,7 +266,7 @@
 			<ul
 				v-if="group.items.length > 0"
 				class="cn-record-list__list"
-				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary }"
+				:class="{ 'cn-record-list__list--avatar-small': avatarSmall, 'cn-record-list__list--avatar-person': avatarPerson, 'cn-record-list__list--avatar-primary': avatarPrimary, 'cn-record-list__list--headline': headLine }"
 				:aria-labelledby="group.label ? group.headingId : null"
 				:data-testid="isGrouped ? 'cn-record-list-group' : null">
 				<li
@@ -234,11 +282,17 @@
 						<span v-if="item.leading"
 							class="cn-record-list__leading"
 							data-testid="cn-record-list-leading">{{ item.leading }}</span>
-						<span v-if="item.initials"
+						<span v-if="item.initials || item.avatarIcon"
 							class="cn-record-list__avatar"
 							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
-							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+							data-testid="cn-record-list-avatar">
+							<CnIcon v-if="item.avatarIcon"
+								:name="item.avatarIcon"
+								:size="16"
+								data-testid="cn-record-list-avatar-icon" />
+							<template v-else>{{ item.initials }}</template>
+						</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
 							:class="{ 'cn-record-list__dot--small': dotSmall }"
@@ -286,12 +340,14 @@
 						<component
 							:is="item.action.tag"
 							class="cn-record-list__action"
-							:class="{ 'cn-record-list__action--outlined': rowActionOutlined }"
+							:class="{ 'cn-record-list__action--outlined': rowActionOutlined, 'cn-record-list__action--icon': item.action.iconOnly }"
 							v-bind="item.action.attrs"
 							data-testid="cn-record-list-action"
 							v-on="item.action.tag === 'button' ? { click: () => runRowAction(item.row) } : {}">
 							<CnIcon v-if="item.action.icon" :name="item.action.icon" :size="16" />
-							{{ item.action.label }}
+							<template v-if="!item.action.iconOnly">
+								{{ item.action.label }}
+							</template>
 						</component>
 					</div>
 					<!-- rows: title, meta and text, then the pill, the date and a chevron. -->
@@ -310,11 +366,17 @@
 								:variant="item.pill.variant"
 								size="small" />
 						</span>
-						<span v-if="item.initials"
+						<span v-if="item.initials || item.avatarIcon"
 							class="cn-record-list__avatar"
 							:class="item.avatarTone ? 'cn-status-badge--' + item.avatarTone : ''"
 							aria-hidden="true"
-							data-testid="cn-record-list-avatar">{{ item.initials }}</span>
+							data-testid="cn-record-list-avatar">
+							<CnIcon v-if="item.avatarIcon"
+								:name="item.avatarIcon"
+								:size="16"
+								data-testid="cn-record-list-avatar-icon" />
+							<template v-else>{{ item.initials }}</template>
+						</span>
 						<span v-if="item.dot"
 							class="cn-record-list__dot"
 							:class="{ 'cn-record-list__dot--small': dotSmall }"
@@ -413,8 +475,24 @@
 								</NcButton>
 							</template>
 						</template>
+						<span
+							v-if="item.tag === 'div' && item.rowActions.length > 0 && rowActionsInline"
+							class="cn-record-list__row-actions-inline"
+							data-testid="cn-record-list-row-actions-inline">
+							<NcButton
+								v-for="entry in item.rowActions"
+								:key="`row-action-${entry.index}`"
+								:variant="entry.action.variant || 'secondary'"
+								:href="entry.href || undefined"
+								:target="entry.external ? '_blank' : undefined"
+								:ariaLabel="fillRow(entry.action.ariaLabel, item.row) || undefined"
+								:data-testid="`cn-record-list-row-action-${entry.index}`"
+								@click="entry.href ? undefined : runRowActionEntry(entry.action, item.row)">
+								{{ entry.action.label }}
+							</NcButton>
+						</span>
 						<NcActions
-							v-if="item.tag === 'div' && item.rowActions.length > 0"
+							v-else-if="item.tag === 'div' && item.rowActions.length > 0"
 							:aria-label="rowActionsLabel"
 							data-testid="cn-record-list-row-actions">
 							<template v-for="entry in item.rowActions" :key="`row-action-${entry.index}`">
@@ -524,9 +602,10 @@
 		<div
 			v-if="footnoteTone && footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)"
 			class="cn-record-list__notice cn-record-list__notice--footnote"
-			:class="`cn-record-list__notice--${footnoteTone}`"
+			:class="[`cn-record-list__notice--${footnoteTone}`, { 'cn-record-list__notice--compact': content.footnoteCompact === true }]"
 			data-testid="cn-record-list-footnote">
 			<CnIcon
+				v-if="content.footnoteCompact !== true"
 				:name="footnoteTone === 'info' ? 'InformationOutline' : 'AlertOutline'"
 				:size="16"
 				class="cn-record-list__notice-icon"
@@ -537,6 +616,14 @@
 		</div>
 		<p v-else-if="footnote && !error && !absent && (rows.length > 0 || footnoteFromAnswer)" class="cn-record-list__footnote" data-testid="cn-record-list-footnote">
 			{{ footnote }}
+		</p>
+		<p
+			v-for="(paragraph, index) in footnoteParagraphs"
+			v-show="!error && !absent && rows.length > 0"
+			:key="`footnote-${index}`"
+			class="cn-record-list__footnote"
+			data-testid="cn-record-list-footnote">
+			{{ paragraph }}
 		</p>
 		<!-- `footerLink`: a text link under the rows ("Naar Mijn werk"). -->
 		<router-link
@@ -613,6 +700,24 @@
 				class="cn-record-list__footer-reason"
 				data-testid="cn-record-list-footer-reason">{{ footerAction.reason }}</span>
 		</div>
+		<!-- `footerActions`: several actions side by side under the list
+		     (DqZaakDocumenten "Ontvankelijkheid bevestigen", "Aanvulverzoek versturen"). -->
+		<div
+			v-if="footerActionList.length > 0 && !error"
+			class="cn-record-list__footer cn-record-list__footer--actions"
+			data-testid="cn-record-list-footer-actions">
+			<NcButton
+				v-for="entry in footerActionList"
+				:key="entry.key"
+				:variant="entry.variant"
+				:data-testid="`cn-record-list-footer-actions-${entry.key}`"
+				@click="runListAction(entry.action)">
+				<template v-if="entry.icon" #icon>
+					<CnIcon :name="entry.icon" :size="16" />
+				</template>
+				{{ entry.label }}
+			</NcButton>
+		</div>
 	</div>
 </template>
 
@@ -636,10 +741,10 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays } from '../../utils/boardDate.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fieldPill } from '../../utils/fieldPill.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
-import { variantForColor } from '../../utils/headerFieldChips.js'
 import { initialsOf } from '../../utils/initials.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
@@ -732,6 +837,13 @@ function groupToneOf(tones, value) {
 	return ['error', 'warning', 'success', 'primary'].includes(tone) ? tone : ''
 }
 
+/**
+ * Card keys that end the card, given to the last of its `sections` only.
+ *
+ * @type {string[]}
+ */
+const SECTION_FOOTER_KEYS = ['footnote', 'footnoteVariant', 'footerLink', 'footerAction']
+
 export default {
 	name: 'CnRecordListWidget',
 
@@ -791,7 +903,9 @@ export default {
 		 * and `variant` (Concept, Vastgezet, Actief). A label may carry the
 		 * row's values as template tokens ("{value|currency}").
 		 * `footnoteVariant` (`info`, `warning` or `error`) draws the footnote
-		 * as a toned notice box with its icon (DqZaaktype opt-out note).
+		 * as a toned notice box with its icon (DqZaaktype opt-out note);
+		 * `footnoteCompact: true` draws that box without the icon, in small
+		 * text (DqZaakTaken "Wat hierna komt").
 		 * `tableLook: "data"` marks a `table` as a data table, which the board
 		 * look draws as its card table (header band, 40px rows, hairlines)
 		 * instead of the compact grid (DqZaaktype "Berichten aan de aanvrager").
@@ -830,6 +944,16 @@ export default {
 		 * title at 600 in the board look (DqZaakTaken "Incidenten").
 		 * `metaBeside: true` sets the meta line on the title's line, 14px
 		 * after it, for a one-line summary (DqTermijnen "Totale dwangsom").
+		 * `sections` (a list of configs of this shape) draws several sources in
+		 * one card, in order, each with its own empty and error text; a section
+		 * takes the card's other keys unless it sets them, and the card's
+		 * footnote and footer go under the last one (DqZaakBetrokkenen Toegang).
+		 * `meta` as `{ cases: [{ when, text }], text? }` writes the text of the
+		 * first case whose condition holds on the row. `avatar.icon` (`{ field,
+		 * map }`) draws an icon in the avatar for a row whose field maps to one.
+		 * `hideWhen` (a condition over the row) leaves out endpoint or object
+		 * rows it holds for. `refusalText` shows a refused (401/403) endpoint
+		 * read in the app's words instead of the server's.
 		 *
 		 * @type {object}
 		 */
@@ -853,6 +977,7 @@ export default {
 
 	emits: ['header'],
 
+	/** @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer */
 	setup(props) {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)
@@ -928,7 +1053,31 @@ export default {
 				},
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch, footerNoteValue: footerNoteSource.data }
+		// A header pill that reads another part of the same answer
+		// (`headerPillFrom: { path }`), through the same cache.
+		const headerPillSource = useEndpointSource(
+			() => {
+				const spec = props.content?.headerPillFrom
+				const source = props.content?.endpointSource
+				if (!spec || typeof spec !== 'object' || typeof spec.path !== 'string' || !source || typeof source !== 'object') {
+					return null
+				}
+				return { ...source, responsePath: spec.path }
+			},
+			{
+				ctx: () => {
+					const injected = unwrap(objectCtxRaw) || {}
+					return {
+						...injected,
+						objectId: props.objectId ?? injected.objectId ?? props.objectData?.id ?? null,
+						object: props.objectData || injected.object || null,
+						workspace: unwrap(workspaceRaw) || {},
+						config: unwrapAppConfig(appConfigRaw) || {},
+					}
+				},
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefusal: refusal, epRefetch: refetch, footnoteValue: footnoteSource.data, footnoteRefetch: footnoteSource.refetch, footerNoteValue: footerNoteSource.data, headerPillValue: headerPillSource.data }
 	},
 
 	data() {
@@ -960,6 +1109,38 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The card's sections (`content.sections`), each a record list config.
+		 *
+		 * A section inherits the card's own keys (the look: `presentation`,
+		 * `ruleAbove`, `density` ...) and overrides them with its own. The card's
+		 * footer (`footnote`, `footnoteVariant`, `footerLink`, `footerAction`)
+		 * goes to the last section only, so it ends the card once.
+		 *
+		 * @return {Array<object>} The section configs, [] for a single-source list.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-record-list-card-can-draw-several-sources-as-sections
+		 */
+		sections() {
+			const declared = this.content?.sections
+			if (!Array.isArray(declared)) {
+				return []
+			}
+			const list = declared.filter((section) => section && typeof section === 'object' && !Array.isArray(section))
+			const shared = {}
+			const footer = {}
+			Object.keys(this.content).forEach((key) => {
+				if (key === 'sections') {
+					return
+				}
+				if (SECTION_FOOTER_KEYS.includes(key)) {
+					footer[key] = this.content[key]
+				} else {
+					shared[key] = this.content[key]
+				}
+			})
+			return list.map((section, index) => ({ ...shared, ...(index === list.length - 1 ? footer : {}), ...section }))
+		},
+
 		/**
 		 * Whether the row dot is the small list marker (`dot.size: 10`).
 		 *
@@ -1314,6 +1495,7 @@ export default {
 					tag: link ? 'router-link' : (href ? 'a' : 'div'),
 					attrs: link ? { to: link } : (href ? { href } : {}),
 					initials: this.initialsFor(row),
+					avatarIcon: this.avatarIconFor(row),
 					avatarTone: this.avatarToneFor(row),
 					title: this.fill(c.title || (row !== raw ? '{value}' : ''), row),
 					meta: this.metaOf(row),
@@ -1502,9 +1684,15 @@ export default {
 			return this.rows.length === 0 && typeof value === 'string' && value !== '' ? this.translate(value) : ''
 		},
 
-		/** @return {string} The note under the list (`footnote`), translated. */
+		/**
+		 * @return {string} The note under the list (`footnote`), translated.
+		 * @spec openspec/changes/record-list-footnote-compact/specs/record-list/spec.md#requirement-a-toned-footnote-can-be-compact
+		 */
 		footnote() {
 			const note = this.content?.footnote
+			if (Array.isArray(note)) {
+				return ''
+			}
 			if (note && typeof note === 'object') {
 				const value = this.footnoteValue
 				if (value === null || value === undefined || value === '' || value === 0 || value === false || typeof note.text !== 'string') {
@@ -1513,6 +1701,18 @@ export default {
 				return this.translate(note.text).replace(/\{value\}/g, String(value))
 			}
 			return typeof note === 'string' && note !== '' ? this.translate(note) : ''
+		},
+
+		/**
+		 * A `footnote` given as a list: each entry is its own paragraph,
+		 * translated. An object or string footnote is not listed here.
+		 *
+		 * @return {Array<string>} The paragraphs.
+		 * @spec exclude a paragraph footnote has no spec of its own
+		 */
+		footnoteParagraphs() {
+			const note = this.content?.footnote
+			return Array.isArray(note) ? note.filter((text) => typeof text === 'string' && text !== '').map((text) => this.translate(text)) : []
 		},
 
 		/**
@@ -1614,6 +1814,70 @@ export default {
 			return this.items.length > 0 ? Math.round((this.checklistDone / this.items.length) * 100) : 0
 		},
 
+		/**
+		 * Whether a checklist row draws its meta at the row's end
+		 * (`content.metaAt: "end"`) rather than under its title.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-row-can-say-where-it-comes-from
+		 */
+		checklistMetaAtEnd() {
+			return this.content?.metaAt === 'end'
+		},
+
+		/**
+		 * @return {string} What an open checklist row reads in place of its meta (`content.missingText`).
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-row-can-say-where-it-comes-from
+		 */
+		checklistMissingText() {
+			const text = this.content?.missingText
+			return typeof text === 'string' && text !== '' ? this.translate(text) : ''
+		},
+
+		/**
+		 * The actions side by side under the list (`content.footerActions`):
+		 * each `{ label, icon?, variant?, visibleWhen?, ...action }`, those whose
+		 * `visibleWhen` (a local condition over the page's record) does not
+		 * hold left out. The first is primary unless it says otherwise.
+		 *
+		 * @return {Array<{key: string, label: string, icon: string, variant: string, action: object}>}
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-list-can-end-with-several-actions-side-by-side
+		 */
+		footerActionList() {
+			const declared = this.content?.footerActions
+			if (!Array.isArray(declared)) {
+				return []
+			}
+			const record = this.tokenCtx.object || {}
+			return declared
+				.filter((entry) => entry && typeof entry === 'object' && typeof entry.label === 'string' && entry.label !== '')
+				.filter((entry) => !entry.visibleWhen || evaluateVisibleWhenLocal(entry.visibleWhen, record))
+				.map((entry, index) => ({
+					key: String(entry.id || index),
+					label: this.translate(entry.label),
+					icon: typeof entry.icon === 'string' ? entry.icon : '',
+					variant: ['primary', 'secondary', 'tertiary'].includes(entry.variant) ? entry.variant : (index === 0 ? 'primary' : 'secondary'),
+					action: entry,
+				}))
+		},
+
+		/**
+		 * The status pill in the card header, read from the endpoint's answer
+		 * (`content.headerPillFrom: { path, labels?, colorMap? }`): a verdict
+		 * such as `incomplete` reading "Nog niet ontvankelijk" in the warning tone.
+		 *
+		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+		 */
+		headerPill() {
+			const spec = this.content?.headerPillFrom
+			if (!spec || typeof spec !== 'object' || typeof spec.path !== 'string') {
+				return null
+			}
+			return fieldPill({ value: this.headerPillValue }, { ...spec, field: 'value' }, { translate: (text) => this.translate(text) })
+		},
+
 		/** @return {string} What a done checklist row says to a screen reader. */
 		doneLabel() {
 			return t('nextcloud-vue', 'Done')
@@ -1687,10 +1951,10 @@ export default {
 			return {
 				label: this.translate(all.label),
 				title: all.title ? this.translate(all.title) : '',
-				text: all.text ? this.translate(all.text) : '',
+				text: this.recordAllText(all.text),
 				icon: all.icon || '',
 				cancel,
-				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget } : null,
+				placement: all.placement && typeof all.placement.widget === 'string' ? { widget: all.placement.widget, sentence: all.placement.sentence === true } : null,
 			}
 		},
 
@@ -1709,6 +1973,27 @@ export default {
 		/** @return {string} The line shown when the source app is absent. */
 		absentLabel() {
 			return this.content?.absentText ? this.translate(this.content.absentText) : t('nextcloud-vue', 'The app these come from is not installed')
+		},
+
+		/**
+		 * Whether the intro is drawn as a group heading (`content.introAsHeading`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-section-intro-heading/specs/record-list/spec.md#requirement-a-sections-intro-can-be-its-group-heading
+		 */
+		introAsHeading() {
+			return this.content?.introAsHeading === true
+		},
+
+		/**
+		 * Whether a heading intro drops out: the list read no rows and says
+		 * nothing about it (`emptyText: ""`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-list-section-intro-heading/specs/record-list/spec.md#requirement-a-sections-intro-can-be-its-group-heading
+		 */
+		introHidden() {
+			return this.content?.emptyText === '' && !this.loading && !this.error && this.rows.length === 0
 		},
 
 		/** @return {string} The line above the list (`intro`), translated. */
@@ -1766,6 +2051,17 @@ export default {
 			return this.content?.rowAction?.variant === 'outlined'
 		},
 
+		/**
+		 * Whether a row's actions are buttons on the row (`rowActionsInline`), as
+		 * board DqZaakBesluiten draws "Goedkeuren" and "Afwijzen", not a menu.
+		 *
+		 * @spec openspec/changes/record-list-inline-row-actions/specs/record-list-inline-row-actions/spec.md#requirement-row-actions-can-be-buttons-on-the-row
+		 * @return {boolean}
+		 */
+		rowActionsInline() {
+			return this.content?.rowActionsInline === true
+		},
+
 		rowActionsHeader() {
 			const own = this.content?.rowActionsHeader
 			return typeof own === 'string' && own !== '' ? this.translate(own) : t('nextcloud-vue', 'Actions')
@@ -1816,15 +2112,18 @@ export default {
 		},
 
 		/**
-		 * The error line: an endpoint's refusal (401/403) in its own words,
-		 * through the app's catalogue, else `errorText`, else the default.
+		 * The error line: an endpoint's refusal (401/403) as `refusalText`, else
+		 * in the server's own words, through the app's catalogue; any other
+		 * failure as `errorText`, else the default.
 		 *
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-refused-section-can-say-why-in-the-apps-words
 		 * @return {string} The error line.
 		 * @spec openspec/changes/record-list-endpoint-refusal/specs/record-list/spec.md#requirement-a-refused-endpoint-read-says-why
 		 */
 		errorLabel() {
 			if (this.endpointActive && this.epRefusal) {
-				return this.translate(this.epRefusal)
+				const own = this.content?.refusalText
+				return this.translate(typeof own === 'string' && own !== '' ? own : this.epRefusal)
 			}
 			return this.content?.errorText ? this.translate(this.content.errorText) : t('nextcloud-vue', 'This list could not be loaded.')
 		},
@@ -1838,6 +2137,15 @@ export default {
 	watch: {
 		requestKey() {
 			this.fetchRows()
+		},
+
+		/**
+		 * The header pill read from the answer arrives after the rows.
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+		 */
+		headerPill() {
+			this.emitHeader()
 		},
 
 		rows() {
@@ -2031,11 +2339,74 @@ export default {
 			if (!declared || this.footerDisabled) {
 				return undefined
 			}
+			return this.runListAction(declared)
+		},
+
+		/**
+		 * Dispatch an action the list declares (a footer action), without its
+		 * drawing keys, through the page's dispatcher when there is one.
+		 *
+		 * @param {object} declared The declared action.
+		 * @return {unknown} What the dispatcher returns.
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-list-can-end-with-several-actions-side-by-side
+		 */
+		runListAction(declared) {
 			const { disabledWhen, disabledReason, group, variant, visibleWhen, note, wide, ...action } = declared
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action)
 			}
 			return dispatchAction(action, { router: this.$router || null, tokenCtx: this.tokenCtx, source: { register: this.content?.register, schema: this.content?.schema } })
+		},
+
+		/**
+		 * The next-step row's own action, when it names no href: dispatched
+		 * with the row's `action` object.
+		 *
+		 * @param {object} row The row.
+		 * @return {unknown} What the dispatcher returns.
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-can-mark-the-next-step
+		 */
+		runCheckNextAction(row) {
+			const action = readPath(row, 'action')
+			return action && typeof action === 'object' && action.type ? this.runListAction(action) : undefined
+		},
+
+		/**
+		 * The checklist's next-step marking for a row (`content.next`): its
+		 * pill label and, when the row names one, its action. Null for a row
+		 * where `next.when` does not hold.
+		 *
+		 * @param {object} row The row.
+		 * @return {{label: string, action: ({label: string, href: string}|null)}|null}
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-can-mark-the-next-step
+		 */
+		checkNextOf(row) {
+			const next = this.content?.next
+			if (!next || typeof next !== 'object' || !next.when || !row || !evaluateVisibleWhenLocal(next.when, row)) {
+				return null
+			}
+			const spec = next.action && typeof next.action === 'object' ? next.action : {}
+			const label = readPath(row, spec.labelField || 'action.label')
+			const href = readPath(row, spec.hrefField || 'action.href')
+			return {
+				label: typeof next.label === 'string' && next.label !== '' ? this.translate(next.label) : t('nextcloud-vue', 'Next step'),
+				action: typeof label === 'string' && label !== '' ? { label: this.translate(label), href: typeof href === 'string' ? href : '' } : null,
+			}
+		},
+
+		/**
+		 * A checklist row's meta line: `content.missingText` while the row is
+		 * not done, else its `meta`.
+		 *
+		 * @param {object} item The drawn row.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-checklist-row-can-say-where-it-comes-from
+		 */
+		checkMetaOf(item) {
+			if (!this.isChecked(item.row) && this.checklistMissingText !== '') {
+				return this.checklistMissingText
+			}
+			return item.meta || ''
 		},
 
 		/**
@@ -2082,17 +2453,38 @@ export default {
 		},
 
 		/**
-		 * The initials of the row's avatar (`avatar`: a name template such as
-		 * `"{client.name}"`, or `{ text }`), or '' without one.
+		 * The icon a row's avatar shows instead of initials, from `avatar.icon:
+		 * { field, map }` (`{ field: "principal.type", map: { group:
+		 * "AccountGroup" } }`: a group's grant row shows the group icon, a
+		 * user's its initials); '' without.
 		 *
 		 * @param {object} row The row.
-		 * @return {string} One or two letters.
+		 * @return {string} An icon name, or ''.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-row-avatar-can-show-an-icon-by-the-row
+		 */
+		avatarIconFor(row) {
+			const icon = this.content?.avatar?.icon
+			if (!icon || typeof icon !== 'object' || typeof icon.field !== 'string' || !icon.map || typeof icon.map !== 'object') {
+				return ''
+			}
+			const name = icon.map[String(readPath(row, icon.field) ?? '')]
+			return typeof name === 'string' ? name : ''
+		},
+
+		/**
+		 * The initials of the row's avatar (`avatar`: a name template such as
+		 * `"{client.name}"`, or `{ text, letters }`; `text` may list candidates),
+		 * or '' without one. `letters` is how many letters a one-word name gives.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The letters.
 		 * @spec openspec/changes/screens-record-list-avatar/specs/record-list-avatar/spec.md#requirement-a-record-list-row-can-carry-an-avatar
+		 * @spec openspec/changes/record-list-avatar-letters/specs/record-list-avatar/spec.md#requirement-a-record-list-avatar-can-draw-two-letters-for-one-word
 		 */
 		initialsFor(row) {
 			const avatar = this.content?.avatar
-			const template = typeof avatar === 'string' ? avatar : (avatar && typeof avatar === 'object' ? avatar.text : '')
-			return initialsOf(this.fill(template, row))
+			const config = avatar && typeof avatar === 'object' && !Array.isArray(avatar) ? avatar : { text: avatar }
+			return initialsOf(this.fill(config.text || '', row), Number(config.letters) || 1)
 		},
 
 		/**
@@ -2202,7 +2594,10 @@ export default {
 		 * The one action that ends a row (`rowAction`): its label (from
 		 * `labels.map` by the row's `labels.field`, else `label`), and how it
 		 * renders: a link when it only navigates, else a button that
-		 * dispatches. Null without the key or a label.
+		 * dispatches. Null without the key or a label. A button with
+		 * `iconOnly: true` and an `icon` shows the icon alone.
+		 *
+		 * @spec openspec/changes/record-list-icon-row-action/specs/record-list/spec.md#requirement-a-rows-one-action-can-be-an-icon-button
 		 *
 		 * @param {object} row The row.
 		 * @return {{label: string, tag: string, attrs: object}|null}
@@ -2231,7 +2626,14 @@ export default {
 					? { label, tag: 'a', attrs: { href: link.href, target: '_blank', rel: 'noopener' } }
 					: { label, tag: 'router-link', attrs: { to: link.to } }
 			}
-			return { label, tag: 'button', attrs: { type: 'button' }, icon: typeof action.icon === 'string' ? action.icon : '' }
+			const icon = typeof action.icon === 'string' ? action.icon : ''
+			// `iconOnly` draws the icon alone; the label names the button for
+			// assistive technology and as its tooltip (DqZaakBetrokkenen
+			// Toegang "Link intrekken").
+			if (action.iconOnly === true && icon !== '') {
+				return { label, tag: 'button', attrs: { type: 'button', 'aria-label': label, title: label }, icon, iconOnly: true }
+			}
+			return { label, tag: 'button', attrs: { type: 'button' }, icon }
 		},
 
 		/**
@@ -2360,7 +2762,7 @@ export default {
 		},
 
 		/**
-		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, upcomingLabel?, upcomingWeeksLabel?, upcomingWeeksFrom?, emptyText? }`):
+		 * The row's due text (`due`: `{ field, todayLabel?, overdueLabel?, upcomingLabel?, upcomingWeeksLabel?, upcomingWeeksFrom?, emptyText?, doneField?, doneLabel? }`):
 		 * "3 dagen te laat" in the danger tone, "Vandaag", the date or the time
 		 * left ("nog 4 dagen") otherwise, `emptyText` when the field is empty.
 		 *
@@ -2373,7 +2775,7 @@ export default {
 			if (!due || typeof due !== 'object' || !due.field) {
 				return null
 			}
-			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text))
+			return resolveDue(readPath(row, due.field), due, (text) => this.translate(text), new Date(), row)
 		},
 
 		/**
@@ -2414,6 +2816,30 @@ export default {
 			if (id === this.aggregateRequestId) {
 				this.aggregateValues = Object.fromEntries(next)
 			}
+		},
+
+		/**
+		 * The record-all sentence, translated: a string, or its count forms
+		 * (`{ zero?, one?, other }`, `{count}` the notes filled in) each translated.
+		 *
+		 * @param {unknown} text The declared sentence.
+		 * @return {string|object} The sentence, or its translated forms.
+		 * @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md
+		 */
+		recordAllText(text) {
+			if (typeof text === 'string') {
+				return text ? this.translate(text) : ''
+			}
+			if (!text || typeof text !== 'object') {
+				return ''
+			}
+			const forms = {}
+			for (const key of ['zero', 'one', 'other']) {
+				if (typeof text[key] === 'string' && text[key] !== '') {
+					forms[key] = this.translate(text[key])
+				}
+			}
+			return forms
 		},
 
 		/**
@@ -2576,6 +3002,24 @@ export default {
 		 */
 		filterLabelOf(label) {
 			return t('nextcloud-vue', 'Filter by {column}', { column: label })
+		},
+
+		/**
+		 * The rows without those `content.hideWhen` (a local condition over the
+		 * row) holds for: plumbing an app knows about and the endpoint does not,
+		 * such as a service account among a case's grants. Applied to the rows
+		 * read from an endpoint or from the page record.
+		 *
+		 * @param {Array<object>} records The rows read.
+		 * @return {Array<object>} The rows to draw.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-record-list-can-hide-rows-by-a-condition
+		 */
+		withoutHidden(records) {
+			const hide = this.content?.hideWhen
+			if (!hide || typeof hide !== 'object') {
+				return records
+			}
+			return records.filter((record) => !evaluateVisibleWhenLocal(hide, scalarRow(record) || {}))
 		},
 
 		/**
@@ -2918,14 +3362,22 @@ export default {
 		 * empties it. `{ parts: ["{identifier}", "{caseTypeName}", "{handler}"],
 		 * separator? }` fills each part on its own, drops the empty ones and
 		 * joins the rest (default " · "), so a row without a handler still
-		 * reads "2026-0082 · Woo-verzoek".
+		 * reads "2026-0082 · Woo-verzoek". `{ cases: [{ when, text }], text? }`
+		 * writes the text of the first case whose `when` (a local condition over
+		 * the row) holds, else its own `text` ("via het zaaktype", "gedeeld door
+		 * {sharedBy.displayName}").
 		 *
 		 * @param {object} row The row.
 		 * @return {string} The meta line, '' when nothing fills.
+		 * @spec openspec/changes/record-list-sections-and-grant-rows/specs/record-list/spec.md#requirement-a-meta-line-can-depend-on-the-row
 		 * @spec openspec/changes/screens-record-list-meta-parts/specs/record-list-meta-parts/spec.md#requirement-a-meta-line-of-parts-skips-the-empty-ones
 		 */
 		metaOf(row) {
 			const meta = this.content?.meta
+			if (meta && typeof meta === 'object' && Array.isArray(meta.cases)) {
+				const found = meta.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
+				return this.fill((found || meta).text, row)
+			}
 			if (!meta || typeof meta !== 'object' || !Array.isArray(meta.parts)) {
 				return this.fill(meta, row)
 			}
@@ -2946,68 +3398,13 @@ export default {
 		 * @param {object} row The row.
 		 * @param {object} [config] A pill config; the widget's `pill` by default.
 		 * @return {{label: string, variant: string}|null} The pill, or null.
+		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
 		 */
 		pillOf(row, config) {
-			const pill = config || this.content?.pill
-			if (pill && typeof pill === 'object' && Array.isArray(pill.cases)) {
-				return this.pillCaseOf(row, pill)
-			}
-			if (!pill || typeof pill !== 'object' || !pill.field) {
-				return null
-			}
-			const raw = readPath(row, pill.field)
-			if (raw === null || raw === undefined || raw === '' || typeof raw === 'object') {
-				return null
-			}
-			const key = String(raw)
-			if (Array.isArray(pill.hideValues) && pill.hideValues.map(String).includes(key)) {
-				return null
-			}
-			const labels = pill.labels && typeof pill.labels === 'object' ? pill.labels : {}
-			const map = pill.colorMap && typeof pill.colorMap === 'object' ? pill.colorMap : {}
-			const found = Object.keys(map).find((k) => k.toLowerCase() === key.toLowerCase())
-			// `variantWhen` colours the pill by the row rather than the value: a
-			// finished case is green whatever its case type calls the final status.
-			const rule = Array.isArray(pill.variantWhen)
-				? pill.variantWhen.find((entry) => entry && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
-				: null
-			const colour = pill.colorField ? readPath(row, pill.colorField) : null
-			const fromRow = typeof colour === 'string' && colour !== '' ? variantForColor(colour) : null
-			const variant = rule ? rule.variant : (found ? map[found] : (fromRow || pill.variant))
-			return {
-				label: labels[key] ? this.translate(labels[key]) : key,
-				variant: isBadgeVariant(variant) ? variant : 'default',
-			}
-		},
-
-		/**
-		 * The pill of `{ cases: [{ when, label, variant? }], label?, variant? }`:
-		 * the first case whose `when` (a local condition over the row) holds,
-		 * else the pill's own `label` and `variant`, else none. For a state that
-		 * reads more than one field (Concept, Actief, Vastgezet).
-		 *
-		 * @param {object} row The row.
-		 * @param {object} pill The pill config.
-		 * @return {{label: string, variant: string}|null} The pill, or null.
-		 * @spec openspec/changes/record-list-pill-cases-footer-choice/specs/record-list/spec.md#requirement-a-record-list-row-pill-can-read-a-state-from-several-fields
-		 * @spec openspec/changes/record-list-pill-case-template/specs/record-list/spec.md#requirement-a-pill-case-label-can-carry-the-rows-values
-		 */
-		pillCaseOf(row, pill) {
-			const found = pill.cases.find((entry) => entry && typeof entry === 'object' && entry.when && evaluateVisibleWhenLocal(entry.when, row || {}))
-			const chosen = found || pill
-			if (typeof chosen.label !== 'string' || chosen.label === '') {
-				return null
-			}
-			// A label with `{field}` tokens reads the row ("{value|currency}");
-			// one that fills to nothing draws no pill.
-			const label = chosen.label.indexOf('{') === -1 ? this.translate(chosen.label) : this.fill(chosen.label, row)
-			if (label === '') {
-				return null
-			}
-			return {
-				label,
-				variant: isBadgeVariant(chosen.variant) ? chosen.variant : 'default',
-			}
+			return fieldPill(row, config || this.content?.pill, {
+				translate: (text) => this.translate(text),
+				fill: (template, values) => this.fill(template, values),
+			})
 		},
 
 		/**
@@ -3034,9 +3431,16 @@ export default {
 			return 'CircleSmall'
 		},
 
-		/** Tell the card around this list what its header shows. */
+		/**
+		 * Tell the card around this list what its header shows.
+		 *
+		 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+		 */
 		emitHeader() {
 			const header = { link: this.headerLink, note: this.headerNote }
+			if (this.headerPill && !this.error) {
+				header.pill = this.headerPill
+			}
 			// `headerSubtitle`: the counts as the muted line under the card title.
 			const subtitle = this.content?.headerSubtitle
 			if (typeof subtitle === 'string' && subtitle !== '' && !this.error) {
@@ -3135,7 +3539,7 @@ export default {
 		 * @spec openspec/changes/endpoint-source-card-grid-record-list/specs/dashboard-page/spec.md#requirement-a-record-list-and-a-card-grid-can-read-an-endpoint
 		 */
 		takeEndpointRows() {
-			this.rows = this.flattenRows(Array.isArray(this.epData) ? this.epData : [])
+			this.rows = this.withoutHidden(this.flattenRows(Array.isArray(this.epData) ? this.epData : []))
 			this.total = this.rows.length
 			this.loading = this.epLoading === true
 			this.error = Boolean(this.epError)
@@ -3164,7 +3568,7 @@ export default {
 				return
 			}
 			if (this.objectRowsActive) {
-				this.rows = this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row)))
+				this.rows = this.withoutHidden(this.flattenRows(this.objectRowsList.map((row, index) => (row.id === undefined ? { id: `row-${index}`, ...row } : row))))
 				this.total = this.rows.length
 				this.loading = false
 				this.error = false
@@ -3248,6 +3652,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-record-list__row-actions-inline {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .cn-record-list__checklist-bar {
 	height: 8px;
 	margin-block-end: 16px;
@@ -3281,6 +3691,58 @@ export default {
 
 .cn-record-list__check--done {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-list__check-body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.cn-record-list__check-meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-list__check--meta-end .cn-record-list__check-body {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.cn-record-list__check--meta-end .cn-record-list__check-meta {
+	text-align: end;
+}
+
+/* The next step spans the row on the primary-light ground (DqTenant Inrichten). */
+.cn-record-list__check--next {
+	grid-column: 1 / -1;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--color-primary-element-light);
+	color: var(--color-main-text);
+}
+
+.cn-record-list__check--next .cn-record-list__check-title {
+	font-weight: 600;
+}
+
+.cn-record-list__check-next-pill {
+	margin-inline-start: 8px;
+	vertical-align: middle;
+}
+
+.cn-record-list__check-next-action {
+	flex: none;
+	min-height: 34px;
+}
+
+.cn-record-list__footer--actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-record-list__check-mark {
@@ -3325,6 +3787,10 @@ export default {
 	font-size: 15px;
 	font-weight: 700;
 	line-height: 1.4;
+}
+
+.cn-record-list__intro-heading {
+	margin: 0 0 6px;
 }
 
 .cn-record-list--group-cards .cn-record-list__group-heading {
@@ -3463,6 +3929,11 @@ export default {
 
 .cn-record-list__notice--footnote {
 	margin-top: 12px;
+}
+
+.cn-record-list__notice--compact {
+	font-size: 13px;
+	line-height: 1.4;
 }
 
 .cn-record-list__notice-icon {
@@ -3764,6 +4235,10 @@ export default {
 	font-size: 13px;
 }
 
+.cn-record-list__footnote + .cn-record-list__footnote {
+	margin-top: 12px;
+}
+
 .cn-record-list__due--soon {
 	color: var(--color-text-warning, var(--color-warning-text));
 	font-weight: 600;
@@ -3838,6 +4313,13 @@ export default {
    doubled class outranks it. */
 .cn-record-list__action.cn-record-list__action {
 	margin: 0;
+}
+
+/* `rowAction.iconOnly`: a 34px square holding the icon alone. */
+.cn-record-list__action.cn-record-list__action--icon {
+	flex: 0 0 34px;
+	width: 34px;
+	padding: 0;
 }
 
 .cn-record-list__action:hover,

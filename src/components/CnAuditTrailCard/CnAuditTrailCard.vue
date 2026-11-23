@@ -62,12 +62,15 @@
 				<p v-if="entry.reason" class="cn-audit-card__reason">
 					{{ entry.reason }}
 				</p>
+				<p v-if="noteFor(entry)" class="cn-audit-card__reason" data-testid="cn-audit-card-note">
+					{{ noteFor(entry) }}
+				</p>
 			</li>
 		</ul>
 		<p v-if="footnote" class="cn-audit-card__footnote" data-testid="cn-audit-trail-widget-footnote">
 			{{ footnote }}
 		</p>
-		<template v-if="shownEntries.length > maxDisplay" #footer>
+		<template v-if="offersShowAll && shownEntries.length > maxDisplay" #footer>
 			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ shownEntries.length }})
 			</button>
@@ -82,7 +85,8 @@ import { markRaw } from 'vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
-import { actionLabelFor, changedValue, changeLabelFor, fillAuditLabel } from '../../utils/auditLabels.js'
+import { actionLabelFor, changedValue, changeLabelFor, changeNote, changeRuleFor, fillAuditLabel } from '../../utils/auditLabels.js'
+import { auditValueName } from '../../utils/auditValueName.js'
 import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
@@ -282,6 +286,16 @@ export default {
 	computed: {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Audit trail')
+		},
+
+		/**
+		 * Whether the host listens for `show-all`. The audit-trail widget binds
+		 * no listener, and a button that does nothing is not offered.
+		 *
+		 * @return {boolean}
+		 */
+		offersShowAll() {
+			return typeof this.$.vnode.props?.onShowAll === 'function'
 		},
 
 		/**
@@ -506,9 +520,10 @@ export default {
 		 * @return {string} The line.
 		 */
 		formatAction(entry) {
-			const label = this.changeLabelFor(entry) ?? this.labelFor(entry)
+			const rule = changeRuleFor(entry, this.changeLabels)
+			const label = rule ? rule.label : this.labelFor(entry)
 			if (label !== null) {
-				return fillAuditLabel(label, entry, { actor: this.actorName(entry), object: this.object, valueLabels: this.valueLabels })
+				return fillAuditLabel(label, entry, { actor: this.actorName(entry), object: this.object, valueLabels: this.valueLabels, rule, names: auditValueName })
 			}
 			const action = entry.action || entry.event || this.actionLabel
 			return entry.stateAfter ? `${action} (${entry.stateAfter})` : action
@@ -536,6 +551,17 @@ export default {
 		 */
 		changeLabelFor(entry) {
 			return changeLabelFor(entry, this.changeLabels)
+		},
+
+		/**
+		 * The note the matched change rule shows under the entry (`note`).
+		 *
+		 * @param {object} entry The entry.
+		 * @return {string} The note, '' for none.
+		 * @spec openspec/changes/audit-change-from-to/specs/audit-trail/spec.md#requirement-a-change-rule-can-show-a-note-under-its-entry
+		 */
+		noteFor(entry) {
+			return changeNote(entry, changeRuleFor(entry, this.changeLabels))
 		},
 
 		/**

@@ -52,6 +52,7 @@ import { parseDispositionFilename, triggerBlobDownload } from '../components/CnI
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import { routeHref } from './actionLink.js'
 import { resolveModalEntry } from './builtInModals.js'
+import { noticeFromOutcome } from './cardNotices.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -64,6 +65,32 @@ import { schemaRefSlug } from './schemaRefSlug.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/**
+ * Show a call's outcome in the card it was run from when the answer asks for
+ * a notice (`notice` in the body, or `noticeInline` on the action) and the
+ * surface passed `context.showNotice`; otherwise toast it as before.
+ *
+ * @param {object} action The dispatched action.
+ * @param {object} context The dispatch context.
+ * @param {{ok: boolean, data?: unknown, error?: unknown, text: string}} outcome The call outcome and its toast text.
+ * @param {object} dialogs The `@nextcloud/dialogs` module.
+ * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+ */
+function reportOutcome(action, context, outcome, dialogs) {
+	const text = outcome.text
+	if (context && typeof context.showNotice === 'function') {
+		const notice = noticeFromOutcome(action, outcome, outcome.ok ? { successText: text } : { errorText: text })
+		if (notice) {
+			context.showNotice(notice)
+			return
+		}
+	}
+	const toast = outcome.ok ? dialogs.showSuccess : dialogs.showError
+	if (typeof toast === 'function') {
+		toast(text)
+	}
+}
 
 /**
  * Whether a `navigate` target leaves the app: it is `http(s)://`,
@@ -450,6 +477,7 @@ export function actionLink(action, context = {}) {
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
  * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
+ * @spec openspec/changes/api-call-delete/specs/api-call-delete/spec.md#requirement-an-api-call-action-can-send-delete
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -467,7 +495,7 @@ async function executeApiCall(action, context) {
 		return { ok: false, error: new Error('api-call blocked') }
 	}
 	const verb = String(action.method || 'POST').toUpperCase()
-	const method = { PUT: 'put', PATCH: 'patch', GET: 'get' }[verb] || 'post'
+	const method = { PUT: 'put', PATCH: 'patch', GET: 'get', DELETE: 'delete' }[verb] || 'post'
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -481,11 +509,14 @@ async function executeApiCall(action, context) {
 		// call shape for every existing (non-download) api-call consumer/test.
 		// A GET sends the resolved params as the query string: it reads, as a
 		// download of what the page shows (DqDoorlooptijd "Downloaden").
+		// A DELETE carries its body as the request data (an unfreeze reason).
 		const res = method === 'get'
 			? await axios.get(target, isDownload ? { params: body, responseType: 'blob' } : { params: body })
-			: (isDownload
-					? await axios[method](target, body, { responseType: 'blob' })
-					: await axios[method](target, body))
+			: method === 'delete'
+				? await axios.delete(target, { data: body })
+				: (isDownload
+						? await axios[method](target, body, { responseType: 'blob' })
+						: await axios[method](target, body))
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -493,22 +524,109 @@ async function executeApiCall(action, context) {
 			)
 			triggerBlobDownload(res.data, filename)
 		}
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.') }, dialogs)
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
 		if (shouldRefresh) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		if (!isDownload && action.openResponse) {
+			openResponseUrl(action.openResponse, outcome.data)
+		}
+		return outcome
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
 			&& (error.response.data.error || error.response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
+}
+
+/**
+ * The address an api-call's `openResponse` names in the call's answer: the
+ * `field` dot-path (default `url`), when it holds an http(s) URL or a
+ * server-relative path. Anything else (a `javascript:` URL, `//host`, no
+ * value) gives null.
+ *
+ * @param {(boolean|string|{field?: string, newTab?: boolean})} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ * @return {{url: string, newTab: boolean}|null} What to open, or null.
+ * @spec openspec/changes/api-call-open-response/specs/api-call-open-response/spec.md#requirement-an-api-call-can-open-what-the-call-answered
+ */
+export function resolveOpenResponse(openResponse, data) {
+	const spec = typeof openResponse === 'string'
+		? { field: openResponse }
+		: (openResponse && typeof openResponse === 'object' ? openResponse : (openResponse === true ? {} : null))
+	if (!spec || !data || typeof data !== 'object') {
+		return null
+	}
+	const field = typeof spec.field === 'string' && spec.field !== '' ? spec.field : 'url'
+	const value = field.split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
+	if (typeof value !== 'string') {
+		return null
+	}
+	const url = value.trim()
+	const safe = /^https?:\/\//i.test(url) || (url.startsWith('/') && !url.startsWith('//'))
+	return safe ? { url, newTab: spec.newTab === true } : null
+}
+
+/**
+ * Open what an api-call answered (`openResponse`): in a new tab with
+ * `newTab`, else in this one.
+ *
+ * @param {(boolean|string|object)} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ */
+function openResponseUrl(openResponse, data) {
+	const target = resolveOpenResponse(openResponse, data)
+	if (!target || typeof window === 'undefined') {
+		return
+	}
+	if (target.newTab) {
+		window.open(target.url, '_blank', 'noopener,noreferrer')
+	} else {
+		window.location.assign(target.url)
+	}
+}
+
+/**
+ * Execute an `object-action`: run the declared action `action.action` on the
+ * page's object (`register` / `schema` / `objectId` from the action, else the
+ * token context) with `action.inputs`, toast the outcome and refresh the page.
+ * A 202 (queued or suspended) says the action runs in the background.
+ *
+ * @param {object} action The action (`action`, `inputs?`, `register?`, `schema?`, `objectId?`).
+ * @param {object} context The runtime context (`tokenCtx`).
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>}
+ * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+ */
+async function executeObjectAction(action, context) {
+	const tokenCtx = context.tokenCtx || {}
+	const address = {
+		register: resolveAgentRef(action.register, tokenCtx.register, tokenCtx),
+		schema: resolveAgentRef(action.schema, tokenCtx.schema, tokenCtx),
+		id: resolveAgentRef(action.objectId, tokenCtx.objectId, tokenCtx),
+	}
+	const dialogs = await import('@nextcloud/dialogs')
+	if (!action.action || !address.register || !address.schema || !address.id) {
+		reportOutcome(action, context, { ok: false, text: t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error('object-action without an action or an object') }
+	}
+	const inputs = action.inputs && typeof action.inputs === 'object' ? resolveDeepTokens(action.inputs, tokenCtx) : {}
+	const { runObjectAction } = await import('../composables/useObjectActions.js')
+	const result = await runObjectAction(address, action.action, inputs)
+	if (!result.ok) {
+		reportOutcome(action, context, { ok: false, text: translateMessage(action.errorMessage, context) || result.message || t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error(result.message || 'object-action failed') }
+	}
+	const text = result.queued
+		? t('nextcloud-vue', 'Started. It finishes in the background.')
+		: (translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
+	reportOutcome(action, context, { ok: true, data: result.data, text }, dialogs)
+	if (action.refresh !== false) {
+		emit(PAGE_REFRESH_CHANNEL, {})
+	}
+	return { ok: true, data: result.data }
 }
 
 /**
@@ -603,13 +721,12 @@ async function executeAgentAction(action, context) {
 	const target = generateUrl(`/apps/hermiq/api/agents/${encodeURIComponent(agent)}/run-on-object`)
 	try {
 		const res = await axios.post(target, body)
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const status = response && response.status
@@ -619,12 +736,10 @@ async function executeAgentAction(action, context) {
 		// route 404s at the NC level) — surface a graceful "runtime unavailable"
 		// rather than a fail-closed authorization message.
 		const hermiqAbsent = status === 404 && !serverMessage
-		if (typeof dialogs.showError === 'function') {
-			const msg = hermiqAbsent
-				? t('nextcloud-vue', 'Agent runtime unavailable')
-				: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-			dialogs.showError(msg)
-		}
+		const msg = hermiqAbsent
+			? t('nextcloud-vue', 'Agent runtime unavailable')
+			: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
+		reportOutcome(action, context, { ok: false, error, text: msg }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -688,20 +803,17 @@ export async function postRunNode(action, context, config = {}) {
 	const target = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
 	try {
 		const res = await axios.post(target, { subject: { uuid, register, schema }, config: config || {} })
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const serverMessage = response && response.data
 			&& (response.data.error || response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -736,7 +848,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string).
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string) | "DELETE" (the body as request data).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
@@ -745,6 +857,9 @@ export async function postRunNode(action, context, config = {}) {
  * @param {object} [action.params] "api-call" only: legacy JSON body (ignored when `payload`
  *   is set). Values pass the shared filter-token grammar ONE level deep; optional (`…?`)
  *   tokens drop when unresolved, an unresolved REQUIRED token blocks the call.
+ * @param {(boolean|string|object)} [action.openResponse] "api-call" only: open the address
+ *   the answer holds at `field` (default `url`) after a successful call, in a new tab with
+ *   `newTab: true`; `true` reads `url`, a string names the field.
  * @param {boolean} [action.download] "api-call" only: request the response as a binary blob
  *   (`responseType: 'blob'`) and trigger a browser file download instead of a JSON
  *   toast+refresh cycle. Default `false`.
@@ -774,6 +889,9 @@ export async function postRunNode(action, context, config = {}) {
  *
  * @param {object} context Runtime context.
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".
+ * @param {Function} [context.showNotice] "api-call" / "agent" / run-node: draws a notice in the
+ *   card the action ran from. Used instead of the toast when the answer carries `notice`, or the
+ *   action sets `noticeInline: true` (card-state-notices).
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function, called with the action's spread args. A
@@ -988,6 +1106,14 @@ export function dispatchAction(action, context = {}) {
 		// BEFORE calling the dispatcher (object-op precedent) — no gating
 		// happens here.
 			return executeApiCall(action, context)
+		}
+
+		case 'object-action': {
+		// Run an action OpenRegister declares on the object's schema
+		// (object-actions-declared-and-run): POST its inputs, toast, refresh.
+		// A surface that needs an inputs dialog (CnActionButtons) opens it
+		// before dispatching here.
+			return executeObjectAction(action, context)
 		}
 
 		case 'agent': {

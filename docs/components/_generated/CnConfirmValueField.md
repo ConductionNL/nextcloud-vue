@@ -16,7 +16,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                            | Payload | Description |
-| --------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                             | —       |             |
-| `update:modelValue Emitted with the typed text on every input.` | —       |             |
+| Name                | Payload | Description                                 |
+| ------------------- | ------- | ------------------------------------------- |
+| `update:modelValue` | —       | Emitted with the typed text on every input. |

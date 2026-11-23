@@ -22,6 +22,10 @@ The state is always a word with a colour beside it, never a colour alone (WCAG 1
 | `emptyText` | String | `''` | Said when there is nothing to check |
 | `errorText` | String | `''` | Said when the source could not be read |
 | `blockingText` | String | `''` | Said before the unmet items marked `blocking` ("Cannot run until this is installed:") |
+| `summary` | String | `''` | The count above the list, a template with `{met}`, `{open}` and `{total}`. An item whose state is unknown counts as open. |
+| `verdict` | Object | `null` | The verdict beside the count: `{ met, unmet }`. `met` shows when there are items and all are met. |
+| `note` | String | `''` | A line under the list |
+| `confirmLabel` | String | `''` | Label of a button under the list. It stays off until every item is met. |
 
 Texts the page declares go through the host's `cnTranslate`.
 
@@ -30,6 +34,28 @@ Texts the page declares go through the host's `cnTranslate`.
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `loaded` | the answer | The source answered; a host can read more from it (a note under the list) |
+| `confirm` | none | The `confirmLabel` button was pressed |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `actions` | Further buttons beside the confirm |
+
+## A step that waits for the list
+
+Board DqZaakDocumenten draws "Volledigheid van de aanvraag": the required documents, how many are there, the verdict, and a button that takes the next step once everything is in.
+
+```vue
+<CnReadinessChecklist
+  :items="requiredDocuments"
+  :status-labels="{ met: 'Aanwezig', unmet: 'Ontbreekt' }"
+  summary="{met} van {total} aanwezig, {open} ontbreken"
+  :verdict="{ met: 'Ontvankelijk', unmet: 'Nog niet ontvankelijk' }"
+  note="Tijdens de aanvulperiode staat de termijn stil."
+  confirm-label="Ontvankelijkheid bevestigen"
+  @confirm="moveToNextStatus" />
+```
 
 ## Example
 

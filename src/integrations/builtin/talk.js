@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnTalkCard from './talk/CnTalkCard.vue'
-import CnTalkTab from './talk/CnTalkTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnTalkCard = lazyComponent(() => import('./talk/CnTalkCard.vue'), 'CnTalkCard')
+const CnTalkTab = lazyComponent(() => import('./talk/CnTalkTab.vue'), 'CnTalkTab')
 
 /**
  * `talk` integration descriptor.

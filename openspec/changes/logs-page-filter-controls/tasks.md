@@ -1,0 +1,1 @@
+- [x] 1 `filterControls` on CnLogsPage and `utils/logFilterControls.js` (tests/components/CnLogsPageFilterControls.spec.js); docs/components/cn-logs-page.md

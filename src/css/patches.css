@@ -39,7 +39,10 @@
    puts the white icon at 4.67:1 and the square's edge at 4.32:1 on the
    page ground; the brand orange #f36c21 gives 3.01:1 and 2.78:1.
    @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange */
-.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue {
+/* The doubled class outranks the same rule in an older copy of this library
+   that another app's bundle injects later on the page (decidiq's integration
+   on the case Besluiten tab drew the square in the old #e2611a). */
+.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue.button-vue {
 	--cn-buildiq-color: #c64e0b;
 }
 

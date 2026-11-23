@@ -13,26 +13,49 @@
 		:paletteGroups="translatedPaletteGroups"
 		:flowDirection="flowDirection"
 		:layout="layout"
+		:toggleLabel="toggleLabel"
 		:nodeLook="nodeLook"
+		:edgeConditions="edgeConditions"
+		:listMode="listMode"
+		:view="arrivalView"
 		:notice="notice ? cnTranslate(notice) : ''"
+		:noticeLevel="noticeLevel"
+		:adminSteps="adminSteps"
 		:saveAsVersion="saveAsVersion"
 		:metaParts="metaParts"
 		:metaNote="metaNote ? cnTranslate(metaNote) : ''"
 		:pill="pill ? cnTranslate(pill) : ''"
 		:pillVariant="pillVariant"
 		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
+		:testPayload="testPayload"
 		@save="onSave"
-		@run="onRun" />
+		@run="onRun">
+		<template v-if="$slots.notice" #notice>
+			<!-- @slot notice A notice under the path, such as a drift warning (board look). -->
+			<slot name="notice" />
+		</template>
+		<template v-if="$slots['step-notice']" #step-notice="scope">
+			<!-- @slot step-notice A notice on the selected step, `{ node }` (board look). -->
+			<slot name="step-notice" v-bind="scope" />
+		</template>
+	</CnFlowBoard>
 	<CnFlowDetail v-else
 		:id="flowId"
 		:app="app"
 		:run="runUuid"
+		:edgeConditions="edgeConditions"
+		:view="activeView"
 		@save="onSave"
-		@run="onRun" />
+		@run="onRun">
+		<template v-if="listMode" #toolbar-start>
+			<CnFlowViewSwitch v-model="activeView" />
+		</template>
+	</CnFlowDetail>
 </template>
 
 <script>
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
+import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
 import CnFlowBoard from './CnFlowBoard.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 import { useLook } from '../../composables/useLook.js'
@@ -57,7 +80,7 @@ import { useLook } from '../../composables/useLook.js'
 export default {
 	name: 'CnFlowEditorPage',
 
-	components: { CnFlowBoard, CnFlowDetail },
+	components: { CnFlowBoard, CnFlowDetail, CnFlowViewSwitch },
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -174,6 +197,16 @@ export default {
 		},
 
 		/**
+		 * Board look: test the flow on an example payload. `true` opens an
+		 * empty field, text opens it with that JSON. Manifest key
+		 * `config.testPayload`.
+		 */
+		testPayload: {
+			type: [Boolean, String],
+			default: false,
+		},
+
+		/**
 		 * Board look: an info notice under the path. Manifest key
 		 * `config.notice`, translated with the app's catalogue; `{name}` is
 		 * the flow's name.
@@ -181,6 +214,25 @@ export default {
 		notice: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: the look of `notice`, `info`, `warning` or `error`.
+		 * Manifest key `config.noticeLevel`.
+		 */
+		noticeLevel: {
+			type: String,
+			default: 'info',
+		},
+
+		/**
+		 * Board look: steps only an admin may change, by node id or step type.
+		 * Anyone else reads them. The server decides what is saved; this is
+		 * the screen's side. Manifest key `config.adminSteps`.
+		 */
+		adminSteps: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -261,6 +313,47 @@ export default {
 			type: String,
 			default: 'cards',
 		},
+
+		/**
+		 * Board look: how the Active switch is named. `state` names it
+		 * Active or Paused after the flow; `fixed` always names it Active
+		 * and the switch shows the state (DqFlow). Manifest key
+		 * `config.toggleLabel`.
+		 */
+		toggleLabel: {
+			type: String,
+			default: 'state',
+		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its
+		 * own ("amount is more than 1000"). Manifest key
+		 * `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Offer the list view beside the canvas, with the Canvas / List switch:
+		 * the trigger and the steps in order, editing the same flow. Manifest
+		 * key `config.listMode`.
+		 */
+		listMode: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The view on arrival when `listMode` is on: `canvas` or `list`.
+		 * Defaults to the `view` query parameter, so a link can open the list.
+		 * Manifest key `config.view`.
+		 */
+		view: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
@@ -275,7 +368,20 @@ export default {
 		return { store: useFlowStore(), isBoard }
 	},
 
+	data() {
+		return { activeView: 'canvas' }
+	},
+
 	computed: {
+		/**
+		 * @return {string} The view asked for on arrival.
+		 */
+		arrivalView() {
+			const asked = this.view || this.$route?.query?.view
+
+			return this.listMode && asked === 'list' ? 'list' : 'canvas'
+		},
+
 		/**
 		 * @return {string} The flow id being edited.
 		 */
@@ -302,6 +408,10 @@ export default {
 		runUuid() {
 			return this.run || this.$route?.query?.run || ''
 		},
+	},
+
+	created() {
+		this.activeView = this.arrivalView
 	},
 
 	methods: {

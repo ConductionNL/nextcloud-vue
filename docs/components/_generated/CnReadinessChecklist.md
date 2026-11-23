@@ -20,9 +20,20 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `emptyText`    | `string` |          | `''`      | Said when there is nothing to check.                                                                      |
 | `errorText`    | `string` |          | `''`      | Said when the source could not be read.                                                                   |
 | `blockingText` | `string` |          | `''`      | Said before the unmet items marked `blocking` ("Cannot run until this is installed:").                    |
+| `summary`      | `string` |          | `''`      | The count above the list, a template with `{met}`, `{open}` and `{total}`.                                |
+| `verdict`      | `object` |          | `null`    | The verdict beside the count: `{ met, unmet }`.                                                           |
+| `note`         | `string` |          | `''`      | A line under the list.                                                                                    |
+| `confirmLabel` | `string` |          | `''`      | Label of a button under the list that stays off until every item is met; emits `confirm`.                 |
 
 ### Events
 
-| Name     | Payload | Description                                     |
-| -------- | ------- | ----------------------------------------------- |
-| `loaded` | —       | The source answered. Payload: the whole answer. |
+| Name      | Payload | Description                                     |
+| --------- | ------- | ----------------------------------------------- |
+| `confirm` | —       |                                                 |
+| `loaded`  | —       | The source answered. Payload: the whole answer. |
+
+### Slots
+
+| Name      | Bindings | Description                                 |
+| --------- | -------- | ------------------------------------------- |
+| `actions` | —        | actions Further buttons beside the confirm. |

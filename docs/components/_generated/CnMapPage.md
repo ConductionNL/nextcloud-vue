@@ -10,19 +10,21 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name               | Type               | Required | Default                                                    | Description                                    |
-| ------------------ | ------------------ | -------- | ---------------------------------------------------------- | ---------------------------------------------- |
-| `title`            | `string`           |          | `''`                                                       | Page title. Forwarded to `CnPageHeader`.       |
-| `description`      | `string`           |          | `''`                                                       | Page description. Forwarded to `CnPageHeader`. |
-| `center`           | `[number, number]` | ✓        | —                                                          | Initial map center as `[latitude, longitude]`. |
-| `zoom`             | `number`           |          | `7`                                                        | Initial zoom level.                            |
-| `layers`           | `Array<object>`    |          | `[]`                                                       | Layer definitions. See CnMapWidget docs.       |
-| `markers`          | `union`            |          | `null`                                                     | Marker config. See CnMapWidget docs.           |
-| `clustering`       | `boolean`          |          | `false`                                                    | Enable marker clustering.                      |
-| `height`           | `union`            |          | `'calc(100vh - 200px)'`                                    | Map container height.                          |
-| `autoFit`          | `boolean`          |          | `true`                                                     | Auto-fit bounds to loaded features.            |
-| `ariaLabel`        | `string`           |          | `() =&gt; t('nextcloud-vue', 'Map')`                       | Aria-label for the map application region.     |
-| `unavailableLabel` | `string`           |          | `() =&gt; t('nextcloud-vue', 'Map library not available')` | Label shown when Leaflet is unavailable.       |
+| Name               | Type               | Required | Default                                                    | Description                                                                                                                                                   |
+| ------------------ | ------------------ | -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`            | `string`           |          | `''`                                                       | Page title. Forwarded to `CnPageHeader`.                                                                                                                      |
+| `description`      | `string`           |          | `''`                                                       | Page description. Forwarded to `CnPageHeader`.                                                                                                                |
+| `center`           | `[number, number]` | ✓        | —                                                          | Initial map center as `[latitude, longitude]`.                                                                                                                |
+| `zoom`             | `number`           |          | `7`                                                        | Initial zoom level.                                                                                                                                           |
+| `showUserLocation` | `boolean`          |          | `false`                                                    | Show the reader's position on the map (`config.showUserLocation`): a dot with its accuracy circle. The browser asks for the location when the map has loaded. |
+| `centerOnUser`     | `boolean`          |          | `false`                                                    | Centre the map on the reader's position when the page opens (`config.centerOnUser`).                                                                          |
+| `layers`           | `Array<object>`    |          | `[]`                                                       | Layer definitions. See CnMapWidget docs.                                                                                                                      |
+| `markers`          | `union`            |          | `null`                                                     | Marker config. See CnMapWidget docs.                                                                                                                          |
+| `clustering`       | `boolean`          |          | `false`                                                    | Enable marker clustering.                                                                                                                                     |
+| `height`           | `union`            |          | `'calc(100vh - 200px)'`                                    | Map container height.                                                                                                                                         |
+| `autoFit`          | `boolean`          |          | `true`                                                     | Auto-fit bounds to loaded features.                                                                                                                           |
+| `ariaLabel`        | `string`           |          | `() =&gt; t('nextcloud-vue', 'Map')`                       | Aria-label for the map application region.                                                                                                                    |
+| `unavailableLabel` | `string`           |          | `() =&gt; t('nextcloud-vue', 'Map library not available')` | Label shown when Leaflet is unavailable.                                                                                                                      |
 
 ### Events
 
@@ -32,6 +34,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `marker-click`  | —       | Marker click event. Pass-through from `CnMapWidget`.                                                          |
 | `bounds-change` | —       | Viewport bounds change event. Fired (debounced) after pan / zoom settles. Pass-through from `CnMapWidget`.    |
 | `click`         | —       | Map background click event. Pass-through from `CnMapWidget`.                                                  |
+| `user-location` | —       | The reader's position was read (`showUserLocation` / `centerOnUser`).                                         |
 
 ### Slots
 

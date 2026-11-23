@@ -189,3 +189,26 @@ export default { components: { CnLogsPage } }
 - The row-detail dialog renders a bag of primitives (a stack trace's frames, an argument map) as its own labelled grid, and anything deeper as pretty-printed JSON. Override the whole body with `#row-detail` when a log shape deserves bespoke rendering.
 - `fetchCollection` records failures on the store rather than throwing, so the `#error` slot reads `store.errors[type]` in store mode.
 - When neither register+schema nor source is set, the component renders the empty-state and emits a single `console.warn`. This is deliberate — a misconfigured manifest does not break the app shell.
+
+## Filter controls
+
+`filterControls` (`config.filterControls`, store mode) draws filters above the table and keeps each in the address, so a filtered view is a link and a row action that lands with `?source=<uuid>` opens with the source picker set:
+
+```json
+"filterControls": [
+  { "key": "statusCode", "label": "Status", "type": "select",
+    "options": [{ "label": "Server error", "filter": { "statusCode": { "gte": 500 } } }] },
+  { "key": "source", "label": "Source", "type": "reference",
+    "optionsFrom": { "register": "integriq", "schema": "source", "labelKey": "name", "valueKey": "uuid" } },
+  { "key": "created", "label": "Time", "type": "dateRange", "range": { "defaultDays": 7 } }
+]
+```
+
+| `type` | Draws | In the address and the fetch |
+|--------|-------|------------------------------|
+| `select` | a select of `options`, one at a time | `_f_<key>=<option index>`; the option's `filter` map is merged into the fetch |
+| `reference` | a picker over another schema's objects (`optionsFrom`, `labelKey` / `valueKey`) | `<key>=<value>` |
+| `dateRange` | `CnDateRangePicker`; `range.defaultDays` preselects the last N days on first load | `<key>[gte]` and `<key>[lte]` (ISO 8601) |
+
+Labels go through the app's translations. A change replaces the address (`router.replace`), and the list refetches from page 1. The page's `filter` wins a collision, so a page scoped to `direction: outbound` stays scoped.
+

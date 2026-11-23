@@ -59,6 +59,7 @@ export default {
 | `cancelLabel` | String | | Cancel button label |
 | `closeLabel` | String | | Close button label |
 | `confirmLabel` | String | | Confirm button label |
+| `description` | `String` | `''` | What the delete removes besides the item, as a muted line under the question. `{name}` is the item name. Empty shows nothing. |
 
 ## Events
 

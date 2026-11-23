@@ -7,11 +7,13 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnActionTilesWidget from './CnActionTilesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnActionTilesWidget = lazyComponent(() => import('./CnActionTilesWidget.vue'), 'CnActionTilesWidget')
+
 registerDashboardWidget('action-tiles', {
-	renderer: CnActionTilesWidget,
+	renderer: LazyCnActionTilesWidget,
 	form: null,
 	defaultContent: {
 		tiles: [],
@@ -21,5 +23,5 @@ registerDashboardWidget('action-tiles', {
 	surfaces: ['app-dashboard'],
 })
 
-export { CnActionTilesWidget }
-export default CnActionTilesWidget
+export { default as CnActionTilesWidget } from './CnActionTilesWidget.vue'
+export { default } from './CnActionTilesWidget.vue'

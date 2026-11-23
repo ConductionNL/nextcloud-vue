@@ -8,11 +8,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnAttentionFlagWidget from './CnAttentionFlagWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnAttentionFlagWidget = lazyComponent(() => import('./CnAttentionFlagWidget.vue'), 'CnAttentionFlagWidget')
+
 registerDashboardWidget('attention-flag', {
-	renderer: CnAttentionFlagWidget,
+	renderer: LazyCnAttentionFlagWidget,
 	form: null,
 	defaultContent: {
 		endpoint: '',
@@ -24,5 +26,5 @@ registerDashboardWidget('attention-flag', {
 	surfaces: ['detail-page'],
 })
 
-export { CnAttentionFlagWidget }
-export default CnAttentionFlagWidget
+export { default as CnAttentionFlagWidget } from './CnAttentionFlagWidget.vue'
+export { default } from './CnAttentionFlagWidget.vue'

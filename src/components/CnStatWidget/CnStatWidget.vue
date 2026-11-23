@@ -21,7 +21,7 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
-			{ 'cn-kpi-card--board': isBoardLook },
+			{ 'cn-kpi-card--board': isBoardLook, 'cn-kpi-card--icon-top': hasTopBadge },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
@@ -33,6 +33,17 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
+			<!-- Board look, `content.iconPlacement: "top"`: the icon sits in a
+			     42px circle above the label, tinted by the tile's state
+			     (LqTlVandaag). -->
+			<span
+				v-if="hasTopBadge"
+				class="cn-kpi-card__badge cn-kpi-card__badge--top cn-stat-widget__badge-icon"
+				:class="'cn-kpi-card__badge--' + stateTone"
+				data-testid="cn-stat-widget-icon-top"
+				aria-hidden="true">
+				<CnWidgetIcon :name="resolvedIcon" :size="22" />
+			</span>
 			<div
 				v-if="content.label || rangePresets.length"
 				class="cn-kpi-card__title cn-stat-widget__label"
@@ -40,7 +51,7 @@
 				<!-- Board look: the icon is an 18px glyph before the label, and
 				     only when the tile links to a filtered list. -->
 				<span
-					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge"
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge && !hasTopBadge"
 					class="cn-kpi-card__glyph cn-stat-widget__glyph"
 					data-testid="cn-stat-widget-glyph"
 					aria-hidden="true">
@@ -124,6 +135,12 @@
 						:style="{ color: trendColor }">
 						<component :is="trendIcon" :size="14" />
 						{{ formattedTrend }}
+					</span>
+					<span
+						v-else-if="noPreviousText"
+						class="cn-stat-widget__trend cn-stat-widget__trend--none"
+						data-testid="cn-stat-widget-no-previous">
+						{{ noPreviousText }}
 					</span>
 				</template>
 				<span
@@ -325,6 +342,7 @@ function calendarDay(value) {
  *   previousField: 'previousPeriod.revenue',   // → trend sublabel (arrow + % vs previous)
  *   // deltaField: 'revenueDeltaPct',          // OR a server-computed delta percent
  *   goodDirection: 'up',                       // tints the trend good/bad (default 'up')
+ *   noPreviousText: 'No earlier period to compare with', // when the previous value is missing or 0
  *   variantWhen: [                             // first-match threshold styling
  *     { op: 'gte', value: 100000, variant: 'success' },
  *     { op: 'lt', value: 10000, variant: 'warning', icon: 'AlertOutline' },
@@ -486,6 +504,8 @@ export default {
 		 * payload; `previousField` (previous-period value) or `deltaField`
 		 * (server-computed percent) renders the trend sublabel (arrow +
 		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
+		 * `noPreviousText` replaces that sublabel when `previousField` is set
+		 * but the previous value is missing, not numeric or 0;
 		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
 		 * re-tints the value/icon by threshold.
 		 *
@@ -533,7 +553,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), noPreviousText?: string, variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -671,6 +691,28 @@ export default {
 		},
 
 		/**
+		 * The caption before translation: the matching override's `caption`,
+		 * else `content.caption`. A `{ singular, plural }` caption takes the
+		 * singular for a count of one and the plural otherwise, counted by the
+		 * caption's own count, or by the tile's number when it has none.
+		 *
+		 * @return {string} The source string, '' for none.
+		 * @spec openspec/changes/stat-caption-plural/specs/stat-widget/spec.md#requirement-a-stat-caption-can-take-a-singular-and-a-plural-form
+		 */
+		captionSourceText() {
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
+			if (!caption || typeof caption !== 'object') {
+				return typeof caption === 'string' ? caption : ''
+			}
+			const count = this.hasCaptionSource ? this.captionCount : this.displayValue
+			const form = Number(count) === 1 ? caption.singular : caption.plural
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
 		 *
@@ -706,10 +748,7 @@ export default {
 		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
-			const override = this.activeOverride
-			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
-				? override.caption
-				: this.content.caption
+			const caption = this.captionSourceText
 			if (!caption) {
 				return ''
 			}
@@ -841,7 +880,7 @@ export default {
 		 * null. Colours the caption on the value without recolouring the
 		 * tile: "1 due today" turns red while the number stays ink.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {object|null}
 		 */
 		activeCaptionRule() {
@@ -890,7 +929,7 @@ export default {
 		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
 		 * variant, so an uncoloured caption is what it always was.
 		 *
-		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
 		 * @return {string}
 		 */
 		captionVariantClass() {
@@ -1359,6 +1398,24 @@ export default {
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
 
+		/**
+		 * The translated `content.noPreviousText` when `previousField` is set
+		 * and the previous value is missing, not numeric or 0, else ''.
+		 *
+		 * @return {string}
+		 */
+		noPreviousText() {
+			const text = this.content.noPreviousText
+			if (typeof text !== 'string' || text === '' || !this.endpointMode || !this.content.previousField || this.content.deltaField) {
+				return ''
+			}
+			if (this.displayLoading || this.displayError || !this.epData) {
+				return ''
+			}
+			const prev = this.previousValue
+			return prev === null || prev === 0 ? this.effectiveTranslate(text) : ''
+		},
+
 		/** The signed trend percent, e.g. "+12.3%". */
 		formattedTrend() {
 			if (this.trendPct === null) {
@@ -1506,6 +1563,20 @@ export default {
 		hasEndBadge() {
 			return this.isBoardLook
 				&& (this.content || {}).iconPlacement === 'end'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted 42px circle above
+		 * the label (`content.iconPlacement: "top"`), as the learniq Today
+		 * tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label
+		 * @return {boolean}
+		 */
+		hasTopBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'top'
 				&& Boolean(this.resolvedIcon)
 		},
 
@@ -2463,6 +2534,11 @@ export default {
 	gap: 2px;
 	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: var(--cn-kpi-title-weight, 600);
+}
+
+.cn-stat-widget__trend--none {
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
 }
 
 /* The dash shown when the number could not be fetched. It stands where the

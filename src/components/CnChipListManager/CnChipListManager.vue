@@ -410,7 +410,7 @@ export default {
 	padding: 0 4px 0 12px;
 	border-radius: 15px;
 	background: var(--color-background-dark);
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 	font-size: 14px;
 	font-weight: 600;
 }
@@ -477,6 +477,9 @@ export default {
 .cn-chip-list__input {
 	width: 100%;
 	height: 40px;
+	/* The server forces text inputs to 34px through a :not() chain; a
+	   min-height still wins. */
+	min-height: 40px;
 	margin: 0;
 	padding: 0 12px;
 	box-sizing: border-box;

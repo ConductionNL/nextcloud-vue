@@ -8,11 +8,13 @@
  * load. Renderer only: the sections are declared in the manifest.
  */
 
-import CnSectionsWidget from './CnSectionsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSectionsWidget = lazyComponent(() => import('./CnSectionsWidget.vue'), 'CnSectionsWidget')
+
 registerDashboardWidget('sections', {
-	renderer: CnSectionsWidget,
+	renderer: LazyCnSectionsWidget,
 	form: null,
 	defaultContent: {
 		sections: [],
@@ -30,5 +32,5 @@ registerDashboardWidget('sections', {
 	surfaces: ['detail-page'],
 })
 
-export { CnSectionsWidget }
-export default CnSectionsWidget
+export { default as CnSectionsWidget } from './CnSectionsWidget.vue'
+export { default } from './CnSectionsWidget.vue'

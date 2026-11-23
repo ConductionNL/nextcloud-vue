@@ -209,3 +209,38 @@ describe('CnNavCardGrid — ordering', () => {
 		expect(labels).toEqual(['A (order 1)', 'B (order 2)', 'Z (no order)', 'Y (no order)'])
 	})
 })
+
+describe('CnNavCardGrid — a grid whose every card is gated away renders nothing', () => {
+	// A card's `visibleIf` is a real gate, so a grid of admin-only cards is
+	// empty for everyone else. It used to render its titled wrapper anyway: an
+	// empty card with an Actions menu on every page the grid sat on.
+	const adminOnly = [{ id: 'a', label: 'Manage object types', href: '/x', visibleIf: { 'user.isAdmin': true } }]
+
+	it('renders no wrapper when no entry passes', () => {
+		const wrapper = mountGrid(
+			{ title: 'Data model', entries: adminOnly },
+			{ provide: { cnManifest: { pages: [], runtime: { user: { isAdmin: false } } } } },
+		)
+		expect(wrapper.find('.cn-nav-card-grid').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Data model')
+	})
+
+	it('renders no wrapper when runtime has not arrived, which hides a dot-path gate', () => {
+		const wrapper = mountGrid({ title: 'Data model', entries: adminOnly }, { provide: { cnManifest: { pages: [] } } })
+		expect(wrapper.find('.cn-nav-card-grid').exists()).toBe(false)
+	})
+
+	it('renders the grid and the card when the entry passes', () => {
+		const wrapper = mountGrid(
+			{ title: 'Data model', entries: adminOnly },
+			{ provide: { cnManifest: { pages: [], runtime: { user: { isAdmin: true } } } } },
+		)
+		expect(wrapper.find('.cn-nav-card-grid').exists()).toBe(true)
+		expect(wrapper.text()).toContain('Manage object types')
+	})
+
+	it('renders nothing for an empty entries list either', () => {
+		const wrapper = mountGrid({ title: 'Data model', entries: [] })
+		expect(wrapper.find('.cn-nav-card-grid').exists()).toBe(false)
+	})
+})

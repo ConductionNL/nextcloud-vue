@@ -905,3 +905,63 @@
 .cn-data-table .cn-table-col--end {
 	text-align: end;
 }
+
+/* CnDataTable state banners (R1): above the rows, inside the table's inset. */
+.cn-data-table__notices {
+	padding: 0 var(--cn-card-notice-inset, 16px) 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-data-table th.cn-table-header--sortable,
+	.cn-table-row,
+	.viewTableRow {
+		transition: none;
+	}
+}
+
+/* stackOnPhone: a row is a stacked block on a phone-width screen, each cell
+   one line with its column name, the controls 44px tall to touch. */
+@media (max-width: 600px) {
+	.cn-data-table--stack thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.cn-data-table--stack,
+	.cn-data-table--stack tbody,
+	.cn-data-table--stack tr,
+	.cn-data-table--stack td {
+		display: block;
+		width: 100%;
+	}
+
+	.cn-data-table--stack tr {
+		padding: 8px 0;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.cn-data-table--stack td {
+		display: flex;
+		gap: 8px;
+		max-width: none !important;
+		padding: 4px 12px;
+		border: 0;
+		white-space: normal;
+	}
+
+	.cn-data-table--stack td[data-label]::before {
+		content: attr(data-label);
+		flex: 0 0 40%;
+		color: var(--color-text-maxcontrast);
+		font-weight: 600;
+	}
+
+	.cn-data-table--stack td button,
+	.cn-data-table--stack td .button-vue {
+		min-height: 44px;
+	}
+}
+

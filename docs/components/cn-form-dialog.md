@@ -30,6 +30,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
+| `footnote` | String | `''` | A short note the form closes on, drawn under its fields with an information icon. Empty shows none. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
@@ -77,7 +78,7 @@ When `allowDraft` is on and the schema declares `draftField`, a stored draft rec
 | `date` | Date picker |
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
-| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker |
+| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker With `choiceKey`, formData also holds the whole choice (`{ source, id, label, secondary, row }`, or null) under that key, for a create override that stores more than the id; the override takes it out before saving. |
 | `resource` | An object pick ([CnResourceSelect](cn-resource-select.md)) over `field.resource: { register, schema, labelField?, scope?, failedText? }`. A `scope.value` token such as `@object.caseType` is read from the page's object (by id when it is a relation); an unreadable token offers every row. `failedText` goes through the app's translate. Nothing is created from the search term |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
 | `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
@@ -208,6 +209,12 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 
 ## Options from a source (`optionsFrom`)
 
+### Starting from a template
+
+With `templateSource: { register, schema }` a create form reads OpenRegister's record templates of that register and schema (`GET /apps/openregister/api/record-templates`) and offers them in a "Start from a template" picker above the fields. Picking one fills the form from its `values`. A value whose field the form no longer has, or whose type no longer matches the property, is left out, and a line under the picker names them. A field the person already changed keeps what they typed. The record is then saved like any other, so validation and rights apply once. An edit form offers no templates. On a manifest index page, `config.recordTemplates: true` switches it on.
+
+A select whose allowed values depend on another field follows the property's `x-openregister-dependent-values` table, the one OpenRegister enforces on save: `{ "controlledBy": "licentietype", "allowed": { "Open source": ["EUPL-1.2", "MIT"], "Closed source": [] } }`. The field offers only the row of the controlling field's value (nothing for an empty row), and every value while the controlling value is not in the table. When the controlling field changes, a value the new row does not allow is cleared; on an array field (the table on `items`) only those entries are dropped.
+
 A select can read its options instead of listing them, as dossiq's IV3 taakveld picker does. Declare `optionsFrom` on a field (or in `fieldOverrides`), or `x-options-from` on the register schema property:
 
 ```json
@@ -215,6 +222,12 @@ A select can read its options instead of listing them, as dossiq's IV3 taakveld 
 ```
 
 `optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint), the shape a dashboard page filter takes. `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).
+
+A source that lives in another app can name it in `requiresApp`. While that app is not installed the source is not read: the field is a plain text input, so the value can still be typed, with the block's `missingText` (translated) under it instead of the general "could not be loaded" line:
+
+```json
+{ "iv3TaskField": { "optionsFrom": { "register": "shillinq", "schema": "BbvTaakveld", "valueField": "code", "labelField": "name", "requiresApp": "shillinq", "missingText": "Install Shillinq to pick from the BBV list" } } }
+```
 
 The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A read that fails or gives no options turns the field into a text input with a line saying so, as a concept-scheme choice does. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
 
@@ -678,7 +691,7 @@ A property that declares `x-openregister-property-source` (`provider`, `mode`, `
 
 ## Duration and sub-objects widgets
 
-`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). A field override with `timer`, `autoStart`, `norm` and `normLabel` draws it as a running clock. An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
 
 ## Child records
 

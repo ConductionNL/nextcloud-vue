@@ -294,13 +294,10 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
+import { computed, defineAsyncComponent, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
-import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { useListNavigation } from '../../composables/useListNavigation.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
@@ -364,8 +361,12 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	}
 	return entityDescriptorCache.get(key).catch(() => null)
 }
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
+
+const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
+const CnMassExportDialog = defineAsyncComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue').then((m) => m.default))
+const CnPageConfigModal = defineAsyncComponent(() => import('../../dialogs/CnPageConfigModal.vue').then((m) => m.default))
+const CnBuildiqEditButton = defineAsyncComponent(() => import('../CnBuildiqEditButton/CnBuildiqEditButton.vue').then((m) => m.default))
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -2347,6 +2348,8 @@ export default {
 		 * need objectId / register (e.g. file-manager) render without
 		 * waiting for the object body; the getters go non-null the moment
 		 * the fetches populate the cache — no re-publish needed.
+		 *
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
 		 */
 		async loadDetailObject() {
 			const ctx = this.detailLoadContext
@@ -2449,10 +2452,11 @@ export default {
 			}
 			if (typeof store.fetchObject === 'function') {
 				// The same read CnDetailPage makes: it asks for `@self.can` while the
-				// Follow toggle can render, and a plain read landing later would
-				// overwrite the object without it.
-				const extend = [...(Array.isArray(this.currentPage?.config?.extend) ? this.currentPage.config.extend : [])]
-				if (this.currentPage?.config?.follow !== false && !extend.includes('@self.can')) {
+				// Follow toggle can render or the page reads the record's rights, and
+				// a plain read landing later would overwrite the object without it.
+				const config = this.currentPage?.config || {}
+				const extend = [...(Array.isArray(config.extend) ? config.extend : [])]
+				if ((config.follow !== false || config.permissions === true) && !extend.includes('@self.can')) {
 					extend.push('@self.can')
 				}
 				tasks.push(store.fetchObject(ctx.slug, ctx.objectId, { extend }).catch(() => null))

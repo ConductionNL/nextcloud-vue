@@ -9,11 +9,13 @@
  * offer it.
  */
 
-import CnChecklistWidget from './CnChecklistWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnChecklistWidget = lazyComponent(() => import('./CnChecklistWidget.vue'), 'CnChecklistWidget')
+
 registerDashboardWidget('checklist', {
-	renderer: CnChecklistWidget,
+	renderer: LazyCnChecklistWidget,
 	form: null,
 	defaultContent: {
 		path: 'checklist',
@@ -23,5 +25,5 @@ registerDashboardWidget('checklist', {
 	surfaces: ['detail-page'],
 })
 
-export { CnChecklistWidget }
-export default CnChecklistWidget
+export { default as CnChecklistWidget } from './CnChecklistWidget.vue'
+export { default } from './CnChecklistWidget.vue'

@@ -219,12 +219,15 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    after the box: NcCheckboxRadioSwitch pads its row by half the clickable
    area, which set the box 9px in (DqBerichtVersturen "Dit is een besluit").
    A note under the checkbox lines up with its label through
-   --cn-dialog-check-label-inset (the 20px box and the gap). */
+   --cn-dialog-check-label-inset (the 20px box and the gap). A radio sits the
+   same way (PqAanvraagOmzetten "Klant", 7px in on live).
+   @spec openspec/changes/board-dialog-radio-flush/specs/board-dialog-radio-flush/spec.md */
 .cn-dialog-board {
 	--cn-dialog-check-label-inset: 30px;
 }
 
-.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content {
+.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content {
 	padding-inline: 0;
 	gap: 10px;
 }
@@ -236,7 +239,9 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
    probed with these rules: field to note 50, as drawn).
    @spec openspec/changes/board-dialog-checkbox-24-note-flush/specs/board-dialog-checkbox-24-note-flush/spec.md#requirement-a-board-dialogs-checkbox-is-24px-and-its-notes-add-no-margin */
 .cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
-.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
 	min-height: 24px;
 	padding-block: 0;
 }
@@ -453,6 +458,23 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 	margin-block: 0;
 }
 
+/* So does a search select (DqNieuweZaak "Aanvrager"): its 6px top margin set
+   it 6px below "Intakekanaal" beside it, and its suggestions with it.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-dialog__party-wrapper .cn-search-select > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
+}
+
+/* A field's label and its help line stand on the font's own leading, as the
+   boards set them: the body's 1.5 leading added 4px over each label and 4px
+   under each help line, so every row of DqNieuweZaak sat 4 to 8px lower.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-field__label,
+.cn-dialog-board .dialog__content .cn-form-field__optional,
+.cn-dialog-board .dialog__content .cn-form-dialog__helper {
+	line-height: normal;
+}
+
 /* A multiple select is the board's 40px field too (DqFilterDelen "Delen
    met"). The edge goes on the toggle, which holds the chips and the search,
    so the chosen people and groups sit inside the field; the search inside it
@@ -549,16 +571,18 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 }
 
 /* A field's help line sits right under the control in 13px muted ink, flush
-   with the label, as the boards draw it (PtUitnodigen "De uitnodiging met een
-   eenmalige code gaat naar dit adres.", PtAccountUitgeven). The ink carries
-   `!important` against a theme that colours every span and p (thematiq).
-   @spec openspec/changes/board-dialog-field-help/specs/board-dialog-field-help/spec.md#requirement-a-board-dialog-fields-help-line-is-13px-muted-under-the-control */
+   with the label, on the font's own leading, as the boards draw it
+   (PtUitnodigen "De uitnodiging met een eenmalige code gaat naar dit adres.",
+   PtAccountUitgeven, DqZaakLocatie). The ink carries `!important` against a
+   theme that colours every span and p (thematiq).
+   @spec openspec/changes/board-dialog-field-help/specs/board-dialog-field-help/spec.md#requirement-a-board-dialog-fields-help-line-is-13px-muted-under-the-control
+   @spec openspec/changes/board-dialog-help-normal-leading/specs/board-dialog-help-normal-leading/spec.md#requirement-a-board-dialog-fields-help-line-stands-on-the-fonts-own-leading */
 .cn-dialog-board .dialog__content .input-field__helper-text-message,
 .cn-dialog-board .dialog__content .textarea__helper-text-message {
 	padding: 4px 0 0;
 	color: var(--color-text-maxcontrast) !important;
 	font-size: 13px;
-	line-height: 1.3;
+	line-height: normal;
 }
 
 .cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
@@ -836,4 +860,13 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
 .cn-dialog-board .dialog__content .cn-duplicate-warning__hint {
 	font-size: 13px;
 	line-height: normal;
+}
+
+/* CnDialog state banners (R1): under the header, or above the footer. */
+.cn-dialog__notices--top {
+	margin-bottom: 12px;
+}
+
+.cn-dialog__notices--bottom {
+	margin-top: 12px;
 }

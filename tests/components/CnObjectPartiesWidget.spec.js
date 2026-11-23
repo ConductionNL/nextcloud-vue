@@ -20,6 +20,7 @@ jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url, par
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnObjectPartiesWidget/index.js'
 
@@ -96,8 +97,8 @@ beforeEach(() => {
 })
 
 describe('CnObjectPartiesWidget', () => {
-	it('registers the parties type for detail pages', () => {
-		expect(getWidgetTypeEntry('parties').renderer).toBe(CnObjectPartiesWidget)
+	it('registers the parties type for detail pages', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('parties').renderer)).toBe(CnObjectPartiesWidget)
 	})
 
 	it('puts the primary party and its role first, in the app\'s words', async () => {
@@ -176,6 +177,27 @@ describe('CnObjectPartiesWidget', () => {
 		const w = await mountParties()
 		expect(w.findAll('[data-testid="cn-object-parties-documents"]')).toHaveLength(0)
 		expect(w.findAll('[data-testid="cn-object-parties-party"]').length).toBeGreaterThan(0)
+	})
+
+	it('names when a representation ends, as a warning pill in both looks', async () => {
+		const ending = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', validUntil: '2026-12-31' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', partyKind: 'person', validUntil: '2026-12-31' }] } }
+		const content = { ...CONTENT, representationUntil: 'Authorisation until {date}' }
+		for (const look of ['nextcloud', 'board']) {
+			serve({ '/apps/openregister/api/objects/x/item/r-1/parties': ending })
+			const w = await mountParties(content, look)
+			const pills = w.findAll('[data-testid="cn-object-parties-until"]')
+			expect(pills).toHaveLength(1)
+			expect(w.find('[data-party="p-mr"] [data-testid="cn-object-parties-until"]').text()).toMatch(/^Authorisation until .*31/)
+			expect(pills[0].classes()).toContain('cn-status-badge--warning')
+			w.unmount()
+		}
+	})
+
+	it('draws no end pill when the app gives no words for it', async () => {
+		const ending = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', validUntil: '2026-12-31' }] } }
+		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': ending })
+		const w = await mountParties(CONTENT, 'board')
+		expect(w.find('[data-testid="cn-object-parties-until"]').exists()).toBe(false)
 	})
 
 	it('says a failed read failed, never that there are no parties', async () => {
@@ -453,10 +475,43 @@ describe('CnObjectPartiesWidget in the board look (DqZaakBetrokkenen "Rollen")',
 		const jan = rows.find((row) => row.text().includes('Jan Jansen'))
 		expect(jan.find('.cn-object-parties__tile').text()).toBe('JJ')
 		const meta = jan.find('[data-testid="cn-object-parties-meta"]').text()
-		expect(meta).toContain('Primary party')
-		expect(meta).toContain('Requester')
+		expect(meta).toBe('Primary party · requester · Writing language: Dutch. Asked for by the party. · 1 sent, 1 received')
 		const mr = rows.find((row) => row.text().includes('Mr. Advocaat'))
 		expect(mr.find('.cn-object-parties__end').text()).toContain('Read first')
+	})
+
+	it('reads the link note and no kind word on the meta line, and names whom a party represents only without a note', async () => {
+		const noted = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', partyKind: 'person', note: 'namens Jan Jansen, Awb 2:1' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', partyKind: 'person' }] } }
+		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': noted })
+		const w = await mountParties(CONTENT, 'board')
+		const meta = w.find('[data-party="p-mr"] [data-testid="cn-object-parties-meta"]').text()
+		expect(meta).toBe('Requester namens Jan Jansen, Awb 2:1')
+		expect(meta).not.toContain('Person')
+	})
+
+	it('reads the role record\'s field instead of the link note when the content says so (DqZaakBetrokkenen "Rollen" against "Partijen")', async () => {
+		const noted = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', note: 'Machtiging namens Jan Jansen' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', note: 'Lindelaan 14' }], interested: [{ partyUuid: 'p-council', displayName: 'Gemeente Utrecht', note: 'Partijen words' }] } }
+		serve({
+			'/apps/openregister/api/objects/x/item/r-1/parties': noted,
+			'/apps/openregister/api/objects/x/role': { results: [{ participant: 'p-mr', representedParty: 'p-jan', description: 'namens Jan Jansen · Awb 2:1' }, { participant: 'p-council', description: 'KvK 30214877' }] },
+		})
+		const content = { ...CONTENT, extraLines: [], correspondence: undefined, note: { from: 'roles', field: 'description' } }
+		const w = await mountParties(content, 'board')
+		expect(w.find('[data-party="p-mr"] [data-testid="cn-object-parties-meta"]').text()).toBe('Requester namens Jan Jansen · Awb 2:1')
+		expect(w.find('[data-party="p-council"] [data-testid="cn-object-parties-meta"]').text()).toBe('Interested party · KvK 30214877')
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-meta"]').text()).toBe('Primary party · requester')
+	})
+
+	it('says a primary person without the secrecy indicator has none, and draws a warning indicator in the info tone with the app\'s words', async () => {
+		serve()
+		const content = { ...CONTENT, secrecy: { indicator: 'geheimhouding', kinds: ['person'], primaryOnly: true }, labels: { noSecrecy: 'No secrecy', indicatorPill: 'Indicator: {label}' } }
+		const w = await mountParties(content, 'board')
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-no-secrecy"]').text()).toBe('No secrecy')
+		expect(w.findAll('[data-testid="cn-object-parties-no-secrecy"]')).toHaveLength(1)
+		const read = w.find('[data-party="p-mr"] [data-testid="cn-object-parties-indicator"]')
+		expect(read.text()).toBe('Indicator: Read first')
+		expect(read.classes()).toContain('cn-status-badge--info')
+		expect(w.find('[data-party="p-council"] [data-testid="cn-object-parties-indicator"]').classes()).toContain('cn-status-badge--error')
 	})
 
 	it('keeps the Nextcloud rows in the Nextcloud look', async () => {

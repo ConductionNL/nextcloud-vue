@@ -15,7 +15,7 @@ A row that waits for a decision stands out as the boards draw it.
 ### Requirement: A board table row marked for attention is tinted warm
 
 In the board look a table row carrying the class `cn-row--attention` (through `config.rowClass`) SHALL draw its cells on
-a warm tint: 4% of the warning colour over the main background. Without the class, or outside the board look, the row
+a warm tint: 22% of the warning pill's light ground over the main background (#fffdf7 under the Zuiddrecht tokens). Without the class, or outside the board look, the row
 SHALL keep its ground.
 
 #### Scenario: PtToegangsverzoeken

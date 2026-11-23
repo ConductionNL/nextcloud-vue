@@ -12,7 +12,19 @@
 /** A reply this many notes (or more) below its parent shows a one-line quote of it. */
 export const QUOTE_DISTANCE = 5
 
-const created = (note) => new Date(note.creationDateTime || note.created || 0).getTime()
+/**
+ * When a note was written. OpenRegister's notes endpoint sends `createdAt`;
+ * older backends sent `creationDateTime` or `created`.
+ *
+ * @param {object} note The note.
+ * @return {string} The moment as the backend wrote it, or '' when unknown.
+ * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+ */
+export function noteCreatedAt(note) {
+	return note?.createdAt || note?.creationDateTime || note?.created || ''
+}
+
+const created = (note) => new Date(noteCreatedAt(note) || 0).getTime()
 
 /**
  * Whether the notes response says the backend supports replies: its notes carry

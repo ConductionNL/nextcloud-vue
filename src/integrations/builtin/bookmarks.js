@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnBookmarksCard from './bookmarks/CnBookmarksCard.vue'
-import CnBookmarksTab from './bookmarks/CnBookmarksTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnBookmarksCard = lazyComponent(() => import('./bookmarks/CnBookmarksCard.vue'), 'CnBookmarksCard')
+const CnBookmarksTab = lazyComponent(() => import('./bookmarks/CnBookmarksTab.vue'), 'CnBookmarksTab')
 
 /**
  * `bookmarks` integration descriptor.

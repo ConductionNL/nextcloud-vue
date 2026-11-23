@@ -49,6 +49,11 @@
 			<NcNoteCard v-else type="warning">
 				{{ resolvedWarningText }}
 			</NcNoteCard>
+			<p v-if="description"
+				class="cn-delete__description"
+				data-testid="cn-delete-description">
+				{{ description.replace('{name}', itemName) }}
+			</p>
 			<CnConfirmValueField v-if="confirmValue !== ''"
 				v-model="typedConfirmValue"
 				:value="confirmValue"
@@ -182,6 +187,13 @@ export default {
 		 * Set false for a delete that can be undone (the item goes to a bin).
 		 */
 		irreversible: { type: Boolean, default: true },
+
+		/**
+		 * What the delete removes besides the item, as a muted line under the
+		 * question ("Its attachments leave the public page too."). `{name}`
+		 * is the item name. Empty shows nothing.
+		 */
+		description: { type: String, default: '' },
 	},
 
 	emits: ['close', 'confirm'],
@@ -283,5 +295,10 @@ export default {
 <style scoped>
 .cn-delete__confirm {
 	padding: 4px 0;
+}
+
+.cn-delete__description {
+	margin: 8px 0 0;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -56,7 +56,7 @@
 		class="cn-flow-lifecycle"
 		data-testid="flow-title">
 		<CnFlowHealthDot :enabled="store.flow.enabled === true"
-			:lastRunStatus="store.flow.lastRunStatus || null" />
+			:lastRunStatus="lastRunStatus" />
 		<!-- Only where nothing else is rendering it. Under NcAppSidebar the
 		     name is the sidebar's own heading, and printing it here too would
 		     put the flow's name on screen twice. -->
@@ -74,6 +74,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnFlowHealthDot from './CnFlowHealthDot.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 
 export default {
 	name: 'CnFlowLifecycleControls',
@@ -99,6 +100,15 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {string|null} How the newest run ended, else the flow's stored status.
+		 */
+		lastRunStatus() {
+			const newest = this.store.runs && this.store.runs[0]
+
+			return newest ? flowRunOutcome(newest) : (this.store.flow.lastRunStatus || null)
+		},
+
 		/**
 		 * What the pill is showing, said in words on hover.
 		 *

@@ -87,6 +87,8 @@ calls the suggestion `nested-interactive` when you try it.
 | `sumField` | `String` | `''` | Board look: a numeric field summed under each column heading. |
 | `sumFormat` | `Object` | `null` | Board look: metric format of the sum. |
 | `columnLimit` | `Number` | `0` | Cards drawn per column before "Show N more"; 0 draws all. |
+| `fullNote` | `String` | `''` | The line under a full column's heading (`config.board.fullNote`). |
+| `mergedNote` | `String` | `''` | The line under a column merged from several rows, with `{count}` (`config.board.mergedNote`). |
 | `columnKeyOf` | `Function` | `null` | `(row) => string`: the column a row sits in, for a status whose raw value is not the column key (a reference whose rows are merged by name). Absent, the row's `statusField` value is the key. |
 | `wrapColumns` | `Boolean` | `false` | Wrap the columns onto more rows, as many to a row as fit at 240px, instead of one row that scrolls sideways (`config.board.wrap`). |
 | `selectable` | `Boolean` | `false` | A checkbox on every card, for the list's bulk actions. |

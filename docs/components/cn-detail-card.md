@@ -69,3 +69,11 @@ Card container for sections on detail pages. Provides a consistent header (icon 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailCard/CnDetailCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn at the top of the card body: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](./cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

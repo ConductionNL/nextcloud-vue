@@ -1,0 +1,3 @@
+- [x] 1.1 `boardMetaLine`, `showsNoSecrecy` (tests/utils/objectParties.spec.js)
+- [x] 1.2 board rows: meta, secrecy pill, indicator tone and words (tests/components/CnObjectPartiesWidget.spec.js, CnObjectPartiesWidgetKindDutch.spec.js)
+- [x] 1.3 "No secrecy" in en/nl
