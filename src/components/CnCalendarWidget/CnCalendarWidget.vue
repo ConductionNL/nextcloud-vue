@@ -136,6 +136,28 @@
 					</div>
 				</div>
 
+				<!-- Agenda as a list (`content.agendaLayout: 'list'`): each
+				     event's time beside its title and place, ruled apart, with a
+				     day heading only when the list spans more than one day
+				     (LpVandaag "Agenda vandaag", LpWerkplek "Agenda"). -->
+				<ul v-else-if="listLayout" class="cn-calendar-widget__list" data-testid="cn-calendar-widget-list">
+					<template v-for="group in agendaGroups" :key="group.iso">
+						<li v-if="agendaGroups.length > 1" class="cn-calendar-widget__agenda-header">
+							{{ group.label }}
+						</li>
+						<li
+							v-for="event in group.events"
+							:key="event.uid + '-' + event.start"
+							class="cn-calendar-widget__list-row">
+							<span class="cn-calendar-widget__list-time">{{ formatTimeRange(event, ' - ') }}</span>
+							<span class="cn-calendar-widget__list-text">
+								<span class="cn-calendar-widget__list-title">{{ event.title }}</span>
+								<span v-if="event.location" class="cn-calendar-widget__list-place">{{ event.location }}</span>
+							</span>
+						</li>
+					</template>
+				</ul>
+
 				<!-- Agenda view: chronological list grouped by day. -->
 				<ul v-else class="cn-calendar-widget__agenda">
 					<template v-for="group in agendaGroups" :key="group.iso">
@@ -258,6 +280,16 @@ export default {
 		 */
 		showsViewModes() {
 			return !(this.content && this.content.showViewModes === false)
+		},
+
+		/**
+		 * Whether the agenda draws as a ruled list of time, title and place
+		 * (`content.agendaLayout: 'list'`) instead of day-grouped bars.
+		 *
+		 * @return {boolean} true for the list layout.
+		 */
+		listLayout() {
+			return Boolean(this.content && this.content.agendaLayout === 'list')
 		},
 
 		/**
@@ -673,9 +705,10 @@ export default {
 		 * An event without a later end shows its start alone.
 		 *
 		 * @param {object} event the event.
+		 * @param {string} [separator] what stands between start and end.
 		 * @return {string} the time range label.
 		 */
-		formatTimeRange(event) {
+		formatTimeRange(event, separator = ' – ') {
 			const start = this.formatTime(event)
 			if (event.allDay || !event.end) {
 				return start
@@ -687,7 +720,7 @@ export default {
 			}
 			const hh = String(end.getHours()).padStart(2, '0')
 			const mm = String(end.getMinutes()).padStart(2, '0')
-			return `${start} – ${hh}:${mm}`
+			return `${start}${separator}${hh}:${mm}`
 		},
 
 		/**
@@ -991,6 +1024,53 @@ export default {
 .cn-calendar-widget__agenda-title {
 	flex: 1;
 	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-calendar-widget__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-calendar-widget__list-row {
+	display: grid;
+	grid-template-columns: 96px minmax(0, 1fr);
+	align-items: center;
+	gap: 0;
+	padding: 6px 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-calendar-widget__list-row:first-child,
+.cn-calendar-widget__agenda-header + .cn-calendar-widget__list-row {
+	border-top: none;
+}
+
+.cn-calendar-widget__list-time {
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-calendar-widget__list-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.cn-calendar-widget__list-title {
+	overflow: hidden;
+	font-size: 15px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-calendar-widget__list-place {
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
