@@ -195,7 +195,7 @@ export default {
 	name: 'CnDashboardGrid',
 
 	props: {
-		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, ...extra } */
+		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, minHeight?, ...extra }. An item's `minHeight` (layout rows) replaces the grid's own for that item. */
 		layout: {
 			type: Array,
 			required: true,
@@ -750,8 +750,20 @@ export default {
 		},
 
 		/**
-		 * The smallest height an item may take, in grid rows: `minHeight`
-		 * layout rows, except for a size-to-content cell on split rows, which
+		 * The smallest height an item may take, in layout rows: the item's own
+		 * `minHeight` (a divider may be one row), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum height in layout rows.
+		 */
+		itemMinHeight(item) {
+			const own = item && item.minHeight
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minHeight
+		},
+
+		/**
+		 * The smallest height an item may take, in grid rows: its minimum
+		 * height in layout rows, except for a size-to-content cell on split rows, which
 		 * may shrink to its content down to one grid row. The minimum is for
 		 * resizing by hand, and that only happens on whole rows in edit mode.
 		 *
@@ -763,7 +775,7 @@ export default {
 			if (this.rowSplit !== 1 && this.sizeToContentAttr(item) !== undefined) {
 				return 1
 			}
-			return this.minHeight * this.rowSplit
+			return this.itemMinHeight(item) * this.rowSplit
 		},
 
 		/**
@@ -1227,10 +1239,14 @@ export default {
 			if (!this.grid || typeof this.grid.enable !== 'function') {
 				return
 			}
+			// On the raw grid: enabled through Vue's proxy, GridStack binds its
+			// drag handlers to the proxy and a drop never ends, so the move is
+			// shown but no `change` follows.
+			const grid = toRaw(this.grid)
 			if (this.editable && !this.reflowed) {
-				this.grid.enable()
+				grid.enable()
 			} else {
-				this.grid.disable()
+				grid.disable()
 			}
 		},
 
@@ -1415,12 +1431,13 @@ export default {
 		 * edge instead of pushing it into negative coordinates.
 		 *
 		 * @param {{x: number, y: number, w: number, h: number}} rect the candidate.
+		 * @param {object} [item] the layout item, whose own `minHeight` applies.
 		 * @return {{x: number, y: number, w: number, h: number}} the clamped rectangle.
 		 */
-		clampRect(rect) {
+		clampRect(rect, item) {
 			const cols = this.effectiveColumns
 			const w = Math.min(Math.max(rect.w, this.minWidth), cols)
-			const h = Math.max(rect.h, this.minHeight)
+			const h = Math.max(rect.h, item ? this.itemMinHeight(item) : this.minHeight)
 			return {
 				x: Math.min(Math.max(rect.x, 0), Math.max(cols - w, 0)),
 				y: Math.max(rect.y, 0),
@@ -1453,7 +1470,7 @@ export default {
 			}
 
 			const current = this.currentRect(item)
-			const next = this.clampRect({ ...current, ...patch })
+			const next = this.clampRect({ ...current, ...patch }, item)
 
 			if (next.x === current.x && next.y === current.y
 				&& next.w === current.w && next.h === current.h) {
@@ -1463,7 +1480,7 @@ export default {
 				return true
 			}
 
-			this.grid.update(el, next)
+			toRaw(this.grid).update(el, next)
 
 			this.announce(kind === 'resize'
 				? t('nextcloud-vue', '{label} resized to {width} columns by {height} rows', {
@@ -1695,13 +1712,14 @@ export default {
 				if (!this.grid || !this.$refs.gridContainer) {
 					return
 				}
+				const grid = toRaw(this.grid)
 				const added = []
 				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
 						continue
 					}
-					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
+					const node = grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
 						added.push(el)
 					} else if (node.el === el) {
@@ -1712,16 +1730,23 @@ export default {
 						// where the hidden widget had been. A drag reports the
 						// grid's own position back, which matches and does
 						// nothing here.
+						// A width or height the layout changed (a form, an
+						// undo) is synced the same way. A size-to-content cell
+						// keeps the height its content gave it.
 						const x = item.gridX ?? node.x
 						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
-						if (x !== node.x || y !== node.y) {
+						const w = Number.isFinite(item.gridWidth) ? item.gridWidth : node.w
+						const h = Number.isFinite(item.gridHeight) && this.sizeToContentAttr(item) === undefined
+							? item.gridHeight * this.rowSplit
+							: node.h
+						if (x !== node.x || y !== node.y || w !== node.w || h !== node.h) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not
 							// reported back (it would write the display-only
 							// compaction into the authored layout).
 							this.applyingLayout = true
 							try {
-								this.grid.update(el, { x, y })
+								grid.update(el, { x, y, w, h })
 							} finally {
 								this.applyingLayout = false
 							}
@@ -1729,8 +1754,8 @@ export default {
 					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
-						this.grid.removeWidget(node.el, false, false)
-						this.grid.makeWidget(el)
+						grid.removeWidget(node.el, false, false)
+						grid.makeWidget(el)
 					}
 				}
 				this.addWidgetsInOrder(added)
@@ -1742,7 +1767,7 @@ export default {
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {
-					this.grid.removeWidget(el, false)
+					toRaw(this.grid).removeWidget(el, false)
 				}
 			}
 

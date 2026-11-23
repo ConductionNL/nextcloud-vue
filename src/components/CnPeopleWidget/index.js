@@ -11,11 +11,13 @@
  * picker via `listWidgetTypes()`). When the form lands, wire it in here.
  */
 
-import CnPeopleWidget from './CnPeopleWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnPeopleWidget = lazyComponent(() => import('./CnPeopleWidget.vue'), 'CnPeopleWidget')
+
 registerDashboardWidget('people', {
-	renderer: CnPeopleWidget,
+	renderer: LazyCnPeopleWidget,
 	form: null,
 	defaultContent: {
 		layout: 'grid',
@@ -28,5 +30,5 @@ registerDashboardWidget('people', {
 	icon: 'AccountMultiple',
 })
 
-export { CnPeopleWidget }
-export default CnPeopleWidget
+export { default as CnPeopleWidget } from './CnPeopleWidget.vue'
+export { default } from './CnPeopleWidget.vue'

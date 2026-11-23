@@ -176,6 +176,14 @@ With `selectable` a slice, bar or bar-list row click emits `select` with `{ fiel
 <CnChartWidget type="donut" selectable :dataSource="{ register: 'crm', schema: 'request', aggregate: { groupBy: 'status' } }" @select="({ field, value }) => bus.publish({ dimension: field, operator: 'eq', value })" />
 ```
 
+### Showing the selection (`selected`)
+
+`selected` takes the raw keys of the categories to show as picked, usually the filter a host made from an earlier `select`. A selected bar-list row gets a ring in the text colour, a bold label and `aria-pressed="true"`. A selected bar or slice gets an outline in the text colour, drawn by the chart's shadow-root rules, so it keeps its contrast in light, dark and high-contrast themes (`Highlight` under forced colours). The chart puts the outline back after every redraw. On a `selectable` chart the host owns the selection: ApexCharts' own click darkening and slice expansion are off, so clearing `selected` clears the mark. Area and line charts show no selection.
+
+```vue
+<CnChartWidget type="bar-list" selectable :selected="['GM0355']" :dataSource="source" @select="onSelect" />
+```
+
 ## `endpointSource` — endpoint-bound series/labels (Wave 2, #91)
 
 Binds the chart to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine (token-resolved `params`, request dedup + short-TTL cache, `cn:page:refresh` wiring; the chart's own `refresh()` / `cn:widget:refresh` handler force-refetches it too). **Exactly one of `dataSource` | `endpointSource`** (validator-enforced).
@@ -350,6 +358,10 @@ Reach for `'fit'` when the series genuinely lives far from zero — a percentage
 { "type": "chart", "props": { "chartKind": "line", "valueAxisBaseline": "fit" } }
 ```
 
+## Telling the host what it shows (`data`)
+
+The chart emits `data` with `{ series, categories, labels, total }` once its series are known and on every change; `total` is the sum of its first series. A host that derives values from the chart (a dashboard's calculated fields, an export) listens to it instead of fetching the same data again. Nothing is emitted before there is a series.
+
 ## Theming
 
 The chart follows the Nextcloud theme in both light and dark mode, with no configuration. Everything drawn inside the SVG is themed through chart options (`foreColor`, grid, legend and axis label colours all read `var(--color-*)`), and apexcharts' HTML chrome — the hover tooltip, the crosshair axis tooltips, the toolbar menu and its icons — is restyled from the same tokens in the component's stylesheet.
@@ -362,6 +374,7 @@ That override is why `options.tooltip.theme` has no visible effect: both apexcha
 |------|------|---------|-------------|
 | `type` | String | `'area'` | Chart type: `'area'`, `'line'`, `'bar'`, `'pie'`, `'donut'`, `'radialBar'`, `'bar-list'`, `'matrix'` |
 | `selectable` | Boolean | `false` | A slice, bar or bar-list row click emits `select` `{ field, value, label, index }` with the grouped field and the category's raw key. |
+| `selected` | Array | `[]` | The raw keys of the categories to show as selected: a ringed, pressed bar-list row or an outlined bar or slice. |
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |

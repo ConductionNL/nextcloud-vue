@@ -9,13 +9,15 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnDeltaWidgetForm from '../CnDeltaWidgetForm/CnDeltaWidgetForm.vue'
-import CnDeltaWidget from './CnDeltaWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnDeltaWidgetForm = lazyComponent(() => import('../CnDeltaWidgetForm/CnDeltaWidgetForm.vue'), 'CnDeltaWidgetForm')
+const LazyCnDeltaWidget = lazyComponent(() => import('./CnDeltaWidget.vue'), 'CnDeltaWidget')
+
 registerDashboardWidget('delta', {
-	renderer: CnDeltaWidget,
-	form: CnDeltaWidgetForm,
+	renderer: LazyCnDeltaWidget,
+	form: LazyCnDeltaWidgetForm,
 	defaultContent: {
 		label: '',
 		icon: 'Cash',
@@ -29,5 +31,5 @@ registerDashboardWidget('delta', {
 	card: true,
 })
 
-export { CnDeltaWidget }
-export default CnDeltaWidget
+export { default as CnDeltaWidget } from './CnDeltaWidget.vue'
+export { default } from './CnDeltaWidget.vue'

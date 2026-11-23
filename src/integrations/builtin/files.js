@@ -13,8 +13,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFilesCard from '../../components/CnFilesCard/CnFilesCard.vue'
-import CnFilesTab from '../../components/CnObjectSidebar/CnFilesTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnFilesCard = lazyComponent(() => import('../../components/CnFilesCard/CnFilesCard.vue'), 'CnFilesCard')
+const CnFilesTab = lazyComponent(() => import('../../components/CnObjectSidebar/CnFilesTab.vue'), 'CnFilesTab')
 
 /**
  * `files` integration descriptor — pass to `integrations.register()`.

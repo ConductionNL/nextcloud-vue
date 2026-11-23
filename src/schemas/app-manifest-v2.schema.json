@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.186.0",
+	"version": "2.187.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2914,6 +2914,10 @@
 											"deltaField": {
 												"type": "string",
 												"description": "Dot-path into the endpoint payload for a SERVER-computed delta percent — wins over the client-side previousField computation."
+											},
+											"noPreviousText": {
+												"type": "string",
+												"description": "Sublabel shown instead of the trend when previousField is set but the previous value is missing, not numeric or 0 (no earlier period to compare with). Translated through the manifest translator. Omitted = no sublabel, as before."
 											},
 											"goodDirection": {
 												"type": "string",

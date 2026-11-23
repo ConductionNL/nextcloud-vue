@@ -84,7 +84,7 @@
 		</label>
 
 		<NcSelect
-			:modelValue="overlayMode"
+			:modelValue="effectiveOverlayMode"
 			:options="overlayModeOptions"
 			:inputLabel="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
@@ -92,7 +92,7 @@
 			:clearable="false"
 			@update:modelValue="updateField('overlayMode', $event)" />
 
-		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
+		<label v-if="effectiveOverlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
 			<CnColorPicker
 				:value="overlayColor"
@@ -101,7 +101,7 @@
 				@clear="updateField('overlayColor', '')" />
 		</label>
 
-		<label v-if="overlayMode === 'tint'" class="cn-header-widget-form__field">
+		<label v-if="effectiveOverlayMode === 'tint'" class="cn-header-widget-form__field">
 			<span class="cn-header-widget-form__label">
 				{{ t('nextcloud-vue', 'Overlay opacity') }} ({{ overlayOpacity.toFixed(2) }})
 			</span>
@@ -142,10 +142,21 @@
 			:clearable="false"
 			@update:modelValue="updateField('verticalAlign', $event)" />
 
-		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
-		     no longer changes anything — resize the widget on the grid instead.
-		     (The `height` field is kept in the saved content for back-compat
-		     but is no longer surfaced as a control.) -->
+		<!-- The banner fills its grid cell, so the preset only sets the
+		     starting height of a new header; afterwards it is resized on the
+		     grid, and the control is not offered when editing. -->
+		<NcSelect
+			v-if="!editingWidget"
+			:modelValue="height"
+			:options="heightOptions"
+			:inputLabel="t('nextcloud-vue', 'Height')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			@update:modelValue="updateField('height', $event)" />
+		<p v-if="!editingWidget" class="cn-header-widget-form__hint">
+			{{ t('nextcloud-vue', 'The starting height. Resize the header on the dashboard afterwards.') }}
+		</p>
 
 		<fieldset class="cn-header-widget-form__fieldset">
 			<legend class="cn-header-widget-form__legend">
@@ -194,7 +205,6 @@ const DEFAULT_CONTENT = Object.freeze({
 	backgroundImageUrl: '',
 	backgroundImageFileId: null,
 	backgroundColor: '',
-	overlayMode: 'none',
 	overlayColor: '',
 	overlayOpacity: 0.4,
 	textColor: '',
@@ -316,9 +326,11 @@ export default {
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
 
+			// Empty until chosen: an unset mode is stored as no value, so the
+			// renderer keeps its default (`tint` over an image, else `none`).
 			overlayMode: ALLOWED_OVERLAY_MODES.includes(initial.overlayMode)
 				? initial.overlayMode
-				: DEFAULT_CONTENT.overlayMode,
+				: '',
 
 			overlayColor: typeof initial.overlayColor === 'string'
 				? initial.overlayColor
@@ -356,6 +368,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The overlay mode the select shows and the overlay fields follow: the
+		 * chosen one, else the renderer's default (`tint` over an image).
+		 *
+		 * @return {string} `none`, `tint` or `gradient-bottom`.
+		 */
+		effectiveOverlayMode() {
+			if (this.overlayMode) {
+				return this.overlayMode
+			}
+			return this.backgroundImageUrl || this.backgroundImageFileId !== null || this.pendingFile ? 'tint' : 'none'
+		},
+
 		/** Overlay-mode select options. */
 		overlayModeOptions() {
 			return [
@@ -450,7 +475,7 @@ export default {
 				backgroundImageUrl: this.backgroundImageUrl,
 				backgroundImageFileId: this.backgroundImageFileId,
 				backgroundColor: this.backgroundColor,
-				overlayMode: this.overlayMode,
+				...(this.overlayMode ? { overlayMode: this.overlayMode } : {}),
 				overlayColor: this.overlayColor,
 				overlayOpacity: this.overlayOpacity,
 				textColor: this.textColor,
@@ -687,6 +712,12 @@ export default {
 
 .cn-header-widget-form__range {
 	width: 100%;
+}
+
+.cn-header-widget-form__hint {
+	margin: -4px 0 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-header-widget-form__fieldset {

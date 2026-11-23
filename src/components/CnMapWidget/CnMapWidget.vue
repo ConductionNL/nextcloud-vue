@@ -18,6 +18,11 @@
       OpenRegister register/schema, reading each one's `@self.geo`
       (falling back to `latField` / `lngField` on the object itself).
       Objects with no usable location are skipped, not plotted at (0, 0).
+      `dataSource.spatialFilter` narrows them to a bbox, a radius around a
+      point, or a polygon, through OpenRegister's geo filters.
+    - `markers.detailLink` — a clicked object opens this address (with
+      `{id}`, `{register}`, `{schema}`, `{<property>}` tokens) in a new
+      tab; without it, a `url` the object carries is opened.
 
   `leaflet.markercluster`'s JS lazy-loads only when `clustering: true`
   (or `markers.clustering: true`), so a consumer without clustering does
@@ -110,6 +115,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
+import { featureDetailUrl, spatialFilterRequest } from './spatialFilter.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
@@ -313,14 +319,17 @@ export default {
 		},
 
 		/**
-		 * Marker config. `{ features?, dataSource?, latField?, lngField?, xField?, yField?,
-		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker? }`. On an image map
+		 * Marker config. `{ features?, dataSource?, geoProperty?, latField?, lngField?, xField?, yField?,
+		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker?, detailLink? }`. On an image map
 		 * (a layer of type `image`) markers read `xField` / `yField` (default `x` / `y`,
 		 * pixels from the picture's top left) instead of `latField` / `lngField`. `features[]` is inline;
 		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
-		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * plots the objects of an OpenRegister register/schema via `geoProperty` (a property
+		 * holding a GeoJSON geometry of any type, or a point) when set, else `@self.geo`.
 		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
-		 * source markers.
+		 * source markers. `dataSource.spatialFilter` (`{ bbox }`, `{ near, radius }` or
+		 * `{ within }`) narrows a register source to an area; `detailLink` is the address
+		 * a clicked object opens in a new tab (see spatialFilter.js).
 		 *
 		 * @type {object|null}
 		 */
@@ -728,14 +737,18 @@ export default {
 		},
 
 		/**
-		 * The data-source filter with its tokens resolved, serialised so a new
-		 * record re-reads the markers.
+		 * The data-source filter with its tokens resolved, and the spatial
+		 * filter, serialised so a new record or a new area re-reads the markers.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
 		 */
 		filterKey() {
 			const ds = this.cfg.markers && this.cfg.markers.dataSource
-			return ds && ds.filter ? JSON.stringify(this.sourceFilter(ds)) : ''
+			if (!ds || (!ds.filter && !ds.spatialFilter)) {
+				return ''
+			}
+			return JSON.stringify([ds.filter ? this.sourceFilter(ds) : null, ds.spatialFilter || null])
 		},
 
 		unplottedLabel() {
@@ -1278,6 +1291,7 @@ export default {
 						 * @type {{feature: object, latlng: object}}
 						 */
 						this.$emit('marker-click', { feature, latlng: e.latlng })
+						this.openFeatureDetail(feature)
 					})
 				},
 			})
@@ -1775,8 +1789,11 @@ export default {
 		 * skipped rather than dropped at (0, 0) — an invisible wrong marker is worse
 		 * than an absent one.
 		 *
-		 * @param {{register: string, schema: string, limit?: number}} ds The data source.
+		 * A `spatialFilter` narrows the objects to an area (see spatialFilter.js).
+		 *
+		 * @param {{register: string, schema: string, limit?: number, spatialFilter?: object}} ds The data source.
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
 		 */
 		async fetchRegisterFeatures(ds) {
 			try {
@@ -1788,21 +1805,41 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: ds.register, schema: ds.schema },
 				)
-				const res = await axios.get(url, { params: { ...this.sourceFilter(ds), _limit: ds.limit || 500 } })
+				const params = { ...this.sourceFilter(ds), _limit: ds.limit || 500 }
+				const spatial = spatialFilterRequest(ds.spatialFilter, this.cfg.markers && this.cfg.markers.geoProperty)
+				const res = spatial && spatial.body
+					? await axios.post(url + '/geo-search', spatial.body, { params })
+					: await axios.get(url, { params: { ...params, ...(spatial ? spatial.params : {}) } })
 				const rows = (res && res.data && res.data.results) || []
 
 				const latField = this.cfg.markers && this.cfg.markers.latField
 				const lngField = this.cfg.markers && this.cfg.markers.lngField
+				const geoProperty = this.cfg.markers && this.cfg.markers.geoProperty
 
 				// (0, 0) is where an unset pair of numbers lands, not a place.
 				return rows
-					.map((row) => objectToGeoFeature(row, { latField, lngField }))
-					.filter((feature) => feature && !(feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
+					.map((row) => objectToGeoFeature(row, { geoProperty, latField, lngField }))
+					.filter((feature) => feature && !(feature.geometry.type === 'Point'
+						&& feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
 			} catch (err) {
 				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
 				return []
+			}
+		},
+
+		/**
+		 * Open a clicked object's detail address in a new tab, when it has one.
+		 *
+		 * @param {object} feature The clicked GeoJSON feature.
+		 * @return {void}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-clicked-object-opens-its-detail-page
+		 */
+		openFeatureDetail(feature) {
+			const href = featureDetailUrl(feature, this.cfg.markers && this.cfg.markers.detailLink)
+			if (href !== null) {
+				window.open(href, '_blank', 'noopener,noreferrer')
 			}
 		},
 

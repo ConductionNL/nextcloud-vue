@@ -12,6 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 const CnBannerWidget = require('../../src/components/CnBannerWidget/CnBannerWidget.vue').default
 
@@ -67,15 +68,15 @@ describe('CnBannerWidget', () => {
 		expect(mount(CnBannerWidget).find('.cn-banner-widget').exists()).toBe(false)
 	})
 
-	it('is registered in dashboardWidgetRegistry and BUILT_IN_WIDGETS', () => {
+	it('is registered in dashboardWidgetRegistry and BUILT_IN_WIDGETS', async () => {
 		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 		const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
 		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const entry = getWidgetTypeEntry('banner')
 		expect(entry).not.toBeNull()
-		expect(entry.renderer).toBe(CnBannerWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnBannerWidget)
 		expect(entry.form).toBeDefined()
-		expect(BUILT_IN_WIDGETS.banner).toBe(CnBannerWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.banner)).toBe(CnBannerWidget)
 	})
 
 	describe('visibleWhen', () => {

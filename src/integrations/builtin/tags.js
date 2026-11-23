@@ -10,8 +10,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnTagsTab from '../../components/CnObjectSidebar/CnTagsTab.vue'
-import CnTagsCard from '../../components/CnTagsCard/CnTagsCard.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnTagsTab = lazyComponent(() => import('../../components/CnObjectSidebar/CnTagsTab.vue'), 'CnTagsTab')
+const CnTagsCard = lazyComponent(() => import('../../components/CnTagsCard/CnTagsCard.vue'), 'CnTagsCard')
 
 /**
  * `tags` integration descriptor.
