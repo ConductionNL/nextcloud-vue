@@ -139,6 +139,12 @@ describe('CnCalendarWidget agenda times, failed sources and slow loads', () => {
 		expect(wrapper.find('.cn-calendar-widget__agenda-time').text()).toBe('09:00 – 10:30')
 	})
 
+	it('reads daysAhead 0 as today alone', async () => {
+		const wrapper = await mountWith({ events: [], failures: [] }, { daysAhead: 0 })
+		expect(wrapper.vm.daysAhead).toBe(0)
+		expect(wrapper.vm.emptyMessage).toBe('No events today')
+	})
+
 	it('draws the list layout as time beside title and place, without a day heading for one day', async () => {
 		const start = new Date()
 		start.setHours(9, 30, 0, 0)

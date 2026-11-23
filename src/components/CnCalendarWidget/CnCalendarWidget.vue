@@ -321,13 +321,14 @@ export default {
 		},
 
 		/**
-		 * The validated look-ahead window in days.
+		 * The validated look-ahead window in days; 0 is today alone.
 		 *
 		 * @return {number} the days-ahead value.
 		 */
 		daysAhead() {
 			const value = parseInt((this.content && this.content.daysAhead) ?? DEFAULT_DAYS_AHEAD, 10)
-			return Number.isFinite(value) && value > 0 ? value : DEFAULT_DAYS_AHEAD
+			// 0 is today alone (LpVandaag "Agenda vandaag").
+			return Number.isFinite(value) && value >= 0 ? value : DEFAULT_DAYS_AHEAD
 		},
 
 		/**
@@ -380,6 +381,9 @@ export default {
 		 * @return {string} the empty message.
 		 */
 		emptyMessage() {
+			if (this.daysAhead === 0) {
+				return t('nextcloud-vue', 'No events today')
+			}
 			return t('nextcloud-vue', 'No events in the next {n} days').replace('{n}', String(this.daysAhead))
 		},
 
