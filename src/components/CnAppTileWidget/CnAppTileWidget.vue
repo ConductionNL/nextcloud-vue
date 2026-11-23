@@ -138,8 +138,9 @@ export default {
 		async fetchOwnCount(source) {
 			try {
 				if (source.dashboardWidget) {
+					// The dashboard API refuses a limit above 30.
 					const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
-					const { data } = await axios.get(url, { params: { 'widgets[]': source.dashboardWidget, limit: 99 } })
+					const { data } = await axios.get(url, { params: { 'widgets[]': source.dashboardWidget, limit: 30 } })
 					const items = data?.ocs?.data?.[source.dashboardWidget]?.items
 					return Array.isArray(items) ? items.length : null
 				}
