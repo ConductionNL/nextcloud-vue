@@ -26,7 +26,9 @@ jest.mock('@nextcloud/axios', () => ({
 
 const { mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
-const CnFilesWidget = require('../../src/components/CnFilesWidget/CnFilesWidget.vue').default
+const CnFilesWidgetModule = require('../../src/components/CnFilesWidget/CnFilesWidget.vue')
+const CnFilesWidget = CnFilesWidgetModule.default
+const { fileWhenText } = CnFilesWidgetModule
 const CnFilesWidgetDeleteDialog = require('../../src/dialogs/CnFilesWidgetDeleteDialog.vue').default
 
 /**
@@ -278,5 +280,26 @@ describe('CnFilesWidget — thumbnails', () => {
 		await flush(wrapper)
 
 		expect(wrapper.find('.cn-files-widget__row-thumb').exists()).toBe(false)
+	})
+})
+
+describe('CnFilesWidget — compact layout (LpWerkplek)', () => {
+	it('names the folder and lists name and change time, without toolbar or size', async () => {
+		axios.get.mockResolvedValue({ data: { items: [{ fileId: 42, name: 'a.pdf', isFolder: false, size: 0, modifiedAt: '2026-01-01T12:00:00Z' }] } })
+		const wrapper = mount(CnFilesWidget, { propsData: { placement: { id: 5 }, content: { folderPath: '/Vergunningen', layout: 'compact' } } })
+		await flush(wrapper)
+
+		expect(wrapper.find('[data-testid="cn-files-widget-folder"]').text()).toContain('Vergunningen')
+		expect(wrapper.find('.cn-files-widget__toolbar').exists()).toBe(false)
+		expect(wrapper.find('.cn-files-widget__row-size').exists()).toBe(false)
+		expect(wrapper.find('.cn-files-widget__row-modified').text()).not.toContain('T12:00:00Z')
+	})
+
+	it('words a change time as the boards do: time today, weekday this week, day and month before', () => {
+		const now = new Date(2026, 9, 5, 14, 0)
+		expect(fileWhenText(new Date(2026, 9, 5, 10, 12).toISOString(), now, 'en-GB')).toBe('10:12')
+		expect(fileWhenText(new Date(2026, 9, 2, 9, 0).toISOString(), now, 'en-GB')).toBe('Friday')
+		expect(fileWhenText(new Date(2026, 8, 28, 9, 0).toISOString(), now, 'en-GB')).toMatch(/^28 Sep/)
+		expect(fileWhenText('not a date', now, 'en-GB')).toBe('not a date')
 	})
 })
