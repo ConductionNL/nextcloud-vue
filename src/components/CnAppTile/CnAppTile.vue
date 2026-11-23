@@ -12,7 +12,14 @@
 		data-testid="cn-app-tile"
 		@click="$emit('open', $event)">
 		<span
-			v-if="icon"
+			v-if="glyph"
+			class="cn-app-tile__glyph"
+			aria-hidden="true"
+			data-testid="cn-app-tile-glyph">
+			<CnWidgetIcon :name="glyph" :size="48" />
+		</span>
+		<span
+			v-else-if="icon"
 			class="cn-app-tile__icon"
 			:style="{ '--cn-app-tile-icon': `url(&quot;${icon}&quot;)` }"
 			aria-hidden="true"
@@ -44,6 +51,7 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { appTileColourValue } from '../../utils/appTilePalette.js'
 
 /**
@@ -61,7 +69,7 @@ import { appTileColourValue } from '../../utils/appTilePalette.js'
 export default {
 	name: 'CnAppTile',
 
-	components: { Pin, ViewGridOutline },
+	components: { CnWidgetIcon, Pin, ViewGridOutline },
 
 	props: {
 		/** The app's address. */
@@ -78,6 +86,15 @@ export default {
 
 		/** The app's icon URL, an SVG; empty draws a generic grid glyph. */
 		icon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A glyph from the widget icon set (`Briefcase`, `Email`, …) drawn in
+		 * white in place of the app's own icon, as the boards draw the tiles.
+		 */
+		glyph: {
 			type: String,
 			default: '',
 		},
@@ -190,6 +207,11 @@ export default {
 	background-color: #fff;
 	mask: var(--cn-app-tile-icon) center / contain no-repeat;
 	-webkit-mask: var(--cn-app-tile-icon) center / contain no-repeat;
+}
+
+.cn-app-tile__glyph {
+	display: flex;
+	color: #fff;
 }
 
 .cn-app-tile__fallback {

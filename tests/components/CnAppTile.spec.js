@@ -19,7 +19,7 @@ import { clearAppDisplayNames } from '../../src/utils/nextcloudApps.js'
 import '../../src/components/CnAppTileWidget/index.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
-jest.mock('@nextcloud/router', () => ({ __esModule: true, generateOcsUrl: (path) => `/ocs/v2.php/${path}` }))
+jest.mock('@nextcloud/router', () => ({ __esModule: true, generateOcsUrl: (path) => `/ocs/v2.php/${path}`, generateUrl: (path) => `/index.php${path}` }))
 jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key])),
 	translatePlural: (app, one, many, count, params) => (count === 1 ? one : many).replace('%n', String(count)).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key])),
@@ -143,5 +143,51 @@ describe('CnAppTileWidgetForm', () => {
 		const wrapper = mount(CnAppTileWidgetForm, { props: { value: { appId: 'calendar' } }, global: { stubs: { NcSelect: true, NcCheckboxRadioSwitch: true } } })
 		await flushPromises()
 		expect(wrapper.get('[data-testid="cn-app-tile-form-colour-primary"]').element.checked).toBe(true)
+	})
+})
+
+describe('CnAppTileWidget own counter and glyph (LpVandaag)', () => {
+	it('counts a dashboard widget\'s items as the app\'s own counter, not its notifications', async () => {
+		axios.get.mockImplementation((url) => Promise.resolve({
+			data: {
+				ocs: {
+					data: url.includes('widget-items')
+						? { 'mail-unread': { items: [{}, {}, {}] } }
+						: (url.includes('notifications') ? NOTIFICATIONS : NAVIGATION),
+				},
+			},
+		}))
+		const wrapper = mount(CnAppTileWidget, { propsData: { content: { appId: 'mail', countSource: { dashboardWidget: 'mail-unread' } } } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-app-tile-count"]').text()).toBe('3')
+	})
+
+	it('counts an OpenRegister list as the app\'s own counter (the case system\'s open cases)', async () => {
+		const original = global.fetch
+		global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ total: 14 }) }))
+		try {
+			const wrapper = mount(CnAppTileWidget, { propsData: { content: { appId: 'files', countSource: { register: 'dossiq', schema: 'case', filter: { isFinalStatus: false } } } } })
+			await flushPromises()
+			expect(global.fetch.mock.calls[0][0]).toContain('/apps/openregister/api/objects/dossiq/case')
+			expect(wrapper.find('[data-testid="cn-app-tile-count"]').text()).toBe('14')
+		} finally {
+			global.fetch = original
+		}
+	})
+
+	it('falls back to the notifications when the own counter cannot be read', async () => {
+		axios.get.mockImplementation((url) => (url.includes('widget-items')
+			? Promise.reject(new Error('500'))
+			: Promise.resolve({ data: { ocs: { data: url.includes('notifications') ? NOTIFICATIONS : NAVIGATION } } })))
+		const wrapper = mount(CnAppTileWidget, { propsData: { content: { appId: 'mail', countSource: { dashboardWidget: 'mail-unread' } } } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-app-tile-count"]').text()).toBe('2')
+	})
+
+	it('draws the configured glyph in place of the app icon', async () => {
+		const wrapper = mount(CnAppTileWidget, { propsData: { content: { appId: 'files', icon: 'Briefcase', showCount: false } } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-app-tile-glyph"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-app-tile-icon"]').exists()).toBe(false)
 	})
 })
