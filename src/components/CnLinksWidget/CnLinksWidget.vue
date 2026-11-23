@@ -38,10 +38,11 @@
 								:src="link.icon"
 								:width="iconPx"
 								:height="iconPx"
-								alt="">
+								:alt="link.label || ''">
 							<CnWidgetIcon
 								v-else
 								:name="link.icon || ''"
+								fallback="LinkVariant"
 								:size="iconPx" />
 						</span>
 						<span v-if="linkLayout !== 'icon-only'" class="cn-links-widget__label">
@@ -62,6 +63,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import { isSafeRelativePath } from '../../utils/widgetUrl.js'
 import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
 
 const VALID_LAYOUTS = Object.freeze(['card', 'inline', 'icon-only'])
@@ -74,9 +76,10 @@ const ICON_PX = Object.freeze({ small: 24, medium: 40, large: 64 })
  *
  * Empty sections are filtered at render time but retained in config. Icon
  * resolution: URL-shaped icons render as `<img>`, otherwise registry names
- * route through {@link CnWidgetIcon}. The grid column count is clamped 1–6
- * (default 3). External URLs use `rel="noopener noreferrer"`; edit-mode clicks
- * are suppressed.
+ * route through {@link CnWidgetIcon}, and an empty or unknown icon draws the
+ * link glyph. The grid column count is clamped 1–6 (default 3). In a new tab,
+ * external URLs use `rel="noopener noreferrer"` and internal ones
+ * `rel="opener"`; edit-mode clicks are suppressed.
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
@@ -283,8 +286,9 @@ export default {
 		},
 
 		/**
-		 * Sanitise a link URL — only http(s) and root-relative (no `..`) URLs
-		 * reach the rendered `href`; everything else yields `'#'`.
+		 * Sanitise a link URL — only http(s) URLs and safe relative paths
+		 * (root-relative, or one leading `../` step) reach the rendered
+		 * `href`; everything else yields `'#'`.
 		 *
 		 * @param {string} url the raw URL.
 		 * @return {string} the sanitised URL, or `'#'`.
@@ -293,7 +297,7 @@ export default {
 			if (typeof url !== 'string' || url === '') {
 				return '#'
 			}
-			if (url.startsWith('/') && !url.includes('..')) {
+			if (isSafeRelativePath(url)) {
 				return url
 			}
 			if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -303,8 +307,10 @@ export default {
 		},
 
 		/**
-		 * Compute the anchor rel attribute — external URLs get
-		 * `noopener noreferrer`; internal URLs omit it.
+		 * Compute the anchor rel attribute for a new-tab link — external URLs
+		 * get `noopener noreferrer`; internal URLs get `opener`, because
+		 * browsers imply `noopener` for every `target="_blank"` and an
+		 * internal page may need `window.opener`.
 		 *
 		 * @param {string} url the raw URL.
 		 * @return {string|null} the rel value, or `null` to omit.
@@ -316,7 +322,7 @@ export default {
 			if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
 				return 'noopener noreferrer'
 			}
-			return null
+			return 'opener'
 		},
 
 		/**

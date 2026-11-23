@@ -31,8 +31,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFlowCard from './flow/CnFlowCard.vue'
-import CnFlowTab from './flow/CnFlowTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnFlowCard = lazyComponent(() => import('./flow/CnFlowCard.vue'), 'CnFlowCard')
+const CnFlowTab = lazyComponent(() => import('./flow/CnFlowTab.vue'), 'CnFlowTab')
 
 /**
  * `flow` integration descriptor.

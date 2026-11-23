@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.186.0', () => {
+	it('the manifest schema version reads 2.188.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1460,7 +1460,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.184.0 lets an action stay drawn but disabled with the reason why (disabledWhen, disabledReason; action-disabled-when).
 		// 2.185.0 lets an app declare feature toggles and gate pages, widgets and actions on them (features, visibleIf.feature, visibleWhen.feature; feature-toggles).
 		// 2.186.0 adds the object-action action type with action and inputs (object-actions)
-		expect(schema.version).toBe('2.186.0')
+		// 2.187.0 lets a stat tile say there is no earlier period to compare with (noPreviousText; stat-widget-no-previous-text).
+		// 2.188.0 lets an api-call or navigate action act on a looked-up record (action.resolve; screens-action-resolve).
+		expect(schema.version).toBe('2.188.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
@@ -2901,5 +2903,28 @@ describe('app-manifest-v2: a link card that opens the user settings (link-cards-
 		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'admin-settings' }])).valid).toBe(false)
 		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'user-settings', route: 'Personal' }])).valid).toBe(false)
 		expect(validateManifestV2(linksPage([{ id: 'Store', label: 'Store', route: 'Store' }], { panel: { badge: { label: 'Admins', tone: 'red' } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: an action that looks a record up (screens-action-resolve, 2.188.0)', () => {
+	const withAction = (action) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Project', route: '/projects/:id', type: 'detail', title: 'Project', config: { register: 'pipelinq', schema: 'project' }, actions: [action] }],
+	})
+
+	it('accepts resolve on an api-call', () => {
+		const action = {
+			id: 'close-cycle',
+			label: 'Close cycle',
+			type: 'api-call',
+			url: '/apps/pipelinq/api/cycles/@resolved.id/close',
+			resolve: { register: 'pipelinq', schema: 'cycle', filter: { programme: '@objectId', status: 'open' }, unresolved: 'disable', reason: 'No open cycle' },
+		}
+		expect(validateManifestV2(withAction(action)).valid).toBe(true)
+	})
+
+	it('refuses a resolve without a schema or with an unknown key', () => {
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r' } })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r', schema: 's', pick: 'last' } })).valid).toBe(false)
 	})
 })

@@ -12,7 +12,10 @@
 			required
 			@update:modelValue="onUrlInput" />
 
-		<div v-if="detectedSource" class="cn-video-form__hint">
+		<div v-if="urlError && hasUrl" class="cn-video-form__error" role="alert">
+			{{ urlError }}
+		</div>
+		<div v-else-if="detectedSource" class="cn-video-form__hint">
 			{{ detectedSourceLabel }}
 		</div>
 		<div v-else-if="hasUrl" class="cn-video-form__error" role="alert">
@@ -120,6 +123,17 @@ export default {
 		value: {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
+		},
+
+		/**
+		 * An error the host found for the current URL (its server-side parse,
+		 * say). Shown under the URL field in place of the form's own message,
+		 * and returned by `validate()`, so the dialog cannot save. Empty when
+		 * the host has no objection.
+		 */
+		urlError: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -300,6 +314,10 @@ export default {
 			const errors = []
 			if (!this.hasUrl) {
 				errors.push(t('nextcloud-vue', 'Video URL is required'))
+				return errors
+			}
+			if (this.urlError) {
+				errors.push(this.urlError)
 				return errors
 			}
 			if (this.detectedSource === null) {

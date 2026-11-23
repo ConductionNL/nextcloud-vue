@@ -14,6 +14,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import CnTaskFormWidget from '../../src/components/CnTaskFormWidget/CnTaskFormWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnTaskFormWidget as Exported } from '../../src/components/index.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), put: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => p }))
@@ -64,8 +65,8 @@ beforeEach(() => {
 })
 
 describe('CnTaskFormWidget', () => {
-	it('is registered as task-form and exported', () => {
-		expect(getWidgetTypeEntry('task-form').renderer).toBe(CnTaskFormWidget)
+	it('is registered as task-form and exported', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('task-form').renderer)).toBe(CnTaskFormWidget)
 		expect(Exported).toBe(CnTaskFormWidget)
 	})
 

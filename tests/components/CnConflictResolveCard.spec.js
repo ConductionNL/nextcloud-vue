@@ -36,6 +36,7 @@ jest.mock('@nextcloud/capabilities', () => ({
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { conflictFields } from '../../src/utils/conflictFields.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { DASHBOARD_CATALOG_WIDGET_KEYS } from '../../src/utils/libraryWidgetKeys.js'
 
 import '../../src/components/CnConflictResolveCard/index.js'
@@ -98,8 +99,8 @@ describe('conflictFields', () => {
 })
 
 describe('CnConflictResolveCard', () => {
-	it('registers the conflict-resolve widget type in the library catalog', () => {
-		expect(getWidgetTypeEntry('conflict-resolve').renderer).toBe(CnConflictResolveCard)
+	it('registers the conflict-resolve widget type in the library catalog', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('conflict-resolve').renderer)).toBe(CnConflictResolveCard)
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('conflict-resolve')
 	})
 

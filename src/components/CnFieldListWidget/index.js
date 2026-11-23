@@ -8,11 +8,13 @@
  * module load. Renderer only: declared in the manifest.
  */
 
-import CnFieldListWidget from './CnFieldListWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnFieldListWidget = lazyComponent(() => import('./CnFieldListWidget.vue'), 'CnFieldListWidget')
+
 registerDashboardWidget('field-list', {
-	renderer: CnFieldListWidget,
+	renderer: LazyCnFieldListWidget,
 	form: null,
 	defaultContent: {
 		field: '',
@@ -24,5 +26,5 @@ registerDashboardWidget('field-list', {
 	surfaces: ['detail-page'],
 })
 
-export { CnFieldListWidget }
-export default CnFieldListWidget
+export { default as CnFieldListWidget } from './CnFieldListWidget.vue'
+export { default } from './CnFieldListWidget.vue'

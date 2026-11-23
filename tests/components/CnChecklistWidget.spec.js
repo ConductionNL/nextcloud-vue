@@ -22,6 +22,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import CnChecklistWidget from '../../src/components/CnChecklistWidget/CnChecklistWidget.vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import { dashboardWidgetRegistry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnChecklistWidget/index.js'
 
@@ -56,8 +57,8 @@ beforeEach(() => {
 })
 
 describe('the checklist widget', () => {
-	it('is a registered catalog widget', () => {
-		expect(dashboardWidgetRegistry.checklist.renderer).toBe(CnChecklistWidget)
+	it('is a registered catalog widget', async () => {
+		expect(await loadLazyComponent(dashboardWidgetRegistry.checklist.renderer)).toBe(CnChecklistWidget)
 	})
 
 	it('lists the items with an id and says how many are done', () => {

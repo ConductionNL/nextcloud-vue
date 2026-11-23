@@ -7,11 +7,13 @@
  * `sideEffects` allowlist, so a bundler does not drop the registration.
  */
 
-import CnRowMarkList from './CnRowMarkList.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnRowMarkList = lazyComponent(() => import('./CnRowMarkList.vue'), 'CnRowMarkList')
+
 registerDashboardWidget('row-mark-list', {
-	renderer: CnRowMarkList,
+	renderer: LazyCnRowMarkList,
 	form: null,
 	defaultContent: {
 		load: { url: '' },

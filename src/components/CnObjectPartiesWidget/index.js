@@ -7,11 +7,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnObjectPartiesWidget from './CnObjectPartiesWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnObjectPartiesWidget = lazyComponent(() => import('./CnObjectPartiesWidget.vue'), 'CnObjectPartiesWidget')
+
 registerDashboardWidget('parties', {
-	renderer: CnObjectPartiesWidget,
+	renderer: LazyCnObjectPartiesWidget,
 	form: null,
 	defaultContent: {},
 	displayName: 'Parties',
@@ -19,5 +21,5 @@ registerDashboardWidget('parties', {
 	surfaces: ['detail-page'],
 })
 
-export { CnObjectPartiesWidget }
-export default CnObjectPartiesWidget
+export { default as CnObjectPartiesWidget } from './CnObjectPartiesWidget.vue'
+export { default } from './CnObjectPartiesWidget.vue'

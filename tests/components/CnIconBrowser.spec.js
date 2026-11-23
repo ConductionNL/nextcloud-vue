@@ -445,16 +445,18 @@ describe('CnIconBrowser — default NL-government url-icon groups', () => {
 		const groups = w.findComponent(CnIconBrowserPanel).props('urlIconGroups')
 		expect(groups.map((g) => g.key)).toEqual(['open-gemeenten', 'den-haag', 'rvo'])
 	})
-	it('keeps the two small sets eager and defers RVO behind load()', () => {
+	it('defers every set behind load()', async () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, inline: true }, mocks })
 		const groups = w.findComponent(CnIconBrowserPanel).props('urlIconGroups')
-		const [gemeente, denHaag, rvo] = groups
-		expect(gemeente.icons.length).toBeGreaterThan(0)
-		expect(denHaag.icons.length).toBeGreaterThan(0)
-		// RVO ships no icons up front — only a loader — so its ~1.9MB stays out of
-		// the eager bundle until a user opens its tab.
-		expect(rvo.icons).toEqual([])
-		expect(typeof rvo.load).toBe('function')
+		// No set ships icons up front, only a loader, so their data URIs stay
+		// out of the eager bundle until a user opens a set's tab.
+		for (const group of groups) {
+			expect(group.icons).toEqual([])
+			expect(typeof group.load).toBe('function')
+		}
+		const [gemeente, denHaag] = groups
+		expect((await gemeente.load()).length).toBeGreaterThan(0)
+		expect((await denHaag.load()).length).toBeGreaterThan(0)
 	})
 	it('lets a provided cnIconUrlGroups override the default, and [] opt out', () => {
 		const custom = [{ key: 'brand', label: 'Brand', icons: [{ label: 'B', url: '/b.svg' }] }]

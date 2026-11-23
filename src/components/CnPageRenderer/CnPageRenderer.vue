@@ -294,13 +294,10 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
+import { computed, defineAsyncComponent, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
-import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { useListNavigation } from '../../composables/useListNavigation.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
@@ -364,8 +361,12 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	}
 	return entityDescriptorCache.get(key).catch(() => null)
 }
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
+
+const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
+const CnMassExportDialog = defineAsyncComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue').then((m) => m.default))
+const CnPageConfigModal = defineAsyncComponent(() => import('../../dialogs/CnPageConfigModal.vue').then((m) => m.default))
+const CnBuildiqEditButton = defineAsyncComponent(() => import('../CnBuildiqEditButton/CnBuildiqEditButton.vue').then((m) => m.default))
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
